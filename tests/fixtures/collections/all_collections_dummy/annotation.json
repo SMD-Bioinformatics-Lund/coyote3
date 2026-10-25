@@ -1,0 +1,19 @@
+[
+  {
+    "variant": "p.Leu858Arg",
+    "hgvsp": "p.Leu858Arg",
+    "hgvsc": "c.2573T>G",
+    "genomic": "7_140453136_A_T",
+    "genomic_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
+    "gene": "EGFR",
+    "asp_group": "hematology",
+    "diagnosis_id": "core",
+    "asp_id": "demo-hematology_gmsv1",
+    "namespace": "clinical",
+    "author": "demo.user",
+    "nomenclature": "p",
+    "transcript": "NM_005228.5",
+    "time_created": "2026-01-01T10:00:00+00:00",
+    "class": 2
+  }
+]

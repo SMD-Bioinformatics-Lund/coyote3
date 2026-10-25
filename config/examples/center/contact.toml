@@ -1,0 +1,32 @@
+# Example public contact details. Copy to the center-owned directory and review.
+[organization]
+name = "Example Molecular Diagnostics Center"
+department = "Molecular Diagnostics"
+# Bundled mark, a relative SVG/PNG/JPEG path inside this center directory, or "" to omit.
+report_logo = "region-skane"
+
+[support]
+primary_email = "support@example.org"
+urgent_phone = ""
+
+[[hours]]
+label = "Service desk"
+value = "Replace with the center's support hours and timezone."
+
+[[contacts]]
+label = "Clinical support"
+role = "Interpretation and report questions"
+description = "Contact the clinical team for interpretation and reporting support."
+
+[[contacts.people]]
+name = "Clinical support team"
+email = "clinical@example.org"
+
+[[contacts]]
+label = "Platform support"
+role = "Application access and operations"
+description = "Contact the platform team for access, ingest, and service availability."
+
+[[contacts.people]]
+name = "Platform support team"
+email = "support@example.org"

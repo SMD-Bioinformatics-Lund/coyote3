@@ -11,12 +11,12 @@ from typing import Any
 from pymongo.errors import AutoReconnect, ConnectionFailure, NetworkTimeout
 
 from api.app.container import ldap_manager, store, util
-from api.config import app_config
-from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
+from api.config import runtime_settings
 from api.config.mongo import mongo_endpoints
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
 from api.infra.observability.prometheus_metrics import set_startup_phase_duration
+from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
 
 
 @dataclass
@@ -112,15 +112,15 @@ def _select_config(testing: bool, development: bool):
         object: Concrete configuration instance for the current runtime.
     """
     if testing:
-        return app_config.TestConfig()
+        return runtime_settings.TestConfig()
     if development:
-        return app_config.DevelopmentConfig()
+        return runtime_settings.DevelopmentConfig()
     env_name = os.getenv("ENV_NAME", "").strip().lower()
     if env_name in {"stage", "staging"}:
-        app_config.StageConfig.validate_required_env()
-        return app_config.StageConfig()
-    app_config.ProductionConfig.validate_required_env()
-    return app_config.ProductionConfig()
+        runtime_settings.StageConfig.validate_required_env()
+        return runtime_settings.StageConfig()
+    runtime_settings.ProductionConfig.validate_required_env()
+    return runtime_settings.ProductionConfig()
 
 
 def _config_dict(config_obj) -> dict[str, Any]:

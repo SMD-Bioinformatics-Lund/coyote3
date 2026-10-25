@@ -25,9 +25,12 @@ reference imports, migration inputs, backups and generated artifacts.
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
 The [center configuration guide](../deployment/center-configuration.md) describes
-where the three editable center files live, how local/Git releases are prepared,
+where required and optional center files live, how local/Git releases are prepared,
 and which processes load them. The environment filename is independent of this
 center directory. Never place passwords in public contact or clinical-policy files.
+
+Empty-section messages for modern reports are configured separately in the optional
+[report presentation file](report-presentation-file.md). They do not require a new ASPC revision.
 
 ## Clinical resources managed in the application
 
@@ -37,9 +40,10 @@ they are not extra TOML files to create on the host.
 | Item | Detailed reference | Procedure |
 | --- | --- | --- |
 | Assay / ASP and configuration / ASPC | [Resource definitions and missing prerequisites](../administration/clinical-configuration-resources.md), [analysis availability](../administration/assay-analysis-availability.md) | [Add an assay](../administration/assay-setup.md) |
-| Assay group and named subpanels | [Groups](../administration/assay-groups.md), [definitions and associations](../administration/assay-subpanels.md) | [Setup order](../administration/assay-setup.md#when-order-matters) |
+| Assay group and named diagnoses | [Groups](../administration/assay-groups.md), [definitions and associations](../administration/assay-diagnoses.md) | [Setup order](../administration/assay-setup.md#when-order-matters) |
 | Gene lists / ISGL | [List types and clinical scope](../user-guide/gene-lists-and-assay-context.md) | [Configure selected lists](../administration/assay-setup.md#4-prepare-the-gene-lists-that-filters-will-select) |
 | Reporting rule set | [Rule syntax, validation and publication](../reference/clinical-reporting-rules.md) | [Assay rule preparation](../administration/assay-setup.md#5-publish-compatible-reporting-rules) |
+| Reusable profiles and environment promotion | [Scope, precedence and reviewed publication](../administration/configuration-publication.md) | Assay configurations → Profiles and promotions |
 | Users, roles and permissions | [Access model](../administration/permissions-and-access.md), [permission identifiers](../administration/permission-catalog.md) | [Administration](../administration/administration-guide.md) |
 | Public assay catalog | [Fields, ownership and approval](../administration/public-assay-catalog.md) | Separate publication after clinical activation |
 

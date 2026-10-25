@@ -12,7 +12,7 @@ for (const width of [1440, 1024, 390]) {
       asp_family: { data_type: "str", default: "panel-dna" },
       asp_category: { data_type: "str", default: "dna" },
     } }
-    const context = () => ({ panel_form: panelForm, subpanels: [{ subpanel_id: "myeloid", display_name: "Myeloid", is_active: true }], environments: ["development", "production"], ...(saved ? { setup: saved, history: [], rules: [], readiness: { ready: false, issues: ["Missing ASPCs: base/development"] } } : {}) })
+    const context = () => ({ panel_form: panelForm, diagnoses: [{ diagnosis_id: "myeloid", display_name: "Myeloid", is_active: true }], environments: ["development", "production"], ...(saved ? { setup: saved, history: [], rules: [], readiness: { ready: false, issues: ["Missing ASPCs: base/development"] } } : {}) })
     await installApiFixtures(page, (path, _url, route) => {
       if (path === "/api/v1/admin/assay-setups") {
         if (route.request().method() === "POST") {
@@ -37,10 +37,10 @@ for (const width of [1440, 1024, 390]) {
     await expect(page.getByRole("checkbox", { name: "Myeloid", exact: true })).not.toBeChecked()
     await page.getByRole("checkbox", { name: "Myeloid", exact: true }).check()
     await page.getByRole("checkbox", { name: "development", exact: true }).check()
-    await page.getByRole("button", { name: "Save scopes" }).click()
+    await page.getByRole("button", { name: "Save diagnoses and environments" }).click()
     await expect(page.getByText("draft · Revision 2", { exact: true })).toBeVisible()
     await page.reload()
-    await page.getByRole("button", { name: "2. Scopes", exact: true }).click()
+    await page.getByRole("button", { name: "2. Diagnoses", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeChecked()
     await expect(page.getByRole("checkbox", { name: "Myeloid", exact: true })).toBeChecked()
     await page.screenshot({ path: testInfo.outputPath(`setup-scopes-${width}.png`), fullPage: true })

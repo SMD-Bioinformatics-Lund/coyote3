@@ -9,8 +9,12 @@ from pathlib import Path
 
 BASELINE_PATH = Path("tests/fixtures/backend_architecture_baseline.json")
 
-STORE_TARGET_DIRS = (Path("api/interfaces/http"), Path("api/domain/core"))
-MONGO_LEAK_TARGET_DIRS = (Path("api/interfaces/http"), Path("api/domain/core"), Path("api/domain"))
+STORE_TARGET_DIRS = (Path("api/interfaces/http"), Path("src/coyote3/domain"))
+MONGO_LEAK_TARGET_DIRS = (
+    Path("api/interfaces/http"),
+    Path("src/coyote3/domain"),
+    Path("src/coyote3/domain"),
+)
 
 STORE_PATTERN = re.compile(r"\bstore\.")
 RETIRED_WEB_MONGO_PACKAGE = "f" + "lask_" + "pymongo"
@@ -21,14 +25,7 @@ OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
 
 
 def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
-    """Iter py files.
-
-    Args:
-            target_dirs: Target dirs.
-
-    Returns:
-            The  iter py files result.
-    """
+    """Iter py files."""
     files: list[Path] = []
     for target_dir in target_dirs:
         files.extend(target_dir.rglob("*.py"))
@@ -36,11 +33,7 @@ def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
 
 
 def _count_store_usage_by_file() -> dict[str, int]:
-    """Count store usage by file.
-
-    Returns:
-            The  count store usage by file result.
-    """
+    """Count store usage by file."""
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(STORE_TARGET_DIRS):
         text = py_file.read_text(encoding="utf-8")
@@ -51,11 +44,7 @@ def _count_store_usage_by_file() -> dict[str, int]:
 
 
 def _count_mongo_leaks_by_file() -> dict[str, int]:
-    """Count mongo leaks by file.
-
-    Returns:
-            The  count mongo leaks by file result.
-    """
+    """Count mongo leaks by file."""
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(MONGO_LEAK_TARGET_DIRS):
         hits = 0
@@ -70,11 +59,7 @@ def _count_mongo_leaks_by_file() -> dict[str, int]:
 
 
 def _load_baseline() -> dict:
-    """Load baseline.
-
-    Returns:
-            The  load baseline result.
-    """
+    """Load baseline."""
     return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
 
 
@@ -108,24 +93,14 @@ def _assert_not_above_baseline(
 
 
 def test_store_usage_in_routes_core_does_not_increase():
-    """Test store usage in routes core does not increase.
-
-    Returns:
-        The function result.
-    """
     baseline = _load_baseline()["store_usage_by_file"]
     current = _count_store_usage_by_file()
     _assert_not_above_baseline(
-        "store.* usage in api/interfaces/http+api/domain/core", current, baseline
+        "store.* usage in api/interfaces/http+src/coyote3/domain", current, baseline
     )
 
 
 def test_mongo_specific_leaks_do_not_increase():
-    """Test mongo specific leaks do not increase.
-
-    Returns:
-        The function result.
-    """
     baseline = _load_baseline()["mongo_leak_usage_by_file"]
     current = _count_mongo_leaks_by_file()
     _assert_not_above_baseline("Mongo-specific leaks in backend layers", current, baseline)

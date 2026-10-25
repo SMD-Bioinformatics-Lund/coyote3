@@ -1,0 +1,7 @@
+Coyote3 Python HTTP Client
+Copyright © 2026 Ram Nanduri and Section for Molecular Diagnostics,
+Lund, Region Skåne, Sweden.
+
+Original developer: Ram Nanduri
+Distributed under the Apache License, Version 2.0. See LICENSE.txt.
+This independent HTTP client does not contain the COYOTE3 application SDK or server.

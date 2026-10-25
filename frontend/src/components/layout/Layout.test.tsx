@@ -37,16 +37,6 @@ const currentUser = {
   permissions: ["assay.config:view"],
 }
 
-const catalog = {
-  meta: {
-    nav_groups: [
-      { category: "dna", family: "panel", assay_group: "hematology" },
-      { category: "dna", family: "wgs", assay_group: "tumwgs" },
-      { category: "rna", family: "wts", assay_group: "fusion" },
-    ],
-  },
-}
-
 function renderLayout(initialEntry = "/samples") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -74,7 +64,6 @@ function mockPrivateQueries(
   vi.mocked(api.get).mockImplementation(async (url: string) => {
     if (url === "/public/modules") return { data: { modules: {} } } as never
     if (url === "/auth/whoami") return { data: currentUser } as never
-    if (url === "/public/assay-catalog/context") return { data: catalog } as never
     if (url.startsWith("/samples/navigation-counts?")) {
       return {
         data: {
@@ -144,6 +133,18 @@ describe("Layout", () => {
     })
   })
 
+  it("resets sample pagination when selecting a navigation group and preserves profile scope", async () => {
+    mockPrivateQueries()
+    renderLayout("/?live_page=7&reported_page=3&profile_scope=all")
+    fireEvent.click(await screen.findByRole("button", { name: /dna/i }))
+    fireEvent.click(screen.getByTitle("DNA / panel / hematology"))
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith(
+        "/samples?profile_scope=all&panel_type=dna&panel_tech=panel&assay_group=hematology",
+      )
+    })
+  })
+
   it("requests navigation counts for the selected profile scope", async () => {
     mockPrivateQueries()
     renderLayout("/samples?profile_scope=all")
@@ -194,7 +195,6 @@ describe("Layout", () => {
     vi.mocked(fetch).mockResolvedValue({ ok: false, status: 401 } as Response)
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/public/modules") return { data: { modules: {} } } as never
-      if (url === "/public/assay-catalog/context") return { data: catalog } as never
       if (url === "/public/contact") return { data: {} } as never
       throw new Error(`Unexpected URL: ${url}`)
     })

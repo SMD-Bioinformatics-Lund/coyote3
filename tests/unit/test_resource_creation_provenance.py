@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.resources import asp, isgl
+from coyote3.application.resources import asp, isgl
 
 
 @pytest.mark.parametrize("resource", ["asp", "isgl"])
@@ -24,17 +24,17 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
                 create_panel=create,
             )
         )
-        config = {"asp_id": "demo_assay", "asp_group": "demo"}
+        config = {"asp_id": "demo_assay", "asp_group": "demo", "asp_family": "panel-rna"}
     else:
         service = isgl.IsglService(
             gene_list_repository=SimpleNamespace(
                 get_isgl=lambda identifier: None, create_genelist=create
             ),
             assay_panel_repository=SimpleNamespace(),
-            assay_subpanel_repository=SimpleNamespace(),
+            assay_diagnosis_repository=SimpleNamespace(),
         )
         monkeypatch.setattr(service, "_validate_asp_scope", lambda config: None)
-        monkeypatch.setattr(service, "_validate_subpanels", lambda config: None)
+        monkeypatch.setattr(service, "_validate_diagnoses", lambda config: None)
         config = {"isgl_id": "demo_genes"}
     config.update(created_by="forged_actor", created_on="forged_time", system_managed=True)
     service.create(payload={"config": config}, actor_username="request_actor")
@@ -42,3 +42,5 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
     assert stored["created_by"] == "authenticated_actor"
     assert stored["created_on"] == "server_time"
     assert stored["system_managed"] is False
+    if resource == "asp":
+        assert stored["asp_category"] == "rna"

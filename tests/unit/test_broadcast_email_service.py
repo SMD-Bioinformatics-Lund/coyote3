@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.notifications.service import NotificationService
+from coyote3.application.notifications.service import NotificationService
 
 
 @pytest.mark.parametrize(

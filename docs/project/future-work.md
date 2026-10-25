@@ -9,8 +9,8 @@ plans and clinical workflow validation.
 **Status: proposed; not implemented as a complete workflow.**
 
 Current somatic SNV queries can return germline variants that satisfy their selection
-criteria. Germline intent has configuration and query support, but the dedicated
-germline pathway is not yet fully implemented. The current behavior and limitations
+criteria. Germline intent has separate filters, queries and reporting contexts;
+the somatic query policy also includes effective germline exceptions. Current behavior
 are described in [SNV query intent](../reference/assay-filtering.md#intent-specific-snv-review).
 
 ### Proposed model

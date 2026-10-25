@@ -7,11 +7,11 @@ from uuid import uuid4
 import pytest
 from pymongo import MongoClient
 
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture
@@ -30,8 +30,8 @@ def repository():
         asp_collection=db.asp,
         aspc_collection=db.aspc,
         insilico_genelist_collection=db.isgl,
-        subpanels_collection=db.subpanels,
-        subpanel_associations_collection=db.associations,
+        diagnoses_collection=db.diagnoses,
+        diagnosis_associations_collection=db.associations,
         clinical_rule_sets_collection=db.rules,
     )
     try:

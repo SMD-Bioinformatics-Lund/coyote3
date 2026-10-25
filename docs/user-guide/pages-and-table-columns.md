@@ -99,7 +99,7 @@ Clicking a tier badge in a finding table opens the reported-variant context page
 
 ### Filter Flag Badges
 
-Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/config/center/filter_flag_metadata.yaml`.
+Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `config/examples/center/filter_flag_metadata.yaml`.
 
 | Badge family | Meaning |
 | --- | --- |
@@ -145,7 +145,7 @@ The dashboard is the operational entry point. It summarizes work that a reviewer
 | Workflow queues | Ingest status, report readiness, and review state summaries. |
 | Sample profiles | Production and non-production profile distribution. |
 | Pipeline distribution | Visible samples grouped by their recorded pipeline and pipeline version, with analysed progress per group. |
-| Recent samples | Latest loaded samples with assay, subpanel, status, counts, and relative added time. |
+| Recent samples | Latest loaded samples with assay, diagnosis, status, counts, and relative added time. |
 | Panel gene coverage | Covered and germline gene assignments for active targeted DNA and RNA panels. WGS and WTS definitions are intentionally excluded. |
 | Panel portfolio | Active targeted-panel count, represented assay groups, accreditation count, and covered/germline gene assignments. |
 | Panel analysis capability | Active targeted-panel ASPCs grouped by analysis type, comparing configurations where the analysis is enabled with configurations where it is reportable. WGS and WTS are excluded. |
@@ -189,6 +189,12 @@ Route: `/samples`
 
 The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The **Maximum rows per page** control selects 25, 50, 100, or 200 rows without limiting the complete result set. Live and reported samples have independent page numbers.
 
+The DNA/RNA navigation menus filter by assay family and assay group using the
+registered assays. Counts and group filters follow the same assay-access and
+profile scope. Selecting or clearing a group returns both worklists to page one.
+Other list filters, such as search text and date range, still apply, so the visible
+result count can be lower than the navigation count.
+
 Search is evaluated by the API against the complete sample catalog available to the user before pagination. It matches sample, case, control, and case/control Clarity identifiers. The table total reports the exact number of matching samples, and **Previous** and **Next** navigate every matching page. Sorting is also applied by the API before pagination, including multi-column sorting.
 
 The default **Classic** layout shows the live and reported worklists on the same page. **Modern** provides a focused worklist with separate Live samples and Reported samples tabs. The choice is stored in `users.ui_settings.sample_list_layout` as `classic` or `modern`. An informational banner offers Modern until the user selects that layout for the first time. That acknowledgement is stored in `sample_list_modern_view_tried`, so returning to Classic does not restore the banner.
@@ -216,7 +222,7 @@ Date, profile, live/reported, assay, search, rows-per-page, page, and sort selec
 | Control Clarity | Control Clarity/LIMS identifier. | `-` when unavailable |
 | Profile | Sample profile/environment. | Profile badge such as production/prod |
 | Assay | Assay panel identifier. | Plain text |
-| Subpanel | ASPC/subpanel context. | Plain text |
+| Diagnosis | ASPC/diagnosis context. | Plain text |
 | Analysis | Committed sample ingest status. Standard worklists contain only samples in the green `ready` state. | Green `ready` badge |
 | Report | Reported state. | `reported` or `unreported` badge |
 | Data | Availability of each recorded or expected data type. | One compact pill with a segment per type: a green check means available; a red × means unavailable. Hover or keyboard focus shows full finding counts, a check for other present data, and × for missing data. Click to keep the details open; press Escape to close them. |
@@ -334,8 +340,8 @@ SNV and CNV gene-list scopes are independent. `ISGL.list_type` determines the
 selectors in which a list is available; the saved target-specific selection
 determines where it is applied. Selecting a multi-purpose ISGL in the SNV
 selector therefore does not filter the CNV table. Without a CNV selection, the
-table uses ASP covered genes, or all genes when the ASP has no covered-gene
-scope. RNA fusion uses the same target-specific rule. DNA
+table uses ASP eligible genes; an empty scope returns no findings.
+RNA fusion uses the same target-specific rule. DNA
 fusion/translocation review has its own saved selection under
 `filters.somatic.translocation.fusionlists`; it accepts fusion-compatible
 ISGLs but does not inherit the RNA fusion or SNV selection.
@@ -463,10 +469,10 @@ not shown in this menu.
 
 The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the sample's recorded ASPC revision enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
 
-Coverage scope comes only from the active ASP. When `ASP.covered_genes` is
-populated, only those genes are evaluated. When it is empty, every gene in the
-sample's coverage record is evaluated. SNV, CNV, fusion, and other selected
-ISGLs do not restrict coverage.
+Coverage uses the sample's pinned assay eligibility, narrowed by its somatic SNV
+gene-list and ad-hoc selections. With no selection, the assay's eligible genes
+apply. Empty resolved scope returns no gene coverage rows. CNV and fusion list
+selections do not change coverage scope.
 
 | Area | Information shown |
 | --- | --- |
@@ -566,7 +572,7 @@ contain small variants, CNVs, fusions, and translocations.
 
 | Control or column | Information shown |
 | --- | --- |
-| Search mode | Finding identity, gene symbol, HGVSp, HGVSc, genomic, transcript, nomenclature, subpanel, author, annotation text, or all fields. |
+| Search mode | Finding identity, gene symbol, HGVSp, HGVSc, genomic, transcript, nomenclature, diagnosis, author, annotation text, or all fields. |
 | Include annotation text | Includes stored annotation/report text in the search query. |
 | Assays | Filters results by assay. |
 | Tier cards | Current result count by tier. |
@@ -578,7 +584,7 @@ contain small variants, CNVs, fusions, and translocations.
 | Nomenclature | `p`, `c`, `g`, `cn`, `f`, or `t`, identifying which annotation contract applies. |
 | HGVSp, HGVSc, genomic, transcript | Small-variant identity fields. They remain empty where they are not applicable. |
 | Assay | Assay or assay group. |
-| Subpanel | Subpanel/diagnosis context. |
+| Diagnosis | Diagnosis/diagnosis context. |
 | Author | User who created the annotation/classification. |
 | Annotation | Stored annotation text, merged with class context when applicable. |
 | Samples | Samples and immutable report links where this reported finding appears. |
@@ -623,7 +629,7 @@ fast visual summary; the tables below them remain the detailed evidence view.
 The denominator is derived per sample and enabled analysis type. A selected
 SNV, CNV, or fusion/translocation ISGL defines that type's gene scope. If no
 type-specific ISGL is selected, the active ASP `covered_genes` list is used. An
-ASP with an empty covered-gene scope is treated as unrestricted. Samples
+ASP with an empty covered-gene scope contributes no eligible genes. Samples
 outside the user's assay or environment access are excluded.
 
 The numerator is read from the `reported_variants` collection. It counts each
@@ -694,7 +700,7 @@ generation is performed while viewing it.
 
 | Source | Information used |
 | --- | --- |
-| `reports` | Report ID, sample link, ASP/subpanel/environment, author, creation time, artifact paths, ASPC/filter snapshots, and reporting-rule provenance. |
+| `reports` | Report ID, sample link, ASP/diagnosis/environment, author, creation time, artifact paths, ASPC/filter snapshots, and reporting-rule provenance. |
 | `reported_variants` | Immutable typed findings linked by `report_oid`, including analysis type, nomenclature-aware identity, genes, tier, and report-time text. |
 | `samples` | Access-controlled sample lookup used when opening the report under its owning sample. |
 
@@ -706,8 +712,8 @@ The assay catalog combines center-owned `public_assay_catalog` content with ASP,
 
 | Area | Information shown |
 | --- | --- |
-| Modality tree | DNA/RNA, modality section, assay group, assay, subpanel, and gene list navigation. |
-| Header | Catalog title, subheading, description, and ASP/ASPC/subpanel identifiers. |
+| Modality tree | DNA/RNA, modality section, assay group, assay, diagnosis, and gene list navigation. |
+| Header | Catalog title, subheading, description, and ASP/ASPC/diagnosis identifiers. |
 | Input material | Sample material badges from catalog metadata. |
 | TAT | Turnaround time from catalog metadata. |
 | Sample types | Accepted sample types as badges. |
@@ -728,7 +734,7 @@ The matrix shows gene coverage across catalog columns.
 | --- | --- |
 | Row 1 | Modality or large catalog section such as WGS, WTS, targeted panels, or RNA fusion panel. |
 | Row 2 | Assay group or section within the modality. |
-| Row 3 | Assay, subpanel, or gene-list column label. |
+| Row 3 | Assay, diagnosis, or gene-list column label. |
 | Body rows | One row per gene. A tick means the gene is present in that catalog column; `-` means absent. |
 
 Matrix filters include gene search, modality, section, and gene list. Gene search returns focused rows; otherwise the matrix is paged to keep loading fast.
@@ -745,7 +751,7 @@ Gene pages present HGNC-centered gene context.
 | --- | --- |
 | Identity | Approved symbol, HGNC ID, gene name, status, locus, aliases, and previous symbols. |
 | Transcript context | MANE Clinical Plus, MANE Select, Ensembl/RefSeq transcript information when available. |
-| Catalog membership | Assays, subpanels, and gene lists that include the gene. |
+| Catalog membership | Assays, diagnoses, and gene lists that include the gene. |
 | Knowledgebase context | Available source families, OncoKB and ClinPGx context, COSMIC Cancer Gene Census role and tier, somatic/germline scope, mutation types, and hallmarks. Finding-specific evidence remains on finding detail pages. |
 
 ## Admin Pages
@@ -853,7 +859,7 @@ session and return in a new session if still active. Neither action withdraws a
 message for other users. Signing out clears local session history. Server retention,
 explicit broadcast expiry and sender withdrawal still determine message visibility.
 
-Shared assay, ISGL, subpanel and knowledgebase activity appears for everyone.
+Shared assay, ISGL, diagnosis and knowledgebase activity appears for everyone.
 Saved-report notifications go to matching sample-group members with the required
 assay/environment scope. Older inbox pages are loaded automatically; reading a
 message or receiving a new one does not evict another visible message.
@@ -889,6 +895,6 @@ or delete a superuser account.
 | Route | Purpose |
 | --- | --- |
 | `/profile` | Shows account identity, roles, auth types, scopes, editable profile settings, and password controls when local auth is enabled. |
-| `/about` | Product, application version, database names, software versions, reference versions, support summary, and useful operational links including documentation, license, repository, and issue submission. |
+| `/about` | Product, application version, installed core SDK and Python HTTP client SDK versions, database names, software versions, reference versions, support summary, and operational links. SDK values come from installed distribution metadata; an absent package is shown as not installed. The client version identifies the server-installed Python client, not clients installed on other workstations. |
 | `/contact` | Public contact, service hours, support roles, address, and configured center links from the contact TOML file. |
 | External license link | License and usage terms from the configured codebase link. |

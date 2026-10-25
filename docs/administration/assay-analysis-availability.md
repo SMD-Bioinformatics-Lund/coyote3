@@ -1,9 +1,16 @@
 # Assay analysis and reporting availability
 
-The selected ASP's `expected_files` determine which
-ASPC analyses can be enabled. The analysis-to-file mapping is maintained in
-`api/config/center/clinical_vocabulary.toml`; ASP category and sequencing family
-continue to restrict the available analyses.
+An assay's `supported_analyses`, `expected_files`, modality and technical family
+determine which ASPC analyses can be enabled. Implemented capabilities and their
+input mappings are defined in `src/coyote3/config/clinical_capabilities.toml`.
+The [supported capabilities reference](supported-capabilities.md) lists the current
+workflows. DNA fusion evidence uses `TRANSLOCATION`; `FUSION` is RNA-only.
+
+`supported_analyses` selects a subset of the capabilities permitted by the family
+and accepted input files. An empty list supports no analyses. When omitted or
+null at creation, it resolves to every eligible capability and is stored as an
+explicit list. Configurations can enable only a subset of that list. Changing a
+label or registering a diagnosis does not add an executable analysis capability.
 
 For example, `vcf_files` enables SNV and `cnv` enables CNV. An ASP declaring neither
 file cannot enable those analyses. Missing or empty file declarations enable no
@@ -33,9 +40,9 @@ create and update, including JSON imports.
 
 ASP and ISGL IDs are editable when creating a record. Copying clears the source ID
 so a new ID must be entered. The ASPC editor derives its read-only ID from the
-selected ASP, subpanel, and environment, including when copying a configuration.
+selected ASP, diagnosis, and environment, including when copying a configuration.
 Once created, IDs are read-only because other records may reference them.
 Duplicate IDs continue to be rejected.
-ASPC copies also require an unused ASP/subpanel/environment combination: only one
+ASPC copies also require an unused ASP/diagnosis/environment combination: only one
 active configuration may serve each combination. Sample configuration lookup uses
 that combination independently of the chosen ASPC ID.

@@ -130,9 +130,9 @@ if center_dir:
     if not Path(center_dir).is_absolute():
         raise SystemExit("COYOTE3_CENTER_CONFIG_HOST_DIR must be an absolute host path")
     os.environ["COYOTE3_CENTER_CONFIG_DIR"] = center_dir
-from api.config.clinical_vocabulary import load_clinical_vocabulary
-from api.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.loaders.contact import load_contact_config
+from coyote3.config.clinical_vocabulary import load_clinical_vocabulary
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
+from api.config.contact import load_contact_config
 from api.config.paths import CONTACT_CONFIG_PATH
 load_clinical_vocabulary()
 load_filter_flag_metadata()

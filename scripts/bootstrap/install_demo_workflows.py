@@ -20,8 +20,8 @@ from pymongo import MongoClient
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
-from api.application.provisioning.demo_installation import DemoInstallationService  # noqa: E402
 from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
+from api.services.provisioning.demo_installation import DemoInstallationService  # noqa: E402
 
 
 def validate_target(uri: str, database: str) -> None:
@@ -58,7 +58,11 @@ def main() -> None:
         args.mongo_uri, directConnection=True, serverSelectionTimeoutMS=5000
     ) as client:
         repository = DemoInstallationRepository(client[args.db])
-        service = DemoInstallationService(repository, ingest=None)
+        service = DemoInstallationService(
+            repository,
+            ingest=None,
+            identifier_factory=DemoInstallationRepository.identifier,
+        )
         documents = service.configuration(args.actor)
         repository.preflight(documents)
         print(json.dumps({name: len(rows) for name, rows in documents.items()}, indent=2))

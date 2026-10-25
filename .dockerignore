@@ -1,6 +1,21 @@
 # Ignore generated files
 **/*.pyc
 .git
+.design
+.internal
+.agents
+.ruff_cache
+.cache
+.idea
+.mypy_cache
+.vscode
+.codex
+.claude
+.gemini
+.aws
+.release
+build
+skills
 .venv*
 **/node_modules
 frontend/dist

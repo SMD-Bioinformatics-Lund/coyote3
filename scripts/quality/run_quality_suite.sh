@@ -19,7 +19,7 @@ fi
 
 echo "[quality] Backend tests"
 PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration \
-  --cov=api \
+  --cov=api --cov=coyote3 \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-report=xml:coverage.xml
@@ -29,6 +29,7 @@ PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. \
   bash scripts/quality/run_family_coverage_gates.sh --from-existing
 
 echo "[quality] Strict Python type boundary"
+"$PYTHON_BIN" -m pytest -q clients/python/tests
 PYTHONPATH=. "$PYTHON_BIN" -m mypy
 
 echo "[quality] Contract and repository checks"
@@ -37,7 +38,7 @@ PYTHON_BIN="$PYTHON_BIN" bash scripts/quality/check_contract_integrity.sh
 echo "[quality] Frontend lint and build"
 npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
-npm --prefix frontend run build
+PYTHON_BIN="$PYTHON_BIN" npm --prefix frontend run build:verified
 
 echo "[quality] Frontend browser tests"
 npm --prefix frontend run test:e2e

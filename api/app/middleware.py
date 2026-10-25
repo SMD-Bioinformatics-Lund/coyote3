@@ -19,7 +19,6 @@ from api.app.runtime_state import (
     set_current_request_id,
     set_current_user,
 )
-from api.config.application_modules import modules_for_api_path
 from api.infra.observability.logging import (
     bind_request_context,
     request_context_from_request,
@@ -35,6 +34,7 @@ from api.security.access import (
     validate_request_csrf,
 )
 from api.security.audit_events import emit_mutation_event, emit_request_event, request_ip
+from coyote3.config.application_modules import modules_for_api_path
 
 _API_RATE_LIMIT_EXCLUDED_PATHS = frozenset(
     {

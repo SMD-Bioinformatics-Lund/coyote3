@@ -173,7 +173,7 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
     <DetailHero
       backTo="/samples"
       density="compact"
-      eyebrow={[sample?.asp_id, sample?.subpanel_id, sample?.environment].filter(Boolean).join(" • ")}
+      eyebrow={[sample?.asp_id, sample?.diagnosis_id, sample?.environment].filter(Boolean).join(" • ")}
       title={sample?.name || sample?.case_id || sample?._id || "Sample"}
       chips={metricBadges.length > 0 ? metricBadges : undefined}
       actions={

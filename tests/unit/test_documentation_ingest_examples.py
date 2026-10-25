@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from api.application.ingest.parsers import DnaIngestParser, _normalize_fusion_docs
-from api.contracts.schemas.dna import (
+from coyote3.application.ingest.parsers import DnaIngestParser, _normalize_fusion_docs
+from coyote3.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
     D4CoverageDoc,
@@ -14,7 +14,7 @@ from api.contracts.schemas.dna import (
     TranslocationsDoc,
     VariantsDoc,
 )
-from api.contracts.schemas.rna import (
+from coyote3.contracts.schemas.rna import (
     FusionsDoc,
     RnaClassificationDoc,
     RnaExpressionDoc,

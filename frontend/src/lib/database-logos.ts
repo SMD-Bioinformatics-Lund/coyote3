@@ -6,27 +6,27 @@ export type DatabaseLogo = {
 const DATABASE_LOGOS: Array<{ matches: string[]; logo: DatabaseLogo }> = [
   {
     matches: ["brca_exchange", "brcaexchange"],
-    logo: { src: "/BRCA-Exchange.png", alt: "BRCA Exchange logo" },
+    logo: { src: "/logos/brca-exchange-vector.svg", alt: "BRCA Exchange logo" },
   },
   {
     matches: ["civic"],
-    logo: { src: "/civic.png", alt: "CIViC logo" },
+    logo: { src: "/logos/civic-vector.svg", alt: "CIViC logo" },
   },
   {
     matches: ["clinpgx", "pharmgkb"],
-    logo: { src: "/clinPGxpng.png", alt: "ClinPGx logo" },
+    logo: { src: "/logos/clinpgx-vector.svg", alt: "ClinPGx logo" },
   },
   {
     matches: ["cosmic"],
-    logo: { src: "/COSMIC.png", alt: "COSMIC logo" },
+    logo: { src: "/logos/cosmic-vector.svg", alt: "COSMIC logo" },
   },
   {
     matches: ["oncokb"],
-    logo: { src: "/OncoKB.png", alt: "OncoKB logo" },
+    logo: { src: "/logos/oncokb-vector.svg", alt: "OncoKB logo" },
   },
   {
     matches: ["cpic"],
-    logo: { src: "/cpic.svg", alt: "CPIC logo" },
+    logo: { src: "/logos/cpic-vector.svg", alt: "CPIC logo" },
   },
 ]
 

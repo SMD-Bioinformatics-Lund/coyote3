@@ -9,7 +9,7 @@ import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle } from "lucide-react";
-import { AnalysisIntentBadge, ConsequenceBadges, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
+import { AnalysisIntentBadge, ConsequenceBadges, FallbackTierBadge, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
 import { findingBulkActionOptions } from "@/lib/finding-actions";
@@ -313,7 +313,7 @@ export function VariantsTab({
       size: 56,
       cell: ({ row }) => {
         const tier = tierValue(row.original);
-        if (tier === 999) return <TierBadge tier={tier} />;
+        if (tier === 999) return <FallbackTierBadge candidates={row.original.other_classification} />;
         return (
           <Link
             to={`/variants/reported/${row.original._id}/${tier}`}

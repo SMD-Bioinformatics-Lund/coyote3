@@ -7,7 +7,7 @@ from bson import BSON, json_util
 from bson.codec_options import CodecOptions
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.mongo.transactions import run_transaction
 
 GENESIS_HASH = "0" * 64
@@ -50,9 +50,11 @@ def append_event(collection: Any, document: dict[str, Any]) -> Any:
         has a separate chain. Expiring operational events are deliberately not chained.
     """
     if document.get("retention_class") != "traceability":
-        result = collection.update_one(
-            {"_id": document["_id"]}, {"$setOnInsert": document}, upsert=True
-        )
+        try:
+            result = collection.insert_one(document)
+        except DuplicateKeyError:
+            # Stable event identities make replay safe without granting update access.
+            return document["_id"]
         if not result.acknowledged:
             raise PyMongoError("Audit inserts require acknowledged write concern")
         return document["_id"]

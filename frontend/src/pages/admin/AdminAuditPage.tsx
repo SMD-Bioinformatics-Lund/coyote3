@@ -70,7 +70,7 @@ export function AdminAuditPage() {
     retry: false,
     refetchInterval: 30_000,
   })
-  const rows = useMemo(() => (data?.events || data?.audit || data?.logs || []) as AuditEvent[], [data])
+  const rows = useMemo(() => (data?.events || []) as AuditEvent[], [data])
   const filtered = useMemo(() => {
     const now = Date.now()
     const hours = timeWindow === "24h" ? 24 : timeWindow === "7d" ? 24 * 7 : timeWindow === "30d" ? 24 * 30 : null

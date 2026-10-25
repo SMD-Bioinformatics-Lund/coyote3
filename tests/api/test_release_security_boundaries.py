@@ -6,12 +6,13 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.interfaces.http.operations.internal import (
-    _enforce_collection_permission,
-    _enforce_sample_ingest_permission,
-)
 from api.security.access import _enforce_password_change
 from api.security.audit_events import request_ip
+from coyote3.application.operations.ingest_permissions import (
+    enforce_collection_permission,
+    enforce_sample_ingest_permission,
+)
+from coyote3.domain.exceptions import AppError
 
 
 def test_session_uses_validated_credentials_without_reloading_user(monkeypatch):
@@ -41,9 +42,9 @@ def test_session_uses_validated_credentials_without_reloading_user(monkeypatch):
 )
 @pytest.mark.parametrize("action", ["create", "update"])
 def test_raw_sensitive_import_cannot_bypass_owned_workflow(collection, action):
-    with pytest.raises(HTTPException) as error:
-        _enforce_collection_permission(
-            user=SimpleNamespace(is_superuser=False), collection=collection, action=action
+    with pytest.raises(AppError) as error:
+        enforce_collection_permission(
+            None, user=SimpleNamespace(is_superuser=False), collection=collection, action=action
         )
     assert error.value.status_code == 403
 
@@ -95,11 +96,18 @@ def test_untrusted_forwarded_header_does_not_change_audit_or_rate_limit_identity
 def test_ingest_checks_assay_and_environment_context(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "api.interfaces.http.operations.internal._enforce_access",
+        "coyote3.application.operations.ingest_permissions.enforce_access",
         lambda user, **kwargs: captured.update(kwargs),
     )
     user = SimpleNamespace(is_superuser=False)
-    _enforce_sample_ingest_permission(user, {"asp_id": "synthetic", "environment": "testing"})
+    enforce_sample_ingest_permission(
+        SimpleNamespace(policy_factory=None),
+        user,
+        {"asp_id": "synthetic", "environment": "testing"},
+    )
+    captured.pop("policy_factory")
     assert captured["context"] == {"asp_id": "synthetic", "environment": "testing"}
-    with pytest.raises(HTTPException):
-        _enforce_sample_ingest_permission(user, {"asp_id": "synthetic"})
+    with pytest.raises(AppError):
+        enforce_sample_ingest_permission(
+            SimpleNamespace(policy_factory=None), user, {"asp_id": "synthetic"}
+        )

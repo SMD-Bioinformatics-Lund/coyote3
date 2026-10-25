@@ -14,9 +14,9 @@ It is part of the MongoDB infrastructure layer.
 import re
 from datetime import datetime, timezone
 
-from api.config.constants import AUTH_PROVIDER_LOCAL
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.config.constants import AUTH_PROVIDER_LOCAL
+from coyote3.contracts.operations import OperationResult
 
 
 # -------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +7,11 @@ name = "Coyote3"
 version = "4.0.0"
 requires-python = ">=3.12"
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = "LicenseRef-COYOTE3-Free-Use-Source-Available-1.0"
+license-files = ["LICENSE.txt", "NOTICE.txt", "LICENSING.md", "THIRD_PARTY_NOTICES.md"]
 description = "A Bioinformatics Interpretation and Analysis Tool built by bioinformaticians at the Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 authors = [
-    {name = "Coyote3 Authors"},
+    {name = "Ram Nanduri"},
 ]
 maintainers = [
     {name = "SMD Bioinformatics Lund"},
@@ -21,67 +22,27 @@ keywords = [
     "clinical-genomics",
     "genomic-variants",
     "molecular-diagnostics",
-    "fastapi",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX :: Linux",
     "Natural Language :: English",
     "Reporting Language :: English/Swedish",
-    "Framework :: FastAPI",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "arrow==1.4.0",
     "bleach==6.4.0",
-    "Brotli==1.2.0",
-    "celery==5.6.3",
-    "colorlog==6.10.1",
-    "cffi==2.0.0",
-    "click==8.3.3",
-    "cssselect2==0.9.0",
-    "dnspython==2.8.0",
-    "filelock==3.25.2",
-    "fonttools==4.62.1",
-    "json5==0.14.0",
-    "ldap3==2.9.1",
-    "itsdangerous==2.2.0",
     "Jinja2==3.1.6",
     "Markdown==3.10.2",
-    "MarkupSafe==3.0.3",
-    "pillow==13.0.0",
     "pydantic==2.13.5",
-    "pydantic_core==2.46.5",
-    "casbin==1.36.1",
-    "fastapi==0.141.1",
-    "starlette==1.6.0",
-    "pyasn1==0.6.4",
-    "idna==3.19",
-    "python-multipart==0.0.31",
-    "uvicorn==0.44.0",
-    "httpx==0.28.1",
-    "pydyf==0.12.1",
-    "pymongo==4.18.2",
     "pysam==0.24.1",
-    "python-dateutil==2.9.0.post0",
-    "python-dotenv==1.2.2",
-    "redis==7.4.0",
-    "pytz==2026.1.post1",
     "PyYAML==6.0.3",
-    "rich-click==1.9.7",
-    "tinycss2==1.5.1",
-    "tinyhtml5==2.1.0",
-    "toml==0.10.2",
-    "typing_extensions==4.15.0",
     "weasyprint==70.0",
-    "webencodings==0.5.1",
-    "Werkzeug==3.1.9",
 ]
 
 [project.urls]
@@ -93,17 +54,52 @@ Source = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
 Security = "https://github.com/SMD-Bioinformatics-Lund/coyote3/security"
 Releases = "https://github.com/SMD-Bioinformatics-Lund/coyote3/releases"
 
+[project.scripts]
+coyote3-api = "api.cli:main"
+
 [project.optional-dependencies]
+api = [
+    "pymongo==4.18.2",
+    "python-dotenv==1.2.2",
+    "Brotli==1.2.0",
+    "celery==5.6.3",
+    "colorlog==6.10.1",
+    "cffi==2.0.0",
+    "click==8.3.3",
+    "cssselect2==0.9.0",
+    "dnspython==2.8.0",
+    "filelock==3.25.2",
+    "fonttools==4.62.1",
+    "ldap3==2.9.1",
+    "itsdangerous==2.2.0",
+    "MarkupSafe==3.0.3",
+    "pillow==13.0.0",
+    "pydantic_core==2.46.5",
+    "casbin==1.36.1",
+    "fastapi==0.141.1",
+    "starlette==1.6.0",
+    "pyasn1==0.6.4",
+    "idna==3.19",
+    "python-multipart==0.0.31",
+    "uvicorn==0.44.0",
+    "pydyf==0.12.1",
+    "python-dateutil==2.9.0.post0",
+    "redis==7.4.0",
+    "tinycss2==1.5.1",
+    "tinyhtml5==2.1.0",
+    "typing_extensions==4.15.0",
+    "webencodings==0.5.1",
+    "Werkzeug==3.1.9",
+    "httpx==0.28.1",
+]
+all = ["Coyote3[api,dev,test,docs,load]==4.0.0"]
 dev = [
     "mypy==1.20.1",
     "mypy-extensions==1.1.0",
     "pre-commit==4.5.1",
     "pip-audit==2.10.0",
     "shellcheck-py==0.11.0.1",
-    "black==26.10.1",
     "ruff==0.15.10",
-    "flake8==7.1.0",
-    "isort==5.13.2",
     "types-python-dateutil==2.9.0.20260408",
 ]
 test = [
@@ -175,6 +171,7 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "api/**/*.py" = ["TID251"]
+"src/coyote3/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
 "tests/**/*.py" = ["TID251"]
 
@@ -183,52 +180,54 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 
-[tool.black]
-line-length = 100
-target-version = ["py312"]
-
 [tool.mypy]
 python_version = "3.12"
 strict = true
 follow_imports = "skip"
 ignore_missing_imports = true
 files = [
-    "api/application/accounts/common.py",
-    "api/application/ingest/translocations.py",
-    "api/domain",
-    "api/application/accounts/permissions.py",
-    "api/application/accounts/roles.py",
-    "api/application/accounts/users.py",
-    "api/application/audit/service.py",
+    "src/coyote3/application/operations",
+    "src/coyote3/application/common/access.py",
+    "api/app/application_factory.py",
+    "api/app/deps/application.py",
+    "api/infra/security/worker_policy.py",
+    "src/coyote3/application/accounts/common.py",
+    "src/coyote3/application/common/managed_records.py",
+    "src/coyote3/application/audit/ports.py",
+    "src/coyote3/application/ingest/translocations.py",
+    "src/coyote3/domain",
+    "src/coyote3/application/accounts/permissions.py",
+    "src/coyote3/application/accounts/roles.py",
+    "src/coyote3/application/accounts/users.py",
+    "src/coyote3/application/audit/service.py",
     "api/infra/mongo/repositories/audit.py",
-    "api/application/notifications/access.py",
-    "api/application/notifications/service.py",
-    "api/application/notifications/activity.py",
-    "api/application/provisioning/deployment_data.py",
-    "api/application/provisioning/demo_installation.py",
-    "api/application/common/alignment_files.py",
-    "api/application/common/change_payload.py",
-    "api/application/common/file_access.py",
-    "api/application/common/finding_access.py",
-    "api/application/common/pagination.py",
-    "api/application/common/protected_records.py",
-    "api/application/common/table_state.py",
-    "api/application/ingest/analysis_parsers.py",
-    "api/application/ingest/helpers.py",
-    "api/application/ingest/json_resources.py",
-    "api/application/ingest/sample_updates.py",
-    "api/application/knowledgebase/gene_markers.py",
-    "api/application/knowledgebase/oncokb_refresh.py",
+    "src/coyote3/application/notifications/access.py",
+    "src/coyote3/application/notifications/service.py",
+    "src/coyote3/application/notifications/activity.py",
+    "api/services/provisioning/deployment_data.py",
+    "api/services/provisioning/demo_installation.py",
+    "src/coyote3/application/common/alignment_files.py",
+    "src/coyote3/application/common/change_payload.py",
+    "api/infra/artifact_paths.py",
+    "src/coyote3/application/common/finding_access.py",
+    "src/coyote3/application/common/pagination.py",
+    "src/coyote3/application/common/protected_records.py",
+    "src/coyote3/application/common/table_state.py",
+    "src/coyote3/application/ingest/analysis_parsers.py",
+    "src/coyote3/application/ingest/helpers.py",
+    "src/coyote3/application/ingest/json_resources.py",
+    "src/coyote3/application/ingest/sample_updates.py",
+    "src/coyote3/application/knowledgebase/gene_markers.py",
+    "src/coyote3/application/knowledgebase/oncokb_refresh.py",
     "api/infra/observability/client_errors.py",
-    "api/application/reporting/clinical_rules/renderers.py",
-    "api/application/reporting/clinical_rules/resolution.py",
-    "api/application/reporting/clinical_rules/terminology_defaults.py",
-    "api/application/reporting/clinical_rules/testing.py",
-    "api/application/reporting/report_library.py",
-    "api/application/resources/asp.py",
-    "api/config/application_modules.py",
+    "src/coyote3/application/reporting/clinical_rules/renderers.py",
+    "src/coyote3/application/reporting/clinical_rules/resolution.py",
+    "src/coyote3/application/reporting/clinical_rules/testing.py",
+    "src/coyote3/application/reporting/report_library.py",
+    "src/coyote3/application/resources/asp.py",
+    "src/coyote3/config/application_modules.py",
     "api/infra/notifications/email.py",
-    "api/infra/observability/operations.py",
+    "src/coyote3/application/common/observability.py",
     "api/infra/observability/prometheus_metrics.py",
     "api/security",
 ]
@@ -240,23 +239,29 @@ follow_imports = "normal"
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-dir]
+coyote3 = "src/coyote3"
+api = "api"
+
+[tool.setuptools.cmdclass]
+build_py = "build_support.ServerBuildPy"
+
 [tool.setuptools.packages.find]
-include = ["api*"]
+where = ["src", "."]
+include = ["coyote3*", "api", "api.*"]
+namespaces = true
 
 [tool.setuptools.package-data]
+coyote3 = [
+    "py.typed",
+    "config/*.toml",
+    "config/*.yaml",
+    "templates/reporting/**/*.html",
+    "templates/reporting/**/*.css",
+    "templates/reporting/*.html",
+]
+
 api = [
-    "app/templates/*.html",
-    "app/templates/*.css",
-    "app/templates/*.js",
-    "app/templates/*.png",
-    "config/center/*.md",
-    "config/center/*.toml",
-    "config/center/*.yaml",
-    "config/bootstrap/demo_center/*.json",
-    "config/bootstrap/rbac/*.ndjson",
-    "config/bootstrap/reference/*.ndjson.gz",
-    "config/bootstrap/reference/*.ndjson",
-    "config/bootstrap/reference/vep_metadata.sources.json",
-    "config/bootstrap/reference/NOTICE.txt",
-    "config/bootstrap/reference/vep_diagrams/*",
+    "app/templates/*", "config/*.toml", "config/assets/*",
+    "bootstrap/catalogs/**/*",
 ]

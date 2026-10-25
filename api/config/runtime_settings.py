@@ -1,20 +1,17 @@
 """Runtime configuration classes for the Coyote3 API.
 
 This module owns environment-derived process settings only. Deployer-editable
-center content is loaded by ``api.config.center``; repository metadata lives in
-``api.config.application_metadata``.
+center content is loaded from the host-selected profile; product metadata lives in
+``coyote3.config.application_metadata``.
 """
 
 import os
 from os import path
 from typing import Any
 
-from dotenv import load_dotenv
-
-from api.config.application_metadata import CODEBASE_LINKS, PUBLIC_KNOWLEDGEBASE_API_URLS
-from api.config.loaders.collections import load_collection_mapping
-from api.config.loaders.contact import load_contact_config, normalize_url_prefix
-from api.config.loaders.filter_flags import load_filter_flag_metadata
+from api.config.application_metadata import CODEBASE_LINKS
+from api.config.collections import load_collection_mapping
+from api.config.contact import load_contact_config, normalize_url_prefix
 from api.config.paths import (
     COLLECTIONS_CONFIG_PATH,
     REPO_ROOT,
@@ -24,9 +21,10 @@ from api.config.paths import (
     CONTACT_CONFIG_PATH as DEFAULT_CONTACT_CONFIG_PATH,
 )
 from api.version import environment_version
+from coyote3.config.knowledgebase_sources import PUBLIC_KNOWLEDGEBASE_API_URLS
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 
-# Load environment variables from the repo root .env file if present.
-load_dotenv(path.join(REPO_ROOT, ".env"))
+# The host bootstrap selects environment inputs and center configuration first.
 load_filter_flag_metadata()
 
 
@@ -110,6 +108,7 @@ class OperationsSettings:
     """Audit, logging, notification, and request-rate settings."""
 
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "730"))
+    AUDIT_CHECKPOINT_DIRECTORY = os.getenv("AUDIT_CHECKPOINT_DIRECTORY", "")
     LOG_SERVICE_NAME = os.getenv("LOG_SERVICE_NAME", "api")
     LOG_ROOT = os.getenv("LOG_ROOT", "logs")
     LOG_TIMEZONE = os.getenv("LOCAL_TIME_ZONE", "UTC")

@@ -17,12 +17,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
-from api.contracts.schemas.registry import (  # noqa: E402
+from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
+from coyote3.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
+from coyote3.contracts.schemas.registry import (  # noqa: E402
     supported_collections,
     validate_collection_document,
 )
-from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
 
 VALID_ENVIRONMENTS = set(ENVIRONMENT_OPTIONS)
 ENV_ALIASES = {
@@ -370,11 +370,11 @@ def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
         "permissions": ("permission_id",),
         "roles": ("role_id",),
         "users": ("username", "email", "roles", "asp_groups", "asp_ids"),
-        "asp_configs": ("aspc_id", "asp_id", "subpanel_id", "asp_group"),
+        "asp_configs": ("aspc_id", "asp_id", "diagnosis_id", "asp_group"),
         "assay_specific_panels": ("asp_id", "asp_group"),
         "insilico_genelists": ("isgl_id", "diagnosis", "asp_groups", "asp_ids"),
         "blacklist": ("assay_group", "assay"),
-        "samples": ("asp_id", "subpanel_id"),
+        "samples": ("asp_id", "diagnosis_id"),
     }
 
     def _append_error(collection: str, idx: int, field: str, value: str) -> None:
@@ -438,11 +438,11 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
 
     Returns:
         Diagnostics for malformed records, missing or inconsistent IDs, duplicate
-        ASPC IDs or active assay/subpanel/environment tuples, unsupported nonempty
+        ASPC IDs or active assay/diagnosis/environment tuples, unsupported nonempty
         environments, and missing boolean active flags; empty when checks pass.
 
     Notes:
-        Missing subpanel IDs default to ``base`` for these checks. Environment aliases
+        Missing diagnosis IDs default to ``base`` for these checks. Environment aliases
         are normalized for comparison without modifying the seed.
     """
     errors: list[str] = []
@@ -454,28 +454,28 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
             continue
         aspc_id = _norm(doc.get("aspc_id", ""))
         asp_id = _norm(doc.get("asp_id", ""))
-        subpanel_id = _norm(doc.get("subpanel_id", "base"))
+        diagnosis_id = _norm(doc.get("diagnosis_id", "base"))
         environment = _normalize_env(doc.get("environment", ""))
 
         if not aspc_id:
             errors.append(f"asp_configs[{idx}] must include aspc_id")
             continue
-        if ":" in aspc_id:
+        if len(aspc_id.split("::")) != 3:
             errors.append(
                 f"asp_configs[{idx}] has invalid aspc_id '{aspc_id}' "
-                "(expected asp_id_subpanel_id_environment)"
+                "(expected asp_id::diagnosis_id::environment)"
             )
         if not asp_id:
             errors.append(f"asp_configs[{idx}] must include asp_id")
-        if not subpanel_id:
-            errors.append(f"asp_configs[{idx}] must include subpanel_id")
+        if not diagnosis_id:
+            errors.append(f"asp_configs[{idx}] must include diagnosis_id")
 
         if aspc_id in seen_ids:
             errors.append(f"Duplicate asp_configs.aspc_id '{aspc_id}'")
         seen_ids.add(aspc_id)
 
-        expected_aspc_id = _norm(f"{asp_id}_{subpanel_id}_{environment}")
-        if asp_id and subpanel_id and environment and aspc_id != expected_aspc_id:
+        expected_aspc_id = _norm(f"{asp_id}::{diagnosis_id}::{environment}")
+        if asp_id and diagnosis_id and environment and aspc_id != expected_aspc_id:
             errors.append(
                 f"asp_configs[{idx}] mismatch: aspc_id '{aspc_id}' != expected '{expected_aspc_id}'"
             )
@@ -484,11 +484,11 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
             errors.append(f"asp_configs[{idx}] invalid environment '{environment}'")
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"asp_configs[{idx}] must include boolean is_active")
-        if doc.get("is_active") is True and asp_id and subpanel_id and environment:
-            active_key = (asp_id, subpanel_id, environment)
+        if doc.get("is_active") is True and asp_id and diagnosis_id and environment:
+            active_key = (asp_id, diagnosis_id, environment)
             if active_key in seen_active_keys:
                 errors.append(
-                    f"Duplicate active ASPC for asp_id/subpanel_id/environment '{active_key}'"
+                    f"Duplicate active ASPC for asp_id/diagnosis_id/environment '{active_key}'"
                 )
             seen_active_keys.add(active_key)
     return errors

@@ -38,7 +38,7 @@ const context = {
   report_id: "REPORT_7",
   report_name: "REPORT_7.html",
   asp_id: "hema_gmsv1",
-  subpanel_id: "hem",
+  diagnosis_id: "hem",
   environment: "production",
   author: "reviewer",
   time_created: "2026-08-25T10:00:00Z",

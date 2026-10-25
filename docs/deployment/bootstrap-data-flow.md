@@ -3,15 +3,15 @@
 This page explains the data installed during bootstrap and the order in which
 services and clinical configuration become available. Follow
 [first installation](first-installation.md) for setup commands and the
-[installation checklist](installation-checklist.md) for the deployment handoff.
+[deployment acceptance checklist](acceptance-checklist.md) for the deployment handoff.
 
 For the purpose, format and ownership of each installed catalog, see
 [installed catalogs](../reference/operational-files.md#installed-catalogs).
 
 ## Deployment Flow
 
-The image build packages `api/config/clinical_capabilities.toml`,
-`api/config/clinical_query_defaults.toml` and `api/config/collections.toml` with
+The image build packages `src/coyote3/config/clinical_capabilities.toml`,
+`src/coyote3/config/clinical_query_defaults.toml` and `api/config/collections.toml` with
 the API code. These files are application contracts, not database seed documents.
 They supply supported clinical identifiers, base query settings and collection
 bindings on the first installation and subsequent releases. The
@@ -40,7 +40,7 @@ It does not reset databases, replace populated seed collections or run data migr
 
 Use [first installation](first-installation.md) for the commands and execution
 order. It covers deployment files, storage, networking, bootstrap, startup and
-clinical configuration. The [installation checklist](installation-checklist.md)
+clinical configuration. The [deployment acceptance checklist](acceptance-checklist.md)
 records acceptance and handoff; it is not a second installation procedure.
 
 ## Required Baseline Collections
@@ -69,11 +69,11 @@ See [installation operations](installation-operations.md).
 
 ## Seed Source Policy
 
-- `api/config/bootstrap/rbac` is the application-owned permission and role catalog.
+- `api/bootstrap/catalogs/rbac` is the application-owned permission and role catalog.
 - Bundled permission documents are installed with `system_managed: true`; their
   definitions are immutable at runtime but remain assignable through roles.
-- `api/config/bootstrap/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
-- `api/config/bootstrap/reference` contains the release-bundled HGNC and VEP
+- `api/bootstrap/catalogs/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
+- `api/bootstrap/catalogs/reference` contains the release-bundled HGNC and VEP
   snapshots loaded by the reference installer when their collections are
   empty.
 - Normal application startup does not seed or synchronize governance documents.
@@ -127,8 +127,8 @@ in the API, worker, and Beat containers.
 
 ## Packaged configuration location
 
-The API configuration package is `api/config` in the repository and
-`/app/api/config` in the API image. It must be present because it contains typed
+The API configuration package is `src/coyote3/config` in the repository and
+`/app/src/coyote3/config` in the API image. It must be present because it contains typed
 software settings, center configuration, and the first-deployment RBAC catalog.
 Current Dockerfiles do not copy or mount a separate `/app/config` directory. If
 that directory appears in a running container, the container was built from an
@@ -152,7 +152,7 @@ Start Coyote3 after database bootstrap:
 
 For environment-specific values and full verification gates, use:
 
-- [Initial Deployment Checklist](installation-checklist.md)
+- [Deployment Acceptance Checklist](acceptance-checklist.md)
 - [Maintenance And Quality](../operations/maintenance-and-verification.md)
 
 Operational defaults:
@@ -177,7 +177,7 @@ ASPC contract rule for first-load data:
 - DNA SNV base behavior is configured with `filters`.
 - Evidence modes and typed finding exceptions resolve through
   [query rules](../administration/query-rules.md): application baseline, database
-  default, assay group, assay and subpanel. Bootstrap installs the bundled group
+  default, assay group, assay and diagnosis. Bootstrap installs the bundled group
   rules and typed installation-file criteria as attributed version-one publications.
 - DNA CNV thresholds use `filters.somatic.cnv`; RNA fusion thresholds use
   `filters.somatic.fusion`.

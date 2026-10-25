@@ -6,40 +6,43 @@ from dataclasses import dataclass
 
 from fastapi import APIRouter
 
-from api.interfaces.http.admin.clinical_rules import router as clinical_rules_router
-from api.interfaces.http.admin.deployment_data import router as deployment_data_router
-from api.interfaces.http.admin.operations import router as admin_operations_router
-from api.interfaces.http.admin.permissions import router as permissions_router
-from api.interfaces.http.admin.public_assay_catalog import router as public_assay_catalog_router
-from api.interfaces.http.admin.query_rules import router as query_rules_router
-from api.interfaces.http.admin.resources.asp import router as resource_asp_router
-from api.interfaces.http.admin.resources.aspc import router as resource_aspc_router
-from api.interfaces.http.admin.resources.assay_setup import router as assay_setup_router
-from api.interfaces.http.admin.resources.genelists import router as resource_genelists_router
-from api.interfaces.http.admin.resources.samples import router as resource_samples_router
-from api.interfaces.http.admin.roles import router as roles_router
-from api.interfaces.http.admin.users import router as users_router
-from api.interfaces.http.clinical.dna.biomarkers import router as biomarkers_router
-from api.interfaces.http.clinical.dna.classifications import router as classifications_router
-from api.interfaces.http.clinical.dna.cnvs import router as cnvs_router
-from api.interfaces.http.clinical.dna.coverage import router as coverage_router
-from api.interfaces.http.clinical.dna.small_variants import router as small_variants_router
-from api.interfaces.http.clinical.dna.translocations import router as translocations_router
-from api.interfaces.http.clinical.reporting.reports import router as reports_router
-from api.interfaces.http.clinical.rna.fusions import router as fusions_router
-from api.interfaces.http.clinical.samples import router as samples_router
-from api.interfaces.http.knowledgebase.common import router as common_router
-from api.interfaces.http.operations.app_controls import router as app_controls_router
-from api.interfaces.http.operations.auth import (
+from api.interfaces.http.v1.admin.clinical_rules import router as clinical_rules_router
+from api.interfaces.http.v1.admin.configuration_profiles import (
+    router as configuration_profiles_router,
+)
+from api.interfaces.http.v1.admin.deployment_data import router as deployment_data_router
+from api.interfaces.http.v1.admin.operations import router as admin_operations_router
+from api.interfaces.http.v1.admin.permissions import router as permissions_router
+from api.interfaces.http.v1.admin.public_assay_catalog import router as public_assay_catalog_router
+from api.interfaces.http.v1.admin.query_rules import router as query_rules_router
+from api.interfaces.http.v1.admin.resources.asp import router as resource_asp_router
+from api.interfaces.http.v1.admin.resources.aspc import router as resource_aspc_router
+from api.interfaces.http.v1.admin.resources.assay_setup import router as assay_setup_router
+from api.interfaces.http.v1.admin.resources.genelists import router as resource_genelists_router
+from api.interfaces.http.v1.admin.resources.samples import router as resource_samples_router
+from api.interfaces.http.v1.admin.roles import router as roles_router
+from api.interfaces.http.v1.admin.users import router as users_router
+from api.interfaces.http.v1.clinical.dna.biomarkers import router as biomarkers_router
+from api.interfaces.http.v1.clinical.dna.classifications import router as classifications_router
+from api.interfaces.http.v1.clinical.dna.cnvs import router as cnvs_router
+from api.interfaces.http.v1.clinical.dna.coverage import router as coverage_router
+from api.interfaces.http.v1.clinical.dna.small_variants import router as small_variants_router
+from api.interfaces.http.v1.clinical.dna.translocations import router as translocations_router
+from api.interfaces.http.v1.clinical.reporting.reports import router as reports_router
+from api.interfaces.http.v1.clinical.rna.fusions import router as fusions_router
+from api.interfaces.http.v1.clinical.samples import router as samples_router
+from api.interfaces.http.v1.knowledgebase.common import router as common_router
+from api.interfaces.http.v1.operations.app_controls import router as app_controls_router
+from api.interfaces.http.v1.operations.auth import (
     http_exception_handler as auth_http_exception_handler,
 )
-from api.interfaces.http.operations.auth import router as auth_router
-from api.interfaces.http.operations.client_errors import router as client_errors_router
-from api.interfaces.http.operations.dashboard import router as dashboard_router
-from api.interfaces.http.operations.health import router as health_router
-from api.interfaces.http.operations.internal import router as internal_router
-from api.interfaces.http.operations.notifications import router as notifications_router
-from api.interfaces.http.public.routes import router as public_router
+from api.interfaces.http.v1.operations.auth import router as auth_router
+from api.interfaces.http.v1.operations.client_errors import router as client_errors_router
+from api.interfaces.http.v1.operations.dashboard import router as dashboard_router
+from api.interfaces.http.v1.operations.health import router as health_router
+from api.interfaces.http.v1.operations.internal import router as internal_router
+from api.interfaces.http.v1.operations.notifications import router as notifications_router
+from api.interfaces.http.v1.public.routes import router as public_router
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +63,7 @@ ROUTERS = (
     RouterRegistration(resource_asp_router),
     RouterRegistration(assay_setup_router),
     RouterRegistration(resource_aspc_router),
+    RouterRegistration(configuration_profiles_router),
     RouterRegistration(resource_genelists_router),
     RouterRegistration(resource_samples_router),
     RouterRegistration(biomarkers_router),

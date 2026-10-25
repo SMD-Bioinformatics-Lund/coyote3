@@ -1,0 +1,11 @@
+{% extends legacy_template %}
+{% block format_head %}{% include "components/header.html" %}{% endblock %}
+{% block format_notice %}{% include "components/modern/brand_header.html" %}{% if save != 1 %}{% include "components/footer.html" %}{% endif %}{% endblock %}
+{% block snv_table %}{% if variants %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.SNV }}</p>{% endif %}{% endblock %}
+{% block germline_snv_table %}{% if germline_variants %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.GERMLINE_SNV }}</p>{% endif %}{% endblock %}
+{% block cnv_table %}{% if cnvs %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.CNV }}</p>{% endif %}{% endblock %}
+{% block translocation_table %}{% if translocs %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.TRANSLOCATION }}</p>{% endif %}{% endblock %}
+{% block biomarker_table %}{% if biomarkers %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages[analysis] }}</p>{% endif %}{% endblock %}
+{% block pgx_table %}{% if (report_sections_data.pgx if report_analyte == 'dna' else pgx) %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.PGX }}</p>{% endif %}{% endblock %}
+{% block fusion_table %}{% if fusions %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.FUSION }}</p>{% endif %}{% endblock %}
+{% block fusion_details %}{% if fusions %}{{ super() }}{% endif %}{% endblock %}

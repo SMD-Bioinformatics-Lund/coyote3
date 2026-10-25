@@ -56,8 +56,8 @@ def metadata():
     """Return explicit new assay context without inventing historical attribution."""
     return {
         "asp_id": "synthetic_panel",
-        "omics_layer": "dna",
-        "sequencing_scope": "panel",
+        "asp_category": "dna",
+        "asp_family": "panel-dna",
         "ingest_status": "ready",
         "current_aspc_id": "synthetic_revision",
     }
@@ -120,7 +120,11 @@ def test_annotations_preserve_scope_author_and_class(nomenclature, variant, iden
     }
     result = convert_annotation(source)
     assert result[identity] == variant
-    for key in ("_id", "variant", "class", "author", "time_created", "assay", "subpanel"):
+    assert result["diagnosis_id"] == source["subpanel"]
+    assert result["asp_group"] == source["assay"]
+    assert result["asp_id"] is None
+    assert result["namespace"] == "clinical"
+    for key in ("_id", "variant", "class", "author", "time_created"):
         assert result[key] == source[key]
 
 

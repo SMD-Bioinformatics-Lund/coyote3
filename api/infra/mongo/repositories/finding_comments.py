@@ -7,12 +7,12 @@ from typing import Any, Literal
 
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
-from api.contracts.schemas.registry import normalize_collection_document
-from api.domain.core.annotation_identity import finding_comment_identity
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
-from api.infra.request_context import current_username
+from coyote3.application.common.execution_context import current_username
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.registry import normalize_collection_document
+from coyote3.domain.annotation_identity import finding_comment_identity
 
 FindingType = Literal["small_variant", "cnv", "fusion", "translocation"]
 

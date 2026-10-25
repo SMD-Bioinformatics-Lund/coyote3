@@ -22,12 +22,12 @@ if str(ROOT_DIR) not in sys.path:
 from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 from api.infra.seed.documents import build_seed_documents  # noqa: E402
+from coyote3.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 
-BOOTSTRAP_ROOT = ROOT_DIR / "api" / "config" / "bootstrap"
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
 DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
 

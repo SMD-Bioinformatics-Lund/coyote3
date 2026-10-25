@@ -18,11 +18,14 @@ commands, their callers, and operational prerequisites.
 | `maintenance/` | Operational data maintenance |
 | `docs/` | Reproducible schema/permission reference generators, Markdown lint and link validation |
 | `quality/` | Repository checks, secret scanning, and test orchestration |
-| `release/` | Package-version synchronization |
+| `release/` | Version synchronization, SDK wheel builds, and release artifact verification |
 
 Migration commands are operator tools, not application startup hooks. Read their
 runbooks and inspect the plan before enabling writes. Keep credentials, database
 exports, migration plans containing identifiers, and backups outside the repository.
+The [shared migration README](migration_common/README.md#migration-commands-in-order)
+contains numbered v2/v3 commands. MongoDB is the destination; SQLite files are local
+lookup indexes only. Source conversion never applies bundles automatically.
 
 Fresh deployment includes the connected DNA/RNA starter configuration and both samples
 unless `--skip-demo` is selected. Later additions and repairs use

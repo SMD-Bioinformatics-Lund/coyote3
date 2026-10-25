@@ -4,7 +4,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from api.contracts.schemas.variant_annotations import (
+from coyote3.contracts.schemas.variant_annotations import (
     VepDiagramAssetDoc,
 )
 

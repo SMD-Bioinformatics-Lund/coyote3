@@ -14,7 +14,8 @@ if str(ROOT) not in sys.path:
 
 from pymongo import MongoClient  # noqa: E402
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
 from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
@@ -45,7 +46,7 @@ def install(db, *, actor: str, apply: bool = False) -> dict:
     if not actor.strip():
         raise ValueError("Installer account must not be blank")
     mapping = load_collection_section("primary")
-    catalog_path = ROOT / "api/config/bootstrap/reference/query_rule_sets.seed.ndjson"
+    catalog_path = BOOTSTRAP_ROOT / "reference/query_rule_sets.seed.ndjson"
     catalog = [json.loads(line) for line in catalog_path.read_text().splitlines() if line.strip()]
     documents = prepare_query_rule_seeds(
         catalog,

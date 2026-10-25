@@ -3,19 +3,19 @@
 import mongomock
 import pytest
 
-from scripts.knowledgebase.migrate_reference_database import migrate, validate_legacy_subpanels
+from scripts.knowledgebase.migrate_reference_database import migrate, validate_legacy_diagnoses
 
 
 def test_missing_replacement_blocks_retirement():
     db = mongomock.MongoClient().app
     db.assay_subpanels.insert_one({"asp_id": "demo", "subpanel_id": "named", "is_current": True})
     with pytest.raises(ValueError, match="no current replacement"):
-        validate_legacy_subpanels(db)
-    db.subpanels.insert_one({"subpanel_id": "named", "is_current": True})
-    db.subpanel_associations.insert_one(
-        {"asp_id": "demo", "subpanel_id": "named", "is_current": True, "is_active": False}
+        validate_legacy_diagnoses(db)
+    db.diagnoses.insert_one({"diagnosis_id": "named", "is_current": True})
+    db.diagnosis_associations.insert_one(
+        {"asp_id": "demo", "diagnosis_id": "named", "is_current": True, "is_active": False}
     )
-    assert validate_legacy_subpanels(db) == 1
+    assert validate_legacy_diagnoses(db) == 1
 
 
 def test_dry_run_does_not_copy_or_delete():

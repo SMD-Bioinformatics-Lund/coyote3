@@ -13,11 +13,11 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
-from api.config.constants import normalize_clinical_identifier
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.audit_outbox import insert_audited, update_audited
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
+from coyote3.config.constants import normalize_clinical_identifier
+from coyote3.contracts.operations import OperationResult
 
 
 # -------------------------------------------------------------------------
@@ -42,7 +42,7 @@ class ISGLRepository(BaseRepository):
 
     def ensure_indexes(self) -> None:
         """
-        Create targeted indexes for ISGL visibility and assay/subpanel lookup paths.
+        Create targeted indexes for ISGL visibility and assay/diagnosis lookup paths.
 
         Avoids broad indexing to keep disk usage controlled.
         """
@@ -492,7 +492,7 @@ class ISGLRepository(BaseRepository):
         self.invalidate_dashboard_metrics()
         return operation
 
-    def get_subpanels_for_asp(
+    def get_diagnoses_for_asp(
         self, asp_names: list[str], is_public: bool | None = None, adhoc: bool | None = None
     ) -> list[str]:
         """
@@ -521,59 +521,59 @@ class ISGLRepository(BaseRepository):
                 diagnoses.add(diag)
         return sorted(diagnoses)
 
-    def get_asp_subpanel_genes(self, asp_name: str, subpanel: str) -> list[str]:
+    def get_asp_diagnosis_genes(self, asp_name: str, diagnosis: str) -> list[str]:
         """
-        Retrieve gene symbols for a specific subpanel (diagnosis) within an assay.
+        Retrieve gene symbols for a specific diagnosis within an assay.
 
         Queries the database for a document where the given `asp_name` is present in the `asp_ids` field
-        and the `diagnosis` field matches the provided `subpanel`. Returns the list of gene symbols
-        associated with that subpanel.
+        and the `diagnosis` field matches the provided `diagnosis`. Returns the list of gene symbols
+        associated with that diagnosis.
 
         Args:
             asp_name (str): The assay ID to filter by.
-            subpanel (str): The diagnosis or subpanel name to query.
+            diagnosis (str): The diagnosis or diagnosis name to query.
 
         Returns:
-            list[str]: List of gene symbols for the specified subpanel, or an empty list if not found.
+            list[str]: List of gene symbols for the specified diagnosis, or an empty list if not found.
         """
         doc = self.get_collection().find_one(
             {
                 "asp_ids": normalize_clinical_identifier(asp_name, label="asp_id"),
-                "diagnosis": subpanel,
+                "diagnosis": diagnosis,
             }
         )
         return doc.get("genes", []) if doc else []
 
-    def get_all_subpanels(self) -> list[str]:
+    def get_all_diagnoses(self) -> list[str]:
         """
-        Retrieve all unique subpanels (diagnosis terms) from the database.
+        Retrieve all unique diagnoses (diagnosis terms) from the database.
 
         This method queries the database collection for all documents and extracts
         the `diagnosis` field, which is expected to be a list. It then flattens
         and sorts all the unique diagnosis terms.
 
         Returns:
-            list[str]: A sorted list of all unique diagnosis terms (subpanels)
+            list[str]: A sorted list of all unique diagnosis terms (diagnoses)
             found in the database.
         """
         return sorted(d for doc in self.get_collection().find({}) for d in doc.get("diagnosis", []))
 
-    def get_all_subpanel_genes(self, subpanels) -> list[str]:
+    def get_all_diagnosis_genes(self, diagnoses) -> list[str]:
         """
-        Retrieve all unique genes from a list of subpanels.
+        Retrieve all unique genes from a list of diagnoses.
 
-        This method iterates through the provided list of subpanels (diagnosis terms),
-        queries the database for each subpanel, and collects all associated genes.
+        This method iterates through the provided list of diagnoses (diagnosis terms),
+        queries the database for each diagnosis, and collects all associated genes.
         The resulting list of genes is flattened and deduplicated.
 
         Args:
-            subpanels (list[str]): A list of subpanel names (diagnosis terms) to query.
+            diagnoses (list[str]): A list of diagnosis names (diagnosis terms) to query.
 
         Returns:
-            list[str]: A list of unique gene symbols associated with the provided subpanels.
+            list[str]: A list of unique gene symbols associated with the provided diagnoses.
         """
         genes = set()
-        docs = self.get_collection().find({"diagnosis": {"$in": subpanels}}, {"genes": 1})
+        docs = self.get_collection().find({"diagnosis": {"$in": diagnoses}}, {"genes": 1})
         for doc in docs:
             genes.update(doc.get("genes", []))
         return list(genes)
@@ -676,7 +676,7 @@ class ISGLRepository(BaseRepository):
     def get_isgl_ids(
         self,
         asp_name: str,
-        subpanel: str,
+        diagnosis: str,
         list_type: str,
         is_active: bool | None = None,
     ) -> list[str]:
@@ -689,7 +689,7 @@ class ISGLRepository(BaseRepository):
 
         Args:
             asp_name (str): The name of the panel to filter gene lists by.
-            subpanel (str): The diagnosis term to filter gene lists by.
+            diagnosis (str): The diagnosis term to filter gene lists by.
             list_type (str): The type of the gene list to filter by.
             is_active (bool, optional): The active status of the gene lists to filter by.
                 Defaults to True.
@@ -700,7 +700,7 @@ class ISGLRepository(BaseRepository):
         """
         query = {
             "asp_ids": asp_name,
-            "diagnosis": subpanel,
+            "diagnosis": diagnosis,
             "list_type": list_type,
         }
         if is_active is not None:
@@ -736,7 +736,6 @@ class ISGLRepository(BaseRepository):
             "version": 1,
             "list_type": 1,
             "genes": 1,
-            "germline_genes": 1,
             "adhoc": 1,
         }
 

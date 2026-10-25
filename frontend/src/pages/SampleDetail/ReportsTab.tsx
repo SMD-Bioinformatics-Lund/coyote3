@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Activity, AlertTriangle, CheckCircle2, ChevronDown, Download, FileText, Save } from "lucide-react"
@@ -18,24 +18,36 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
+import type { ReportPreviewPayload } from "@/lib/generated"
 import { downloadBlob } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { apiPath } from "@/lib/runtime-paths"
 import { AnalysisTableCard } from "./AnalysisTableCard"
+import { TryNewReport } from "./TryNewReport"
 import "@/styles/report-workspace.css"
+
+async function loadPreviewPdf(endpoint: string, signal?: AbortSignal): Promise<Blob> {
+  const response = await fetch(apiPath(endpoint), { signal, credentials: "same-origin", cache: "no-store" })
+  if (!response.ok) throw new Error(await response.text() || `PDF request failed with ${response.status}`)
+  return response.blob()
+}
 
 export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId: string; reportType?: ReportType }) {
   const queryClient = useQueryClient()
   const [selectedReportType, setSelectedReportType] = useState<ReportType>("dna")
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [tryingNewReport, setTryingNewReport] = useState(false)
+  const [previewFormat, setPreviewFormat] = useState<"html" | "pdf">("html")
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const reportType = fixedReportType ?? selectedReportType
+  const pdfEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}`
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["report-preview", sampleId, reportType, includeSnapshot],
     queryFn: () =>
       api
-        .get(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false`)
+        .get<ReportPreviewPayload>(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false`)
         .then((response) => response.data),
     retry: false,
     refetchOnMount: "always",
@@ -71,15 +83,8 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
 
   const downloadPreviewPdf = useMutation({
     mutationFn: async () => {
-      const response = await fetch(
-        apiPath(`/samples/${sampleId}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}`),
-        { credentials: "same-origin" },
-      )
-      if (!response.ok) {
-        const message = await response.text()
-        throw new Error(message || `PDF request failed with ${response.status}`)
-      }
-      downloadBlob(await response.blob(), `${data?.sample?.name || sampleId}_${reportType}_preview.pdf`)
+      const blob = pdfPreview.data ?? await loadPreviewPdf(pdfEndpoint)
+      downloadBlob(blob, `${data?.sample?.name || sampleId}_${reportType}_preview.pdf`)
     },
     onSuccess: () => {
       const sampleName = data?.sample?.name || sampleId
@@ -102,7 +107,9 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   })
 
   const templateStatus = data?.meta?.template_status
-  const snapshotRows: ReportSnapshotRow[] = data?.report?.snapshot_rows || []
+  const snapshotRows: ReportSnapshotRow[] = (data?.report?.snapshot_rows || []).filter(
+    (row): row is ReportSnapshotRow => row !== null && typeof row === "object" && !Array.isArray(row),
+  )
   const snapshotCount = data?.meta?.snapshot_count ?? snapshotRows.length
   const visibleSnapshotSections = REPORT_SNAPSHOT_SECTIONS
     .map((section) => ({
@@ -111,9 +118,30 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
     }))
     .filter((section) => section.rows.length > 0)
   const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
-  const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
+  const templateStatusMessage = typeof templateStatus?.message === "string"
+    ? templateStatus.message : "Report preview has not been rendered yet."
   const sampleName = data?.sample?.name || sampleId
-  const ruleSource = data?.report?.context?.clinical_rule_evaluation?.source
+  const evaluation = data?.report?.context?.clinical_rule_evaluation
+  const ruleSource = evaluation && typeof evaluation === "object" && "source" in evaluation
+    && evaluation.source !== null && typeof evaluation.source === "object"
+    ? evaluation.source as Record<string, unknown> : undefined
+  const pdfPreview = useQuery({
+    queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint],
+    queryFn: ({ signal }) => loadPreviewPdf(pdfEndpoint, signal),
+    enabled: hasRenderedHtml && previewFormat === "pdf" && !tryingNewReport,
+    retry: false,
+    gcTime: 0,
+    staleTime: Infinity,
+  })
+
+  useEffect(() => {
+    if (!pdfPreview.data || previewFormat !== "pdf" || tryingNewReport) { setPdfUrl(null); return }
+    const url = URL.createObjectURL(pdfPreview.data)
+    setPdfUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [pdfPreview.data, previewFormat, tryingNewReport])
+
+  if (tryingNewReport) return <TryNewReport sampleId={sampleId} reportType={reportType} onClose={() => setTryingNewReport(false)} />
 
   return (
     <AnalysisTableCard className="report-workspace">
@@ -126,6 +154,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
           </div>
         </div>
         <div className="report-actions">
+            <Button variant="outline" onClick={() => setTryingNewReport(true)}>Try new report</Button>
             <span className="report-ready type-meta">
               {isLoading ? <Activity className="size-3 animate-spin" /> : hasRenderedHtml
                 ? <CheckCircle2 className="size-3 text-pass" /> : <AlertTriangle className="size-3 text-warn" />}
@@ -192,6 +221,8 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
                 </div>
                 <span className="report-preview-state type-meta"><span className="size-1.5 rounded-full bg-warn" aria-hidden="true" />Unsaved preview</span>
               </div>
+              {hasRenderedHtml && <SegmentedControl ariaLabel="Report preview format" value={previewFormat} onValueChange={setPreviewFormat}
+                items={[{ value: "html", label: "HTML preview" }, { value: "pdf", label: "PDF preview" }]} />}
               {!hasRenderedHtml && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/35 bg-warn/10 px-3 py-2 text-warn">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -199,11 +230,15 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
                 </div>
               )}
               <div className="report-paper-scroll" role="region" aria-label="Report document" tabIndex={0}>
-                <ReportHtmlFrame
+                {previewFormat === "html" ? <ReportHtmlFrame
                   title="Report preview"
-                  html={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
+                  html={hasRenderedHtml ? data?.report?.html ?? "" : "<p>No report preview available.</p>"}
                   className="report-paper"
-                />
+                /> : pdfPreview.error ? <div role="alert" className="space-y-3 p-4 type-body-sm text-destructive">
+                  <p>{pdfPreview.error instanceof Error ? pdfPreview.error.message : "Unable to prepare PDF preview."}</p>
+                  <Button variant="outline" onClick={() => pdfPreview.refetch()}>Retry PDF preview</Button>
+                </div> : !pdfUrl ? <AppLoader label="Preparing PDF preview" /> :
+                  <iframe title="Report PDF preview" src={pdfUrl} className="min-h-[75vh] w-full rounded-lg border border-border" />}
               </div>
           </section>
 
@@ -257,8 +292,8 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
               {ruleSource && <details className="report-rule-details type-meta text-muted-foreground">
                 <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Report rule details</summary>
                 <p className="mt-2 break-words">
-                  {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
-                  {ruleSource.resolved_subpanel_id === "base" && ruleSource.requested_subpanel_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
+                  {String(ruleSource.rule_set_id ?? "")} · v{String(ruleSource.content_version ?? "")} · {String(ruleSource.language ?? "")}
+                  {ruleSource.resolved_diagnosis_id === "base" && ruleSource.requested_diagnosis_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
                 </p>
               </details>}
               </div>

@@ -19,48 +19,20 @@ class _FakeRedis:
         self._values: dict[str, bytes] = {}
 
     def ping(self) -> bool:
-        """Ping.
-
-        Returns:
-            bool: The function result.
-        """
+        """Ping."""
         return True
 
     def get(self, key: str):
-        """Get.
-
-        Args:
-            key (str): Value for ``key``.
-
-        Returns:
-            The function result.
-        """
+        """Get."""
         return self._values.get(key)
 
     def set(self, key: str, value: bytes):
-        """Set.
-
-        Args:
-            key (str): Value for ``key``.
-            value (bytes): Value for ``value``.
-
-        Returns:
-            The function result.
-        """
+        """Set."""
         self._values[key] = value
         return True
 
     def setex(self, key: str, _ttl: int, value: bytes):
-        """Setex.
-
-        Args:
-            key (str): Value for ``key``.
-            _ttl (int): Value for ``_ttl``.
-            value (bytes): Value for ``value``.
-
-        Returns:
-            The function result.
-        """
+        """Setex."""
         self._values[key] = value
         return True
 
@@ -84,29 +56,13 @@ def test_cache_backend_degrades_when_not_required_and_url_is_missing():
 
 
 def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
-    """Test cache backend falls back when redis unavailable.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
 
     class _NoRedis:
         """Provide  NoRedis behavior."""
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """From url.
-
-            Args:
-                *args: Additional positional values for ``args``.
-                **kwargs: Additional keyword values for ``kwargs``.
-
-            Returns:
-                The function result.
-            """
+            """From url."""
             raise RuntimeError("boom")
 
     monkeypatch.setattr("api.infra.cache.redis.Redis", _NoRedis)
@@ -122,29 +78,13 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
 
 
 def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
-    """Test cache backend required raises when redis unavailable.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
 
     class _NoRedis:
         """Provide  NoRedis behavior."""
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """From url.
-
-            Args:
-                *args: Additional positional values for ``args``.
-                **kwargs: Additional keyword values for ``kwargs``.
-
-            Returns:
-                The function result.
-            """
+            """From url."""
             raise RuntimeError("boom")
 
     monkeypatch.setattr("api.infra.cache.redis.Redis", _NoRedis)
@@ -160,14 +100,6 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
 
 
 def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
-    """Test redis cache backend roundtrip.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake = _FakeRedis()
 
     class _RedisFactory:
@@ -175,15 +107,7 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """From url.
-
-            Args:
-                *args: Additional positional values for ``args``.
-                **kwargs: Additional keyword values for ``kwargs``.
-
-            Returns:
-                The function result.
-            """
+            """From url."""
             return fake
 
     monkeypatch.setattr("api.infra.cache.redis.Redis", _RedisFactory)

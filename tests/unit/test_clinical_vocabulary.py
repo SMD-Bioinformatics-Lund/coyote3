@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from api.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
-from api.config.constants import (
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
+from coyote3.config.constants import (
     analysis_type_for_file_key,
     manifest_file_preload_keys,
     non_database_manifest_file_keys,
@@ -41,7 +41,7 @@ def test_current_clinical_vocabulary_loads_center_owned_options():
 
 def test_wes_uses_dna_inputs_and_declared_capture_genes():
     """Exome scope retains captured-gene limits rather than whole-genome coverage."""
-    from api.domain.common.assay_filters import get_genes_covered_in_panel
+    from coyote3.domain.common.assay_filters import get_genes_covered_in_panel
 
     vocabulary = load_clinical_vocabulary()
     assert vocabulary.assay_family_categories["wes"] == "dna"
@@ -78,6 +78,16 @@ def test_manifest_preload_bindings_follow_configured_file_keys():
     assert non_database_manifest_file_keys("rna") == set()
     assert analysis_type_for_file_key("dna", "vcf_files") == "SNV"
     assert analysis_type_for_file_key("rna", "fusion_files") == "FUSION"
+    assert analysis_type_for_file_key("dna", "transloc") == "TRANSLOCATION"
+
+
+def test_release_analysis_registry_matches_implemented_ingest_contract():
+    """Every advertised analysis must have an implemented ingest payload binding."""
+    from coyote3.config.contracts.ingest import ANALYSIS_PRELOAD_CONTRACT
+
+    for modality, bindings in CLINICAL_VOCABULARY.analysis_file_keys_by_omics.items():
+        assert set(bindings) == set(ANALYSIS_PRELOAD_CONTRACT.preload_keys_by_omics[modality])
+    assert "FUSION" not in CLINICAL_VOCABULARY.analysis_file_keys_by_omics["dna"]
 
 
 @pytest.mark.parametrize(
@@ -86,7 +96,7 @@ def test_manifest_preload_bindings_follow_configured_file_keys():
 )
 def test_center_cannot_redefine_application_contracts(tmp_path, section):
     """Protected sections are rejected even if their values match release defaults."""
-    source = Path("api/config/center/clinical_vocabulary.toml").read_text()
+    source = Path("config/examples/center/clinical_vocabulary.toml").read_text()
     path = tmp_path / "vocabulary.toml"
     path.write_text(source + f"\n[{section}]\n")
     with pytest.raises(RuntimeError, match="Application-owned clinical definitions"):
@@ -95,7 +105,7 @@ def test_center_cannot_redefine_application_contracts(tmp_path, section):
 
 def test_center_cannot_replace_supported_fusion_callers(tmp_path):
     """Caller parser support cannot be declared through a center policy."""
-    source = Path("api/config/center/clinical_vocabulary.toml").read_text()
+    source = Path("config/examples/center/clinical_vocabulary.toml").read_text()
     path = tmp_path / "vocabulary.toml"
     path.write_text(
         source.replace(
@@ -127,7 +137,7 @@ def test_fusion_caller_aliases_resolve_to_configured_database_keys() -> None:
 
 def test_clinical_vocabulary_rejects_overlapping_fusion_description_terms(tmp_path):
     """Each fusion annotation term must have one unambiguous visual meaning."""
-    source = Path("api/config/center/clinical_vocabulary.toml").read_text(encoding="utf-8")
+    source = Path("config/examples/center/clinical_vocabulary.toml").read_text(encoding="utf-8")
     source = source.replace('  "distance100kbp",', '  "mitelman",\n  "distance100kbp",')
     config = tmp_path / "clinical_vocabulary.toml"
     config.write_text(source, encoding="utf-8")

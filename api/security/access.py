@@ -19,7 +19,6 @@ from api.app.deps.repositories import (
 from api.app.deps.services import get_api_session_repository
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import reset_current_user, set_current_user
-from api.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
 from api.config.security import (
     get_api_session_cookie_name as settings_session_cookie_name,
 )
@@ -32,15 +31,16 @@ from api.config.security import (
 from api.config.security import (
     get_api_session_ttl_seconds as settings_session_ttl_seconds,
 )
-from api.config.security import (
-    get_internal_api_token,
-    get_runtime_environment,
-)
-from api.domain.core.models.user import UserModel
+from api.config.security import get_internal_api_token
 from api.infra.security.sessions import ApiSession
 from api.security.audit_events import emit_access_event
 from api.security.auth_service import _load_user_access_context
+from api.security.models import UserModel
 from api.security.policy import build_access_policy
+from coyote3.application.common.access import enforce_access, sample_scope_allowed
+from coyote3.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
+from coyote3.config.policy import get_runtime_environment
+from coyote3.domain.exceptions import AppError
 
 PUBLIC_API_EXACT_PATHS = {
     "/api/v1/health",
@@ -412,45 +412,22 @@ def _enforce_access(
         permission: Required permission, when applicable.
         context: Resource attributes for ABAC scope checks.
     """
-    if isinstance(user, InternalIngestPrincipal):
-        permitted = permission is None or permission in {
-            "internal.ingest:manage",
-            "sample:edit:own",
-        }
-        # Token audience is checked during authentication against this deployment.
-        # The manifest environment selects sample/analysis configuration, not a database.
-        if not permitted:
-            raise _api_error(
-                403,
-                "Ingestion credentials are limited to sample ingestion operations",
-                category="scope",
-            )
-        return
-    if user.is_superuser:
-        return
-    if not permission and not context:
-        return
-
-    policy = build_access_policy(
-        user=user,
-        roles_repository=get_roles_repository(),
-        permissions_repository=get_permissions_repository(),
-    )
-
-    if permission and not policy.permission_allowed(user, permission, context=context):
-        raise _api_error(
-            403,
-            "Access denied",
-            "You do not satisfy the required permission policy.",
-            category="auth",
+    try:
+        enforce_access(
+            user,
+            permission=permission,
+            context=context,
+            policy_factory=lambda actor: build_access_policy(
+                user=actor,
+                roles_repository=get_roles_repository(),
+                permissions_repository=get_permissions_repository(),
+            ),
+            internal_ingest=isinstance(user, InternalIngestPrincipal),
         )
-    if context and not policy.scope_allowed(user, context):
+    except AppError as exc:
         raise _api_error(
-            403,
-            "Access denied",
-            "You do not satisfy the required attribute-scope policy.",
-            category="scope",
-        )
+            exc.status_code, exc.message, exc.details, category=exc.category, hint=exc.hint
+        ) from exc
 
 
 def require_authenticated(request: Request) -> ApiUser:
@@ -516,12 +493,26 @@ def validate_request_csrf(request: Request) -> bool:
 
 
 def get_request_api_session(request: Request) -> ApiSession:
-    """Resolve the server-side session associated with the request cookie."""
-    token = request.cookies.get(get_api_session_cookie_name())
+    """Resolve the server-side bearer or cookie session used by this request."""
+    token = _extract_api_session_token(request)
     session = _get_cached_api_session(request, token)
     if session is None:
         raise _api_error(401, "Login required")
     return cast(ApiSession, session)
+
+
+def require_annotation_publication(user: ApiUser, sample: dict[str, Any]) -> None:
+    """Require the clinical publication grant for production annotation mutations.
+
+    Args:
+        user: Authenticated principal with current role-derived permissions.
+        sample: Authorized server-loaded sample; sandbox samples retain normal curation grants.
+
+    Raises:
+        HTTPException: Production publication is not permitted for this principal.
+    """
+    if sample.get("environment") == "production":
+        _enforce_access(user, permission="annotation:publish")
 
 
 def require_access(
@@ -659,27 +650,16 @@ def _get_sample_for_api(
         raise _api_error(404, "Sample not found", category="not_found")
 
     sample_assay = sample.get("asp_id", "")
-    if not user.is_superuser:
-        policy = build_access_policy(
-            user=user,
+    scope_allowed = sample_scope_allowed(
+        user,
+        sample,
+        policy_factory=lambda actor: build_access_policy(
+            user=actor,
             roles_repository=get_roles_repository(),
             permissions_repository=get_permissions_repository(),
-        )
-        assay_group = None
-        group_restricted = bool(user.asp_groups) and "*" not in user.asp_groups
-        if group_restricted:
-            assay = get_assay_panel_repository().get_asp(sample_assay)
-            assay_group = assay.get("asp_group") if assay else None
-        sample_scope = {
-            "asp_id": sample_assay,
-            "environment": sample.get("environment"),
-            "asp_group": assay_group,
-        }
-        scope_allowed = (not group_restricted or bool(assay_group)) and policy.scope_allowed(
-            user, sample_scope
-        )
-    else:
-        scope_allowed = True
+        ),
+        assay_loader=lambda identity: get_assay_panel_repository().get_asp(identity),
+    )
 
     if not scope_allowed and sample_assay not in set(user.asp_ids or []):
         _audit_access_event(
@@ -709,7 +689,7 @@ def _get_sample_for_api(
             sample_id=sample_id,
             extra={
                 "sample_assay": sample_assay,
-                "sample_profile": sample.get("environment") or sample.get("environment"),
+                "sample_profile": sample.get("environment"),
                 "sample_assay_group": sample.get("assay_group"),
             },
         )

@@ -8,7 +8,7 @@ import {
   sampleFilePath,
   sampleFilterSection,
   sampleReported,
-  sampleSubpanel,
+  sampleDiagnosis,
 } from "./sample-shape"
 
 describe("sample shape helpers", () => {
@@ -29,8 +29,8 @@ describe("sample shape helpers", () => {
   })
 
   it("normalizes sample metadata and report state", () => {
-    expect(sampleSubpanel({ subpanel_id: "myeloid" })).toBe("myeloid")
-    expect(sampleSubpanel({})).toBeUndefined()
+    expect(sampleDiagnosis({ diagnosis_id: "myeloid" })).toBe("myeloid")
+    expect(sampleDiagnosis({})).toBeUndefined()
     expect(sampleReported({ reported: true })).toBe(true)
     expect(sampleReported({ latest_report_id: "report-1" })).toBe(true)
     expect(sampleReported({})).toBe(false)

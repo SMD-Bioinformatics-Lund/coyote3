@@ -61,17 +61,17 @@ describe("Admin navigation permissions", () => {
     expect(screen.getByRole("link", { name: /Reporting Rule Sets/ })).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /Ingest Workspace/ })).not.toBeInTheDocument()
   })
-  it("links assay viewers to subpanel administration", () => {
+  it("links assay viewers to diagnosis administration", () => {
     state.permissions = ["assay.panel:list", "assay.panel:view"]
     show()
-    expect(screen.getByRole("link", { name: /Subpanel definitions/ })).toHaveAttribute("href", "/admin/subpanels")
-    expect(screen.getByRole("link", { name: /Assay subpanel associations/ })).toHaveAttribute("href", "/admin/assay-subpanels")
+    expect(screen.getByRole("link", { name: /Diagnosis definitions/ })).toHaveAttribute("href", "/admin/diagnoses")
+    expect(screen.getByRole("link", { name: /Assay diagnosis associations/ })).toHaveAttribute("href", "/admin/assay-diagnoses")
   })
-  it("hides the subpanel card without assay-list access", () => {
+  it("hides the diagnosis card without assay-list access", () => {
     state.permissions = ["assay.panel:view"]
     show()
-    expect(screen.queryByRole("link", { name: /Subpanel definitions/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: /Assay subpanel associations/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Diagnosis definitions/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Assay diagnosis associations/ })).not.toBeInTheDocument()
   })
   it("does not expose links while authorization is loading", () => {
     state.loading = true
@@ -81,9 +81,9 @@ describe("Admin navigation permissions", () => {
   it("groups every administrative destination once by responsibility", () => {
     state.roles = ["superuser"]
     show()
-    const assays = screen.getByRole("region", { name: "Assays and subpanels" })
+    const assays = screen.getByRole("region", { name: "Assays and diagnoses" })
     expect(within(assays).getByRole("link", { name: /^Assay groups/ })).toBeInTheDocument()
-    expect(within(assays).getByRole("link", { name: /^Subpanel definitions/ })).toBeInTheDocument()
+    expect(within(assays).getByRole("link", { name: /^Diagnosis definitions/ })).toBeInTheDocument()
     const reporting = screen.getByRole("region", { name: "Clinical rules and catalog" })
     expect(within(reporting).getByRole("link", { name: /^Reporting Rule Sets/ })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Identity and access" })).toBeInTheDocument()

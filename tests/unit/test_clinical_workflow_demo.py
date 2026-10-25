@@ -5,22 +5,74 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.query_rules.service import QueryRuleService
-from api.config.clinical_query_policy import resolved_query_policy
-from api.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
-from api.domain.core.dna.cnvqueries import build_cnv_query
-from api.domain.core.dna.structural_annotations import structural_transcript_rows
-from api.domain.core.dna.transcript_payloads import build_hgnc_lookup_maps
-from api.domain.core.dna.varqueries import build_query
-from api.domain.core.rna.fusion_query_builder import build_fusion_query
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
-from scripts.quality.export_demo_workflows import ROOT, replay, review_examples
+from api.infra.mongo.selection import compile_selection
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from coyote3.config.clinical_query_policy import resolved_query_policy
+from coyote3.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
+from coyote3.domain.dna.cnvqueries import build_cnv_query
+from coyote3.domain.dna.structural_annotations import structural_transcript_rows
+from coyote3.domain.dna.transcript_payloads import build_hgnc_lookup_maps
+from coyote3.domain.dna.varqueries import build_query
+from coyote3.domain.rna.fusion_query_builder import build_fusion_query
+from scripts.quality.export_demo_workflows import FIXTURES, ROOT, replay, review_examples
 
 
 @pytest.fixture(scope="module")
 def demo_db():
     """Replay raw fixtures through the real ingest service in isolated memory."""
     return replay()
+
+
+@pytest.mark.parametrize(
+    "diagnosis,group", [("mpn", "hematology"), ("cll", "hematology"), ("lung", "solid")]
+)
+def test_diagnosis_uses_shared_lists_with_distinct_panel_and_wgs_configuration(
+    demo_db, diagnosis, group
+):
+    """Sequencing choice preserves diagnosis/list identity while pinning distinct thresholds."""
+    panel = demo_db.samples.find_one({"name": f"DEMO_{diagnosis.upper()}_PANEL"})
+    wgs = demo_db.samples.find_one({"name": f"DEMO_{diagnosis.upper()}_WGS"})
+    assert panel["diagnosis_id"] == wgs["diagnosis_id"] == diagnosis
+    assert panel["asp_family"] == "panel-dna"
+    assert wgs["asp_family"] == "wgs"
+    assert panel["current_aspc_id"] != wgs["current_aspc_id"]
+    for sample, depth in ((panel, 100), (wgs, 30)):
+        configuration = demo_db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
+        assert configuration["asp_group"] == group
+        assert configuration["aspc_id"] == f"{sample['asp_id']}::{diagnosis}::testing"
+        assert configuration["filters"]["somatic"]["snv"]["snvlists"] == [f"{diagnosis}-variants"]
+        assert configuration["filters"]["somatic"]["snv"]["min_depth"] == depth
+        assert not configuration.get("clinical_rule_release")
+        rules = resolve_published_rule_set(
+            SimpleNamespace(
+                list_active_for_assay=lambda asp_id, **kwargs: list(
+                    demo_db.clinical_rule_sets.find({"scope.asp_id": asp_id})
+                )
+            ),
+            asp_id=sample["asp_id"],
+            diagnosis_id=diagnosis,
+            analyte="dna",
+            language=configuration["reporting"]["language"],
+        )
+        assert rules.scope.diagnosis_id == diagnosis
+        assert rules.scope.asp_id == sample["asp_id"]
+
+
+def test_demo_groups_are_biological_and_retain_legacy_destinations(demo_db):
+    """Technical strategies and analysis types must not reappear as seeded groups."""
+    assert {row["group_id"] for row in demo_db.assay_groups.find()} == {
+        "hematology",
+        "solid",
+        "pgx",
+        "myeloid",
+        "lymphoid",
+    }
+    assert {row["asp_group"] for row in demo_db.assay_specific_panels.find()} == {
+        "hematology",
+        "solid",
+    }
 
 
 def test_demo_structural_events_reach_the_collection_with_embedded_evidence(demo_db):
@@ -53,20 +105,20 @@ def test_demo_transcripts_have_reference_backed_mane_and_alternatives(demo_db):
 @pytest.mark.parametrize(
     "name,assay,collection",
     [
-        ("DEMO_GROUP_DNA", "demo_e2e_demo_dna", "variants"),
-        ("DEMO_GROUP_RNA", "demo_e2e_demo_rna", "fusions"),
+        ("DEMO_GROUP_DNA", "demo-tumwgs-solid", "variants"),
+        ("DEMO_GROUP_RNA", "demo-wts-solid", "fusions"),
     ],
 )
 def test_demo_group_has_complete_sample_and_reporting_configuration(
     demo_db, name, assay, collection
 ):
-    """Dedicated demo-group samples resolve their own profiles, evidence and report drafts."""
+    """Solid DNA and RNA samples resolve their biological group and technical family."""
     sample = demo_db.samples.find_one({"name": name})
     assert sample["asp_id"] == assay
     asp = demo_db.assay_specific_panels.find_one({"asp_id": assay})
-    assert asp["asp_group"] == "demo"
-    aspc = demo_db.asp_configs.find_one({"aspc_id": sample["current_aspc_key"]})
-    assert aspc["asp_group"] == "demo"
+    assert asp["asp_group"] == "solid"
+    aspc = demo_db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
+    assert aspc["asp_group"] == "solid"
     assert aspc["environment"] == "testing"
     assert demo_db[collection].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
     rule = demo_db.clinical_rule_sets.find_one({"scope.asp_id": assay})
@@ -90,7 +142,7 @@ def selected_labels(db, name, **overrides):
         QueryRuleScope(
             assay_group=asp["asp_group"],
             asp_id=sample["asp_id"],
-            subpanel_id=sample["subpanel_id"],
+            diagnosis_id=sample["diagnosis_id"],
             analysis="snv",
         )
     )
@@ -98,17 +150,20 @@ def selected_labels(db, name, **overrides):
         sample["filters"]["somatic"]["snv"],
         id=str(sample["_id"]),
         asp_id=sample["asp_id"],
-        subpanel_id=sample["subpanel_id"],
+        diagnosis_id=sample["diagnosis_id"],
         filter_conseq=["missense_variant"],
     )
     settings.update(overrides)
-    query = build_query(
-        asp["asp_group"],
-        settings,
-        policy=resolved_query_policy("snv", resolved.evidence_mode, resolved.exceptions),
+    query = compile_selection(
+        build_query(
+            asp["asp_group"],
+            settings,
+            policy=resolved_query_policy("snv", resolved.evidence_mode, resolved.exceptions),
+        )
     )
     labels = {
-        r["simple_id"]: r["id"] for r in json.loads((ROOT / "scenarios/variants.json").read_text())
+        r["simple_id"]: r["id"]
+        for r in json.loads((FIXTURES / "scenarios/variants.json").read_text())
     }
     return {labels[row["simple_id"]] for row in db.variants.find(query)}
 
@@ -125,7 +180,7 @@ def test_raw_variants_cover_installed_rules(demo_db, group):
         "depth_boundary",
         "alt_reads_boundary",
     }
-    if group in {"HEMATOLOGY", "MYELOID", "TUMWGS"}:
+    if group in {"HEMATOLOGY", "MYELOID", "TUMWGS", "LYMPHOID"}:
         expected |= {
             "flt3_svtype",
             "flt3_long_alt",
@@ -162,7 +217,7 @@ def test_other_analysis_and_missing_measurement_fixtures(demo_db):
     dna = demo_db.samples.find_one({"name": "DEMO_MYELOID"})
     assert (
         demo_db.cnvs.count_documents(
-            build_cnv_query(str(dna["_id"]), dna["filters"]["somatic"]["cnv"])
+            compile_selection(build_cnv_query(str(dna["_id"]), dna["filters"]["somatic"]["cnv"]))
         )
         == 2
     )
@@ -173,9 +228,19 @@ def test_other_analysis_and_missing_measurement_fixtures(demo_db):
     for name in ("DEMO_FUSION", "DEMO_WTS"):
         rna = demo_db.samples.find_one({"name": name})
         settings = dict(rna["filters"]["somatic"]["fusion"], id=str(rna["_id"]))
-        assert demo_db.fusions.count_documents(build_fusion_query("fusion", settings)) == 2
+        assert (
+            demo_db.fusions.count_documents(
+                compile_selection(build_fusion_query("fusion", settings))
+            )
+            == 2
+        )
         settings.update(min_spanning_reads=10, min_spanning_pairs=5)
-        assert demo_db.fusions.count_documents(build_fusion_query("fusion", settings)) == 1
+        assert (
+            demo_db.fusions.count_documents(
+                compile_selection(build_fusion_query("fusion", settings))
+            )
+            == 1
+        )
         assert not demo_db.variants.count_documents({"SAMPLE_ID": str(rna["_id"])})
 
 
@@ -183,7 +248,7 @@ def test_review_examples_preserve_tier_and_measurement_rendering():
     """Tier IV has no tier I–III narrative; absent measurements produce no text."""
     db = replay()
     previews = review_examples(db)
-    assert previews == json.loads((ROOT / "expected/report_previews.json").read_text())
+    assert previews == json.loads((FIXTURES / "expected/report_previews.json").read_text())
     sections = previews["DEMO_MYELOID"]["sections"]
     assert len(sections["Reportable SNVs and small INDELs"]) == 3
     assert not any("NFKBIE" in text for lines in sections.values() for text in lines)
@@ -196,14 +261,14 @@ def test_review_examples_preserve_tier_and_measurement_rendering():
 
 def test_query_draft_examples_use_current_contract():
     """The inheritance and nested-condition recipes remain valid editor requests."""
-    for row in json.loads((ROOT / "scenarios/query_drafts.json").read_text()):
+    for row in json.loads((FIXTURES / "scenarios/query_drafts.json").read_text()):
         QueryRuleDraft.model_validate(row["request"])
 
 
 def test_report_drafts_have_passing_embedded_cases():
     """The supplied drafts satisfy submission-time validation, including embedded cases."""
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
     for row in json.loads((ROOT / "setup/clinical_rule_sets.json").read_text()):
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(row), require_tests=True)
@@ -231,8 +296,8 @@ def test_demo_installer_rejects_non_demo_targets(uri, database):
 )
 def test_negative_manifests_reject_before_writes(filename):
     """Invalid fixture resources and scopes fail before sample/dependent insertion."""
-    from api.application.ingest.service import InternalIngestService
-    from api.config.constants import ALL_SAMPLE_FILE_KEYS
+    from coyote3.application.ingest.service import InternalIngestService
+    from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
     from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
 
     db = replay()
@@ -242,7 +307,7 @@ def test_negative_manifests_reject_before_writes(filename):
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )
-    path = ROOT / "negative" / filename
+    path = FIXTURES / "negative" / filename
     payload = service.parse_yaml_payload(path.read_text())
     for key in ALL_SAMPLE_FILE_KEYS:
         if payload.get(key):

@@ -1,7 +1,7 @@
 """Regression coverage for the center configuration directory contract."""
 
-from api.config.loaders.collections import load_collection_mapping
-from api.config.loaders.contact import load_contact_config
+from api.config.collections import load_collection_mapping
+from api.config.contact import load_contact_config
 from api.config.paths import (
     API_CONFIG_DIR,
     CENTER_CONFIG_DIR,

@@ -277,11 +277,14 @@ def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center
 
 def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monkeypatch):
     """Seed export revisions become fresh baselines without altering clinical content."""
-    from api.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
     from api.infra.seed.bundle import load_seed
+    from coyote3.application.reporting.clinical_rules.validation import (
+        content_hash,
+        validate_rule_set,
+    )
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
-    source = load_seed(ROOT_DIR / "api/config/bootstrap/demo_center")
+    source = load_seed(ROOT_DIR / "api/bootstrap/catalogs/demo_center")
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
     for collection, documents in source.items():
         for document in documents:
@@ -322,7 +325,7 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
             if collection in managed:
                 assert document["system_managed"] is True
                 assert document["version"] == 1
-            if collection in {"subpanels", "subpanel_associations"}:
+            if collection in {"diagnoses", "diagnosis_associations"}:
                 assert document["version"] == 1
                 assert document["updated_by"] == actor
 
@@ -461,7 +464,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
                     "aspc_id": "assay_1_base_testing",
                     "asp_id": "assay_1",
                     "environment": "testing",
-                    "subpanel_id": "base",
+                    "diagnosis_id": "base",
                     "asp_group": "Hematology",
                     "filters": {
                         "snvlists": ["seed_snv_list"],
@@ -480,9 +483,9 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
                 {
                     "name": "Seed Sample",
                     "asp_id": "Assay_1",
-                    "subpanel_id": "base",
+                    "diagnosis_id": "base",
                     "environment": "testing",
-                    "omics_layer": "dna",
+                    "asp_category": "dna",
                     "platform": "illumina",
                     "files": {"vcf_files": {"path": "/data/seed/sample.vcf"}},
                     "filters": {
@@ -534,7 +537,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     aspc = json.loads((dest_dir / "asp_configs.json").read_text())[0]
     assert aspc["aspc_id"] == "assay_1_base_testing"
     assert aspc["asp_id"] == "assay_1"
-    assert aspc["subpanel_id"] == "base"
+    assert aspc["diagnosis_id"] == "base"
     assert aspc["environment"] == "testing"
     assert aspc["filters"]["snvlists"] == ["seed_snv_list"]
     assert aspc["filters"]["cnvlists"] == ["seed_cnv_list"]
@@ -545,9 +548,9 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     assert "query" not in aspc
 
     sample = json.loads((dest_dir / "samples.json").read_text())[0]
-    assert sample["subpanel_id"] == "base"
+    assert sample["diagnosis_id"] == "base"
     assert sample["environment"] == "testing"
-    assert sample["omics_layer"] == "dna"
+    assert sample["asp_category"] == "dna"
     assert sample["platform"] == "illumina"
     assert sample["files"]["vcf_files"]["path"] == "/data/seed/sample.vcf"
     assert sample["filters"]["somatic"]["snv"]["snvlists"] == ["seed_snv_list"]
@@ -629,13 +632,13 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
             {
                 "name": "SYNTHETIC_CASE_001",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "testing",
                 "case_id": "SYNTHETIC_CASE_001",
                 "sample_no": 1,
                 "paired": False,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "platform": "illumina",
                 "pipeline": "SyntheticPipeline",
                 "pipeline_version": "1.0",
@@ -662,13 +665,13 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
             {
                 "name": "SYNTHETIC_CASE_002",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "testing",
                 "case_id": "SYNTHETIC_CASE_002",
                 "sample_no": 1,
                 "paired": False,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "platform": "illumina",
                 "pipeline": "SyntheticPipeline",
                 "pipeline_version": "1.0",

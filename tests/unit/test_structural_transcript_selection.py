@@ -7,14 +7,14 @@ import mongomock
 import pytest
 from bson import ObjectId
 
-from api.application.dna.structural_variants import DnaStructuralService
-from api.domain.common.errors import AppError
-from api.domain.core.dna.structural_annotations import (
+from api.infra.mongo.repositories.translocations import TranslocsRepository
+from coyote3.application.dna.structural_variants import DnaStructuralService
+from coyote3.domain.common.errors import AppError
+from coyote3.domain.dna.structural_annotations import (
     annotation_key,
     select_structural_annotation,
     structural_transcript_rows,
 )
-from api.infra.mongo.repositories.translocations import TranslocsRepository
 
 
 def test_partner_mane_matches_do_not_cross_between_genes():

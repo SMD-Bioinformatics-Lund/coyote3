@@ -21,7 +21,7 @@ export function GeneInfoPage() {
     enabled: Boolean(geneId),
   })
 
-  const gene = data?.gene || data?.payload || data || {}
+  const gene = data?.gene || {}
   const symbol = gene.hgnc_symbol || gene.symbol || geneId
   const hgncId = gene.hgnc_id || gene._id
   const aliases = gene.aliases || gene.alias_symbol || []

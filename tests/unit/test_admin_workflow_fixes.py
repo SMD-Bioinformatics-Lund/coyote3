@@ -5,18 +5,18 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.application.accounts.users import UserManagementService
-from api.application.ingest.json_resources import read_ingest_json
-from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.domain.common.assay_filters import create_assay_group_map
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.application.ingest.json_resources import read_ingest_json
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.domain.common.assay_filters import create_assay_group_map
 
 
 @pytest.mark.parametrize(
     "resource,key,label",
     [
         ("asp", "asp_id", "Assay ID"),
-        ("asp", "asp_group", "Assay group"),
+        ("asp", "asp_group", "Biological group"),
         ("aspc_dna", "aspc_id", "Configuration ID"),
         ("aspc_dna", "asp_id", "Assay"),
         ("isgl", "isgl_id", "Gene list ID"),
@@ -35,6 +35,27 @@ def test_assay_sequencing_form_defaults():
     assert fields["read_mode"]["default"] == "PE"
     assert fields["read_length"]["default"] == 150
     assert fields["read_mode"]["options_by_field"]["values"]["illumina"] == ["SE", "PE"]
+
+
+def test_assay_form_uses_registered_capabilities_and_hides_compiled_receipts():
+    """Form choices follow the capability registry; generated receipts are not authored."""
+    fields = build_form_spec(managed_resource_spec("asp"))["fields"]
+    assert fields["asp_category"]["options_by_field"]["values"]["wgs"] == ["dna"]
+    assert "options_by_field" not in fields["asp_family"]
+    assert "wgs" in fields["asp_family"]["options"]
+    assert fields["asp_category"]["readonly"] is True
+    assert "fusion_files" not in fields["expected_files"]["options_by_field"]["values"]["dna"]
+    assert fields["required_files"]["options_from_field"] == "expected_files"
+    assert fields["supported_analyses"]["options_require_inputs"]["values"]["SNV"] == ["vcf_files"]
+    for kind in ("aspc_dna", "aspc_rna"):
+        fields = build_form_spec(managed_resource_spec(kind))["fields"]
+        assert not {
+            "profile_sources",
+            "profile_overrides",
+            "template_release",
+            "clinical_rule_base",
+            "promotion",
+        }.intersection(fields)
 
 
 def test_user_assay_options_follow_active_groups():

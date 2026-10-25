@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from api.application.common.pagination import paginate_items
-from api.application.common.table_state import search_items, select_table_rows, sort_items
+from coyote3.application.common.pagination import paginate_items
+from coyote3.application.common.table_state import search_items, select_table_rows, sort_items
 
 
 def test_deep_page_external_merge_preserves_ties_and_value_types(monkeypatch, tmp_path):
@@ -25,6 +25,7 @@ def test_deep_page_external_merge_preserves_ties_and_value_types(monkeypatch, tm
     expected = sorted(rows, key=lambda row: row["value"])[1200:1250]
     actual, metadata = select_table_rows(
         iter(rows),
+        page_sorter=external_sort.sorted_page,
         search_query="",
         text_builder=str,
         specs=[("value", "asc")],

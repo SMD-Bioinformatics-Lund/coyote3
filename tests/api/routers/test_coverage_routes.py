@@ -5,13 +5,43 @@ from __future__ import annotations
 import pytest
 
 from api.app.container import store
-from api.application.sample import coverage as coverage_service_module
-from api.application.sample.coverage import CoverageService
-from api.contracts.coverage import CoverageSamplePayload
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.dna import coverage
+from api.interfaces.http.v1.clinical.dna import coverage
 from api.security.access import ApiUser
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.sample import coverage as coverage_service_module
+from coyote3.application.sample.coverage import CoverageService
+from coyote3.contracts.coverage import CoverageSamplePayload
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
+
+
+def _coverage_configuration(assay, profile, diagnosis):
+    """Provide a complete synthetic configuration revision for coverage requests."""
+    return {
+        **fx.assay_config_doc(),
+        "asp_id": assay,
+        "aspc_id": f"{assay}_{diagnosis}_{profile}",
+        "diagnosis_id": diagnosis,
+        "environment": profile,
+        "version": 1,
+        "assay_resource_release": capture_assay_resource(_coverage_assay()),
+        "gene_list_release": capture_gene_lists(
+            [{"isgl_id": "GL1", "genes": ["TP53", "ALK"], "is_active": True, "list_type": ["snv"]}]
+        ),
+    }
+
+
+def _coverage_assay(asp_name=None, **_kwargs):
+    """Provide the synthetic WGS assay referenced by coverage fixtures."""
+    return {
+        "asp_id": "wgs",
+        "covered_genes": ["TP53", "NPM1"],
+        "asp_group": "dna",
+        "asp_family": "wgs",
+        "asp_category": "dna",
+        "version": 1,
+    }
 
 
 def _coverage_service() -> CoverageService:
@@ -24,36 +54,28 @@ def _coverage_service() -> CoverageService:
 
 
 def test_coverage_sample_read_builds_payload(monkeypatch):
-    """Test coverage sample read builds payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"
-    sample["subpanel_id"] = "myeloid"
+    sample["diagnosis_id"] = "myeloid"
     sample["environment"] = "production"
     service = _coverage_service()
-    requested_subpanels: list[str] = []
+    requested_diagnoses: list[str] = []
     requested_gene_scopes: list[list[str]] = []
 
-    monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay, profile, subpanel: (
-            requested_subpanels.append(subpanel)
-            or ({"asp_group": "dna", "subpanel_id": "base"} if subpanel == "base" else None)
+        lambda assay, profile, diagnosis: (
+            requested_diagnoses.append(diagnosis)
+            or (_coverage_configuration(assay, profile, diagnosis) if diagnosis == "base" else None)
         ),
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
         "get_asp",
-        lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
+        _coverage_assay,
     )
     monkeypatch.setattr(
         service.d4_coverage_repository,
@@ -87,39 +109,35 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(coverage.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = coverage.coverage_sample_read(
-        "S1", cov_cutoff=500, user=fx.api_user(), service=service
+        "S1",
+        cov_cutoff=500,
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(service, fx.api_user()),
     )
 
     assert payload["cov_cutoff"] == 500
     assert payload["smp_grp"] == "dna"
-    assert payload["gene_scope"] == ["TP53", "NPM1"]
+    assert payload["gene_scope"] == ["TP53"]
     assert payload["cov_table"]["TP53"]["1"]["cov"] == 700
-    assert requested_subpanels == ["myeloid", "base"]
-    assert requested_gene_scopes == [["TP53", "NPM1"]]
+    assert requested_diagnoses == ["myeloid", "base"]
+    assert requested_gene_scopes == [["TP53"]]
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():
-    """Test coverage blacklisted read denies non member group.
-
-    Returns:
-        The function result.
-    """
     user = _route_test_user()
     user.asp_groups = ["rna"]
 
     with pytest.raises(AppError) as exc:
-        coverage.coverage_blacklisted_read("dna", user=user, service=_coverage_service())
+        coverage.coverage_blacklisted_read(
+            "dna", user=user, service=sdk_fixtures.coverage_operations(_coverage_service(), user)
+        )
 
     assert exc.value.status_code == 403
     assert "outside your scope" in exc.value.detail["error"]
 
 
 def _route_test_user() -> ApiUser:
-    """Route test user.
-
-    Returns:
-            The  route test user result.
-    """
+    """Route test user."""
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -138,32 +156,24 @@ def _route_test_user() -> ApiUser:
 
 
 def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
-    """Test coverage sample read validates cov table dict shape.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"
-    sample["subpanel_id"] = "base"
+    sample["diagnosis_id"] = "base"
     sample["environment"] = "production"
     sample["_id"] = "S1"
 
     service = _coverage_service()
-    monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(
         service.assay_configuration_repository,
         "get_aspc_no_meta",
-        lambda assay, profile, subpanel: {"asp_group": "dna", "subpanel_id": subpanel},
+        _coverage_configuration,
     )
     monkeypatch.setattr(
         service.assay_panel_repository,
         "get_asp",
-        lambda asp_name=None, **_kwargs: {"asp_id": "wgs", "covered_genes": ["TP53", "NPM1"]},
+        _coverage_assay,
     )
     monkeypatch.setattr(
         service.d4_coverage_repository,
@@ -201,7 +211,7 @@ def test_coverage_sample_read_validates_cov_table_dict_shape(monkeypatch):
         "S1",
         cov_cutoff=500,
         user=_route_test_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, _route_test_user()),
     )
     CoverageSamplePayload.model_validate(body)
     assert isinstance(body["cov_table"], dict)

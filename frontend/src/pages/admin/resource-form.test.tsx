@@ -6,14 +6,14 @@ import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
   it("validates new identifiers without restricting existing reference choices", () => {
-    const props = { name: "asp_id", field: { label: "Assay ID" }, value: "old-assay", mode: "create" as const, onChange: vi.fn() }
+    const props = { name: "asp_id", field: { label: "Assay ID" }, value: "old--assay", mode: "create" as const, onChange: vi.fn() }
     const { rerender } = render(<FormControl {...props} />)
     expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true")
     rerender(<FormControl {...props} value="new_assay" />)
     expect(screen.getByRole("textbox")).not.toHaveAttribute("aria-invalid")
     rerender(<FormControl {...props} mode="edit" />)
     expect(screen.getByRole("textbox")).not.toHaveAttribute("pattern")
-    rerender(<FormControl {...props} field={{ label: "Assay", display_type: "select", options: ["old-assay"] }} />)
+    rerender(<FormControl {...props} value="old-assay" field={{ label: "Assay", display_type: "select", options: ["old-assay"] }} />)
     expect(screen.getByRole("combobox", { name: "Assay" })).toHaveValue("old-assay")
     expect(screen.queryByText(/Use lowercase letters/)).not.toBeInTheDocument()
   })
@@ -21,14 +21,14 @@ describe("Resource Form UI", () => {
   it("derives a read-only ASPC ID live instead of retaining a copied ID", () => {
     const field: FormField = {
       label: "ASPC ID", readonly: true,
-      derive_from: ["asp_id", "subpanel_id", "environment"],
+      derive_from: ["asp_id", "diagnosis_id", "environment"],
     }
     const props = { name: "aspc_id", field, value: "copied_old_id", mode: "create" as const, onChange: vi.fn() }
     const { rerender } = render(<FormControl {...props} formValues={{ asp_id: "ASSAY", environment: "production" }} />)
-    expect(screen.getByRole("textbox")).toHaveValue("assay_base_production")
+    expect(screen.getByRole("textbox")).toHaveValue("assay::base::production")
     expect(screen.getByRole("textbox")).toBeDisabled()
-    rerender(<FormControl {...props} formValues={{ asp_id: "other", subpanel_id: "panel", environment: "development" }} />)
-    expect(screen.getByRole("textbox")).toHaveValue("other_panel_development")
+    rerender(<FormControl {...props} formValues={{ asp_id: "other", diagnosis_id: "panel", environment: "development" }} />)
+    expect(screen.getByRole("textbox")).toHaveValue("other::panel::development")
     rerender(<FormControl {...props} formValues={{ asp_id: "", environment: "development" }} />)
     expect(screen.getByRole("textbox")).toHaveValue("")
   })

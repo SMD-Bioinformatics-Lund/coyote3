@@ -20,8 +20,8 @@ from pymongo.uri_parser import parse_uri
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS  # noqa: E402
 from scripts.migration_common.offline import digest, read_json  # noqa: E402
 from scripts.migration_common.run_report import write_report  # noqa: E402
 from scripts.migration_common.target_catalog import (  # noqa: E402
@@ -31,6 +31,29 @@ from scripts.migration_common.target_catalog import (  # noqa: E402
 from scripts.upgrade_from_v3.clinical_documents import CLINICAL_COLLECTIONS  # noqa: E402
 
 ALLOWED_TARGETS = set(CLINICAL_COLLECTIONS)
+
+
+def _storage_document(collection: str, document: dict) -> dict:
+    """Translate validated migration fields into the existing runtime storage shape.
+
+    Args:
+        collection: Canonical clinical collection name.
+        document: Validated bundle document, which is never mutated.
+
+    Returns:
+        A copy ready for persistence. Blacklist contracts expose ``assay_group``;
+        the established MongoDB repository reads and writes that scope as ``assay``.
+
+    Raises:
+        ValueError: A blacklist bundle contains a conflicting physical scope field.
+    """
+    stored = deepcopy(document)
+    if collection == "blacklist" and "assay_group" in stored:
+        scope = stored.pop("assay_group")
+        if "assay" in stored and stored["assay"] != scope:
+            raise ValueError("Blacklist migration contains conflicting scope fields")
+        stored["assay"] = scope
+    return stored
 
 
 def guard_target(uri: str, database: str) -> None:
@@ -103,10 +126,10 @@ def check_sample_scope(target: Any, sample: dict, session: Any = None) -> None:
     for field, value in {
         "asp_id": sample["asp_id"],
         "environment": sample["environment"],
-        "asp_category": sample["omics_layer"],
-        "subpanel_id": sample.get("subpanel_id") or "base",
+        "asp_category": sample["asp_category"],
+        "diagnosis_id": sample.get("diagnosis_id") or "base",
     }.items():
-        if aspc.get(field, "base" if field == "subpanel_id" else None) != value:
+        if aspc.get(field, "base" if field == "diagnosis_id" else None) != value:
             raise ValueError("Destination ASPC scope differs from the sample")
 
 
@@ -141,6 +164,10 @@ def apply_plan(
         or set(expected_samples) != {str(row["_id"]) for row in plan["samples"]}
     ):
         raise ValueError("Metadata patch scope differs from expected sample identities")
+    stored_plan = {
+        collection: [_storage_document(collection, row) for row in rows]
+        for collection, rows in plan.items()
+    }
 
     def pending(session: Any = None) -> dict[str, list[dict]]:
         """Recheck scope and existing identities in the transaction's snapshot."""
@@ -152,7 +179,7 @@ def apply_plan(
         for sample in plan.get("samples", []):
             check_sample_scope(target, sample, session)
         result = {}
-        for collection, rows in plan.items():
+        for collection, rows in stored_plan.items():
             result[collection] = []
             for row in rows:
                 current = target[collection].find_one({"_id": row["_id"]}, session=session)
@@ -223,7 +250,7 @@ def apply_plan(
                 target[name].insert_many(rows, session=session)
 
     run_transaction(target.client, write)
-    for name, rows in plan.items():
+    for name, rows in stored_plan.items():
         for row in rows:
             if digest(target[name].find_one({"_id": row["_id"]})) != digest(row):
                 raise RuntimeError("Post-copy verification failed; keep destination offline")

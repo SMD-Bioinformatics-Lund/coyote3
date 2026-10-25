@@ -5,9 +5,11 @@
 
     insilico_genelist_collection = "insilico_genelists"
     aspc_collection = "asp_configs"
+    configuration_profiles_collection = "configuration_profiles"
+    configuration_promotions_collection = "configuration_promotions"
     asp_collection = "assay_specific_panels"
-    subpanels_collection = "subpanels"
-    subpanel_associations_collection = "subpanel_associations"
+    diagnoses_collection = "diagnoses"
+    diagnosis_associations_collection = "diagnosis_associations"
     assay_setups_collection = "assay_setups"
     assay_groups_collection = "assay_groups"
     assay_setup_revisions_collection = "assay_setup_revisions"

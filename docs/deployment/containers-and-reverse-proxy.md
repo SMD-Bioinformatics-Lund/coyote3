@@ -54,15 +54,16 @@ commands, select [first installation, upgrade, or redeployment](production-deplo
 ## Scope
 
 - **Standard deployment**: Repeatable container-based release deployment.
-- **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](bootstrap-data-flow.md) and the [Initial Deployment Checklist](installation-checklist.md).
+- **Initial Provisioning**: For first-time environment setup, refer to the [Center Deployment Guide](bootstrap-data-flow.md) and the [Deployment Acceptance Checklist](acceptance-checklist.md).
 
 ## Release Metadata
 
 ### Image versions
 
-The application version is defined in `api/version.py`. The
+The application release version is defined in `release.toml`. The
 `scripts/deployment/compose-with-version.sh` wrapper reads that file and exports transient
-Compose variables for image names and build metadata. Do not store
+Compose variables for image names. Supply `GIT_COMMIT` explicitly from the reviewed
+checkout when building release images. Do not store
 `COYOTE3_VERSION`, `COYOTE3_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
 The wrapper reads `ENV_NAME` from the selected env file (an exported shell value
 takes precedence). Development/dev, testing/test, staging/stage, and production/prod
@@ -72,6 +73,12 @@ follow the same rule.
 Both modern and legacy Compose use these tags without an extra image-selection file.
 Use literal values for `ENV_NAME`. Base files serve compiled images; dev overlays
 are only for live editing.
+
+Before building compiled API or worker images, prepare the
+[tested SDK artifact](../sdk/compatibility.md#build-and-record-an-application-release).
+The production Dockerfile installs the retained wheel and validates its release
+record; it does not rebuild the SDK from the checkout. Development overlays use
+an editable source installation instead.
 
 Logging defaults to `INFO` for production/prod and `DEBUG` elsewhere. `LOG_LEVEL`
 in the env file overrides that default. `CELERY_LOG_LEVEL` defaults to the effective
@@ -397,7 +404,7 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 ## Safety guardrails
 
 - **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
-- **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the version from `api/version.py` for all image resolutions.
+- **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the application version from `release.toml` for all image resolutions.
 - **Durable Data Protection**: The deployment wrapper rejects destructive volume operations (`down -v`) in every environment. Normal teardown stops and removes containers only; it never removes Compose volumes or the host-mounted MongoDB data directory.
 - **Queue persistence**: Redis uses the `redis-data` volume, AOF with `appendfsync always`, and `noeviction`. Cache, broker, and task results use Redis databases 0, 1, and 2 respectively. MongoDB ingest receipts provide delivery recovery independently of task-result retention. See [transaction and queue deployment requirements](../architecture/transactions-and-ingest-recovery.md#deployment-and-rollout).
 

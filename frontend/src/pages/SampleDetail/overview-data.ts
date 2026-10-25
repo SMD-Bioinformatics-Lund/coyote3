@@ -125,7 +125,7 @@ export function hasConfiguredAnalysis(configured: Set<string>, ...keys: string[]
 
 export function overviewFilterGroups(sample: any, context?: any): OverviewFilterGroup[] {
   const configured = configuredAnalysisSections(sample, context)
-  const omics = String(sample?.omics_layer || "").toLowerCase()
+  const omics = String(sample?.asp_category || "").toLowerCase()
   const include = (...keys: string[]) => configured.size === 0 || hasConfiguredAnalysis(configured, ...keys)
 
   if (omics === "rna") {

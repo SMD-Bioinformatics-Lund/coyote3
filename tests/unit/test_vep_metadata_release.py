@@ -5,8 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from api.config.database_versions import vep_metadata_release
 from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
+from coyote3.config.database_versions import vep_metadata_release
 
 
 @pytest.mark.parametrize("value", [113, 113.0, "113", "113.0", "v113.0", "113.0.0"])

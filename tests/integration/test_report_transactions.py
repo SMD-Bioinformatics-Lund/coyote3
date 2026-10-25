@@ -9,9 +9,9 @@ import pytest
 from bson import ObjectId
 from pymongo import MongoClient
 
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
 from api.infra.mongo.repositories.reports import ReportRepository
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture

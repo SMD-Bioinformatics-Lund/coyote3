@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.contracts.schemas.clinical_rules import (
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -16,7 +16,7 @@ from api.contracts.schemas.clinical_rules import (
     ClinicalRuleStatus,
     ClinicalRuleTransition,
 )
-from api.domain.core.exceptions import AppError
+from coyote3.domain.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
@@ -34,10 +34,10 @@ def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
             {"content": {"panel": panel, "scopes": ["base", "named"]}},
         ]
     )
-    subpanels = SimpleNamespace(
+    diagnoses = SimpleNamespace(
         list_definitions=lambda: [
-            {"subpanel_id": "named", "display_name": "Named", "is_active": True},
-            {"subpanel_id": "unused", "display_name": "Unused", "is_active": True},
+            {"diagnosis_id": "named", "display_name": "Named", "is_active": True},
+            {"diagnosis_id": "unused", "display_name": "Unused", "is_active": True},
         ],
         list_for_assay=lambda *args, **kwargs: [],
     )
@@ -45,19 +45,19 @@ def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
         Repository(),
         assay_panel_repository=panels,
         assay_setup_repository=setups,
-        assay_subpanel_repository=subpanels,
+        assay_diagnosis_repository=diagnoses,
     )
     assert len(service._authoring_panels()) == 2
-    assert [row["subpanel_id"] for row in service._registered_subpanels("assay_1")] == [
+    assert [row["diagnosis_id"] for row in service._registered_diagnoses("assay_1")] == [
         "base",
         "named",
     ]
-    assert service._registered_subpanels("unknown") == [
-        {"subpanel_id": "base", "display_name": "Base"}
+    assert service._registered_diagnoses("unknown") == [
+        {"diagnosis_id": "base", "display_name": "Base"}
     ]
     service._validate_new_scope(
         ClinicalRuleDraftCreate(
-            scope={"asp_id": "assay_1", "subpanel_id": "named", "analyte": "dna"},
+            scope={"asp_id": "assay_1", "diagnosis_id": "named", "analyte": "dna"},
             name="New rule",
         )
     )
@@ -331,7 +331,7 @@ def test_from_store_list_versions_and_get() -> None:
             get_revision=lambda _document_id, _revision: None,
         ),
         assay_panel_repository=SimpleNamespace(get_all_asps=lambda is_active: []),
-        assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
         roles_repository=RoleRepository(),
         user_repository=UserRepository(),
     )
@@ -363,8 +363,8 @@ def test_authoring_options_use_identifier_as_missing_display_name() -> None:
     service = ClinicalRuleAuthoringService(
         Repository(),
         assay_panel_repository=panels,
-        assay_subpanel_repository=SimpleNamespace(
-            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        assay_diagnosis_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "base", "display_name": "Base"}]
         ),
     )
     assert service.authoring_options()["assays"][0]["display_name"] == "assay_1"
@@ -398,13 +398,13 @@ def test_new_draft_creation_validates_assay_and_persists_scope() -> None:
     service = ClinicalRuleAuthoringService(
         repository,
         assay_panel_repository=panels,
-        assay_subpanel_repository=SimpleNamespace(
-            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        assay_diagnosis_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "base", "display_name": "Base"}]
         ),
     )
     result = service.create_draft(
         ClinicalRuleDraftCreate(
-            scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
+            scope={"asp_id": "assay_1", "diagnosis_id": "base", "analyte": "dna"},
             name="New rules",
         ),
         actor="author",
@@ -455,13 +455,13 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     result = ClinicalRuleAuthoringService(
         repository,
         assay_panel_repository=panels,
-        assay_subpanel_repository=SimpleNamespace(
-            list_for_assay=lambda *_a, **_k: [{"subpanel_id": "base", "display_name": "Base"}]
+        assay_diagnosis_repository=SimpleNamespace(
+            list_for_assay=lambda *_a, **_k: [{"diagnosis_id": "base", "display_name": "Base"}]
         ),
     ).import_draft(
         ClinicalRuleImportRequest(
             document=source,
-            scope={"asp_id": "assay_1", "subpanel_id": "base", "analyte": "dna"},
+            scope={"asp_id": "assay_1", "diagnosis_id": "base", "analyte": "dna"},
             name="Imported report rules",
         ),
         actor="author",

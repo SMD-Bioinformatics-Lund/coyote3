@@ -22,13 +22,13 @@ const stripScriptName = (requestPath: string) =>
 
 function readAppVersion() {
   try {
-    const versionFile = path.resolve(__dirname, '../api/version.py')
+    const versionFile = path.resolve(__dirname, '../release.toml')
     const content = fs.readFileSync(versionFile, 'utf-8')
-    const version = content.match(/__version__\s*=\s*["']([^"']+)["']/)?.[1]
-    if (!version) throw new Error('Missing __version__ in api/version.py')
+    const version = content.match(/^application_version\s*=\s*["']([^"']+)["']/m)?.[1]
+    if (!version) throw new Error('Missing application_version in release.toml')
     return version
   } catch {
-    throw new Error('Cannot read application version from api/version.py')
+    throw new Error('Cannot read application version from release.toml')
   }
 }
 

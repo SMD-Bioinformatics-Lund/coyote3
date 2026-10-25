@@ -347,7 +347,7 @@ describe("Managed admin resource workflows", () => {
     mocks.get.mockResolvedValue({
       data: {
         form: {
-          sections: { identity: ["asp_id", "subpanel_id", "analysis_types"] },
+          sections: { identity: ["asp_id", "diagnosis_id", "analysis_types"] },
           fields: {
             asp_id: {
               label: "ASP",
@@ -357,8 +357,8 @@ describe("Managed admin resource workflows", () => {
                 { value: "wts_panel", label: "WTS panel" },
               ],
             },
-            subpanel_id: {
-              label: "Subpanel",
+            diagnosis_id: {
+              label: "Diagnosis",
               display_type: "select",
               default: "base",
               options_by_field: {
@@ -391,14 +391,14 @@ describe("Managed admin resource workflows", () => {
 
     expect(await screen.findByText(/Select an ASP to see the analysis types/)).toBeVisible()
     await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "rna_panel")
-    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("base")
-    await user.selectOptions(screen.getByRole("combobox", { name: "Subpanel" }), "heme")
+    expect(screen.getByRole("combobox", { name: "Diagnosis" })).toHaveValue("base")
+    await user.selectOptions(screen.getByRole("combobox", { name: "Diagnosis" }), "heme")
     expect(screen.getByLabelText("FUSION")).toBeVisible()
     expect(screen.getByLabelText("QC")).toBeVisible()
     expect(screen.queryByLabelText("EXPRESSION")).not.toBeInTheDocument()
 
     await user.selectOptions(screen.getByRole("combobox", { name: "ASP" }), "wts_panel")
-    expect(screen.getByRole("combobox", { name: "Subpanel" })).toHaveValue("base")
+    expect(screen.getByRole("combobox", { name: "Diagnosis" })).toHaveValue("base")
     expect(screen.getByRole("option", { name: "myeloid" })).toBeVisible()
     expect(screen.getByLabelText("EXPRESSION")).toBeVisible()
     expect(screen.getByLabelText("CLASSIFICATION")).toBeVisible()
@@ -420,19 +420,19 @@ describe("Managed admin resource workflows", () => {
     },
   )
 
-  it("selects reporting language without a manual rule binding when subpanel changes", async () => {
+  it("selects reporting language without a manual rule binding when diagnosis changes", async () => {
     mocks.get.mockResolvedValue({
       data: {
         form: {
-          sections: { identity: ["asp_id", "subpanel_id"], reporting: ["reporting"] },
+          sections: { identity: ["asp_id", "diagnosis_id"], reporting: ["reporting"] },
           fields: {
             asp_id: {
               label: "ASP",
               display_type: "select",
               options: ["solid_gmsv3"],
             },
-            subpanel_id: {
-              label: "Subpanel",
+            diagnosis_id: {
+              label: "Diagnosis",
               display_type: "select",
               default: "base",
               options_by_field: {
@@ -474,7 +474,7 @@ describe("Managed admin resource workflows", () => {
     expect(selector).toHaveValue("sv")
     expect(screen.queryByRole("combobox", { name: /Clinical Rule Set/ })).toBeNull()
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Subpanel" }), "endometrie")
+    await user.selectOptions(screen.getByRole("combobox", { name: "Diagnosis" }), "endometrie")
     expect(selector).toHaveValue("sv")
     await user.selectOptions(selector, "en")
     expect(selector).toHaveValue("en")

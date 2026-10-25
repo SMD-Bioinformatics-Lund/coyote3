@@ -4,34 +4,35 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
-import api.application.accounts.permissions as admin_permission_service_module
-import api.application.accounts.roles as admin_role_service_module
-import api.application.accounts.users as admin_user_service_module
-import api.application.resources.asp as admin_asp_service_module
-import api.application.resources.aspc as admin_aspc_service_module
-import api.application.resources.isgl as admin_isgl_service_module
-import api.application.resources.sample as admin_resource_service_module
+import coyote3.application.accounts.permissions as admin_permission_service_module
+import coyote3.application.accounts.roles as admin_role_service_module
+import coyote3.application.accounts.users as admin_user_service_module
+import coyote3.application.resources.asp as admin_asp_service_module
+import coyote3.application.resources.aspc as admin_aspc_service_module
+import coyote3.application.resources.isgl as admin_isgl_service_module
+import coyote3.application.resources.sample as admin_resource_service_module
 from api.app.container import util as shared_util
-from api.application.accounts.permissions import PermissionManagementService
-from api.application.accounts.roles import RoleManagementService
-from api.application.accounts.users import UserManagementService
-from api.application.resources.asp import AspService
-from api.application.resources.aspc import AspcService
-from api.application.resources.isgl import IsglService
-from api.application.resources.sample import ResourceSampleService
-from api.config.constants import (
+from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote3.application.accounts.permissions import PermissionManagementService
+from coyote3.application.accounts.roles import RoleManagementService
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.application.resources.asp import AspService
+from coyote3.application.resources.aspc import AspcService
+from coyote3.application.resources.isgl import IsglService
+from coyote3.application.resources.sample import ResourceSampleService
+from coyote3.config.constants import (
     ASP_CATEGORY_OPTIONS,
     ASP_FAMILY_OPTIONS,
     PLATFORM_OPTIONS,
     SAMPLE_FILE_KEYS,
 )
-from api.config.contracts.governance import PERMISSION_CATALOG
-from api.contracts.operations import OperationResult
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote3.config.contracts.governance import PERMISSION_CATALOG
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.exceptions import AppError
 
 
 class _AdminRepoStub:
@@ -47,11 +48,7 @@ class _AdminRepoStub:
         self.deleted_roles: list[str] = []
 
     def list_users(self):
-        """List users.
-
-        Returns:
-            The function result.
-        """
+        """List users."""
         return [{"_id": "tester", "user_id": "tester"}]
 
     def search_users(self, *, q="", page=1, per_page=30):
@@ -60,73 +57,35 @@ class _AdminRepoStub:
         return ([{"_id": "tester", "user_id": "tester"}], 1)
 
     def get_role_colors(self):
-        """Return role colors.
-
-        Returns:
-            The function result.
-        """
+        """Return role colors."""
         return {"admin": "#000"}
 
     def list_permission_policy_options(self):
-        """List permission policy options.
-
-        Returns:
-            The function result.
-        """
+        """List permission policy options."""
         return [{"value": "perm.a", "label": "perm.a", "category": "General"}]
 
     def get_role_names(self):
-        """Return role names.
-
-        Returns:
-            The function result.
-        """
+        """Return role names."""
         return ["admin"]
 
     def get_roles_policy_map(self):
-        """Return roles policy map.
-
-        Returns:
-            The function result.
-        """
+        """Return roles policy map."""
         return {"admin": {"permissions": ["perm.a"], "level": 99}}
 
     def get_assay_group_map(self):
-        """Return assay group map.
-
-        Returns:
-            The function result.
-        """
+        """Return assay group map."""
         return {"dna": [{"_id": "WGS"}]}
 
     def get_asp_groups(self):
-        """Return asp groups.
-
-        Returns:
-            The function result.
-        """
+        """Return asp groups."""
         return ["dna"]
 
     def create_user(self, user_data):
-        """Create user.
-
-        Args:
-            user_data: Value for ``user_data``.
-
-        Returns:
-            The function result.
-        """
+        """Create user."""
         self.created_user = user_data
 
     def get_user(self, user_id):
-        """Return user.
-
-        Args:
-            user_id: Value for ``user_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return user."""
         if user_id in {"missing", "newtester"}:
             return None
         return {
@@ -148,49 +107,22 @@ class _AdminRepoStub:
         }
 
     def update_user(self, user_id, user_data, *, fields, expected_version):
-        """Update user.
-
-        Args:
-            user_id: Value for ``user_id``.
-            user_data: Value for ``user_data``.
-
-        Returns:
-            The function result.
-        """
+        """Update user."""
         self.updated_user = (user_id, user_data)
         return SimpleNamespace(matched_count=1)
 
     def delete_user(self, user_id, *, expected_version):
-        """Delete user.
-
-        Args:
-            user_id: Value for ``user_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete user."""
         self.deleted_users.append(user_id)
         return SimpleNamespace(deleted_count=1)
 
     def set_user_active(self, user_id, is_active):
-        """Set user active.
-
-        Args:
-            user_id: Value for ``user_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set user active."""
         self.updated_user = (user_id, {"is_active": is_active})
 
     @property
     def user_repository(self):
-        """User handler.
-
-        Returns:
-            The function result.
-        """
+        """User handler."""
         return type(
             "_UserHandler",
             (),
@@ -205,11 +137,7 @@ class _AdminRepoStub:
         )()
 
     def list_roles(self):
-        """List roles.
-
-        Returns:
-            The function result.
-        """
+        """List roles."""
         return [{"_id": "admin", "role_id": "admin", "level": 99}]
 
     def search_roles(self, *, q="", page=1, per_page=30):
@@ -218,14 +146,7 @@ class _AdminRepoStub:
         return ([{"_id": "admin", "role_id": "admin", "level": 99}], 1)
 
     def get_role(self, role_id):
-        """Return role.
-
-        Args:
-            role_id: Value for ``role_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return role."""
         if role_id in {"missing", "developer"}:
             return None
         return {
@@ -237,60 +158,23 @@ class _AdminRepoStub:
         }
 
     def create_role(self, role_data):
-        """Create role.
-
-        Args:
-            role_data: Value for ``role_data``.
-
-        Returns:
-            The function result.
-        """
+        """Create role."""
         self.created_role = role_data
 
     def update_role(self, role_id, role_data):
-        """Update role.
-
-        Args:
-            role_id: Value for ``role_id``.
-            role_data: Value for ``role_data``.
-
-        Returns:
-            The function result.
-        """
+        """Update role."""
         self.updated_role = (role_id, role_data)
 
     def set_role_active(self, role_id, is_active):
-        """Set role active.
-
-        Args:
-            role_id: Value for ``role_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set role active."""
         self.updated_role = (role_id, {"is_active": is_active})
 
     def delete_role(self, role_id):
-        """Delete role.
-
-        Args:
-            role_id: Value for ``role_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete role."""
         self.deleted_roles.append(role_id)
 
     def list_permissions(self, *, is_active=False):
-        """List permissions.
-
-        Args:
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """List permissions."""
         return [
             {
                 "_id": "sample:view",
@@ -316,14 +200,7 @@ class _AdminRepoStub:
         )
 
     def get_permission(self, permission_id):
-        """Return permission.
-
-        Args:
-            permission_id: Value for ``permission_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return permission."""
         if permission_id in {"missing", "sample:create"}:
             return None
         return {
@@ -335,71 +212,27 @@ class _AdminRepoStub:
         }
 
     def create_permission(self, policy):
-        """Create permission.
-
-        Args:
-            policy: Value for ``policy``.
-
-        Returns:
-            The function result.
-        """
+        """Create permission."""
         self.created_permission = policy
 
     def update_permission(self, permission_id, policy):
-        """Update permission.
-
-        Args:
-            permission_id: Value for ``permission_id``.
-            policy: Value for ``policy``.
-
-        Returns:
-            The function result.
-        """
+        """Update permission."""
         self.updated_permission = (permission_id, policy)
 
     def set_permission_active(self, permission_id, is_active):
-        """Set permission active.
-
-        Args:
-            permission_id: Value for ``permission_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set permission active."""
         self.updated_permission = (permission_id, {"is_active": is_active})
 
     def delete_permission(self, permission_id):
-        """Delete permission.
-
-        Args:
-            permission_id: Value for ``permission_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete permission."""
         self.deleted_permissions = getattr(self, "deleted_permissions", [])
         self.deleted_permissions.append(permission_id)
 
     def list_panels(self, *, is_active=None):
-        """List panels.
-
-        Args:
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """List panels."""
 
     def get_panel(self, panel_id):
-        """Return panel.
-
-        Args:
-            panel_id: Value for ``panel_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return panel."""
         if panel_id == "missing":
             return None
         return {
@@ -413,72 +246,29 @@ class _AdminRepoStub:
         }
 
     def create_panel(self, panel):
-        """Create panel.
-
-        Args:
-            panel: Value for ``panel``.
-
-        Returns:
-            The function result.
-        """
+        """Create panel."""
         self.created_panel = panel
 
     def update_panel(self, panel_id, panel):
-        """Update panel.
-
-        Args:
-            panel_id: Value for ``panel_id``.
-            panel: Value for ``panel``.
-
-        Returns:
-            The function result.
-        """
+        """Update panel."""
         self.updated_panel = (panel_id, panel)
 
     def rotate_panel(self, panel_id, panel, expected_version=None, retire_fields=None):
-        """Rotate panel.
-
-        Args:
-            panel_id: Value for ``panel_id``.
-            panel: Value for ``panel``.
-            retire_fields: Value for ``retire_fields``.
-
-        Returns:
-            The function result.
-        """
+        """Rotate panel."""
         self.updated_panel = (panel_id, panel, expected_version, retire_fields or {})
         return OperationResult(inserted_count=1, inserted_id="new-panel-id")
 
     def set_panel_active(self, panel_id, is_active):
-        """Set panel active.
-
-        Args:
-            panel_id: Value for ``panel_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set panel active."""
         self.updated_panel = (panel_id, {"is_active": is_active})
 
     def delete_panel(self, panel_id):
-        """Delete panel.
-
-        Args:
-            panel_id: Value for ``panel_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete panel."""
         self.deleted_panels = getattr(self, "deleted_panels", [])
         self.deleted_panels.append(panel_id)
 
     def list_genelists(self):
-        """List genelists.
-
-        Returns:
-            The function result.
-        """
+        """List genelists."""
         return [
             {
                 "_id": "GL1",
@@ -489,14 +279,7 @@ class _AdminRepoStub:
         ]
 
     def get_genelist(self, genelist_id):
-        """Return genelist.
-
-        Args:
-            genelist_id: Value for ``genelist_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return genelist."""
         if genelist_id == "missing":
             return None
         return {
@@ -509,158 +292,61 @@ class _AdminRepoStub:
         }
 
     def create_genelist(self, genelist):
-        """Create genelist.
-
-        Args:
-            genelist: Value for ``genelist``.
-
-        Returns:
-            The function result.
-        """
+        """Create genelist."""
         self.created_genelist = genelist
 
     def update_genelist(self, genelist_id, genelist):
-        """Update genelist.
-
-        Args:
-            genelist_id: Value for ``genelist_id``.
-            genelist: Value for ``genelist``.
-
-        Returns:
-            The function result.
-        """
+        """Update genelist."""
         self.updated_genelist = (genelist_id, genelist)
 
     def rotate_genelist(self, genelist_id, genelist, expected_version=None, retire_fields=None):
-        """Rotate genelist.
-
-        Args:
-            genelist_id: Value for ``genelist_id``.
-            genelist: Value for ``genelist``.
-            retire_fields: Value for ``retire_fields``.
-
-        Returns:
-            The function result.
-        """
+        """Rotate genelist."""
         self.updated_genelist = (genelist_id, genelist, expected_version, retire_fields or {})
         return OperationResult(inserted_count=1, inserted_id="new-genelist-id")
 
     def set_genelist_active(self, genelist_id, is_active):
-        """Set genelist active.
-
-        Args:
-            genelist_id: Value for ``genelist_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set genelist active."""
         self.updated_genelist = (genelist_id, {"is_active": is_active})
 
     def delete_genelist(self, genelist_id):
-        """Delete genelist.
-
-        Args:
-            genelist_id: Value for ``genelist_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete genelist."""
         self.deleted_genelists = getattr(self, "deleted_genelists", [])
         self.deleted_genelists.append(genelist_id)
 
     def list_assay_configs(self):
-        """List assay configs.
-
-        Returns:
-            The function result.
-        """
+        """List assay configs."""
         return [{"_id": "WGS:prod", "aspc_id": "WGS:prod", "is_active": True}]
 
     def get_assay_config(self, assay_id):
-        """Return assay config.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return assay config."""
         if assay_id == "missing":
             return None
         return {"_id": assay_id, "aspc_id": assay_id, "is_active": True}
 
     def create_assay_config(self, config):
-        """Create assay config.
-
-        Args:
-            config: Value for ``config``.
-
-        Returns:
-            The function result.
-        """
+        """Create assay config."""
         self.created_aspc = config
 
     def update_assay_config(self, assay_id, config):
-        """Update assay config.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-            config: Value for ``config``.
-
-        Returns:
-            The function result.
-        """
+        """Update assay config."""
         self.updated_aspc = (assay_id, config)
 
     def rotate_assay_config(self, assay_id, config, expected_version=None, retire_fields=None):
-        """Rotate assay config.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-            config: Value for ``config``.
-            retire_fields: Value for ``retire_fields``.
-
-        Returns:
-            The function result.
-        """
+        """Rotate assay config."""
         self.updated_aspc = (assay_id, config, expected_version, retire_fields or {})
         return OperationResult(inserted_count=1, inserted_id="new-aspc-id")
 
     def set_assay_config_active(self, assay_id, is_active):
-        """Set assay config active.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set assay config active."""
         self.updated_aspc = (assay_id, {"is_active": is_active})
 
     def delete_assay_config(self, assay_id):
-        """Delete assay config.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete assay config."""
         self.deleted_aspc = getattr(self, "deleted_aspc", [])
         self.deleted_aspc.append(assay_id)
 
     def get_available_assay_envs(self, assay_id, allowed_envs):
-        """Return available assay envs.
-
-        Args:
-            assay_id: Value for ``assay_id``.
-            allowed_envs: Value for ``allowed_envs``.
-
-        Returns:
-            The function result.
-        """
+        """Return available assay envs."""
         return ["production"]
 
     def list_samples_for_admin(
@@ -672,15 +358,7 @@ class _AdminRepoStub:
         per_page=30,
         ready_only=True,
     ):
-        """List samples for admin.
-
-        Args:
-            asp_ids: Value for ``asp_ids``.
-            search_str: Value for ``search_str``.
-
-        Returns:
-            The function result.
-        """
+        """List samples for admin."""
         _ = (asp_ids, search_str, page, per_page, ready_only)
         return ([{"_id": "S1"}], 1)
 
@@ -705,95 +383,48 @@ class _AdminRepoStub:
         return ([{"_id": "schema1"}], 1)
 
     def get_sample(self, sample_id):
-        """Return sample.
-
-        Args:
-            sample_id: Value for ``sample_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return sample."""
         if sample_id == "missing":
             return None
-        return {"_id": sample_id, "sample_id": sample_id}
+        return {
+            "_id": sample_id,
+            "sample_id": sample_id,
+            "asp_id": "hema_gmsv1",
+            "diagnosis_id": "base",
+            "environment": "production",
+            "asp_category": "dna",
+            "version": 1,
+            "asp_family": "panel-dna",
+        }
 
     def update_sample(self, sample_obj, updated_sample):
-        """Update sample.
-
-        Args:
-            sample_obj: Value for ``sample_obj``.
-            updated_sample: Value for ``updated_sample``.
-
-        Returns:
-            The function result.
-        """
+        """Update sample."""
         self.updated_sample_doc = (sample_obj, updated_sample)
 
     def get_sample_name(self, sample_id):
-        """Return sample name.
-
-        Args:
-            sample_id: Value for ``sample_id``.
-
-        Returns:
-            The function result.
-        """
+        """Return sample name."""
         if sample_id == "missing":
             return None
         return sample_id
 
     def list_schemas(self):
-        """List schemas.
-
-        Returns:
-            The function result.
-        """
+        """List schemas."""
         return [{"_id": "schema1"}]
 
     def create_schema(self, schema_doc):
-        """Create schema.
-
-        Args:
-            schema_doc: Value for ``schema_doc``.
-
-        Returns:
-            The function result.
-        """
+        """Create schema."""
         self.created_schema = schema_doc
 
     def update_schema(self, schema_id, schema_doc):
-        """Update schema.
-
-        Args:
-            schema_id: Value for ``schema_id``.
-            schema_doc: Value for ``schema_doc``.
-
-        Returns:
-            The function result.
-        """
+        """Update schema."""
         self.updated_schema = (schema_id, schema_doc)
 
     def set_schema_active(self, schema_id, is_active):
-        """Set schema active.
-
-        Args:
-            schema_id: Value for ``schema_id``.
-            is_active: Value for ``is_active``.
-
-        Returns:
-            The function result.
-        """
+        """Set schema active."""
         self.updated_schema = (schema_id, {"is_active": is_active})
 
     def delete_schema(self, schema_id):
-        """Delete schema.
-
-        Args:
-            schema_id: Value for ``schema_id``.
-
-        Returns:
-            The function result.
-        """
+        """Delete schema."""
         self.deleted_schemas = getattr(self, "deleted_schemas", [])
         self.deleted_schemas.append(schema_id)
 
@@ -806,7 +437,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
             "revision": 1,
             "scope": {
                 "asp_id": rule_set_id.split("__", 1)[0],
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "analyte": "dna",
                 "language": "sv",
             },
@@ -951,6 +582,8 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
 def _user_service(repo: _AdminRepoStub) -> UserManagementService:
     store = _build_store(repo)
     return UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=store.user_repository,
         roles_repository=store.roles_repository,
         permissions_repository=store.permissions_repository,
@@ -980,7 +613,7 @@ def _asp_service(repo: _AdminRepoStub) -> AspService:
 def _isgl_service(repo: _AdminRepoStub) -> IsglService:
     store = _build_store(repo)
     return IsglService(
-        assay_subpanel_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
         gene_list_repository=store.gene_list_repository,
         assay_panel_repository=store.assay_panel_repository,
     )
@@ -989,17 +622,16 @@ def _isgl_service(repo: _AdminRepoStub) -> IsglService:
 def _aspc_service(repo: _AdminRepoStub) -> AspcService:
     store = _build_store(repo)
     return AspcService(
-        assay_subpanel_repository=SimpleNamespace(
+        assay_diagnosis_repository=SimpleNamespace(
             list_for_assay=lambda *_a, **_k: [
-                {"subpanel_id": "base", "display_name": "Base"},
-                {"subpanel_id": "aml", "display_name": "AML"},
+                {"diagnosis_id": "base", "display_name": "Base"},
+                {"diagnosis_id": "aml", "display_name": "AML"},
             ]
         ),
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
         vep_metadata_repository=store.vep_metadata_repository,
-        clinical_rule_set_repository=store.clinical_rule_set_repository,
     )
 
 
@@ -1007,26 +639,12 @@ def _resource_sample_service(repo: _AdminRepoStub) -> ResourceSampleService:
     store = _build_store(repo)
     return ResourceSampleService(
         sample_repository=store.sample_repository,
-        variant_repository=store.variant_repository,
-        copy_number_variant_repository=store.copy_number_variant_repository,
-        d4_coverage_repository=store.d4_coverage_repository,
-        translocation_repository=store.translocation_repository,
-        fusion_repository=store.fusion_repository,
-        biomarker_repository=store.biomarker_repository,
-        rna_expression_repository=store.rna_expression_repository,
-        rna_classification_repository=store.rna_classification_repository,
-        rna_quality_repository=store.rna_quality_repository,
-        pgx_repository=store.pgx_repository,
-        sample_comment_repository=store.sample_comment_repository,
-        finding_comment_repository=store.finding_comment_repository,
-        report_repository=store.report_repository,
-        reported_variant_repository=store.reported_variant_repository,
         assay_panel_repository=store.assay_panel_repository,
+        sample_deleter=Mock(),
     )
 
 
 def _patch_admin_stores(monkeypatch, repo: _AdminRepoStub) -> None:
-    monkeypatch.setattr(admin_user_service_module, "notify_user_change", lambda **_: {})
     store = _build_store(repo)
     for module in (
         admin_user_service_module,
@@ -1041,20 +659,14 @@ def _patch_admin_stores(monkeypatch, repo: _AdminRepoStub) -> None:
 
 
 def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
-    """Test admin user service create user normalizes identity.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _user_service(repo)
-    monkeypatch.setattr("api.application.accounts.users.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc)
+        "coyote3.application.accounts.users.current_actor", lambda username: username
+    )
+    monkeypatch.setattr(
+        "coyote3.application.accounts.users.utc_now", lambda: datetime.now(timezone.utc)
     )
     monkeypatch.setattr(
         shared_util,
@@ -1081,6 +693,8 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
         raising=False,
     )
     service = UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=service.user_repository,
         roles_repository=service.roles_repository,
         permissions_repository=service.permissions_repository,
@@ -1109,11 +723,6 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
 
 
 def test_admin_user_service_toggle_user_sets_status(monkeypatch):
-    """Test admin user service toggle user sets status.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _user_service(repo)
@@ -1243,18 +852,12 @@ def test_user_can_update_only_validated_ui_settings():
 
 
 def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
-    """Test admin role service create role normalizes business key.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _role_service(repo)
-    monkeypatch.setattr("api.application.accounts.roles.current_actor", lambda username: username)
+    monkeypatch.setattr(
+        "coyote3.application.accounts.roles.current_actor", lambda username: username
+    )
     monkeypatch.setattr(
         admin_role_service_module,
         "normalize_managed_form_payload",
@@ -1279,11 +882,6 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
 
 
 def test_admin_role_service_delete_role_removes_existing_role(monkeypatch):
-    """Test admin role service delete role removes existing role.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _role_service(repo)
@@ -1366,11 +964,6 @@ def test_system_installed_clinical_configuration_cannot_be_deleted(
 
 
 def test_admin_permission_service_groups_permissions(monkeypatch):
-    """Test admin permission service groups permissions.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _permission_service(repo)
@@ -1395,11 +988,6 @@ def test_admin_permission_service_create_context_uses_backend_contract_form(monk
 
 
 def test_admin_permission_service_toggle_permission_sets_status(monkeypatch):
-    """Test admin permission service toggle permission sets status.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _permission_service(repo)
@@ -1411,11 +999,6 @@ def test_admin_permission_service_toggle_permission_sets_status(monkeypatch):
 
 
 def test_admin_panel_service_toggle_panel_sets_status(monkeypatch):
-    """Test admin panel service toggle panel sets status.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _asp_service(repo)
@@ -1463,11 +1046,6 @@ def test_admin_panel_service_edit_context_keeps_current_asp_group_selected(monke
 
 
 def test_admin_genelist_service_view_context_filters_genes(monkeypatch):
-    """Test admin genelist service view context filters genes.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _isgl_service(repo)
@@ -1485,14 +1063,14 @@ def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
     service = _isgl_service(repo)
     service.assay_panel_repository.get_all_asps = lambda is_active=None: [
         {"asp_id": "hema_gmsv1", "display_name": "Hematology GMSv1", "asp_group": "hematology"},
-        {"asp_id": "solid_gmsv3", "display_name": "Solid DNA GMSv3", "asp_group": "solid"},
+        {"asp_id": "demo-solid_gmsv3", "display_name": "Solid DNA GMSv3", "asp_group": "solid"},
     ]
 
     payload = service.create_context_payload(actor_username="actor@example.com")
     form = payload["form"]
 
-    assert "subpanel_id" not in form["fields"]
-    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Subpanel IDs"
+    assert "diagnosis_id" not in form["fields"]
+    assert form["fields"]["diagnosis"]["label"] == "Diagnosis / Diagnosis IDs"
     assert form["fields"]["asp_ids"]["options_by_field"] == {
         "field": "asp_groups",
         "values": {
@@ -1505,7 +1083,7 @@ def test_admin_genelist_form_filters_asps_by_selected_groups(monkeypatch):
             ],
             "solid": [
                 {
-                    "value": "solid_gmsv3",
+                    "value": "demo-solid_gmsv3",
                     "label": "Solid DNA GMSv3",
                     "category": "solid",
                 }
@@ -1521,7 +1099,7 @@ def test_admin_genelist_rejects_asp_outside_selected_groups(monkeypatch):
     service = _isgl_service(repo)
     service.assay_panel_repository.get_all_asps = lambda is_active=None: [
         {"asp_id": "hema_gmsv1", "asp_group": "hematology"},
-        {"asp_id": "solid_gmsv3", "asp_group": "solid"},
+        {"asp_id": "demo-solid_gmsv3", "asp_group": "solid"},
     ]
 
     with pytest.raises(AppError) as exc_info:
@@ -1552,7 +1130,7 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     form = payload["form"]
     analysis_options = form["fields"]["analysis_types"]["options"]
     analysis_options_by_asp = form["fields"]["analysis_types"]["options_by_field"]
-    subpanel_options_by_asp = form["fields"]["subpanel_id"]["options_by_field"]
+    diagnosis_options_by_asp = form["fields"]["diagnosis_id"]["options_by_field"]
     filter_groups = form["fields"]["filters"]["groups"]
     reporting_groups = form["fields"]["reporting"]["groups"]
     filter_keys = {field["key"] for group in filter_groups for field in group.get("fields", [])}
@@ -1565,8 +1143,8 @@ def test_admin_aspc_create_context_scopes_optional_genelist_fields(monkeypatch):
     assert "PGX" in analysis_options
     assert analysis_options_by_asp["field"] == "asp_id"
     assert "SNV" in analysis_options_by_asp["values"]["wgs"]
-    assert subpanel_options_by_asp["field"] == "asp_id"
-    assert subpanel_options_by_asp["values"]["wgs"][0]["value"] == "base"
+    assert diagnosis_options_by_asp["field"] == "asp_id"
+    assert diagnosis_options_by_asp["values"]["wgs"][0]["value"] == "base"
     assert "somatic.snv.snvlists" in filter_keys
     for intent in ("somatic", "germline"):
         flag_field = next(
@@ -1628,11 +1206,6 @@ def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
 
 
 def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
-    """Test admin aspc service create rejects duplicate.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _aspc_service(repo)
@@ -1640,7 +1213,7 @@ def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
     with pytest.raises(AppError) as exc:
         service.create(
             payload={
-                "config": {"asp_id": "wgs", "environment": "production", "subpanel_id": "base"}
+                "config": {"asp_id": "wgs", "environment": "production", "diagnosis_id": "base"}
             }
         )
 
@@ -1648,20 +1221,14 @@ def test_admin_aspc_service_create_rejects_duplicate(monkeypatch):
 
 
 def test_admin_sample_service_update_restores_ids(monkeypatch):
-    """Test admin sample service update restores ids.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     repo = _AdminRepoStub()
     _patch_admin_stores(monkeypatch, repo)
     service = _resource_sample_service(repo)
-    monkeypatch.setattr("api.application.resources.sample.current_actor", lambda username: username)
     monkeypatch.setattr(
-        "api.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
+        "coyote3.application.resources.sample.current_actor", lambda username: username
+    )
+    monkeypatch.setattr(
+        "coyote3.application.resources.sample.utc_now", lambda: datetime.now(timezone.utc)
     )
     payload = service.update(
         sample_id="S1",
@@ -1669,12 +1236,12 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
             "sample": {
                 "name": "CASE_1",
                 "asp_id": "hema_gmsv1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "production",
                 "case_id": "CASE_1",
                 "sample_no": 1,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "pipeline": "test_pipeline",
                 "pipeline_version": "1.0",
                 "files": {"vcf_files": {"path": "/data/test.vcf"}},

@@ -1,5 +1,6 @@
 """Verify persistent center configuration selection and validated release staging."""
 
+import json
 import os
 import shutil
 import subprocess
@@ -9,29 +10,55 @@ from pathlib import Path
 
 import pytest
 
-from api.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
-from api.config.loaders.filter_flags import load_filter_flag_metadata
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 from scripts.deployment.prepare_center_config import FILES, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.mark.parametrize("valid", [True, False])
+def test_optional_report_wording_is_validated_and_recorded_in_release(tmp_path, valid):
+    """A center release retains optional report wording only after successful validation."""
+    source = tmp_path / "source"
+    source.mkdir()
+    for name in FILES:
+        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
+    wording = (
+        '[empty_results]\nSNV = "Synthetic no findings"\n'
+        if valid
+        else '[empty_results]\nSNVV = "Typo"\n'
+    )
+    (source / "report_presentation.toml").write_text(wording)
+    destination = tmp_path / "release"
+    if not valid:
+        with pytest.raises(subprocess.CalledProcessError):
+            prepare(str(source), destination, None, ".")
+        assert not destination.exists()
+        return
+    prepare(str(source), destination, None, ".")
+    assert (destination / "report_presentation.toml").read_text() == wording
+    manifest = json.loads((destination / "manifest.json").read_text())
+    assert "report_presentation.toml" in manifest["sha256"]
+
+
 @pytest.mark.parametrize("key", ["required_aspc_fields", "unrecognized_setting"])
 def test_unused_vocabulary_settings_are_rejected(tmp_path, key):
     """Inactive or misspelled settings cannot appear to configure runtime behavior."""
-    source = (ROOT / "api/config/center/clinical_vocabulary.toml").read_text()
+    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
     path = tmp_path / "vocabulary.toml"
     path.write_text(source.replace("[snv]", f'[snv]\n{key} = ["example"]'))
     with pytest.raises(RuntimeError, match="Unknown clinical vocabulary key"):
         load_clinical_vocabulary(path)
 
 
-def test_configuration_release_is_independent_and_never_overwritten(tmp_path):
+def test_configuration_release_is_independent_and_never_overwritten(tmp_path, monkeypatch):
     """A validated copy survives source edits and cannot be overwritten by an upgrade."""
+    monkeypatch.setenv("AUTHENTICATION_PROVIDERS", "local")
     source = tmp_path / "source"
     source.mkdir()
     for name in FILES:
-        shutil.copyfile(ROOT / "api/config/center" / name, source / name)
+        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
     destination = tmp_path / "release"
     prepare(str(source), destination, None, ".")
     assert {p.name for p in destination.iterdir()} == {*FILES, "manifest.json"}
@@ -48,7 +75,7 @@ def test_configuration_release_is_independent_and_never_overwritten(tmp_path):
 def test_external_directory_never_overrides_application_collection_mapping(tmp_path):
     """All center assets resolve externally while physical collections remain software-owned."""
     for name in FILES:
-        shutil.copyfile(ROOT / "api/config/center" / name, tmp_path / name)
+        shutil.copyfile(ROOT / "config/examples/center" / name, tmp_path / name)
     (tmp_path / "collections.toml").write_text("malformed = [")
     (tmp_path / "clinical_capabilities.toml").write_text("malformed = [")
     (tmp_path / "clinical_query_defaults.toml").write_text("malformed = [")
@@ -60,13 +87,13 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
             "-c",
             (
                 "from api.config.paths import CENTER_CONFIG_DIR,COLLECTIONS_CONFIG_PATH; "
-                "from api.config.loaders.collections import load_collection_mapping; "
-                "from api.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
-                "from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
-                "from api.config.clinical_query_policy import load_clinical_query_policy; "
-                "from api.config.paths import CLINICAL_QUERY_SEED_PATH; "
+                "from api.config.collections import load_collection_mapping; "
+                "from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
+                "from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
+                "from coyote3.config.clinical_query_policy import load_clinical_query_policy; "
+                "from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH; "
                 "assert CLINICAL_QUERY_SEED_PATH.parent != CENTER_CONFIG_DIR; "
-                "assert load_clinical_query_policy().snv.exceptions; "
+                "assert load_clinical_query_policy(CLINICAL_QUERY_SEED_PATH).snv.exceptions; "
                 "assert 'wes' in CLINICAL_VOCABULARY.assay_families; "
                 "assert CLINICAL_QUERY_POLICY.snv.default_somatic_policy == 'paired'; "
                 "assert load_collection_mapping()['primary']['samples_collection']=='samples'; "
@@ -119,7 +146,7 @@ def test_caller_flags_validate_registry_and_keep_analysis_scopes_separate(tmp_pa
 
 def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp_path):
     """Merged DNA provenance needs no registry; fusion retains implemented caller choices."""
-    source = (ROOT / "api/config/center/clinical_vocabulary.toml").read_text()
+    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
     assert CLINICAL_VOCABULARY.snv_callers == ()
     assert CLINICAL_VOCABULARY.cnv_callers == ()
     assert CLINICAL_VOCABULARY.translocation_callers == ()
@@ -133,7 +160,10 @@ def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp
         load_clinical_vocabulary(path)
 
 
-def test_git_source_extracts_only_configuration_at_the_requested_commit(tmp_path, monkeypatch):
+@pytest.mark.parametrize("include_wording", [True, False])
+def test_git_source_extracts_only_configuration_at_the_requested_commit(
+    tmp_path, monkeypatch, include_wording
+):
     """Git content is read as files, without checking out or running repository code."""
     calls = []
     run = subprocess.run
@@ -145,14 +175,19 @@ def test_git_source_extracts_only_configuration_at_the_requested_commit(tmp_path
             return subprocess.CompletedProcess(command, 0)
         return run(command, **kwargs)
 
-    def fake_output(command):
+    def fake_output(command, **kwargs):
         """Return synthetic repository files for exact commit-qualified paths."""
         calls.append(command)
+        if "ls-tree" in command:
+            assert kwargs == {"text": True}
+            names = (*FILES, "report_presentation.toml") if include_wording else FILES
+            return "\n".join(f"center/{name}" for name in names)
         assert command[-1].startswith("a" * 40 + ":center/")
-        return (ROOT / "api/config/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
+        return (ROOT / "config/examples/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "check_output", fake_output)
     prepare("https://github.com/example/center.git", tmp_path / "release", "a" * 40, "center")
-    assert sum("show" in command for command in calls) == len(FILES)
+    assert sum("show" in command for command in calls) == len(FILES) + int(include_wording)
+    assert (tmp_path / "release/report_presentation.toml").exists() == include_wording
     assert not any("checkout" in command for command in calls)

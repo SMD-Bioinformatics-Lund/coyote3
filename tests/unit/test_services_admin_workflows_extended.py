@@ -7,15 +7,15 @@ from types import SimpleNamespace
 
 import pytest
 
-import api.application.accounts.permissions as perm_module
-import api.application.accounts.roles as role_module
-import api.application.accounts.users as user_module
+import coyote3.application.accounts.permissions as perm_module
+import coyote3.application.accounts.roles as role_module
+import coyote3.application.accounts.users as user_module
 from api.app.container import util as shared_util
-from api.application.accounts.permissions import PermissionManagementService
-from api.application.accounts.roles import RoleManagementService
-from api.application.accounts.users import UserManagementService
-from api.config.constants import AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
-from api.domain.core.exceptions import AppError
+from coyote3.application.accounts.permissions import PermissionManagementService
+from coyote3.application.accounts.roles import RoleManagementService
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.config.constants import AUTH_TYPE_OPTIONS, ENVIRONMENT_OPTIONS
+from coyote3.domain.exceptions import AppError
 
 
 class _Repo:
@@ -191,7 +191,6 @@ def _build_store(repo: _Repo) -> SimpleNamespace:
 
 
 def _patch_admin_stores(monkeypatch, repo: _Repo) -> None:
-    monkeypatch.setattr(user_module, "notify_user_change", lambda **_: {})
     store = _build_store(repo)
     monkeypatch.setattr(user_module, "store", store, raising=False)
     monkeypatch.setattr(role_module, "store", store, raising=False)
@@ -201,6 +200,8 @@ def _patch_admin_stores(monkeypatch, repo: _Repo) -> None:
 def _user_service(repo: _Repo) -> UserManagementService:
     store = _build_store(repo)
     return UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=store.user_repository,
         roles_repository=store.roles_repository,
         permissions_repository=store.permissions_repository,
@@ -258,13 +259,14 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
     store = _build_store(repo)
     store.roles_repository.get_all_role_names = lambda: ["user", "admin"]
     service = UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=store.user_repository,
         roles_repository=store.roles_repository,
         permissions_repository=store.permissions_repository,
         assay_panel_repository=store.assay_panel_repository,
         common_util=shared_util.common,
     )
-    monkeypatch.setattr(user_module, "issue_password_token_for_user", lambda **_: {})
     payload = service.create_context_payload(actor_username="actor")
     assert payload["form"]["fields"]["roles"]["default"] == ["user"]
     assert payload["form"]["fields"]["auth_type"]["options"] == list(AUTH_TYPE_OPTIONS)
@@ -297,7 +299,6 @@ def test_create_user_sanitizes_username_and_defaults_user_role(monkeypatch):
 def test_update_user_keeps_existing_username(monkeypatch):
     repo = _Repo()
     service = _user_service(repo)
-    monkeypatch.setattr(user_module, "notify_user_change", lambda **_: {})
     payload = service.update_user(
         user_id="tester",
         payload={

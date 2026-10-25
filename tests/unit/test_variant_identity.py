@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.domain.core.dna.variant_identity import (
+from coyote3.domain.dna.variant_identity import (
     build_simple_id,
     build_simple_id_hash_from_simple_id,
     ensure_variant_identity_fields,

@@ -62,30 +62,28 @@ def main(argv: list[str]) -> int:
         Password mode creates a session; token mode validates an existing token.
         The session token is printed only with ``--print-token``.
     """
-    from api.client.auth import login_with_password, login_with_token
+    from coyote3_client import CoyoteClient
 
     args = build_parser().parse_args(argv)
     if args.mode == "password":
         if not args.username or not args.password or not args.provider:
             raise SystemExit("--username, --password, and --provider are required in password mode")
-        session = login_with_password(
-            base_url=args.base_url,
-            username=args.username,
-            password=args.password,
-            provider=args.provider,
-        )
     else:
         if not args.token:
             raise SystemExit("--token is required in token mode")
-        session = login_with_token(base_url=args.base_url, token=args.token)
-
-    payload: dict[str, object] = {
-        "status": "ok",
-        "base_url": session.base_url,
-        "user": session.user,
-    }
-    if args.print_token:
-        payload["session_token"] = session.session_token
+    with CoyoteClient(args.base_url) as client:
+        user = (
+            client.login(username=args.username, password=args.password, provider=args.provider)
+            if args.mode == "password"
+            else client.login_with_token(args.token)
+        )
+        payload: dict[str, object] = {
+            "status": "ok",
+            "base_url": args.base_url.rstrip("/"),
+            "user": user.model_dump(mode="json"),
+        }
+        if args.print_token:
+            payload["session_token"] = client.session_token
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 

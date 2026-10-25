@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from api.app.utilities.common import CommonUtility
-from api.domain.core.repository_protocols import (
+from api.infra.integrations.ldap import LdapManager
+from coyote3.domain.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
     SampleRepositoryProtocol,
     VariantsRepositoryProtocol,
 )
-from api.infra.integrations.ldap import LdapManager
 
 
 class Utility:
@@ -83,7 +83,8 @@ class MongoStore:
     annotation_repository: Any
     assay_configuration_repository: AssayConfigurationRepositoryProtocol
     assay_panel_repository: Any
-    assay_subpanel_repository: Any
+    assay_diagnosis_repository: Any
+    configuration_profile_repository: Any
     assay_setup_repository: Any
     assay_group_repository: Any
     assay_setup_revision_repository: Any
@@ -133,7 +134,8 @@ class MongoStore:
         "annotation_repository",
         "assay_configuration_repository",
         "assay_panel_repository",
-        "assay_subpanel_repository",
+        "assay_diagnosis_repository",
+        "configuration_profile_repository",
         "assay_setup_repository",
         "assay_group_repository",
         "assay_setup_revision_repository",

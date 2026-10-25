@@ -37,7 +37,7 @@ def _field_type_name(annotation: Any) -> str:
 
 def export_query_condition_fields() -> None:
     """Render the query builder's field/type/operator catalog from its authoritative registry."""
-    from api.domain.query_conditions import condition_catalog
+    from coyote3.domain.query_conditions import condition_catalog
 
     catalog = condition_catalog()
     lines = [
@@ -89,7 +89,7 @@ def main() -> int:
         Orders collections alphabetically and fields in model declaration order.
         Does not connect to MongoDB.
     """
-    from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+    from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     adapters = COLLECTION_MODEL_ADAPTERS
     lines: list[str] = []
@@ -99,7 +99,7 @@ def main() -> int:
     lines.append("")
     lines.append(
         "> **Generated reference**\n>\n"
-        "> Generated from `api/contracts/schemas/registry.py` by "
+        "> Generated from `src/coyote3/contracts/schemas/registry.py` by "
         "`scripts/docs/export_collection_contracts_doc.py`. Change the schema or generator, "
         "then regenerate this page."
     )
@@ -111,7 +111,7 @@ def main() -> int:
             "## Operational collections",
             "",
             "These internal queues are not public collection-ingest targets. Names are owned by",
-            "`api/config/contracts/application.py`; database maintenance uses the index registry.",
+            "`api/config/operational_collections.py`; database maintenance uses the index registry.",
             "",
             "| Collection | Database | Purpose |",
             "| --- | --- | --- |",
@@ -131,12 +131,15 @@ def main() -> int:
         "- `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`."
     )
     lines.append(
-        "- Initial ASPC resolution uses `samples.asp_id`, `samples.subpanel_id`, and "
-        "`samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample."
+        "- Initial ASPC resolution uses `samples.asp_id`, `samples.diagnosis_id`, and "
+        "`samples.environment`. `samples.current_aspc_id` is the exact configuration ObjectId; "
+        "`current_aspc_name` is its display label for tracking, never a lookup key. "
+        "`aspc_resolution` records the resolved diagnosis, Base fallback flag and warning. "
+        "Runtime context is derived from that release's captured resources."
     )
     lines.append(
         "- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; "
-        "`diagnosis[]` carries its reusable diagnosis/in-silico-subpanel tags."
+        "`diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags."
     )
     lines.append("- `roles.permissions[]` must reference `permissions.permission_id`.")
     lines.append("- `users.roles[]` must reference `roles.role_id`.")
@@ -144,10 +147,10 @@ def main() -> int:
     lines.append("## DNA vs RNA sample rules")
     lines.append("")
     lines.append(
-        "- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`."
+        "- `asp_category=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`."
     )
     lines.append(
-        "- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`."
+        "- `asp_category=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`."
     )
     lines.append("- Mixed DNA+RNA file-key payloads are rejected by model validation.")
     lines.append("")

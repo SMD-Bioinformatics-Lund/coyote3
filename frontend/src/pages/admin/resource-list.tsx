@@ -220,13 +220,18 @@ export function optionDescription(option: any) {
 }
 
 export function optionsForDependency(field: FormField, formValues?: Record<string, any>) {
+  if (field.options_from_field) return normalizeList(formValues?.[field.options_from_field])
   const dependency = field.options_by_field
   if (!dependency) return null
   const selectedDependencies = normalizeList(formValues?.[dependency.field])
+  if (!selectedDependencies.length && dependency.allow_unselected) return field.options || []
   const options = selectedDependencies.flatMap((value) => dependency.values[value.toLowerCase()] || [])
+  const inputDependency = field.options_require_inputs
+  const inputs = new Set(normalizeList(formValues?.[inputDependency?.field || ""]))
   const seen = new Set<string>()
   return options.filter((option) => {
     const value = optionValue(option)
+    if (inputDependency && !(inputDependency.values[value] || []).some((input) => inputs.has(input))) return false
     if (!value || seen.has(value)) return false
     seen.add(value)
     return true
@@ -356,7 +361,7 @@ export function adminCell(
   if (field === "list_type") {
     return <MiniBadges values={value} kind="list_type" max={5} />
   }
-  if (["asp_category", "asp_group", "asp_family", "platform", "environment", "profile", "subpanel_id", "omics_layer", "ingest_status"].includes(field)) {
+  if (["asp_category", "asp_group", "asp_family", "platform", "environment", "profile", "diagnosis_id", "asp_category", "ingest_status"].includes(field)) {
     const label = String(value || "")
     return label ? <ValueBadge value={label} /> : <span className="text-muted-foreground">-</span>
   }

@@ -52,7 +52,7 @@ def test_select_config_uses_runtime_mode(
         return Config
 
     for name in ("TestConfig", "DevelopmentConfig", "StageConfig", "ProductionConfig"):
-        monkeypatch.setattr(runtime_setup.app_config, name, config_type(name))
+        monkeypatch.setattr(runtime_setup.runtime_settings, name, config_type(name))
     monkeypatch.setenv("ENV_NAME", env_name)
 
     runtime_setup._select_config(testing=testing, development=development)

@@ -44,7 +44,7 @@ export type SampleFinding = {
 export type CohortSample = {
   sample_name: string;
   asp_id?: string;
-  subpanel_id?: string;
+  diagnosis_id?: string;
   environment?: string;
   sex?: string;
   finding_details: SampleFinding[];
@@ -63,7 +63,6 @@ export type GeneCohortPayload = {
     report_scope: "latest" | "historical";
     ready_samples_considered: number;
     samples_excluded_outside_gene_scope: number;
-    unrestricted_asp_scope_counts_as_profiled: boolean;
     duplicate_report_observations_removed: number;
   };
   tier_counts: Record<string, number>;

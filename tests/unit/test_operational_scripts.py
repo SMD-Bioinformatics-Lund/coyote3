@@ -96,6 +96,28 @@ def test_public_proxy_applies_browser_security_headers() -> None:
     assert r"proxy_set_header X-Forwarded-Proto \$forwarded_proto;" in script
 
 
+def test_root_proxy_preserves_frontend_asset_and_route_paths(tmp_path: Path) -> None:
+    """Render a root deployment without replacing every frontend request URI with slash."""
+    output = tmp_path / "nginx.conf"
+    result = subprocess.run(
+        ["sh", str(REPOSITORY_ROOT / "deploy/compose/nginx/render-config.sh")],
+        env={
+            **os.environ,
+            "SCRIPT_NAME": "",
+            "COYOTE3_NGINX_OUTPUT_PATH": str(output),
+            "COYOTE3_NGINX_FRONTEND_UPSTREAM": "http://frontend:3000",
+            "COYOTE3_NGINX_API_UPSTREAM": "http://api:8001",
+            "COYOTE3_NGINX_DOCS_UPSTREAM": "http://docs:8080",
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    frontend_location = output.read_text().split("    location / {", 1)[1]
+    assert "proxy_pass $frontend_target;" in frontend_location
+    assert "proxy_pass $frontend_target/;" not in frontend_location
+
+
 def test_restore_does_not_print_database_credentials(tmp_path: Path, monkeypatch) -> None:
     """Exercise restore logging without contacting Docker or a database."""
     archive = tmp_path / "synthetic.archive.gz"

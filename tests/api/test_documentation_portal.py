@@ -50,12 +50,12 @@ def test_documentation_colors_match_application_light_theme():
         assert " ".join(actual[1].split()) == " ".join(expected[1].split()), name
 
 
-def test_documentation_assets_are_included_in_python_packages():
+def test_documentation_assets_are_deployed_with_the_api_source():
+    """The server wheel includes the API's independently owned documentation assets."""
     config = tomllib.loads(Path("pyproject.toml").read_text())
-    patterns = config["tool"]["setuptools"]["package-data"]["api"]
-    packaged = {path for pattern in patterns for path in Path("api").glob(pattern)}
-    assets = set(Path("api/app/templates").glob("*"))
-    assert assets and assets <= packaged
+    assert "api.*" in config["tool"]["setuptools"]["packages"]["find"]["include"]
+    assert "COPY --chown=coyote3:coyote3 api/ ./api/" in Path("docker/Dockerfile").read_text()
+    assert Path("api/app/templates/api_reference.html").is_file()
 
 
 def test_response_samples_use_application_dark_theme_tokens():
@@ -86,7 +86,7 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert 'href="/center/api/v1/docs"' in html
     assert 'href="/center/docs-site/"' in html
     assert 'const schemaUrl = "/center/api/v1/openapi.json"' in html
-    assert "data:image/png;base64," in html
+    assert "data:image/svg+xml;base64," in html
     assert ('class="environment-warning"' in html) is (environment != "production")
     assert response.headers["Cache-Control"] == "no-store"
     assert "validatorUrl: null" in html

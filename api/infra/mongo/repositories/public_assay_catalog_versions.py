@@ -8,10 +8,10 @@ from typing import Any
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from api.contracts.schemas.public_catalog import PublicAssayCatalogVersionDoc
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
+from coyote3.contracts.schemas.public_catalog import PublicAssayCatalogVersionDoc
 
 
 class PublicAssayCatalogVersionRepository(BaseRepository):

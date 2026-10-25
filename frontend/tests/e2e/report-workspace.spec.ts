@@ -18,7 +18,7 @@ for (const view of [
       } }
       if (path.endsWith("/edit-context")) return { json: {
         sample: { name: "SYNTHETIC_REPORT", case_id: "SYNTHETIC_CASE", asp_id: "demo",
-          omics_layer: "dna", analysis_intents: ["somatic"], data_counts: { snvs: 1 } },
+          asp_category: "dna", analysis_intents: ["somatic"], data_counts: { snvs: 1 } },
         analysis_sections: ["SNV"],
       } }
       if (path.endsWith("/reports/dna/preview")) {

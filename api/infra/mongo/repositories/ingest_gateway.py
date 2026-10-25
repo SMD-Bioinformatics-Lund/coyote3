@@ -4,14 +4,27 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.domain.core.internal.results import ReplaceDocumentResult
-from api.infra.mongo.persistence import insert_many_transaction
+from api.infra.mongo.persistence import insert_many_transaction, new_object_id_str, to_provider_id
+from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
+from api.infra.mongo.selection import compile_selection
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.persistence import ReplaceDocumentResult
+from coyote3.domain.selection import Selection
 
 
 class IngestCollectionGateway:
     """Provide named Mongo collections and session helpers for ingest services."""
+
+    @staticmethod
+    def new_sample_id() -> str:
+        """Allocate a new serialized MongoDB sample identifier."""
+        return new_object_id_str()
+
+    @staticmethod
+    def provider_sample_id(value: str) -> Any:
+        """Convert a serialized sample identifier on the storage side of the boundary."""
+        return to_provider_id(value)
 
     @classmethod
     def from_store(cls, store: Any) -> "IngestCollectionGateway":
@@ -23,6 +36,7 @@ class IngestCollectionGateway:
                 "anno_vep": store.anno_vep_repository.get_collection(),
                 "cnvs": store.copy_number_variant_repository.get_collection(),
                 "biomarkers": store.biomarker_repository.get_collection(),
+                "pgx": store.pgx_repository.get_collection(),
                 "translocations": store.translocation_repository.get_collection(),
                 "d4_coverage": store.d4_coverage_repository.get_collection(),
                 "fusions": store.fusion_repository.get_collection(),
@@ -108,7 +122,7 @@ class IngestCollectionGateway:
         """
         return list(self.collection("hgnc_genes").find({}, projection))
 
-    def sample_names(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
+    def sample_names(self, selector: Selection) -> list[dict[str, Any]]:
         """Read existing sample names for collision detection before ingest.
 
         Args:
@@ -117,7 +131,10 @@ class IngestCollectionGateway:
         Returns:
             Matching sample identifiers and names without other clinical metadata.
         """
-        return list(self.sample_collection().find(selector, {"name": 1}))
+        return [
+            application_record(record)
+            for record in self.sample_collection().find(compile_selection(selector), {"name": 1})
+        ]
 
     def insert_dependent(self, name: str, document: dict[str, Any], *, session: Any) -> None:
         """Insert one validated measurement in the active bundle transaction.

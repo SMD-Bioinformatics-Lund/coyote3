@@ -33,7 +33,7 @@ the user profile.
 | Control clarity | Control LIMS identifier when provided. |
 | Environment | Production, validation, testing, or development context. |
 | ASP | Assay panel used to resolve configuration. |
-| Subpanel | Requested in-silico subpanel or `base`. |
+| Diagnosis | Requested in-silico diagnosis or `base`. |
 | Pipeline | Pipeline name and version when supplied. |
 | Analysis | Current sample analysis state. |
 | Report | Reported or unreported state. |

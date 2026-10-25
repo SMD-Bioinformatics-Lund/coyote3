@@ -10,17 +10,17 @@ vi.mock("@/lib/access-control", async original => ({ ...await original<typeof im
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 
-const scope = { assay_group: "example", asp_id: null, subpanel_id: null, analysis: "snv", intent: "somatic" }
+const scope = { assay_group: "example", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic", modality: null, family: null, environment: null }
 const rule = { _id: "version-one", name: "Example selection", reason: "Reviewed", scope, content: { evidence_mode: null, exceptions: null }, version: 1, revision: 2, status: "approved", created_by: "author" }
 beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["query_rules:view", "query_rules:draft", "query_rules:publish"]
-  vi.mocked(api.get).mockImplementation(async path => ({ status: 200, data: path.endsWith("/options") ? { groups: [{ id: "example", name: "Example laboratory" }], assays: [{ id: "panel", group: "example", category: "dna", subpanels: ["myeloid"] }] } : { items: [] } }))
+  vi.mocked(api.get).mockImplementation(async path => ({ status: 200, data: path.endsWith("/options") ? { groups: [{ id: "example", name: "Example laboratory" }], assays: [{ id: "panel", group: "example", category: "dna", diagnoses: ["myeloid"] }] } : { items: [] } }))
   vi.mocked(api.post).mockResolvedValue({ status: 200, data: { evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } })
 })
 
-function mount() {
-  return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
+function mount(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return render(<MemoryRouter><QueryClientProvider client={client}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
 }
 
 it("separates policy preview and authorized sample testing from the editor", async () => {
@@ -89,16 +89,40 @@ it("opens the condition editor from an inherited scope without copying condition
   }))
 })
 
-it("offers related scopes and clears a subpanel when returning to all assays", async () => {
+it("offers related scopes and clears a diagnosis when returning to all assays", async () => {
   mount()
   await within(screen.getByLabelText("Assay group")).findByRole("option", { name: "Example laboratory" })
   fireEvent.change(screen.getByLabelText("Assay group"), { target: { value: "example" } })
   expect(within(screen.getByLabelText("Assay")).getByRole("option", { name: "panel" })).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText("Assay"), { target: { value: "panel" } })
-  fireEvent.change(screen.getByLabelText("Subpanel"), { target: { value: "myeloid" } })
+  fireEvent.change(screen.getByLabelText("Diagnosis"), { target: { value: "myeloid" } })
   fireEvent.change(screen.getByLabelText("Assay"), { target: { value: "" } })
-  expect(screen.getByLabelText("Subpanel")).toHaveValue("")
-  expect(screen.getByLabelText("Subpanel")).toBeDisabled()
+  expect(screen.getByLabelText("Diagnosis")).toHaveValue("")
+  expect(screen.getByLabelText("Diagnosis")).toBeEnabled()
+})
+
+it("authors a diagnosis and family policy for one environment without selecting an assay", async () => {
+  const original = vi.mocked(api.get).getMockImplementation()!
+  vi.mocked(api.get).mockImplementation(async (path, options) => {
+    const response = await original(path, options)
+    return path.endsWith("/options") ? { ...response, data: {
+      groups: [{ id: "example", name: "Example laboratory" }],
+      assays: [{ id: "panel", group: "example", category: "dna", family: "panel-dna", diagnoses: ["myeloid"] }],
+      families: [{ id: "panel-dna", modality: "dna" }, { id: "panel-rna", modality: "rna" }],
+      environments: ["production", "validation"],
+    } } : response
+  })
+  mount()
+  await within(screen.getByLabelText("Assay group")).findByRole("option", { name: "Example laboratory" })
+  fireEvent.change(screen.getByLabelText("Assay group"), { target: { value: "example" } })
+  fireEvent.change(screen.getByLabelText("Family"), { target: { value: "panel-dna" } })
+  fireEvent.change(screen.getByLabelText("Diagnosis"), { target: { value: "myeloid" } })
+  fireEvent.change(screen.getByLabelText("Environment"), { target: { value: "validation" } })
+  expect(within(screen.getByLabelText("Family")).queryByRole("option", { name: "PANEL-RNA" })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Preview effective policy" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+    scope: { ...scope, diagnosis_id: "myeloid", modality: "dna", family: "panel-dna", environment: "validation" },
+  }))
 })
 
 it("shows only authored conditions for a published version", async () => {
@@ -158,19 +182,22 @@ it("previews inherited fields separately from explicit empty exceptions", async 
   await within(screen.getByLabelText("Assay group")).findByRole("option", { name: "Example laboratory" })
   fireEvent.change(screen.getByLabelText("Assay group"), { target: { value: "example" } })
   fireEvent.change(screen.getByLabelText("Assay"), { target: { value: "panel" } })
-  fireEvent.change(screen.getByLabelText("Subpanel"), { target: { value: "myeloid" } })
+  fireEvent.change(screen.getByLabelText("Diagnosis"), { target: { value: "myeloid" } })
   fireEvent.change(screen.getByLabelText("Exception list"), { target: { value: "replace" } })
   fireEvent.click(screen.getByRole("button", { name: "Preview effective policy" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", { scope: { ...scope, asp_id: "panel", subpanel_id: "myeloid" }, content: { evidence_mode: null, exceptions: [], exception_mode: "replace" } }))
-  expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", { scope: { ...scope, asp_id: "panel", subpanel_id: "myeloid" } })
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", { scope: { ...scope, asp_id: "panel", diagnosis_id: "myeloid" }, content: { evidence_mode: null, exceptions: [], exception_mode: "replace" } }))
+  expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", { scope: { ...scope, asp_id: "panel", diagnosis_id: "myeloid" } })
   expect(api.put).not.toHaveBeenCalled()
 })
 
 it("requires confirmation and the inspected revision when publishing", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client.setQueryData(["sample-variants", "SYNTHETIC"], { variants: [] })
+  client.setQueryData(["report-preview", "SYNTHETIC"], { html: "Reviewed preview" })
   const original = vi.mocked(api.get).getMockImplementation()!
   vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options") ? original(path, options) : { status: 200, data: { items: [rule] } })
   vi.mocked(api.post).mockImplementation(async path => ({ status: 200, data: path.endsWith("/preview") ? { evidence_mode: "paired", exceptions: [], lineage: [] } : { ...rule, status: "published", revision: 3 } }))
-  mount()
+  mount(client)
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   expect(screen.getByRole("region", { name: "Saved query definition" })).toHaveTextContent("example__all__base__somatic_snvs")
   expect(screen.queryByLabelText("Query ID")).not.toBeInTheDocument()
@@ -180,6 +207,8 @@ it("requires confirmation and the inspected revision when publishing", async () 
   expect(vi.mocked(api.post).mock.calls.some(([path]) => path.endsWith("/publish"))).toBe(false)
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/version-one/publish", { expected_revision: 2, reason: "Validation complete" }))
+  await waitFor(() => expect(client.getQueryState(["sample-variants", "SYNTHETIC"])?.isInvalidated).toBe(true))
+  expect(client.getQueryState(["report-preview", "SYNTHETIC"])?.isInvalidated).toBe(true)
 })
 
 it("does not expose saving to a viewer", async () => {

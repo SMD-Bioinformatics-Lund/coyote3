@@ -66,7 +66,7 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
   artifact-associated tags using the historical FusionCatcher vocabulary, but
   those visual groups are review aids rather than clinical classifications.
 - Fusion description colors are driven by
-  `api/config/center/clinical_vocabulary.toml`. Important cancer/reference
+  `config/examples/center/clinical_vocabulary.toml`. Important cancer/reference
   terms are green, artifact or normal-tissue terms are red, contextual terms
   are gray, and unknown future caller terms remain visible with the neutral
   style.

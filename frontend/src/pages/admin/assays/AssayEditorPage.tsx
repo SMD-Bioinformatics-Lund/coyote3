@@ -7,7 +7,7 @@ import { useAdminEditor } from "@/components/admin/useAdminEditor";
 import { PageShell } from "@/components/layout/PageShell";
 import { hasPermission } from "@/lib/access-control";
 import { AdminManagedForm } from "@/pages/admin/AdminManagedForm";
-import { AssaySubpanels } from "@/pages/admin/AssaySubpanels";
+import { AssayDiagnoses } from "@/pages/admin/AssayDiagnoses";
 import { submitPayload } from "@/pages/admin/resource-list";
 import { type AdminFormMode, type FormSpec } from "@/pages/admin/resource-specs";
 import { resource as spec } from "./resource";
@@ -58,7 +58,7 @@ export function AssayEditorPage({ mode }: { mode: AdminFormMode }) {
         />
         {doc && (
           <div className="glass-card min-w-0 p-3">
-            <AssaySubpanels
+            <AssayDiagnoses
               key={String(doc.asp_id)}
               aspId={String(doc.asp_id)}
               canEdit={effectiveMode !== "view" && hasPermission(user, "assay.panel:edit")}

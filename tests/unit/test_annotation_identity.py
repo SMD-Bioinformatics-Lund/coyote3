@@ -6,13 +6,36 @@ from hashlib import md5
 
 import pytest
 
-from api.domain.core.annotation_identity import (
+from api.infra.mongo.repositories.annotations import AnnotationsRepository
+from coyote3.domain.annotation_identity import (
     annotation_context_fields,
     annotation_identity_fields,
     enrich_annotation_identity,
+    primary_small_variant_identity,
 )
-from api.domain.core.dna.dna_variants import get_variant_nomenclature
-from api.infra.mongo.repositories.annotations import AnnotationsRepository
+from coyote3.domain.dna.dna_variants import get_variant_nomenclature
+
+
+@pytest.mark.parametrize(
+    "protein,coding,expected",
+    [
+        ("p.Lys4Glu", "c.10A>G", ("p", "p.Lys4Glu")),
+        (None, "c.10A>G", ("c", "c.10A>G")),
+        ("", None, ("g", "1_10001_A_G")),
+    ],
+)
+def test_small_variant_primary_identity_priority(protein, coding, expected):
+    """Primary annotation identity prefers protein, coding, then genomic values."""
+    assert (
+        primary_small_variant_identity(
+            {
+                "hgvsp": protein,
+                "hgvsc": coding,
+                "genomic": "1_10001_A_G",
+            }
+        )
+        == expected
+    )
 
 
 class _InsertResult:
@@ -216,8 +239,10 @@ def test_single_classification_insert_uses_the_stable_flat_identity_shape():
         "p",
         1,
         {
-            "assay_group": "global",
-            "subpanel": "base",
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "demo-panel",
+            "namespace": "clinical",
             "gene": "TP53",
             "transcript": "NM_000546.6",
             "hgvsp": "p.Val157GlyfsTer24",

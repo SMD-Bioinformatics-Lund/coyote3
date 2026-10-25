@@ -6,8 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.dna import payloads
-from api.domain.core.exceptions import AppError
+from api.interfaces.http.v1.clinical.common.analysis_query import analysis_query_from_request
+from coyote3.application.dna import payloads
+from coyote3.domain.exceptions import AppError
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -17,6 +18,7 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
     sample["filters"]["somatic"]["snv"]["exclude_flags"] = ["WARN_NOVAR"]
     queries = []
     assay_config = {
+        **fx.assay_config_doc(asp_group="tumwgs"),
         "asp_group": "tumwgs",
         "analysis_types": [],
         "reporting": {},
@@ -47,21 +49,16 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
         sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
         oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
     )
-    util_module = SimpleNamespace(
-        common=SimpleNamespace(
-            merge_sample_settings_with_assay_config=lambda s, a: s,
-            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
-            get_case_and_control_sample_ids=lambda s: {"case": "C1"},
-            get_assay_genelist_names=lambda docs: [],
-        )
-    )
 
     payload = payloads.list_variants_payload(
         service=service,
-        request=SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")),
+        query=analysis_query_from_request(
+            SimpleNamespace(
+                query_params={}, url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")
+            )
+        ),
         sample=sample,
-        util_module=util_module,
-        add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
+        add_global_annotations_fn=lambda rows, assay_group, diagnosis, **kwargs: (rows, []),
         build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,
@@ -83,7 +80,11 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
 def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
     """A normal table page does not run classification lookups for every finding."""
     sample = fx.sample_doc()
-    assay_config = {"asp_group": "tumwgs", "analysis_types": [], "reporting": {}}
+    assay_config = {
+        **fx.assay_config_doc(asp_group="tumwgs"),
+        "analysis_types": [],
+        "reporting": {},
+    }
     variants = [
         {"_id": str(index), "GT": [{"type": "case", "AF": index / 100}]} for index in range(100)
     ]
@@ -106,23 +107,17 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
         sample_repository=SimpleNamespace(hidden_sample_comments=lambda sample_oid: False),
         oncokb_repository=SimpleNamespace(get_oncokb_action_gene=lambda symbol: None),
     )
-    util_module = SimpleNamespace(
-        common=SimpleNamespace(
-            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
-            get_case_and_control_sample_ids=lambda s: {"case": "C1"},
-            get_assay_genelist_names=lambda docs: [],
-        )
-    )
 
     payload = payloads.list_variants_payload(
         service=service,
-        request=SimpleNamespace(
-            query_params={"page": "1", "per_page": "50"},
-            url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+        query=analysis_query_from_request(
+            SimpleNamespace(
+                query_params={"page": "1", "per_page": "50"},
+                url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+            )
         ),
         sample=sample,
-        util_module=util_module,
-        add_global_annotations_fn=lambda rows, *_args: (
+        add_global_annotations_fn=lambda rows, *_args, **_kwargs: (
             enriched_counts.append(len(rows)) or rows,
             [],
         ),
@@ -140,6 +135,7 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
     """TMB is selected independently and PGX does not expose other measurements."""
     sample = fx.sample_doc()
     assay_config = {
+        **fx.assay_config_doc(asp_group="panel"),
         "asp_group": "panel",
         "analysis_types": ["SNV", "TMB", "PGX"],
         "reporting": {},
@@ -172,21 +168,16 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
         load_cnvs_for_sample=lambda **kwargs: [],
         translocation_repository=SimpleNamespace(get_sample_translocations=lambda query: []),
     )
-    util_module = SimpleNamespace(
-        common=SimpleNamespace(
-            merge_sample_settings_with_assay_config=lambda s, a: s,
-            get_sample_effective_genes=lambda s, a, g, target="snv", intent="somatic": ({}, []),
-            get_case_and_control_sample_ids=lambda s: {"case": "C1"},
-            get_assay_genelist_names=lambda docs: [],
-        )
-    )
 
     payload = payloads.list_variants_payload(
         service=service,
-        request=SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")),
+        query=analysis_query_from_request(
+            SimpleNamespace(
+                query_params={}, url=SimpleNamespace(path="/api/v1/samples/S1/small-variants")
+            )
+        ),
         sample=sample,
-        util_module=util_module,
-        add_global_annotations_fn=lambda rows, assay_group, subpanel: (rows, []),
+        add_global_annotations_fn=lambda rows, assay_group, diagnosis, **kwargs: (rows, []),
         build_query_fn=lambda assay_group, params, intent="somatic", policy=None: {
             "assay_group": assay_group,
             "intent": intent,
@@ -209,12 +200,13 @@ def test_list_variants_payload_rejects_unconfigured_analysis_intent() -> None:
     with pytest.raises(AppError) as exc:
         payloads.list_variants_payload(
             service=SimpleNamespace(),
-            request=SimpleNamespace(
-                query_params={"intent": "germline"},
-                url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+            query=analysis_query_from_request(
+                SimpleNamespace(
+                    query_params={"intent": "germline"},
+                    url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"),
+                )
             ),
             sample=sample,
-            util_module=SimpleNamespace(),
             add_global_annotations_fn=lambda *args: ([], []),
             build_query_fn=lambda *args, **kwargs: {},
             get_filter_conseq_terms_fn=lambda *args: [],

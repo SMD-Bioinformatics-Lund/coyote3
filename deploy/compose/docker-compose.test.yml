@@ -10,6 +10,8 @@ services:
   api:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
+      additional_contexts:
+        sdk_artifact: ../..
       dockerfile: docker/Dockerfile.dev
       target: coyote3_dev_api
       network: host

@@ -2,8 +2,10 @@
 
 import pytest
 
-from api.application.ingest import parsers  # noqa: F401 -- initialize the public parser entrypoint
-from api.application.ingest.analysis_parsers import resolve_vcf_roles
+from coyote3.application.ingest import (
+    parsers,  # noqa: F401 -- initialize the public parser entrypoint
+)
+from coyote3.application.ingest.analysis_parsers import resolve_vcf_roles
 
 
 def test_matches_reversed_columns():

@@ -2,7 +2,7 @@
 
 import pytest
 
-from api.contracts.schemas.registry import normalize_collection_document
+from coyote3.contracts.schemas.registry import normalize_collection_document
 
 
 def test_normalization_omits_null_ids_from_embedded_documents() -> None:
@@ -11,12 +11,12 @@ def test_normalization_omits_null_ids_from_embedded_documents() -> None:
         {
             "name": "sample_1",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
             "case_id": "case_1",
             "sample_no": 1,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "TestPipeline",
             "files": {"vcf_files": {"path": "/data/sample.vcf"}},
             "filters": {"somatic": {"snv": {}}},
@@ -53,12 +53,12 @@ def test_embedded_documents_reject_mongo_ids() -> None:
             {
                 "name": "sample_1",
                 "asp_id": "assay_1",
-                "subpanel_id": "base",
+                "diagnosis_id": "base",
                 "environment": "testing",
                 "case_id": "case_1",
                 "sample_no": 1,
-                "sequencing_scope": "panel",
-                "omics_layer": "dna",
+                "asp_family": "panel-dna",
+                "asp_category": "dna",
                 "pipeline": "TestPipeline",
                 "filters": {"_id": None, "somatic": {"snv": {}}},
             },
@@ -76,8 +76,10 @@ def test_annotation_normalization_omits_unrelated_and_inactive_fields() -> None:
             "genomic_hash": "hash",
             "gene": "TP53",
             "transcript": None,
-            "assay": "solid",
-            "subpanel": "base",
+            "asp_group": "solid",
+            "asp_id": "demo-solid",
+            "namespace": "clinical",
+            "diagnosis_id": "base",
             "author": "reviewer",
             "nomenclature": "p",
             "class": 2,
@@ -89,6 +91,13 @@ def test_annotation_normalization_omits_unrelated_and_inactive_fields() -> None:
     assert normalized["transcript"] is None
     assert "cnv" not in normalized
     assert "gene1" not in normalized
+    text_payload = {key: value for key, value in normalized.items() if key != "class"}
+    text_payload["text"] = "Evidence supporting this interpretation."
+    text_record = normalize_collection_document("annotation", text_payload)
+    assert set(text_record) - {"text"} == set(normalized) - {"class"}
+    assert {key: value for key, value in text_record.items() if key != "text"} == {
+        key: value for key, value in normalized.items() if key != "class"
+    }
 
 
 def test_annotation_contract_rejects_incomplete_small_variant_identity() -> None:
@@ -99,8 +108,10 @@ def test_annotation_contract_rejects_incomplete_small_variant_identity() -> None
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
                 "gene": "TP53",
-                "assay": "solid",
-                "subpanel": "base",
+                "asp_group": "solid",
+                "asp_id": "demo-solid",
+                "namespace": "clinical",
+                "diagnosis_id": "base",
                 "author": "reviewer",
                 "nomenclature": "p",
                 "class": 2,
@@ -118,8 +129,10 @@ def test_annotation_contract_preserves_present_nullable_small_variant_identities
             "genomic": None,
             "genomic_hash": None,
             "gene": "TP53",
-            "assay": "solid",
-            "subpanel": "base",
+            "asp_group": "solid",
+            "asp_id": "demo-solid",
+            "namespace": "clinical",
+            "diagnosis_id": "base",
             "author": "reviewer",
             "nomenclature": "p",
             "class": 2,
@@ -146,8 +159,10 @@ def test_annotation_contract_rejects_unrelated_identity_field() -> None:
                 "genomic_hash": "hash",
                 "gene": "TP53",
                 "fusion": "EML4^ALK",
-                "assay": "solid",
-                "subpanel": "base",
+                "asp_group": "solid",
+                "asp_id": "demo-solid",
+                "namespace": "clinical",
+                "diagnosis_id": "base",
                 "author": "reviewer",
                 "nomenclature": "p",
                 "class": 2,
@@ -167,8 +182,10 @@ def test_annotation_contract_rejects_null_unrelated_identity_field() -> None:
                 "genomic_hash": "hash",
                 "gene": "TP53",
                 "fusion": None,
-                "assay": "solid",
-                "subpanel": "base",
+                "asp_group": "solid",
+                "asp_id": "demo-solid",
+                "namespace": "clinical",
+                "diagnosis_id": "base",
                 "author": "reviewer",
                 "nomenclature": "p",
                 "class": 2,
@@ -182,8 +199,10 @@ def test_annotation_contract_rejects_class_and_text_together() -> None:
             "annotation",
             {
                 "variant": "7:10-20",
-                "assay": "solid",
-                "subpanel": "base",
+                "asp_group": "solid",
+                "asp_id": "demo-solid",
+                "namespace": "clinical",
+                "diagnosis_id": "base",
                 "author": "reviewer",
                 "nomenclature": "cn",
                 "class": 2,
@@ -220,8 +239,10 @@ def test_annotation_structural_contract_rejects_legacy_fields_even_when_null(
             {
                 **identity,
                 unrelated_field: None,
-                "assay": "global",
-                "subpanel": "base",
+                "asp_group": "hematology",
+                "asp_id": None,
+                "namespace": "clinical",
+                "diagnosis_id": "base",
                 "author": "reviewer",
                 "nomenclature": nomenclature,
                 "text": "reviewed",
@@ -258,8 +279,10 @@ def test_annotation_structural_shapes_contain_only_applicable_fields(
         "annotation",
         {
             **identity,
-            "assay": "global",
-            "subpanel": "base",
+            "asp_group": "hematology",
+            "asp_id": None,
+            "namespace": "clinical",
+            "diagnosis_id": "base",
             "author": "reviewer",
             "nomenclature": nomenclature,
             "text": "reviewed",

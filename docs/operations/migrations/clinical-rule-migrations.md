@@ -29,7 +29,7 @@ are not overwritten. Superseded ASPCs remain as inactive history.
 
 For each applicable published rule set, the script creates a draft with the
 existing content and ordinary metadata blocks reproducing the former question and
-header decisions. It uses canonical `sample.paired` and `sample.subpanel_id` facts.
+header decisions. It uses canonical `sample.paired` and `sample.diagnosis_id` facts.
 Solid Base has no named clinical question. Existing embedded test assertions are
 retained and extended with metadata expectations. Drafts receive immutable revision
 snapshots; published source documents are unchanged.
@@ -40,7 +40,7 @@ blocks there or closing the draft before rerunning the script. Reruns do not
 duplicate open migration drafts. The script does not approve or publish content.
 
 Before enabling report generation after deployment, review tier selections, test
-each draft with paired/unpaired and Base/named-subpanel cases where applicable,
+each draft with paired/unpaired and Base/named-diagnosis cases where applicable,
 then obtain independent approval and publish. Keep report generation paused during
 this rollout: the renderer has no hardcoded text fallback, and unconverted releases
 produce no metadata text. Scope identities do not need to change.
@@ -78,7 +78,7 @@ Checksum failures require investigation; rerunning is not a way to repair them.
 Preflight also checks active ASPCs with report sections against the selected
 published release, its content hash and declared analyses. It reports configurations
 whose selected rule identity changes. Review those changes before applying:
-an exact subpanel release takes precedence even when the old binding selected Base.
+an exact diagnosis release takes precedence even when the old binding selected Base.
 The command is idempotent after a successful migration.
 
 ## Repairing Draft Revision Checksums

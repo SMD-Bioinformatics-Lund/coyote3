@@ -133,13 +133,13 @@ export function FormControl({
   const readOnly = disabled || mode === "view" || field.readonly || Boolean(field.derive_from) || field.readonly_mode?.includes(mode)
   if (mode === "create" && field.derive_from) {
     const parts = field.derive_from.map((key) =>
-      String(formValues?.[key] || (key === "subpanel_id" ? "base" : "")).trim().toLowerCase(),
+      String(formValues?.[key] || (key === "diagnosis_id" ? "base" : "")).trim().toLowerCase(),
     )
-    value = parts.every(Boolean) ? parts.join("_") : ""
+    value = parts.every(Boolean) ? parts.join(name === "aspc_id" ? "::" : "_") : ""
   }
   const label = fieldLabel(name, field)
   const newIdentifier = mode === "create" && !readOnly && !field.options && (!field.display_type || field.display_type === "input") && ["asp_id", "isgl_id"].includes(name)
-  const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(value))
+  const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(String(value))
   const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 
   if (field.display_type === "user-settings") {
@@ -251,7 +251,7 @@ export function FormControl({
         onChange={(event) => onChange(event.target.value)}
         disabled={readOnly}
         placeholder={field.placeholder}
-        pattern={newIdentifier ? "[a-z0-9]+(?:_[a-z0-9]+)*" : undefined}
+        pattern={newIdentifier ? "[a-z0-9]+(?:[-_][a-z0-9]+)*" : undefined}
         aria-label={newIdentifier ? label : undefined}
         aria-invalid={identifierError || undefined}
         className={cn(commonClass, identifierError && "border-destructive")}
@@ -266,7 +266,7 @@ export function FormControl({
         {field.required && !readOnly && <span className="text-destructive">*</span>}
       </span>
       {control}
-      {newIdentifier && <span className={cn("block text-xs font-normal normal-case tracking-normal", identifierError ? "text-destructive" : "text-muted-foreground")}>Use lowercase letters and digits with single underscores between words.</span>}
+      {newIdentifier && <span className={cn("block text-xs font-normal normal-case tracking-normal", identifierError ? "text-destructive" : "text-muted-foreground")}>Use lowercase identifiers: hyphens between distinct terms and underscores within an assay name, such as tumwgs-hema or hematology_gmsv1.</span>}
       {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
     </label>
   )

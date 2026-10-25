@@ -89,11 +89,11 @@ Coyote3 keeps security code in two deliberately separate packages:
   creation. It must not contain route permissions, role semantics, or clinical
   authorization decisions.
 
-Route modules should depend on `api.security.access.require_access` or the
-thin dependency re-export in `api.app.deps.auth`. They should not query role or
+Route modules use `require_access` and `require_authenticated` directly from
+`api.security.access`. They should not query role or
 permission collections directly and should not implement local minimum-role
-checks. The API remains the authorization source of truth; UI visibility is only
-an ergonomic reflection of the session payload.
+checks. Trusted application operations enforce authorization for both API and
+local SDK callers. UI visibility reflects the session payload; it does not grant access.
 
 ![RBAC and scoped access decision](../assets/diagrams/rbac-access-decision.svg)
 
@@ -164,7 +164,7 @@ the authorization layer resolves that identifier against active MongoDB
 permission and role documents.
 
 The application ships the canonical policy and built-in role catalogs in
-`api/config/bootstrap/rbac`. They are installed explicitly during first
+`api/bootstrap/catalogs/rbac`. They are installed explicitly during first
 deployment into an empty `IDENTITY_DB`. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
 permission documents. When a deployed application version contains a new
@@ -188,7 +188,7 @@ This separation gives each layer one responsibility:
 
 | Layer | Responsibility |
 | --- | --- |
-| `api/config/bootstrap/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
+| `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
 | MongoDB `permissions` | Deployed permission catalog used at runtime. |
 | MongoDB `roles` | Permission assignments for each role. |
 | MongoDB `users` | Role assignments and user scope. |

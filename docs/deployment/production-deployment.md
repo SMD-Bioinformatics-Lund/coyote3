@@ -45,6 +45,5 @@ The wrapper prepares application storage before startup and refuses `down -v`.
 | [Configuration reference](configuration-reference.md) | Environment settings and their meaning. |
 | [Center configuration](center-configuration.md) | Editable TOML/YAML contracts and persistent configuration releases. |
 | [Container and reverse-proxy reference](containers-and-reverse-proxy.md) | Service wiring, URL prefixes and ingress behavior. |
-| [Initial deployment checklist](installation-checklist.md) | Evidence to record after following first installation. |
 | [Deployment acceptance](acceptance-checklist.md) | Clinical and operational release acceptance. |
 | [Production requirements](production-requirements.md) | Capacity, security and operational prerequisites. |

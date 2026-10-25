@@ -4,8 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.classification.tiering import ResourceClassificationService
-from api.application.classification.variant_annotation import ResourceAnnotationService
+from coyote3.application.classification.tiering import ResourceClassificationService
+from coyote3.application.classification.variant_annotation import ResourceAnnotationService
+from coyote3.application.common.release_resources import capture_assay_resource
 
 
 class _AnnotationHandlerStub:
@@ -18,25 +19,11 @@ class _AnnotationHandlerStub:
         self.deleted: list[dict] = []
 
     def add_anno_comment(self, comment: dict) -> None:
-        """Add anno comment.
-
-        Args:
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add anno comment."""
         self.global_comments.append(comment)
 
     def insert_annotation_bulk(self, docs: list[dict]) -> None:
-        """Insert annotation bulk.
-
-        Args:
-            docs (list[dict]): Value for ``docs``.
-
-        Returns:
-            None.
-        """
+        """Insert annotation bulk."""
         self.inserted_bulk = docs
 
     def delete_classified_variant(self, **kwargs) -> None:
@@ -59,26 +46,11 @@ class _FusionHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_fusion_comment(self, fusion_id: str, comment: dict) -> None:
-        """Add fusion comment.
-
-        Args:
-            fusion_id (str): Value for ``fusion_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add fusion comment."""
         self.comments.append((fusion_id, comment))
 
     def get_fusion(self, fusion_id: str) -> dict:
-        """Return fusion.
-
-        Args:
-            fusion_id (str): Value for ``fusion_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return fusion."""
         return {
             "_id": fusion_id,
             "SAMPLE_ID": "S1",
@@ -88,14 +60,7 @@ class _FusionHandlerStub:
         }
 
     def get_selected_fusioncall(self, fusion: dict) -> dict:
-        """Return selected fusioncall.
-
-        Args:
-            fusion (dict): Value for ``fusion``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return selected fusioncall."""
         return fusion["calls"][0]
 
 
@@ -107,26 +72,11 @@ class _CnvHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_cnv_comment(self, cnv_id: str, comment: dict) -> None:
-        """Add cnv comment.
-
-        Args:
-            cnv_id (str): Value for ``cnv_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add cnv comment."""
         self.comments.append((cnv_id, comment))
 
     def get_cnv(self, cnv_id: str) -> dict:
-        """Return cnv.
-
-        Args:
-            cnv_id (str): Value for ``cnv_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return cnv."""
         return {
             "_id": cnv_id,
             "SAMPLE_ID": "S1",
@@ -145,26 +95,11 @@ class _TranslocHandlerStub:
         self.comments: list[tuple[str, dict]] = []
 
     def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
-        """Add transloc comment.
-
-        Args:
-            transloc_id (str): Value for ``transloc_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add transloc comment."""
         self.comments.append((transloc_id, comment))
 
     def get_transloc(self, transloc_id: str) -> dict:
-        """Return transloc.
-
-        Args:
-            transloc_id (str): Value for ``transloc_id``.
-
-        Returns:
-            dict: The function result.
-        """
+        """Return transloc."""
         return {
             "_id": transloc_id,
             "SAMPLE_ID": "S1",
@@ -179,15 +114,7 @@ class _VariantHandlerStub:
     """Provide  VariantHandlerStub behavior."""
 
     def add_var_comment(self, variant_id: str, comment: dict) -> None:
-        """Add var comment.
-
-        Args:
-            variant_id (str): Value for ``variant_id``.
-            comment (dict): Value for ``comment``.
-
-        Returns:
-            None.
-        """
+        """Add var comment."""
         self.variant_comment = (variant_id, comment)
 
     def get_variant(self, variant_id: str) -> dict:
@@ -233,14 +160,19 @@ class _RepoStub:
             (),
             {
                 "get_aspc_no_meta": staticmethod(
-                    lambda assay, profile, subpanel: {
+                    lambda assay, profile, diagnosis: {
                         "_id": "aspc-oid",
                         "aspc_id": "assay:production:base",
-                        "asp_id": "assay",
+                        "asp_id": assay,
                         "asp_group": "dna",
-                        "subpanel_id": subpanel or "base",
+                        "analysis_types": ["SNV", "TRANSLOCATION"],
+                        "analysis_intents": ["somatic"],
+                        "diagnosis_id": diagnosis or "base",
                         "environment": profile,
                         "version": 2,
+                        "assay_resource_release": capture_assay_resource(
+                            self.assay_panel_repository.get_asp(assay)
+                        ),
                     }
                 )
             },
@@ -248,51 +180,34 @@ class _RepoStub:
         self.assay_panel_repository = type(
             "_Asp",
             (),
-            {"get_asp": staticmethod(lambda asp_id: {"asp_id": asp_id, "asp_group": "dna"})},
+            {
+                "get_asp": staticmethod(
+                    lambda asp_id: {
+                        "asp_id": asp_id,
+                        "asp_group": "dna",
+                        "asp_family": "panel-dna",
+                        "asp_category": "dna",
+                        "version": 1,
+                    }
+                )
+            },
         )()
 
 
 def _nomenclature(form_data: dict) -> tuple[str, str]:
-    """Nomenclature.
-
-    Args:
-            form_data: Form data.
-
-    Returns:
-            The  nomenclature result.
-    """
+    """Nomenclature."""
     return form_data["nomenclature"], form_data["variant"]
 
 
 def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
-    """Comment doc.
-
-    Args:
-            form_data: Form data.
-            nomenclature: Nomenclature. Keyword-only argument.
-            variant: Variant. Keyword-only argument.
-
-    Returns:
-            The  comment doc result.
-    """
+    """Comment doc."""
     return {"text": form_data["text"], "nomenclature": nomenclature, "variant": variant}
 
 
 def _classification_doc(
     *, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
 ) -> dict:
-    """Classification doc.
-
-    Args:
-            variant: Variant. Keyword-only argument.
-            nomenclature: Nomenclature. Keyword-only argument.
-            class_num: Class num. Keyword-only argument.
-            variant_data: Variant data. Keyword-only argument.
-            **kwargs: Kwargs. Additional keyword arguments.
-
-    Returns:
-            The  classification doc result.
-    """
+    """Classification doc."""
     assert "source" not in kwargs
     return {
         "variant": variant,
@@ -320,6 +235,8 @@ def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_r
     """An owned CNV receives its local annotation through the CNV repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
         annotation_repository=repo.annotation_repository,
         fusion_repository=repo.fusion_repository,
         translocation_repository=repo.translocation_repository,
@@ -345,6 +262,8 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
     """An owned translocation receives its local annotation through its repository."""
     repo = _RepoStub()
     service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
         annotation_repository=repo.annotation_repository,
         fusion_repository=repo.fusion_repository,
         translocation_repository=repo.translocation_repository,
@@ -365,11 +284,6 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
 
 
 def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
-    """Test resource classification service supports fusion bulk tiering.
-
-    Returns:
-        The function result.
-    """
     repo = _RepoStub()
     service = _classification_service(repo)
 
@@ -390,8 +304,10 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     assert docs[0]["variant_data"]["gene1"] == "EML4"
     assert docs[0]["variant_data"]["gene2"] == "ALK"
     assert set(docs[0]["variant_data"]) == {
-        "assay_group",
-        "subpanel",
+        "asp_group",
+        "asp_id",
+        "namespace",
+        "diagnosis_id",
         "gene1",
         "gene2",
     }
@@ -423,6 +339,34 @@ def test_resource_classification_service_persists_tier_three_classification_only
     assert "simple_id" not in docs[0]["variant_data"]
 
 
+def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(monkeypatch):
+    """Using Base settings must not write a named-diagnosis decision into the Base scope."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        "coyote3.application.classification.tiering.get_formatted_assay_config",
+        lambda *args, **kwargs: {
+            "asp_group": "solid",
+            "diagnosis_id": "base",
+            "aspc_resolution": {"context": {"group_id": "solid", "diagnosis_id": "lung"}},
+        },
+    )
+    service.set_tier_bulk(
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "diagnosis_id": "lung",
+            "environment": "production",
+        },
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=2,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis_id"] == "lung"
+
+
 def test_resource_classification_service_adds_automatic_tier_three_text_when_requested(
     monkeypatch,
 ):
@@ -436,8 +380,11 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
         service,
         "classification_context",
         lambda _sample: {
-            "assay_group": "hematology",
-            "subpanel": "base",
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
+            "configuration": {"asp_id": "assay", "environment": "production"},
         },
     )
 
@@ -467,7 +414,12 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
     monkeypatch.setattr(
         service,
         "classification_context",
-        lambda _sample: {"assay_group": "hematology", "subpanel": "base"},
+        lambda _sample: {
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
+        },
     )
 
     service.set_tier_bulk(
@@ -486,11 +438,11 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
 
 def test_automatic_annotation_requires_published_terminology(monkeypatch):
     """Missing terminology rejects explicit automatic text before any write."""
-    from api.domain.core.exceptions import AppError
+    from coyote3.domain.exceptions import AppError
 
     repo = _RepoStub()
     service = _classification_service(repo)
-    monkeypatch.setattr(service, "classification_context", lambda sample: {"subpanel": "base"})
+    monkeypatch.setattr(service, "classification_context", lambda sample: {"diagnosis": "base"})
     with pytest.raises(AppError) as error:
         service.set_tier_bulk(
             sample={"asp_id": "assay"},
@@ -525,11 +477,6 @@ def test_tier_removal_deletes_only_the_matching_classification():
 
 
 def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
-    """Test resource classification service supports translocation bulk removal.
-
-    Returns:
-        The function result.
-    """
     repo = _RepoStub()
     service = _classification_service(repo)
 
@@ -538,7 +485,7 @@ def test_resource_classification_service_supports_translocation_bulk_removal(mon
             "_id": "S1",
             "asp_id": "assay",
             "environment": "production",
-            "subpanel_id": "solid",
+            "diagnosis_id": "solid",
         },
         resource_type="translocation",
         resource_ids=["tl-1"],

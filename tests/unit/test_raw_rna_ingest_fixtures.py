@@ -2,15 +2,15 @@
 
 from pathlib import Path
 
-from api.application.ingest.analysis_parsers import RnaIngestParser
-from api.contracts.schemas.registry import (
+from coyote3.application.ingest.analysis_parsers import RnaIngestParser
+from coyote3.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     normalize_collection_document,
 )
 
 
 def test_raw_rna_example_roots_match_single_document_write_contracts():
-    root = Path("demo_data/ingest")
+    root = Path("tests/fixtures/ingest")
     parsed = RnaIngestParser.parse(
         {
             "expression_path": str(root / "generic_rna_expression.json"),

@@ -4,14 +4,14 @@
 
 > **Generated reference**
 >
-> Generated from `api/contracts/schemas/registry.py` by `scripts/docs/export_collection_contracts_doc.py`. Change the schema or generator, then regenerate this page.
+> Generated from `src/coyote3/contracts/schemas/registry.py` by `scripts/docs/export_collection_contracts_doc.py`. Change the schema or generator, then regenerate this page.
 
 This is the canonical collection-key reference used by ingestion validation.
 
 ## Operational collections
 
 These internal queues are not public collection-ingest targets. Names are owned by
-`api/config/contracts/application.py`; database maintenance uses the index registry.
+`api/config/operational_collections.py`; database maintenance uses the index registry.
 
 | Collection | Database | Purpose |
 | --- | --- | --- |
@@ -26,15 +26,15 @@ queue ownership, indexes, retention boundaries and failure recovery.
 ## Cross-collection relations
 
 - `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
-- Initial ASPC resolution uses `samples.asp_id`, `samples.subpanel_id`, and `samples.environment`; the resolved ObjectId/key and `aspc_resolution` are persisted on the sample.
-- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-subpanel tags.
+- Initial ASPC resolution uses `samples.asp_id`, `samples.diagnosis_id`, and `samples.environment`. `samples.current_aspc_id` is the exact configuration ObjectId; `current_aspc_name` is its display label for tracking, never a lookup key. `aspc_resolution` records the resolved diagnosis, Base fallback flag and warning. Runtime context is derived from that release's captured resources.
+- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
 
 ## DNA vs RNA sample rules
 
-- `omics_layer=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
-- `omics_layer=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
+- `asp_category=DNA` allows only DNA file keys: `vcf_files`, `cnv`, `cnvprofile`, `cov`, `biomarkers`, `transloc`, `pgx`.
+- `asp_category=RNA` allows only RNA file keys: `fusion_files`, `expression_path`, `classification_path`, `qc`, `pgx`.
 - Mixed DNA+RNA file-key payloads are rejected by model validation.
 
 ## `anno_vep`
@@ -46,14 +46,16 @@ Required keys:
 
 Optional keys:
 - `variant_class` (str | None)
-- `CSQ` (list[api.contracts.schemas.variant_annotations.VepAnnoTranscriptDoc])
+- `CSQ` (list[coyote3.contracts.schemas.variant_annotations.VepAnnoTranscriptDoc])
 
 ## `annotation`
 
 Required keys:
 - `variant` (str)
-- `assay` (str)
-- `subpanel` (str)
+- `asp_group` (str)
+- `diagnosis_id` (str)
+- `asp_id` (str | None)
+- `namespace` (Literal['clinical', 'sandboxed'])
 - `author` (str)
 - `nomenclature` (Literal['p', 'g', 'c', 'f', 'cn', 't'])
 
@@ -97,12 +99,12 @@ Required keys:
 - `asp_group` (str)
 - `asp_category` (str)
 - `display_name` (str)
-- `filters` (api.contracts.schemas.filter_profiles.DnaFilterProfilesDoc | api.contracts.schemas.filter_profiles.RnaFilterProfilesDoc)
+- `filters` (coyote3.domain.filter_profiles.DnaFilterProfilesDoc | coyote3.domain.filter_profiles.RnaFilterProfilesDoc)
 - `reporting` (AspcReportingDoc)
 
 Optional keys:
 - `id_` (Any | None)
-- `subpanel_id` (str)
+- `diagnosis_id` (str)
 - `analysis_types` (list[str])
 - `analysis_intents` (list[str])
 - `system_managed` (bool)
@@ -114,6 +116,15 @@ Optional keys:
 - `verification_samples` (dict[str, list[int]])
 - `use_diagnosis_genelist` (bool)
 - `catalog` (AspcCatalogDoc)
+- `query_policy_release` (coyote3.contracts.schemas.query_rules.CompiledQueryPoliciesDoc | None)
+- `clinical_rule_release` (coyote3.contracts.schemas.clinical_rules.ClinicalRuleSetDoc | None)
+- `clinical_rule_base` (coyote3.contracts.schemas.clinical_rules.ClinicalRuleSetDoc | None)
+- `assay_resource_release` (dict[str, Any] | None)
+- `gene_list_release` (dict[str, Any] | None)
+- `profile_sources` (list[dict[str, Any]])
+- `profile_overrides` (dict[str, Any])
+- `template_release` (dict[str, str] | None)
+- `promotion` (dict[str, Any] | None)
 - `version` (int)
 - `created_by` (str | None)
 - `created_on` (datetime)
@@ -144,6 +155,7 @@ Required keys:
 Optional keys:
 - `id_` (Any | None)
 - `description` (str)
+- `parent_group_id` (str | None)
 - `system_managed` (bool)
 - `is_active` (bool)
 - `version` (int)
@@ -193,8 +205,9 @@ Required keys:
 
 Optional keys:
 - `id_` (Any | None)
+- `supported_analyses` (list[str] | None)
 - `description` (str | None)
-- `igv` (api.contracts.schemas.assay.AspIgvDoc | None)
+- `igv` (coyote3.contracts.schemas.assay.AspIgvDoc | None)
 - `expected_files` (list[str])
 - `required_files` (list[str])
 - `covered_genes` (list[str])
@@ -229,10 +242,10 @@ Required keys:
 - `name` (str)
 
 Optional keys:
-- `MSIS` (api.contracts.schemas.dna.BiomarkersMsiDoc | None)
-- `MSIP` (api.contracts.schemas.dna.BiomarkersMsiDoc | None)
-- `HRD` (api.contracts.schemas.dna.BiomarkersHrdDoc | None)
-- `TMB` (api.contracts.schemas.dna.BiomarkersTmbDoc | None)
+- `MSIS` (coyote3.contracts.schemas.dna.BiomarkersMsiDoc | None)
+- `MSIP` (coyote3.contracts.schemas.dna.BiomarkersMsiDoc | None)
+- `HRD` (coyote3.contracts.schemas.dna.BiomarkersHrdDoc | None)
+- `TMB` (coyote3.contracts.schemas.dna.BiomarkersTmbDoc | None)
 
 ## `blacklist`
 
@@ -366,16 +379,16 @@ Optional keys:
 - `id_` (Any | None)
 - `schema_version` (Literal[1])
 - `active` (bool)
-- `analysis_declarations` (dict[str, api.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration])
+- `analysis_declarations` (dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration])
 - `terminology` (dict[str, Any])
-- `blocks` (list[api.contracts.schemas.clinical_rules.ClinicalRuleBlock])
-- `test_cases` (list[api.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
+- `blocks` (list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock])
+- `test_cases` (list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase])
 - `references` (list[dict[str, Any]])
-- `provenance` (api.contracts.schemas.clinical_rules.ClinicalRuleProvenance | None)
+- `provenance` (coyote3.contracts.schemas.clinical_rules.ClinicalRuleProvenance | None)
 - `system_installed` (bool)
 - `change_summary` (str)
 - `review` (ClinicalRuleReview)
-- `lifecycle` (list[api.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])
+- `lifecycle` (list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleLifecycleEvent])
 - `published_at` (datetime.datetime | None)
 - `published_by` (str | None)
 - `effective_from` (datetime.datetime | None)
@@ -425,8 +438,49 @@ Optional keys:
 - `ratio` (float | None)
 - `type` (str | None)
 - `nprobes` (int)
-- `genes` (list[api.contracts.schemas.dna.CnvGeneDoc])
+- `genes` (list[coyote3.contracts.schemas.dna.CnvGeneDoc])
 - `callers` (list[str])
+
+## `configuration_profiles`
+
+Required keys:
+- `profile_id` (str)
+- `name` (str)
+- `kind` (Literal['filters', 'reporting', 'clinical_rules', 'template'])
+- `bindings` (list[coyote3.contracts.configuration_profiles.ConfigurationScope])
+- `content` (dict[str, Any])
+- `reason` (str)
+- `version` (int)
+- `content_hash` (str)
+- `created_by` (str)
+- `created_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `status` (Literal['draft', 'published'])
+- `is_current` (bool)
+- `published_by` (str | None)
+- `published_on` (datetime.datetime | None)
+
+## `configuration_promotions`
+
+Required keys:
+- `source_id` (str)
+- `source_hash` (str)
+- `candidate` (dict[str, Any])
+- `content_hash` (str)
+- `expected_target_version` (int)
+- `evidence` (list[str])
+- `reason` (str)
+- `created_by` (str)
+- `created_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `status` (Literal['pending', 'approved'])
+- `approved_by` (str | None)
+- `approved_on` (datetime.datetime | None)
+- `target_id` (str | None)
 
 ## `cosmic`
 
@@ -642,7 +696,7 @@ Required keys:
 - `sample` (str)
 
 Optional keys:
-- `genes` (Dict[str, api.contracts.schemas.dna.GeneCoverageDoc])
+- `genes` (Dict[str, coyote3.contracts.schemas.dna.GeneCoverageDoc])
 
 ## `d4_coverage_blacklist`
 
@@ -654,6 +708,37 @@ Required keys:
 Optional keys:
 - `coord` (str | None)
 - `group_region_id` (str | None)
+
+## `diagnoses`
+
+Required keys:
+- `display_name` (str)
+- `diagnosis_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `description` (str)
+- `is_active` (bool)
+- `version` (int)
+- `system_installed` (bool)
+- `is_current` (bool)
+
+## `diagnosis_associations`
+
+Required keys:
+- `asp_id` (str)
+- `diagnosis_id` (str)
+- `updated_by` (str)
+- `updated_on` (datetime)
+
+Optional keys:
+- `id_` (Any | None)
+- `is_active` (bool)
+- `version` (int)
+- `system_installed` (bool)
+- `is_current` (bool)
 
 ## `finding_comments`
 
@@ -688,7 +773,7 @@ Required keys:
 - `gene1` (str)
 - `gene2` (str)
 - `genes` (str)
-- `calls` (List[api.contracts.schemas.rna.FusionCallDoc])
+- `calls` (List[coyote3.contracts.schemas.rna.FusionCallDoc])
 
 Optional keys:
 - `fp` (str | bool)
@@ -736,7 +821,7 @@ Optional keys:
 - `other_chromosome` (str | None)
 - `gene_type` (list[str])
 - `refseq_mane_plus_clinical` (list[str])
-- `addtional_transcript_info` (dict[str, api.contracts.schemas.reference.HgncAdditionalTranscriptInfoDoc])
+- `addtional_transcript_info` (dict[str, coyote3.contracts.schemas.reference.HgncAdditionalTranscriptInfoDoc])
 
 ## `hpaexpr`
 
@@ -813,7 +898,6 @@ Optional keys:
 - `is_active` (bool)
 - `asp_groups` (list[str])
 - `genes` (list[str])
-- `germline_genes` (list[str])
 - `asp_ids` (list[str])
 - `version` (int)
 - `created_by` (str | None)
@@ -979,7 +1063,9 @@ Optional keys:
 - `description` (str)
 - `maintainer` (str | None)
 - `layout` (PublicCatalogLayoutDoc)
-- `modalities` (dict[str, api.contracts.schemas.public_catalog.PublicCatalogModalityDoc])
+- `modalities` (dict[str, coyote3.contracts.schemas.public_catalog.PublicCatalogModalityDoc])
+- `published_offerings` (list[coyote3.contracts.schemas.catalog_offerings.CatalogOfferingDoc])
+- `resource_revisions` (dict[str, dict[str, Any]])
 - `created_at` (datetime)
 - `created_by` (str)
 - `updated_at` (datetime)
@@ -1015,7 +1101,7 @@ Optional keys:
 - `base_version` (int)
 - `content_editors` (list[str])
 - `review` (PublicCatalogReviewDoc)
-- `lifecycle` (list[api.contracts.schemas.public_catalog.PublicCatalogLifecycleEvent])
+- `lifecycle` (list[coyote3.contracts.schemas.public_catalog.PublicCatalogLifecycleEvent])
 - `change_summary` (str)
 - `published_at` (datetime.datetime | None)
 - `published_by` (str | None)
@@ -1079,7 +1165,7 @@ Optional keys:
 - `report_num` (int | None)
 - `assay` (str | None)
 - `assay_group` (str | None)
-- `subpanel` (str | None)
+- `diagnosis` (str | None)
 - `environment` (str | None)
 - `analysis_intent` (str | None)
 - `finding_type` (str | None)
@@ -1142,7 +1228,7 @@ Required keys:
 Optional keys:
 - `sample_name` (str | None)
 - `asp_id` (str | None)
-- `subpanel_id` (str | None)
+- `diagnosis_id` (str | None)
 - `environment` (str | None)
 - `report_type` (str)
 - `author` (str | None)
@@ -1150,11 +1236,14 @@ Optional keys:
 - `filters_snapshot` (dict[str, Any])
 - `aspc` (dict[str, Any] | None)
 - `clinical_rule_source` (dict[str, Any] | None)
+- `resolution_snapshot` (dict[str, Any] | None)
+- `artifacts` (list[dict[str, Any]])
+- `sample_version` (int | None)
 
 ## `rna_classification`
 
 Required keys:
-- `classifier_results` (list[api.contracts.schemas.rna.ClassifierResultDoc])
+- `classifier_results` (list[coyote3.contracts.schemas.rna.ClassifierResultDoc])
 - `classifier_version` (str)
 - `SAMPLE_ID` (str)
 
@@ -1164,8 +1253,8 @@ Optional keys:
 ## `rna_expression`
 
 Required keys:
-- `sample` (list[api.contracts.schemas.rna.ExpressionSampleEntryDoc])
-- `reference` (list[api.contracts.schemas.rna.ExpressionReferenceEntryDoc])
+- `sample` (list[coyote3.contracts.schemas.rna.ExpressionSampleEntryDoc])
+- `reference` (list[coyote3.contracts.schemas.rna.ExpressionReferenceEntryDoc])
 - `expression_version` (str)
 - `SAMPLE_ID` (str)
 
@@ -1236,16 +1325,16 @@ Required keys:
 - `environment` (str)
 - `case_id` (str)
 - `sample_no` (int)
-- `sequencing_scope` (str)
-- `omics_layer` (Literal['dna', 'rna'])
+- `asp_family` (str)
+- `asp_category` (Literal['dna', 'rna'])
 - `pipeline` (str)
 
 Optional keys:
-- `subpanel_id` (str | None)
+- `version` (int)
+- `diagnosis_id` (str | None)
 - `current_aspc_id` (Any | None)
-- `current_aspc_key` (str | None)
-- `current_aspc_version` (int | None)
-- `aspc_resolution` (api.contracts.schemas.samples.SampleAspcResolutionDoc | None)
+- `current_aspc_name` (str | None)
+- `aspc_resolution` (coyote3.contracts.schemas.samples.SampleAspcResolutionDoc | None)
 - `genome_build` (int | None)
 - `database_versions` (dict[str, str])
 - `control_id` (str | None)
@@ -1255,12 +1344,12 @@ Optional keys:
 - `read_mode` (str | None)
 - `read_technology` (str | None)
 - `pipeline_version` (str | None)
-- `files` (dict[str, api.contracts.schemas.samples.SampleFileDoc])
+- `files` (dict[str, coyote3.contracts.schemas.samples.SampleFileDoc])
 - `missing_expected_files` (list[str])
 - `analysis_intents` (list[str])
-- `filters` (api.contracts.schemas.filter_profiles.DnaFilterProfilesDoc | api.contracts.schemas.filter_profiles.RnaFilterProfilesDoc | None)
+- `filters` (coyote3.domain.filter_profiles.DnaFilterProfilesDoc | coyote3.domain.filter_profiles.RnaFilterProfilesDoc | None)
 - `case` (SampleCaseControlDoc)
-- `control` (api.contracts.schemas.samples.SampleCaseControlDoc | None)
+- `control` (coyote3.contracts.schemas.samples.SampleCaseControlDoc | None)
 - `ingest_status` (Literal['loading', 'ready'])
 - `reported` (bool)
 - `latest_report_id` (Any | None)
@@ -1268,37 +1357,6 @@ Optional keys:
 - `time_added` (datetime)
 - `ingested_by` (str | None)
 - `ingest_source` (Literal['api', 'upload', 'watcher', 'collection_import'] | None)
-
-## `subpanel_associations`
-
-Required keys:
-- `asp_id` (str)
-- `subpanel_id` (str)
-- `updated_by` (str)
-- `updated_on` (datetime)
-
-Optional keys:
-- `id_` (Any | None)
-- `is_active` (bool)
-- `version` (int)
-- `system_installed` (bool)
-- `is_current` (bool)
-
-## `subpanels`
-
-Required keys:
-- `display_name` (str)
-- `subpanel_id` (str)
-- `updated_by` (str)
-- `updated_on` (datetime)
-
-Optional keys:
-- `id_` (Any | None)
-- `description` (str)
-- `is_active` (bool)
-- `version` (int)
-- `system_installed` (bool)
-- `is_current` (bool)
 
 ## `translocations`
 
@@ -1309,12 +1367,12 @@ Required keys:
 - `REF` (str)
 - `ALT` (str)
 - `ID` (str)
-- `GT` (list[api.contracts.schemas.dna.TranslocationGtDoc])
+- `GT` (list[coyote3.contracts.schemas.dna.TranslocationGtDoc])
 - `INFO` (TranslocationInfoDoc)
 
 Optional keys:
 - `END` (int | None)
-- `source_records` (list[api.contracts.schemas.dna.TranslocationSourceDoc])
+- `source_records` (list[coyote3.contracts.schemas.dna.TranslocationSourceDoc])
 - `FILTER` (list[str])
 - `FORMAT` (list[str])
 - `QUAL` (float | None)
@@ -1374,7 +1432,7 @@ Required keys:
 Optional keys:
 - `QUAL` (float | None)
 - `FILTER` (list[str])
-- `GT` (list[api.contracts.schemas.dna.VariantGtDoc])
+- `GT` (list[coyote3.contracts.schemas.dna.VariantGtDoc])
 - `gnomad_frequency` (float | None)
 - `gnomad_max` (float | None)
 - `exac_frequency` (float | None)
@@ -1413,13 +1471,13 @@ Required keys:
 - `source` (str)
 - `vc_translation_source` (str)
 - `conseq_translation_source` (str)
-- `db_info` (Dict[str, api.contracts.schemas.variant_annotations.VepDbInfoDoc])
-- `variant_class_translations` (Dict[str, api.contracts.schemas.variant_annotations.VepVariantClassDoc])
-- `conseq_translations` (Dict[str, api.contracts.schemas.variant_annotations.VepConsequenceDoc])
+- `db_info` (Dict[str, coyote3.contracts.schemas.variant_annotations.VepDbInfoDoc])
+- `variant_class_translations` (Dict[str, coyote3.contracts.schemas.variant_annotations.VepVariantClassDoc])
+- `conseq_translations` (Dict[str, coyote3.contracts.schemas.variant_annotations.VepConsequenceDoc])
 - `consequence_groups` (Dict[str, list[str]])
 
 Optional keys:
-- `consequence_diagram` (api.contracts.schemas.variant_annotations.VepConsequenceDiagramDoc | None)
+- `consequence_diagram` (coyote3.contracts.schemas.variant_annotations.VepConsequenceDiagramDoc | None)
 
 ## `versions`
 

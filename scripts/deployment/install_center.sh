@@ -14,6 +14,7 @@ Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
        [--username EMERGENCY_USER --email EMAIL]
        [--skip-users] [--skip-application] [--skip-knowledgebase] [--skip-demo]
        [--knowledgebase-maintenance-uri-file FILE]
+       [--identity-maintenance-uri-file FILE]
        [--steps network,directories,build,validate,bootstrap,indexes,start,health]
        [--setup-center] [--with-knowledgebase-indexes]
 
@@ -23,12 +24,16 @@ Existing deployments preserve all data; later additions/repairs use deployment/m
 --setup-center selects all stages; cannot combine with --steps.
 Knowledgebase indexes remain a separate opt-in. Maintenance credentials may seed a fresh knowledgebase.
 Steps run in the listed canonical order; validation and startup safety gates remain mandatory.
+Image builds package the application inside Docker; no host SDK preparation is required.
+The optional release Compose overlay verifies a supplied tested wheel and release record.
 No database is dropped, restored, reset or migrated. Index conflicts stop installation.
+The identity maintenance option explicitly upgrades runtime roles before validation,
+using credentials supplied only to a one-off container; it does not change passwords.
 USAGE
 }
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-env_file="" project="" maintenance_file=""
+env_file="" project="" maintenance_file="" identity_maintenance_file=""
 admin_username="" admin_email="" emergency_username="" emergency_email=""
 skip_build=0
 setup_center=0 steps_explicit=0
@@ -46,7 +51,7 @@ while [[ $# -gt 0 ]]; do
     --skip-application) skip_application=1; shift ;;
     --skip-knowledgebase) kb_seeds=0; shift ;;
     --skip-demo) with_demo=0; shift ;;
-    --env-file|--project|--compose-file|--sys-admin-username|--sys-admin-email|--username|--email|--knowledgebase-maintenance-uri-file|--steps)
+    --env-file|--project|--compose-file|--sys-admin-username|--sys-admin-email|--username|--email|--knowledgebase-maintenance-uri-file|--identity-maintenance-uri-file|--steps)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo "Missing value for $1" >&2; exit 2; }
       case "$1" in
         --env-file) env_file="$(realpath "$2")" ;;
@@ -58,6 +63,7 @@ while [[ $# -gt 0 ]]; do
         --username) emergency_username="$2" ;;
         --email) emergency_email="$2" ;;
         --knowledgebase-maintenance-uri-file) maintenance_file="$(realpath "$2")" ;;
+        --identity-maintenance-uri-file) identity_maintenance_file="$(realpath "$2")" ;;
       esac
       shift 2 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
@@ -79,29 +85,52 @@ fi
   echo "Invalid --steps selection" >&2; exit 2;
 }
 selected() { [[ ",$steps," == *",$1,"* ]]; }
+if [[ -n "$identity_maintenance_file" ]] && ! selected validate && ! selected bootstrap \
+  && ! selected indexes && ! selected start; then
+  echo "Identity role upgrade requires validation, bootstrap, indexes or startup" >&2; exit 2
+fi
 if [[ -n "$maintenance_file" && "$kb_seeds" == 0 && "$kb_indexes" == 0 ]]; then
   echo "Maintenance URI override requires knowledgebase installation or indexes" >&2; exit 2
 fi
 [[ -f "$env_file" && -n "$project" && ${#compose_files[@]} -gt 0 ]] || { usage; exit 2; }
 cd "$ROOT_DIR"
+source "$ROOT_DIR/scripts/deployment/python_runtime.sh"
+select_deployment_python "$ROOT_DIR"
+export GIT_COMMIT="${GIT_COMMIT:-$(git rev-parse HEAD)}"
 if selected health; then command -v curl >/dev/null; fi
 docker compose version >/dev/null
 bash scripts/deployment/validate_env_secrets.sh --env-file "$env_file"
 compose_args=(-p "$project" --env-file "$env_file" "${compose_files[@]}")
 compose() { bash scripts/deployment/compose-with-version.sh "${compose_args[@]}" "$@"; }
 scratch_dir="$(mktemp -d)"
-trap 'rm -rf "$scratch_dir"; unset COYOTE_INSTALL_KB_URI' EXIT
+trap 'rm -rf "$scratch_dir"; unset COYOTE_INSTALL_KB_URI COYOTE_INSTALL_IDENTITY_URI' EXIT
 
 # Resolve only nonsecret orchestration values from Compose, never source/eval an env file.
 compose config --format json > "$scratch_dir/compose.json"
-python3 - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
+if selected build && [[ "$skip_build" == 0 ]]; then
+  "$PYTHON_BIN" scripts/release/verify_sdk_artifact.py \
+    --compose-config "$scratch_dir/compose.json" --release "$ROOT_DIR/release.toml"
+fi
+"$PYTHON_BIN" - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
 import json
 import sys
+from urllib.parse import parse_qs, urlsplit
 with open(sys.argv[1]) as stream:
     config = json.load(stream)
 if config["networks"]["app"].get("external") is not True:
     raise SystemExit("Application network must be external and provisioned before installation")
 env = config["services"]["api"]["environment"]
+identity_uri = env.get("IDENTITY_MONGO_URI") or env.get("COYOTE3_MONGO_URI") or ""
+identity = urlsplit(identity_uri)
+if not (identity.username or parse_qs(identity.query).get("authMechanism")):
+    raise SystemExit(
+        "Identity MongoDB connection is anonymous. Set IDENTITY_MONGO_URI (or its "
+        "COYOTE3_MONGO_URI fallback) to an authenticated runtime connection before "
+        "building. MongoDB authorization and the restricted identity role must also "
+        "be provisioned. See docs/operations/audit-and-logging.md. "
+        "The identity maintenance option upgrades existing user roles; it does not "
+        "enable MongoDB authentication or create runtime credentials."
+    )
 prefix = (env.get("SCRIPT_NAME") or "").rstrip("/")
 ports = [port for port in config["services"]["proxy"].get("ports", [])
          if int(port["target"]) == 8088 and port.get("protocol", "tcp") == "tcp"]
@@ -147,6 +176,14 @@ if selected start; then
 fi
 state="unchecked"
 if selected validate || selected bootstrap || selected indexes || selected start; then
+if [[ -n "$identity_maintenance_file" ]]; then
+  COYOTE_INSTALL_IDENTITY_URI="$(cat "$identity_maintenance_file")"
+  [[ -n "$COYOTE_INSTALL_IDENTITY_URI" ]] || { echo "Identity maintenance URI file is empty" >&2; exit 2; }
+  export COYOTE_INSTALL_IDENTITY_URI
+  compose run --rm --no-deps -T -e COYOTE_INSTALL_IDENTITY_URI api \
+    python3 -m scripts.database.manage_mongo_roles --maintenance-uri-env COYOTE_INSTALL_IDENTITY_URI --apply
+  unset COYOTE_INSTALL_IDENTITY_URI
+fi
 compose run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks configuration
 if ! compose run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks state > "$scratch_dir/state"; then
   cat "$scratch_dir/state" >&2

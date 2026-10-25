@@ -4,7 +4,7 @@
 
 > **Generated reference**
 >
-> This page is generated from `api/config/bootstrap/rbac/permissions.seed.ndjson` by
+> This page is generated from `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` by
 > `scripts/docs/export_permissions_reference.py`. Edit the bootstrap catalog and regenerate this page.
 
 Coyote3 installs these permissions into an empty database. They are application contracts:
@@ -64,6 +64,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 | `catalog:review` | Review public assay catalog | review governed public catalog content. |
 | `catalog:submit` | Submit public assay catalog | submit governed public catalog content. |
 | `catalog:view` | View public assay catalog | view governed public catalog content. |
+| `configuration:publish` | Approve configuration publication | Independently approve reusable configuration profiles and environment promotions. |
 
 ## Audit & Monitoring
 
@@ -186,6 +187,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 
 | Permission ID | Label | What it permits |
 | --- | --- | --- |
+| `annotation:publish` | Publish clinical annotations | Publish or withdraw reusable production classifications and interpretation text. Sandbox curation does not grant clinical publication. |
 | `coverage.blacklist:manage` | Manage coverage blacklist | Create and remove assay-group-scoped low-coverage blacklist entries. |
 | `tier:assign` | Assign tier | Allows assigning or modifying the tier classification of variants for prioritization and reporting. |
 | `tier:edit:own` | Edit own tier | Allows editing or changing the assigned tier of a variant within the user's group or assigned samples. |

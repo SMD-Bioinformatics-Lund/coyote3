@@ -1,14 +1,15 @@
 """Unit tests for ASPC-driven CNV/fusion/translocation query strategy."""
 
-from api.config.clinical_query_policy import FindingQueryException, FindingQueryPolicy
-from api.domain.core.dna.cnvqueries import build_cnv_query, include_normal_cnvs
-from api.domain.core.dna.dna_filters import cnvtype_variant
-from api.domain.core.dna.translocqueries import (
+from api.infra.mongo.selection import compile_selection
+from coyote3.config.clinical_query_policy import FindingQueryException, FindingQueryPolicy
+from coyote3.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+from coyote3.domain.dna.dna_filters import cnvtype_variant
+from coyote3.domain.dna.translocqueries import (
     build_transloc_query,
     filter_translocations_by_genes,
 )
-from api.domain.core.dna.varqueries import build_pos_genes_filter
-from api.domain.core.rna.fusion_query_builder import build_fusion_query
+from coyote3.domain.dna.varqueries import build_pos_genes_filter
+from coyote3.domain.rna.fusion_query_builder import build_fusion_query
 
 
 def _finding_policy(*rules: FindingQueryException) -> FindingQueryPolicy:
@@ -24,21 +25,23 @@ def _finding_rule(
         intents=("somatic",),
         assay_groups=assay_groups,
         asp_ids=(),
-        subpanel_ids=(),
+        diagnosis_ids=(),
         criteria=criteria,
     )
 
 
 def test_build_cnv_query_applies_base_guards() -> None:
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-            "filter_genes": ["TP53"],
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+                "filter_genes": ["TP53"],
+            },
+        )
     )
     assert query["SAMPLE_ID"] == "SAMPLE_1"
     assert "$and" in query
@@ -53,15 +56,17 @@ def test_build_cnv_query_applies_base_guards() -> None:
 
 
 def test_build_cnv_query_filters_against_stored_gene_array_shape() -> None:
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-            "filter_genes": ["EGFR", "ERBB2"],
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+                "filter_genes": ["EGFR", "ERBB2"],
+            },
+        )
     )
 
     gene_clauses = [
@@ -80,15 +85,17 @@ def test_build_cnv_query_filters_against_stored_gene_array_shape() -> None:
 
 def test_build_cnv_query_has_no_gene_clause_for_unrestricted_scope() -> None:
     """An ASP without covered genes leaves WGS/WTS CNVs unrestricted by gene."""
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-            "filter_genes": [],
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+                "filter_genes": [],
+            },
+        )
     )
 
     assert all("genes.gene" not in str(clause) for clause in query["$and"])
@@ -96,36 +103,40 @@ def test_build_cnv_query_has_no_gene_clause_for_unrestricted_scope() -> None:
 
 
 def test_build_cnv_query_rejects_all_rows_for_empty_selected_scope() -> None:
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-            "filter_genes": [],
-            "restrict_to_genes": True,
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+                "filter_genes": [],
+                "restrict_to_genes": True,
+            },
+        )
     )
 
     assert {"_id": {"$exists": False}} in query["$and"]
 
 
 def test_build_snv_gene_filter_rejects_all_rows_for_empty_selected_scope() -> None:
-    assert build_pos_genes_filter({"filter_genes": [], "restrict_to_genes": True}) == {
-        "$and": [{"_id": {"$exists": False}}]
-    }
+    assert compile_selection(
+        build_pos_genes_filter({"filter_genes": [], "restrict_to_genes": True})
+    ) == {"$and": [{"_id": {"$exists": False}}]}
 
 
 def test_build_cnv_query_accepts_ratio_less_structural_read_calls() -> None:
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+            },
+        )
     )
 
     evidence_clause = next(
@@ -147,14 +158,16 @@ def test_build_cnv_query_accepts_ratio_less_structural_read_calls() -> None:
 
 def test_build_cnv_query_preserves_historical_strict_boundaries_and_amplification() -> None:
     """Ratio CNVs use strict cutoffs while high amplifications bypass the size ceiling."""
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 100,
-            "max_cnv_size": 10000,
-        },
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+            },
+        )
     )
 
     query_text = str(query)
@@ -172,30 +185,32 @@ def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
         "min_cnv_size": 100,
         "max_cnv_size": 10000,
     }
-    query = build_cnv_query("SAMPLE_1", filters, include_normal=True)
+    query = compile_selection(build_cnv_query("SAMPLE_1", filters, include_normal=True))
 
     assert all("NORMAL" not in str(clause) for clause in query["$and"])
-    assert include_normal_cnvs({"sequencing_scope": "wgs"}) is True
+    assert include_normal_cnvs({"asp_family": "wgs"}) is True
     assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is False
     assert include_normal_cnvs({}, {"asp_group": "new_center_group", "asp_family": "wgs"}) is True
-    assert include_normal_cnvs({"asp_group": "tumwgs", "sequencing_scope": "panel"}) is False
-    assert include_normal_cnvs({"sequencing_scope": "panel"}, {"asp_group": "solid"}) is False
+    assert include_normal_cnvs({"asp_group": "tumwgs", "asp_family": "panel-dna"}) is False
+    assert include_normal_cnvs({"asp_family": "panel-dna"}, {"asp_group": "solid"}) is False
 
 
 def test_cnv_policy_admission_extends_the_normal_filter_query() -> None:
     policy = _finding_policy(
         _finding_rule(rule_id="retain_egfr", mode="admit", criteria={"genes": ("EGFR",)})
     )
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "assay_group": "solid",
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 1000,
-            "max_cnv_size": 10000,
-        },
-        policy=policy,
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "assay_group": "solid",
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 1000,
+                "max_cnv_size": 10000,
+            },
+            policy=policy,
+        )
     )
 
     assert query["$and"][0]["$or"][1] == {
@@ -210,16 +225,18 @@ def test_cnv_policy_is_ignored_outside_its_assay_scope() -> None:
     policy = _finding_policy(
         _finding_rule(rule_id="retain_egfr", mode="admit", criteria={"genes": ("EGFR",)})
     )
-    query = build_cnv_query(
-        "SAMPLE_1",
-        {
-            "assay_group": "hematology",
-            "cnv_loss_cutoff": -0.3,
-            "cnv_gain_cutoff": 0.3,
-            "min_cnv_size": 1000,
-            "max_cnv_size": 10000,
-        },
-        policy=policy,
+    query = compile_selection(
+        build_cnv_query(
+            "SAMPLE_1",
+            {
+                "assay_group": "hematology",
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 1000,
+                "max_cnv_size": 10000,
+            },
+            policy=policy,
+        )
     )
 
     assert "EGFR" not in str(query)
@@ -240,17 +257,19 @@ def test_cnv_effect_filter_retains_untyped_structural_read_calls() -> None:
 
 
 def test_build_fusion_query_applies_base_filters() -> None:
-    query = build_fusion_query(
-        "fusion",
-        {
-            "id": "SAMPLE_1",
-            "min_spanning_reads": 10,
-            "min_spanning_pairs": 10,
-            "fusion_effects": ["in-frame"],
-            "fusion_callers": ["arriba"],
-            "checked_fusionlists": ["FCknown"],
-            "filter_genes": ["KMT2A"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "fusion",
+            {
+                "id": "SAMPLE_1",
+                "min_spanning_reads": 10,
+                "min_spanning_pairs": 10,
+                "fusion_effects": ["in-frame"],
+                "fusion_callers": ["arriba"],
+                "checked_fusionlists": ["FCknown"],
+                "filter_genes": ["KMT2A"],
+            },
+        )
     )
     assert "calls" in query
     assert "$or" in query
@@ -258,17 +277,19 @@ def test_build_fusion_query_applies_base_filters() -> None:
 
 def test_build_fusion_query_applies_thresholds_without_selected_callers() -> None:
     """Thresholds apply directly to every call when callers are not restricted."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "min_spanning_reads": "7",
-            "min_spanning_pairs": "3",
-            "fusion_effects": [],
-            "fusion_callers": [],
-            "checked_fusionlists": [],
-            "filter_genes": [],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "min_spanning_reads": "7",
+                "min_spanning_pairs": "3",
+                "fusion_effects": [],
+                "fusion_callers": [],
+                "checked_fusionlists": [],
+                "filter_genes": [],
+            },
+        )
     )
 
     assert query == {
@@ -279,17 +300,19 @@ def test_build_fusion_query_applies_thresholds_without_selected_callers() -> Non
 
 def test_build_fusion_query_applies_gene_scope_and_arriba_pair_rule() -> None:
     """Resolved fusion-list genes scope either partner without filtering evidence text."""
-    query = build_fusion_query(
-        "fusionrna",
-        {
-            "id": "SAMPLE_1",
-            "min_spanning_reads": 5,
-            "min_spanning_pairs": 2,
-            "fusion_effects": ["in-frame"],
-            "fusion_callers": ["arriba", "starfusion"],
-            "checked_fusionlists": ["FCknown", "mitelman"],
-            "filter_genes": ["KMT2A"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "fusionrna",
+            {
+                "id": "SAMPLE_1",
+                "min_spanning_reads": 5,
+                "min_spanning_pairs": 2,
+                "fusion_effects": ["in-frame"],
+                "fusion_callers": ["arriba", "starfusion"],
+                "checked_fusionlists": ["FCknown", "mitelman"],
+                "filter_genes": ["KMT2A"],
+            },
+        )
     )
 
     call_match = query["calls"]["$elemMatch"]
@@ -308,20 +331,24 @@ def test_build_fusion_query_applies_gene_scope_and_arriba_pair_rule() -> None:
 
 def test_build_fusion_query_keeps_empty_filters_sample_scoped_for_any_rna_group() -> None:
     """An empty filter block remains sample-scoped regardless of RNA assay group."""
-    assert build_fusion_query("solid", {"id": "SAMPLE_1"}) == {"SAMPLE_ID": "SAMPLE_1"}
+    assert compile_selection(build_fusion_query("solid", {"id": "SAMPLE_1"})) == {
+        "SAMPLE_ID": "SAMPLE_1"
+    }
 
 
 def test_build_fusion_query_applies_filters_to_targeted_rna_panel_groups() -> None:
     """Targeted RNA panels must not bypass the shared fusion filter contract."""
-    query = build_fusion_query(
-        "solid",
-        {
-            "id": "SAMPLE_1",
-            "min_spanning_reads": 8,
-            "fusion_effects": ["in-frame"],
-            "fusion_callers": ["fusioncatcher"],
-            "filter_genes": ["ALK"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "solid",
+            {
+                "id": "SAMPLE_1",
+                "min_spanning_reads": 8,
+                "fusion_effects": ["in-frame"],
+                "fusion_callers": ["fusioncatcher"],
+                "filter_genes": ["ALK"],
+            },
+        )
     )
 
     assert query["calls"] == {
@@ -338,12 +365,14 @@ def test_build_fusion_query_applies_filters_to_targeted_rna_panel_groups() -> No
 
 def test_build_fusion_query_treats_non_in_frame_effects_as_out_of_frame() -> None:
     """Out-of-frame is a category covering every non-empty non-in-frame caller value."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "fusion_effects": ["out-of-frame"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "fusion_effects": ["out-of-frame"],
+            },
+        )
     )
 
     assert query["calls"]["$elemMatch"]["effect"] == {
@@ -354,25 +383,29 @@ def test_build_fusion_query_treats_non_in_frame_effects_as_out_of_frame() -> Non
 
 def test_build_fusion_query_omits_effect_predicate_when_both_categories_selected() -> None:
     """Selecting both display categories does not exclude any caller effect value."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "fusion_effects": ["in-frame", "out-of-frame"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "fusion_effects": ["in-frame", "out-of-frame"],
+            },
+        )
     )
 
     assert query == {"SAMPLE_ID": "SAMPLE_1"}
 
 
 def test_build_fusion_query_rejects_all_rows_for_empty_selected_scope() -> None:
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "filter_genes": [],
-            "restrict_to_genes": True,
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "filter_genes": [],
+                "restrict_to_genes": True,
+            },
+        )
     )
 
     assert query["_id"] == {"$exists": False}
@@ -380,12 +413,14 @@ def test_build_fusion_query_rejects_all_rows_for_empty_selected_scope() -> None:
 
 def test_build_fusion_query_matches_selected_description_tokens() -> None:
     """Description filters match complete comma-delimited evidence terms."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "fusion_descriptions": ["known", "matched-normal"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "fusion_descriptions": ["known", "matched-normal"],
+            },
+        )
     )
 
     clauses = query["calls"]["$elemMatch"]["$or"]
@@ -407,14 +442,16 @@ def test_build_fusion_query_matches_selected_description_tokens() -> None:
 
 def test_build_fusion_query_combines_callers_and_descriptions_on_one_call() -> None:
     """Caller and evidence restrictions must be satisfied by the same call."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "fusion_callers": ["fusioncatcher"],
-            "fusion_descriptions": ["oncogene"],
-            "min_spanning_reads": 4,
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "fusion_callers": ["fusioncatcher"],
+                "fusion_descriptions": ["oncogene"],
+                "min_spanning_reads": 4,
+            },
+        )
     )
 
     assert query["calls"]["$elemMatch"]["$and"] == [
@@ -438,12 +475,14 @@ def test_build_fusion_query_combines_callers_and_descriptions_on_one_call() -> N
 
 def test_build_fusion_query_normalizes_caller_aliases_before_matching() -> None:
     """Mongo predicates always use canonical caller keys, never UI display labels."""
-    query = build_fusion_query(
-        "wts",
-        {
-            "id": "SAMPLE_1",
-            "fusion_callers": ["FusionCatcher", "fusioncaller_STAR-FUSION"],
-        },
+    query = compile_selection(
+        build_fusion_query(
+            "wts",
+            {
+                "id": "SAMPLE_1",
+                "fusion_callers": ["FusionCatcher", "fusioncaller_STAR-FUSION"],
+            },
+        )
     )
 
     assert query["calls"]["$elemMatch"]["$or"] == [
@@ -460,15 +499,17 @@ def test_fusion_policy_admission_uses_gene_pairs_without_changing_the_baseline()
             criteria={"gene_pairs": ("KMT2A--AFF1",)},
         )
     )
-    query = build_fusion_query(
-        "solid",
-        {
-            "id": "SAMPLE_1",
-            "asp_id": "rna_fusion",
-            "subpanel_id": "base",
-            "min_spanning_reads": 10,
-        },
-        policy=policy,
+    query = compile_selection(
+        build_fusion_query(
+            "solid",
+            {
+                "id": "SAMPLE_1",
+                "asp_id": "rna_fusion",
+                "diagnosis_id": "base",
+                "min_spanning_reads": 10,
+            },
+            policy=policy,
+        )
     )
 
     admission = query["$or"][1]
@@ -496,7 +537,7 @@ def test_translocation_policy_extends_gene_scope_and_then_excludes_matches() -> 
     ]
     settings = {"assay_group": "solid", "intent": "somatic"}
 
-    query = build_transloc_query("SAMPLE_1", settings, policy=policy)
+    query = compile_selection(build_transloc_query("SAMPLE_1", settings, policy=policy))
     filtered = filter_translocations_by_genes(
         rows,
         filter_genes=["TP53"],

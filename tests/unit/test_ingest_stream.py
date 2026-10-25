@@ -9,13 +9,13 @@ import pytest
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
-from api.interfaces.http.operations.ingest_stream import stream_ingest
+from api.interfaces.http.v1.operations.ingest_stream import stream_ingest
 
 
 def test_logs_arrive_before_completion_and_exclude_other_threads(caplog):
     caplog.set_level(logging.INFO)
     release = Event()
-    logger = logging.getLogger("api.application.ingest.service")
+    logger = logging.getLogger("coyote3.application.ingest.service")
 
     def operation():
         """Wait until the client has received the initial progress event."""

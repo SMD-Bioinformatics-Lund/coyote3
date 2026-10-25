@@ -50,8 +50,12 @@ def test_store_backed_provider_builds_expected_service(
     provider_name: str,
     service_name: str,
 ) -> None:
-    store = object()
-    marker = object()
+    store = Mock()
+    monkeypatch.setattr(
+        "api.infra.mongo.repositories.ingest_gateway.IngestCollectionGateway.from_store",
+        Mock(return_value="gateway"),
+    )
+    marker = SimpleNamespace()
     factory = Mock(return_value=marker)
     monkeypatch.setattr(services, "get_store", lambda: store)
     monkeypatch.setattr(getattr(services, service_name), "from_store", factory)
@@ -127,6 +131,7 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
         ANY,
         retention_days=90,
         environment="testing",
+        request_context=services.current_request_context,
     )
     repository = constructor.call_args.args[0]
     assert repository.collection is store.identity_db["audit"].with_options.return_value
@@ -137,9 +142,9 @@ def test_audit_service_requires_database_and_uses_runtime_settings(
 def test_notification_and_controls_providers_include_runtime_dependencies(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = SimpleNamespace(
-        coyote_db=object(),
-        identity_db=object(),
+    store = Mock(
+        coyote_db={},
+        identity_db={},
         _adapter=SimpleNamespace(index_setup_conflicts=[{"name": "conflict"}]),
     )
     monkeypatch.setattr(services, "get_store", lambda: store)
@@ -152,10 +157,11 @@ def test_notification_and_controls_providers_include_runtime_dependencies(
     )
     monkeypatch.setattr(services.NotificationService, "from_store", notification_factory)
     monkeypatch.setattr(services, "AppControlsService", controls_factory)
+    monkeypatch.setattr(services, "get_app_controls_repository", lambda: "controls-repository")
 
     assert services.get_notification_service() == "notifications"
     assert services.get_app_controls_service() is controls_factory.return_value
     assert notification_factory.call_args.kwargs["audit_service"] == "audit"
     provider = controls_factory.call_args.kwargs["index_conflicts_provider"]
     assert provider() == [{"name": "conflict"}]
-    assert controls_factory.call_args.kwargs["identity_db"] is store.identity_db
+    assert controls_factory.call_args.args[0] == "controls-repository"

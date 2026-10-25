@@ -7,9 +7,9 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.provisioning.deployment_data import DeploymentDataService
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import deployment_data
+from api.services.provisioning.deployment_data import DeploymentDataService
+from coyote3.domain.exceptions import AppError
 from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,
@@ -106,9 +106,9 @@ def test_repository_preserves_records_captures_policy_revisions_and_audits(monke
         for client in transactions
     )
     assert list(knowledgebase.hgnc_genes.find()) == before
-    assert application.assay_groups.count_documents({}) == 11
-    assert application.query_rule_sets.count_documents({}) == 12
-    assert application.query_rule_revisions.count_documents({}) == 12
+    assert application.assay_groups.count_documents({}) == 5
+    assert application.query_rule_sets.count_documents({}) == 6
+    assert application.query_rule_revisions.count_documents({}) == 6
     assert {row["action"] for row in application.query_rule_revisions.find()} == {
         "baseline_captured"
     }
@@ -224,8 +224,8 @@ def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_
     assert identity.users.count_documents({}) == 2
     assert {row["created_by"] for row in identity.users.find()} == {"system"}
     assert identity.users.count_documents({"must_change_password": True}) == 2
-    assert application.assay_groups.count_documents({}) == 11
-    assert application.query_rule_sets.count_documents({}) == 12
+    assert application.assay_groups.count_documents({}) == 5
+    assert application.query_rule_sets.count_documents({}) == 6
     assert databases["knowledgebase"].hgnc_genes.count_documents({}) == 1
     assert loader.call_args.kwargs["actor"] == "system"
     demo.install_starter.assert_called_once_with("system", created_by="system")
@@ -257,7 +257,7 @@ def test_skip_flags_control_fresh_modules(fresh_installation):
     args.skip_knowledgebase = args.skip_demo = True
     assert bootstrap_database.main() == 0
     assert databases["identity"].users.count_documents({}) == 2
-    assert databases["primary"].assay_groups.count_documents({}) == 11
+    assert databases["primary"].assay_groups.count_documents({}) == 5
     assert databases["knowledgebase"].list_collection_names() == []
     demo.install_starter.assert_not_called()
 

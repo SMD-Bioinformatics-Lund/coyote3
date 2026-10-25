@@ -1,0 +1,100 @@
+"""Explicit, HGNC-backed refresh workflow for public OncoKB reference data."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from coyote3.application.ingest.oncokb_public import refresh_public_oncokb_gene_cache
+from coyote3.application.knowledgebase.ports import PublicOncoKbReader
+
+
+class PublicOncoKbRefreshService:
+    """Refresh shared public OncoKB gene collections from the HGNC catalogue."""
+
+    @classmethod
+    def from_store(
+        cls,
+        store: Any,
+        *,
+        config: dict[str, Any],
+        client: PublicOncoKbReader,
+        audit_service: Any | None = None,
+    ) -> "PublicOncoKbRefreshService":
+        """Build the service from the initialized application store."""
+        return cls(
+            cache_repository=store.oncokb_public_cache_repository,
+            hgnc_repository=store.hgnc_repository,
+            config=config,
+            client=client,
+            audit_service=audit_service,
+        )
+
+    def __init__(
+        self,
+        *,
+        cache_repository: Any,
+        hgnc_repository: Any,
+        config: dict[str, Any],
+        client: PublicOncoKbReader,
+        audit_service: Any | None = None,
+    ) -> None:
+        """Configure HGNC matching, OncoKB cache writes, and refresh settings.
+
+        Args:
+            cache_repository: Persists public OncoKB gene records.
+            hgnc_repository: Supplies reference gene identifiers for matching.
+            config: Lookup enablement, OncoKB base URL, and request timeout settings.
+            client: Entry-point supplied public catalogue reader.
+            audit_service: Optional recorder of refresh success and failure events.
+        """
+        self.cache_repository = cache_repository
+        self.hgnc_repository = hgnc_repository
+        self.config = config
+        self.client = client
+        self.audit_service = audit_service
+
+    def refresh(self) -> dict[str, int | str]:
+        """Fetch the public OncoKB catalogues once and upsert HGNC-matched records."""
+        if not bool(self.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True)):
+            return {"status": "disabled"}
+
+        try:
+            result = refresh_public_oncokb_gene_cache(
+                client=self.client,
+                cache_repository=self.cache_repository,
+                hgnc_repository=self.hgnc_repository,
+            )
+        except Exception as exc:
+            if self.audit_service is not None:
+                self.audit_service.record(
+                    "knowledgebase.oncokb_public.refresh.failed",
+                    "Public OncoKB reference refresh failed",
+                    severity="error",
+                    category="operations",
+                    outcome="failure",
+                    resource_type="knowledgebase",
+                    resource_id="oncokb_public",
+                    tags=["knowledgebase", "oncokb", "refresh"],
+                    metadata={"error_type": type(exc).__name__},
+                )
+            raise
+
+        payload: dict[str, int | str] = {"status": "ok", **result}
+        if self.audit_service is not None:
+            self.audit_service.record(
+                "knowledgebase.oncokb_public.refresh.completed",
+                "Public OncoKB reference refresh completed",
+                category="operations",
+                outcome="success",
+                resource_type="knowledgebase",
+                resource_id="oncokb_public",
+                tags=["knowledgebase", "oncokb", "refresh"],
+                metadata={
+                    "hgnc_gene_records": result["hgnc_gene_records"],
+                    "cancer_genes_upserted": result["cancer_genes_upserted"],
+                    "cancer_genes_removed": result["cancer_genes_removed"],
+                    "curated_genes_upserted": result["curated_genes_upserted"],
+                    "curated_genes_removed": result["curated_genes_removed"],
+                },
+            )
+        return payload

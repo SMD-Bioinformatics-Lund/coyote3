@@ -9,13 +9,13 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
-from api.domain.core.annotation_identity import (
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+from coyote3.domain.annotation_identity import (
     NOMENCLATURE_FIELDS,
     NOMENCLATURE_IDENTITY_FIELD,
     NOMENCLATURE_REQUIRED_FIELDS,
 )
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 # External references and identity collections are deliberately absent.
 CLINICAL_COLLECTIONS = (
@@ -146,7 +146,8 @@ def convert_sample(
             raise ValueError("Legacy assay requires an explicit physical asp_id mapping")
         document.pop("assay")
     rename_field(document, "profile", "environment")
-    rename_field(document, "subpanel", "subpanel_id")
+    rename_field(document, "subpanel", "diagnosis_id")
+    rename_field(document, "subpanel_id", "diagnosis_id")
     for key, value in metadata.items():
         if key in document and document[key] != value:
             raise ValueError(f"Reviewed metadata conflicts with source field: {key}")
@@ -170,7 +171,7 @@ def convert_sample(
                 "sample_oid": document["_id"],
                 "sample_name": document["name"],
                 "asp_id": document.get("asp_id"),
-                "subpanel_id": document.get("subpanel_id"),
+                "diagnosis_id": document.get("diagnosis_id"),
                 "environment": document.get("environment"),
             },
         )
@@ -196,6 +197,41 @@ def convert_sample(
     return validate_document("samples", document), comments, reports
 
 
+def normalize_annotation_scope(document: dict[str, Any]) -> None:
+    """Apply the operator-supplied, one-time legacy annotation scope mapping.
+
+    Args:
+        document: Annotation copy whose scope fields are normalized in place.
+
+    Raises:
+        ValueError: A recorded ASP conflicts with the supplied historical assay mapping.
+    """
+    for key in ("assay", "asp_group", "subpanel", "diagnosis_id", "asp_id"):
+        if isinstance(document.get(key), str):
+            document[key] = document[key].lower()
+    rename_field(document, "subpanel", "diagnosis_id")
+    rename_field(document, "assay", "asp_group")
+    group = document.get("asp_group")
+    asp = {
+        "myeloid": "myeloid_gmsv1",
+        "solid": "solid_gmsv3",
+        "hematology": "hema_gmsv1",
+    }.get(group)
+    if asp is not None and document.get("asp_id") not in (None, asp):
+        raise ValueError("Recorded annotation ASP conflicts with the historical assay mapping")
+    document["asp_id"] = asp if asp is not None else document.get("asp_id")
+    if group == "solid":
+        diagnosis = document.get("diagnosis_id")
+        document["diagnosis_id"] = {
+            "bc": "breast",
+            "bp": "breast-pilot",
+            "crc": "crc",
+            "lp": "lung",
+            "none": "base",
+            "solid": "base",
+        }.get(diagnosis, diagnosis)
+
+
 def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
     """Preserve annotation scope and content while expanding its explicit identity.
 
@@ -203,7 +239,8 @@ def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
         source: Legacy classification or narrative with recorded nomenclature and author.
 
     Returns:
-        Current annotation; unknown complementary identities remain null.
+        Current annotation with the operator-supplied legacy scope mapping;
+        unknown complementary identities remain null.
 
     Raises:
         ValueError: Nomenclature is unsupported or populated identity fields conflict.
@@ -211,6 +248,8 @@ def convert_annotation(source: dict[str, Any]) -> dict[str, Any]:
     """
     document = deepcopy(source)
     nomenclature = document.get("nomenclature")
+    normalize_annotation_scope(document)
+    document["namespace"] = "clinical"
     if nomenclature not in NOMENCLATURE_FIELDS:
         raise ValueError("Unsupported annotation nomenclature")
     if "time_created" not in document:

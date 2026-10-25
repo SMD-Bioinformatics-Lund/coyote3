@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import mongomock
 import pytest
 
-from api.contracts.schemas.query_rules import QueryRuleDoc
+from coyote3.contracts.schemas.query_rules import QueryRuleDoc
 from scripts.database import upgrade_query_rule_storage as migration
 
 
@@ -51,9 +51,9 @@ def test_upgrade_plans_then_preserves_content_and_is_idempotent(tmp_path, monkey
 
 def test_upgrade_rejects_normalized_base_collision_without_writes():
     db = mongomock.MongoClient().synthetic
-    for subpanel in (None, "base"):
+    for diagnosis in (None, "base"):
         rule = legacy_rule()
-        rule["scope"].update(asp_id="panel", subpanel_id=subpanel)
+        rule["scope"].update(asp_id="panel", diagnosis_id=diagnosis)
         db.query_rule_sets.insert_one(rule)
     with pytest.raises(ValueError, match="collision"):
         migration.upgrade(db, actor="tester")

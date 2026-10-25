@@ -48,9 +48,9 @@ configuration change requires a new snapshot and newly reviewed bundles.
 
 | Source | Current destination |
 | --- | --- |
-| `samples` | `samples`, extracted `sample_comments` and `reports` |
+| `samples` | `samples`, extracted comments/reports, and embedded RNA expression, QC and classification |
 | `annotation` | `annotation`, with explicitly resolved scope and nomenclature identity |
-| `blacklist` | `blacklist`; recorded `assay` becomes `assay_group` |
+| `blacklist` | `blacklist`; bundle scope is `assay_group`, persisted as the runtime's `assay` key |
 | `biomarkers` | `biomarkers`; measurements require typed payloads and known units |
 | `transloc` | `translocations` |
 | `variants_idref` | `variants`, `anno_vep`, and extracted finding comments |
@@ -121,7 +121,7 @@ A changed clinical scope requires an explicit mapping rather than a missing-fiel
 supplement. `sample.scope_mapping` contains a source digest, reason, and `fields`
 restricted to ASP, subpanel, environment, or omics scope. Those values must agree with
 the selected installed ASPC. Annotation and blacklist review entries can contain
-`scope.assay_group`; annotations additionally support `scope.subpanel`. These entries
+`scope.assay_group`; annotations additionally support `scope.diagnosis`. These entries
 also require the exact original digest and a reason.
 
 Nullable unknown values remain unknown. Missing required fields stop conversion and
@@ -159,19 +159,30 @@ validate their contents or availability.
 
 ## Conversion and application order
 
-1. Complete target configuration, reference installation, and target preflight.
+1. Install `vep_metadata` and `hgnc_genes`, verify release 103 using
+   `prepare_references.py`, and complete target configuration preflight.
 2. Complete the offline source inventory, index, and operator review.
-3. Convert and apply shared annotations and finding blacklist entries.
-
-4. Convert one sample at a time, including its findings, comments, saved reports,
-   reported-finding references where present, and original transcript evidence.
-5. Reconcile collection counts, identities, report links, exclusions, missing values,
+3. Build the shared `anno_vep` reference from the complete v2/v3 variant indexes,
+   using reviewed release provenance and `--reference-catalog`.
+4. Select one supported v2 `--assay-id` and its explicit `--assay-field` with
+   `migrate_samples.py --stage findings --collection variants`, then `--stage samples`.
+   Use `--stage related` after samples, optionally with `--collection` for each data type.
+   Variants precede samples; original sample ObjectIds are retained. The installed ASP supplies
+   `asp_group`, and the recorded subpanel supplies lowercase `diagnosis_id`.
+5. Convert non-hematology annotations against the completed VEP reference, then
+   blacklist entries. Use `--stage complete` for final saved-reference validation.
+6. Reconcile collection counts, identities, report links, exclusions, missing values,
    and all source records before clinical acceptance and cutover.
+
+The [shared migration README](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/migration_common/README.md#migration-commands-in-order)
+contains the complete numbered command sequence. SQLite is a temporary local lookup
+cache; MongoDB is the destination.
 
 ```bash
 .venv/bin/python scripts/migrate_from_v2/migrate_annotations.py \
   --index /secure/migration/source.sqlite --schema-audit /secure/migration/schema-audit \
   --target-catalog /secure/migration/target-catalog.json \
+  --vep-index /secure/migration/vep103 \
   --review /secure/migration/review.json --output /secure/migration/annotations-bundle
 .venv/bin/python scripts/migrate_from_v2/migrate_blacklist.py \
   --index /secure/migration/source.sqlite --schema-audit /secure/migration/schema-audit \

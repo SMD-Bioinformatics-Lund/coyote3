@@ -9,7 +9,7 @@ description and renders directly in GitHub and the documentation site.
 | Diagram | Explains | Detailed reference |
 | --- | --- | --- |
 | [Clinical resources](../assets/diagrams/collection-relationships.svg) | ASP, ASPC, optional ISGLs, samples, findings, review state, and saved reports. | [Resource relationships](resource-relationships.md) |
-| [Assay configuration](../assets/diagrams/assay-configuration-relationships.svg) | Groups, shared subpanels, assay associations, setup approval, and catalog publication. | [Assay setup](../administration/assay-setup.md) |
+| [Assay configuration](../assets/diagrams/assay-configuration-relationships.svg) | Groups, shared diagnoses, assay associations, setup approval, and catalog publication. | [Assay setup](../administration/assay-setup.md) |
 | [Identity and access](../assets/diagrams/identity-access-relationships.svg) | Users, roles, permissions, sessions, user scope, audit, and notifications. | [Security model](security-model.md) |
 | [Database resource map](../assets/diagrams/database-resource-map.svg) | All configured collection families across primary, identity, knowledgebase, and BAM services. | [MongoDB topology](mongodb-topology.md) |
 | [Runtime topology](../assets/diagrams/runtime-topology.svg) | Proxy, frontend, API, workers, Redis, storage, and integrations. | [Application architecture](application-architecture.md) |
@@ -30,7 +30,7 @@ description and renders directly in GitHub and the documentation site.
 | Diagram | Question answered | Guide |
 | --- | --- | --- |
 | [Resource setup order](../assets/diagrams/resource-setup-order.svg) | What must be defined before configurations can be activated and samples ingested? | [Assay setup](../administration/assay-setup.md) |
-| [Assay and subpanel cardinality](../assets/diagrams/assay-subpanel-cardinality.svg) | What is shared between assays, and what needs its own association or ASPC? | [Assay subpanels](../administration/assay-subpanels.md) |
+| [Assay and diagnosis cardinality](../assets/diagrams/assay-diagnosis-cardinality.svg) | What is shared between assays, and what needs its own association or ASPC? | [Assay diagnoses](../administration/assay-diagnoses.md) |
 | [Gene-list types and selection](../assets/diagrams/gene-list-types-and-selection.svg) | How do eligibility, list types, selected IDs, and assay coverage combine? | [Assay filtering](../reference/assay-filtering.md) |
 | [Sample configuration resolution](../assets/diagrams/sample-configuration-resolution.svg) | How do ASPCs, persisted sample filters, data availability, and review fit together? | [Resource relationships](resource-relationships.md) |
 | [User and assay access scope](../assets/diagrams/user-assay-access-scope.svg) | How do users, roles, permissions, groups, assays, and sample scope affect access? | [Permissions and access](../administration/permissions-and-access.md) |

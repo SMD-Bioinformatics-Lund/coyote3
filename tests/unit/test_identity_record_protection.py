@@ -4,14 +4,15 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from fastapi import HTTPException
 
-from api.application.accounts.roles import RoleManagementService
-from api.application.accounts.users import UserManagementService
-from api.application.ingest.collection_writes import upsert_collection_document
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
-from api.interfaces.http.admin import users as routes
+from coyote3.application.accounts.roles import RoleManagementService
+from coyote3.application.accounts.users import UserManagementService
+from coyote3.application.ingest.collection_writes import upsert_collection_document
+from coyote3.application.operations import Users
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.api import mock_collections as fx
 
 
 @pytest.mark.parametrize("operation", ["update", "toggle", "delete"])
@@ -38,6 +39,8 @@ def test_installed_user_rejects_admin_and_profile_writes(operation):
         "roles": ["superuser"],
     }
     service = UserManagementService(
+        password_token_issuer=lambda **_: {},
+        user_change_notifier=lambda **_: {},
         user_repository=repo,
         roles_repository=Mock(),
         permissions_repository=Mock(),
@@ -71,23 +74,35 @@ def test_assignment_fields_require_specific_permission_even_when_empty(
     monkeypatch, field, permission
 ):
     checked = []
+    user = fx.api_user()
+    user.roles = ["account-editor"]
+    service = Mock()
+    operations = sdk_fixtures.authorized_operations(Users, service, user)
 
-    def check(user, *, permission):
-        checked.append(permission)
-        raise HTTPException(403)
+    def allowed(actor, required, **kwargs):
+        checked.append(required)
+        return required != permission
 
-    monkeypatch.setattr(routes, "_enforce_access", check)
-    with pytest.raises(HTTPException) as failure:
-        routes._enforce_assignment_permissions(SimpleNamespace(), {"form_data": {field: []}})
+    operations._runtime.policy_factory = lambda actor: SimpleNamespace(permission_allowed=allowed)
+    with pytest.raises(AppError) as failure:
+        operations.update_user(user_id="synthetic", payload={"form_data": {field: []}})
     assert failure.value.status_code == 403
-    assert checked == [permission]
+    assert checked == ["user:edit", permission]
+    assert not service.method_calls
 
 
 def test_profile_only_edit_does_not_require_assignment_permissions(monkeypatch):
-    check = Mock()
-    monkeypatch.setattr(routes, "_enforce_access", check)
-    routes._enforce_assignment_permissions(SimpleNamespace(), {"form_data": {"fullname": "Reader"}})
-    check.assert_not_called()
+    checked = []
+    user = fx.api_user()
+    user.roles = ["account-editor"]
+    service = Mock()
+    service.update_user.return_value = {"status": "ok"}
+    operations = sdk_fixtures.authorized_operations(Users, service, user)
+    operations._runtime.policy_factory = lambda actor: SimpleNamespace(
+        permission_allowed=lambda actor, permission, **kwargs: checked.append(permission) or True
+    )
+    operations.update_user(user_id="synthetic", payload={"form_data": {"fullname": "Reader"}})
+    assert checked == ["user:edit"]
 
 
 @pytest.mark.parametrize("collection", ["users", "roles", "permissions"])

@@ -10,8 +10,8 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.contracts.operations import OperationResult
 
 
 # -------------------------------------------------------------------------

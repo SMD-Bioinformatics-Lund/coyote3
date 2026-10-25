@@ -30,7 +30,7 @@ describe("structural finding detail pages", () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_001" },
       assay_group: "solid",
-      subpanel: "colon",
+      diagnosis: "colon",
       cnv: {
         _id: "CNV1", chr: "7", start: 100, end: 1100, type: "gain", ratio: 1,
         callers: ["CNVKIT", "MANTA"], fp: true, interesting: true,
@@ -58,7 +58,7 @@ describe("structural finding detail pages", () => {
 
   it("renders a selected fusion call and all caller alternatives", async () => {
     mocks.get.mockResolvedValue({ data: {
-      sample: { name: "RNA_001" }, assay_group: "fusion", subpanel: "base",
+      sample: { name: "RNA_001" }, assay_group: "fusion", diagnosis: "base",
       fusion: {
         _id: "F1", genes: ["BCR", "ABL1"], gene1: "BCR", gene2: "ABL1", callers: ["ARRIBA", "STARFUSION"],
         calls: [
@@ -85,7 +85,7 @@ describe("structural finding detail pages", () => {
       HGVS_c: "c.1G>T", Annotation: "transcript_ablation", Rank: "1/10", BioType: "protein_coding",
     }
     mocks.get.mockResolvedValue({ data: {
-      sample: { name: "DNA_002" }, assay_group: "hematology", subpanel: "hem",
+      sample: { name: "DNA_002" }, assay_group: "hematology", diagnosis: "hem",
       translocation: {
         _id: "T1", CHROM: "11", POS: 118307000, ALT: "N[4:12345[", QUAL: 80,
         INFO: { SVTYPE: "BND", variant_callers: ["MANTA"], ANN: [annotation], UNIQUE_READS: 22 },

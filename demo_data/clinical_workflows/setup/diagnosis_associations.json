@@ -1,0 +1,107 @@
+[
+  {
+    "diagnosis_id": "mpn",
+    "asp_id": "demo-hematology_gmsv1",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "mpn",
+    "asp_id": "demo-tumwgs-hema",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "mpn",
+    "asp_id": "demo-myeloid_gmsv1",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "asp_id": "demo-hematology_gmsv1",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "asp_id": "demo-tumwgs-hema",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "asp_id": "demo-lymphoid_gmsv5",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "asp_id": "demo-gms_rnafusionv5",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "asp_id": "demo-wts-hema",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "myeloid",
+    "asp_id": "demo-hematology-training",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lymphoid",
+    "asp_id": "demo-rna-training",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lung",
+    "asp_id": "demo-solid_gmsv3",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lung",
+    "asp_id": "demo-tumwgs-solid",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lung",
+    "asp_id": "demo-wts-solid",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "breast",
+    "asp_id": "demo-solid_gmsv3",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "breast",
+    "asp_id": "demo-tumwgs-solid",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  }
+]

@@ -8,7 +8,7 @@ import mongomock
 import pytest
 from bson import decode_all
 
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 from scripts import gene_db_creation
 from scripts.gene_db_creation import HGNC_FIELDS, build_genes, convert, read_rows
 

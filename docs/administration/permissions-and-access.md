@@ -180,7 +180,7 @@ The registry documents and tests the frontend contract. It does not grant access
 ## Adding a permission
 
 1. Choose a stable identifier that follows `resource:action[:scope]`.
-2. Add it to `api/config/bootstrap/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
+2. Add it to `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
 3. Require the exact identifier in the API route or application service that owns the operation.
 4. Add the identifier to the relevant system role definitions in `roles.seed.ndjson`.
 5. Add or update frontend gating for the corresponding route and controls.

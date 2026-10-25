@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from api.infra.observability.operations import measured_operation, timed_operation
 from api.infra.observability.prometheus_metrics import _ApiMetricsStore
+from coyote3.application.common.observability import measured_operation, timed_operation
 
 
 def test_metrics_store_renders_requests_operations_and_startup_phases() -> None:
@@ -24,18 +24,15 @@ def test_metrics_store_renders_requests_operations_and_startup_phases() -> None:
 
 def test_timed_operation_records_success_and_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     observations: list[tuple[str, str, float]] = []
-    monkeypatch.setattr(
-        "api.infra.observability.operations.observe_operation",
-        lambda *, operation, outcome, duration_ms: observations.append(
-            (operation, outcome, duration_ms)
-        ),
-    )
 
-    with timed_operation("sample.success", sample="DEMO"):
+    def observe(*, operation, outcome, duration_ms):
+        observations.append((operation, outcome, duration_ms))
+
+    with timed_operation("sample.success", observer=observe, sample="DEMO"):
         pass
 
     with pytest.raises(RuntimeError, match="failed"):
-        with timed_operation("sample.failure"):
+        with timed_operation("sample.failure", observer=observe):
             raise RuntimeError("failed")
 
     assert observations[0][0:2] == ("sample.success", "success")
@@ -56,7 +53,7 @@ def test_measured_operation_preserves_return_value_and_function_metadata(
             return False
 
     monkeypatch.setattr(
-        "api.infra.observability.operations.timed_operation",
+        "coyote3.application.common.observability.timed_operation",
         lambda operation, **_context: observed.append(operation) or _Context(),
     )
 

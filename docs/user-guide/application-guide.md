@@ -28,7 +28,7 @@ presents the analyses enabled for that sample.
 | Report snapshot | The findings, filters, configuration, and text saved with a report. |
 
 [Clinical configuration resources](../administration/clinical-configuration-resources.md)
-explains how ASPs, ASPCs, subpanels, gene lists and reporting rules fit together,
+explains how ASPs, ASPCs, diagnoses, gene lists and reporting rules fit together,
 including what is unavailable when a dependency is missing. Reviewers can use
 these definitions without editing deployment files.
 
@@ -136,7 +136,7 @@ matching samples, not only to the current page.
 | Case / control | Pipeline case and optional control identifiers. |
 | Clarity fields | LIMS identifiers supplied by the manifest. |
 | Environment | Production, validation, testing, or development scope. |
-| ASP and subpanel | Assay and requested in-silico scope. |
+| ASP and diagnosis | Assay and requested in-silico scope. |
 | Analysis | Current sample readiness. |
 | Report | Reported or unreported state. |
 | Counts | Available analysis records. Green badges indicate loaded data; failed or partial data uses an error state. |
@@ -195,7 +195,7 @@ The Overview page shows the exact context used for review.
 | Gene filters | Applied ISGLs and ad-hoc genes, separated by analysis type. |
 | Configured filters | The filter snapshot stored on the sample, grouped by analysis. |
 
-If a requested subpanel has no active ASPC, the application can resolve the
+If a requested diagnosis has no active ASPC, the application can resolve the
 base ASPC and display a warning. Review that warning before clinical work.
 
 ## Work with clinical tables
@@ -319,7 +319,7 @@ and action conventions as DNA tables.
 
 Viewing and exporting fusion findings does not require a published clinical
 report-rule set. Generating a sample-comment suggestion uses the published rules
-for the sample's assay, subpanel, and reporting language.
+for the sample's assay, diagnosis, and reporting language.
 
 | Column | Meaning |
 | --- | --- |
@@ -475,14 +475,14 @@ filter choices.
 | No information | The field is supported but no value was supplied. | Continue unless the field is required by the workflow. |
 | No results | The analysis is available but the current query returned no rows. | Review filters and gene scope. |
 | Missing tab | The analysis is not enabled or not valid for this sample. | Check ASPC analysis types and sample omics. |
-| Base configuration in use | No active subpanel-specific ASPC was found. | Confirm that base behavior is clinically intended. |
+| Base configuration in use | No active diagnosis-specific ASPC was found. | Confirm that base behavior is clinically intended. |
 | Request could not be completed | The API rejected a validly delivered request. | Read the detailed message and request path. |
 | System action failed | An unexpected server or upstream failure occurred. | Record the time and request path for operations. |
 | Module unavailable | An administrator disabled the module. | Contact the application operator. |
 
 ## Before completing a review
 
-1. Confirm sample, case/control, ASP, ASPC, environment, and subpanel.
+1. Confirm sample, case/control, ASP, ASPC, environment, and diagnosis.
 2. Review ingest files and analysis readiness.
 3. Confirm the gene lists and filter values for each enabled analysis.
 4. Review relevant findings and supporting evidence.

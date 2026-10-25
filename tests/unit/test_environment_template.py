@@ -87,7 +87,8 @@ def test_template_runtime_settings_have_consumers_outside_their_declarations():
         )
     }
     referenced = set()
-    for path in (ROOT / "api").rglob("*.py"):
+    sources = list((ROOT / "api").rglob("*.py")) + list((ROOT / "src/coyote3").rglob("*.py"))
+    for path in sources:
         if path == settings_path:
             continue
         for node in ast.walk(ast.parse(path.read_text())):

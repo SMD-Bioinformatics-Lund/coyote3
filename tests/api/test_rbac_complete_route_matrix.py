@@ -19,7 +19,7 @@ from api.security import access
 from api.security.access import ApiUser
 from api.security.policy import build_access_policy
 
-_RBAC_ROOT = Path("api/config/bootstrap/rbac")
+_RBAC_ROOT = Path("api/bootstrap/catalogs/rbac")
 
 
 def _seed_documents(name: str) -> list[dict[str, Any]]:

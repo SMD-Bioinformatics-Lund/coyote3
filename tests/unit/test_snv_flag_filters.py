@@ -7,39 +7,57 @@ import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
-from api.application.query_rules.service import QueryRuleService
-from api.application.reporting.clinical_rules.evaluator import _predicate_matches
-from api.application.reporting.clinical_rules.facts import PreparedFindingFacts
-from api.application.reporting.clinical_rules.preparation import _snv_fact
-from api.application.reporting.clinical_rules.registry import (
+from api.infra.mongo.repositories.samples import SampleRepository
+from api.infra.mongo.selection import compile_selection
+from coyote3.application.common.release_resources import capture_gene_lists
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.application.reporting.clinical_rules.evaluator import _predicate_matches
+from coyote3.application.reporting.clinical_rules.facts import PreparedFindingFacts
+from coyote3.application.reporting.clinical_rules.preparation import _snv_fact
+from coyote3.application.reporting.clinical_rules.registry import (
     fact_catalog_payload,
     validate_fact_path,
 )
-from api.application.reporting.dna_report_payload import _build_variant_query
-from api.application.sample.catalog import SampleCatalogService
-from api.config.loaders import filter_flags
-from api.config.loaders.filter_flags import filter_flag_options
-from api.contracts.schemas.clinical_rules import ClinicalRulePredicate
-from api.domain.common.sample_filters import normalize_sample_filters
-from api.domain.core.dna.varqueries import build_query
-from api.domain.query_conditions import compile_condition
-from api.infra.mongo.repositories.samples import SampleRepository
+from coyote3.application.reporting.dna_report_payload import _build_variant_query
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.config.loaders import filter_flags
+from coyote3.config.loaders.filter_flags import filter_flag_options
+from coyote3.contracts.schemas.clinical_rules import ClinicalRulePredicate
+from coyote3.domain.common.sample_filters import normalize_sample_filters
+from coyote3.domain.dna.varqueries import build_query
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.query_conditions import compile_condition
 from tests.unit.test_dna_varqueries import _settings
 
 
-def test_sample_save_persists_exclusions_with_each_intents_other_snv_filters():
+def test_sample_save_persists_exclusions_with_each_intents_other_snv_filters(monkeypatch):
     """The normal filter-save service writes both SNV profiles into one filter snapshot."""
     collection = mongomock.MongoClient().synthetic.samples
     sample = {
         "_id": ObjectId(),
-        "omics_layer": "dna",
+        "version": 1,
+        "asp_category": "dna",
         "analysis_intents": ["somatic", "germline"],
     }
     collection.insert_one(sample)
     service = object.__new__(SampleCatalogService)
-    service.sample_repository = SampleRepository(SimpleNamespace(samples_collection=collection))
+    service.sample_repository = SampleRepository(
+        SimpleNamespace(samples_collection=collection, client=collection.database.client)
+    )
+    from api.infra.mongo.repositories import samples as repository_module
+
+    audit_events = []
+    monkeypatch.setattr(repository_module, "run_transaction", lambda client, work: work(None))
+    monkeypatch.setattr(
+        repository_module, "enqueue_audit", lambda *args, **kwargs: audit_events.append(kwargs)
+    )
+    monkeypatch.setattr(repository_module, "invalidate_samples_cache", lambda adapter: None)
+    monkeypatch.setattr(service.sample_repository, "invalidate_dashboard_metrics", lambda: None)
     service.gene_list_repository = SimpleNamespace(get_isgl_by_ids=lambda ids: {})
-    service._get_formatted_assay_config = lambda sample: {"filters": {}}
+    service._get_formatted_assay_config = lambda sample: {
+        "filters": {},
+        "gene_list_release": capture_gene_lists([]),
+    }
     service.replace_sample_filters(
         sample=sample,
         filters={
@@ -54,6 +72,13 @@ def test_sample_save_persists_exclusions_with_each_intents_other_snv_filters():
     assert saved["filters"]["somatic"]["snv"]["min_depth"] == 100
     assert saved["filters"]["germline"]["snv"]["exclude_flags"] == ["FAIL_NVAF"]
     assert saved["filters"]["germline"]["snv"]["min_depth"] == 30
+    assert saved["version"] == 2
+    assert audit_events[0]["metadata"]["previous_version"] == 1
+    assert audit_events[0]["metadata"]["after"]["filters"] == saved["filters"]
+    with pytest.raises(AppError, match="Sample settings changed"):
+        service.replace_sample_filters(sample=sample, filters={})
+    assert len(audit_events) == 1
+    assert collection.find_one({"_id": sample["_id"]})["filters"] == saved["filters"]
 
 
 def test_choices_use_global_and_snv_caller_literals_including_hidden_flags(monkeypatch):
@@ -87,7 +112,7 @@ def test_choices_use_global_and_snv_caller_literals_including_hidden_flags(monke
 def test_flag_filters_remain_intent_scoped_and_deduplicated(intent):
     filters = normalize_sample_filters(
         {intent: {"snv": {"exclude_flags": [" FAIL_NVAF ", "FAIL_NVAF"]}}},
-        omics_layer="dna",
+        asp_category="dna",
         intent=intent,
         analysis_intents=[intent],
     )
@@ -95,7 +120,7 @@ def test_flag_filters_remain_intent_scoped_and_deduplicated(intent):
     assert (
         normalize_sample_filters(
             {intent: {"snv": {}}},
-            omics_layer="dna",
+            asp_category="dna",
             intent=intent,
             analysis_intents=[intent],
         )["snv"]["exclude_flags"]
@@ -109,13 +134,13 @@ def test_flag_filters_remain_intent_scoped_and_deduplicated(intent):
 def test_invalid_flag_selections_are_rejected(invalid):
     with pytest.raises(ValidationError):
         normalize_sample_filters(
-            {"somatic": {"snv": {"exclude_flags": invalid}}}, omics_layer="dna"
+            {"somatic": {"snv": {"exclude_flags": invalid}}}, asp_category="dna"
         )
 
 
 @pytest.mark.parametrize("intent", ["somatic", "germline"])
 def test_flags_restrict_even_admission_exceptions_and_use_exact_membership(intent):
-    from api.config.clinical_query_policy import resolved_query_policy
+    from coyote3.config.clinical_query_policy import resolved_query_policy
 
     policy = resolved_query_policy(
         "snv",
@@ -136,16 +161,21 @@ def test_flags_restrict_even_admission_exceptions_and_use_exact_membership(inten
             row["FILTER"] = flags
         collection.insert_one(row)
     settings = _settings(exclude_flags=["FAIL_NVAF"])
-    query = build_query("demo", settings, intent=intent, policy=policy)
+    query = compile_selection(build_query("demo", settings, intent=intent, policy=policy))
     assert [row["POS"] for row in collection.find(query)] == [1, 3, 4, 5]
     settings["exclude_flags"] = ["PASS"]
     assert [
         row["POS"]
-        for row in collection.find(build_query("demo", settings, intent=intent, policy=policy))
+        for row in collection.find(
+            compile_selection(build_query("demo", settings, intent=intent, policy=policy))
+        )
     ] == [3, 4, 5]
     settings["exclude_flags"] = []
     assert (
-        collection.count_documents(build_query("demo", settings, intent=intent, policy=policy)) == 5
+        collection.count_documents(
+            compile_selection(build_query("demo", settings, intent=intent, policy=policy))
+        )
+        == 5
     )
 
 
@@ -156,26 +186,28 @@ def test_query_conditions_resolve_active_flag_filters():
         "operator": "nin",
         "value": {"source": "sample.filters", "key": "exclude_flags"},
     }
-    assert compile_condition(node, "snv", filter_values={"exclude_flags": ["PASS"]}) == {
-        "FILTER": {"$nin": ["PASS"]}
-    }
+    assert compile_selection(
+        compile_condition(node, "snv", filter_values={"exclude_flags": ["PASS"]})
+    ) == {"FILTER": {"$nin": ["PASS"]}}
     with pytest.raises(ValueError, match="context"):
-        compile_condition(node, "snv")
+        compile_selection(compile_condition(node, "snv"))
     with pytest.raises(ValueError, match="Unknown cnv field"):
-        compile_condition(node, "cnv", filter_values={"exclude_flags": ["PASS"]})
+        compile_selection(compile_condition(node, "cnv", filter_values={"exclude_flags": ["PASS"]}))
 
 
 @pytest.mark.parametrize("intent", ["somatic", "germline"])
 def test_report_query_preserves_flag_filters(intent):
-    query = _build_variant_query(
-        "demo",
-        {"_id": "SAMPLE_1"},
-        {intent: {"snv": {"exclude_flags": ["WARN_NOVAR"]}}},
-        [],
-        [],
-        [],
-        False,
-        intent=intent,
+    query = compile_selection(
+        _build_variant_query(
+            "demo",
+            {"_id": "SAMPLE_1"},
+            {intent: {"snv": {"exclude_flags": ["WARN_NOVAR"]}}},
+            [],
+            [],
+            [],
+            False,
+            intent=intent,
+        )
     )
     assert {"FILTER": {"$nin": ["WARN_NOVAR"]}} in query["$and"]
 

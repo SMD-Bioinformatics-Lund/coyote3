@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from api.contracts.managed_resources import aspc_spec_for_category
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.dna import DnaFiltersDoc
-from api.contracts.schemas.rna import RnaFiltersDoc
-from api.domain.common.assay_filters import (
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import aspc_spec_for_category
+from coyote3.contracts.schemas.dna import DnaFiltersDoc
+from coyote3.contracts.schemas.rna import RnaFiltersDoc
+from coyote3.domain.common.assay_filters import (
     format_assay_config,
     get_sample_effective_genes,
-    has_sample_gene_restriction,
 )
-from api.domain.common.sample_filters import normalize_sample_filters
+from coyote3.domain.common.sample_filters import normalize_sample_filters
 
 
 def test_format_assay_config_excludes_meta_keys_from_filters_section() -> None:
@@ -78,7 +77,7 @@ def test_canonical_rna_filter_profiles_accept_fusion_descriptions() -> None:
                 }
             }
         },
-        omics_layer="rna",
+        asp_category="rna",
         analysis_intents=["somatic"],
         canonical=True,
     )
@@ -105,7 +104,7 @@ def test_canonical_rna_filter_profiles_normalize_fusion_caller_aliases() -> None
                 }
             }
         },
-        omics_layer="rna",
+        asp_category="rna",
         analysis_intents=["somatic"],
         canonical=True,
     )
@@ -130,7 +129,7 @@ def test_effective_genes_respects_adhoc_list_types_for_target() -> None:
             }
         }
     }
-    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel-dna"}
 
     _, snv_effective = get_sample_effective_genes(sample, asp, {}, target="snv")
     _, cnv_effective = get_sample_effective_genes(sample, asp, {}, target="cnv")
@@ -142,7 +141,7 @@ def test_effective_genes_respects_adhoc_list_types_for_target() -> None:
 def test_effective_genes_use_asp_scope_when_no_snv_list_selected() -> None:
     """SNVs fall back to physical ASP coverage without an SNV selection."""
     sample = {"filters": {"somatic": {"snv": {"snvlists": []}}}}
-    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel-dna"}
 
     _, snv_effective = get_sample_effective_genes(sample, asp, {}, target="snv")
 
@@ -152,15 +151,15 @@ def test_effective_genes_use_asp_scope_when_no_snv_list_selected() -> None:
 def test_effective_genes_use_asp_scope_when_no_cnv_list_selected() -> None:
     """CNVs fall back to physical ASP coverage without a CNV selection."""
     sample = {"filters": {"somatic": {"cnv": {"cnvlists": []}}}}
-    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel-dna"}
 
     _, cnv_effective = get_sample_effective_genes(sample, asp, {}, target="cnv")
 
     assert cnv_effective == ["EGFR", "TP53"]
 
 
-def test_effective_genes_are_unrestricted_when_asp_has_no_covered_genes() -> None:
-    """An empty ASP scope represents all genes for broad WGS/WTS designs."""
+def test_empty_wgs_eligibility_remains_restricted() -> None:
+    """An empty eligibility set must not broaden a WGS analysis to every gene."""
     sample = {"filters": {"somatic": {"snv": {"snvlists": []}}}}
     asp = {"covered_genes": [], "asp_family": "wgs"}
 
@@ -173,7 +172,7 @@ def test_effective_genes_are_unrestricted_when_asp_has_no_covered_genes() -> Non
 def test_effective_genes_use_selected_cnv_list_when_present() -> None:
     """CNV effective genes should narrow to the selected CNV genelist when provided."""
     sample = {"filters": {"somatic": {"cnv": {"cnvlists": ["GL1"]}}}}
-    asp = {"covered_genes": ["TP53", "EGFR", "MYC"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR", "MYC"], "asp_family": "panel-dna"}
     selected_lists = {
         "GL1": {
             "displayname": "GL1",
@@ -199,7 +198,7 @@ def test_effective_genes_do_not_reuse_snv_selection_for_cnv() -> None:
             }
         }
     }
-    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel-dna"}
 
     covered, cnv_effective = get_sample_effective_genes(sample, asp, {}, target="cnv")
 
@@ -210,7 +209,7 @@ def test_effective_genes_do_not_reuse_snv_selection_for_cnv() -> None:
 def test_effective_genes_reject_selected_list_not_available_for_target() -> None:
     """An ISGL unavailable for CNV cannot become the CNV gene restriction."""
     sample = {"filters": {"somatic": {"cnv": {"cnvlists": ["SNV_ONLY"]}}}}
-    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "EGFR"], "asp_family": "panel-dna"}
     selected_lists = {
         "SNV_ONLY": {
             "displayname": "SNV only",
@@ -224,7 +223,7 @@ def test_effective_genes_reject_selected_list_not_available_for_target() -> None
     covered, cnv_effective = get_sample_effective_genes(sample, asp, selected_lists, target="cnv")
 
     assert covered == {}
-    assert cnv_effective == ["EGFR", "TP53"]
+    assert cnv_effective == []
 
 
 def test_effective_genes_use_only_the_translocation_selection() -> None:
@@ -237,7 +236,7 @@ def test_effective_genes_use_only_the_translocation_selection() -> None:
             }
         }
     }
-    asp = {"covered_genes": ["TP53", "KMT2A", "NPM1"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53", "KMT2A", "NPM1"], "asp_family": "panel-dna"}
     selected_lists = {
         "TRANSLOC": {
             "displayname": "Structural targets",
@@ -259,17 +258,16 @@ def test_effective_genes_use_only_the_translocation_selection() -> None:
 
 def test_effective_translocation_genes_fall_back_to_asp_coverage() -> None:
     sample = {"filters": {"somatic": {"translocation": {"fusionlists": []}}}}
-    asp = {"covered_genes": ["KMT2A", "NPM1"], "asp_family": "panel"}
+    asp = {"covered_genes": ["KMT2A", "NPM1"], "asp_family": "panel-dna"}
 
     _, genes = get_sample_effective_genes(sample, asp, {}, target="translocation")
 
     assert genes == ["KMT2A", "NPM1"]
-    assert has_sample_gene_restriction(sample, asp, target="translocation") is True
 
 
 def test_selected_zero_overlap_scope_remains_restrictive() -> None:
     sample = {"filters": {"somatic": {"cnv": {"cnvlists": ["OUTSIDE"]}}}}
-    asp = {"covered_genes": ["TP53"], "asp_family": "panel"}
+    asp = {"covered_genes": ["TP53"], "asp_family": "panel-dna"}
     selected_lists = {
         "OUTSIDE": {
             "displayname": "Outside panel",
@@ -282,14 +280,14 @@ def test_selected_zero_overlap_scope_remains_restrictive() -> None:
     _, genes = get_sample_effective_genes(sample, asp, selected_lists, target="cnv")
 
     assert genes == []
-    assert has_sample_gene_restriction(sample, asp, target="cnv") is True
 
 
-def test_empty_broad_scope_is_not_restrictive() -> None:
+def test_empty_wts_scope_does_not_allow_unrestricted_findings() -> None:
     sample = {
-        "omics_layer": "rna",
+        "asp_category": "rna",
         "filters": {"somatic": {"fusion": {"fusionlists": []}}},
     }
     asp = {"covered_genes": [], "asp_family": "wts"}
 
-    assert has_sample_gene_restriction(sample, asp, target="fusion") is False
+    _, genes = get_sample_effective_genes(sample, asp, {}, target="fusion")
+    assert genes == []

@@ -10,11 +10,12 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.application.query_rules.service import QueryRuleService
-from api.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
-from api.domain.core.dna.varqueries import _exception_clause
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from api.infra.mongo.selection import compile_selection
 from api.infra.seed.query_rules import prepare_query_rule_seeds
+from coyote3.application.query_rules.service import QueryRuleService
+from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
+from coyote3.domain.dna.varqueries import _exception_clause
 from scripts.bootstrap import install_query_rules
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def seed_rows(name):
     """Read public reference records without connecting to a deployment."""
-    path = ROOT / f"api/config/bootstrap/reference/{name}.seed.ndjson"
+    path = ROOT / f"api/bootstrap/catalogs/reference/{name}.seed.ndjson"
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
@@ -40,9 +41,9 @@ def test_installed_germline_rules_are_group_scoped():
             )
         )
     )
-    from api.contracts.schemas.query_rules import QueryRuleScope
+    from coyote3.contracts.schemas.query_rules import QueryRuleScope
 
-    for group in ("hematology", "myeloid", "tumwgs", "tumwgs-hema"):
+    for group in ("hematology", "myeloid"):
         policy = service.resolve(QueryRuleScope(assay_group=group, analysis="snv"))
         assert policy.evidence_mode == "paired"
         assert {e["id"] for e in policy.exceptions} == {
@@ -60,14 +61,18 @@ def test_installed_germline_rules_are_group_scoped():
     solid = service.resolve(QueryRuleScope(assay_group="solid", analysis="snv", intent="germline"))
     assert {e["id"] for e in solid.exceptions} == {"solid_germline_filter"}
     solid_wgs = service.resolve(
-        QueryRuleScope(assay_group="tumwgs-solid", analysis="snv", intent="germline")
+        QueryRuleScope(
+            assay_group="solid", asp_id="demo-tumwgs-solid", analysis="snv", intent="germline"
+        )
     )
     assert solid_wgs.exceptions == solid.exceptions
     solid_somatic = service.resolve(QueryRuleScope(assay_group="solid", analysis="snv"))
-    solid_wgs_somatic = service.resolve(QueryRuleScope(assay_group="tumwgs-solid", analysis="snv"))
+    solid_wgs_somatic = service.resolve(
+        QueryRuleScope(assay_group="solid", asp_id="demo-tumwgs-solid", analysis="snv")
+    )
     assert solid_wgs_somatic.exceptions == solid_somatic.exceptions
     assert solid_wgs_somatic.evidence_mode == solid_somatic.evidence_mode == "paired"
-    for group in ("lymphoid", "wts", "demo"):
+    for group in ("lymphoid", "pgx", "center-group"):
         assert (
             service.resolve(
                 QueryRuleScope(assay_group=group, analysis="snv", intent="germline")
@@ -85,7 +90,7 @@ def test_installed_germline_rules_are_group_scoped():
 
 def test_fresh_bootstrap_loads_complete_query_catalog():
     """First installation includes catalog-only rules as well as TOML criteria."""
-    from api.contracts.schemas.query_rules import QueryRuleContent
+    from coyote3.contracts.schemas.query_rules import QueryRuleContent
     from scripts.bootstrap.bootstrap_database import (
         DEFAULT_RBAC_DIR,
         DEFAULT_REFERENCE_DIR,
@@ -102,14 +107,14 @@ def test_fresh_bootstrap_loads_complete_query_catalog():
         seed_rows("query_rule_sets"), seed_rows("assay_groups"), actor="installer"
     )
     actual = {row["query_id"]: row["content"] for row in seed["query_rule_sets"]}
-    assert len(actual) == 12
+    assert len(actual) == 6
     assert actual == {
         row["query_id"]: QueryRuleContent.model_validate(row["content"]).model_dump()
         for row in expected
     }
     assert len(seed["roles"]) == 32
-    assert len(seed["assay_groups"]) == 11
-    assert not seed.get("subpanels", [])
+    assert len(seed["assay_groups"]) == 5
+    assert not seed.get("diagnoses", [])
     assert "hgnc_genes" not in seed
 
 
@@ -159,15 +164,17 @@ def test_installed_trees_preserve_legacy_matching_and_condition_order():
     for row in rows:
         for rule in row["content"]["exceptions"]:
             old = {"id": rule["id"], "mode": rule["mode"], **legacy[rule["id"]]}
-            old_clause = _exception_clause(resolved_query_policy("snv", None, [old]).exceptions[0])
+            old_clause = compile_selection(
+                _exception_clause(resolved_query_policy("snv", None, [old]).exceptions[0])
+            )
             expected = {d["_id"] for d in collection.find(old_clause)}
             children = rule["condition"].get("children")
             for order in permutations(children) if children else [None]:
                 changed = deepcopy(rule)
                 if order:
                     changed["condition"]["children"] = list(order)
-                clause = _exception_clause(
-                    resolved_query_policy("snv", None, [changed]).exceptions[0]
+                clause = compile_selection(
+                    _exception_clause(resolved_query_policy("snv", None, [changed]).exceptions[0])
                 )
                 assert {d["_id"] for d in collection.find(clause)} == expected
 
@@ -177,9 +184,11 @@ def test_installed_gene_exception_matches_nonselected_annotated_gene():
     rows = prepare_query_rule_seeds(
         seed_rows("query_rule_sets"), seed_rows("assay_groups"), actor="installer"
     )
-    row = next(row for row in rows if row["query_id"] == "tumwgs__all__base__somatic_snvs")
+    row = next(row for row in rows if row["query_id"] == "hematology__all__base__somatic_snvs")
     rule = next(rule for rule in row["content"]["exceptions"] if rule["id"] == "flt3_svtype")
-    clause = _exception_clause(resolved_query_policy("snv", None, [rule]).exceptions[0])
+    clause = compile_selection(
+        _exception_clause(resolved_query_policy("snv", None, [rule]).exceptions[0])
+    )
     collection = mongomock.MongoClient().synthetic.variants
     collection.insert_many(
         [
@@ -215,7 +224,7 @@ def test_installation_preserves_existing_and_retired_scopes(monkeypatch):
         install_query_rules, "enqueue_audit", lambda *args, **kwargs: receipts.append(kwargs)
     )
     plan = install_query_rules.install(db, actor="installer")
-    assert plan["missing_scopes"] == 12
+    assert plan["missing_scopes"] == 6
     assert not db.query_rule_sets.count_documents({})
     install_query_rules.install(db, actor="installer", apply=True)
     db.query_rule_sets.update_one(
@@ -236,8 +245,8 @@ def test_seed_rejects_unregistered_groups_and_duplicate_scopes():
         prepare_query_rule_seeds(catalog + catalog, seed_rows("assay_groups"), actor="installer")
 
 
-def test_upgrade_installs_only_new_wgs_scopes(monkeypatch):
-    """New publications do not replace any legacy tumor-WGS or center-authored policy."""
+def test_repair_installs_missing_biological_scopes(monkeypatch):
+    """Missing solid-group publications preserve existing hematology and center policies."""
     db = mongomock.MongoClient().synthetic
     groups = seed_rows("assay_groups")
     db.assay_groups.insert_many(groups)
@@ -246,21 +255,21 @@ def test_upgrade_installs_only_new_wgs_scopes(monkeypatch):
         for row in prepare_query_rule_seeds(
             seed_rows("query_rule_sets"), groups, actor="initial_operator"
         )
-        if row["scope"]["assay_group"] not in {"tumwgs-hema", "tumwgs-solid"}
+        if row["scope"]["assay_group"] not in {"solid"}
     ]
     db.query_rule_sets.insert_many(legacy)
     before = list(db.query_rule_sets.find())
     monkeypatch.setattr(install_query_rules, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(install_query_rules, "enqueue_audit", lambda *args, **kwargs: None)
     assert (
-        install_query_rules.install(db, actor="upgrade_operator", apply=True)["missing_scopes"] == 4
+        install_query_rules.install(db, actor="upgrade_operator", apply=True)["missing_scopes"] == 2
     )
     for row in before:
         assert db.query_rule_sets.find_one({"_id": row["_id"]}) == row
 
 
 def test_query_roles_separate_lifecycle_grants():
-    path = ROOT / "api/config/bootstrap/rbac/roles.seed.ndjson"
+    path = ROOT / "api/bootstrap/catalogs/rbac/roles.seed.ndjson"
     roles = {
         row["name"]: row
         for line in path.read_text().splitlines()

@@ -10,11 +10,13 @@ from fastapi.routing import iter_route_contexts
 
 from api.app.container import store
 from api.app.main import app as api_app
-from api.application.common.change_payload import change_payload
-from api.application.rna import expression_analysis as rna_service_module
-from api.application.rna.expression_analysis import RnaService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical.rna import fusions as rna
+from api.interfaces.http.v1.clinical.common.analysis_query import analysis_query_from_request
+from api.interfaces.http.v1.clinical.rna import fusions as rna
+from coyote3.application.common.change_payload import change_payload
+from coyote3.application.rna import expression_analysis as rna_service_module
+from coyote3.application.rna.expression_analysis import RnaService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -27,6 +29,7 @@ class _Req:
         path = "/api/v1/samples/S1/fusions"
 
     url = _URL()
+    query_params = {}
 
 
 def _rna_service() -> RnaService:
@@ -54,11 +57,6 @@ def _rna_service() -> RnaService:
 
 
 def test_change_payload_shape():
-    """Test change payload shape.
-
-    Returns:
-        The function result.
-    """
     payload = change_payload(sample_id="S1", resource="fusion", resource_id="F1", action="flag")
     assert payload["status"] == "ok"
     assert payload["resource"] == "fusion"
@@ -67,16 +65,11 @@ def test_change_payload_shape():
 
 @pytest.mark.parametrize("paginate", [True, False])
 def test_list_rna_fusions_success(monkeypatch, paginate):
-    """Test list rna fusions success.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    sample = {**fx.sample_doc(), "omics_layer": "rna"}
-    assay_config = {**fx.assay_config_doc(), "asp_group": "rna", "analysis_types": ["FUSION"]}
+    sample = {**fx.sample_doc(), "asp_category": "rna"}
+    assay_config = {
+        **fx.assay_config_doc(asp_group="rna", asp_category="rna"),
+        "analysis_types": ["FUSION"],
+    }
     merged_sample = {**sample, "filters": {"min_spanning_reads": 3, "min_spanning_pairs": 2}}
     filter_context = {
         "checked_fusionlists": ["gl1"],
@@ -86,8 +79,10 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     fusions = [fx.fusion_doc()]
     service = _rna_service()
 
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(rna_service_module, "get_formatted_assay_config", lambda s: assay_config)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    monkeypatch.setattr(
+        rna_service_module, "get_formatted_assay_config", lambda s, **kwargs: assay_config
+    )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "merge_and_normalize_sample_filters",
@@ -117,7 +112,7 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "compute_filter_context",
-        lambda self, sample, sample_filters, assay_panel_doc: filter_context,
+        lambda self, sample, sample_filters, assay_panel_doc, selected_list_docs: filter_context,
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
@@ -133,7 +128,10 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(
         rna_service_module,
         "add_global_annotations",
-        lambda fusions, assay_group, subpanel, annotation_repository=None: (fusions, fusions),
+        lambda fusions, assay_group, diagnosis, annotation_repository=None, **kwargs: (
+            fusions,
+            fusions,
+        ),
     )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
@@ -145,7 +143,7 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = service.list_fusions_payload(
-        request=_Req(), sample=sample, util_module=rna.util, paginate=paginate
+        query=analysis_query_from_request(_Req()), sample=sample, paginate=paginate
     )
     assert payload["meta"]["count"] == 1
     assert payload["fusions"][0]["gene1"] == fusions[0]["gene1"]
@@ -153,9 +151,8 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
     evaluator.assert_not_called()
     with pytest.raises(ValueError, match="No active published clinical rule set"):
         service.list_fusions_payload(
-            request=_Req(),
+            query=analysis_query_from_request(_Req()),
             sample=sample,
-            util_module=rna.util,
             paginate=False,
             include_report_context=True,
         )
@@ -164,10 +161,15 @@ def test_list_rna_fusions_success(monkeypatch, paginate):
 def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
     """RNA fusion endpoints return a clear client error for DNA samples."""
     service = _rna_service()
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(AppError) as exc:
-        rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
+        rna.list_rna_fusions(
+            _Req(),
+            "S1",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+        )
 
     assert exc.value.status_code == 422
     assert exc.value.detail["error"] == "RNA fusion analysis is unavailable for this sample"
@@ -175,21 +177,21 @@ def test_list_rna_fusions_rejects_dna_samples(monkeypatch):
 
 def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
     """The sample-comment suggestion exposes the existing filtered RNA summary."""
-    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "omics_layer": "rna"}
+    sample = {**fx.sample_doc(), "_id": "sample-1", "name": "S1", "asp_category": "rna"}
     captured = {}
     service = SimpleNamespace(
         list_fusions_payload=lambda **kwargs: (
-            captured.update(kwargs) or {"ai_text": "Filtered fusion summary"}
+            captured.update(kwargs) or {"sample": sample, "ai_text": "Filtered fusion summary"}
         )
     )
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = rna.rna_sample_comment_suggestion(
         request=_Req(),
         sample_id="S1",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
     )
 
     assert captured["paginate"] is False
@@ -203,31 +205,23 @@ def test_rna_sample_comment_suggestion_uses_filtered_summary(monkeypatch):
 
 
 def test_show_rna_fusion_not_found_raises_404(monkeypatch):
-    """Test show rna fusion not found raises 404.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     service = _rna_service()
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(store.fusion_repository, "get_fusion", lambda fusion_id: None)
 
     with pytest.raises(AppError) as exc:
-        rna.show_rna_fusion("S1", "F404", user=fx.api_user(), service=service)
+        rna.show_rna_fusion(
+            "S1",
+            "F404",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+        )
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Fusion not found"
 
 
 def test_restful_rna_mutation_routes_are_registered():
-    """Test restful rna mutation routes are registered.
-
-    Returns:
-        The function result.
-    """
     paths = {route.path for route in iter_route_contexts(api_app.routes)}
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
     assert (
@@ -244,7 +238,7 @@ def test_restful_rna_mutation_routes_are_registered():
 
 def test_read_rna_analysis_returns_independent_records(monkeypatch):
     """The WTS views read expression, classification, and QC by sample ObjectId."""
-    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "omics_layer": "rna"}
+    sample = {**fx.sample_doc(), "_id": "sample-oid", "name": "RNA_1", "asp_category": "rna"}
     service = SimpleNamespace(
         rna_analysis_payload=lambda **kwargs: {
             "sample_id": "sample-oid",
@@ -254,10 +248,14 @@ def test_read_rna_analysis_returns_independent_records(monkeypatch):
             "quality": {"mapped_pct": 97.4},
         }
     )
-    monkeypatch.setattr(rna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = rna.read_rna_analysis("RNA_1", user=fx.api_user(), service=service)
+    payload = rna.read_rna_analysis(
+        "RNA_1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "fusion", fx.api_user()),
+    )
 
     assert payload["sample_id"] == "sample-oid"
     assert payload["expression"]["sample"][0]["hgnc_symbol"] == "CD19"

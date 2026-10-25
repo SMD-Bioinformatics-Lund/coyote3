@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from itertools import product
 from pathlib import Path
 
-from api.config.clinical_query_policy import exception_payload, load_clinical_query_policy
-from api.config.paths import CLINICAL_QUERY_SEED_PATH
-from api.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope
+from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH
+from coyote3.config.clinical_query_policy import exception_payload, load_clinical_query_policy
+from coyote3.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope
 
 
 def prepare_query_rule_seeds(
@@ -31,7 +31,7 @@ def prepare_query_rule_seeds(
 
     Raises:
         ValueError: Group scope is unknown, unsupported PGX rules are supplied, or
-            assay/subpanel rules need registries that do not exist at first installation.
+            assay/diagnosis rules need registries that do not exist at first installation.
         RuntimeError: TOML content does not satisfy the supported policy grammar.
     """
     policy = load_clinical_query_policy(policy_path)
@@ -44,9 +44,9 @@ def prepare_query_rule_seeds(
         """Return the release being assembled for a validated installation scope."""
         if scope.assay_group and scope.assay_group not in known_groups:
             raise ValueError(f"Query policy requires registered group: {scope.assay_group}")
-        if scope.asp_id or scope.subpanel_id:
+        if scope.asp_id or scope.diagnosis_id:
             raise ValueError(
-                "Install assay/subpanel query rules through the editor after assay activation"
+                "Install assay/diagnosis query rules through the editor after assay activation"
             )
         return planned.setdefault(
             scope.key(),
@@ -74,14 +74,14 @@ def prepare_query_rule_seeds(
             for group, assay, panel, intent in product(
                 exception.assay_groups or (None,),
                 exception.asp_ids or (None,),
-                exception.subpanel_ids or (None,),
+                exception.diagnosis_ids or (None,),
                 intents,
             ):
                 row = destination(
                     QueryRuleScope(
                         assay_group=group,
                         asp_id=assay,
-                        subpanel_id=panel,
+                        diagnosis_id=panel,
                         analysis=analysis,
                         intent=intent,
                     )

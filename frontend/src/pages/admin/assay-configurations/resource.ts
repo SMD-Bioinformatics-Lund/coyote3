@@ -19,7 +19,7 @@ export const resource: AdminResourceSpec = {
   },
 }
 
-export const columns = ["aspc_id", "asp_id", "subpanel_id", "environment", "asp_category", "analysis_types", "is_active", "version", "updated_on"]
+export const columns = ["aspc_id", "asp_id", "diagnosis_id", "environment", "asp_category", "analysis_types", "is_active", "version", "updated_on"]
 
 export const filters: ResourceListFilter[] = [
   { field: "asp_category", label: "Assay category", allLabel: "All assay categories" },

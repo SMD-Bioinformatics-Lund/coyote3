@@ -14,10 +14,11 @@ if str(ROOT) not in sys.path:
 
 from pymongo import MongoClient  # noqa: E402
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.contracts.schemas.assay_groups import AssayGroupDoc  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.assay_groups import AssayGroupDoc  # noqa: E402
 
 
 def install(db, *, actor: str, apply: bool = False) -> int:
@@ -36,7 +37,7 @@ def install(db, *, actor: str, apply: bool = False) -> int:
     """
     mapping = load_collection_section("primary")
     collection = db[mapping["assay_groups_collection"]]
-    seed_path = ROOT / "api/config/bootstrap/reference/assay_groups.seed.ndjson"
+    seed_path = BOOTSTRAP_ROOT / "reference/assay_groups.seed.ndjson"
     seeds = [json.loads(line) for line in seed_path.read_text().splitlines() if line.strip()]
     planned = {item["group_id"]: item for item in seeds}
     for key, field in (

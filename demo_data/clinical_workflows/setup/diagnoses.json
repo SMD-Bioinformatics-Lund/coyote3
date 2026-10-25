@@ -1,0 +1,50 @@
+[
+  {
+    "diagnosis_id": "mpn",
+    "display_name": "MPN",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "myeloid",
+    "display_name": "Myeloid",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lymphoid",
+    "display_name": "Lymphoid",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "cll",
+    "display_name": "CLL",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "lung",
+    "display_name": "Lung",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  },
+  {
+    "diagnosis_id": "breast",
+    "display_name": "Breast",
+    "description": "Shared diagnosis definition for synthetic workflows.",
+    "version": 1,
+    "updated_by": "demo.author",
+    "updated_on": "2026-01-01T00:00:00Z"
+  }
+]

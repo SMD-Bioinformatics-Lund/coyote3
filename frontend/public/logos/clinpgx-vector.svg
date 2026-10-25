@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 350" role="img" aria-labelledby="title desc">
+  <title id="title">ClinPGx logo</title>
+  <style>@media (prefers-color-scheme: dark) { [stroke="#336699"] { stroke: #8ab1de; } [fill="#336699"] { fill: #8ab1de; } [stroke="#c9134a"] { stroke: #f06b92; } [stroke="#a7193c"] { stroke: #d9537f; } }</style>
+  <desc id="desc">Reference: PharmGKB/pgkb-branding official ClinPGx logo, blue and red lettering with a blue and green helix. Hand-built vector geometry; no raster image or traced pixels.</desc>
+  <defs>
+    <linearGradient id="helix-rungs" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#6996bc"/><stop offset="1" stop-color="#99cc68"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M205 128 C172 99 123 94 89 110 C23 137 18 234 62 283 C97 323 162 331 208 294" stroke="#336699" stroke-width="31"/>
+    <path d="M263 110 V294 Q263 318 284 318 M335 174 V318 M402 174 V318 M404 211 C430 164 498 163 505 213 V318" stroke="#336699" stroke-width="31"/>
+    <path d="M565 319 V111 H626 C707 111 712 229 627 229 H565" stroke="#c9134a" stroke-width="31" stroke-linecap="butt"/>
+    <path d="M1021 147 C975 96 898 90 845 126 C793 159 779 226 811 277 C847 334 941 345 1007 299 V237 H922" stroke="#c9134a" stroke-width="31" stroke-linecap="butt"/>
+    <path d="M1092 187 C1092 251 1204 260 1204 332" stroke="#a7193c" stroke-width="27" stroke-linecap="butt"/>
+    <path d="M1092 332 C1092 265 1204 251 1204 187" stroke="#c9134a" stroke-width="27" stroke-linecap="butt"/>
+    <path d="M579 72 L585 91 M610 61 L619 81 M663 46 L668 77 M714 30 L717 82 M768 30 L765 86 M1111 26 L1103 78 M1160 36 L1151 84 M1160 136 L1222 133" stroke="url(#helix-rungs)" stroke-width="8"/>
+    <path d="M540 96 C618 65 701 10 778 25 S925 87 1042 84 C1143 87 1225 88 1225 155" stroke="#6996bc" stroke-width="15"/>
+    <path d="M534 74 C643 34 706 104 814 71 S982 -1 1086 18 C1167 33 1194 80 1158 108 Q1127 129 1124 154" stroke="#99cc68" stroke-width="15"/>
+  </g>
+  <rect x="319" y="108" width="31" height="31" rx="8" fill="#336699"/>
+
+</svg>

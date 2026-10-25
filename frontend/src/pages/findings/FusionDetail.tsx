@@ -38,8 +38,8 @@ function fusionName(fusion: any) {
 }
 
 function fusionBreakpoint(call: any) {
-  const left = call?.breakpoint1 || call?.breakpoints?.[0]
-  const right = call?.breakpoint2 || call?.breakpoints?.[1]
+  const left = call?.breakpoint1
+  const right = call?.breakpoint2
   return [left, right].filter(Boolean).join(" | ") || "-"
 }
 
@@ -131,7 +131,7 @@ export function FusionDetail() {
                 <DetailField label="Gene 1">{genes[0] || fusion?.gene1 || "-"}</DetailField>
                 <DetailField label="Gene 2">{genes[1] || fusion?.gene2 || "-"}</DetailField>
                 <DetailField label="Breakpoints">{fusionBreakpoint(selectedCall)}</DetailField>
-                <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect || fusion?.frame} /></DetailField>
+                <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect} /></DetailField>
                 <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
                 <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
                 <DetailField label="Status">
@@ -147,7 +147,7 @@ export function FusionDetail() {
                 resourceType="fusion"
                 resource={fusion}
                 assayGroup={data.assay_group}
-                subpanel={data.subpanel}
+                diagnosis={data.diagnosis}
                 queryKeys={[["fusion", id, varId]]}
               />
             </div>
@@ -202,8 +202,8 @@ export function FusionDetail() {
             <DetailCard title="Read Support" tone="success">
               <DetailMetricTable
                 metrics={[
-                  { label: "Spanning pairs", value: selectedCall?.spanpairs || fusion?.supporting_reads?.span, monospace: true },
-                  { label: "Spanning reads", value: selectedCall?.spanreads || fusion?.supporting_reads?.split, monospace: true },
+                  { label: "Spanning pairs", value: selectedCall?.spanpairs, monospace: true },
+                  { label: "Spanning reads", value: selectedCall?.spanreads, monospace: true },
                   { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
                 ]}
                 dense

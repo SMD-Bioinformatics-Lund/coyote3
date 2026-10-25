@@ -7,8 +7,8 @@ import { QueryRuleSampleTestPanel } from "./QueryRuleSampleTestPanel"
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifyActionError: vi.fn() }))
 beforeEach(() => vi.resetAllMocks())
-const scope = { assay_group: "group", asp_id: null, subpanel_id: null, analysis: "snv", intent: "somatic" }
-const sample = { id: "synthetic", name: "SYNTHETIC", asp_id: "example", subpanel_id: "base" }
+const scope = { assay_group: "group", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic" }
+const sample = { id: "synthetic", name: "SYNTHETIC", asp_id: "example", diagnosis_id: "base" }
 
 it("searches on request, compares a sample, and hides results when the draft changes", async () => {
   vi.mocked(api.post).mockResolvedValueOnce({ status: 200, data: { items: [sample], total: 1, page: 1, per_page: 20 } })

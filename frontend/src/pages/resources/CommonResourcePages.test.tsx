@@ -82,13 +82,12 @@ describe("public gene resources", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("loads a selected gene list with the assay query and normalizes string rows", async () => {
-    mocks.get.mockResolvedValue({ data: { title: "Myeloid genes", genes: ["FLT3", { gene: "NPM1", evidence: { source: "curated" } }] } })
+    mocks.get.mockResolvedValue({ data: { genelist: { name: "Myeloid genes" }, filtered_genes: ["FLT3", "NPM1"] } })
     renderRoute("/public/genelists/myeloid?assay=hema_gmsv1", "/public/genelists/:genelistId", <PublicGenelistPage />)
     expect(await screen.findByRole("heading", { name: "Myeloid genes" })).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/public/genelists/myeloid/view_context?assay=hema_gmsv1")
     expect(screen.getByText("FLT3")).toBeVisible()
     expect(screen.getByText("NPM1")).toBeVisible()
-    expect(screen.getByText('{"source":"curated"}')).toBeVisible()
   })
 
   it("shows a public gene-list request error", async () => {
@@ -102,13 +101,13 @@ describe("public gene resources", () => {
       asp: { display_name: "Hematology GMSv1", asp_category: "dna", platform: "illumina", read_mode: "paired-end" },
       catalog: {
         title: "GMS-HEM", description: "<strong>Targeted</strong> hematology assay.", modality_label: "DNA",
-        family: "panel-dna", assay_group: "hematology", subpanel_id: "myeloid", input_material: ["DNA"],
+        family: "panel-dna", assay_group: "hematology", diagnosis_id: "myeloid", input_material: ["DNA"],
         sample_modes: ["tumor-normal"], tat: "21 days", analysis: ["SNV", "CNV"], report_sections: ["Somatic"],
         clinical_indications: ["AML"], limitations: "Validated regions only", public_notes: "Clinical use",
         gene_lists: [{ key: "myeloid", label: "Myeloid", tat: "21 days", analysis: ["SNV"], sample_modes: ["tumor-normal"] }],
       },
       stats: { covered_total: 2, germline_total: 1 },
-      genes: ["FLT3", { hgnc_symbol: "NPM1", hgnc_id: "HGNC:7910" }],
+      gene_details: [{ hgnc_symbol: "FLT3" }, { hgnc_symbol: "NPM1", hgnc_id: "HGNC:7910" }],
     } })
     renderRoute("/public/asp/hema_gmsv1/genes", "/public/asp/:aspId/genes", <PublicAspGenesPage />)
 

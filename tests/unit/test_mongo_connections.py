@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 from pymongo import MongoClient
 
-from api.config.loaders.collections import load_collection_mapping
+from api.config.collections import load_collection_mapping
 from api.config.mongo import mongo_endpoints, mongo_uri
 from api.infra.mongo.connections import MongoConnections
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
@@ -92,7 +92,7 @@ def test_same_database_name_on_separate_endpoints_keeps_logical_mapping(connecti
     assert adapter.samples_collection.database.client is pool.databases["primary"].client
     for collection in (adapter.hgnc_collection, adapter.vep_metadata_collection):
         assert collection.database.client is pool.databases["knowledgebase"].client
-    assert not hasattr(adapter, "assay_subpanels_collection")
+    assert not hasattr(adapter, "assay_diagnoses_collection")
 
 
 def test_database_selection_does_not_rewrite_uri_path_or_auth_source(connections):

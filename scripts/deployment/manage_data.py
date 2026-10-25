@@ -12,10 +12,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import httpx  # noqa: E402
+from coyote3_client import CoyoteClient  # noqa: E402
 
-from api.client.auth import login_with_password  # noqa: E402
-from api.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
-from api.contracts.deployment_data import DeploymentDataModule, DeploymentDataRequest  # noqa: E402
+from api.contracts.deployment_data import (  # noqa: E402
+    DeploymentDataModule,
+    DeploymentDataRequest,
+)
+from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
 
 
 def manage_data(
@@ -44,47 +47,31 @@ def manage_data(
     login = username.strip() or input("Administrator username: ").strip()
     password = getpass.getpass("Administrator password: ")
     provider = AUTH_PROVIDER_LDAP if "@" in login else AUTH_PROVIDER_LOCAL
-    session = login_with_password(
-        base_url=base, username=login, password=password, provider=provider
-    )
-    if not session.session_token:
-        raise PermissionError("API login did not issue a session.")
-    with httpx.Client(timeout=600.0) as client:
+    with CoyoteClient(base, timeout=600.0) as client:
+        user = client.login(username=login, password=password, provider=provider)
         try:
-            if session.user.get("must_change_password"):
+            if getattr(user, "must_change_password", False):
                 print("Complete the required password change before installing data.")
                 new_password = getpass.getpass("New password: ")
                 confirmation = getpass.getpass("Confirm new password: ")
                 if new_password != confirmation:
                     raise ValueError("New password and confirmation must match.")
-                response = client.post(
-                    f"{base}/api/v1/auth/password/change",
-                    headers=session.bearer_headers,
+                client.api.auth.password.change.post(
                     json={
                         "current_password": password,
                         "new_password": new_password,
                         "confirm_password": confirmation,
                     },
                 )
-                response.raise_for_status()
                 # Password changes invalidate all previous sessions, including this one.
-                session = login_with_password(
-                    base_url=base, username=login, password=new_password, provider=provider
-                )
-                if not session.session_token:
-                    raise PermissionError("Sign in again with the new password.")
-            response = client.post(
-                f"{base}/api/v1/admin/installation/data",
-                headers=session.bearer_headers,
+                client.login(username=login, password=new_password, provider=provider)
+            response = client.api.admin.installation.data.post(
                 json=payload.model_dump(),
             )
-            response.raise_for_status()
-            return response.json()["collections"]
+            return response["collections"]
         finally:
             try:
-                client.delete(
-                    f"{base}/api/v1/auth/sessions/current", headers=session.bearer_headers
-                )
+                client.logout()
             except httpx.HTTPError:
                 pass
 

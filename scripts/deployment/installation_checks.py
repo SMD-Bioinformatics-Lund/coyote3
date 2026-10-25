@@ -6,8 +6,9 @@ from contextlib import ExitStack
 
 from pymongo import MongoClient
 
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 from api.config.mongo import MongoEndpoint, mongo_endpoints
+from api.infra.security.mongo_roles import verify_runtime_audit_permissions
 
 
 def has_documents(database) -> bool:
@@ -62,10 +63,10 @@ def installation_state(primary, identity) -> str:
 
 def validate_configuration() -> None:
     """Validate mounted center definitions without connecting to any database."""
-    from api.config.clinical_vocabulary import load_clinical_vocabulary
-    from api.config.loaders.contact import load_contact_config
-    from api.config.loaders.filter_flags import load_filter_flag_metadata
+    from api.config.contact import load_contact_config
     from api.config.paths import CONTACT_CONFIG_PATH
+    from coyote3.config.clinical_vocabulary import load_clinical_vocabulary
+    from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 
     load_clinical_vocabulary()
     load_filter_flag_metadata()
@@ -103,6 +104,9 @@ def check_endpoints() -> str:
                 raise ValueError(
                     f"{service} endpoint check failed ({type(error).__name__})"
                 ) from None
+        verify_runtime_audit_permissions(
+            databases["identity"].client, endpoints["identity"].database
+        )
         return installation_state(databases["primary"], databases["identity"])
 
 

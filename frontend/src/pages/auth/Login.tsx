@@ -144,9 +144,9 @@ export function Login() {
         <header className="login-header relative z-10">
           <div className="inline-flex min-w-max items-center gap-2.5">
             <img
-              src={appPath("/logo.png")}
+              src={appPath("/logos/coyote-vector.svg")}
               alt={organizationName}
-              className="w-11 h-7 dark:invert"
+              className="w-11 h-7"
             />
             <BrandWordmark />
           </div>

@@ -39,7 +39,7 @@ Original documents, collection options and indexes are backed up as BSON in a
 mode-0700 directory with mode-0600 files. HGNC/VEP documents retain their IDs and
 fields. Copying uses staging collections, copies indexes and compares complete
 content hashes before dropping either source. Conflicting target data is never
-overwritten. Legacy subpanel history remains in the backup after removal.
+overwritten. Legacy diagnosis history remains in the backup after removal.
 
 Cross-deployment copy/rename/drop is not a single transaction. Keep writers
 stopped throughout; after interruption, inspect the staging collections and rerun

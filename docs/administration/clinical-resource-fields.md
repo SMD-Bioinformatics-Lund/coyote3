@@ -25,6 +25,7 @@ An ASP defines the physical assay and its input policy. Full contract:
 | `description` | Optional; null | Assay description. |
 | `expected_files` | Omitted selects category defaults; explicit `[]` remains empty | Allowed input keys. Expected does not by itself mean mandatory. |
 | `required_files` | Contract default `[]` | Mandatory keys, all of which must also be expected. Review the setup form's explicit selections. |
+| `supported_analyses` | Omitted or null resolves all eligible analyses; explicit `[]` supports none | Implemented capabilities permitted by the family and accepted inputs. ASPCs can enable a subset. The resolved list is persisted. |
 | `covered_genes`, `germline_genes` | Optional; each `[]` | Physical gene scope; missing genes do not imply genome-wide validation. |
 | `accredited` | Optional; `false` | Center-declared accreditation status, not approval conferred by the application. |
 | `kit_name`, `kit_type`, `kit_version`, `capture_method` | Optional; null | Producer/design descriptions; no names are inferred. |
@@ -38,13 +39,19 @@ sample evidence. Changing display text does not change the stable assay identity
 
 ## Assay configuration / ASPC
 
-An ASPC binds review and reporting settings to an assay, subpanel and clinical
+An ASPC binds review and reporting settings to an assay, diagnosis and clinical
 environment. Full contract: [`asp_configs`](../reference/mongodb-collections.md#asp_configs).
+
+Query policies and clinical reporting rules resolve current published scopes at
+execution time. Historical `query_policy_release`, `clinical_rule_release` and
+`clinical_rule_base` fields remain readable in retained records but are ignored by
+runtime resolution and excluded from new ASPC writes. Saved report receipts retain
+the actual rules used; no ASPC update is needed to adopt a new rule publication.
 
 | Field | Requirement / omission behavior | Meaning and effect |
 | --- | --- | --- |
 | `aspc_id`, `asp_id`, `asp_group`, `asp_category`, `environment`, `display_name` | Required; no default | Configuration identity, parent assay and clinical scope. Related identities must agree. |
-| `subpanel_id` | Defaults to the configured Base ID | Named scopes need an eligible definition and assay association. |
+| `diagnosis_id` | Defaults to the configured Base ID | Named scopes need an eligible definition and assay association. |
 | `analysis_types` | Contract default `[]`, followed by workflow validation | Analyses enabled for review; selections must fit the assay's files and family. |
 | `analysis_intents` | Contract default `['somatic']`, then normalized for the assay | DNA analysis intent; use the form's applicable choices and [filter field reference](../reference/filter-profile-fields.md). |
 | `filters` | Required; no universal filter object | [DNA/RNA field defaults](../reference/filter-profile-fields.md); initializes sample filters at ingest. |
@@ -79,7 +86,7 @@ An ISGL selects genes for supported analyses. Full contract:
 | `isgl_id`, `name`, `displayname` | Required; no default | Stable key, name and displayed label. Note the exact `displayname` spelling. |
 | `list_type` | Supply explicitly | Omission/null initially selects all configured types, which can fail the standard/ad-hoc compatibility check. Use only the intended supported types. |
 | `adhoc` | Optional; `false` | Chooses standard versus ad-hoc type validation. |
-| `genes`, `germline_genes` | Optional; each `[]` | Selected genes; an empty array adds no genes. |
+| `genes` | Optional; `[]` | Curated genes; an empty array adds no genes. Germline membership resolves from the selected assay's germline genes. |
 | `asp_ids`, `asp_groups` | Contract default `[]`; eligibility validated by workflow | Assay/group bindings. Explicit `asp_ids` and `asp_groups` must each be nonempty and contain valid identifiers; unrelated lists are not offered. |
 | `diagnosis`, `aliases` | Optional; each `[]` | Diagnosis scope and alternate lookup/display names. |
 | `is_public` | Optional; `false` | Public-list eligibility; independent from clinical selection. |
@@ -94,7 +101,7 @@ explains standard, ad-hoc and diagnosis-based selection.
 | Resource | Field and behavior reference | Creation/change procedure |
 | --- | --- | --- |
 | Assay groups | [Group fields](assay-groups.md), [stored contract](../reference/mongodb-collections.md#assay_groups) | Group registration and availability changes. |
-| Subpanel definitions and associations | [Subpanel fields](assay-subpanels.md) | Create shared definitions, then enable assay associations; Base is implicit. |
+| Diagnosis definitions and associations | [Diagnosis fields](assay-diagnoses.md) | Create shared definitions, then enable assay associations; Base is implicit. |
 | Clinical rule sets | [Rule document, blocks and tests](../reference/clinical-reporting-rules.md) | Draft, validate, independently review and publish. |
 | Public catalog | [Catalog fields and identity](public-assay-catalog.md) | Separate draft, review and publication. |
 | Users, roles and permissions | [Access model](permissions-and-access.md), [permission catalog](permission-catalog.md) | [Account and role administration](administration-guide.md#1-users-roles-and-permissions). |

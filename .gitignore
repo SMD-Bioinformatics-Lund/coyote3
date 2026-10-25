@@ -15,6 +15,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+.release/
 develop-eggs/
 dist/
 downloads/
@@ -190,6 +191,7 @@ MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 .claude
 .agents
 .smd_configs
+skills/
 
 
 # Logs

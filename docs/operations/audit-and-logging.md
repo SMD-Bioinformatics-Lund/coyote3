@@ -28,8 +28,11 @@ Recreate existing containers to apply these limits; they do not limit daily appl
 Every API request binds a request context so log records can include `request_id`, client IP,
 method, and path. The API returns the correlation id in the `X-Request-ID` response header.
 
-Durable audit events are append-only MongoDB documents in the configured
-`audit_events` collection in `IDENTITY_DB`. Events include:
+Retained clinical audit events are append-only MongoDB documents in the configured
+`audit_events` collection in `IDENTITY_DB`. New expiring events use the separate
+`operational_audit_events` collection. The administrative browser merges both
+collections, including pre-upgrade operational events still present in `audit_events`.
+Events include:
 
 - `occurred_at`, `retention_class`, and `immutable`
 - `expires_at` for expiring operational events only
@@ -117,7 +120,7 @@ MongoDB transaction as their data changes:
 - Public catalog revisions and publication.
 - Assay setup revisions and publication bundles.
 - Assay, ASPC and gene-list creation, revision rotation and availability changes.
-- Assay-group creation and availability changes; subpanel definitions and associations.
+- Assay-group creation and availability changes; diagnosis definitions and associations.
 - Report saves, sample-bundle ingestion, collection-ingest transaction callbacks,
   and sample deletion.
 
@@ -320,7 +323,7 @@ treated as durable operational broadcasts.
 
 | Event | Notification audience |
 | --- | --- |
-| Assay, ASPC, assay group, ISGL, subpanel, association or assay setup changed through administration | All signed-in active users |
+| Assay, ASPC, assay group, ISGL, diagnosis, association or assay setup changed through administration | All signed-in active users |
 | Knowledgebase release published through the release-registry workflow, or public OncoKB refresh completed | All signed-in active users |
 | Sample report saved successfully | Active users assigned to the sample's assay group whose assay and environment scopes also match; wildcard assignments are respected |
 
@@ -366,8 +369,13 @@ Audit retention is enforced in two layers for `operational` events only:
 
 - MongoDB TTL indexes delete documents after their `expires_at` timestamp.
 - The nightly `api.tasks.maintenance.run_retention_maintenance` Celery task
-  deletes operational events older than the current admin retention policy and
-  reports the cleanup result.
+  deletes operational events in `operational_audit_events` older than the current
+  admin retention policy and reports the cleanup result.
+
+Pre-upgrade operational events remain in their original collection and expire
+through their existing `expires_at` TTL index. They are not moved or rewritten.
+Updated retention intervals apply to new events and cleanup of the new operational
+collection; legacy operational records keep their original expiry timestamps.
 
 Legacy audit documents without a retention class are retained conservatively.
 The application does not provide a cleanup path for traceability events. This
@@ -375,6 +383,78 @@ protects them from routine retention changes, but it cannot prevent a
 privileged database administrator from deleting collection data directly.
 Production deployments must therefore restrict database write access and
 include `audit_events` in protected backup and restore procedures.
+
+### Runtime database privileges
+
+The bundled MongoDB initializer assigns the `coyote3_runtime_identity` custom role
+instead of database-wide identity `readWrite`. The runtime can read and insert
+clinical audit events and inspect their indexes. It cannot update/delete those
+events, drop the collection, change validators, or create/drop indexes. Mutable
+chain heads and expiring operational events have separate collection privileges.
+Replay uses insert-and-handle-duplicate semantics, never an update upsert.
+
+Protected audit indexes are installed with maintenance credentials before granting
+the runtime role. Existing indexes can be verified with runtime credentials.
+The shared policy is generated from `api/infra/security/mongo_roles.py`:
+
+```bash
+.venv/bin/python scripts/database/manage_mongo_roles.py --export-policy
+.venv/bin/python scripts/database/manage_mongo_roles.py --check-policy
+```
+
+Existing MongoDB users are not modified by first-initialization scripts. Before
+deploying this release, plan and apply the role upgrade with a separate privileged
+maintenance connection to the configured identity deployment. Supply the four
+URI/name pairs in the command's environment, then run:
+
+```bash
+.venv/bin/python scripts/database/manage_mongo_roles.py \
+  --maintenance-uri-file /protected/identity-maintenance-uri \
+  --username COYOTE_RUNTIME_USER --authentication-database admin
+```
+
+Review the credential-free replacement-role plan, then repeat with `--apply`.
+This replaces the selected user's role assignments; it does not change passwords,
+delete documents or alter clinical events. It grants other service roles only
+when those services share the configured identity deployment. Use a distinct
+maintenance principal, never the runtime principal itself. Administrative
+credentials are not installed in API or worker environment settings.
+For container installations, run this command in a one-off API container with
+the maintenance URI file mounted read-only.
+
+The normal one-command installer can perform the upgrade before validation when
+the administrator explicitly supplies the maintenance URI file:
+
+```bash
+bash scripts/deployment/install_center.sh --setup-center \
+  --env-file "$COYOTE_ENV_FILE" --project "$COYOTE_PROJECT" \
+  --compose-file deploy/compose/docker-compose.yml \
+  --identity-maintenance-uri-file /protected/identity-maintenance-uri
+```
+
+It selects the runtime username and authentication database from the configured
+identity URI and supplies the maintenance URI only to a one-off container. The URI
+is not included in command arguments or persistent service settings. The upgrade
+must succeed before normal state validation proceeds. Already-hardened deployments
+can continue using the original installer command without the additional option.
+
+Installation checks in every environment reject unauthenticated identity connections
+and effective privileges that can mutate retained audit history. Adding a custom
+role while retaining broad `readWrite` access does not remove the broad grant.
+The installer detects an obviously anonymous identity URI before building images,
+including development and test deployments.
+An empty `IDENTITY_MONGO_URI` inherits `COYOTE3_MONGO_URI`; an explicitly anonymous
+identity URI does not inherit credentials from the shared URI. Configure an
+authenticated runtime connection and provision MongoDB authorization and its
+restricted role before retrying installation. `authSource` selects where an
+existing MongoDB user authenticates; it does not create that user or enable server
+authorization. The identity maintenance option upgrades existing role assignments;
+it does not create runtime credentials or enable MongoDB authentication.
+The check also explains an impossible update in query-planner mode and requires
+an authorization denial. Explain does not modify documents; this detects a server
+that accepts credentials while authorization enforcement is disabled.
+External MongoDB deployments must provision the corresponding role and indexes;
+the normal installer cannot grant itself database administration privileges.
 
 ### Traceability integrity verification
 
@@ -401,6 +481,33 @@ Keep the last trusted checkpoint when a verification fails. Back up both `audit_
 and `audit_chain_heads` together. A chain alone cannot detect a privileged attacker
 rewriting all events and heads; an independent checkpoint supplies the trusted anchor.
 Checkpoint files contain hashes and positions, not event payloads or credentials.
+
+### Scheduled checkpoint exports
+
+Set `AUDIT_CHECKPOINT_DIRECTORY` to a dedicated archival mount inside the maintenance
+worker. The hourly `api.tasks.maintenance.export_audit_checkpoint` task verifies the
+chain and creates a uniquely named, fsynced JSON checkpoint. An unset value disables
+export. Verification failures raise an error and do not produce a successful checkpoint.
+The destination directory must already exist; the application does not provision it.
+
+Mount the institution's archival destination separately from application data/logs.
+For example, add a reviewed Compose overlay that mounts it at `/audit-checkpoints`
+in `maintenance-worker`, then set `AUDIT_CHECKPOINT_DIRECTORY=/audit-checkpoints`.
+The storage administrator must enforce WORM/retention protection and independent
+access controls. Exclusive file creation and read-only file permissions alone do
+not prevent a privileged user from deleting or rewriting filesystem contents.
+
+Manual verification/export uses the same implementation:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/database/verify_audit_chain.py \
+  --checkpoint /protected/checkpoints/previous-audit-checkpoint.json \
+  --archive-directory /protected/checkpoints
+```
+
+Keep independently retained earlier checkpoints for comparison. Hourly exports
+verify the current chain; they do not automatically designate a local file as an
+independently trusted anchor. Export failures appear as failed Celery tasks.
 
 Traceability audit events are event records, not automatic resource snapshots. Clinical
 rule-set events contain the rule-set identity, content version, revision, status, actor, and

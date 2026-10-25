@@ -114,9 +114,9 @@ export function useCohortColumns() {
       },
       { accessorKey: "asp_id", header: "Assay", cell: ({ row }) => row.original.asp_id || "-" },
       {
-        accessorKey: "subpanel_id",
-        header: "Subpanel",
-        cell: ({ row }) => row.original.subpanel_id || "-",
+        accessorKey: "diagnosis_id",
+        header: "Diagnosis",
+        cell: ({ row }) => row.original.diagnosis_id || "-",
       },
       {
         accessorKey: "environment",

@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from api.infra.observability.redaction import redact_diagnostics
+from coyote3.domain.common.diagnostics import redact_diagnostics
 
 ERROR_GUIDANCE = {
     400: ("invalid_request", "Check the request values and try again."),

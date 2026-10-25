@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from api.domain.common.sample_filters import merge_filter_defaults, normalize_sample_filters
+from coyote3.domain.common.sample_filters import merge_filter_defaults, normalize_sample_filters
 
 RETIRED_SAMPLE_FILTER_DOT_PATHS = (
     "filters.genelists",
@@ -39,7 +39,7 @@ def test_sectioned_sample_filter_payload_stays_in_canonical_contract():
                 "coverage": {"warn_cov": 500},
             },
         },
-        omics_layer="dna",
+        asp_category="dna",
     )
 
     assert normalized["snv"]["min_depth"] == 100
@@ -53,7 +53,7 @@ def test_sectioned_sample_filter_payload_stays_in_canonical_contract():
 
 def test_backend_services_do_not_query_retired_flat_sample_filter_paths():
     """Runtime code should query sectioned filter paths, not retired flat paths."""
-    roots = [Path("api/application"), Path("api/interfaces"), Path("api/infra")]
+    roots = [Path("src/coyote3/application"), Path("api/interfaces"), Path("api/infra")]
     offenders: list[str] = []
     for root in roots:
         for path in root.rglob("*.py"):
@@ -75,7 +75,7 @@ def test_filter_defaults_complete_an_existing_empty_intent_profile():
                 "cnv": {"cnv_loss_cutoff": -0.2, "cnv_gain_cutoff": 0.2},
             }
         },
-        omics_layer="dna",
+        asp_category="dna",
         analysis_intents=["somatic"],
     )
 

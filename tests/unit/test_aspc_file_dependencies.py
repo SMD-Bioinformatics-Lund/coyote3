@@ -2,11 +2,11 @@
 
 import pytest
 
-from api.application.resources.aspc import AspcService
-from api.contracts.managed_resources import managed_resource_spec
-from api.contracts.managed_ui_schemas import build_form_spec
-from api.contracts.schemas.assay import AssaySpecificPanelsDoc
-from api.domain.core.exceptions import AppError
+from coyote3.application.resources.aspc import AspcService
+from coyote3.contracts.authoring.forms import build_form_spec
+from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.contracts.schemas.assay import AssaySpecificPanelsDoc
+from coyote3.domain.exceptions import AppError
 
 
 def test_saved_empty_file_selection_does_not_reenable_analyses():
@@ -34,7 +34,7 @@ def test_saved_empty_file_selection_does_not_reenable_analyses():
             "panel-dna",
             ["vcf_files", "transloc"],
             ["vcf_files"],
-            ["SNV", "TRANSLOCATION", "FUSION"],
+            ["SNV", "TRANSLOCATION"],
         ),
         ("dna", "panel-dna", [], [], []),
         ("rna", "wts", ["expression_path"], ["fusion_files"], ["EXPRESSION"]),
@@ -84,4 +84,4 @@ def test_identity_is_editable_only_during_creation(resource, identity):
 def test_aspc_identity_is_derived_and_readonly(resource):
     field = build_form_spec(managed_resource_spec(resource))["fields"]["aspc_id"]
     assert field["readonly"] is True
-    assert field["derive_from"] == ["asp_id", "subpanel_id", "environment"]
+    assert field["derive_from"] == ["asp_id", "diagnosis_id", "environment"]

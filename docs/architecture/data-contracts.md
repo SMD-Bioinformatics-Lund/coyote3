@@ -2,13 +2,13 @@
 
 ## API contracts
 
-Request/response contracts live in `api/contracts/*.py` and are the API
+Request/response contracts live in `src/coyote3/contracts/*.py` and are the API
 boundary schema. Routers accept and return these models rather than exposing
 raw MongoDB documents.
 
 ## DB contracts
 
-`api/contracts/schemas/` defines model validation for Mongo collection
+`src/coyote3/contracts/schemas/` defines model validation for Mongo collection
 documents, grouped by domain:
 
 - `samples.py`
@@ -22,8 +22,8 @@ documents, grouped by domain:
 Managed admin UI schemas for core resources are backend-owned and generated from
 contract models (not read from DB schema documents):
 
-- `api/contracts/managed_resources.py`
-- `api/contracts/managed_ui_schemas.py`
+- `src/coyote3/contracts/authoring/resources.py`
+- `src/coyote3/contracts/authoring/forms.py`
 
 Admin create/edit pages use one canonical contract per resource and render
 fields directly from backend-provided schema payloads. The UI does not provide
@@ -43,10 +43,10 @@ Design principles:
 
 Sample ingestion contract ownership:
 
-- `api/contracts/schemas/samples.py` defines DNA/RNA ingest file-key groups and source-path keys
-- `api/application/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and updates
+- `src/coyote3/contracts/schemas/samples.py` defines DNA/RNA ingest file-key groups and source-path keys
+- `src/coyote3/application/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and updates
 - sample documents persist canonical file path fields from the ingest payload
-- dependent writes use registry-owned mappings in `api/contracts/schemas/registry.py`
+- dependent writes use registry-owned mappings in `src/coyote3/contracts/schemas/registry.py`
 
 ## Contract Layers
 
@@ -98,7 +98,7 @@ generic metadata without a sample may still request the latest release.
 ## Configuration Contracts
 
 `AssaySpecificPanelsDoc` defines the physical assay. `AspConfigDoc` defines one
-analytical configuration for an ASP, subpanel, and environment.
+analytical configuration for an ASP, diagnosis, and environment.
 
 The ASPC contract validates:
 
@@ -133,9 +133,9 @@ for the complete producer/consumer protocol.
 
 ## Validation flow
 
-- internal ingest normalizes and validates documents via collection contracts in `api/contracts/schemas/registry.py`
+- internal ingest normalizes and validates documents via collection contracts in `src/coyote3/contracts/schemas/registry.py`
 - admin create/update for ASP, ASPC, ISGL, users, roles, and permissions validates via collection contracts before DB write
-- managed admin resource-to-schema/collection mapping is centralized in `api/contracts/managed_resources.py`
+- managed admin resource-to-schema/collection mapping is centralized in `src/coyote3/contracts/authoring/resources.py`
 - unsupported collection names fail fast
 - invalid shape fails before DB write
 
@@ -144,7 +144,7 @@ for the complete producer/consumer protocol.
 1. Define the source of truth and ownership boundary.
 2. Create the Pydantic model.
 3. Register it in
-   `api/contracts/schemas/registry.py::COLLECTION_MODEL_ADAPTERS`.
+   `src/coyote3/contracts/schemas/registry.py::COLLECTION_MODEL_ADAPTERS`.
 4. Define indexes and uniqueness constraints.
 5. Add positive, negative, boundary, and missing-value tests.
 6. Add a plain JSON fixture.
@@ -173,7 +173,7 @@ for the complete producer/consumer protocol.
 
 Use:
 
-- `demo_data/collections/all_collections_dummy`
+- `tests/fixtures/collections/all_collections_dummy`
 - `tests/unit/test_db_dummy_fixture.py`
 - `scripts/bootstrap/validate_assay_consistency.py`
 

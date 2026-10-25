@@ -38,9 +38,9 @@ vi.mock("@/components/knowledgebase/OncoKbGeneBadge", () => ({
 }))
 
 const detailPayload = {
-  sample: { name: "CASE_001", assay: "hema_gmsv1", subpanel: "hem" },
+  sample: { name: "CASE_001", assay: "hema_gmsv1", diagnosis: "hem" },
   assay_group: "hematology",
-  subpanel: "hem",
+  diagnosis: "hem",
   latest_classification: { class: 2 },
   variant: {
     _id: "variant-1",
@@ -87,7 +87,7 @@ const detailPayload = {
       sample_name: "OTHER_CASE",
       assay: "hema_gmsv1",
       assay_group: "hematology",
-      subpanel: "hem",
+      diagnosis: "hem",
       vaf: 0.085,
       tier: 2,
     },
@@ -193,10 +193,10 @@ describe("VariantDetail", () => {
     expect(screen.getByText("BRCA Exchange")).toBeVisible()
     expect(screen.getByText("IARC TP53")).toBeVisible()
     expect(screen.getByText("HPA expression")).toBeVisible()
-    expect(screen.getByRole("img", { name: "CIViC logo" })).toHaveAttribute("src", "/civic.png")
-    expect(screen.getByRole("img", { name: "BRCA Exchange logo" })).toHaveAttribute("src", "/BRCA-Exchange.png")
+    expect(screen.getByRole("img", { name: "CIViC logo" })).toHaveAttribute("src", "/logos/civic-vector.svg")
+    expect(screen.getByRole("img", { name: "BRCA Exchange logo" })).toHaveAttribute("src", "/logos/brca-exchange-vector.svg")
     expect(screen.getAllByRole("img", { name: "OncoKB logo" })).toHaveLength(3)
-    expect(screen.getByRole("img", { name: "ClinPGx logo" })).toHaveAttribute("src", "/clinPGxpng.png")
+    expect(screen.getByRole("img", { name: "ClinPGx logo" })).toHaveAttribute("src", "/logos/clinpgx-vector.svg")
     expect(screen.getByText("SRSF2 M89V")).toBeVisible()
     expect(screen.getByText("bone_marrow")).toBeVisible()
   })

@@ -9,8 +9,13 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from api.interfaces.http.operations import auth as auth_router
-from api.interfaces.http.operations import health as health_router
+from api.app.application_factory import open_password_recovery
+from api.interfaces.http.v1.operations import auth as auth_router
+from api.interfaces.http.v1.operations import health as health_router
+from api.security import password_flows
+from coyote3.application.operations.account import Account
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -46,11 +51,6 @@ def _cookie_request(cookie: str) -> Request:
 
 
 def test_health_returns_ok():
-    """Test health returns ok.
-
-    Returns:
-        The function result.
-    """
     assert health_router.health() == {"status": "ok"}
 
 
@@ -83,11 +83,6 @@ def test_auth_login_reports_unconfigured_enabled_ldap(monkeypatch):
 
 
 def test_whoami_sorts_permission_list(monkeypatch):
-    """Test whoami sorts permission lists.
-
-    Returns:
-        The function result.
-    """
     user = fx.api_user()
     user.permissions = ["b", "a"]
 
@@ -124,7 +119,7 @@ def test_current_user_can_update_analysis_layout():
     payload = auth_router.update_current_ui_settings(
         auth_router.ApiUiSettingsUpdateRequest(analysis_layout="modern"),
         user=user,
-        service=service,
+        service=sdk_fixtures.authorized_operations(Account, service, user),
     )
 
     assert payload == {"status": "ok", "ui_settings": {"analysis_layout": "modern"}}
@@ -143,7 +138,9 @@ def test_current_user_can_update_theme(theme):
     result = auth_router.update_current_ui_settings(
         auth_router.ApiUiSettingsUpdateRequest(theme=theme),
         user=user,
-        service=SimpleNamespace(update_own_ui_settings=update),
+        service=sdk_fixtures.authorized_operations(
+            Account, SimpleNamespace(update_own_ui_settings=update), user
+        ),
     )
     assert calls == [{"username": user.username, "payload": {"theme": theme}}]
     assert result["ui_settings"]["theme"] == theme
@@ -152,14 +149,6 @@ def test_current_user_can_update_theme(theme):
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):
-    """Test auth login rejects invalid credentials.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: None)
 
     with pytest.raises(HTTPException) as exc:
@@ -173,14 +162,6 @@ def test_auth_login_rejects_invalid_credentials(monkeypatch):
 
 
 def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
-    """Test auth login sets cookie and returns session payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user_doc = fx.user_doc()
     calls = {}
 
@@ -225,14 +206,6 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
 
 
 def test_create_auth_session_returns_201(monkeypatch):
-    """Test create auth session returns 201.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user_doc = fx.user_doc()
 
     monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p, **_kwargs: user_doc)
@@ -266,14 +239,6 @@ def test_create_auth_session_returns_201(monkeypatch):
 
 
 def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
-    """Test auth login prefers business user id for session.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user_doc = fx.user_doc()
     user_doc["user_id"] = "coyote3.admin"
     calls = {}
@@ -316,14 +281,6 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
 
 
 def test_delete_auth_session_deletes_session_cookie(monkeypatch):
-    """Test delete auth session deletes session cookie.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
 
     response = auth_router.delete_auth_session()
@@ -333,14 +290,6 @@ def test_delete_auth_session_deletes_session_cookie(monkeypatch):
 
 
 def test_auth_session_serializes_user(monkeypatch):
-    """Test auth session serializes user.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(auth_router, "serialize_api_user", lambda user: {"username": user.username})
     monkeypatch.setattr(
         auth_router.util,
@@ -366,13 +315,11 @@ def test_auth_session_serializes_user(monkeypatch):
 def test_change_password_rejects_weak_password():
     """Weak new password should fail validation."""
     user = fx.api_user()
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         auth_router.change_password(
-            auth_router.ApiPasswordChangeRequest(
-                current_password="old",
-                new_password="weak",
-            ),
+            auth_router.ApiPasswordChangeRequest(current_password="old", new_password="weak"),
             user=user,
+            service=sdk_fixtures.authorized_operations(Account, None, user),
         )
     assert exc.value.status_code == 400
 
@@ -386,13 +333,13 @@ def test_change_password_calls_local_change_flow(monkeypatch):
         calls["kwargs"] = kwargs
         return {"status": "ok"}
 
-    monkeypatch.setattr(auth_router, "change_local_password", _change_local_password)
+    monkeypatch.setattr(password_flows, "change_local_password", _change_local_password)
     payload = auth_router.change_password(
         auth_router.ApiPasswordChangeRequest(
-            current_password="OldGood!123",
-            new_password="NewGood!123",
+            current_password="OldGood!123", new_password="NewGood!123"
         ),
         user=user,
+        service=sdk_fixtures.authorized_operations(Account, None, user),
     )
     assert payload["status"] == "ok"
     assert calls["kwargs"]["user_id"] == user.username
@@ -407,10 +354,10 @@ def test_password_reset_request_always_ok(monkeypatch):
         return {"status": "ok"}
 
     monkeypatch.setattr(
-        auth_router, "issue_password_token_for_user", _issue_password_token_for_user
+        password_flows, "issue_password_token_for_user", _issue_password_token_for_user
     )
     payload = auth_router.request_password_reset(
-        auth_router.ApiPasswordResetRequest(username="tester")
+        auth_router.ApiPasswordResetRequest(username="tester"), service=open_password_recovery()
     )
     assert payload["status"] == "ok"
     assert calls["kwargs"]["purpose"] == "reset"
@@ -419,26 +366,19 @@ def test_password_reset_request_always_ok(monkeypatch):
 def test_password_reset_confirm_raises_on_invalid_token(monkeypatch):
     """Confirm endpoint maps flow errors to HTTP 400."""
     monkeypatch.setattr(
-        auth_router,
+        password_flows,
         "consume_password_token_and_set_password",
         lambda **_: {"status": "error", "error": "bad token"},
     )
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AppError) as exc:
         auth_router.confirm_password_reset(
-            auth_router.ApiPasswordResetConfirmRequest(
-                token="bad",
-                new_password="NewGood!123",
-            )
+            auth_router.ApiPasswordResetConfirmRequest(token="bad", new_password="NewGood!123"),
+            service=open_password_recovery(),
         )
     assert exc.value.status_code == 400
 
 
 def test_http_exception_handler_preserves_dict_detail():
-    """Test http exception handler preserves dict detail.
-
-    Returns:
-        The function result.
-    """
     exc = HTTPException(status_code=418, detail={"status": 418, "error": "teapot"})
 
     response = asyncio.run(auth_router.http_exception_handler(_http_request(), exc))
@@ -448,11 +388,6 @@ def test_http_exception_handler_preserves_dict_detail():
 
 
 def test_http_exception_handler_wraps_string_detail():
-    """Test http exception handler wraps string detail.
-
-    Returns:
-        The function result.
-    """
     exc = HTTPException(status_code=400, detail="bad request")
 
     response = asyncio.run(auth_router.http_exception_handler(_http_request(), exc))

@@ -6,15 +6,15 @@ import type {
 
 
 export const ANALYSES = {
-  dna: ["SNV", "CNV", "TRANSLOCATION", "HRD", "MSI", "CNV_PROFILE", "COVERAGE", "FUSION", "TMB", "PGX"],
-  rna: ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC", "PGX"],
+  dna: ["SNV", "CNV", "TRANSLOCATION", "HRD", "MSI", "CNV_PROFILE", "COVERAGE", "TMB", "PGX"],
+  rna: ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"],
 } as const
 
 export const clone = <T,>(value: T): T => structuredClone(value)
 
 export type NewRuleSetScope = {
   asp_id: string
-  subpanel_id: string
+  diagnosis_id: string
   analyte: "dna" | "rna"
   language: string
   name: string
@@ -24,7 +24,7 @@ export type CreationMode = "blank" | "template" | "import"
 
 export const emptyRuleSetScope = (): NewRuleSetScope => ({
   asp_id: "",
-  subpanel_id: "base",
+  diagnosis_id: "base",
   analyte: "dna",
   language: "sv",
   name: "",
@@ -58,11 +58,11 @@ export const nextOrder = (used: number[], interval: number) =>
 
 export const generatedRuleSetName = (
   assay: ClinicalRuleAssayOption | undefined,
-  subpanelId: string,
+  diagnosisId: string,
 ) => {
   if (!assay) return ""
-  const subpanel = subpanelId.trim()
-  const scope = subpanel && subpanel !== "base" ? ` - ${subpanel}` : ""
+  const diagnosis = diagnosisId.trim()
+  const scope = diagnosis && diagnosis !== "base" ? ` - ${diagnosis}` : ""
   return `${assay.display_name}${scope} clinical report rules`
 }
 

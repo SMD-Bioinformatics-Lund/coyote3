@@ -4,14 +4,31 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.contracts.schemas.clinical_rules import (
+from api.interfaces.http.v1.admin import clinical_rules as rules
+from coyote3.application.operations import ApplicationRuntime, ClinicalRules
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleScope,
     ClinicalRuleTransition,
 )
-from api.interfaces.http.admin import clinical_rules as rules
 from tests.fixtures.api import mock_collections as fx
+
+
+def _operations(user, service):
+    """Exercise the SDK boundary with explicit synthetic authorization capabilities."""
+    policy = SimpleNamespace(
+        permission_allowed=lambda *args, **kwargs: True,
+        scope_allowed=lambda *args, **kwargs: True,
+    )
+    runtime = ApplicationRuntime(
+        authenticate=lambda: user,
+        policy_factory=lambda actor: policy,
+        sample_loader=lambda identity: {"_id": identity},
+        assay_loader=lambda identity: {"asp_group": "synthetic"},
+        audit_access=lambda event: None,
+    )
+    return ClinicalRules(runtime, lambda: service, lambda: service)
 
 
 def test_list_rule_sets_passes_filters_and_pagination(monkeypatch) -> None:
@@ -26,7 +43,7 @@ def test_list_rule_sets_passes_filters_and_pagination(monkeypatch) -> None:
         page=2,
         per_page=25,
         _user=fx.api_user(),
-        service=service,
+        service=_operations(fx.api_user(), service),
     )
 
     assert result == {
@@ -47,7 +64,7 @@ def test_authoring_options_are_loaded_from_the_service() -> None:
     assert (
         rules.clinical_rule_authoring_options(
             _user=fx.api_user(),
-            service=SimpleNamespace(authoring_options=lambda: expected),
+            service=_operations(fx.api_user(), SimpleNamespace(authoring_options=lambda: expected)),
         )
         == expected
     )
@@ -63,10 +80,12 @@ def test_revision_routes_return_immutable_history(monkeypatch) -> None:
         },
     )
 
-    assert rules.list_rule_set_revisions("rule-version", _user=fx.api_user(), service=service) == {
-        "items": [{"rule_set_oid": "rule-version", "revision": 2}]
-    }
-    assert rules.get_rule_set_revision("rule-version", 2, _user=fx.api_user(), service=service) == {
+    assert rules.list_rule_set_revisions(
+        "rule-version", _user=fx.api_user(), service=_operations(fx.api_user(), service)
+    ) == {"items": [{"rule_set_oid": "rule-version", "revision": 2}]}
+    assert rules.get_rule_set_revision(
+        "rule-version", 2, _user=fx.api_user(), service=_operations(fx.api_user(), service)
+    ) == {
         "rule_set_oid": "rule-version",
         "revision": 2,
     }
@@ -87,11 +106,11 @@ def test_sample_testing_routes_preserve_user_scope(monkeypatch) -> None:
     result = rules.search_clinical_rule_test_samples(
         "rule-version",
         q="sample",
-        match_subpanel=True,
+        match_diagnosis=True,
         page=1,
         per_page=20,
         user=user,
-        service=SimpleNamespace(search_samples=search_samples),
+        service=_operations(user, SimpleNamespace(search_samples=search_samples)),
     )
 
     assert result["total"] == 0
@@ -101,7 +120,6 @@ def test_sample_testing_routes_preserve_user_scope(monkeypatch) -> None:
 
 def test_sample_preview_loads_authorized_sample(monkeypatch) -> None:
     monkeypatch.setattr(rules, "_serializable", lambda value: value)
-    monkeypatch.setattr(rules, "_get_sample_for_api", lambda sample_id, user: {"_id": sample_id})
     observed = {}
 
     def preview(**kwargs):
@@ -112,7 +130,7 @@ def test_sample_preview_loads_authorized_sample(monkeypatch) -> None:
         "rule-version",
         "sample-id",
         user=fx.api_user(),
-        service=SimpleNamespace(preview=preview),
+        service=_operations(fx.api_user(), SimpleNamespace(preview=preview)),
     )
 
     assert result == {"persisted": False}
@@ -133,7 +151,7 @@ def test_create_draft_records_authenticated_actor(monkeypatch) -> None:
 
     payload = ClinicalRuleDraftCreate(
         scope=ClinicalRuleScope(
-            asp_id="hema_gmsv1", subpanel_id="base", analyte="dna", language="sv"
+            asp_id="hema_gmsv1", diagnosis_id="base", analyte="dna", language="sv"
         ),
         name="Hematology report rules",
     )
@@ -142,7 +160,7 @@ def test_create_draft_records_authenticated_actor(monkeypatch) -> None:
     result = rules.create_rule_set_draft(
         payload,
         user=user,
-        service=SimpleNamespace(create_draft=create),
+        service=_operations(user, SimpleNamespace(create_draft=create)),
     )
 
     assert result["status"] == "draft"
@@ -162,7 +180,7 @@ def test_delete_draft_delegates_authenticated_actor() -> None:
             "507f1f77bcf86cd799439011",
             revision=3,
             user=user,
-            service=SimpleNamespace(delete_draft=delete),
+            service=_operations(user, SimpleNamespace(delete_draft=delete)),
         )
         is None
     )
@@ -188,7 +206,7 @@ def test_review_decision_passes_explicit_reason_and_actor(monkeypatch) -> None:
         "507f1f77bcf86cd799439011",
         payload,
         user=user,
-        service=SimpleNamespace(clinical_decision=decide),
+        service=_operations(user, SimpleNamespace(clinical_decision=decide)),
     )
 
     assert result["status"] == "approved"
@@ -211,7 +229,7 @@ def test_retirement_delegates_reason_to_lifecycle_service(monkeypatch) -> None:
         "507f1f77bcf86cd799439011",
         payload,
         user=user,
-        service=SimpleNamespace(retire=retire),
+        service=_operations(user, SimpleNamespace(retire=retire)),
     )
 
     assert result["status"] == "retired"

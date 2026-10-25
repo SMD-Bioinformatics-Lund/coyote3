@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-from api.interfaces.http.admin import roles
+from api.interfaces.http.v1.admin import roles
+from coyote3.application.operations import administration as sdk_administration
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_roles_read_with_fake_store(monkeypatch):
-    """Test list roles read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",
@@ -22,7 +16,13 @@ def test_list_roles_read_with_fake_store(monkeypatch):
         {"list_roles_payload": staticmethod(lambda **_: {"roles": [fx.role_doc()]})},
     )()
 
-    payload = roles.list_roles_read(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        roles.list_roles_read,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.Roles, service, fx.api_user()
+        ),
+    )
 
     assert payload["roles"][0]["_id"] == fx.role_doc()["_id"]
     assert payload["roles"][0]["level"] == int(fx.role_doc().get("level") or 0)
@@ -47,6 +47,12 @@ def test_create_role_context_read_with_fake_store(monkeypatch):
         },
     )()
 
-    payload = roles.create_role_context_read(user=fx.api_user(), service=service)
+    payload = sdk_fixtures.invoke_route(
+        roles.create_role_context_read,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.Roles, service, fx.api_user()
+        ),
+    )
 
     assert payload["form"]["fields"]["created_by"]["default"] == "tester"

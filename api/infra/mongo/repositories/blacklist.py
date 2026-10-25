@@ -11,9 +11,9 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.contracts.operations import OperationResult
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import get_simple_id
+from coyote3.contracts.operations import OperationResult
 
 
 # -------------------------------------------------------------------------

@@ -6,13 +6,53 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting import dna_report_payload as dna_payload
-from api.application.reporting import dna_workflow, rna_workflow
+from api.infra.report_images import get_plot
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote3.application.reporting import dna_workflow, rna_workflow
+
+
+def _release(assay: str, group: str, *, rna: bool = False) -> dict:
+    """Supply pinned synthetic resources to report workflows."""
+    panel = {
+        "asp_id": assay,
+        "asp_group": group,
+        "version": 1,
+        "asp_category": "rna" if rna else "dna",
+        "asp_family": "panel-rna" if rna else "panel-dna",
+        "covered_genes": ["TP53", "EGFR", "EML4", "ALK"],
+    }
+    return {
+        "asp_id": assay,
+        "asp_group": group,
+        "assay_resource_release": capture_assay_resource(panel),
+        "gene_list_release": capture_gene_lists(
+            []
+            if rna
+            else [
+                {
+                    "isgl_id": "CNV_GL",
+                    "version": 1,
+                    "genes": ["TP53"],
+                    "list_type": ["cnv"],
+                    "is_active": True,
+                }
+            ]
+        ),
+        "aspc_resolution": {
+            "context": {
+                "assay_id": assay,
+                "group_id": group,
+                "environment": "testing",
+                "diagnosis_id": "base",
+            }
+        },
+    }
 
 
 def _dna_workflow() -> dna_workflow.DNAWorkflowService:
     stub = SimpleNamespace()
     return dna_workflow.DNAWorkflowService(
+        plot_reader=get_plot,
         assay_panel_repository=stub,
         gene_list_repository=stub,
         variant_repository=stub,
@@ -39,7 +79,6 @@ def _rna_workflow(
     fusion_repository=None,
     annotation_repository=None,
     assay_panel_repository=None,
-    pgx_repository=None,
     reported_variant_repository=None,
     report_repository=None,
 ) -> rna_workflow.RNAWorkflowService:
@@ -53,7 +92,6 @@ def _rna_workflow(
         fusion_repository=fusion_repository or stub,
         annotation_repository=annotation_repository or stub,
         assay_panel_repository=assay_panel_repository or stub,
-        pgx_repository=pgx_repository,
         reported_variant_repository=reported_variant_repository or stub,
         report_repository=report_repository or stub,
         clinical_rule_service=None,
@@ -123,11 +161,12 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 def test_dna_report_payload_requires_sample_database_vep_version():
     try:
         dna_workflow.build_dna_report_payload(
+            plot_reader=get_plot,
             sample={
                 "_id": "s1",
                 "name": "S1",
                 "asp_id": "assay_1",
-                "subpanel_id": "hema",
+                "diagnosis_id": "hema",
                 "filters": {
                     "somatic": {
                         "snv": {
@@ -144,6 +183,7 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                 },
             },
             assay_config={
+                **_release("assay_1", "hematology"),
                 "asp_group": "hematology",
                 "filters": {
                     "somatic": {
@@ -192,11 +232,12 @@ def test_dna_report_payload_requires_sample_database_vep_version():
 
 def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cnv_list():
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        plot_reader=get_plot,
         sample={
             "_id": "s1",
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": "hema",
+            "diagnosis_id": "hema",
             "database_versions": {"vep": "110"},
             "filters": {
                 "somatic": {
@@ -215,6 +256,7 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             },
         },
         assay_config={
+            **_release("assay_1", "hematology"),
             "asp_group": "hematology",
             "filters": {
                 "somatic": {
@@ -292,17 +334,18 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
     def unexpected(*_args, **_kwargs):
         raise AssertionError("display-only report work must not run during rule testing")
 
-    monkeypatch.setattr(dna_payload, "get_plot", unexpected)
     template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+        plot_reader=unexpected,
         sample={
             "_id": "s1",
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "database_versions": {"vep": "110"},
             "filters": {"somatic": {"snv": {"snvlists": [], "vep_consequences": []}}},
         },
         assay_config={
+            **_release("assay_1", "hematology"),
             "asp_group": "hematology",
             "filters": {"somatic": {"snv": {"snvlists": [], "vep_consequences": []}}},
             "reporting": {"report_sections": ["SNV", "CNV_PROFILE"]},
@@ -353,7 +396,6 @@ def test_rna_clinical_rule_only_payload_skips_print_report_work():
         ),
         assay_panel_repository=SimpleNamespace(get_asp=lambda asp_id: {}),
     )
-    workflow.pgx_repository = None
     workflow.clinical_rule_service = SimpleNamespace(
         evaluate_document=lambda **kwargs: SimpleNamespace(
             model_dump=lambda **options: {"sections": {}, "trace": []}
@@ -362,7 +404,10 @@ def test_rna_clinical_rule_only_payload_skips_print_report_work():
 
     template_name, context, snapshot_rows = workflow.build_report_payload(
         sample={"_id": "s1", "name": "S1", "asp_id": "rna_assay"},
-        assay_config={"asp_group": "rna", "reporting": {"report_sections": ["FUSION"]}},
+        assay_config={
+            **_release("rna_assay", "rna", rna=True),
+            "reporting": {"report_sections": ["FUSION"]},
+        },
         save=0,
         include_snapshot=False,
         clinical_rule_override=SimpleNamespace(),
@@ -374,15 +419,9 @@ def test_rna_clinical_rule_only_payload_skips_print_report_work():
     assert snapshot_rows == []
 
 
-def test_rna_workflow_merge_and_persist_filters(monkeypatch):
-    """RNA workflow normalizes and persists form filters."""
+def test_rna_workflow_merge_and_normalize_filters(monkeypatch):
+    """RNA workflow merges defaults and validates normalized sample filters."""
     calls = {}
-    sample_repository = SimpleNamespace(
-        update_sample_filters=lambda _id, filters: None,
-        get_sample=lambda _id: {
-            "filters": {"somatic": {"fusion": {"min_spanning_reads": 2, "min_spanning_pairs": 3}}}
-        },
-    )
 
     monkeypatch.setattr(
         rna_workflow.util,
@@ -391,10 +430,6 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
             merge_sample_settings_with_assay_config=lambda sample, assay: {
                 "name": "S1",
                 "filters": {},
-            },
-            format_filters_from_form=lambda form, schema: {
-                "fusion_effects": [],
-                "fusion_callers": [],
             },
         ),
         raising=False,
@@ -407,8 +442,6 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
         ),
     )
     monkeypatch.setattr(rna_workflow, "normalize_rna_filter_keys", lambda payload: dict(payload))
-    monkeypatch.setattr(rna_workflow, "create_fusioncallers", lambda values: values)
-    monkeypatch.setattr(rna_workflow, "create_fusioneffectlist", lambda values: values)
 
     merged, normalized = rna_workflow.RNAWorkflowService.merge_and_normalize_sample_filters(
         {"name": "S1"},
@@ -419,17 +452,6 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     assert merged["name"] == "S1"
     assert normalized == {}
     assert calls["validate"][1] == "S1"
-
-    req = SimpleNamespace(getlist=lambda _key: ["L1"])
-    workflow = _rna_workflow(sample_repository=sample_repository)
-    updated_sample, updated_filters = workflow.persist_form_filters(
-        {"_id": "sample-1", "filters": {}},
-        form={},
-        assay_config_schema={},
-        request_form=req,
-    )
-    assert updated_sample["filters"]["somatic"]["fusion"]["min_spanning_reads"] == 2
-    assert updated_filters["min_spanning_pairs"] == 3
 
 
 def test_rna_workflow_build_context_and_query(monkeypatch):
@@ -462,14 +484,14 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
         {"name": "S1", "filters": {}},
         {"fusion_effects": ["in-frame"], "fusion_callers": ["arriba"], "fusionlists": ["L1"]},
         {"asp_id": "RNA"},
+        {"L1": {"genes": ["TP53"]}},
     )
     query = rna_workflow.RNAWorkflowService.build_fusion_list_query(
         "hema",
         "sample-1",
         {"min_spanning_reads": 2, "min_spanning_pairs": 3},
         context,
-        asp_id="rna_panel",
-        subpanel_id="base",
+        sample={"asp_id": "rna_panel", "diagnosis_id": "base"},
     )
 
     assert context["fusion_effect_form_keys"] == ["inframe"]
@@ -525,9 +547,10 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         lambda **kwargs: kwargs["report_id"],
     )
 
-    def scoped_annotations(fusion, group, subpanel):
+    def scoped_annotations(fusion, group, diagnosis, *, sample_context):
+        assert sample_context["assay_id"] == "fusion"
         assert group == "hema"
-        assert subpanel == "selected-panel"
+        assert diagnosis == "selected-panel"
         return [], fusion["classification"], [], {group: {"text": "a"}}
 
     workflow = _rna_workflow(
@@ -556,8 +579,8 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             "_id": "S1",
             "name": "S1",
             "asp_id": "fusion",
-            "subpanel_id": "selected-panel",
-            "omics_layer": "rna",
+            "diagnosis_id": "selected-panel",
+            "asp_category": "rna",
             "analysis_intents": ["somatic"],
             "filters": {
                 "somatic": {
@@ -568,6 +591,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             },
         },
         assay_config={
+            **_release("fusion", "hema", rna=True),
             "asp_group": "hema",
             "reporting": {
                 "report_header": "RNA fusion report",

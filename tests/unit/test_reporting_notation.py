@@ -1,7 +1,7 @@
 """Tests for stable reporting language and HGVS residue notation helpers."""
 
-from api.domain.common.reporting import nl_num
-from api.domain.core.dna.notation import one_letter_p, three_letter_p
+from coyote3.domain.common.reporting import nl_num
+from coyote3.domain.dna.notation import one_letter_p, three_letter_p
 
 
 def test_swedish_small_numbers_respect_neuter_form_and_bounds():

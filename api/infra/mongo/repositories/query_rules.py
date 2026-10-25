@@ -7,15 +7,17 @@ from bson.errors import InvalidId
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
-from api.contracts.schemas.query_rules import QueryRuleScope
-from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.query_rule_revisions import (
     QueryRuleRevisionRepository,
     build_query_revision,
 )
+from api.infra.mongo.selection import compile_selection
 from api.infra.mongo.transactions import run_transaction
+from coyote3.contracts.schemas.query_rules import QueryRuleScope
+from coyote3.domain.common.errors import api_error
+from coyote3.domain.selection import Selection
 
 
 class QueryRuleRepository(BaseRepository):
@@ -31,6 +33,11 @@ class QueryRuleRepository(BaseRepository):
         self.set_collection(adapter.query_rule_sets_collection)
         self.revisions = adapter.query_rule_revisions_collection
         self.history = QueryRuleRevisionRepository(adapter)
+
+    @staticmethod
+    def describe_selection(selection: Selection) -> dict[str, Any]:
+        """Render a selection for established query diagnostics and release receipts."""
+        return compile_selection(selection)
 
     def _snapshot(self, document: dict, action: str, session: Any) -> None:
         """Append a contiguous revision within the owning write transaction.
@@ -99,7 +106,7 @@ class QueryRuleRepository(BaseRepository):
         """Propose the next version; the unique index detects competing creation.
 
         Args:
-            scope_key: Canonical group/assay/subpanel/analysis/intent identity.
+            scope_key: Canonical group/assay/diagnosis/analysis/intent identity.
 
         Returns:
             One greater than the greatest retained version, or 1 for a new scope.
@@ -108,36 +115,17 @@ class QueryRuleRepository(BaseRepository):
         return int(row["version"]) + 1 if row else 1
 
     def published_for(self, scope: dict) -> list[dict]:
-        """Read published ancestors without matching another assay or subpanel.
+        """Read published ancestors without matching another assay or diagnosis.
 
         Args:
-            scope: Validated scope mapping; absent/null assay and subpanel mean
+            scope: Validated scope mapping; absent/null assay and diagnosis mean
                 the corresponding level was not selected.
 
         Returns:
             Unordered published versions at the requested scope and its ancestors.
         """
         selected = QueryRuleScope.model_validate(scope)
-        ancestors = [QueryRuleScope(analysis=selected.analysis, intent=selected.intent)]
-        if selected.assay_group:
-            ancestors.append(
-                QueryRuleScope(
-                    assay_group=selected.assay_group,
-                    analysis=selected.analysis,
-                    intent=selected.intent,
-                )
-            )
-        if selected.asp_id:
-            ancestors.append(
-                QueryRuleScope(
-                    assay_group=selected.assay_group,
-                    asp_id=selected.asp_id,
-                    analysis=selected.analysis,
-                    intent=selected.intent,
-                )
-            )
-        if selected.subpanel_id:
-            ancestors.append(selected)
+        ancestors = selected.ancestors()
         return list(
             self.get_collection().find(
                 {

@@ -6,26 +6,43 @@ from copy import deepcopy
 
 import pytest
 
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.registry import (
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.registry import (
     fact_catalog_payload,
     validate_fact_path,
 )
-from api.application.reporting.clinical_rules.service import ClinicalRuleService, rendered_summary
-from api.application.reporting.clinical_rules.validation import (
+from coyote3.application.reporting.clinical_rules.service import (
+    ClinicalRuleService,
+    rendered_summary,
+)
+from coyote3.application.reporting.clinical_rules.validation import (
     MAX_CONDITION_DEPTH,
     _validate_condition,
     content_hash,
     validate_rule_set,
 )
-from api.contracts.schemas.clinical_rules import (
+from coyote3.contracts.schemas.clinical_rules import (
     ClinicalMessageOutput,
     ClinicalRuleCollectionMatch,
     ClinicalRuleNot,
     ClinicalRulePredicate,
     ClinicalRuleTestCase,
 )
-from tests.unit.reporting.test_clinical_rules import _context, _document
+from tests.unit.reporting.test_clinical_rules import _configuration, _context, _document
+
+
+@pytest.mark.parametrize(
+    "analyte,analysis", [("dna", "FUSION"), ("rna", "PGX"), ("dna", "METHYLATION")]
+)
+def test_rule_analysis_must_be_implemented_for_modality(analyte, analysis):
+    """Rules cannot advertise unsupported analysis capabilities through text labels."""
+    document = _document()
+    document.scope.analyte = analyte
+    declaration = next(iter(document.analysis_declarations.values()))
+    document.analysis_declarations = {analysis: declaration}
+    result = validate_rule_set(document)
+    assert not result.valid
+    assert f"Analysis '{analysis}' is not supported for {analyte}" in result.errors
 
 
 def test_registry_accepts_known_facts_and_rejects_unknown_or_wrong_scope() -> None:
@@ -49,7 +66,15 @@ def test_service_from_store_and_resolution_failure_matrix() -> None:
 
     assert isinstance(
         ClinicalRuleService.from_store(
-            type("Store", (), {"clinical_rule_set_repository": Repository(valid.model_dump())})()
+            type(
+                "Store",
+                (),
+                {
+                    "clinical_rule_set_repository": Repository(valid.model_dump()),
+                    "configuration_profile_repository": None,
+                    "assay_panel_repository": None,
+                },
+            )()
         ),
         ClinicalRuleService,
     )
@@ -92,10 +117,16 @@ def test_service_rejects_undeclared_sections_and_delegates_valid_evaluation() ->
     context = _context()
     context.aspc.reporting.report_sections = ["SNV", "  ", "TMB"]
     with pytest.raises(ValueError, match="TMB"):
-        ClinicalRuleService(repository).evaluate(aspc={}, context=context)
+        ClinicalRuleService(repository).evaluate(
+            aspc=_configuration(document, context), context=context
+        )
 
     context.aspc.reporting.report_sections = ["snv"]
-    assert ClinicalRuleService(repository).evaluate(aspc={}, context=context).sections
+    assert (
+        ClinicalRuleService(repository)
+        .evaluate(aspc=_configuration(document, context), context=context)
+        .sections
+    )
 
 
 def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> None:
@@ -112,7 +143,7 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
                 ]
             },
         )()
-    ).evaluate(aspc={}, context=_context())
+    ).evaluate(aspc=_configuration(_document(status="published", active=True)), context=_context())
     evaluation.sections["Empty"] = []
     evaluation.sections["Plain"] = ["No heading"]
     evaluation.section_headings["Plain"] = False
@@ -120,6 +151,45 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
     assert "## Findings" in text
     assert "No heading" in text
     assert "## Plain" not in text
+
+
+@pytest.mark.parametrize("snapshot", [None, [], "release-id"])
+def test_reporting_ignores_historical_compiled_content_and_uses_live_rules(snapshot) -> None:
+    context = _context()
+    configuration = _configuration(_document(status="published", active=True), context)
+    configuration["clinical_rule_release"] = snapshot
+    document = _document(status="published", active=True)
+    repository = type(
+        "Repository",
+        (),
+        {
+            "list_active_for_assay": lambda *args, **kwargs: [
+                document.model_dump(mode="python", by_alias=True)
+            ]
+        },
+    )()
+    assert ClinicalRuleService(repository).evaluate(aspc=configuration, context=context).sections
+
+
+@pytest.mark.parametrize("field", ["asp_id", "environment", "aspc_id"])
+def test_reporting_rejects_a_configuration_from_another_context(field) -> None:
+    context = _context()
+    configuration = _configuration(_document(status="published", active=True), context)
+    configuration[field] = "different-context"
+    with pytest.raises(ValueError, match="does not match its pinned configuration"):
+        ClinicalRuleService(None).evaluate(aspc=configuration, context=context)
+
+
+def test_automatic_variant_annotation_rejects_rna_configuration() -> None:
+    document = _document(status="published", active=True)
+    document.scope.analyte = "rna"
+    document.content_hash = content_hash(document)
+    configuration = _configuration(document)
+    configuration["asp_category"] = "rna"
+    with pytest.raises(ValueError, match="requires a DNA configuration"):
+        ClinicalRuleService(None).annotation_tumor_type(
+            aspc=configuration, sample={"asp_category": "rna"}
+        )
 
 
 def test_validation_reports_structural_condition_and_embedded_case_failures(monkeypatch) -> None:
@@ -215,14 +285,14 @@ def test_preparation_handles_invalid_fallback_values_and_structural_edge_shapes(
         sample={
             "name": "SYNTHETIC",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
         },
         asp={"asp_id": "assay_1"},
         aspc={
             "aspc_id": "config",
             "asp_id": "assay_1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
             "reporting": {"language": "sv"},
         },

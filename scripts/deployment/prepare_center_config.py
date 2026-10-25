@@ -15,11 +15,14 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
+from coyote3.config.selection import CENTER_CONFIGURATION_FORMAT
+
 FILES = (
     "contact.toml",
     "clinical_vocabulary.toml",
     "filter_flag_metadata.yaml",
 )
+OPTIONAL_FILES = ("report_presentation.toml",)
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -30,7 +33,7 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
         source: Local directory or Git repository URL. HTTP credentials are forbidden.
         destination: New directory outside the application checkout, created on success.
         revision: Full 40-character Git commit ID; required for repository URLs.
-        subdirectory: Relative repository directory containing the three center configuration files.
+        subdirectory: Relative repository directory containing required and optional center files.
 
     Raises:
         ValueError: Source options are unsafe, missing, or incompatible.
@@ -68,7 +71,11 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
         staging = Path(temp) / "release"
         staging.mkdir()
         if is_local:
-            for name in FILES:
+            selected_files = (
+                *FILES,
+                *(name for name in OPTIONAL_FILES if (local / name).is_file()),
+            )
+            for name in selected_files:
                 shutil.copyfile(local / name, staging / name)
         else:
             repository = Path(temp) / "repository"
@@ -77,7 +84,17 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
                 ["git", "-C", str(repository), "fetch", "--quiet", "--depth=1", source, revision],
                 check=True,
             )
-            for name in FILES:
+            available = set(
+                subprocess.check_output(
+                    ["git", "-C", str(repository), "ls-tree", "-r", "--name-only", revision],
+                    text=True,
+                ).splitlines()
+            )
+            selected_files = (
+                *FILES,
+                *(name for name in OPTIONAL_FILES if str(directory / name) in available),
+            )
+            for name in selected_files:
                 content = subprocess.check_output(
                     ["git", "-C", str(repository), "show", f"{revision}:{directory / name}"]
                 )
@@ -88,13 +105,16 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
                 sys.executable,
                 "-c",
                 (
-                    "from api.config.clinical_vocabulary import load_clinical_vocabulary; "
-                    "from api.config.loaders.filter_flags import load_filter_flag_metadata; "
-                    "from api.config.loaders.contact import load_contact_config; "
-                    "from api.config.paths import CONTACT_CONFIG_PATH; "
+                    "import os; from pathlib import Path; "
+                    "directory=Path(os.environ['COYOTE3_CENTER_CONFIG_DIR']); "
+                    "from api.config.contact import load_contact_config; "
+                    "from coyote3.config.clinical_vocabulary import load_clinical_vocabulary; "
+                    "from coyote3.config.loaders.filter_flags import load_filter_flag_metadata; "
+                    "from api.config.report_presentation import load_report_presentation; "
+                    "load_report_presentation(); "
                     "load_clinical_vocabulary(); "
                     "load_filter_flag_metadata(); "
-                    "load_contact_config(CONTACT_CONFIG_PATH, organization_name='Validation', "
+                    "load_contact_config(directory/'contact.toml', organization_name='Validation', "
                     "public_base_url='', script_name='')"
                 ),
             ],
@@ -103,12 +123,13 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
             check=True,
         )
         manifest = {
-            "format": 1,
+            "format": CENTER_CONFIGURATION_FORMAT,
             "source": source,
             "revision": revision,
             "subdirectory": None if is_local else str(directory),
             "sha256": {
-                name: hashlib.sha256((staging / name).read_bytes()).hexdigest() for name in FILES
+                name: hashlib.sha256((staging / name).read_bytes()).hexdigest()
+                for name in selected_files
             },
         }
         (staging / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

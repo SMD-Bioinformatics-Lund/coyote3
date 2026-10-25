@@ -30,8 +30,8 @@ extra:
       path: user-guide/application-guide/#comments-and-annotations
     - title: Assay groups
       path: administration/assay-groups/
-    - title: Subpanels
-      path: administration/assay-subpanels/
+    - title: Diagnoses
+      path: administration/assay-diagnoses/
     - title: Coverage review
       path: user-guide/coverage-review/
 
@@ -56,9 +56,7 @@ nav:
           - "Choose a procedure": deployment/production-deployment.md
           - "Production requirements": deployment/production-requirements.md
           - "First installation": deployment/first-installation.md
-          - "Pending release maintenance": deployment/release-maintenance.md
           - "Installation operations": deployment/installation-operations.md
-          - "Installation checklist": deployment/installation-checklist.md
           - "Deployment acceptance": deployment/acceptance-checklist.md
           - "Upgrade an existing installation": deployment/application-upgrades.md
           - "Restart or redeploy": deployment/application-redeployment.md
@@ -77,6 +75,7 @@ nav:
           - Clinical and application files:
               - "Center configuration directory": deployment/center-configuration.md
               - "Contact file": configuration/contact-file.md
+              - "Report presentation file": configuration/report-presentation-file.md
               - "Clinical query policy file": configuration/clinical-query-policy-file.md
               - "Filter flag metadata file": configuration/filter-flag-metadata-file.md
               - "Collection mapping file": configuration/collection-mapping-file.md
@@ -92,6 +91,7 @@ nav:
       - "DNA clinical review": user-guide/dna-review.md
       - "RNA Clinical Review": user-guide/rna-review.md
       - "Coverage Review": user-guide/coverage-review.md
+      - "Try new report": user-guide/try-new-report.md
       - "Operational Dashboard": user-guide/dashboard.md
       - "User Action and Operational Impact Reference": user-guide/actions-and-record-changes.md
       - "UI Page And Table Reference": user-guide/pages-and-table-columns.md
@@ -104,12 +104,14 @@ nav:
       - "System permission catalog": administration/permission-catalog.md
       - "System role catalog": administration/system-role-catalog.md
       - "Clinical configuration resources": administration/clinical-configuration-resources.md
+      - "Configuration profiles and promotion": administration/configuration-publication.md
       - "Planning configuration changes": administration/planning-configuration-changes.md
       - "Assay Groups": administration/assay-groups.md
-      - "Assay Subpanels": administration/assay-subpanels.md
+      - "Assay Diagnoses": administration/assay-diagnoses.md
       - "Assay Setup": administration/assay-setup.md
       - "Finding query rules": administration/query-rules.md
       - "Assay analysis and reporting availability": administration/assay-analysis-availability.md
+      - "Supported application capabilities": administration/supported-capabilities.md
       - "Clinical resource fields and defaults": administration/clinical-resource-fields.md
       - "Center Vocabulary Configuration": administration/clinical-vocabulary.md
       - "Public Assay Catalog": administration/public-assay-catalog.md
@@ -119,9 +121,21 @@ nav:
       - "API Authentication": api/authentication.md
       - "API routes and workflows": api/routes-and-workflows.md
       - "API route groups and visibility": api/route-groups.md
+      - "Individual resource fields": api/resource-fields.md
       - "Ingestion API": api/sample-ingestion.md
       - "Collection imports and permissions": api/collection-imports.md
       - "API versioning and compatibility": api/versioning-and-compatibility.md
+  - Python SDK:
+      - Section guide: sdk/README.md
+      - Getting started: sdk/getting-started.md
+      - Package boundaries: sdk/package-boundaries.md
+      - Core and server installation: sdk/server-installation.md
+      - Application operations: sdk/application-sdk.md
+      - Permissions and host trust: sdk/permissions.md
+      - Remote Python client: sdk/python-client.md
+      - SDK development: sdk/extending.md
+      - Python reference: sdk/reference.md
+      - Versions and compatibility: sdk/compatibility.md
   - Architecture:
       - Section guide: architecture/README.md
       - "Application Architecture": architecture/application-architecture.md
@@ -143,10 +157,12 @@ nav:
       - Section guide: development/README.md
       - "Developer environment setup": getting-started/developer-environment.md
       - "Developer manual": development/developer-guide.md
+      - "Report templates": development/report-templates.md
       - "Remote development deployment": development/remote-development.md
       - "Engineering command reference": development/engineering-commands.md
       - "Engineering and Refactoring Standards": development/refactoring-standards.md
-      - "Schema Contracts And Versioning": development/schema-contracts.md
+      - "Collection contracts and resource versioning": development/schema-contracts.md
+      - "Frontend API contracts": development/frontend-api-contracts.md
       - "Add a New Domain or Collection": development/adding-domains-and-collections.md
       - "UI Action Modal": development/action-dialogs.md
       - "Plotting And Chart Export": development/charts-and-exports.md

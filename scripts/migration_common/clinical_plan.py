@@ -9,8 +9,8 @@ from typing import Any
 
 from bson import ObjectId, json_util
 
-from api.application.ingest.parsers import _build_anno_vep_docs
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.application.ingest.parsers import _build_anno_vep_docs
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from scripts.upgrade_from_v3.clinical_documents import (
     CLINICAL_COLLECTIONS,
     FINDING_TYPES,

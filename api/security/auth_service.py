@@ -11,14 +11,14 @@ from api.app.deps.repositories import (
     get_user_repository,
 )
 from api.app.runtime_state import app
-from api.config.constants import (
+from api.infra.observability.auth_metrics import emit_auth_metric
+from api.security.models import UserModel
+from coyote3.config.constants import (
     AUTH_PROVIDER_LDAP,
     AUTH_PROVIDER_LOCAL,
     DEFAULT_AUTH_PROVIDER,
     normalize_auth_types,
 )
-from api.domain.core.models.user import UserModel
-from api.infra.observability.auth_metrics import emit_auth_metric
 
 
 def _login_provider(login_identifier: str) -> str:

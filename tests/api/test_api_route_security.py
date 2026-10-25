@@ -22,14 +22,7 @@ ALLOW_UNGUARDED_PREFIX = ("/api/v1/public/",)
 
 
 def _iter_route_decorators(py_file: Path):
-    """Iter route decorators.
-
-    Args:
-            py_file: Py file.
-
-    Returns:
-            The  iter route decorators result.
-    """
+    """Iter route decorators."""
     lines = py_file.read_text(encoding="utf-8").splitlines()
     for idx, line in enumerate(lines):
         match = ROUTE_RE.search(line)
@@ -38,15 +31,7 @@ def _iter_route_decorators(py_file: Path):
 
 
 def _is_guarded(lines: list[str], decorator_idx: int) -> bool:
-    """Is guarded.
-
-    Args:
-            lines: Lines.
-            decorator_idx: Decorator idx.
-
-    Returns:
-            The  is guarded result.
-    """
+    """Is guarded."""
     i = decorator_idx + 1
     while i < len(lines) and not DEF_RE.match(lines[i]):
         i += 1
@@ -57,11 +42,6 @@ def _is_guarded(lines: list[str], decorator_idx: int) -> bool:
 
 
 def test_non_public_api_routes_are_guarded():
-    """Test non public api routes are guarded.
-
-    Returns:
-        The function result.
-    """
     route_files = sorted(Path("api/interfaces/http").rglob("*.py"))
     unguarded: list[str] = []
 
@@ -82,7 +62,7 @@ def test_declared_route_permissions_exist_in_seed_catalog():
     for route_file in Path("api/interfaces/http").rglob("*.py"):
         declared.update(permission_pattern.findall(route_file.read_text(encoding="utf-8")))
 
-    with Path("api/config/bootstrap/rbac/permissions.seed.ndjson").open(
+    with Path("api/bootstrap/catalogs/rbac/permissions.seed.ndjson").open(
         "rt", encoding="utf-8"
     ) as handle:
         catalog = {
@@ -96,7 +76,7 @@ def test_declared_route_permissions_exist_in_seed_catalog():
 
 def test_seeded_role_grants_reference_known_permissions():
     """Built-in roles must not contain grants absent from the permission catalog."""
-    with Path("api/config/bootstrap/rbac/permissions.seed.ndjson").open(
+    with Path("api/bootstrap/catalogs/rbac/permissions.seed.ndjson").open(
         "rt", encoding="utf-8"
     ) as handle:
         catalog = {
@@ -104,7 +84,9 @@ def test_seeded_role_grants_reference_known_permissions():
             for line in handle
             if line.strip()
         }
-    with Path("api/config/bootstrap/rbac/roles.seed.ndjson").open("rt", encoding="utf-8") as handle:
+    with Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson").open(
+        "rt", encoding="utf-8"
+    ) as handle:
         role_docs = [json.loads(line) for line in handle if line.strip()]
 
     unknown = {

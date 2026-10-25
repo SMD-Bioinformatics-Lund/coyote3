@@ -16,7 +16,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
 from scripts.knowledgebase.update_vep_metadata import SEED, reference_links  # noqa: E402
 

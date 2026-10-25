@@ -19,13 +19,13 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.config.mongo import mongo_endpoints  # noqa: E402
-from api.contracts.schemas.reference import HgncGenesDoc  # noqa: E402
 from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
 )
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.reference import HgncGenesDoc  # noqa: E402
 
 HGNC_FIELDS = {
     "hgnc_id": ("hgnc_id", str, None),

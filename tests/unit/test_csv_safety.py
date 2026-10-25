@@ -6,8 +6,8 @@ from io import StringIO
 import pytest
 from pydantic import BaseModel
 
-from api.application.dna.export import export_rows_to_csv, protect_excel, safe_text
-from api.domain.common.csv_safety import spreadsheet_text
+from coyote3.application.dna.export import export_rows_to_csv, protect_excel, safe_text
+from coyote3.domain.common.csv_safety import spreadsheet_text
 
 
 @pytest.mark.parametrize(

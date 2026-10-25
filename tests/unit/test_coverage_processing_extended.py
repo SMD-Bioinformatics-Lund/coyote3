@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from api.application.coverage.processing import CoverageProcessingService
+from coyote3.application.coverage.processing import CoverageProcessingService
 
 
 class _D4CoverageBlacklistRepository:
@@ -72,13 +72,10 @@ def test_find_and_filter_low_covered_genes_respects_region_and_gene_blacklists()
     )
     assert list(selected["genes"]) == ["TP53"]
 
-    unrestricted = CoverageProcessingService.filter_genes_from_form(
-        _coverage_payload(),
-        [],
-        "hematology",
-        d4_coverage_blacklist_repository=repository,
+    empty = CoverageProcessingService.filter_genes_from_form(
+        _coverage_payload(), [], "hematology", d4_coverage_blacklist_repository=repository
     )
-    assert list(unrestricted["genes"]) == ["TP53", "BRCA1"]
+    assert not empty.get("genes")
 
 
 def test_reg_low_supports_precomputed_and_repository_blacklists() -> None:

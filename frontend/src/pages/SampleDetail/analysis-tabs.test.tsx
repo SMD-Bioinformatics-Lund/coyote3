@@ -171,7 +171,7 @@ describe("sample analysis table tabs", () => {
 
   it("requests fusion rows with server metadata and fusion-only export context", async () => {
     mocks.get.mockResolvedValue({ data: {
-      fusions: [{ _id: "F1", genes: ["BCR", "ABL1"], callers: ["ARRIBA"] }],
+      fusions: [{ _id: "F1", gene1: "BCR", gene2: "ABL1", calls: [{ caller: "ARRIBA", selected: 1, spanpairs: 0, spanreads: 0 }] }],
       meta: { count: 71, page: 2, per_page: 50, has_next: false, has_previous: true },
       cosmic_cancer_gene_map: { ABL1: { tier: "1" } },
     } })
@@ -188,19 +188,18 @@ describe("sample analysis table tabs", () => {
       filename: "fusions_RNA_1.csv",
     }))
     expect(screen.getByLabelText("COSMIC Cancer Gene Census: ABL1")).toBeVisible()
+    expect(screen.getAllByText("0")).toHaveLength(2)
   })
 
-  it("supports both current and historical translocation response envelopes", async () => {
+  it("renders the current translocation response contract", async () => {
     mocks.get.mockResolvedValue({ data: {
-      display_sections_data: {
-        translocs: [{
-          _id: "T1",
-          CHROM: "11",
-          POS: 100,
-          genes: ["KMT2A", "AFF1"],
-          INFO: { MANE_ANN: { Annotation: ["gene_fusion"] }, ANN: [{ Annotation: ["gene_fusion"] }] },
-        }],
-      },
+      translocations: [{
+        _id: "T1",
+        CHROM: "11",
+        POS: 100,
+        genes: ["KMT2A", "AFF1"],
+        INFO: { MANE_ANN: { Annotation: ["gene_fusion"] }, ANN: [{ Annotation: ["gene_fusion"] }] },
+      }],
       cosmic_cancer_gene_map: { KMT2A: { tier: "1" }, AFF1: { tier: "1" } },
       meta: { count: 1, page: 1, per_page: 50 },
       snpeff_conseq_translations: {
@@ -306,7 +305,7 @@ describe("sample analysis table tabs", () => {
       sample: { name: "DNA_REPORT" },
       meta: { snapshot_count: 1, preview_fingerprint: "a".repeat(64), template_status: { status: "ready", has_html: true } },
       report: { html: "Rendered DNA report", snapshot_rows: [{ gene: "TP53", tier: 1 }], context: {
-        clinical_rule_evaluation: { source: { rule_set_id: "assay__base__sv", content_version: 2, language: "sv", requested_subpanel_id: "named", resolved_subpanel_id: "base" } },
+        clinical_rule_evaluation: { source: { rule_set_id: "assay__base__sv", content_version: 2, language: "sv", requested_diagnosis_id: "named", resolved_diagnosis_id: "base" } },
       } },
     } })
     mocks.post.mockResolvedValue({ data: { report_id: "R1" } })
@@ -328,6 +327,29 @@ describe("sample analysis table tabs", () => {
       "Reports",
       expect.objectContaining({ sampleName: "DNA_REPORT" }),
     )
+  })
+
+  it("previews the current report PDF in place and releases its object URL", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "SYNTHETIC_REPORT" },
+      meta: { preview_fingerprint: "a".repeat(64), template_status: { has_html: true } },
+      report: { html: "Current report HTML", snapshot_rows: [] },
+    } })
+    const fetchPdf = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("%PDF-synthetic", { headers: { "Content-Type": "application/pdf" } }))
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:current-report")
+    const revoke = vi.spyOn(URL, "revokeObjectURL")
+    try {
+      mount(<ReportsTab sampleId="SYNTHETIC_REPORT" />, "/samples/SYNTHETIC_REPORT?tab=reports")
+      await screen.findByTestId("report-frame")
+      expect(fetchPdf).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole("tab", { name: "PDF preview" }))
+      expect(await screen.findByTitle("Report PDF preview")).toHaveAttribute("src", "blob:current-report")
+      expect(fetchPdf).toHaveBeenCalledWith(expect.stringContaining("/preview/pdf?include_snapshot=true"), expect.objectContaining({ cache: "no-store", credentials: "same-origin", signal: expect.any(AbortSignal) }))
+      expect(mocks.post).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole("tab", { name: "HTML preview" }))
+      expect(await screen.findByTestId("report-frame")).toHaveTextContent("Current report HTML")
+      await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:current-report"))
+    } finally { fetchPdf.mockRestore(); create.mockRestore(); revoke.mockRestore() }
   })
 
   it("groups included findings by analysis and shows a compact TMB result", async () => {
@@ -369,7 +391,7 @@ describe("sample analysis table tabs", () => {
 
   it("uses the fixed RNA report workflow for an RNA sample", async () => {
     mocks.get.mockResolvedValue({ data: {
-      sample: { name: "RNA_REPORT", omics_layer: "rna" },
+      sample: { name: "RNA_REPORT", asp_category: "rna" },
       meta: { snapshot_count: 1, template_status: { status: "ready", has_html: true } },
       report: {
         html: "Rendered RNA report",
@@ -441,7 +463,7 @@ describe("sample analysis table tabs", () => {
       component: <FusionsTab key="fusion-actions" sampleId="ACTION_SAMPLE" />,
       route: "/samples/ACTION_SAMPLE?tab=fusions",
       resourceType: "fusion",
-      row: { _id: "FUSION_1", genes: ["BCR", "ABL1"], callers: ["ARRIBA"] },
+      row: { _id: "FUSION_1", gene1: "BCR", gene2: "ABL1", calls: [{ caller: "ARRIBA", selected: 1 }] },
       responseKey: "fusions",
       actionLabel: "Mark Blacklisted",
       action: "blacklisted",
@@ -452,7 +474,7 @@ describe("sample analysis table tabs", () => {
       route: "/samples/ACTION_SAMPLE?tab=translocations",
       resourceType: "translocation",
       row: { _id: "TRANSLOC_1", CHROM: "11", POS: 100 },
-      responseKey: "translocs",
+      responseKey: "translocations",
       actionLabel: "Include in report",
       action: "interesting",
     },

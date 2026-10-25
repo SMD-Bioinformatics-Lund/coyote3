@@ -6,28 +6,13 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
-from api.config.constants import DEFAULT_ENVIRONMENT
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
+from coyote3.config.constants import DEFAULT_ENVIRONMENT
 
 _PROD_BLOCKED_VALUES: dict[str, set[str]] = {
     "SECRET_KEY": {"ci-test-secret-key", "coyote3-api-dev-only"},
     "INTERNAL_API_TOKEN": {"ci-test-internal-token"},
 }
-
-
-def _to_bool(value: Any, default: bool = False) -> bool:
-    """To bool.
-
-    Args:
-            value: Value.
-            default: Default. Optional argument.
-
-    Returns:
-            The  to bool result.
-    """
-    if value is None:
-        return default
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def to_bool(value: Any, default: bool = False) -> bool:
@@ -40,7 +25,9 @@ def to_bool(value: Any, default: bool = False) -> bool:
     Returns:
         The normalized boolean interpretation of ``value``.
     """
-    return _to_bool(value, default=default)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
@@ -87,15 +74,6 @@ def _require_production_safe_setting(config: Mapping[str, Any], key: str) -> str
             f"Insecure production setting for {key}: test/development placeholder values are not allowed."
         )
     return value
-
-
-def configure_process_env() -> None:
-    """Ensure API runtime process defaults are always set.
-
-    Returns:
-        ``None``. Process environment values are updated as a side effect.
-    """
-    return None
 
 
 def get_runtime_mode_flags() -> dict[str, bool]:
@@ -213,23 +191,3 @@ def get_audit_events_collection_name(config: Mapping[str, Any]) -> str:
             identity_mapping.get("audit_events_collection") or OPERATIONAL_COLLECTIONS.audit_events
         )
     return OPERATIONAL_COLLECTIONS.audit_events
-
-
-def get_audit_retention_days(config: Mapping[str, Any]) -> int:
-    """Return audit retention in days."""
-    try:
-        return int(config.get("AUDIT_RETENTION_DAYS", 730))
-    except (TypeError, ValueError):
-        return 730
-
-
-def get_runtime_environment(config: Mapping[str, Any]) -> str:
-    """Return the normalized runtime environment label."""
-    env_name = str(config.get("ENV_NAME") or "production").strip().lower()
-    if env_name in {"dev", "development"}:
-        return "development"
-    if env_name in {"test", "testing"}:
-        return "test"
-    if env_name in {"stage", "staging"}:
-        return "staging"
-    return env_name or "production"

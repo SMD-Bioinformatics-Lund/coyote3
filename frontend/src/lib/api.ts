@@ -2,6 +2,7 @@
 
 import { notify } from "@/components/notifications/notification-store"
 import { apiPath, appPath } from "@/lib/runtime-paths"
+import type { ApiOperations } from "@/lib/generated/operations.gen"
 
 export class ApiClientError extends Error {
   notificationShown = true
@@ -191,6 +192,7 @@ function safeJson(text: string) {
 }
 
 export const api = {
+  contract: contractRequest,
   get: <T = any>(url: string, options?: RequestInit) =>
     request<T>(url, { ...options, method: "GET" }),
   post: <T = any>(url: string, body?: ApiBody, options?: RequestInit) =>
@@ -201,4 +203,33 @@ export const api = {
     request<T>(url, { ...options, method: "PUT", body: encodeBody(body) }),
   delete: <T = any>(url: string, options?: RequestInit) =>
     request<T>(url, { ...options, method: "DELETE" }),
+}
+
+type ContractInput<K extends keyof ApiOperations> = Omit<ApiOperations[K]["request"], "url"> & {
+  signal?: AbortSignal
+}
+
+/** Send a schema-checked operation through the existing session, CSRF and error handling. */
+async function contractRequest<K extends keyof ApiOperations>(
+  operation: K,
+  input: ContractInput<K>,
+): Promise<ApiResponse<ApiOperations[K]["response"]>> {
+  const separator = operation.indexOf(" ")
+  const method = operation.slice(0, separator)
+  const parameters = input as { path?: Record<string, unknown>; query?: Record<string, unknown>; headers?: Record<string, unknown>; body?: ApiBody; signal?: AbortSignal }
+  const endpoint = operation.slice(separator + 1).replace(/\{([^}]+)\}/g, (_, key: string) => {
+    const value = parameters.path?.[key]
+    if (value == null) throw new Error(`Missing API path parameter: ${key}`)
+    return encodeURIComponent(String(value))
+  })
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(parameters.query ?? {})) {
+    if (value == null) continue
+    for (const item of Array.isArray(value) ? value : [value]) query.append(key, String(item))
+  }
+  return request<ApiOperations[K]["response"]>(endpoint + (query.size ? `?${query}` : ""), {
+    method, signal: parameters.signal, body: encodeBody(parameters.body),
+    headers: Object.fromEntries(Object.entries(parameters.headers ?? {})
+      .filter(([, value]) => value != null).map(([key, value]) => [key, String(value)])),
+  })
 }

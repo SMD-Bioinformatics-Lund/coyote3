@@ -21,7 +21,7 @@ for (const width of [1440, 390]) {
       return { json: { groups } }
     })
     await page.goto("/admin")
-    await expect(page.getByRole("heading", { name: "Assays and subpanels" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Assays and diagnoses" })).toBeVisible()
     await page.getByRole("textbox", { name: "Search administration" }).fill("clinical rule testing")
     await expect(page.getByRole("link", { name: /^Clinical Rule Testing/ })).toBeVisible()
     await expect(page.getByRole("link", { name: /^Assay groups/ })).toHaveCount(0)

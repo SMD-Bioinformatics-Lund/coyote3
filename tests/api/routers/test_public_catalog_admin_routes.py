@@ -9,9 +9,14 @@ from bson import ObjectId
 from pydantic import ValidationError
 from starlette.requests import Request
 
-from api.contracts.public import PublicAssayCatalogUpdateRequest
-from api.contracts.schemas.public_catalog import PublicAssayCatalogDoc, PublicAssayCatalogVersionDoc
-from api.interfaces.http.admin import public_assay_catalog as routes
+from api.interfaces.http.v1.admin import public_assay_catalog as routes
+from coyote3.application.operations import administration as sdk_administration
+from coyote3.contracts.public import PublicAssayCatalogUpdateRequest
+from coyote3.contracts.schemas.public_catalog import (
+    PublicAssayCatalogDoc,
+    PublicAssayCatalogVersionDoc,
+)
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -33,7 +38,14 @@ def test_mutation_sets_traceability_metadata_without_copying_content():
     doc = document()
     service = SimpleNamespace(create=lambda **kw: doc)
     request = Request({"type": "http", "method": "POST", "path": "/drafts", "headers": []})
-    result = routes.create(request=request, user=fx.api_user(), service=service)
+    result = sdk_fixtures.invoke_route(
+        routes.create,
+        request=request,
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.CatalogAuthoring, service, fx.api_user()
+        ),
+    )
     assert result["_id"] == str(doc["_id"])
     assert request.state.audit_resource["retention_class"] == "traceability"
     assert request.state.audit_resource["metadata"]["revision"] == 1
@@ -42,8 +54,15 @@ def test_mutation_sets_traceability_metadata_without_copying_content():
 
 def test_version_contract_and_expected_revision_validation():
     doc = document()
-    response = routes.version(
-        str(doc["_id"]), user=fx.api_user(), service=SimpleNamespace(document=lambda oid: doc)
+    response = sdk_fixtures.invoke_route(
+        routes.version,
+        str(doc["_id"]),
+        user=fx.api_user(),
+        service=sdk_fixtures.authorized_operations(
+            sdk_administration.CatalogAuthoring,
+            SimpleNamespace(document=lambda oid: doc),
+            fx.api_user(),
+        ),
     )
     payload = PublicAssayCatalogVersionDoc.model_validate(response).model_dump(
         mode="json", by_alias=True
@@ -59,7 +78,14 @@ def test_delete_passes_inspected_revision_and_records_audit_metadata():
     service = SimpleNamespace(delete_unpublished=Mock(return_value=doc))
     request = Request({"type": "http", "method": "DELETE", "path": "/versions/id", "headers": []})
     user = fx.api_user()
-    result = routes.delete_version(request, str(doc["_id"]), 1, user, service)
+    result = sdk_fixtures.invoke_route(
+        routes.delete_version,
+        request,
+        str(doc["_id"]),
+        1,
+        user,
+        sdk_fixtures.authorized_operations(sdk_administration.CatalogAuthoring, service, user),
+    )
     service.delete_unpublished.assert_called_once_with(str(doc["_id"]), 1, actor=user.username)
     assert result["_id"] == str(doc["_id"])
     assert request.state.audit_resource["metadata"]["revision"] == 1

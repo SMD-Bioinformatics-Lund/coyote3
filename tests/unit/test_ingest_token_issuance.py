@@ -4,23 +4,28 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
-from api.app.deps.services import get_audit_service
-from api.interfaces.http.admin import operations
+from api.app.application_factory import issue_ingest_credential
+from api.app.deps import services
+from api.app.deps.application import get_credentials
+from api.app.runtime_state import app as runtime_app
+from api.config import security
+from api.interfaces.http.v1.admin import operations
 from api.security import access
 from api.security.ingest_tokens import verify_token
+from coyote3.application.operations import ApplicationRuntime, Credentials
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture
 def issuance(monkeypatch):
     audit = Mock()
     audit.record.return_value = "synthetic-audit-id"
-    monkeypatch.setattr(
-        operations, "get_internal_api_token", lambda config: "synthetic-signing-key"
-    )
-    monkeypatch.setattr(operations.runtime_app, "config", {"ENV_NAME": "development"})
+    monkeypatch.setattr(security, "get_internal_api_token", lambda config: "synthetic-signing-key")
+    monkeypatch.setattr(runtime_app, "config", {"ENV_NAME": "development"})
     monkeypatch.setattr(access, "_audit_access_event", lambda **kwargs: None)
     monkeypatch.setattr(
         access, "get_roles_repository", lambda: SimpleNamespace(get_all_roles=lambda: [])
@@ -37,7 +42,29 @@ def issuance(monkeypatch):
     )
     app = FastAPI()
     app.include_router(operations.router)
-    app.dependency_overrides[get_audit_service] = lambda: audit
+    monkeypatch.setattr(services, "get_audit_service", lambda: audit)
+
+    def credentials(request: Request):
+        user = access._decode_session_user(request)
+        runtime = ApplicationRuntime(
+            authenticate=lambda: user,
+            policy_factory=lambda actor: access.build_access_policy(
+                user=actor,
+                roles_repository=access.get_roles_repository(),
+                permissions_repository=access.get_permissions_repository(),
+            ),
+            sample_loader=Mock(),
+            assay_loader=Mock(),
+            audit_access=Mock(),
+        )
+        return Credentials(runtime, SimpleNamespace(issue_token=issue_ingest_credential))
+
+    app.dependency_overrides[get_credentials] = credentials
+
+    @app.exception_handler(AppError)
+    async def app_error(request, error):
+        return JSONResponse(status_code=error.status_code, content=error.detail)
+
     return TestClient(app), audit
 
 

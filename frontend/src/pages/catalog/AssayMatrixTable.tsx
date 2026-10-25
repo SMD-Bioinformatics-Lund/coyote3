@@ -128,7 +128,7 @@ export function AssayMatrixTable({
           ["mod", "Modality"],
           ["assayGroup", "Section"],
           ["assay", "Assay"],
-          ["subpanel", "Subpanel"],
+          ["diagnosis", "Diagnosis"],
           ["analysis", "Analysis"],
           ["list", "Gene list"],
         ].map(([key, label]) => (

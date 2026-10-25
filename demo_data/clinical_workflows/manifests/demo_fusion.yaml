@@ -1,6 +1,6 @@
 name: DEMO_FUSION
-assay: demo_e2e_fusion
-subpanel: base
+assay: demo-gms_rnafusionv5
+diagnosis: base
 profile: testing
 genome_build: 38
 case_id: DEMO_CASE
@@ -9,8 +9,8 @@ clarity_case_id: demo_rna_case_clarity
 clarity_case_pool_id: demo_rna_pool
 sample_no: 1
 paired: false
-sequencing_scope: panel
-omics_layer: rna
+asp_family: panel-rna
+asp_category: rna
 sex: female
 sequencing_technology: Illumina
 read_mode: PE

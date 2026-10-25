@@ -16,7 +16,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config import app_config  # noqa: E402
+from api.config import runtime_settings  # noqa: E402
 from api.infra.mongo.runtime_adapter import MongoAdapter  # noqa: E402
 
 
@@ -24,12 +24,12 @@ def runtime_config() -> object:
     """Return the application configuration selected by ``ENV_NAME``."""
     environment = os.getenv("ENV_NAME", "development").strip().lower()
     if environment in {"test", "testing"}:
-        return app_config.TestConfig()
+        return runtime_settings.TestConfig()
     if environment in {"stage", "staging"}:
-        return app_config.StageConfig()
+        return runtime_settings.StageConfig()
     if environment in {"prod", "production"}:
-        return app_config.ProductionConfig()
-    return app_config.DevelopmentConfig()
+        return runtime_settings.ProductionConfig()
+    return runtime_settings.DevelopmentConfig()
 
 
 def build_adapter() -> MongoAdapter:

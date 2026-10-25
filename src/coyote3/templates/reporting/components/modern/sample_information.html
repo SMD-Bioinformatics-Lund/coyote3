@@ -1,0 +1,26 @@
+{% macro field(label, value, wide=false) -%}
+  <div class="report-metadata-field{% if wide %} report-metadata-wide{% endif %}"><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+{%- endmacro %}
+<section class="report-metadata" aria-label="Provinformation">
+  <dl>
+    {{ field('Patientnamn', '<PATIENT_NAME>') }}
+    {{ field('Personnummer', '<PERSONAL_IDENTITY_NUMBER>') }}
+    {{ field('Prov-ID', sample.case_id if report_analyte == 'dna' else sample.name) }}
+    {% if report_analyte == 'dna' and sample.sample_no == 2 %}{{ field('KontrollProv-ID', sample.control_id) }}{% endif %}
+    {{ field('Registreringsdatum', '<REGISTRATION_DATE>') }}
+    {{ field('Provtyp', '<TUMOR_SAMPLE_TYPE>' if report_analyte == 'dna' else '<SAMPLE_TYPE> / RNA') }}
+    {% if clinical_question %}{{ field('Frågeställning', clinical_question, true) }}{% endif %}
+    {{ field('Rapportdatum', report_date) }}
+    {{ field('Analysmetod', assay_config.reporting.report_method) }}
+    {% if organization_name %}{{ field('Analys genomförd av', organization_name) }}{% endif %}
+    {{ field('Rapport genererad av', generated_by or 'Unknown') }}
+    {% if report_analyte == 'dna' %}
+      {{ field('Rapportnummer', sample.report_num + 1 if sample.report_num is defined else 1) }}
+      {% set report_name = sample.get('case_id', 'NONE') + '_' + sample.get('case', {}).get('clarity_id', 'NONE') %}
+      {% if sample.control_id %}{% set report_name = report_name + '-' + sample.get('control_id', 'NONE') + '_' + sample.get('control', {}).get('clarity_id', 'NONE') %}{% endif %}
+      {{ field('Rapport-ID', report_name ~ '.' ~ report_timestamp, true) }}
+    {% else %}
+      {{ field('Rapport-ID', sample.name ~ '.' ~ (sample.report_num + 1 if sample.report_num is defined else 1), true) }}
+    {% endif %}
+  </dl>
+</section>

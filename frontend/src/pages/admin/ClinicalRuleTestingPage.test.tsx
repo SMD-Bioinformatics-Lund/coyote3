@@ -19,11 +19,11 @@ describe("ClinicalRuleTestingPage", () => {
     vi.clearAllMocks()
     mocks.get.mockImplementation((path: string) => {
       if (path.includes("test-samples")) {
-        return Promise.resolve({ data: { items: [{ id: "sample-1", name: "Sample 1", asp_id: "assay_1", subpanel_id: "base", environment: "production", omics_layer: "dna" }] } })
+        return Promise.resolve({ data: { items: [{ id: "sample-1", name: "Sample 1", asp_id: "assay_1", diagnosis_id: "base", environment: "production", asp_category: "dna" }] } })
       }
-      return Promise.resolve({ data: { items: [{ _id: "rule-1", name: "Assay rules", content_version: 2, status: "draft", scope: { asp_id: "assay_1", subpanel_id: "base", analyte: "dna" } }] } })
+      return Promise.resolve({ data: { items: [{ _id: "rule-1", name: "Assay rules", content_version: 2, status: "draft", scope: { asp_id: "assay_1", diagnosis_id: "base", analyte: "dna" } }] } })
     })
-    mocks.post.mockResolvedValue({ data: { sample: { id: "sample-1", name: "Sample 1", subpanel_id: "base" }, rule_set: { rule_set_id: "assay_1__base__sv", content_version: 2, status: "draft" }, summary: "## Result\n\nNo reportable findings.", evaluation: { sections: { Result: ["No reportable findings."] }, trace: [{ block_id: "result", rule_id: "negative", section: "Result", matched: true, missing_facts: [], condition_trace: { type: "all", label: "Match all", matched: true, missing_facts: [], children: [{ type: "predicate", label: "Finding count eq 0", matched: true, missing_facts: [], children: [] }] } }] }, persisted: false } })
+    mocks.post.mockResolvedValue({ data: { sample: { id: "sample-1", name: "Sample 1", diagnosis_id: "base" }, rule_set: { rule_set_id: "assay_1__base__sv", content_version: 2, status: "draft" }, summary: "## Result\n\nNo reportable findings.", evaluation: { sections: { Result: ["No reportable findings."] }, trace: [{ block_id: "result", rule_id: "negative", section: "Result", matched: true, missing_facts: [], condition_trace: { type: "all", label: "Match all", matched: true, missing_facts: [], children: [{ type: "predicate", label: "Finding count eq 0", matched: true, missing_facts: [], children: [] }] } }] }, persisted: false } })
   })
 
   it("tests a selected rule version against a compatible sample as a read-only preview", async () => {

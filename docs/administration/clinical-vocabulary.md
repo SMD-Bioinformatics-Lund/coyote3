@@ -1,7 +1,7 @@
 # Center Vocabulary Configuration
 
 `clinical_vocabulary.toml` in the external center directory is the vocabulary contract.
-The bundled `api/config/center/clinical_vocabulary.toml` provides complete examples.
+The bundled `config/examples/center/clinical_vocabulary.toml` provides complete examples.
 See [persistent configuration](../deployment/center-configuration.md#persistent-local-files-or-a-git-configuration-release)
 for local files, pinned Git sources, deployment, and upgrade handling.
 It is loaded and validated when the API or a worker starts. A malformed
@@ -11,8 +11,8 @@ run with an ambiguous contract.
 ## Format, required values and defaults
 
 The center file contains clinical policy and presentation metadata. Application
-capabilities are loaded separately from `api/config/clinical_capabilities.toml`.
-That release-owned file defines categories, families, scopes, the base subpanel,
+capabilities are loaded separately from `src/coyote3/config/clinical_capabilities.toml`.
+That release-owned file defines categories, families, scopes, the base diagnosis,
 environments, authentication providers, gene-list types, supported fusion callers,
 manifest keys, required-file baselines, transcript selection order and analysis mappings. Center configuration
 cannot redefine these sections, even with identical values.
@@ -36,14 +36,14 @@ capability. Retain the software-supported semantics when changing identifiers.
 
 | Vocabulary | Application consumer | Effect and limits |
 | --- | --- | --- |
-| `assay.categories`, `families`, `family_categories`, `family_scopes` | `api/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
-| `assay.base_subpanel_id` | `SUBPANEL_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the application-owned base configuration scope. |
+| `assay.categories`, `families`, `family_categories`, `family_scopes` | `src/coyote3/config/constants.py`, assay/sample contracts, and ingest helpers | ASP choices, category validation, family-to-omics mapping, and sample sequencing scope. |
+| `assay.base_diagnosis_id` | `DIAGNOSIS_BASE_ID`, ASPC resolution, catalog and reporting services | Identifies the application-owned base configuration scope. |
 | `environment.options`, `default` | Environment normalization, sample catalog defaults, ingest, user scopes, and public catalog | Defines application-owned clinical profiles and their default. This does not replace the deployment's `ENV_NAME`. |
 | `authentication.providers` | Authentication constants and login configuration | Defines implemented local/LDAP providers; `AUTHENTICATION_PROVIDERS` can override it for a deployment. |
 | `genelist.standard_types`, `adhoc_types` | Gene-list contracts, managed forms, and filter normalization | Curated and ad-hoc gene-list choices. |
 | `files.*.keys`, `files.required_by_family` | Sample contracts, ASP required-file defaults, manifest normalization and ingest | Defines pipeline file keys and baseline required inputs. ASP records can specify their required files. |
 | `analysis.*.types`, `file_keys`, `allowed_by_family` | Analysis constants, ingest preload bindings, ASPC validation and managed forms | Binds implemented analyses to files and assay families. Adding a name does not create ingest or review support. |
-| Application `reporting.transcript_selection_order` | `api/application/ingest/parsers.py` | Fixed order for persisted transcript evidence during ingest. Not editable by centers; existing findings retain their selected transcript. |
+| Application `reporting.transcript_selection_order` | `src/coyote3/application/ingest/parsers.py` | Fixed order for persisted transcript evidence during ingest. Not editable by centers; existing findings retain their selected transcript. |
 | `fusion.callers` | Fusion contracts, query builder, managed filters, RNA view contexts and caller-specific flag validation | Normalizes caller IDs and validates supported fusion caller selections. |
 | `fusion.description_terms` | RNA view contexts and fusion annotation badges | Categorizes caller evidence text for display; it is not a reporting-rule predicate. |
 | `snv.callers`, `cnv.callers`, `translocation.callers` | Filter metadata validation and SNV/CNV/translocation flag display | Registers caller-specific explanations. Historical caller names are retained; these lists do not filter findings or reject stored provenance. |
@@ -135,10 +135,8 @@ from caller names. These descriptions never change filtering thresholds, admissi
 classification, or report wording.
 
 External vocabulary files may omit the `snv`, `cnv`, and `translocation`
-caller tables. Remove the obsolete
-`reporting.required_aspc_fields` setting: reporting requirements are enforced by
-the typed ASPC contract, not a configurable field-name list. Stage and validate the complete
-configuration release before switching services.
+caller tables. The typed ASPC contract defines reporting requirements.
+Validate the complete configuration release before switching services.
 
 ## File Layout
 
@@ -229,7 +227,6 @@ from implying that every RNA assay produces every RNA resource.
 | `wes` | DNA analysis types defined by the release | Exome capture uses the ASP’s declared covered genes. |
 | `wgs` | DNA analysis types listed in TOML | WGS uses the DNA workflow vocabulary but may select a different subset per ASPC. |
 | `panel-rna` | `FUSION`, `QC` | Targeted fusion panels do not expose expression or classification. |
-| `wts` | `FUSION`, `EXPRESSION`, `CLASSIFICATION`, `QC` | Whole-transcriptome configurations may enable expression and classification. |
 
 The resolved ASPC still determines which allowed analyses are active for a
 specific sample. A family allowance makes an option valid; it does not enable
@@ -238,7 +235,7 @@ that option automatically.
 ### Transcript Selection Selectors
 
 `reporting.transcript_selection_order` belongs to the application release in
-`api/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
+`src/coyote3/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
 RefSeq/NCBI sources before their Ensembl equivalents. Within a selector, VEP impact
 is ordered HIGH, MODERATE, LOW, then MODIFIER.
 
@@ -305,9 +302,10 @@ typed ingest, storage, API, UI, and report implementation in the same release.
 For an existing workflow, changing the source-file key is a configuration-only
 change.
 
-`FUSION` and `TRANSLOCATION` may intentionally reference the same physical
-DNA input if a pipeline emits both interpretations from one structural-variant
-VCF. They remain distinct analysis sections downstream.
+DNA fusion and breakend evidence uses `TRANSLOCATION`, supplied through `transloc`.
+`FUSION` is reserved for RNA calls supplied through `fusion_files`.
+See [supported application capabilities](supported-capabilities.md) for the complete
+modality, family and analysis matrix.
 
 ## Validation Rules
 
@@ -339,23 +337,20 @@ remain stable; display names are not clinical join keys.
 
 | Identifier | Workflow scope | Use it for | Do not use it for |
 | --- | --- | --- | --- |
-| `tumwgs` | Tumour whole-genome workflow | WGS design panels and their annotations/query behaviour | The `wgs` family identifier. |
-| `wts` | Whole-transcriptome workflow | WTS design panels and their annotations/query behaviour | The `wts` family identifier. |
 | `hematology` | General haematology workflow | Broad haematology panels and their annotations/query behaviour | A physical design panel ID. |
-| `myeloid` | Myeloid haematology workflow | Myeloid-specific assay designs and clinical logic | A sequencing family. |
-| `lymphoid` | Lymphoid haematology workflow | Lymphoid-specific assay designs and clinical logic | A sequencing family. |
-| `solid` | Solid-tumour workflow | Solid tumour panel designs and their annotations/query behaviour | A subpanel such as endometrial or breast. |
-| `fusion` | Fusion workflow | RNA fusion assay designs | A particular RNA design panel. |
+| `myeloid` | Myeloid haematology workflow | Retained group for legacy samples; new assays use hematology | A sequencing family. |
+| `lymphoid` | Lymphoid haematology workflow | Retained group for legacy samples; new assays use hematology | A sequencing family. |
+| `solid` | Solid-tumour workflow | Solid tumour panel designs and their annotations/query behaviour | A diagnosis such as endometrial or breast. |
 | `pgx` | Pharmacogenomic workflow | PGX assay designs and their annotations/query behaviour | The `PGX` analysis type. |
 
 The related fields have different responsibilities:
 
 | Field | Examples | Meaning |
 | --- | --- | --- |
-| `asp_group` | `hematology`, `solid`, `tumwgs`, `myeloid` | Registered assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
+| `asp_group` | `hematology`, `solid`, `pgx` | Registered assay/workflow scope used to link ASPs, ASPCs, ISGLs, annotations, user access, and query logic. |
 | `asp_family` | `panel-dna`, `wes`, `wgs`, `panel-rna`, `wts` | Sequencing design family. It is not an assay group. |
 | `asp_category` | `dna`, `rna` | Omics category that selects the allowed manifest and analysis vocabulary. |
-| `subpanel_id` | `base`, `endometrie`, `breast`, `colon` | In-silico clinical target subset within a design panel. `base` means no named subpanel. |
+| `diagnosis_id` | `base`, `endometrie`, `breast`, `colon` | Shared clinical diagnosis explicitly associated with eligible assays. `base` means no named diagnosis. |
 
 Administrators register additional groups in **Admin > Assay groups** before
 selecting them in ASP, ISGL and user-scope forms. ASPCs inherit their ASP's group.
@@ -366,7 +361,7 @@ group-specific query policy is configured and reviewed.
 
 The application exposes `analysis_file_keys(omics, analysis)` and
 `primary_analysis_file_key(omics, analysis)` from
-`api/config/constants.py`. Ingest parsers, sample file status cards, CNV plot
+`src/coyote3/config/constants.py`. Ingest parsers, sample file status cards, CNV plot
 delivery, report rendering, and sample-omics inference use these accessors;
 they do not depend on a hardcoded center file-field name.
 
@@ -382,7 +377,7 @@ storage. Centers cannot rename that manifest key through vocabulary configuratio
 4. Recreate API, worker, beat and monitor together.
 5. Verify affected ingest, review and reporting workflows with synthetic fixtures.
 
-Creating an ASP, assay group, subpanel or ISGL uses administration workflows and
+Creating an ASP, assay group, diagnosis or ISGL uses administration workflows and
 supported application identifiers; it does not require editing the capability file.
 See [configuration upgrade](../deployment/center-configuration.md#application-owned-definitions)
 for removing technical definitions from older center files.

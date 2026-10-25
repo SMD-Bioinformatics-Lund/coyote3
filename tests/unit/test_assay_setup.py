@@ -8,18 +8,18 @@ import mongomock
 import pytest
 from bson import ObjectId
 
-from api.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
-from api.application.reporting.clinical_rules.validation import content_hash
-from api.application.resources.assay_setup import AssaySetupService
-from api.contracts.schemas.assay_setup import AssaySetupContent
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
 from api.infra.mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
-from api.infra.mongo.repositories.assay_subpanels import AssaySubpanelRepository
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+from coyote3.application.reporting.clinical_rules.validation import content_hash
+from coyote3.application.resources.assay_setup import AssaySetupService
+from coyote3.contracts.schemas.assay_setup import AssaySetupContent
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.domain.exceptions import AppError
 
 
 @pytest.fixture
@@ -36,8 +36,8 @@ def setup_service(monkeypatch):
         asp_collection=db.asp,
         aspc_collection=db.aspc,
         insilico_genelist_collection=db.isgl,
-        subpanels_collection=db.subpanels,
-        subpanel_associations_collection=db.associations,
+        diagnoses_collection=db.diagnoses,
+        diagnosis_associations_collection=db.associations,
         clinical_rule_sets_collection=db.rules,
     )
     monkeypatch.setattr(module, "run_transaction", lambda _client, callback: callback(None))
@@ -45,11 +45,13 @@ def setup_service(monkeypatch):
     repository = AssaySetupRepository(adapter)
     repository.ensure_indexes()
     AssaySetupRevisionRepository(adapter).ensure_indexes()
-    scopes = AssaySubpanelRepository(adapter)
+    scopes = AssayDiagnosisRepository(adapter)
     scopes.ensure_indexes()
     store = SimpleNamespace(
+        query_rule_repository=SimpleNamespace(published_for=lambda scope: []),
+        configuration_profile_repository=SimpleNamespace(published=lambda: []),
         assay_setup_repository=repository,
-        assay_subpanel_repository=scopes,
+        assay_diagnosis_repository=scopes,
         assay_panel_repository=SimpleNamespace(
             group_options=lambda: ["hematology"],
             get_asp=lambda key: db.asp.find_one({"asp_id": key}),
@@ -77,7 +79,7 @@ def setup_service(monkeypatch):
             rule_set_id="assay_1__base__sv",
             content_version=1,
             revision=1,
-            scope=dict(asp_id="assay_1", subpanel_id="base", analyte="dna", language="sv"),
+            scope=dict(asp_id="assay_1", diagnosis_id="base", analyte="dna", language="sv"),
             name="Synthetic rules",
             status="published",
             active=True,
@@ -104,6 +106,17 @@ def setup_service(monkeypatch):
     return AssaySetupService(store, common_util=SimpleNamespace()), db
 
 
+def test_review_compilation_retains_resource_hashes_across_actors(setup_service):
+    service, _db = setup_service
+    draft = service.save(content(), actor="author")
+    author_bundle = service.bundle(draft, actor="author")
+    reviewer_bundle = service.bundle(draft, actor="independent-reviewer")
+    assert service.dependency_hash(author_bundle) == service.dependency_hash(reviewer_bundle)
+    assert author_bundle["panel"]["created_by"] == "author"
+    assert reviewer_bundle["panel"]["created_by"] == "author"
+    assert author_bundle["panel"]["created_on"] == reviewer_bundle["panel"]["created_on"]
+
+
 def content(**overrides):
     """Return a valid synthetic base-only setup and required report settings."""
     return AssaySetupContent.model_validate(
@@ -119,7 +132,7 @@ def content(**overrides):
             "environments": ["development"],
             "configurations": [
                 dict(
-                    subpanel_id="base",
+                    diagnosis_id="base",
                     environment="development",
                     display_name="Synthetic configuration",
                     analysis_types=["SNV"],
@@ -146,10 +159,10 @@ def test_base_is_default_and_cannot_be_removed():
     assert content(scopes=["base", "Myeloid", "myeloid"]).scopes == ["base", "myeloid"]
 
 
-def test_setup_registration_rejects_hyphenated_assay_id(setup_service):
+def test_setup_registration_rejects_repeated_separator_in_assay_id(setup_service):
     service, db = setup_service
     draft = content()
-    draft.panel.asp_id = "new-assay"
+    draft.panel.asp_id = "new--assay"
     with pytest.raises(AppError, match="Invalid asp_id"):
         service.save(draft, actor="author")
     assert db.assay_setups.count_documents({}) == 0
@@ -166,8 +179,8 @@ def test_draft_isolation_and_atomic_publication_bundle(setup_service):
     published = service.transition(identifier, submitted["revision"], "publish", actor="reviewer")
     assert published["status"] == "published"
     assert db.asp.find_one()["is_active"] is True
-    assert db.aspc.find_one()["subpanel_id"] == "base"
-    assert db.associations.count_documents({}) == db.subpanels.count_documents({}) == 0
+    assert db.aspc.find_one()["diagnosis_id"] == "base"
+    assert db.associations.count_documents({}) == db.diagnoses.count_documents({}) == 0
     assert len(service.repository.revisions(identifier)) == 3
     with pytest.raises(AppError, match="current draft"):
         service.save(content(), actor="reviewer", identifier=identifier, revision=3)
@@ -224,9 +237,9 @@ def test_incomplete_setup_remains_draft(setup_service, changes, message):
 
 def test_additional_scope_requires_its_own_aspc_but_can_reuse_base_rules(setup_service):
     service, db = setup_service
-    db.subpanels.insert_one(
+    db.diagnoses.insert_one(
         dict(
-            subpanel_id="myeloid",
+            diagnosis_id="myeloid",
             display_name="Myeloid",
             description="",
             version=1,
@@ -240,14 +253,14 @@ def test_additional_scope_requires_its_own_aspc_but_can_reuse_base_rules(setup_s
     draft = service.save(selected, actor="author")
     assert "myeloid/development" in service.readiness(draft, actor="author")["issues"][0]
     extra = deepcopy(selected.configurations[0])
-    extra["subpanel_id"] = "myeloid"
+    extra["diagnosis_id"] = "myeloid"
     selected.configurations.append(extra)
     draft = service.save(selected, actor="author", identifier=str(draft["_id"]), revision=1)
     assert service.readiness(draft, actor="author")["ready"]
     service.transition(str(draft["_id"]), 2, "submit", actor="author")
     service.transition(str(draft["_id"]), 3, "publish", actor="reviewer")
     assert db.associations.count_documents({}) == 1
-    assert db.associations.find_one()["subpanel_id"] == "myeloid"
+    assert db.associations.find_one()["diagnosis_id"] == "myeloid"
 
 
 def test_changed_rule_release_requires_resubmission(setup_service):
@@ -282,7 +295,7 @@ def test_identifier_reservation_and_unknown_scope_are_rejected(setup_service):
     service.save(content(), actor="author")
     with pytest.raises(AppError, match="already exists"):
         service.save(content(), actor="other")
-    with pytest.raises(AppError, match="available subpanel"):
+    with pytest.raises(AppError, match="available diagnosis"):
         service.save(content(scopes=["unknown"]), actor="author")
 
 
@@ -292,7 +305,7 @@ def test_rule_authoring_recognizes_draft_without_exposing_runtime_assay(setup_se
     authoring = ClinicalRuleAuthoringService(
         SimpleNamespace(),
         assay_panel_repository=service.store.assay_panel_repository,
-        assay_subpanel_repository=service.store.assay_subpanel_repository,
+        assay_diagnosis_repository=service.store.assay_diagnosis_repository,
         assay_setup_repository=service.repository,
     )
     assert authoring.authoring_options()["assays"][0]["asp_id"] == "assay_1"

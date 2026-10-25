@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.domain.common.parsers import cmdvcf
+from coyote3.domain.common.parsers import cmdvcf
 
 
 def _header():

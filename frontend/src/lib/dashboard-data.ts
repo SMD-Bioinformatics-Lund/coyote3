@@ -11,7 +11,7 @@ export function buildPanelGeneChartData(geneGroups: Record<string, any[]>): Pane
       aspId: String(assay.asp_id || "").trim(),
       name: assay.display_name || assay.asp_id || "Unnamed panel",
       Covered: Number(assay.covered_genes_count ?? assay.gene_count ?? 0),
-      Germline: Number(assay.germline_genes_count ?? assay.germline_gene_count ?? 0),
+      Germline: Number(assay.germline_genes_count ?? 0),
     })),
   )
 }

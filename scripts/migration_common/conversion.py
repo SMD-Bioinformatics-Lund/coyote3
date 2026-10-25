@@ -6,10 +6,11 @@ import math
 from copy import deepcopy
 from pathlib import Path
 
-from api.application.ingest.parsers import _parse_transcripts
-from api.config.constants import ALL_SAMPLE_FILE_KEYS
-from api.contracts.schemas.dna import VariantCsqDoc
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from bson import ObjectId
+
+from coyote3.application.ingest.parsers import _parse_transcripts
+from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from scripts.migration_common.clinical_plan import build_plan
 from scripts.migration_common.offline import (
     SAMPLE_COLLECTIONS,
@@ -17,11 +18,65 @@ from scripts.migration_common.offline import (
     SourceIndex,
     digest,
 )
+from scripts.migration_common.sample_scope import prepare_scope
+from scripts.migration_common.vep import VepReference, normalize_csq
 from scripts.upgrade_from_v3.clinical_documents import (
     convert_annotation,
+    normalize_annotation_scope,
     rename_field,
     validate_document,
 )
+
+RELATED_COLLECTIONS = frozenset(
+    {
+        "cnvs",
+        "translocations",
+        "biomarkers",
+        "fusions",
+        "d4_coverage",
+        "rna_expression",
+        "rna_qc",
+        "rna_classification",
+    }
+)
+
+
+def selected_collections(version: int, stage: str, collections: set[str] | None) -> set[str] | None:
+    """Validate an explicit findings selection or the default related-data stage.
+
+    Args:
+        version: Legacy source major version.
+        stage: Complete, findings, samples or related migration stage.
+        collections: Optional canonical collection names; None selects stage defaults.
+
+    Returns:
+        Selected canonical findings, or None for an unrestricted complete/findings bundle.
+
+    Raises:
+        ValueError: Selection is empty, unsupported, or incompatible with the stage/source.
+    """
+    if version not in SAMPLE_COLLECTIONS or stage not in {
+        "findings",
+        "samples",
+        "related",
+        "complete",
+    }:
+        raise ValueError("Unsupported source version or sample migration stage")
+    supported = set(SAMPLE_COLLECTIONS[version].values()) - {"reported_variants"}
+    supported.update({"rna_expression", "rna_qc", "rna_classification"})
+    if version == 3:
+        supported.add("d4_coverage")
+    if collections is not None:
+        if stage not in {"findings", "related"} or not collections or collections - supported:
+            raise ValueError("Select supported collections only with findings or related stages")
+        if stage == "related" and "variants" in collections:
+            raise ValueError("Small variants belong to the findings stage")
+        return set(collections)
+    if stage == "related":
+        return supported & RELATED_COLLECTIONS
+    if stage == "samples":
+        return set()
+    return None
 
 
 def supplement(source: dict, review: dict | None) -> dict:
@@ -77,9 +132,10 @@ def prepare_sample(source: dict, review: dict) -> tuple[dict, dict]:
     if scope is not None:
         aliases = {
             "asp_id": ("asp_id", "assay"),
-            "subpanel_id": ("subpanel_id", "subpanel"),
+            "diagnosis_id": ("diagnosis_id", "subpanel_id", "subpanel"),
             "environment": ("environment", "profile"),
-            "omics_layer": ("omics_layer",),
+            "asp_category": ("asp_category", "omics_layer"),
+            "asp_family": ("asp_family", "sequencing_scope"),
         }
         fields = scope.get("fields", {})
         if scope.get("source_sha256") != digest(source) or not scope.get("reason") or not fields:
@@ -167,16 +223,6 @@ def prepare_sample(source: dict, review: dict) -> tuple[dict, dict]:
         if report.get("filepath"):
             report.setdefault("report_name", Path(report["filepath"]).name)
     return document, metadata
-
-
-def normalize_csq(source: dict) -> dict:
-    """Convert numeric VEP scalar labels to text while preserving transcript selection."""
-    result = deepcopy(source)
-    for key, field in VariantCsqDoc.model_fields.items():
-        if key not in {"Consequence", "CLIN_SIG"} and key in result:
-            if isinstance(result[key], (int, float)) and not isinstance(result[key], bool):
-                result[key] = str(result[key])
-    return result
 
 
 def recorded_frequency(value: object, allele: str) -> float | None:
@@ -381,39 +427,147 @@ def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
     """Apply only explicitly reviewed, digest-bound destination scope mappings."""
     document = supplement(source, review)
     mapping = (review or {}).get("scope", {})
-    if set(mapping) - {"assay_group", "subpanel"}:
+    if set(mapping) - {"assay_group", "diagnosis"}:
         raise ValueError("Scope mapping contains unsupported fields")
     if "assay_group" in mapping:
         key = "group" if kind == "d4_coverage_blacklist" else "assay"
         document[key] = mapping["assay_group"]
-    if "subpanel" in mapping:
+    if "diagnosis" in mapping:
         if kind != "annotation":
-            raise ValueError("Only annotations have a subpanel scope mapping")
-        document["subpanel"] = mapping["subpanel"]
+            raise ValueError("Only annotations have a diagnosis scope mapping")
+        document.pop("subpanel", None)
+        document.pop("subpanel_id", None)
+        document["diagnosis_id"] = mapping["diagnosis"]
     return document
 
 
-def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, list[dict]]:
-    """Build one complete sample bundle, preserving related histories and snapshot links.
+def annotation_selected(document: dict, version: int) -> bool:
+    """Select v3 hematology annotations and v2 annotations from every other group.
+
+    Args:
+        document: Annotation after any digest-bound scope reconciliation.
+        version: Source major version, either 2 or 3.
+
+    Returns:
+        Whether this source is authoritative for the annotation's assay group.
+
+    Raises:
+        ValueError: The source version is unsupported or recorded group fields conflict.
+    """
+    if version not in (2, 3):
+        raise ValueError("Annotation selection requires source version 2 or 3")
+    groups = [
+        value.lower() if isinstance(value, str) else value
+        for key in ("assay", "asp_group")
+        if (value := document.get(key)) is not None
+    ]
+    if len(groups) == 2 and groups[0] != groups[1]:
+        raise ValueError("Conflicting legacy annotation assay groups")
+    hematology = bool(groups) and groups[0] == "hematology"
+    return hematology if version == 3 else not hematology
+
+
+def _embedded_rna(sample: dict, collections: set[str] | None = None) -> dict[str, list[dict]]:
+    """Extract recorded RNA measurements without creating or averaging measurements.
+
+    Args:
+        sample: Prepared sample copy; embedded RNA payloads are removed in place.
+        collections: Selected canonical collections, or None to extract all RNA payloads.
+            Unselected payloads are removed only from the copy without validation.
+
+    Returns:
+        Current RNA collections with deterministic IDs for formerly embedded records.
+
+    Raises:
+        ValueError: A payload is malformed, has conflicting ownership, or contains
+            multiple QC records where the current model expects one sample result.
+    """
+    records = {}
+    for field, collection in (
+        ("expr", "rna_expression"),
+        ("classification", "rna_classification"),
+        ("QC", "rna_qc"),
+    ):
+        payload = sample.pop(field, None)
+        if collections is not None and collection not in collections:
+            continue
+        if payload in (None, {}, []):
+            continue
+        if field == "QC":
+            if not isinstance(payload, list) or len(payload) != 1:
+                raise ValueError(
+                    "Embedded RNA QC requires one recorded result; review multiple entries"
+                )
+            payload = payload[0]
+        if not isinstance(payload, dict):
+            raise ValueError("Embedded RNA data must be documents")
+        record = deepcopy(payload)
+        owner = str(sample["_id"])
+        if record.get("SAMPLE_ID", owner) != owner:
+            raise ValueError("Embedded RNA data has conflicting sample ownership")
+        record["SAMPLE_ID"] = owner
+        record.setdefault("_id", ObjectId(digest((owner, collection))[:24]))
+        records[collection] = [validate_document(collection, record)]
+    return records
+
+
+def sample_plan(
+    source: SourceIndex,
+    sample_id: str,
+    review: dict,
+    *,
+    vep: VepReference | None = None,
+    stage: str = "complete",
+    assay_id: str | None = None,
+    assay_field: str | None = None,
+    collections: set[str] | None = None,
+) -> dict[str, list[dict]]:
+    """Build one sample's selected migration stage with original ownership and history.
 
     Args:
         source: Prepared read-only export index of the selected major version.
         sample_id: Original BSON sample identity as text.
         review: Mapping with sample, records, and optional coverage reconciliation.
+        vep: Optional shared historical reference used for linked annotations and
+            consistent vault records. None retains original sample-only VEP evidence.
+        stage: Complete, findings, samples/history only, or related data after samples.
+        assay_id: Optional operator-selected lowercase ASP identifier.
+        assay_field: Explicit source field used to select the assay.
+        collections: Optional canonical findings to convert independently of other types.
 
     Returns:
-        Validated destination collections, including referenced clinical annotations.
+        Validated destination collections for the selected stage. Complete bundles
+        also validate referenced clinical annotations and saved report links.
 
     Raises:
         ValueError: A clinical dependency is missing, ambiguous, or not reconciled.
     """
+    if stage not in {"complete", "findings", "samples", "related"}:
+        raise ValueError("Unsupported sample migration stage")
+    selected = selected_collections(source.version, stage, collections)
     original = source.get("samples", sample_id)
     sample, metadata = prepare_sample(original, review.get("sample", {}))
+    if assay_id is not None:
+        if assay_field is None:
+            raise ValueError("Assay selection requires the explicit source field")
+        sample = prepare_scope(sample, metadata, assay_id=assay_id, field=assay_field)
     documents = {"samples": [sample]}
-    coverage = d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
+    documents.update(_embedded_rna(sample, selected))
+    if stage == "samples":
+        plan = build_plan({"samples": [sample]}, {sample_id: metadata})
+        return plan
+    coverage = (
+        d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
+        if selected is None or "d4_coverage" in selected
+        else []
+    )
     if coverage:
         documents["d4_coverage"] = coverage
     for physical, canonical in SAMPLE_COLLECTIONS[source.version].items():
+        if stage in {"findings", "related"} and canonical == "reported_variants":
+            continue
+        if selected is not None and canonical not in selected:
+            continue
         documents[canonical] = []
         for row in source.rows(physical, sample_id):
             try:
@@ -431,15 +585,31 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
         for key in ("annotation_oid", "annotation_text_oid")
         if row.get(key)
     }
-    documents["annotation"] = [
-        scoped_record(
-            source.get("annotation", identity),
-            review.get("records", {}).get("annotation", {}).get(identity),
-            "annotation",
-        )
-        for identity in sorted(annotation_ids)
-    ]
+    documents["annotation"] = []
+    for identity in sorted(annotation_ids):
+        original_annotation = source.get("annotation", identity)
+        try:
+            record = scoped_record(
+                original_annotation,
+                review.get("records", {}).get("annotation", {}).get(identity),
+                "annotation",
+            )
+            if not annotation_selected(record, source.version):
+                raise ValueError(
+                    "Saved report references an annotation excluded by the source policy; "
+                    "reconcile its historical reference before converting this sample"
+                )
+            documents["annotation"].append(record)
+        except (ValueError, TypeError, KeyError) as error:
+            raise RecordConversionError("annotation", original_annotation, error) from error
+    if vep is not None:
+        documents["annotation"] = [vep.enrich(row) for row in documents["annotation"]]
     plan = build_plan(documents, {sample_id: metadata})
+    if vep is not None:
+        plan["anno_vep"] = [
+            vep.record(row["simple_id_hash"]) if row["vep_version"] == vep.version else row
+            for row in plan.get("anno_vep", [])
+        ]
     comments = {str(row["_id"]) for row in plan.get("sample_comments", [])}
     for snapshot in plan.get("reported_variants", []):
         if (
@@ -447,11 +617,37 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
             and str(snapshot["sample_comment_oid"]) not in comments
         ):
             raise ValueError("Saved finding references an absent sample comment")
+    if stage in {"findings", "related"}:
+        for name in ("samples", "sample_comments", "reports"):
+            plan.pop(name, None)
     return plan
 
 
-def independent_plan(source: SourceIndex, kind: str, review: dict) -> dict[str, list[dict]]:
-    """Convert shared annotations or blacklist entries independently of sample batches."""
+def independent_plan(
+    source: SourceIndex,
+    kind: str,
+    review: dict,
+    *,
+    vep: VepReference | None = None,
+    assay_id: str | None = None,
+) -> dict[str, list[dict]]:
+    """Convert shared annotations or blacklist entries independently of sample batches.
+
+    Args:
+        source: Completed offline source index.
+        kind: Annotation, blacklist, or supported v3 coverage-exclusion collection.
+        review: Record-specific, digest-bound scope and missing-field reconciliation.
+        vep: Shared VEP reference for exact annotation identity enrichment. None keeps
+            the primary recorded identity without resolving complementary identities.
+        assay_id: Optional lowercase annotation ASP to retain after scope mapping.
+
+    Returns:
+        Contract-validated destination records, preserving source identifiers.
+
+    Raises:
+        RecordConversionError: A source record is invalid, ambiguous or unreconciled.
+        ValueError: The requested collection is unsupported for this source version.
+    """
     physical = "group_coverage" if kind == "d4_coverage_blacklist" else kind
     if kind == "d4_coverage_blacklist" and source.version != 3:
         raise ValueError("D4 coverage blacklist migration is only supported for v3")
@@ -463,6 +659,14 @@ def independent_plan(source: SourceIndex, kind: str, review: dict) -> dict[str, 
         try:
             record = scoped_record(original, review.get(str(original["_id"])), kind)
             if kind == "annotation":
+                if not annotation_selected(record, source.version):
+                    continue
+                if assay_id is not None:
+                    normalize_annotation_scope(record)
+                    if record.get("asp_id") != assay_id:
+                        continue
+                if vep is not None:
+                    record = vep.enrich(record)
                 record = convert_annotation(record)
             elif kind == "blacklist":
                 rename_field(record, "assay", "assay_group")

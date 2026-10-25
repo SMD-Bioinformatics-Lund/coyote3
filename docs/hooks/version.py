@@ -28,7 +28,7 @@ def on_config(config):
     )
     stylesheet = Path(__file__).resolve().parents[1] / "stylesheets/application-theme.css"
     config.extra["docs_theme_version"] = hashlib.sha256(stylesheet.read_bytes()).hexdigest()[:12]
-    center_dir = Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or root / "api/config/center")
+    center_dir = Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or root / "config/examples/center")
     with (center_dir / "contact.toml").open("rb") as handle:
         organization = tomllib.load(handle)["organization"]
     config.extra["center_name"] = (

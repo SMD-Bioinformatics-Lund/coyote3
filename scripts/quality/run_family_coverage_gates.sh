@@ -59,7 +59,7 @@ run_family_gate() {
   echo "[coverage-gates] ${label} >= ${minimum}%"
   if [[ "$reuse_coverage" -eq 0 ]]; then
     "${PYTHON_BIN}" -m pytest -q "$@" \
-      --cov=api \
+      --cov=api --cov=coyote3 \
       --cov-config=.coveragerc \
       --cov-report=
   fi
@@ -74,18 +74,18 @@ if [[ "$reuse_coverage" -eq 1 && ! -f .coverage ]]; then
   exit 2
 fi
 
-run_family_gate "api/domain/core" "api/domain/core/*" "${CORE_MIN}" \
+run_family_gate "src/coyote3/domain" "src/coyote3/domain/*" "${CORE_MIN}" \
   tests/unit tests/api tests/integration
-run_family_gate "api/application" "api/application/*" "${SERVICES_MIN}" \
+run_family_gate "src/coyote3/application" "src/coyote3/application/*" "${SERVICES_MIN}" \
   tests/unit tests/api
 run_family_gate "api/interfaces/http" "api/interfaces/http/*" "${ROUTERS_MIN}" \
   tests/api tests/integration
-run_family_gate "clinical query policy" "api/domain/core/dna/varqueries.py,api/domain/core/dna/cnvqueries.py,api/domain/core/dna/translocqueries.py,api/domain/core/rna/fusion_query_builder.py" "${CLINICAL_QUERY_MIN}" \
+run_family_gate "clinical query policy" "src/coyote3/domain/dna/varqueries.py,src/coyote3/domain/dna/cnvqueries.py,src/coyote3/domain/dna/translocqueries.py,src/coyote3/domain/rna/fusion_query_builder.py" "${CLINICAL_QUERY_MIN}" \
   tests/unit/test_dna_varqueries.py \
   tests/unit/test_query_strategy_builders.py \
   tests/unit/test_dna_structural_service.py \
   tests/unit/workflows/test_workflow_services.py
-run_family_gate "clinical reporting rules" "api/application/reporting/clinical_rules/*" "${CLINICAL_RULES_MIN}" \
+run_family_gate "clinical reporting rules" "src/coyote3/application/reporting/clinical_rules/*" "${CLINICAL_RULES_MIN}" \
   tests/unit/reporting \
   tests/unit/test_report_summary.py \
   tests/unit/test_report_summary_extended.py

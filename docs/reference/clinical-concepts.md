@@ -1,8 +1,9 @@
 # Clinical concepts and resource identities
 
-Coyote3 organizes clinical genomics data around a small set of stable domain
-objects. Understanding their ownership and relationships makes the ingest,
-review, reporting, and administration workflows easier to follow.
+Centers define biological groups, assays, diagnoses and gene lists. These
+resources organize samples and configure their clinical context. The application
+defines the supported analyses, input formats and modality/family combinations;
+see [supported application capabilities](../administration/supported-capabilities.md).
 
 ![Clinical resources and saved evidence](../assets/diagrams/collection-relationships.svg)
 
@@ -29,15 +30,15 @@ interpreted.
 | Resource | Defines | Examples of owned information |
 | --- | --- | --- |
 | **ASP** | The assay design and sequencing context. | Omics layer, assay group, assay family, platform, panel gene scope, accreditation metadata. |
-| **ASPC** | The software behavior for an ASP, subpanel, and environment. | Available analysis types, intent-specific filters, report sections, default gene lists, reporting metadata. |
+| **ASPC** | The software behavior for an ASP, diagnosis, and environment. | Available analysis types, intent-specific filters, report sections, default gene lists, reporting metadata. |
 | **ISGL** | A versioned in-silico gene list. | SNV, CNV, or fusion gene membership; compatible ASPs and assay groups; public and active state. |
 
 An ASP describes what was designed and sequenced. An ASPC describes how Coyote3
 must analyze and report that design in a particular operating context. An ISGL
 can narrow the effective gene scope without changing the physical assay design.
 
-At ingest, the active ASPC is resolved from `asp_id`, normalized `subpanel_id`, and
-`environment`. If no subpanel-specific configuration exists, the application
+At ingest, the active ASPC is resolved from `asp_id`, normalized `diagnosis_id`, and
+`environment`. If no diagnosis-specific configuration exists, the application
 may use the ASP's `base` configuration and displays that decision to the user.
 
 ## Analysis Types and Intents
@@ -45,6 +46,9 @@ may use the ASP's `base` configuration and displays that decision to the user.
 Analysis types identify the data domain, such as SNV, CNV, fusion, coverage,
 HRD, MSI, or TMB. The ASPC controls which implemented analysis types are
 available for a sample and which of them contribute report sections.
+
+DNA fusion evidence uses `TRANSLOCATION`; `FUSION` identifies the RNA workflow.
+Adding a group or assay does not add a new analysis implementation.
 
 Analysis intent is separate from analysis type. SNV review can expose somatic
 and germline intents when the ASPC permits them. Each intent has its own filter

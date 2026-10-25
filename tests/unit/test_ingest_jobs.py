@@ -8,9 +8,9 @@ import mongomock
 import pytest
 from pymongo.errors import AutoReconnect
 
-from api.application.ingest.jobs import job_status_payload, submit_ingest_job
 from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
 from api.tasks import ingest
+from coyote3.application.ingest.jobs import job_status_payload, submit_ingest_job
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_failed_attempt_retains_staged_input(jobs, monkeypatch, tmp_path, failur
     [
         (
             ValueError(
-                "No active ASPC is configured for assay='synthetic', subpanel='base', environment='development'"
+                "No active ASPC is configured for assay='synthetic', diagnosis='base', environment='development'"
             ),
             "No active ASPC is configured",
         ),
@@ -124,8 +124,9 @@ def test_failed_job_and_audit_preserve_validation_reason(
     error = job_status_payload(jobs.get(identity))["error"]
     assert detail in error
     assert "private connection details" not in error
-    assert events[0][0][1] == f"Ingest attempt failed: {error}"
-    assert events[0][1]["metadata"]["error"] == error
+    failure_events = [event for event in events if event[0][0] != "ingest.worker.access"]
+    assert failure_events[0][0][1] == f"Ingest attempt failed: {error}"
+    assert failure_events[0][1]["metadata"]["error"] == error
     notification = notifications.create_notification.call_args.kwargs
     assert notification["message"] == f"{error}\nTask ID: {identity}"
     assert notification["recipients"] == ["synthetic"]
@@ -218,7 +219,7 @@ def test_reclaimed_attempt_does_not_notify_failure_or_remove_staging(jobs, monke
     }
     assert jobs.get(identity)["state"] == "running"
     assert staging.exists()
-    audit.assert_not_called()
+    assert all(call.args[0] == "ingest.worker.access" for call in audit.call_args_list)
     notifications.create_notification.assert_not_called()
 
 

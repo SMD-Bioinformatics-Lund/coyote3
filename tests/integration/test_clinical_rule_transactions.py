@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from pymongo import MongoClient
 
-from api.config.loaders.collections import load_collection_section
+from api.config.collections import load_collection_section
 from api.infra.mongo.repositories.clinical_rule_sets import (
     ClinicalRuleSetRepository,
     build_revision_snapshot,

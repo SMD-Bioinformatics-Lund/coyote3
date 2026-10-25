@@ -6,6 +6,9 @@
     "files.insertFinalNewline": true,
     "files.trimTrailingWhitespace": true,
     "python.analysis.typeCheckingMode": "basic",
+    "[html]": {
+        "editor.formatOnSave": false
+    },
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.tabSize": 4,

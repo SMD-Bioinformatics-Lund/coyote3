@@ -1,0 +1,2 @@
+# Approved rendered report snapshots retain their exact whitespace.
+tests/fixtures/report-templates/*.html -whitespace

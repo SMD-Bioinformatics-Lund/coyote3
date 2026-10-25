@@ -171,7 +171,7 @@ export function Dashboard() {
   const vStats = data?.variant_stats || {}
   const uStats = data?.user_samples_stats || {}
   const sStats = data?.sample_stats || {}
-  const tierStats = data?.tier_stats?.total || data?.tier_stats || {}
+  const tierStats = data?.tier_stats?.total || {}
   const quality = data?.quality_stats || {}
   const capacity = data?.capacity_counts || {}
   const geneGroups = data?.panel_gene_stats_grouped || {}
@@ -348,12 +348,12 @@ export function Dashboard() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-semibold text-primary">{sample.name || sample.id}</p>
-                    <span className="type-badge rounded-md bg-dna/10 px-1.5 py-0.5 uppercase text-dna">{sample.omics_layer || "dna"}</span>
+                    <span className="type-badge rounded-md bg-dna/10 px-1.5 py-0.5 uppercase text-dna">{sample.asp_category || "dna"}</span>
                     <span className="type-badge rounded-md bg-muted px-1.5 py-0.5 uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
                   </div>
                   <p className="type-meta mt-0.5 flex min-w-0 items-center gap-1 truncate text-muted-foreground">
                     <span className="truncate">
-                      {sample.asp_id || "-"} {sample.subpanel_id ? `• ${sample.subpanel_id}` : ""}
+                      {sample.asp_id || "-"} {sample.diagnosis_id ? `• ${sample.diagnosis_id}` : ""}
                     </span>
                     <span aria-hidden="true">•</span>
                     <TimeDisplay value={sample.time_added} className="shrink-0" />

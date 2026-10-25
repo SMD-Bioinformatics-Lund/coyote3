@@ -10,7 +10,7 @@ vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof 
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 const setup = { _id: "setup-1", asp_id: "assay_1", status: "submitted", revision: 3, content_editors: ["author"], created_by: "author", content: { panel: { asp_id: "assay_1", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["development"], gene_lists: [], configurations: [] } }
-const context = { setup, panel_form: { fields: { asp_id: { data_type: "str", label: "Assay identifier" }, display_name: { data_type: "str", label: "Display name" } } }, subpanels: [], environments: ["development"], readiness: { ready: true, issues: [] }, history: [], rules: [] }
+const context = { setup, panel_form: { fields: { asp_id: { data_type: "str", label: "Assay identifier" }, display_name: { data_type: "str", label: "Display name" } } }, diagnoses: [], environments: ["development"], readiness: { ready: true, issues: [] }, history: [], rules: [] }
 beforeEach(() => {
   vi.resetAllMocks()
   access.username = "reviewer"
@@ -58,9 +58,9 @@ it("keeps the workspace read-only with view permissions", async () => {
   access.permissions = ["assay.panel:view", "assay.panel:list"]
   setup.status = "draft"
   mount()
-  fireEvent.click(await screen.findByRole("button", { name: "2. Scopes" }))
+  fireEvent.click(await screen.findByRole("button", { name: "2. Diagnoses" }))
   expect(screen.getByRole("checkbox", { name: "development" })).toBeDisabled()
-  expect(screen.queryByRole("button", { name: "Save scopes" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Save diagnoses and environments" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "New assay setup" })).not.toBeInTheDocument()
 })
 it("preserves the reserved assay identifier when saving the assay form", async () => {

@@ -32,21 +32,22 @@ from pymongo import MongoClient
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.variant_annotations import (  # noqa: E402
-    VepMetadataDoc,
-)
+from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
 )
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.contracts.schemas.variant_annotations import (  # noqa: E402
+    VepMetadataDoc,
+)
 from scripts.knowledgebase.vep_diagram_storage import (  # noqa: E402
     seed_diagram,
     split_diagram,
     store_diagram,
 )
 
-SEED = ROOT / "api/config/bootstrap/reference/vep_metadata.seed.ndjson.gz"
+SEED = BOOTSTRAP_ROOT / "reference/vep_metadata.seed.ndjson.gz"
 POLICY = Path(__file__).with_name("vep_metadata_policy.json")
 CONSEQUENCES = "modules/EnsEMBL/Web/Document/HTML/ConsequenceTable.pm"
 CLASSIFICATION = "ensembl/htdocs/info/genome/variation/prediction/classification.html"

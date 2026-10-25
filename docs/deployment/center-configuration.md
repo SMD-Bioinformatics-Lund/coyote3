@@ -3,7 +3,7 @@
 Each deployment keeps its reviewed center configuration outside the application
 checkout, either as local files or as a release staged from a separate Git
 repository. Application upgrades reuse this directory. The files under
-`api/config/center/` are bundled examples, not the center's persistent configuration.
+`config/examples/center/` are bundled examples, not the center's persistent configuration.
 
 > **Warning: Deploy the directory as one configuration unit**
 >
@@ -20,37 +20,35 @@ repository. Application upgrades reuse this directory. The files under
 | Location | Owner | Purpose | Edit for a center deployment? |
 | --- | --- | --- | --- |
 | External center directory | Deploying center | Clinical vocabulary, input field names, public contact content, and caller-specific flag wording. | Yes, through reviewed configuration releases. |
-| `api/config/center/` | Coyote3 software | Complete example files for initial configuration. | Copy once; edit the external copy. |
+| `config/examples/center/` | Coyote3 software | Complete example files for initial configuration. | Copy once; edit the external copy. |
 | `api/config/collections.toml` | Coyote3 software | Physical collection mappings. | No. Centers select database names and URIs through the environment. |
 | `api/config/application_metadata.py` | Coyote3 software | Product description, repository, licence, issue, and support-request URLs. | No. This identifies the Coyote3 codebase. |
-| `api/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
+| `src/coyote3/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
 | `api/config/runtime_settings.py` | Coyote3 software | Environment-derived runtime, security, cache, mail, and service settings. | No. Supply the documented environment values instead. |
 
 ## Directory Layout
 
 ```text
-api/config/
-  application_metadata.py       # repository-owned product metadata
-  app_config.py                 # public runtime configuration facade
-  runtime_settings.py           # environment-derived runtime setting classes
-  constants.py                  # software-owned semantic constants
-  collections.toml              # software-owned physical collection mappings
-  loaders/                      # Python loaders for center-owned assets
-  center/
-    contact.toml                # public center identity and support contacts
-    clinical_vocabulary.toml    # clinical policy and presentation metadata
-    filter_flag_metadata.yaml   # human-facing VCF filter badge metadata
+src/coyote3/config/             # typed inputs, software defaults and policy validation
+api/config/                    # environment, security, storage and MongoDB settings
+config/examples/center/        # complete examples to copy into an external directory
+  contact.toml                 # public center identity and support contacts
+  clinical_vocabulary.toml     # clinical policy and presentation metadata
+  filter_flag_metadata.yaml    # human-facing VCF filter badge metadata
+  report_presentation.toml     # optional modern-report empty-section messages
 ```
 
 ## Persistent local files or a Git configuration release
 
 Copy the examples once into a private working directory outside the checkout,
-then edit the three TOML files and the filter metadata YAML:
+then edit the required TOML/YAML files and optional report wording:
 
 ```bash
 mkdir -p /srv/coyote3/center-config-work
-cp api/config/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
+cp config/examples/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
   /srv/coyote3/center-config-work/
+# Optional: configure wording for empty modern-report sections.
+cp config/examples/center/report_presentation.toml /srv/coyote3/center-config-work/
 
 .venv/bin/python scripts/deployment/prepare_center_config.py \
   --source /srv/coyote3/center-config-work \
@@ -69,7 +67,8 @@ Alternatively, stage the same files from a separate GitHub or other Git reposito
 
 Replace the repository URL, commit ID, and paths. SSH repositories are supported;
 use an SSH agent or Git credential helper for private access. Do not embed tokens
-in URLs. The command retrieves only the three data files, validates them with the
+in URLs. The command retrieves the three required data files and the optional
+[report presentation file](../configuration/report-presentation-file.md), validates them with the
 installed application, writes a SHA-256 manifest, and refuses an existing destination.
 A branch name, tag, or shortened commit ID is not accepted. No remote configuration
 is downloaded during application startup or requests.
@@ -124,7 +123,7 @@ review before use at a laboratory.
 | `filter_flag_metadata.yaml` | Labels, severity, descriptions, and hidden flags for the center's pipeline FILTER values. | Review explanations against actual pipeline output. These settings affect presentation, not finding admission. |
 | Private environment file | All four MongoDB URI/name pairs, organization name, public URL, TLS proxy settings, authentication, mail, integrations, secrets, storage, and network. | Start from `deploy/env/example.env`; use separate values and storage for each deployment. |
 
-ASP, ASPC, ISGL, assay groups, subpanels, clinical report rules, user accounts,
+ASP, ASPC, ISGL, assay groups, diagnoses, clinical report rules, user accounts,
 roles, and public assay catalog content are managed database resources. They are
 not additional TOML files. Bootstrap the system catalogs and initial accounts,
 then install the reviewed clinical configuration in the
@@ -153,7 +152,7 @@ clinical workflow or a security rule.
 | --- | --- | --- | --- | --- |
 | Runtime settings | A copied `deploy/env/example.env` file | Platform administrator | Database connection, secrets, public mount, paths, resource limits, local timezone | Update the environment and recreate affected containers. Rebuild images when a changed value is also a build argument. |
 | Center configuration | External directory selected by `COYOTE3_CENTER_CONFIG_HOST_DIR` | Center clinical and technical owners | Clinical policy, contacts, DNA caller metadata, filter explanations | Validate a reviewed release and recreate API, worker, beat, and monitor. Rebuild documentation for changed contact content. |
-| Software contract | Python modules under `api/config/` and typed contracts | Coyote3 maintainers | Implemented analysis types, authentication mechanisms, permission semantics, persistence schemas | Change code, tests, and release documentation. |
+| Software contract | Python modules under `src/coyote3/config/` and typed contracts | Coyote3 maintainers | Implemented analysis types, authentication mechanisms, permission semantics, persistence schemas | Change code, tests, and release documentation. |
 
 The complete environment-variable table is maintained in
 [Configuration and Environments](configuration-reference.md). This page
@@ -187,11 +186,11 @@ assay capabilities through ASP/ASPC administration.
 
 ## Application-owned definitions
 
-Python loads `api/config/clinical_capabilities.toml` and
-`api/config/clinical_query_defaults.toml` from the application package. Neither
+Python loads `src/coyote3/config/clinical_capabilities.toml` and
+`src/coyote3/config/clinical_query_defaults.toml` from the application package. Neither
 path can be redirected through the center directory. These are software release
 assets, like `api/config/collections.toml`; centers must not edit or copy them.
-New ASPs, groups, subpanels and gene lists remain center-managed database resources.
+New ASPs, groups, diagnoses and gene lists remain center-managed database resources.
 
 Before upgrading a deployment that has older center files:
 
@@ -224,13 +223,13 @@ samples, ASPs, ASPCs or reports, and does not publish new database-managed query
 > annotation, query, ASP, ASPC, and ISGL scope. Manage system and custom groups
 > through [Admin > Assay groups](../administration/assay-groups.md).
 > Assay family (`panel-dna`, `wgs`, `panel-rna`,
-> `wts`) and subpanel (for example `endometrie` or `breast`) are separate
+> `wts`) and diagnosis (for example `endometrie` or `breast`) are separate
 > concepts.
 >
 
 ## Query-rule installation definitions
 
-`api/config/clinical_query_seed.toml` is application-owned and loaded by Python
+`api/bootstrap/catalogs/reference/clinical_query_seed.toml` is application-owned and loaded by Python
 bootstrap tools. Do not copy it into a center configuration release. Manage live
 criteria through [query rules](../administration/query-rules.md); the
 [seed and predicate reference](../configuration/clinical-query-policy-file.md)
@@ -282,7 +281,7 @@ previews, notifications, revision history, and publication safeguards.
 | `category.description` | Recommended | Text | Public assay description; falls back to the ASP description where available. |
 | `category.subheading` | No | Text | Supplemental heading. |
 | `category.asp_id` | Recommended | Existing ASP `asp_id` | Links the catalog section to the physical assay definition. |
-| `category.subpanel_id` | No | Existing ASPC subpanel identifier | Narrows the category to a subpanel. Use the configured base subpanel when no specific subpanel applies. |
+| `category.diagnosis_id` | No | Existing ASPC diagnosis identifier | Narrows the category to a diagnosis. Use the configured base diagnosis when no specific diagnosis applies. |
 | `category.aspc_id` | Required before submission unless `aspc_ids.production` is set | Active production ASPC identifier | Direct configuration reference for the selected assay. |
 | `category.aspc_ids` | No | Production reference mapping | Only the `production` key is accepted for publication. |
 | `category.family` / `category.asp_family` | No | Supported ASP family identifier | Optional public family override; normally inherited from the ASP. |
@@ -298,7 +297,7 @@ previews, notifications, revision history, and publication safeguards.
 | `gene_lists[].key` or `gene_lists[].isgl_id` | Required for an ISGL-backed list | Existing ISGL `isgl_id` | Resolves active ISGL metadata and gene coverage. Remove blank placeholder entries in new catalog content. |
 | `gene_lists[].label`, `description` | No | Text | List-specific visible text; label falls back to the ISGL display name. |
 | `gene_lists[].diagnosis` | No | List of display strings | List-specific clinical context. |
-| `gene_lists[].subpanel_id`, `list_type` | No | Existing subpanel ID or ISGL list type | List-specific context overrides. |
+| `gene_lists[].diagnosis_id`, `list_type` | No | Existing diagnosis ID or ISGL list type | List-specific context overrides. |
 | `gene_lists[].tat`, `input_material`, `sample_modes`, `analysis` | No | Same forms as the category keys | List-level values override the corresponding category value. |
 
 > **Info: Use ASP, ASPC, and ISGL for clinical truth**
@@ -323,11 +322,11 @@ application behavior and changing them requires a software change.
 
 | Item | Defined in | Software contract |
 | --- | --- | --- |
-| Permission identifiers and permission categories | `api/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
+| Permission identifiers and permission categories | `src/coyote3/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
 | Authentication implementation | `api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |
 | Supported analysis types | Typed contracts, parsers, repositories, UI, and reporting services | A new type requires end-to-end ingestion, storage, display, report, and test support. |
 | Reporting-rule operators and rendering behavior | Reporting contracts and rule engine | Clinical content follows its own controlled reporting-rule release process. |
-| Normalized database-version keys | `api/config/database_versions.py` | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
+| Normalized database-version keys | `src/coyote3/config/database_versions.py` | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
 | Product, licence, repository, and issue URLs | `api/config/application_metadata.py` | These identify Coyote3 itself rather than the deploying center. |
 
 ## Safe Change Protocol

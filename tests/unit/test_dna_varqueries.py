@@ -6,12 +6,14 @@ from dataclasses import replace
 
 import pytest
 
-from api.config.clinical_query_policy import (
+from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH
+from api.infra.mongo.selection import compile_selection
+from coyote3.config.clinical_query_policy import (
     CLINICAL_QUERY_POLICY,
     load_clinical_query_policy,
 )
-from api.domain.core.dna.dna_filters import get_filter_conseq_terms
-from api.domain.core.dna.varqueries import build_query
+from coyote3.domain.dna.dna_filters import get_filter_conseq_terms
+from coyote3.domain.dna.varqueries import build_query
 
 SNV_QUERY_POLICY = CLINICAL_QUERY_POLICY.snv
 
@@ -56,7 +58,7 @@ def _settings(**overrides: object) -> dict:
     settings = {
         "id": "SAMPLE_1",
         "asp_id": "hema_gmsv1",
-        "subpanel_id": "hem",
+        "diagnosis_id": "hem",
         "max_freq": 1.0,
         "min_freq": 0.1,
         "max_control_freq": 0.05,
@@ -72,7 +74,7 @@ def _settings(**overrides: object) -> dict:
 
 
 def test_paired_query_uses_aggregated_transcript_consequence_terms() -> None:
-    query = build_query("hematology", _settings())
+    query = compile_selection(build_query("hematology", _settings()))
     query_text = str(query)
 
     assert query["SAMPLE_ID"] == "SAMPLE_1"
@@ -82,7 +84,7 @@ def test_paired_query_uses_aggregated_transcript_consequence_terms() -> None:
 
 
 def test_paired_query_checks_every_configured_population_frequency_source() -> None:
-    query = build_query("hematology", _settings())
+    query = compile_selection(build_query("hematology", _settings()))
     query_text = str(query)
 
     for field in SNV_QUERY_POLICY.population_frequency_fields:
@@ -92,7 +94,7 @@ def test_paired_query_checks_every_configured_population_frequency_source() -> N
 
 def test_case_only_policy_omits_control_but_retains_population_frequency_checks() -> None:
     policy = replace(SNV_QUERY_POLICY, assay_group_policies={"hematology": "case_only"})
-    query = build_query("hematology", _settings(), policy=policy)
+    query = compile_selection(build_query("hematology", _settings(), policy=policy))
     query_text = str(query)
 
     assert "'type': 'control'" not in query_text
@@ -102,7 +104,7 @@ def test_case_only_policy_omits_control_but_retains_population_frequency_checks(
 
 
 def test_unconfigured_group_uses_safe_default_paired_policy() -> None:
-    query = build_query("unconfigured_group", _settings())
+    query = compile_selection(build_query("unconfigured_group", _settings()))
     query_text = str(query)
 
     assert "'type': 'control'" in query_text
@@ -111,10 +113,12 @@ def test_unconfigured_group_uses_safe_default_paired_policy() -> None:
 
 
 def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
-    policy = load_clinical_query_policy().snv
-    hema_query = build_query("hematology", _settings(), policy=policy)
-    solid_query = build_query(
-        "solid", _settings(asp_id="solid_gmsv3", subpanel_id="colon"), policy=policy
+    policy = load_clinical_query_policy(CLINICAL_QUERY_SEED_PATH).snv
+    hema_query = compile_selection(build_query("hematology", _settings(), policy=policy))
+    solid_query = compile_selection(
+        build_query(
+            "solid", _settings(asp_id="demo-solid_gmsv3", diagnosis_id="colon"), policy=policy
+        )
     )
 
     assert _contains_mapping(hema_query, {"genes": {"$in": ["FLT3"]}})
@@ -128,8 +132,13 @@ def test_exceptions_are_scoped_and_use_aggregated_consequence_terms() -> None:
 
 
 def test_germline_query_requires_a_typed_admission_exception() -> None:
-    query = build_query(
-        "hematology", _settings(), intent="germline", policy=load_clinical_query_policy().snv
+    query = compile_selection(
+        build_query(
+            "hematology",
+            _settings(),
+            intent="germline",
+            policy=load_clinical_query_policy(CLINICAL_QUERY_SEED_PATH).snv,
+        )
     )
 
     assert _contains_mapping(query, {"INFO.MYELOID_GERMLINE": {"$eq": 1}})
@@ -148,7 +157,9 @@ def test_scope_without_configured_germline_admission_matches_nothing(tmp_path) -
     )
     policy = _load_snv_policy(policy_path)
 
-    query = build_query("hematology", _settings(), intent="germline", policy=policy)
+    query = compile_selection(
+        build_query("hematology", _settings(), intent="germline", policy=policy)
+    )
 
     assert _contains_mapping(query, {"_id": {"$exists": False}})
 
@@ -204,7 +215,7 @@ filter_values = ["LOWQUAL"]
     )
     policy = _load_snv_policy(policy_path)
 
-    query = build_query("solid", _settings(), policy=policy)
+    query = compile_selection(build_query("solid", _settings(), policy=policy))
 
     assert _contains_mapping(
         query,
@@ -250,8 +261,12 @@ genes = ["TP53"]
         encoding="utf-8",
     )
 
-    first_query = build_query("hematology", _settings(), policy=_load_snv_policy(first_path))
-    second_query = build_query("hematology", _settings(), policy=_load_snv_policy(second_path))
+    first_query = compile_selection(
+        build_query("hematology", _settings(), policy=_load_snv_policy(first_path))
+    )
+    second_query = compile_selection(
+        build_query("hematology", _settings(), policy=_load_snv_policy(second_path))
+    )
 
     assert _logical_normal_form(first_query) == _logical_normal_form(second_query)
 

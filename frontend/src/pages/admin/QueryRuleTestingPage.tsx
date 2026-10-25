@@ -28,7 +28,7 @@ export function QueryRuleTestingPage() {
       </label>
       {versions.isLoading && <p role="status">Loading versions…</p>}
       {versions.isError && <p role="alert">Unable to load query-rule versions. <Button variant="outline" onClick={() => void versions.refetch()}>Retry</Button></p>}
-      {selected && <div className="flex flex-wrap items-center gap-2 type-body-sm"><ClinicalRuleStatusBadge status={selected.status} prefix={`v${selected.version} `} /><span>{selected.scope.assay_group ?? "All groups"} · {selected.scope.asp_id ?? "All assays"} · {selected.scope.subpanel_id ?? "All subpanels"}</span></div>}
+      {selected && <div className="flex flex-wrap items-center gap-2 type-body-sm"><ClinicalRuleStatusBadge status={selected.status} prefix={`v${selected.version} `} /><span>{selected.scope.assay_group ?? "All groups"} · {selected.scope.asp_id ?? "All assays"} · {selected.scope.diagnosis_id ?? "All diagnoses"}</span></div>}
       <p className="type-body-sm text-muted-foreground">Save draft changes in the editor before testing. Only ready samples within your assay and environment access are available.</p>
     </section>
     {selected ? <div className="mt-4"><QueryRuleSampleTestPanel key={`${selected._id}:${selected.revision}`} scope={selected.scope} content={selected.content} readOnly={selected.status !== "draft"} /></div> : <p className="mt-4 type-body-sm text-muted-foreground">Select a version to find and test samples.</p>}

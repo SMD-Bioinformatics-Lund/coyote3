@@ -131,7 +131,7 @@ export function CNVTab({
       </div>
     );
 
-  const cnvs = data?.display_sections_data?.cnvs || data?.cnvs || [];
+  const cnvs = data?.cnvs || [];
   const cnvCount = Number(data?.meta?.count ?? cnvs.length);
   const hasNext = Boolean(data?.meta?.has_next);
   const hasPrevious = Boolean(data?.meta?.has_previous);

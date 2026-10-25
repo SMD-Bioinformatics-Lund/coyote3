@@ -115,7 +115,7 @@ describe("CommentsPanel", () => {
       ALT: "C",
       INFO: { selected_CSQ: { SYMBOL: "SRSF2", Feature: "NM_003016.4", HGVSc: "c.265A>G", HGVSp: "p.Met89Val" } },
     }
-    renderPanel(<CommentsPanel sampleId="CASE_1" resourceType="small_variant" resource={resource} assayGroup="hematology" subpanel="hem" />)
+    renderPanel(<CommentsPanel sampleId="CASE_1" resourceType="small_variant" resource={resource} assayGroup="hematology" diagnosis="hem" />)
 
     await user.type(screen.getByRole("textbox"), "Reviewed annotation")
     await user.click(screen.getByRole("checkbox", { name: "Global annotation" }))
@@ -133,8 +133,8 @@ describe("CommentsPanel", () => {
         hgvsc: "c.265A>G",
         hgvsp: "p.Met89Val",
         genomic: "17_76736896_T_C",
-        assay_group: "hematology",
-        subpanel: "hem",
+        asp_group: "hematology",
+        diagnosis_id: "hem",
       }),
     }))
   })

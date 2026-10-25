@@ -5,7 +5,7 @@ const TIERED_SEARCH_MODES = new Set([
   "hgvsc",
   "genomic",
   "transcript",
-  "subpanel",
+  "diagnosis",
   "author",
   "annotation",
   "all",

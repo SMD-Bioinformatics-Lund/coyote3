@@ -10,8 +10,16 @@ configuration, incomplete backup or missing migration procedure stops deployment
 There is no universal migration command: releases that change stored contracts
 must supply their own reviewed migration and recovery instructions.
 
-The pending release's required actions and rollback limits are listed in
-[release maintenance](release-maintenance.md).
+Review `CHANGELOG.md` in the target release checkout and follow the
+applicable maintenance procedures in step 6. Record acceptance and recovery evidence
+using the [deployment acceptance checklist](acceptance-checklist.md).
+
+The normal application build packages the SDK inside Docker; it does not require a
+host `.release/sdk` directory. Only installations selecting
+`deploy/compose/docker-compose.release.yml` must supply the tested SDK wheel and
+`release-record.json` using the
+[verified-artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release).
+Export the target checkout's `GIT_COMMIT` before building either image variant.
 
 ## 1. Select the installation and maintenance record
 
@@ -61,6 +69,11 @@ rollback restrictions. Agree on the maintenance window and recovery plan.
 For center files that still declare families, manifest keys, analysis bindings or
 base query settings, follow the [application-owned definitions upgrade](center-configuration.md#application-owned-definitions)
 before validating the new configuration release.
+The bundled center defaults now live under `config/examples/center/`. If an
+installation explicitly points `COYOTE3_CENTER_CONFIG_HOST_DIR` at the former
+`api/config/center/` checkout path, update it before building. Preserve external
+center directories and their reviewed content. Rebuild API and worker images
+together so they use the installed application library from the same release.
 For configuration-only changes, retain the current reviewed commit throughout.
 
 Use the installation's recorded file list, including private storage overrides and
@@ -150,8 +163,8 @@ API or workers or writing to MongoDB:
 
 ```bash
 coyote_compose run --rm --no-deps -T api python3 -c '
-from api.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.loaders.contact import load_contact_config
+from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
+from api.config.contact import load_contact_config
 from api.config.paths import CONTACT_CONFIG_PATH
 load_filter_flag_metadata()
 load_contact_config(CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name="")
@@ -231,6 +244,16 @@ Use the exact migration instructions supplied with the reviewed release. Review
 its dry-run/plan, scope, counts and recovery requirements before applying changes.
 If those instructions are missing for a changed stored contract, keep the old
 installation in service or restore it without applying the new release.
+
+For installations retaining the notification `expires_on` TTL index, follow the
+[notification retention procedure](../operations/email-and-notifications.md#existing-installations).
+Review the dry run before applying changes. It preserves remaining records but cannot
+recover notifications already removed by the old index.
+
+Application and identity indexes use the index tool's default `application` scope.
+For declared knowledgebase index changes, separately plan and apply
+`--scope knowledgebase` with the approved reference-maintenance connection. Keep
+runtime reference credentials unchanged.
 
 When the release adds system permissions or roles, review and apply its bundled
 catalog through the identity maintenance tool:

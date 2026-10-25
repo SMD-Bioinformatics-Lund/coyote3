@@ -9,10 +9,10 @@ const dnaContext: SampleContext = {
   sample: {
     name: "DNA_001",
     asp_id: "hema_gmsv1",
-    subpanel_id: "base",
+    diagnosis_id: "base",
     environment: "production",
     ingest_status: "ready",
-    omics_layer: "dna",
+    asp_category: "dna",
     analysis_intents: ["somatic"],
     files: {
       vcf_files: "/data/DNA_001.vcf.gz",
@@ -29,10 +29,10 @@ const rnaContext: SampleContext = {
   sample: {
     name: "RNA_001",
     asp_id: "rna_fusion_v1",
-    subpanel_id: "base",
+    diagnosis_id: "base",
     environment: "production",
     ingest_status: "ready",
-    omics_layer: "rna",
+    asp_category: "rna",
     analysis_intents: ["somatic"],
     files: { fusion_files: "/data/RNA_001.fusions.json" },
     data_counts: { fusions: 1 },
@@ -89,11 +89,11 @@ async function installApiFixtures(
       return
     }
     if (path.endsWith("/cnvs")) {
-      await route.fulfill({ json: { ...emptyPage, display_sections_data: { cnvs: [] }, sample: context.sample } })
+      await route.fulfill({ json: { ...emptyPage, cnvs: [], sample: context.sample } })
       return
     }
     if (path.endsWith("/translocations")) {
-      await route.fulfill({ json: { ...emptyPage, display_sections_data: { translocs: [] }, sample: context.sample } })
+      await route.fulfill({ json: { ...emptyPage, translocations: [], sample: context.sample } })
       return
     }
     if (path.endsWith("/coverage")) {

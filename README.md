@@ -17,7 +17,7 @@ workflows. Developed by the Section for Molecular Diagnostics (SMD), Lund.
 [![Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)
 [![Bootstrap and Ingest](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml/badge.svg)](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml)
 ![Coyote3 4.0.0](https://img.shields.io/badge/Coyote3-4.0.0-4F46A5)
-![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-2E7D32)
+![License: COYOTE3 Free-Use](https://img.shields.io/badge/License-COYOTE3_Free--Use-2E7D32)
 
 ### Core Stack
 
@@ -68,7 +68,7 @@ The application connects four areas of laboratory work:
 
 | Area | What users manage | Result |
 | --- | --- | --- |
-| Assay configuration | Assay groups, physical assays, shared subpanels, gene lists, analysis settings, and reporting rules. | A reviewed configuration that controls ingest, review, and reporting for an assay and environment. |
+| Assay configuration | Assay groups, physical assays, shared diagnoses, gene lists, analysis settings, and reporting rules. | A reviewed configuration that controls ingest, review, and reporting for an assay and environment. |
 | Data ingestion | Sample manifests and declared analysis files from laboratory pipelines. | Validated sample records and linked findings, with job status and ingestion provenance. |
 | Clinical interpretation | Sample filters, evidence, classifications, finding actions, and comments. | A review state shared by authorized users and used to prepare report content. |
 | Reporting and operations | Published clinical rules, saved reports, accounts, audit events, notifications, and reference releases. | Preserved reporting evidence and the operational context needed to run the installation. |
@@ -86,7 +86,7 @@ The application connects four areas of laboratory work:
 
 ASP is the physical assay, ASPC is its analysis configuration, and ISGL is an optional
 gene list. A sample records the configuration used for its review. See
-[resource relationships](docs/architecture/resource-relationships.md) for subpanels,
+[resource relationships](docs/architecture/resource-relationships.md) for diagnoses,
 cardinality, scope resolution, and dependencies.
 
 ## Key Capabilities
@@ -135,7 +135,8 @@ Coyote3 separates clinical review, configuration and deployment responsibilities
 | Component | Responsibility |
 | --- | --- |
 | `frontend/` | React interface, route workflows, shared tables, and API query state. |
-| `api/` | FastAPI routes, application services, domain rules, contracts, authorization, and repositories. |
+| `src/coyote3/` | Core application library: operations, authorization, domain rules, contracts, configuration and reporting. |
+| `api/` | Standalone FastAPI application, authentication, runtime adapters and repositories. |
 | Celery worker and Beat | Sample ingestion and scheduled maintenance. |
 | MongoDB | Clinical findings, configuration, identity, audit, and operational records. |
 | Redis | Task delivery, task results, rate limits and caches; API sessions are stored in MongoDB. |
@@ -157,8 +158,11 @@ For the complete component and request flow, see
 ## Repository Layout
 
 ```text
-api/                         FastAPI application and backend contracts
-api/config/center/           Center-configurable TOML and YAML files
+src/coyote3/                 Core application library and packaged report templates
+clients/python/              Independent coyote3-client HTTP distribution
+config/examples/center/       Example center files; deploy an external reviewed copy
+api/                         FastAPI application and runtime adapters, bundled with core
+api/interfaces/http/v1/      Version-one HTTP handlers
 frontend/                    React application and frontend tests
 deploy/                      Compose, proxy, and container configuration
 scripts/                     Bootstrap, quality, validation, and operations tools
@@ -228,7 +232,7 @@ development value `/coyote3_dev`, the standard endpoints are:
 For first deployment, baseline RBAC data, the initial superuser, demo
 configuration, and synthetic sample ingestion, follow the
 [Quickstart](docs/getting-started/local-quickstart.md). Production deployments must follow
-the [Initial Deployment Checklist](docs/deployment/installation-checklist.md).
+the [Deployment Acceptance Checklist](docs/deployment/acceptance-checklist.md).
 
 ## Configuration Model
 
@@ -236,13 +240,13 @@ Coyote3 separates configuration by ownership:
 
 - environment files hold deployment identity, secrets, public routing, service
   endpoints, and host mount paths;
-- `api/config/center/` contains center-configurable clinical vocabulary,
+- `config/examples/center/` contains center-configurable clinical vocabulary,
   collection names, contact details, assay catalog text, filter metadata, and
   query policy;
 - ASP, ASPC, and ISGL are versioned clinical configuration resources, while
   roles and users are managed as operational identity resources;
 - published clinical report rules are governed in MongoDB and resolved for the
-  assay, subpanel, analyte, and reporting language, with an explicit Base fallback;
+  assay, diagnosis, analyte, and reporting language, with an explicit Base fallback;
 - fixed product behavior remains in Python and frontend theme configuration.
 
 Start with the [Configuration Guide](docs/deployment/configuration-reference.md) and
@@ -254,7 +258,7 @@ Start with the [Configuration Guide](docs/deployment/configuration-reference.md)
 | --- | --- |
 | Assay setup | Draft, readiness validation, independent review, and transactional activation. |
 | ASP / ASPC / ISGL | Stable business identities with versioned clinical configuration. |
-| Named subpanel | Shared definition plus independently managed assay associations; Base is implicit. |
+| Named diagnosis | Shared definition plus independently managed assay associations; Base is implicit. |
 | Clinical rule set | Authoring, tests, clinical review, publication, and immutable release provenance. |
 | Public assay catalog | Separate publication workflow referencing eligible assay and gene-list resources. |
 | Sample and findings | Validated ingestion, recorded configuration, review state, and actor/source provenance. |
@@ -290,6 +294,10 @@ Start with [deployment](docs/deployment/README.md),
 [administration](docs/administration/README.md), or
 [development](docs/development/README.md).
 
+Python integrations and host development use the [SDK guides](docs/sdk/README.md).
+The [version policy](docs/sdk/compatibility.md) distinguishes application releases,
+SDK packages, HTTP compatibility and governed configuration revisions.
+
 | Reader or task | Documentation |
 | --- | --- |
 | First local run | [Quickstart](docs/getting-started/local-quickstart.md) |
@@ -297,7 +305,7 @@ Start with [deployment](docs/deployment/README.md),
 | Clinical review | [Clinical Workflow](docs/user-guide/clinical-review-workflow.md) |
 | ASP, ASPC, ISGL, samples, and findings | [Core Concepts](docs/reference/clinical-concepts.md) |
 | System relationships | [System Overview](docs/reference/application-overview.md) |
-| Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/installation-checklist.md) |
+| Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/acceptance-checklist.md) |
 | Environment and secrets | [Environment and Secrets](docs/deployment/environments-and-secrets.md) |
 | Sample manifest and input contracts | [Sample YAML Manifest](docs/reference/sample-manifest.md) and [Sample Input Files](docs/reference/sample-file-formats.md) |
 | API organization and authentication | [API Organization](docs/api/route-groups.md) and [Authentication](docs/api/authentication.md) |
@@ -357,5 +365,8 @@ Coyote3 is developed and maintained by the bioinformatics team at the
 **Section for Molecular Diagnostics (SMD), Lund**, in collaboration with
 clinical users and platform maintainers.
 
-Licensed under the [Apache License 2.0](LICENSE.txt). Clinical-use and
-deployment responsibilities are described in [NOTICE.txt](NOTICE.txt).
+The application uses the [COYOTE3 Free-Use Source-Available License 1.0](LICENSE.txt).
+Free use includes institutional and commercial use; protected code modifications
+and redistribution require written authorization as specified in the license.
+The independent Python HTTP client retains Apache 2.0. See [LICENSING.md](LICENSING.md)
+for module boundaries and [NOTICE.txt](NOTICE.txt) for ownership and clinical-use notices.

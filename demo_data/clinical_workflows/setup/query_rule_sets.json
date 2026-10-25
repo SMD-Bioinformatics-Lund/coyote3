@@ -1,0 +1,55 @@
+[
+  {
+    "scope": {
+      "assay_group": "hematology",
+      "asp_id": "demo-hematology-training",
+      "diagnosis_id": "myeloid",
+      "analysis": "snv",
+      "intent": "somatic"
+    },
+    "scope_key": "hematology__demo-hematology-training__myeloid__somatic_snvs",
+    "name": "hematology__demo-hematology-training__myeloid__somatic_snvs",
+    "content": {
+      "evidence_mode": "paired",
+      "exceptions": []
+    },
+    "reason": "Packaged synthetic starter policy",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "system",
+    "updated_by": "system",
+    "published_by": "system",
+    "created_on": "2026-01-01T00:00:00+00:00",
+    "updated_on": "2026-01-01T00:00:00+00:00",
+    "published_on": "2026-01-01T00:00:00+00:00",
+    "system_installed": true,
+    "query_id": "hematology__demo-hematology-training__myeloid__somatic_snvs"
+  },
+  {
+    "scope": {
+      "assay_group": "hematology",
+      "asp_id": "demo-rna-training",
+      "diagnosis_id": "lymphoid",
+      "analysis": "fusion",
+      "intent": "somatic"
+    },
+    "scope_key": "hematology__demo-rna-training__lymphoid__somatic_fusions",
+    "name": "hematology__demo-rna-training__lymphoid__somatic_fusions",
+    "content": {
+      "exceptions": []
+    },
+    "reason": "Packaged synthetic starter policy",
+    "version": 1,
+    "revision": 1,
+    "status": "published",
+    "created_by": "system",
+    "updated_by": "system",
+    "published_by": "system",
+    "created_on": "2026-01-01T00:00:00+00:00",
+    "updated_on": "2026-01-01T00:00:00+00:00",
+    "published_on": "2026-01-01T00:00:00+00:00",
+    "system_installed": true,
+    "query_id": "hematology__demo-rna-training__lymphoid__somatic_fusions"
+  }
+]

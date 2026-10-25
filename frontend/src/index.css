@@ -803,7 +803,7 @@
   .matrix-head-assay {
     background: var(--matrix-assay-surface);
   }
-  .matrix-head-subpanel {
+  .matrix-head-diagnosis {
     background: color-mix(in srgb, var(--matrix-assay-surface) 65%, var(--matrix-list-surface));
   }
   .matrix-head-list {

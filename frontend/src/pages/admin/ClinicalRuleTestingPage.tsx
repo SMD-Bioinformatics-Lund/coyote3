@@ -18,9 +18,9 @@ type TestSample = {
   id: string
   name: string
   asp_id?: string
-  subpanel_id: string
+  diagnosis_id: string
   environment?: string
-  omics_layer?: string
+  asp_category?: string
 }
 
 type ConditionTraceNode = {
@@ -103,7 +103,7 @@ function RuleExecutionTrace({ preview }: { preview: SamplePreview }) {
 export function ClinicalRuleTestingPage() {
   const [ruleId, setRuleId] = useState("")
   const [search, setSearch] = useState("")
-  const [scope, setScope] = useState<"subpanel" | "assay">("subpanel")
+  const [scope, setScope] = useState<"diagnosis" | "assay">("diagnosis")
   const [sampleId, setSampleId] = useState("")
   const [traceOpen, setTraceOpen] = useState(false)
   const [traceLoaded, setTraceLoaded] = useState(false)
@@ -119,7 +119,7 @@ export function ClinicalRuleTestingPage() {
   const samplesQuery = useQuery({
     queryKey: ["clinical-rule-test-samples", ruleId, scope, search],
     enabled: Boolean(ruleId),
-    queryFn: () => api.get<{ items: TestSample[] }>(`/admin/clinical-rule-sets/versions/${ruleId}/test-samples?match_subpanel=${scope === "subpanel"}&q=${encodeURIComponent(search)}&per_page=10`).then((response) => response.data),
+    queryFn: () => api.get<{ items: TestSample[] }>(`/admin/clinical-rule-sets/versions/${ruleId}/test-samples?match_diagnosis=${scope === "diagnosis"}&q=${encodeURIComponent(search)}&per_page=10`).then((response) => response.data),
   })
   const previewMutation = useMutation({
     mutationFn: (includeConditionTrace: boolean) => api.post<SamplePreview>(`/admin/clinical-rule-sets/versions/${ruleId}/test-samples/${sampleId}/preview?include_condition_trace=${includeConditionTrace}`).then((response) => response.data),
@@ -144,11 +144,11 @@ export function ClinicalRuleTestingPage() {
       <section className="surface-panel p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(18rem,1.4fr)_auto_minmax(16rem,1fr)_auto] lg:items-end">
           <label className="type-label">Rule set<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={ruleId} onChange={(event) => { setRuleId(event.target.value); setSampleId(""); resetPreview() }}><option value="">Select rule set</option>{(rulesQuery.data?.items || []).filter((rule) => rule.status !== "retired").map((rule) => <option key={rule._id} value={rule._id}>{rule.name} · v{rule.content_version} · {rule.status}</option>)}</select></label>
-          <SegmentedControl ariaLabel="Sample matching scope" value={scope} onValueChange={(value) => { setScope(value); setSampleId(""); resetPreview() }} items={[{ value: "subpanel", label: "Assay + subpanel" }, { value: "assay", label: "Assay only" }]} />
+          <SegmentedControl ariaLabel="Sample matching scope" value={scope} onValueChange={(value) => { setScope(value); setSampleId(""); resetPreview() }} items={[{ value: "diagnosis", label: "Assay + diagnosis" }, { value: "assay", label: "Assay only" }]} />
           <label className="type-label">Search samples<div className="relative mt-1"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="pl-8" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Sample or case identifier" /></div></label>
           <Button disabled={!ruleId || !sampleId || previewMutation.isPending} onClick={() => previewMutation.mutate(false)}><Beaker /> {previewMutation.isPending && !traceOpen ? "Testing" : "Test rule set"}</Button>
         </div>
-        {selectedRule && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><ClinicalRuleStatusBadge status={selectedRule.status} /><span>Testing {selectedRule.scope.asp_id} · {selectedRule.scope.subpanel_id} · {selectedRule.scope.analyte.toUpperCase()}</span></div>}
+        {selectedRule && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><ClinicalRuleStatusBadge status={selectedRule.status} /><span>Testing {selectedRule.scope.asp_id} · {selectedRule.scope.diagnosis_id} · {selectedRule.scope.analyte.toUpperCase()}</span></div>}
         {rulesQuery.error && <p role="alert" className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{rulesQuery.error instanceof Error ? rulesQuery.error.message : "Unable to load clinical rule sets."}</p>}
       </section>
 
@@ -156,7 +156,7 @@ export function ClinicalRuleTestingPage() {
         <section className="surface-panel min-h-80 p-3">
           <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Compatible samples</h2><span className="text-xs text-muted-foreground">Latest 10</span></div>
           <div className="mt-3 space-y-1">
-            {(samplesQuery.data?.items || []).map((sample) => <button key={sample.id} type="button" className={`w-full rounded-lg border p-3 text-left ${sampleId === sample.id ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`} onClick={() => { setSampleId(sample.id); resetPreview() }}><span className="block font-medium">{sample.name}</span><span className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{sample.asp_id}</span><span>{sample.subpanel_id}</span><span>{sample.environment}</span></span></button>)}
+            {(samplesQuery.data?.items || []).map((sample) => <button key={sample.id} type="button" className={`w-full rounded-lg border p-3 text-left ${sampleId === sample.id ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`} onClick={() => { setSampleId(sample.id); resetPreview() }}><span className="block font-medium">{sample.name}</span><span className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{sample.asp_id}</span><span>{sample.diagnosis_id}</span><span>{sample.environment}</span></span></button>)}
             {ruleId && !samplesQuery.isLoading && !samplesQuery.error && !samplesQuery.data?.items.length && <p className="p-6 text-center text-sm text-muted-foreground">No compatible samples found.</p>}
             {samplesQuery.error && <p role="alert" className="rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{samplesQuery.error instanceof Error ? samplesQuery.error.message : "Unable to search compatible samples."}</p>}
           </div>

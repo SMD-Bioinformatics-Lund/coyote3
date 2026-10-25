@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.application.sample.catalog import SampleCatalogService
-from api.interfaces.http.clinical import samples
+from api.interfaces.http.v1.clinical import samples
+from coyote3.application.sample.catalog import SampleCatalogService
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 from tests.fixtures.api.fake_store import build_fake_store
 
@@ -15,6 +16,7 @@ def _catalog_service(fake_store) -> SampleCatalogService:
         sample_repository=fake_store.sample_repository,
         gene_list_repository=fake_store.gene_list_repository,
         assay_panel_repository=fake_store.assay_panel_repository,
+        assay_configuration_repository=fake_store.assay_configuration_repository,
         variant_repository=fake_store.variant_repository,
         copy_number_variant_repository=fake_store.copy_number_variant_repository,
         fusion_repository=fake_store.fusion_repository,
@@ -27,19 +29,14 @@ def _catalog_service(fake_store) -> SampleCatalogService:
 
 
 def test_home_isgls_read_with_fake_store(monkeypatch):
-    """Test home isgls read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake_store = build_fake_store()
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-    payload = samples.sample_genelists_read(
-        "S1", user=fx.api_user(), service=_catalog_service(fake_store)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_genelists_read,
+        "S1",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
     )
 
     assert payload["items"][0]["isgl_id"] == str(fx.isgl_doc()["isgl_id"])
@@ -48,19 +45,14 @@ def test_home_isgls_read_with_fake_store(monkeypatch):
 
 
 def test_home_effective_genes_read_with_fake_store(monkeypatch):
-    """Test home effective genes read with fake store.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     fake_store = build_fake_store()
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-    payload = samples.sample_effective_genes_read(
-        "S1", user=fx.api_user(), service=_catalog_service(fake_store)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_effective_genes_read,
+        "S1",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
     )
 
     assert "items" in payload
@@ -69,10 +61,14 @@ def test_home_effective_genes_read_with_fake_store(monkeypatch):
 
 def test_home_effective_genes_read_with_target(monkeypatch):
     fake_store = build_fake_store()
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-    payload = samples.sample_effective_genes_read(
-        "S1", target="cnv", user=fx.api_user(), service=_catalog_service(fake_store)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_effective_genes_read,
+        "S1",
+        target="cnv",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
     )
 
     assert payload["target"] == "cnv"

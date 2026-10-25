@@ -1,9 +1,33 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
-from api.application.public.catalog import PublicCatalogService
-from api.application.sample.catalog import SampleCatalogService
+import pytest
+
+from coyote3.application.public.catalog import PublicCatalogService
+from coyote3.application.sample.catalog import SampleCatalogService
+
+
+@pytest.mark.parametrize("group", ["hematology", "solid", "tumwgs", "center_custom"])
+def test_analysis_counts_apply_assay_eligibility_even_when_all_panel_genes_are_selected(group):
+    """Off-assay findings stay excluded regardless of a center's biological group name."""
+    service = object.__new__(SampleCatalogService)
+    service._effective_genes_for_target = lambda **kwargs: (["TP53"], ["TP53"], group)
+    stats = Mock(return_value={"variants": 1})
+    service.variant_repository = SimpleNamespace(get_variant_stats=stats)
+    service.copy_number_variant_repository = SimpleNamespace(get_sample_cnvs=lambda _: [])
+    service.translocation_repository = SimpleNamespace(get_sample_translocations=lambda _: [])
+    service.fusion_repository = SimpleNamespace(get_sample_fusions=lambda _: [])
+    service.biomarker_repository = SimpleNamespace(get_sample_biomarkers=lambda _: [])
+    raw, filtered, _ = service._analysis_counts(
+        sample={"_id": "sample", "asp_category": "dna", "filters": {}},
+        asp={"asp_group": group, "covered_genes": ["TP53"]},
+        variant_stats_raw={"variants": 2},
+    )
+    assert raw["snv"] == 2
+    assert filtered["snv"] == 1
+    stats.assert_called_once_with("sample", genes=["TP53"])
 
 
 def test_file_rows_read_current_sample_files_shape(tmp_path):
@@ -12,7 +36,7 @@ def test_file_rows_read_current_sample_files_shape(tmp_path):
 
     rows = SampleCatalogService._file_rows_for_sample(
         {
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "files": {
                 "vcf_files": {
                     "path": str(vcf_path),
@@ -44,7 +68,7 @@ def test_shared_measurement_file_does_not_claim_a_single_analysis(tmp_path):
     source.write_text('{"name":"DEMO","TMB":{"value":0}}')
     rows = SampleCatalogService._file_rows_for_sample(
         {
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "files": {"biomarkers": {"path": str(source)}},
             "data_counts": {"tmb": 1},
         },
@@ -62,7 +86,7 @@ def test_recorded_unavailable_file_stays_missing_until_ingested(tmp_path):
     source.write_text("synthetic")
     rows = SampleCatalogService._file_rows_for_sample(
         {
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "files": {"transloc": {"path": str(source)}},
             "missing_expected_files": ["transloc"],
         },
@@ -71,7 +95,7 @@ def test_recorded_unavailable_file_stays_missing_until_ingested(tmp_path):
     assert rows[0]["availability"] == "optional_missing"
     assert rows[0]["required"] is False
     assert (
-        SampleCatalogService._file_rows_for_sample({"omics_layer": "dna"}, {"expected_files": []})
+        SampleCatalogService._file_rows_for_sample({"asp_category": "dna"}, {"expected_files": []})
         == []
     )
 

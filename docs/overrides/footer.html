@@ -16,8 +16,8 @@
   <hr />
   <div role="contentinfo" class="docs-center-footer">
     <p><strong>{{ (config.extra.center_department or config.extra.center_name) | e }}</strong>{% if config.extra.center_department and config.extra.center_department != config.extra.center_name %} · {{ config.extra.center_name | e }}{% endif %}</p>
-    <p>&copy; <span data-current-year>{{ config.extra.copyright_year }}</span> Coyote3 Authors. All rights reserved.
-      <a href="{{ 'project/license/' | url }}">Licensed under Apache 2.0.</a>
+    <p>&copy; <span data-current-year>{{ config.extra.copyright_year }}</span> Ram Nanduri and Section for Molecular Diagnostics, Lund, Region Skåne. All rights reserved.
+      <a href="{{ 'project/license/' | url }}">COYOTE3 Free-Use Source-Available License.</a>
     </p>
     {% if config.copyright %}<p>{{ config.copyright }}</p>{% endif %}
   </div>

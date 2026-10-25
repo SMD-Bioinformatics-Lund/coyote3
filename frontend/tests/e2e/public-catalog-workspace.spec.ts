@@ -14,7 +14,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     let version = { _id: "draft-one", status: "draft", revision: 1, base_version: 1,
       content_version: null, catalog, created_by: "author", content_editors: ["author"],
       review: {}, lifecycle: [] }
-    await installApiFixtures(page, (path, url, route) => {
+    await installApiFixtures(page, (path, _url, route) => {
       if (path === "/api/v1/auth/whoami") return { json: {
         username: "author", roles: ["catalog_author"], role: "catalog_author",
         permissions: ["catalog:view", "catalog:draft", "catalog:submit"],
@@ -22,22 +22,23 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       if (path === "/api/v1/admin/assay-catalog") return { json: {
         catalog, has_published: true, items: [version],
         sources: { asps: [{ asp_id: "assay", label: "Assay" }],
-          aspcs: [{ asp_id: "assay", aspc_id: "assay_base", subpanel_id: "base" }],
+          aspcs: [{ asp_id: "assay", aspc_id: "assay_base", diagnosis_id: "base" }],
           gene_lists: [] },
         presets: { input_material: ["DNA", "RNA", "FFPE"], analysis: ["SNV", "CNV"],
           sample_modes: ["Tumor-only", "Tumor-normal"] },
         reviewers: [{ username: "reviewer", name: "Reviewer" }], publishers: [],
       } }
-      if (path.endsWith("/assay-catalog/preview")) {
+      if (path.endsWith("/assay-catalog/preview/offerings")) {
         const document = route.request().postDataJSON().document
-        const selected = url.searchParams.get("cat") === "solid"
-        return { json: {
-          order: document.layout.order, modalities: document.modalities,
-          right: selected ? { ...document.modalities.wgs.categories.solid, title: "Solid",
-            gene_lists: [{ key: "assay", label: "Covered genes", analysis: ["SNV"] }] }
-            : { title: document.header, description: document.description },
-          genes: selected ? [{ display_symbol: "TP53", gene_name: "Synthetic gene" }] : [],
-          stats: { total: selected ? 1 : 0, covered_total: selected ? 1 : 0, germline_total: 0 },
+        return { json: { version: 1, header: document.header, description: document.description,
+          offerings: [{ offering_id: "solid", title: "Solid", group_id: "solid", group_label: "Solid",
+            diagnosis_id: "base", diagnosis_label: "No diagnosis / General testing",
+            modality: "dna", family: "wgs", assay_id: "assay", assay_label: "Assay",
+            description: "", analysis: ["SNV"], price: null, pricing_message: "Contact for pricing",
+            turnaround: "7-10 days", input_material: ["DNA"], report_deliverables: ["PDF"],
+            methodology: "Whole genome sequencing", limitations: "Validated scope",
+            ordering_information: "", gene_scopes: [{ list_id: "genes", label: "Covered genes",
+              revision: 1, analysis: "SNV", genes: ["TP53"], excluded_gene_count: 0 }] }],
         } }
       }
       if (path.endsWith("/assay-catalog/preview/matrix")) {
@@ -72,9 +73,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByRole("region", { name: "Catalog preview" })).toBeVisible()
     await expect(page.getByLabel("Catalog heading")).toHaveCount(0)
     const preview = page.getByRole("region", { name: "Catalog preview" })
-    await expect(preview.getByRole("heading", { name: "Modalities" })).toBeVisible()
-    await preview.getByRole("button", { name: "Whole Genome Sequencing (WGS)" }).click()
-    await preview.getByRole("button", { name: "Solid", exact: true }).click()
+    await expect(preview.getByRole("button", { name: "By Diagnosis" })).toBeVisible()
+    await preview.getByRole("button", { name: "View details" }).click()
     await expect(preview.getByText("TP53", { exact: true })).toBeVisible()
     await expect(preview.getByText("7-10 days", { exact: true })).toBeVisible()
     expect(await preview.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)")
@@ -93,6 +93,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy()
     await page.screenshot({ path: `/tmp/catalog-matrix-${viewport.width}.png`, fullPage: true })
     await preview.getByRole("button", { name: "Catalog", exact: true }).click()
-    await expect(preview.getByRole("heading", { name: "Modalities" })).toBeVisible()
+    await preview.getByRole("button", { name: "Back to available tests" }).click()
+    await expect(preview.getByRole("button", { name: "By Diagnosis" })).toBeVisible()
   })
 }

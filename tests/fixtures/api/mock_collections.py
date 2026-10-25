@@ -5,14 +5,12 @@ from __future__ import annotations
 from copy import deepcopy
 
 from api.security.access import ApiUser
+from coyote3.application.common.assay_context import build_assay_context
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
 
 
 def user_doc() -> dict:
-    """User doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic administrator document with production assay access."""
     defaults = {
         "_id": "u1",
         "email": "tester@example.com",
@@ -31,11 +29,7 @@ def user_doc() -> dict:
 
 
 def api_user() -> ApiUser:
-    """Api user.
-
-    Returns:
-        ApiUser: The function result.
-    """
+    """Build the authenticated API actor from the synthetic administrator document."""
     doc = user_doc()
     return ApiUser(
         id=str(doc.get("_id") or "u1"),
@@ -58,21 +52,18 @@ def api_user() -> ApiUser:
 
 
 def sample_doc() -> dict:
-    """Sample doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic DNA sample with assay identifiers, filters, and report metadata."""
     defaults = {
         "_id": "s1",
+        "version": 1,
         "name": "SAMPLE_001",
         "asp_id": "wgs",
         "environment": "production",
-        "sequencing_scope": "panel",
-        "omics_layer": "dna",
+        "asp_family": "wgs",
+        "asp_category": "dna",
         "case_id": "CASE001",
         "control_id": "CTRL001",
-        "subpanel_id": "myeloid",
+        "diagnosis_id": "myeloid",
         "database_versions": {"vep": "110"},
         "report_num": 2,
         "reports": [{"_id": "r1", "report_id": "RID1", "report_num": 1, "time_created": 1}],
@@ -99,29 +90,54 @@ def sample_doc() -> dict:
     return defaults
 
 
-def assay_config_doc() -> dict:
-    """Assay config doc.
-
-    Returns:
-        dict: The function result.
-    """
+def assay_config_doc(*, asp_group="dna", asp_category="dna") -> dict:
+    """Construct a configuration with captured assay and selectable gene-list revisions."""
+    panel = {
+        "asp_id": "wgs",
+        "asp_group": asp_group,
+        "asp_category": asp_category,
+        "asp_family": "wts" if asp_category == "rna" else "wgs",
+        "version": 1,
+        "covered_genes": ["TP53", "NPM1"],
+    }
     defaults = {
         "_id": "aspc1",
-        "asp_group": "dna",
-        "analysis_types": ["SNV", "CNV", "HRD", "MSI"],
+        "aspc_id": "wgs_myeloid_production",
+        "asp_id": "wgs",
+        "asp_group": asp_group,
+        "environment": "production",
+        "diagnosis_id": "myeloid",
+        "version": 1,
+        "analysis_types": ["FUSION"] if asp_category == "rna" else ["SNV", "CNV", "HRD", "MSI"],
+        "analysis_intents": ["somatic"],
         "filters": deepcopy(sample_doc().get("filters", {})),
         "reporting": {"report_path": "dna_report.html", "plots_path": "reports/plots"},
         "verification_samples": {"SAMPLE": ["1:1:A:T"]},
+        "assay_resource_release": capture_assay_resource(panel),
+        "gene_list_release": capture_gene_lists(
+            [
+                {
+                    **isgl_doc(),
+                    "isgl_id": "gl1",
+                    "version": 1,
+                    "list_type": ["snv", "cnv"],
+                    "is_active": True,
+                    "genes": ["TP53", "NPM1"],
+                }
+            ]
+        ),
     }
+    context_sample = {
+        **sample_doc(),
+        "asp_category": asp_category,
+        "asp_family": panel["asp_family"],
+    }
+    defaults["aspc_resolution"] = {"context": build_assay_context(context_sample, panel, defaults)}
     return defaults
 
 
 def variant_doc() -> dict:
-    """Variant doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic SNV document for finding and reporting tests."""
     defaults = {
         "_id": "v1",
         "SAMPLE_ID": "s1",
@@ -146,11 +162,7 @@ def variant_doc() -> dict:
 
 
 def cnv_doc() -> dict:
-    """Cnv doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic copy-number finding document."""
     defaults = {
         "_id": "cnv1",
         "SAMPLE_ID": "s1",
@@ -162,11 +174,7 @@ def cnv_doc() -> dict:
 
 
 def fusion_doc() -> dict:
-    """Fusion doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic RNA fusion finding document."""
     defaults = {
         "_id": "fus1",
         "SAMPLE_ID": "s1",
@@ -181,11 +189,7 @@ def fusion_doc() -> dict:
 
 
 def reported_variant_doc() -> dict:
-    """Reported variant doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic saved-report finding document."""
     defaults = {
         "_id": "rv1",
         "sample_oid": "s1",
@@ -203,11 +207,7 @@ def reported_variant_doc() -> dict:
 
 
 def role_doc() -> dict:
-    """Role doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic administrator role with role-view and role-create grants."""
     defaults = {
         "_id": "admin",
         "role_id": "admin",
@@ -219,11 +219,7 @@ def role_doc() -> dict:
 
 
 def permission_doc() -> dict:
-    """Permission doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic permission document for administration tests."""
     defaults = {
         "_id": "role:view",
         "permission_id": "role:view",
@@ -235,11 +231,7 @@ def permission_doc() -> dict:
 
 
 def schema_doc() -> dict:
-    """Schema doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic form schema for the managed-resource test harness."""
     defaults = {
         "_id": "rbac_role_schema_v1",
         "schema_id": "rbac_role_schema_v1",
@@ -258,11 +250,7 @@ def schema_doc() -> dict:
 
 
 def isgl_doc() -> dict:
-    """Isgl doc.
-
-    Returns:
-        dict: The function result.
-    """
+    """Return a synthetic gene-list revision for assay and filter tests."""
     defaults = {
         "_id": "gl1",
         "isgl_id": "gl1",

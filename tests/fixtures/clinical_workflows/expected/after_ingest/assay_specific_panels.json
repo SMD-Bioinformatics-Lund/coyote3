@@ -1,0 +1,743 @@
+[
+  {
+    "asp_id": "demo-hematology_gmsv1",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-hematology_gmsv1 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "6bf14d4b33ee99626d83bea0"
+  },
+  {
+    "asp_id": "demo-myeloid_gmsv1",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-myeloid_gmsv1 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "bd64f564013e8e37bf8ee3c3"
+  },
+  {
+    "asp_id": "demo-solid_gmsv3",
+    "asp_group": "solid",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-solid_gmsv3 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "397cdc1f772b3f2ce46aa889"
+  },
+  {
+    "asp_id": "demo-tumwgs-hema",
+    "asp_group": "hematology",
+    "asp_family": "wgs",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-tumwgs-hema (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "f35c462411fac9b884fa3fb4"
+  },
+  {
+    "asp_id": "demo-lymphoid_gmsv5",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-lymphoid_gmsv5 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "25f5f3f863f702956665ecd2"
+  },
+  {
+    "asp_id": "demo-gms_rnafusionv5",
+    "asp_group": "hematology",
+    "asp_family": "panel-rna",
+    "asp_category": "rna",
+    "supported_analyses": [
+      "FUSION",
+      "QC"
+    ],
+    "display_name": "demo-gms_rnafusionv5 (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "fusion_files",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "1d9e6ec696495cfa05029155"
+  },
+  {
+    "asp_id": "demo-wts-hema",
+    "asp_group": "hematology",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "supported_analyses": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
+    "display_name": "demo-wts-hema (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "be61f400885b77ea4823df5d"
+  },
+  {
+    "asp_id": "demo-tumwgs-solid",
+    "asp_group": "solid",
+    "asp_family": "wgs",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-tumwgs-solid (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "96b81b8cb92c393725f5f63c"
+  },
+  {
+    "asp_id": "demo-wts-solid",
+    "asp_group": "solid",
+    "asp_family": "wts",
+    "asp_category": "rna",
+    "supported_analyses": [
+      "FUSION",
+      "EXPRESSION",
+      "CLASSIFICATION",
+      "QC"
+    ],
+    "display_name": "demo-wts-solid (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "fusion_files",
+      "expression_path",
+      "classification_path",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "f9bcd8e4f54dca8e0dddd133"
+  },
+  {
+    "asp_id": "demo-hematology-training",
+    "asp_group": "hematology",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
+    "supported_analyses": [
+      "SNV",
+      "CNV",
+      "CNV_PROFILE",
+      "TRANSLOCATION",
+      "HRD",
+      "MSI",
+      "COVERAGE",
+      "TMB",
+      "PGX"
+    ],
+    "display_name": "demo-hematology-training (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "vcf_files",
+      "cnv",
+      "cnvprofile",
+      "cov",
+      "transloc",
+      "biomarkers",
+      "pgx"
+    ],
+    "required_files": [
+      "vcf_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "67f8ff1cfb10920db538e5ce"
+  },
+  {
+    "asp_id": "demo-rna-training",
+    "asp_group": "hematology",
+    "asp_family": "panel-rna",
+    "asp_category": "rna",
+    "supported_analyses": [
+      "FUSION",
+      "QC"
+    ],
+    "display_name": "demo-rna-training (synthetic)",
+    "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "igv": null,
+    "expected_files": [
+      "fusion_files",
+      "qc"
+    ],
+    "required_files": [
+      "fusion_files"
+    ],
+    "covered_genes": [
+      "TP53",
+      "FLT3",
+      "CEBPA",
+      "TERT",
+      "NFKBIE",
+      "BCR",
+      "ABL1",
+      "ETV6",
+      "RUNX1"
+    ],
+    "germline_genes": [
+      "CEBPA"
+    ],
+    "accredited": false,
+    "kit_name": null,
+    "kit_type": null,
+    "kit_version": null,
+    "platform": null,
+    "read_mode": null,
+    "read_technology": null,
+    "read_length": null,
+    "capture_method": null,
+    "target_region_size": null,
+    "system_managed": false,
+    "system_installed": false,
+    "is_active": true,
+    "version": 1,
+    "created_by": "demo.author",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "updated_by": null,
+    "updated_on": null,
+    "supersedes_id": null,
+    "retired_by": null,
+    "retired_on": null,
+    "retired_reason": null,
+    "_id": "441208054c67d3f96c67fefd"
+  }
+]

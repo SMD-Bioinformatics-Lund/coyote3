@@ -11,7 +11,7 @@ reporting.
 > Runtime endpoints and secrets are environment configuration. Collection
 > names are API configuration in `api/config/collections.toml`.
 > Public organization, service-hour, and contact-card text is center content
-> in `api/config/center/contact.toml`. Repository links and the product description
+> in `config/examples/center/contact.toml`. Repository links and the product description
 > are application metadata in `api/config/application_metadata.py`.
 > Public assay-catalog narrative text is center content in the primary-database
 > `public_assay_catalog` collection. Manage it through the administrative
@@ -30,8 +30,8 @@ login, authorization, assay resolution, sample review, and reporting.
 | Roles (`IDENTITY_DB`) | `roles` | Role records used by the RBAC permission engine. Users may have multiple roles; the UI displays the highest role where a compact label is needed. |
 | Permissions (`IDENTITY_DB`) | `permissions` | Permission vocabulary using `resource:action[:scope]` naming. Routes check these through the authorization service. |
 | Assay panels (ASP) | `assay_specific_panels` | Physical assay definitions: `asp_id`, category, family, group, platform, read mode, expected file keys, covered genes, and germline genes. |
-| Assay configurations (ASPC) | `asp_configs` | Operational rulebooks for `asp_id + subpanel_id + environment`: analysis types, filters, report sections, and default review behavior. |
-| Clinical report rules | `clinical_rule_sets` | Governed versioned report wording. Reporting resolves an active published release by ASP, subpanel, analyte, and language, with same-assay Base fallback. |
+| Assay configurations (ASPC) | `asp_configs` | Operational rulebooks for `asp_id + diagnosis_id + environment`: analysis types, filters, report sections, and default review behavior. |
+| Clinical report rules | `clinical_rule_sets` | Governed versioned report wording. Reporting resolves an active published release by ASP, diagnosis, analyte, and language, with same-assay Base fallback. |
 | Clinical rule revisions | `clinical_rule_revisions` | Append-only, hash-chained full snapshots for every persisted rule-set revision. Required for exact authoring and workflow history. |
 | Public assay catalog | `public_assay_catalog` | Center-owned public titles, descriptions, turnaround statements, input labels, modality order, and ASP/ASPC/ISGL presentation references. It does not define clinical assay behavior. |
 | Catalog governance | `public_assay_catalog_versions`, `public_assay_catalog_revisions` | Drafts, independent approvals, immutable releases, and full revision snapshots. Publication requires MongoDB replica-set transactions. |
@@ -110,7 +110,7 @@ richness of the UI.
 ## Ingest Manifest
 
 Coyote3 ingest starts from a pipeline YAML manifest. The manifest identifies the
-sample, assay, subpanel, environment/profile, case/control metadata, and file
+sample, assay, diagnosis, environment/profile, case/control metadata, and file
 paths. The ingest boundary maps pipeline identity fields to the canonical sample
 contract before validation and persistence.
 
@@ -120,7 +120,7 @@ Minimum DNA manifest fields:
 | --- | --- |
 | `name` | Stable sample display name. This is used in user-facing sample URLs. |
 | `assay` | Pipeline ASP identifier. Ingest maps this to `asp_id`, which must match an active ASP document. |
-| `subpanel` | Pipeline subpanel identifier. Ingest maps this to `subpanel_id`; use `base` when no subpanel applies. |
+| `diagnosis` | Pipeline diagnosis identifier. Ingest maps this to `diagnosis_id`; use `base` when no diagnosis applies. |
 | `profile` | Pipeline environment/profile. Ingest maps this to `environment`, such as `production`, `development`, or a validation environment. |
 | `sequencing_technology` | Pipeline platform name. Ingest maps this to the canonical `platform` field, for example `illumina`. |
 | `sex` | Optional sample-level biological sex: `female`, `male`, or `unknown`. Declare it once; do not create separate case/control sex fields. |
@@ -142,8 +142,8 @@ Minimum DNA manifest fields:
 
 1. The watch-folder task or internal ingest API receives a YAML manifest.
 2. The ingest service validates the manifest against the active contracts.
-3. The ingest boundary maps pipeline `assay`, `subpanel`, and `profile` to
-   `asp_id`, `subpanel_id`, and `environment`; the service then resolves ASP and
+3. The ingest boundary maps pipeline `assay`, `diagnosis`, and `profile` to
+   `asp_id`, `diagnosis_id`, and `environment`; the service then resolves ASP and
    ASPC from those canonical identifiers.
 4. Default filter sections are copied from ASPC into the sample document:
    `filters.somatic.snv`, `filters.somatic.cnv`, `filters.somatic.coverage`,
@@ -197,7 +197,7 @@ operational truth for active assay behavior and gene content. Administrators can
 export the full catalog or a modality as JSON, then import validated JSON into a
 different center deployment.
 
-The public contact page uses `api/config/center/contact.toml`. A center can
+The public contact page uses `config/examples/center/contact.toml`. A center can
 maintain a dedicated deployment revision of the `center/` directory for each
 laboratory section.
 

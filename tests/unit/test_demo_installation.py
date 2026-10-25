@@ -6,13 +6,25 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.ingest.collection_writes import parse_yaml_payload
-from api.application.ingest.service import InternalIngestService
-from api.application.provisioning.demo_installation import BUNDLE, DemoInstallationService
-from api.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories import demo_installation
+from api.services.provisioning.demo_installation import BUNDLE, DemoInstallationService
+from coyote3.application.ingest.collection_writes import parse_yaml_payload
+from coyote3.application.ingest.service import InternalIngestService
+from coyote3.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
+from coyote3.domain.exceptions import AppError
 from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
+
+
+def test_bootstrap_factory_builds_configurations_without_rule_publications():
+    """Fresh bootstrap can prepare ASPCs before any query or reporting sources exist."""
+    from scripts.bootstrap.demo_service import build_demo_service
+
+    client = mongomock.MongoClient()
+    service = build_demo_service(client.synthetic_application, client.synthetic_knowledgebase)
+    documents = service.configuration("synthetic-installer")
+    assert documents["asp_configs"]
+    assert all(not row.get("query_policy_release") for row in documents["asp_configs"])
+    assert all(not row.get("clinical_rule_release") for row in documents["asp_configs"])
 
 
 @pytest.fixture
@@ -24,7 +36,7 @@ def installer(monkeypatch):
     ingest.parse_yaml_payload.side_effect = parse_yaml_payload
     monkeypatch.setattr(demo_installation, "run_transaction", lambda client, fn: fn(None))
     monkeypatch.setattr(demo_installation, "enqueue_audit", lambda *args, **kwargs: None)
-    service = DemoInstallationService(repository, ingest)
+    service = DemoInstallationService(repository, ingest, identifier_factory=repository.identifier)
     groups = {row["asp_group"] for row in service.configuration("admin")["assay_specific_panels"]}
     database.assay_groups.insert_many([{"group_id": group, "is_active": True} for group in groups])
     database.query_rule_sets.insert_one({"scope_key": "synthetic_baseline"})
@@ -35,7 +47,7 @@ def test_plan_install_and_collision_preserve_existing_configuration(installer):
     service, database, _ = installer
     plan = service.plan()
     assert not plan.configuration_installed
-    assert len(plan.samples) == 12
+    assert len(plan.samples) == 18
     assert not database.asp_configs.count_documents({})
     service.install_configuration("demo.admin")
     for name in (
@@ -43,15 +55,15 @@ def test_plan_install_and_collision_preserve_existing_configuration(installer):
         "asp_configs",
         "insilico_genelists",
         "clinical_rule_sets",
-        "subpanels",
-        "subpanel_associations",
+        "diagnoses",
+        "diagnosis_associations",
     ):
         assert all(row["system_installed"] for row in database[name].find())
     assert service.plan().configuration_installed
-    assert {r["environment"] for r in database.asp_configs.find()} == {"testing"}
+    assert {r["environment"] for r in database.asp_configs.find()} == {"testing", "production"}
     assert {r["status"] for r in database.clinical_rule_sets.find()} == {"published"}
     assert all(r["active"] for r in database.clinical_rule_sets.find())
-    assert database.clinical_rule_revisions.count_documents({}) == 9
+    assert database.clinical_rule_revisions.count_documents({}) == 24
     before = list(database.asp_configs.find())
     with pytest.raises(AppError, match="already exists"):
         service.install_configuration("other.admin")
@@ -72,36 +84,42 @@ def test_starter_links_all_resources_and_ingests_first_sample(installer):
     assert service.install_starter("demo.admin")["status"] == "installed"
     payload = ingest.ingest_sample_bundle.call_args_list[0].args[0]
     assert payload["name"] == "DEMO_STARTER_DNA"
-    assert payload["asp_id"] == "demo_starter_dna"
-    assert payload["subpanel_id"] == "demo_starter_focus"
+    assert payload["asp_id"] == "demo-hematology-training"
+    assert payload["diagnosis_id"] == "myeloid"
     assert db.asp_configs.find_one({"asp_id": payload["asp_id"]})["environment"] == "testing"
     assert (
-        db.subpanel_associations.find_one({"asp_id": payload["asp_id"]})["subpanel_id"]
-        == payload["subpanel_id"]
+        db.diagnosis_associations.find_one({"asp_id": payload["asp_id"]})["diagnosis_id"]
+        == payload["diagnosis_id"]
     )
-    assert db.insilico_genelists.find_one()["asp_ids"] == [payload["asp_id"]]
-    rule = db.clinical_rule_sets.find_one()
+    assert db.insilico_genelists.find_one({"isgl_id": "myeloid-variants"})["asp_ids"] == [
+        payload["asp_id"]
+    ]
+    rule = db.clinical_rule_sets.find_one({"scope.asp_id": payload["asp_id"]})
     assert rule["active"] and rule["status"] == "published"
     assert rule["scope"]["asp_id"] == payload["asp_id"]
     assert (
-        db.query_rule_sets.find_one({"system_installed": True})["scope"]["subpanel_id"]
-        == payload["subpanel_id"]
+        db.query_rule_sets.find_one({"system_installed": True})["scope"]["diagnosis_id"]
+        == payload["diagnosis_id"]
     )
     assert db.query_rule_revisions.count_documents({}) == 2
     assert db.public_assay_catalog_versions.find_one()["status"] == "published"
     assert db.public_assay_catalog.count_documents({}) == 1
     catalog = db.public_assay_catalog.find_one()
-    assert catalog["modalities"]["dna"]["categories"]["starter"]["analysis"] == ["SNV", "CNV"]
-    assert catalog["modalities"]["dna"]["categories"]["focus"]["analysis"] == ["SNV"]
-    assert catalog["modalities"]["rna"]["categories"]["fusion"]["analysis"] == ["FUSION"]
-    assert db.asp_configs.count_documents({"environment": "production"}) == 2
+    offerings = catalog["published_offerings"]
+    assert len(offerings) == 15
+    assert {row["family"] for row in offerings if row["diagnosis_id"] == "mpn"} == {
+        "panel-dna",
+        "wgs",
+    }
+    assert {row["group_id"] for row in offerings} == {"hematology", "solid"}
+    assert db.asp_configs.count_documents({"environment": "production"}) == 15
     assert db.public_assay_catalog_revisions.count_documents({}) == 1
     db.samples.insert_one(
         {
             "name": payload["name"],
             "asp_id": payload["asp_id"],
             "environment": "testing",
-            "subpanel_id": payload["subpanel_id"],
+            "diagnosis_id": payload["diagnosis_id"],
         }
     )
     rna = ingest.ingest_sample_bundle.call_args_list[1].args[0]
@@ -109,13 +127,13 @@ def test_starter_links_all_resources_and_ingests_first_sample(installer):
         {
             "name": rna["name"],
             "asp_id": rna["asp_id"],
-            "subpanel_id": rna["subpanel_id"],
+            "diagnosis_id": rna["diagnosis_id"],
             "environment": "testing",
         }
     )
     assert service.install_starter("demo.admin")["status"] == "already_installed"
     assert ingest.ingest_sample_bundle.call_count == 2
-    assert db.clinical_rule_sets.count_documents({}) == 2
+    assert db.clinical_rule_sets.count_documents({}) == 24
 
 
 def test_starter_preserves_existing_public_catalog(installer):
@@ -125,6 +143,33 @@ def test_starter_preserves_existing_public_catalog(installer):
     service.install_starter("demo.admin")
     assert db.public_assay_catalog.find_one()["header"] == "Center"
     assert db.public_assay_catalog_versions.find_one()["status"] == "draft"
+
+
+def test_shared_diagnosis_requires_every_assay_association(installer):
+    """An existing panel link cannot stand in for the same diagnosis's WGS link."""
+    service, database, _ = installer
+    service.install_configuration("demo.admin")
+    database.diagnosis_associations.delete_one(
+        {"diagnosis_id": "mpn", "asp_id": "demo-tumwgs-hema"}
+    )
+    assert not service.plan().configuration_installed
+    service.repository.repair_configuration(service.configuration("demo.admin"), "demo.admin")
+    assert service.plan().configuration_installed
+
+
+def test_bundle_does_not_infer_diagnosis_links_from_gene_list_applicability(installer):
+    """Matching ISGL scope cannot silently authorize a diagnosis for another assay."""
+    from api.bootstrap.compilation import compile_bundle_configurations
+
+    service, _, _ = installer
+    documents = service.configuration("demo.admin")
+    documents["diagnosis_associations"] = [
+        row
+        for row in documents["diagnosis_associations"]
+        if (row["asp_id"], row["diagnosis_id"]) != ("demo-tumwgs-hema", "mpn")
+    ]
+    with pytest.raises(ValueError, match="explicit shared diagnosis"):
+        compile_bundle_configurations(documents)
 
 
 def test_starter_retry_after_ingest_failure_preserves_configuration(installer):
@@ -142,13 +187,13 @@ def test_starter_retry_skips_completed_dna_when_rna_failed(installer):
     service, db, ingest = installer
 
     def ingest_once(payload, **kwargs):
-        if payload["omics_layer"] == "rna":
+        if payload["asp_category"] == "rna":
             raise RuntimeError("RNA ingest failed")
         db.samples.insert_one(
             {
                 "name": payload["name"],
                 "asp_id": payload["asp_id"],
-                "subpanel_id": payload["subpanel_id"],
+                "diagnosis_id": payload["diagnosis_id"],
                 "environment": "testing",
             }
         )
@@ -174,8 +219,8 @@ def test_starter_first_sample_uses_real_ingest(installer):
         "hgnc_genes",
         "asp_configs",
         "assay_specific_panels",
-        "subpanels",
-        "subpanel_associations",
+        "diagnoses",
+        "diagnosis_associations",
         "assay_groups",
         "insilico_genelists",
     }
@@ -186,21 +231,41 @@ def test_starter_first_sample_uses_real_ingest(installer):
     )
     service.install_starter("system", created_by="system")
     sample = db.samples.find_one({"name": "DEMO_STARTER_DNA"})
-    assert sample["current_aspc_key"] == "demo_starter_dna_focus_testing"
-    assert sample["subpanel_id"] == "demo_starter_focus"
+    assert (
+        db.asp_configs.find_one({"_id": sample["current_aspc_id"]})["aspc_id"]
+        == "demo-hematology-training::myeloid::testing"
+    )
+    assert sample["diagnosis_id"] == "myeloid"
+    assert sample["asp_category"] == "dna"
+    assert sample["asp_family"] == "panel-dna"
+    assert sample["current_aspc_name"]
+    assert sample["aspc_resolution"] == {
+        "resolved_diagnosis_id": "myeloid",
+        "used_base_configuration": False,
+        "warning": None,
+    }
+    assert not {"current_aspc_key", "current_aspc_version"} & sample.keys()
     assert (
         db.assay_specific_panels.find_one({"asp_id": sample["asp_id"]})["asp_group"] == "hematology"
     )
     rna = db.samples.find_one({"name": "DEMO_STARTER_RNA"})
-    assert rna["current_aspc_key"] == "demo_starter_rna_fusion_testing"
-    assert rna["subpanel_id"] == "demo_starter_fusion"
-    assert db.assay_specific_panels.find_one({"asp_id": rna["asp_id"]})["asp_group"] == "fusion"
+    assert (
+        db.asp_configs.find_one({"_id": rna["current_aspc_id"]})["aspc_id"]
+        == "demo-rna-training::lymphoid::testing"
+    )
+    assert rna["diagnosis_id"] == "lymphoid"
+    assert rna["asp_category"] == "rna"
+    assert rna["asp_family"] == "panel-rna"
+    assert rna["current_aspc_name"]
+    assert "context" not in rna["aspc_resolution"]
+    assert not {"current_aspc_key", "current_aspc_version"} & rna.keys()
+    assert db.assay_specific_panels.find_one({"asp_id": rna["asp_id"]})["asp_group"] == "hematology"
     assert db.fusions.count_documents({"SAMPLE_ID": str(rna["_id"])}) > 0
     assert service.plan().starter_installed
     for name in ("variants", "cnvs", "translocations", "biomarkers"):
         assert db[name].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
-    from api.application.reporting.clinical_rules.validation import validate_rule_set
-    from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
     for rule in db.clinical_rule_sets.find():
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(rule), require_tests=True)
@@ -217,7 +282,7 @@ def test_starter_first_sample_uses_real_ingest(installer):
 
 def test_starter_collision_never_replaces_center_content(installer):
     service, db, ingest = installer
-    original = {"asp_id": "demo_starter_dna", "display_name": "Existing center content"}
+    original = {"asp_id": "demo-hematology-training", "display_name": "Existing center content"}
     db.assay_specific_panels.insert_one(original)
     with pytest.raises(AppError, match="already exists"):
         service.install_starter("demo.admin")
@@ -236,8 +301,8 @@ def test_demo_samples_use_normal_ingest_and_never_update_existing(installer):
         "ingest_source": "api",
         "allow_update": False,
     }
-    assert call.args[0]["vcf_files"] == str(BUNDLE / "raw/dna.vcf")
-    database.samples.insert_one({"name": "DEMO_GROUP_DNA", "asp_id": "demo_e2e_demo_dna"})
+    assert call.args[0]["vcf_files"] == str((BUNDLE / "raw/dna.vcf").resolve())
+    database.samples.insert_one({"name": "DEMO_GROUP_DNA", "asp_id": "demo-tumwgs-solid"})
     assert service.install_sample("demo_group_dna", "demo.admin")["status"] == "already_installed"
     assert ingest.ingest_sample_bundle.call_count == 1
 
@@ -247,7 +312,7 @@ def test_configuration_is_validated_before_any_repository_write(installer, tmp_p
     setup = tmp_path / "setup"
     setup.mkdir()
     source = json.loads((BUNDLE / "setup/asp_configs.json").read_text())
-    source[0]["environment"] = "production"
+    source[0]["environment"] = "development"
     (setup / "asp_configs.json").write_text(json.dumps(source))
     service.bundle = tmp_path
     with pytest.raises(AppError, match="testing"):
@@ -278,8 +343,8 @@ def test_force_demo_preserves_human_provenance_and_review_artifacts(installer, p
     service.install_starter("system", created_by="system")
     sample = {
         "name": "DEMO_STARTER_DNA",
-        "asp_id": "demo_starter_dna",
-        "subpanel_id": "demo_starter_focus",
+        "asp_id": "demo-hematology-training",
+        "diagnosis_id": "myeloid",
         "environment": "testing",
         "ingested_by": "system",
     }
@@ -304,9 +369,11 @@ def test_force_demo_restores_missing_setup_without_replacing_rule_history(instal
     service, database, _ = installer
     service.install_starter("system", created_by="system")
     history = list(database.clinical_rule_revisions.find())
-    database.subpanel_associations.delete_one({"asp_id": "demo_starter_dna"})
+    database.diagnosis_associations.delete_one({"asp_id": "demo-hematology-training"})
     service.install_starter("maintenance.admin", force=True, created_by="system")
-    assert database.subpanel_associations.find_one({"asp_id": "demo_starter_dna"}) is not None
+    assert (
+        database.diagnosis_associations.find_one({"asp_id": "demo-hematology-training"}) is not None
+    )
     assert list(database.clinical_rule_revisions.find()) == history
 
 

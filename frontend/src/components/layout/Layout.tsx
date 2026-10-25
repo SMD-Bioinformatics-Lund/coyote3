@@ -8,6 +8,7 @@ import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard,
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import type { SampleNavigationCountsPayload } from "@/lib/generated"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
@@ -70,13 +71,6 @@ export function Layout() {
     if (user?.username) setTheme(accountTheme)
   }, [user?.username, accountTheme, setTheme])
 
-  const { data: catalogData } = useQuery({
-    queryKey: ['assay-catalog-nav'],
-    queryFn: () => api.get('/public/assay-catalog/context').then(res => res.data),
-    staleTime: 5 * 60 * 1000,
-    enabled: moduleIsEnabled(modules, "assay_catalog"),
-  })
-
   useEffect(() => {
     if (user?.must_change_password) navigate("/change-password", { replace: true })
   }, [user?.must_change_password, location.pathname, navigate])
@@ -84,7 +78,7 @@ export function Layout() {
   const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const { data: navigationCounts } = useQuery({
     queryKey: ['sample-navigation-counts', navigationProfileScope],
-    queryFn: () => api.get<{ counts: Record<string, number> }>(
+    queryFn: () => api.get<SampleNavigationCountsPayload>(
       `/samples/navigation-counts?profile_scope=${encodeURIComponent(navigationProfileScope)}`,
     ).then(res => res.data),
     enabled: !isPublicRoute && Boolean(user) && !user?.must_change_password,
@@ -211,9 +205,11 @@ export function Layout() {
   const activeAssayGroup = searchParams.get("assay_group") || searchParams.get("group") || ""
 
   const navGroups = useMemo(() => {
-    const groups = (catalogData?.meta?.nav_groups || catalogData?.nav_groups || []) as any[]
-    return groups.filter((group) => group?.category && group?.family && group?.assay_group)
-  }, [catalogData])
+    return Object.keys(navigationCounts?.counts || {}).map((key) => {
+      const [category, family, assay_group] = key.split(":")
+      return { category, family, assay_group }
+    }).filter((group) => group.category && group.family && group.assay_group)
+  }, [navigationCounts])
 
   const issueMenuLinks = useMemo(() => {
     const codebase = contactData?.codebase || {}
@@ -281,6 +277,8 @@ export function Layout() {
     for (const key of ["category", "panel_type", "panel_tech", "group", "assay_group", "assay"]) {
       newParams.delete(key)
     }
+    newParams.delete("live_page")
+    newParams.delete("reported_page")
     if (!isActive) {
       newParams.set("panel_type", group.category)
       newParams.set("panel_tech", group.family)
@@ -312,7 +310,7 @@ export function Layout() {
           </Button>
           <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
             <div className="py-1">
-              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
+              <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
               <BrandWordmark className="text-chrome-foreground" />

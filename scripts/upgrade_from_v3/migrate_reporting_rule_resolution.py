@@ -14,17 +14,17 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.application.reporting.clinical_rules.resolution import (
-    resolve_published_rule_set,  # noqa: E402
-)
-from api.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
     verify_revision_snapshot,
 )
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.application.reporting.clinical_rules.resolution import (
+    resolve_published_rule_set,  # noqa: E402
+)
+from coyote3.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
 
 
 def migrate(db, *, apply: bool = False) -> dict[str, int]:
@@ -55,7 +55,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         scope = rule["scope"]
         languages.setdefault(rule["rule_set_id"], set()).add(scope["language"])
         if rule.get("active") and rule.get("status") == "published":
-            key = tuple(scope[key] for key in ("asp_id", "subpanel_id", "analyte", "language"))
+            key = tuple(scope[key] for key in ("asp_id", "diagnosis_id", "analyte", "language"))
             if key in active_scopes:
                 raise ValueError(f"Ambiguous published scope: {key}")
             active_scopes.add(key)
@@ -145,7 +145,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         rule = resolve_published_rule_set(
             rule_repository,
             asp_id=config["asp_id"],
-            subpanel_id=config.get("subpanel_id") or "base",
+            diagnosis_id=config.get("diagnosis_id") or "base",
             analyte=config["asp_category"].lower(),
             language=updated_reporting["language"],
         )
@@ -193,7 +193,7 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
         db[mapping["clinical_rule_sets_collection"]].create_index(
             [
                 ("scope.asp_id", 1),
-                ("scope.subpanel_id", 1),
+                ("scope.diagnosis_id", 1),
                 ("scope.analyte", 1),
                 ("scope.language", 1),
             ],

@@ -17,10 +17,15 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
-from api.contracts.operations import OperationResult
-from api.domain.core.dna.structural_identity import translocation_annotation_identity
+from api.infra.mongo.persistence import require_object_id
+from api.infra.mongo.records import application_record
+from api.infra.mongo.repositories.annotation_queries import annotation_visibility_query
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.dna.structural_identity import translocation_annotation_identity
+from coyote3.domain.selection import Selection
 
 
 # -------------------------------------------------------------------------
@@ -112,7 +117,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
 
     def get_sample_translocations(
         self,
-        sample_id: str | dict,
+        sample_id: str | Selection,
         *,
         stream: bool = False,
     ) -> list[dict[str, Any]] | Iterable[dict[str, Any]]:
@@ -120,22 +125,28 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         Retrieve all translocations for a given sample.
 
         Args:
-            sample_id (str | dict): Sample id or full Mongo query.
+            sample_id: Sample identity or a database-independent finding selection.
             stream: Return a lazy, normalized and comment-hydrated stream when true.
 
         Returns:
             Matching translocations in source order, as a stream or a list.
         """
 
+        if not isinstance(sample_id, (str, Selection)):
+            raise TypeError("Translocation reads require a sample identity or Selection")
+
         def rows() -> Iterable[dict[str, Any]]:
             """Hydrate comments in bounded cursor batches while preserving source order."""
             cursor = self.get_collection().find(
-                sample_id if isinstance(sample_id, dict) else {"SAMPLE_ID": sample_id}
+                compile_selection(sample_id)
+                if isinstance(sample_id, Selection)
+                else {"SAMPLE_ID": sample_id}
             )
             for batch in batched(cursor, 100):
-                yield from self.hydrate_finding_comments_many(
+                hydrated = self.hydrate_finding_comments_many(
                     [self._normalize_info_shape(row) for row in batch]
                 )
+                yield from (application_record(row) for row in hydrated)
 
         return rows() if stream else list(rows())
 
@@ -157,7 +168,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         )
         return [self._normalize_info_shape(row) for row in rows]
 
-    def get_transloc(self, transloc_id: str) -> dict:
+    def get_transloc(self, transloc_id: str) -> dict[str, Any] | None:
         """
         Retrieve a translocation document by its unique identifier.
 
@@ -170,13 +181,15 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         Raises:
             bson.errors.InvalidId: If the provided `transloc_id` is not a valid ObjectId.
         """
-        return self._hydrate_finding_comments(
-            self._normalize_info_shape(
-                self.get_collection().find_one({"_id": ObjectId(transloc_id)})
+        return application_record(
+            self._hydrate_finding_comments(
+                self._normalize_info_shape(
+                    self.get_collection().find_one({"_id": require_object_id(transloc_id)})
+                )
             )
         )
 
-    def get_transloc_annotations(self, tl: dict) -> list:
+    def get_transloc_annotations(self, tl: dict, *, sample_context: dict) -> list:
         """
         Retrieve annotations for a given translocation.
 
@@ -188,9 +201,14 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
             classification or textual information.
         """
         var = translocation_annotation_identity(tl)
-        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
-            "time_created", 1
-        )
+        annotations = self.adapter.annotations_collection.find(
+            {
+                "variant": var,
+                "asp_id": sample_context["assay_id"],
+                **annotation_visibility_query(sample_context["environment"]),
+                "diagnosis_id": sample_context["diagnosis_id"],
+            }
+        ).sort("time_created", 1)
 
         # Keep latest classification tracked for parity with CNV annotation handling.
         _latest_classification = {"class": 999}

@@ -15,6 +15,11 @@ Coyote3 receives validated analysis output, stores it in typed MongoDB
 collections, applies assay-specific review rules, supports clinical
 interpretation, and saves reproducible report snapshots.
 
+Centers define their own groups, assays, diagnoses and gene lists using the
+application's implemented analyses. Group and assay names are not restricted to
+the bundled examples. The [capability reference](../administration/supported-capabilities.md)
+lists supported analyses, compatible sequencing families and required input formats.
+
 The application is not a sequencing pipeline, LIMS, patient record, or raw-read
 archive. It begins with analysis files and metadata produced by approved
 upstream systems.
@@ -54,10 +59,10 @@ validation rules.
 | Document | Defines | Stable identity |
 | --- | --- | --- |
 | ASP | Assay design, omics layer, platform, assay group, covered genes, and design metadata. | `asp_id` |
-| ASPC | Environment-specific analyses, filters, report sections, and reporting metadata for an ASP and subpanel. | `aspc_id` |
+| ASPC | Environment-specific analyses, filters, report sections, and reporting metadata for an ASP and diagnosis. | `aspc_id` |
 | ISGL | Named in-silico gene list and the analyses, assays, groups, or diagnoses where it may be selected. | `isgl_id` |
 
-An ASPC resolves by ASP, subpanel, and environment. If no matching subpanel
+An ASPC resolves by ASP, diagnosis, and environment. If no matching diagnosis
 configuration exists, the application may resolve the base ASPC and shows that
 fact to the reviewer. A saved report records the configuration identity and
 version used for that report.
@@ -110,7 +115,7 @@ arbitrary data from report text. The report service:
 2. selects reportable SNVs, CNVs, structural findings, fusions, biomarkers, and
    other enabled analyses;
 3. prepares aggregates such as tier summaries;
-4. resolves and evaluates the active published rule set resolved by assay, subpanel, analyte and language;
+4. resolves and evaluates the active published rule set resolved by assay, diagnosis, analyte and language;
 5. renders the preview; and
 6. saves immutable report context and typed reported-finding rows when asked.
 

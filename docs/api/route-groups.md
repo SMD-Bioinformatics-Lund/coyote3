@@ -138,7 +138,7 @@ Route modules should stay thin:
 
 1. Declare the URL, method, response model, and required permission.
 2. Resolve the authenticated user with `require_access`.
-3. Delegate workflow behavior to `api/application`.
+3. Delegate workflow behavior to `src/coyote3/application`.
 4. Return contract-shaped Pydantic-compatible payloads.
 
 Clinical rules, filtering logic, report construction, and knowledgebase
@@ -274,7 +274,7 @@ this is a sample workflow, not a standalone knowledgebase query.
 When adding a route:
 
 1. Select one tag from `api/interfaces/http/tags.py`.
-2. Add or reuse a Pydantic response contract in `api/contracts`.
+2. Add or reuse a Pydantic response contract in `src/coyote3/contracts`.
 3. Declare the permission with `require_access(permission="resource:action")`
    unless the endpoint is explicitly public.
 4. Add route tests for authorization, empty state, and representative payloads.

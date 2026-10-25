@@ -28,14 +28,14 @@ class AnnotationStatisticsMixin:
         """
         assay_class_stats_pipeline = [
             # Match documents where the "class" field exists
-            {"$match": {"class": {"$exists": True}}},
+            {"$match": {"class": {"$exists": True}, "namespace": "clinical"}},
             # Sort by variant and time_created to ensure the latest document is first
             {"$sort": {"variant": 1, "time_created": -1}},
             # Group by variant to pick the latest document for each variant
             {
                 "$group": {
                     "_id": "$variant",
-                    "assay": {"$first": "$assay"},
+                    "assay": {"$first": "$asp_group"},
                     "nomenclature": {"$first": "$nomenclature"},
                     "class": {"$first": "$class"},
                 }
@@ -72,7 +72,7 @@ class AnnotationStatisticsMixin:
         """
         class_stats_pipeline = [
             # Match documents where the "class" field exists
-            {"$match": {"class": {"$exists": True}}},
+            {"$match": {"class": {"$exists": True}, "namespace": "clinical"}},
             # Sort by nomenclature, variant, and time_created to ensure the latest document is first
             {"$sort": {"nomenclature": 1, "variant": 1, "time_created": -1}},
             # Group by variant to pick the latest document for each variant
@@ -153,7 +153,7 @@ class AnnotationStatisticsMixin:
 
         # by_assay: dedupe within assay (same variant can be re-tiered in same assay)
         per_assay_variant_key = {
-            "assay": "$assay",
+            "assay": "$asp_group",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
@@ -203,7 +203,7 @@ class AnnotationStatisticsMixin:
         # -------------------------
         by_assay_pipeline = [
             {"$match": query},
-            {"$sort": {"assay": 1, "variant": 1, "gene": 1, "time_created": -1}},
+            {"$sort": {"asp_group": 1, "variant": 1, "gene": 1, "time_created": -1}},
             {"$group": {"_id": per_assay_variant_key, "class": {"$first": "$class"}}},
             {"$group": {"_id": {"assay": "$_id.assay", "class": "$class"}, "count": {"$sum": 1}}},
             # fold per assay into a single doc per assay
@@ -263,8 +263,11 @@ class AnnotationStatisticsMixin:
         replace earlier values by selecting the newest annotation for the same
         canonical annotation identity.
         """
-        match = {"class": {"$in": [1, 2, 3, 4]}}
+        match = {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}
         identity = {
+            "group": "$asp_group",
+            "assay": "$asp_id",
+            "diagnosis": "$diagnosis_id",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
             "gene": "$gene",
@@ -297,7 +300,7 @@ class AnnotationStatisticsMixin:
         by_assay_pipeline = [
             {"$match": match},
             {"$sort": {"time_created": -1, "_id": -1}},
-            {"$group": {"_id": {"assay": "$assay", **identity}, "class": {"$first": "$class"}}},
+            {"$group": {"_id": {"assay": "$asp_group", **identity}, "class": {"$first": "$class"}}},
             {"$group": {"_id": "$_id.assay", **tier_fields()}},
             {
                 "$project": {
@@ -352,7 +355,7 @@ class AnnotationStatisticsMixin:
             ]
 
         pipeline = [
-            {"$match": {"class": {"$in": [1, 2, 3, 4]}}},
+            {"$match": {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}},
             {
                 "$set": {
                     "biological_type": {
@@ -381,6 +384,9 @@ class AnnotationStatisticsMixin:
                 "$group": {
                     "_id": {
                         "type": "$biological_type",
+                        "group": "$asp_group",
+                        "assay": "$asp_id",
+                        "diagnosis": "$diagnosis_id",
                         "identity": "$biological_identity",
                         "gene": "$gene",
                         "gene1": "$gene1",

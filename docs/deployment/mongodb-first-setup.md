@@ -151,8 +151,14 @@ printjson(db.adminCommand({ replSetGetConfig: 1 }));
 
 A healthy existing primary reports `isWritablePrimary: true` **and** a replica-set
 `setName`. A standalone can report writable without a `setName`; it still needs
-conversion. For a healthy configured replica set, skip B2–B4 and retain its name,
-member address and authentication. `NotYetInitialized` means initiation is needed;
+conversion. For a healthy configured replica set with authentication enabled, skip
+B2–B4 and retain its name, member address and authentication. A healthy replica set
+without authentication still needs the authentication steps in B3–B4; preserve its
+existing replica-set name, member address and data directory, and do not initialize
+it again. Create administrative and restricted runtime accounts before enabling
+authorization on an existing server. Changing application URIs alone does not enable
+server-side authorization. Host configuration changes and service restarts require
+operating-system administrator access. `NotYetInitialized` means initiation is needed;
 `InvalidReplicaSetConfig` or a node that cannot recognize itself needs recovery,
 not another `rs.initiate()` or deletion of the `local` database.
 Back up existing standalone data and stop its writers before conversion.
@@ -256,8 +262,10 @@ Store that administrative credential privately. Exit and reconnect with
 `--username coyote3_root --authenticationDatabase admin --password` before creating
 other users. Existing deployments retain their administrator; do not recreate it.
 
-**B5. Create the runtime account for a new installation.** In the authenticated
-shell, substitute the **exact four names from the application environment** below.
+**B5. Create the runtime account for a new installation.** Open the authenticated
+shell from the repository root so it can read the generated role policy. Substitute
+the **exact four names from the application environment** below. Install protected
+audit indexes with the administrator account before granting runtime access.
 These are examples; changing the names later does not transfer grants:
 
 ```javascript
@@ -265,12 +273,27 @@ const applicationDb = "coyote3_prod";
 const identityDb = "coyote3_identity_prod";
 const knowledgebaseDb = "coyote3_knowledgebase";
 const bamDb = "bam_prod";
+const policy = JSON.parse(require("fs").readFileSync(
+  "deploy/compose/mongo-init/identity-role-policy.json", "utf8"
+));
+const identity = db.getSiblingDB(identityDb);
+for (const index of policy.indexes) {
+  const { collection, fields, ...options } = index;
+  identity.getCollection(collection).createIndex(Object.fromEntries(fields), options);
+}
+identity.createRole({
+  ...policy.identity_role,
+  privileges: policy.identity_role.privileges.map(privilege => ({
+    ...privilege,
+    resource: { ...privilege.resource, db: identityDb }
+  }))
+});
 db.getSiblingDB("admin").createUser({
   user: "coyote3_app",
   pwd: passwordPrompt(),
   roles: [
     { role: "readWrite", db: applicationDb },
-    { role: "readWrite", db: identityDb },
+    { role: policy.identity_role.role, db: identityDb },
     { role: "readWrite", db: bamDb },
     { role: "read", db: knowledgebaseDb }
   ]
@@ -278,7 +301,10 @@ db.getSiblingDB("admin").createUser({
 ```
 
 For an existing account, have its administrator verify grants instead of repeating
-`createUser`. Prepare the maintenance account below, then set all four application
+`createUser` or `createRole`. Existing broad identity grants must be replaced with
+the restricted policy using the procedure in
+[audit protection](../operations/audit-and-logging.md). Prepare the maintenance
+account below, then set all four application
 URIs to the local server using the runtime account:
 
 ```text

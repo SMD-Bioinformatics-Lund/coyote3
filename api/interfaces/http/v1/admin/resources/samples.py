@@ -1,0 +1,158 @@
+"""Configurable sample resource router module."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Body, Depends, Query, Request
+
+from api.app.container import util
+from api.app.deps.application import get_sample_administration
+from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
+from api.security.access import ApiUser, require_access
+from coyote3.application.operations.administration import SampleAdministration
+from coyote3.contracts.admin import (
+    AdminChangePayload,
+    AdminSampleContextPayload,
+    AdminSamplesListPayload,
+    AdminSampleUpdatePayload,
+)
+
+router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
+
+
+@router.get("/api/v1/resources/samples", response_model=AdminSamplesListPayload)
+def list_admin_samples_read(
+    search: str = Query(default=""),
+    asp_group: str = Query(default=""),
+    asp_id: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
+    user: ApiUser = Depends(require_access(permission="sample:list:global")),
+    service: SampleAdministration = Depends(get_sample_administration),
+):
+    """Return the admin sample list.
+
+    \u000c
+
+    Args:
+        search: Free-text search string.
+        asp_group: Assay group used to select active, accessible panels; blank
+            text omits the group filter.
+        asp_id: Assay-panel identifier used to narrow the active, accessible
+            panels; blank text omits the panel filter.
+        page: One-based result page; defaults to 1.
+        per_page: Page size from 1 to 200; defaults to 30.
+        user: Authenticated user requesting the list.
+        service: Admin sample workflow service.
+
+    Returns:
+        dict: Admin list payload for samples.
+    """
+    return util.common.convert_to_serializable(
+        service.list_admin_samples(
+            search=search, asp_group=asp_group, asp_id=asp_id, page=page, per_page=per_page
+        )
+    )
+
+
+@router.get(
+    "/api/v1/resources/samples/{sample_id}/context", response_model=AdminSampleContextPayload
+)
+def admin_sample_context_read(
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="sample:view:global")),
+    service: SampleAdministration = Depends(get_sample_administration),
+):
+    """Return edit context for an admin sample.
+
+    \u000c
+
+    Args:
+        sample_id: Sample identifier to load.
+        user: Authenticated user requesting edit context.
+        service: Admin sample workflow service.
+
+    Returns:
+        dict: Edit-context payload for the sample.
+    """
+    _ = user
+    return util.common.convert_to_serializable(service.admin_sample_context(sample_id=sample_id))
+
+
+@router.put(
+    "/api/v1/resources/samples/{sample_id}",
+    response_model=AdminChangePayload,
+    summary="Update admin sample",
+)
+def update_sample_change(
+    request: Request,
+    sample_id: str,
+    payload: AdminSampleUpdatePayload = Body(...),
+    user: ApiUser = Depends(require_access(permission="sample:edit:global")),
+    service: SampleAdministration = Depends(get_sample_administration),
+):
+    """Update an admin sample.
+
+    \u000c
+
+    Args:
+        request: Request receiving audit metadata for the updated sample.
+        sample_id: Sample identifier to update.
+        payload: Submitted sample payload.
+        user: Authenticated user performing the mutation.
+        service: Admin sample workflow service.
+
+    Returns:
+        dict: Mutation response payload.
+    """
+    result = service.update_sample(sample_id=sample_id, payload=payload)
+    request.state.audit_resource = {
+        "type": "sample",
+        "id": result.get("meta", {}).get("sample_oid") or result.get("resource_id"),
+        "name": result.get("meta", {}).get("sample_name"),
+        "message": f"Updated sample {result.get('meta', {}).get('sample_name') or sample_id}",
+        "metadata": {
+            "sample_oid": result.get("meta", {}).get("sample_oid") or sample_id,
+        },
+    }
+    return util.common.convert_to_serializable(result)
+
+
+@router.delete(
+    "/api/v1/resources/samples/{sample_id}",
+    response_model=AdminChangePayload,
+    summary="Delete admin sample",
+)
+def delete_sample_change(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="sample:delete:global")),
+    service: SampleAdministration = Depends(get_sample_administration),
+):
+    """Delete owned sample records and queue generated report files for permanent erasure.
+
+    Requires sample:delete:global. Shared annotations and audit history are retained.
+
+    \u000c
+
+    Args:
+        request: Request receiving sample audit metadata and deletion results.
+        sample_id: Sample identifier to delete.
+        user: Authenticated user performing the mutation.
+        service: Admin sample workflow service.
+
+    Returns:
+        dict: Mutation response payload.
+    """
+    _ = user
+    result = service.delete_sample(sample_id=sample_id)
+    request.state.audit_resource = {
+        "type": "sample",
+        "id": result.get("meta", {}).get("sample_oid") or sample_id,
+        "name": result.get("meta", {}).get("sample_name"),
+        "message": f"Deleted sample {result.get('meta', {}).get('sample_name') or sample_id}",
+        "metadata": {
+            "sample_oid": result.get("meta", {}).get("sample_oid") or sample_id,
+            "deletion_results": result.get("meta", {}).get("results", []),
+        },
+    }
+    return util.common.convert_to_serializable(result)

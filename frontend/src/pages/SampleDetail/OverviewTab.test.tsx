@@ -28,10 +28,10 @@ const sample = {
   paired: true,
   ingest_status: "ready",
   time_added: "2026-07-31T08:00:00Z",
-  omics_layer: "DNA",
+  asp_category: "DNA",
   platform: "illumina",
   read_mode: "paired-end",
-  sequencing_scope: "panel",
+  asp_family: "panel-dna",
   genome_build: 38,
   environment: "production",
   asp_id: "hema_gmsv1",
@@ -48,15 +48,17 @@ const sample = {
       coverage: { warn_cov: 100, error_cov: 50 },
     },
   },
-  aspc_resolution: {
-    used_base_configuration: true,
-    requested_subpanel_id: "mpn",
-    warning: "No subpanel-specific assay configuration is active.",
-  },
   reports: [{ _id: "REPORT_1", report_name: "Clinical report", created_at: "2026-08-01T10:00:00Z" }],
 }
 
 const context = {
+  assay_config: {
+    aspc_resolution: {
+      used_base_configuration: true,
+      requested_diagnosis_id: "mpn",
+      warning: "No diagnosis-specific assay configuration is active.",
+    },
+  },
   analysis_sections: ["snv", "cnv", "coverage"],
   analysis_counts_raw: { snv: 1421, cnv: 3 },
   analysis_counts_filtered: { snv: 187, cnv: 2 },
@@ -133,9 +135,10 @@ describe("sample overview presentation", () => {
     wrapper(
       <OverviewTab
         sampleId="CASE_001"
-        sample={{ ...sample, current_aspc_key: "hema_gmsv1_base_production", current_aspc_version: 1 }}
+        sample={sample}
         context={{
           ...context,
+          assay_config: { aspc_id: "hema_gmsv1_base_production", version: 1 },
           aspc_update: {
             available: true,
             latest_aspc_id: "hema_gmsv1_base_production",
@@ -147,7 +150,7 @@ describe("sample overview presentation", () => {
 
     expect(screen.getByText(/Configuration: hema_gmsv1_base_production v1/)).toBeVisible()
     expect(screen.getByText(/Newer assay configuration available: hema_gmsv1_base_production v2/)).toBeVisible()
-    expect(screen.getByRole("button", { name: "Apply latest configuration" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Review configuration update" })).toBeVisible()
   })
 
   it("shows only RNA fusion filters for an RNA sample", () => {
@@ -155,7 +158,7 @@ describe("sample overview presentation", () => {
       ...sample,
       name: "RNA_001",
       case_id: "RNA_001",
-      omics_layer: "RNA",
+      asp_category: "RNA",
       paired: false,
       control: undefined,
       filters: {

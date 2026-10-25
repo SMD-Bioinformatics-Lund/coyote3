@@ -11,12 +11,12 @@ import yaml
 from bson import json_util
 from pydantic import ValidationError
 
-from api.contracts.schemas.registry import (
+from coyote3.contracts.schemas.registry import (
     COLLECTION_MODEL_ADAPTERS,
     normalize_collection_document,
     validate_collection_document,
 )
-from api.contracts.schemas.samples import SamplesDoc
+from coyote3.contracts.schemas.samples import SamplesDoc
 
 
 def _load_fixture_bundle(source: Path) -> dict[str, list[dict]]:
@@ -44,7 +44,7 @@ def _json_persistence_shape(document: dict) -> dict:
 
 
 def test_all_collections_dummy_fixture_validates():
-    fixture_path = Path("demo_data/collections/all_collections_dummy")
+    fixture_path = Path("tests/fixtures/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
 
     assert set(payload) == set(COLLECTION_MODEL_ADAPTERS), (
@@ -61,7 +61,7 @@ def test_all_collections_dummy_fixture_validates():
 
 
 def test_all_collection_fixtures_use_canonical_persistence_shape() -> None:
-    payload = _load_fixture_bundle(Path("demo_data/collections/all_collections_dummy"))
+    payload = _load_fixture_bundle(Path("tests/fixtures/collections/all_collections_dummy"))
 
     for collection, docs in payload.items():
         for document in docs:
@@ -70,7 +70,7 @@ def test_all_collection_fixtures_use_canonical_persistence_shape() -> None:
 
 
 def test_variant_transcript_annotations_use_the_versioned_collection() -> None:
-    fixture_path = Path("demo_data/collections/all_collections_dummy")
+    fixture_path = Path("tests/fixtures/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
 
     variant = payload["variants"][0]
@@ -84,7 +84,7 @@ def test_variant_transcript_annotations_use_the_versioned_collection() -> None:
 
 
 def test_finding_contracts_discard_embedded_comments() -> None:
-    payload = _load_fixture_bundle(Path("demo_data/collections/all_collections_dummy"))
+    payload = _load_fixture_bundle(Path("tests/fixtures/collections/all_collections_dummy"))
 
     for collection in ("variants", "cnvs", "fusions", "translocations"):
         finding = {
@@ -123,7 +123,7 @@ def test_finding_comment_contract_rejects_blank_required_content(payload) -> Non
 
 
 def test_assay_panel_fixture_includes_required_files() -> None:
-    fixture_path = Path("demo_data/collections/all_collections_dummy")
+    fixture_path = Path("tests/fixtures/collections/all_collections_dummy")
     payload = _load_fixture_bundle(fixture_path)
     assay_panels = payload["assay_specific_panels"]
 
@@ -139,18 +139,18 @@ def test_assay_panel_fixture_includes_required_files() -> None:
 
 
 def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
-    from api.application.ingest.collection_writes import parse_yaml_payload
+    from coyote3.application.ingest.collection_writes import parse_yaml_payload
 
     for manifest_path in (
-        Path("demo_data/ingest/generic_case_control.yaml"),
-        Path("demo_data/ingest/generic_rna_sample.yaml"),
+        Path("tests/fixtures/ingest/generic_case_control.yaml"),
+        Path("tests/fixtures/ingest/generic_rna_sample.yaml"),
     ):
         yaml_content = manifest_path.read_text(encoding="utf-8")
         payload = yaml.safe_load(yaml_content)
 
         assert isinstance(payload, dict)
-        assert {"assay", "subpanel", "profile", "sequencing_technology"}.issubset(payload)
-        assert not {"asp_id", "subpanel_id", "environment", "platform"}.intersection(payload)
+        assert {"assay", "diagnosis", "profile", "sequencing_technology"}.issubset(payload)
+        assert not {"asp_id", "diagnosis_id", "environment", "platform"}.intersection(payload)
         assert "files" not in payload
         assert "case" not in payload
         assert payload.get("case_id")
@@ -160,7 +160,7 @@ def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
 
 
 def test_demo_dna_ingest_bundle_paths_resolve_from_manifest_directory() -> None:
-    manifest_path = Path("demo_data/ingest/generic_case_control.yaml")
+    manifest_path = Path("tests/fixtures/ingest/generic_case_control.yaml")
     payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
 
     assert isinstance(payload, dict)

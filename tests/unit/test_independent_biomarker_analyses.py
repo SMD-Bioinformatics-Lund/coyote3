@@ -9,22 +9,22 @@ import mongomock
 import pytest
 from pydantic import ValidationError
 
-from api.application.biomarker.biomarker_lookup import BiomarkerService
-from api.application.ingest.dependent_writes import data_counts, replace_dependents
-from api.application.ingest.file_policy import validate_payload_file_keys
-from api.application.ingest.parsers import DnaIngestParser
-from api.application.reporting.clinical_rules.evaluator import condition_matches
-from api.application.reporting.clinical_rules.preparation import prepare_report_context
-from api.application.reporting.clinical_rules.registry import validate_fact_path
-from api.application.reporting.report_renderer import render_report_html
-from api.application.reporting.snapshot_rows import build_biomarker_snapshot_rows
-from api.config.constants import analysis_file_keys
-from api.contracts.schemas.clinical_rules import ClinicalRulePredicate
-from api.contracts.schemas.dna import BiomarkersDoc
-from api.contracts.schemas.samples import SamplesDoc
-from api.domain.common.biomarkers import project_biomarkers
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
+from coyote3.application.biomarker.biomarker_lookup import BiomarkerService
+from coyote3.application.ingest.dependent_writes import data_counts, replace_dependents
+from coyote3.application.ingest.file_policy import validate_payload_file_keys
+from coyote3.application.ingest.parsers import DnaIngestParser
+from coyote3.application.reporting.clinical_rules.evaluator import condition_matches
+from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.registry import validate_fact_path
+from coyote3.application.reporting.report_renderer import render_report_html
+from coyote3.application.reporting.snapshot_rows import build_biomarker_snapshot_rows
+from coyote3.config.constants import analysis_file_keys
+from coyote3.contracts.schemas.clinical_rules import ClinicalRulePredicate
+from coyote3.contracts.schemas.dna import BiomarkersDoc
+from coyote3.contracts.schemas.samples import SamplesDoc
+from coyote3.domain.common.biomarkers import project_biomarkers
+from coyote3.domain.exceptions import AppError
 from scripts.upgrade_from_v3.migrate_biomarker_analyses import (
     migrate,
     requires_rule_review,
@@ -58,7 +58,7 @@ def test_migration_flags_obsolete_rule_resources(expression):
 @pytest.mark.parametrize("collection", ["biomarkers", "loh"])
 def test_generic_and_unimplemented_rule_collections_are_rejected(collection):
     """Current rule expressions accept individual supported analyses only."""
-    from api.contracts.schemas.clinical_rules import ClinicalRuleEvaluationScope
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleEvaluationScope
 
     with pytest.raises(ValidationError):
         ClinicalRuleEvaluationScope.model_validate({"mode": "each_item", "collection": collection})
@@ -98,7 +98,7 @@ def test_missing_measurement_is_not_a_zero_result(tmp_path):
 
 def test_combined_measurements_are_read_once(tmp_path, monkeypatch):
     """One input read retains all supplied analyses, including measured zero."""
-    from api.application.ingest import analysis_parsers
+    from coyote3.application.ingest import analysis_parsers
 
     source = tmp_path / "combined.json"
     source.write_text(json.dumps(MEASUREMENTS))
@@ -127,7 +127,7 @@ def test_separate_file_keys_are_rejected_before_parsing(key, container):
     if container:
         payload = {container: payload}
     with pytest.raises(ValueError, match="Use one biomarkers JSON"):
-        validate_payload_file_keys(Mock(), {"omics_layer": "dna", **payload})
+        validate_payload_file_keys(Mock(), {"asp_category": "dna", **payload})
     if container is None:
         with pytest.raises(ValidationError, match="Use one biomarkers JSON"):
             SamplesDoc.model_validate(payload)
@@ -232,7 +232,7 @@ def test_rule_facts_respect_report_selection_and_keep_zero():
 
 def test_api_selection_uses_stored_configuration(monkeypatch):
     monkeypatch.setattr(
-        "api.application.biomarker.biomarker_lookup.get_formatted_assay_config",
+        "coyote3.application.biomarker.biomarker_lookup.get_formatted_assay_config",
         lambda *args, **kwargs: {"analysis_types": ["TMB"]},
     )
     service = BiomarkerService(
@@ -240,7 +240,7 @@ def test_api_selection_uses_stored_configuration(monkeypatch):
         assay_panel_repository=object(),
         assay_configuration_repository=object(),
     )
-    sample = {"_id": "sample", "omics_layer": "dna"}
+    sample = {"_id": "sample", "asp_category": "dna"}
     payload = service.list_payload(sample=sample, analysis_type="TMB")
     assert set(payload["tmb"][0]) == {"name", "TMB"}
     with pytest.raises(AppError):

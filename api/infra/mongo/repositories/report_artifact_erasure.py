@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
-from api.domain.core.exceptions import AppError
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.mongo.repositories.audit_outbox import audit_route, enqueue_audit
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.exceptions import AppError
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +39,21 @@ def enqueue_report_erasure(
         AppError: A path escapes the report root, has an unexpected suffix, or is shared.
     """
     base = Path(root).resolve()
+    documents = list(
+        reports.find(selector, {"filepath": 1, "pdf_filepath": 1, "artifacts": 1}, session=session)
+    )
     paths = {
         str(document[field])
-        for document in reports.find(selector, {"filepath": 1, "pdf_filepath": 1}, session=session)
+        for document in documents
         for field in ("filepath", "pdf_filepath")
         if document.get(field)
     }
+    paths.update(
+        artifact["staging_path"]
+        for document in documents
+        for artifact in document.get("artifacts", [])
+        if artifact.get("staging_path")
+    )
     queue = reports.database[OPERATIONAL_COLLECTIONS.report_artifact_erasure]
     if paths and not base.is_dir():
         raise AppError(409, "Report storage must be available before sample deletion.")
@@ -54,7 +63,7 @@ def enqueue_report_erasure(
             not absolute.is_absolute()
             or ".." in absolute.parts
             or not absolute.is_relative_to(base)
-            or absolute.suffix.lower() not in {".html", ".pdf"}
+            or not _report_artifact_path(absolute)
             or not absolute.resolve().is_relative_to(base)
         ):
             raise AppError(409, "Report artifact requires reconciliation before sample deletion.")
@@ -62,7 +71,13 @@ def enqueue_report_erasure(
             {
                 "$and": [
                     {"$nor": [selector]},
-                    {"$or": [{"filepath": path}, {"pdf_filepath": path}]},
+                    {
+                        "$or": [
+                            {"filepath": path},
+                            {"pdf_filepath": path},
+                            {"artifacts.staging_path": path},
+                        ]
+                    },
                 ]
             },
             {"_id": 1},
@@ -85,6 +100,11 @@ def enqueue_report_erasure(
     return len(paths)
 
 
+def _report_artifact_path(path: Path) -> bool:
+    """Recognize final and staged report filenames eligible for owned-file erasure."""
+    return path.name.lower().endswith((".html", ".pdf", ".html.pending", ".pdf.pending"))
+
+
 def _unlink_report(root: Path, relative: str) -> None:
     """Unlink one directory entry without traversing symlinked parent directories.
 
@@ -93,7 +113,7 @@ def _unlink_report(root: Path, relative: str) -> None:
     unlinked; a final symlink's target is never followed.
     """
     path = Path(relative)
-    if path.is_absolute() or ".." in path.parts or path.suffix.lower() not in {".html", ".pdf"}:
+    if path.is_absolute() or ".." in path.parts or not _report_artifact_path(path):
         raise ValueError("Invalid queued report path")
     try:
         with ExitStack() as stack:

@@ -9,13 +9,14 @@ import pytest
 from bson import ObjectId
 from pymongo.errors import AutoReconnect
 
-from api.application.notifications.access import SampleNotificationAccess
-from api.application.notifications.activity import ActivityNotificationService
-from api.application.notifications.service import NotificationService
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.notification_activity import NotificationActivityRepository
 from api.infra.mongo.repositories.notifications import NotificationsRepository
 from api.infra.mongo.repositories.samples import SampleRepository
+from api.security.policy import build_access_policy
+from coyote3.application.notifications.access import SampleNotificationAccess
+from coyote3.application.notifications.activity import ActivityNotificationService
+from coyote3.application.notifications.service import NotificationService
+from coyote3.domain.exceptions import AppError
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -75,7 +76,12 @@ def fixture():
     }
     roles = Mock()
     roles.get_all_roles.return_value = [{"role_id": "reader", "permissions": ["sample:view"]}]
-    access = SampleNotificationAccess(samples=samples, roles=roles, permissions=PermissionCatalog())
+    access = SampleNotificationAccess(
+        samples=samples,
+        roles=roles,
+        permissions=PermissionCatalog(),
+        policy_factory=build_access_policy,
+    )
     notifications = NotificationService(
         notification_repository=repo,
         user_repository=users,
@@ -84,6 +90,7 @@ def fixture():
     )
     activity = NotificationActivityRepository(
         audit_collection=client.identity.audit,
+        operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
     )
@@ -267,15 +274,17 @@ def test_activity_pages_survive_restart_and_reconcile_late_events():
     client.identity.audit.insert_many(
         [event(occurred_at=now - timedelta(days=2)) for _ in range(60)]
     )
-    assert service.deliver() == 25
+    assert service.deliver() == 16
     # A fresh repository resumes the persisted page instead of starting at the oldest row.
     service.activity = NotificationActivityRepository(
         audit_collection=client.identity.audit,
+        operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
     )
-    assert service.deliver() == 25
-    assert service.deliver() == 10
+    assert service.deliver() == 16
+    assert service.deliver() == 16
+    assert service.deliver() == 12
     late = event(occurred_at=now - timedelta(days=3))
     client.identity.audit.insert_one(late)
     for _ in range(4):
@@ -292,6 +301,7 @@ def test_unrelated_audit_history_advances_in_bounded_pages():
     client.identity.audit.insert_one(expected)
     assert service.deliver() == 0
     assert service.deliver() == 0
+    assert service.deliver() == 0
     assert service.deliver() == 1
     assert client.app.notifications.find_one({"_id": expected["_id"]})
 
@@ -306,8 +316,8 @@ def test_publication_cursor_handles_mixed_identifier_types_at_the_same_timestamp
         ]
         + [{"_id": ObjectId(), "published_at": now, "status": "active"}]
     )
-    assert service.deliver() == 25
-    assert service.deliver() == 1
+    assert service.deliver() == 16
+    assert service.deliver() == 10
     assert service.deliver() == 0
 
 

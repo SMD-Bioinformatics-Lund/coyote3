@@ -10,6 +10,7 @@ covered in the [clinical user guide](../user-guide/README.md),
 | Guide | Use it to |
 | --- | --- |
 | [System overview](application-overview.md) | Review the system's services, clinical configuration, and end-to-end flow. |
+| [Supported application capabilities](../administration/supported-capabilities.md) | Check supported modalities, sequencing families, analyses and configuration boundaries. |
 | [Clinical concepts and resource identities](clinical-concepts.md) | Define samples, cases, assays, configurations, gene lists, and findings. |
 | [DNA and RNA data model](dna-rna-data-model.md) | Understand the data relationships shared by DNA and RNA workflows. |
 | [Application domains and services](domain-services.md) | Map application domains to their resources and service responsibilities. |

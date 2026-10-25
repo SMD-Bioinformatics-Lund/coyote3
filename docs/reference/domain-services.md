@@ -13,7 +13,7 @@ The `samples` document is the main record for a case. Most findings collections 
 | Identifier | Collection | Primary Key | Operational Scoping |
 |---|---|---|---|
 | **ASP** | `assay_specific_panels` | `asp_id` | Enforces the physical gene universe and assay metrics. |
-| **ASPC** | `asp_configs` | `aspc_id` | Enforces assay/subpanel/environment filtering and reporting strategies. |
+| **ASPC** | `asp_configs` | `aspc_id` | Enforces assay/diagnosis/environment filtering and reporting strategies. |
 | **ISGL** | `insilico_genelists` | `isgl_id` | Provides curated clinical gene cohorts for interpretation. |
 
 ### Resource identification and uniqueness
@@ -26,7 +26,7 @@ Administrative resources use stable business IDs for routing and lookup.
 | **Role** | `role_id` | Functional slug, such as `viewer` or `admin`. | Unique within the configured identity database. |
 | **Permission** | `permission_id` | `resource:action[:scope]` key, such as `sample:edit:global`. | Unique within the configured identity database. |
 | **ASP** | `asp_id` | Assay identifier mapped to `sample.asp_id`. | Identifier plus `version` identifies a stored revision. |
-| **ASPC** | `aspc_id` | Identifier for an ASP, subpanel and environment configuration. | Identifier plus `version` identifies a stored revision. |
+| **ASPC** | `aspc_id` | Identifier for an ASP, diagnosis and environment configuration. | Identifier plus `version` identifies a stored revision. |
 | **ISGL** | `isgl_id` | Gene-list identifier. | Identifier plus `version` identifies a stored revision. |
 
 A stable business ID is not a globally unique revision. Samples retain resolved
@@ -57,11 +57,11 @@ Small-variant tiering stores the most specific available identity in this order:
 protein HGVS (`p`), coding HGVS (`c`), then genomic
 `chromosome:position:reference/alternate` (`g`). Retrieval checks the same
 identities for the same gene. Classification documents persist the
-server-resolved assay group and subpanel, matching the clinical annotation
+server-resolved assay group and diagnosis, matching the clinical annotation
 identity used for retrieval. ASP and ASPC identifiers, configuration versions,
 environment, and API resource-dispatch fields are not embedded in annotation
 documents. Solid-tumor retrieval additionally constrains the classification by
-subpanel. Clients do not supply authoritative assay context; the API derives it
+diagnosis. Clients do not supply authoritative assay context; the API derives it
 from the sample's recorded ASPC revision.
 
 Classification and report narration are independent workflows. A bulk Tier
@@ -69,7 +69,7 @@ III classification can optionally create an accompanying text annotation for
 a small variant by calling `create_annotation_text_from_gene`. Its inputs are
 the selected transcript consequence, gene, sample assay group, and locally
 stored OncoKB gene status. Its tumor-type terminology is resolved from the published
-DNA clinical-rule release for the sample's assay, subpanel and language. The existing
+DNA clinical-rule release for the sample's assay, diagnosis and language. The existing
 automatic sentence requires Swedish terminology. Tier I, II and IV classifications
 are stored without generated text. Classification does not execute the report's
 section-narrative evaluation.
@@ -141,7 +141,7 @@ storage requirements in [background delivery](../operations/background-delivery.
 
 ### VCF filter flag metadata
 
-VCF caller/filter badges are described in `api/config/center/filter_flag_metadata.yaml`.
+VCF caller/filter badges are described in `config/examples/center/filter_flag_metadata.yaml`.
 The UI reads this metadata through:
 
 `GET /api/v1/public/filter-flags/metadata`
@@ -178,13 +178,13 @@ and naming conventions while retaining the same API and UI contract.
 
 | Capability | Owning package | Execution and persistence |
 | --- | --- | --- |
-| Sample ingestion | `api/application/ingest/` | Validated samples and dependent evidence commit through repository transactions on the ingest worker. |
-| Clinical classification | `api/application/classification/` | Shared annotation identity and classification history; independent from report narration. |
-| Report wording | `api/application/reporting/clinical_rules/` | Published scoped releases evaluate prepared facts; reports retain snapshots. |
-| In-app and broadcast notices | `api/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
-| Audit events | `api/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
+| Sample ingestion | `src/coyote3/application/ingest/` | Validated samples and dependent evidence commit through repository transactions on the ingest worker. |
+| Clinical classification | `src/coyote3/application/classification/` | Shared annotation identity and classification history; independent from report narration. |
+| Report wording | `src/coyote3/application/reporting/clinical_rules/` | Published scoped releases evaluate prepared facts; reports retain snapshots. |
+| In-app and broadcast notices | `src/coyote3/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
+| Audit events | `src/coyote3/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
 | Diagnostic logging and error mail | `api/infra/observability/` | Daily service logs and an independent monitor. |
-| Bundled installation data | `api/application/provisioning/deployment_data.py`, `api/application/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
+| Bundled installation data | `api/services/provisioning/deployment_data.py`, `api/services/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
 
 These are packages in one application, with worker processes providing execution
 isolation. See [background delivery and recovery](../operations/background-delivery.md)

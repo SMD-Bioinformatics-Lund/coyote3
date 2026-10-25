@@ -7,21 +7,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.reporting import persistence as pipeline
-from api.domain.core.exceptions import AppError
-from api.domain.core.reporting import report_paths
-from api.domain.core.reporting.errors import ReportCommitUncertain
+from coyote3.application.reporting import persistence as pipeline
+from coyote3.application.reporting import report_paths
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.reporting.errors import ReportCommitUncertain
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
-    """Test build report file location with control id.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
     sample = {
         "case_id": "seed_case",
@@ -47,14 +39,6 @@ def test_build_report_file_location_with_control_id(monkeypatch):
 
 
 def test_build_report_file_location_without_control_id_uses_case_only(monkeypatch):
-    """Test build report file location without control id uses case only.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
     sample = {
         "case_id": "seed_case",
@@ -74,14 +58,6 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 
 
 def test_build_report_file_location_raises_without_report_path(monkeypatch):
-    """Test build report file location raises without report path.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
     sample = {"case_id": "seed_case", "case": {"clarity_id": "seed_case_clarity"}}
 
@@ -98,14 +74,6 @@ def test_build_report_file_location_raises_without_report_path(monkeypatch):
 
 
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
-    """Test prepare report output creates directory when file missing.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {"makedirs": []}
 
     monkeypatch.setattr(
@@ -121,14 +89,6 @@ def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
 
 
 def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
-    """Test prepare report output raises conflict when file exists.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
 
     class _Logger:
         """Provide  Logger behavior."""
@@ -138,15 +98,7 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
             self.messages = []
 
         def warning(self, msg, *args):
-            """Warning.
-
-            Args:
-                msg: Value for ``msg``.
-                args: Value for ``args``.
-
-            Returns:
-                The function result.
-            """
+            """Warning."""
             self.messages.append(msg % args if args else msg)
 
     logger = _Logger()
@@ -162,19 +114,12 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
 
 
 def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypatch, tmp_path):
-    """Test persist report and snapshot writes report and upserts snapshot.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {}
 
     monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
     sample_repository = SimpleNamespace(
-        save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
+        save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1],
+        complete_report_artifacts=lambda report_oid: True,
     )
     report_file = str(tmp_path / "seed_report.html")
 
@@ -183,9 +128,9 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
         sample={
             "_id": "sample_oid_seed",
             "name": "seed_sample",
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "asp_group": "solid",
-            "subpanel_id": "colon",
+            "diagnosis_id": "colon",
             "environment": "production",
         },
         report_num=2,
@@ -206,14 +151,6 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
 
 
 def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch, tmp_path):
-    """Test persist report and snapshot raises when report write fails.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     monkeypatch.setattr(pipeline, "render_pdf_bytes", lambda _: b"pdf")
 
     with pytest.raises(AppError) as exc:
@@ -316,5 +253,5 @@ def test_uncertain_commit_retains_artifacts_for_reconciliation(monkeypatch, tmp_
             created_by="test",
             sample_repository=SimpleNamespace(save_report=uncertain),
         )
-    assert (tmp_path / "r1.html").read_text() == "report"
-    assert (tmp_path / "r1.pdf").read_bytes() == b"pdf"
+    assert (tmp_path / "r1.html.pending").read_text() == "report"
+    assert (tmp_path / "r1.pdf.pending").read_bytes() == b"pdf"

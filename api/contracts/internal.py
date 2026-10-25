@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.contracts.schemas.samples import SamplesDoc
+from coyote3.contracts.schemas.samples import SamplesDoc
 
 
 class RoleLevelsPayload(BaseModel):

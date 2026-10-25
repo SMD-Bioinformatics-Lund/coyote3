@@ -275,7 +275,7 @@ export function GeneCohortExplorer() {
                 data={cohortQuery.data.samples}
                 stateKey="gene-cohort-samples"
                 rowLabel="samples"
-                searchPlaceholder="Search samples, assays, subpanels, or findings..."
+                searchPlaceholder="Search samples, assays, diagnoses, or findings..."
               />
             ) : (
               <p className="py-8 text-center text-muted-foreground">

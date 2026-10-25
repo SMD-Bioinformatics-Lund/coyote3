@@ -50,11 +50,12 @@ class AuditSpool:
         finally:
             Path(temporary).unlink(missing_ok=True)
 
-    def replay(self, collection: Any, *, limit: int = 100) -> int:
+    def replay(self, collection: Any, *, operational_collection: Any, limit: int = 100) -> int:
         """Replay a bounded batch and remove files only after acknowledged MongoDB writes.
 
         Args:
             collection: The original environment's audit collection.
+            operational_collection: Separate collection for expiring operational events.
             limit: Maximum number of files attempted in this batch.
 
         Returns:
@@ -86,7 +87,12 @@ class AuditSpool:
                 )
                 continue
             try:
-                append_event(collection, document)
+                target = (
+                    collection
+                    if document.get("retention_class") == "traceability"
+                    else operational_collection
+                )
+                append_event(target, document)
             except PyMongoError:
                 break
             path.unlink(missing_ok=True)

@@ -275,7 +275,7 @@ describe("AdminIngestPage", () => {
 
   it("notifies once with the asynchronous ingestion failure reason", async () => {
     const user = userEvent.setup()
-    const reason = "No active ASPC is configured for assay='synthetic', subpanel='base', environment='development'"
+    const reason = "No active ASPC is configured for assay='synthetic', diagnosis='base', environment='development'"
     mocks.post.mockResolvedValue({ data: { task_id: "FAILED_TASK" } })
     mocks.get.mockResolvedValue({ data: { state: "FAILURE", ready: true, successful: false, error: reason } })
     renderPage(<AdminIngestPage />)

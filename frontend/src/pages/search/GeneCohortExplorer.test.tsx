@@ -40,7 +40,6 @@ const response = {
     report_scope: "latest",
     ready_samples_considered: 24,
     samples_excluded_outside_gene_scope: 4,
-    unrestricted_asp_scope_counts_as_profiled: true,
     duplicate_report_observations_removed: 0,
   },
   tier_counts: { "1": 2, "2": 3, "3": 2, "4": 0 },
@@ -77,7 +76,7 @@ const response = {
     {
       sample_name: "SAMPLE_1",
       asp_id: "solid_gmsv3",
-      subpanel_id: "colon",
+      diagnosis_id: "colon",
       environment: "production",
       sex: "female",
       finding_details: [
@@ -131,7 +130,7 @@ describe("GeneCohortExplorer", () => {
       screen.getByPlaceholderText("Search findings, genes, transcripts, or tiers..."),
     ).toBeVisible();
     expect(
-      screen.getByPlaceholderText("Search samples, assays, subpanels, or findings..."),
+      screen.getByPlaceholderText("Search samples, assays, diagnoses, or findings..."),
     ).toBeVisible();
   });
 

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { notifyActionError } from "@/lib/notifications"
 
-type Scope = { assay_group: string | null; asp_id: string | null; subpanel_id: string | null; analysis: string; intent: string }
-type Sample = { id: string; name: string; asp_id?: string; subpanel_id?: string }
+type Scope = { assay_group: string | null; asp_id: string | null; diagnosis_id: string | null; analysis: string; intent: string; modality?: string | null; family?: string | null; environment?: string | null }
+type Sample = { id: string; name: string; asp_id?: string; diagnosis_id?: string }
 type SearchResult = { items: Sample[]; total: number; page: number; per_page: number }
 type Result = {
   sample: Sample; published_count: number; draft_count: number; added_count: number; removed_count: number
@@ -42,7 +42,7 @@ export function QueryRuleSampleTestPanel({ scope, content, readOnly = false }: {
     {page && <>
       <p className="type-supporting">{page.total} samples · page {page.page}</p>
       {page.items.length === 0 && <p>No ready samples match this scope and your access.</p>}
-      <ul className="space-y-2">{page.items.map(sample => <li key={sample.id} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"><div className="min-w-0 break-words"><strong>{sample.name}</strong><p className="type-supporting text-muted-foreground">{sample.asp_id} · {sample.subpanel_id}</p></div><Button type="button" variant="outline" aria-label={`Test ${sample.name}`} disabled={test.isPending} onClick={() => test.mutate(sample)}>Test sample</Button></li>)}</ul>
+      <ul className="space-y-2">{page.items.map(sample => <li key={sample.id} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"><div className="min-w-0 break-words"><strong>{sample.name}</strong><p className="type-supporting text-muted-foreground">{sample.asp_id} · {sample.diagnosis_id}</p></div><Button type="button" variant="outline" aria-label={`Test ${sample.name}`} disabled={test.isPending} onClick={() => test.mutate(sample)}>Test sample</Button></li>)}</ul>
       <div className="flex gap-2"><Button type="button" variant="outline" disabled={samples.isPending || page.page <= 1} onClick={() => samples.mutate(page.page - 1)}>Previous samples</Button><Button type="button" variant="outline" disabled={samples.isPending || page.page * page.per_page >= page.total} onClick={() => samples.mutate(page.page + 1)}>Next samples</Button></div>
     </>}
     </section>

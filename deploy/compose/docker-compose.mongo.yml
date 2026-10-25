@@ -33,6 +33,7 @@ services:
       - "${COYOTE3_MONGO_KEYFILE_HOST_PATH:-/srv/coyote3/mongo/keyfile}:/etc/mongo-keyfile/keyfile:ro"
       - ./mongo-init/mongo-entrypoint.sh:/opt/coyote3/mongo-entrypoint.sh:ro
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
+      - ./mongo-init/identity-role-policy.json:/opt/coyote3/identity-role-policy.json:ro
     healthcheck: &mongo-health
       test: ["CMD-SHELL", "gosu \"$$MONGO_UID:$$MONGO_GID\" mongosh --quiet --host 127.0.0.1 --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ping: 1}).ok' | grep 1"]
       interval: 10s

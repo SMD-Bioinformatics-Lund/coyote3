@@ -151,7 +151,7 @@ export function TranslocationDetail() {
                 resourceType="translocation"
                 resource={translocation}
                 assayGroup={data.assay_group}
-                subpanel={data.subpanel}
+                diagnosis={data.diagnosis}
                 queryKeys={[["translocation", id, varId]]}
               />
             </div>

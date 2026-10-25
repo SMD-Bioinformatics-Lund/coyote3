@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import mongomock
 import pytest
@@ -18,6 +18,35 @@ from scripts.deployment.installation_checks import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize("environment", ["production", "stage", "dev", "test"])
+def test_identity_runtime_authentication_is_required_in_every_environment(monkeypatch, environment):
+    """Environment labels cannot bypass retained-audit database permission enforcement."""
+    from scripts.deployment import installation_checks
+
+    monkeypatch.setenv("ENV_NAME", environment)
+    for key, value in {
+        "COYOTE3_MONGO_URI": "mongodb://synthetic.invalid/?replicaSet=synthetic",
+        "IDENTITY_MONGO_URI": "",
+        "KNOWLEDGEBASE_MONGO_URI": "",
+        "BAM_MONGO_URI": "",
+        "COYOTE3_DB": "synthetic_app",
+        "IDENTITY_DB": "synthetic_identity",
+        "KNOWLEDGEBASE_DB": "synthetic_kb",
+        "BAM_DB": "synthetic_bam",
+    }.items():
+        monkeypatch.setenv(key, value)
+    client = MagicMock()
+    client.admin.command.return_value = {"isWritablePrimary": True, "setName": "synthetic"}
+    connection = MagicMock()
+    connection.__enter__.return_value = client
+    monkeypatch.setattr(installation_checks, "MongoClient", Mock(return_value=connection))
+    verify = Mock(side_effect=ValueError("Runtime authentication required"))
+    monkeypatch.setattr(installation_checks, "verify_runtime_audit_permissions", verify)
+    with pytest.raises(ValueError, match="Runtime authentication required"):
+        installation_checks.check_endpoints()
+    verify.assert_called_once_with(client["synthetic_identity"].client, "synthetic_identity")
 
 
 def test_redis_gate_checks_all_three_endpoints(monkeypatch):
@@ -105,10 +134,19 @@ def fake_installation(tmp_path):
     deployment = tmp_path / "scripts/deployment"
     deployment.mkdir(parents=True)
     shutil.copy(ROOT / "scripts/deployment/install_center.sh", deployment)
-    (tmp_path / "api").mkdir()
+    shutil.copy(ROOT / "scripts/deployment/python_runtime.sh", deployment)
+    (tmp_path / "api").mkdir(parents=True)
     (tmp_path / "api/version.py").write_text('print("synthetic")\n')
     (deployment / "validate_env_secrets.sh").write_text("#!/bin/bash\nexit 0\n")
     shutil.copy(ROOT / "scripts/deployment/compose-with-version.sh", deployment)
+    release_scripts = tmp_path / "scripts/release"
+    release_scripts.mkdir()
+    (release_scripts / "verify_sdk_artifact.py").write_text(
+        "import os, sys\n"
+        "with open(os.environ['INSTALL_TEST_LOG'], 'a') as log:\n"
+        "    log.write('sdk-artifact-preflight\\n')\n"
+        "sys.exit(int(os.environ.get('INSTALL_TEST_ARTIFACT_FAILURE', '0')))\n"
+    )
     (deployment / "prepare_host_directories.py").write_text("import sys\nsys.stdin.read()\n")
     docker_stub = """#!/bin/bash
 if [[ "$*" == "compose version" ]]; then exit 0; fi
@@ -124,6 +162,7 @@ if [[ "${COYOTE3_IMAGE_TAG:-}" != "$INSTALL_TEST_EXPECTED_TAG" ]]; then
 fi
 printf '%s\\n' "$*" >> "$INSTALL_TEST_LOG"
 printf 'tag=%s\\n' "$COYOTE3_IMAGE_TAG" >> "$INSTALL_TEST_LOG"
+printf 'commit=%s\\n' "$GIT_COMMIT" >> "$INSTALL_TEST_LOG"
 if [[ "$*" == *"config --format json"* ]]; then cat "$INSTALL_TEST_CONFIG"; fi
 if [[ "$*" == *"installation_checks state"* ]]; then
   if [[ "$INSTALL_TEST_STATE" == partial ]]; then echo "Partial installation"; exit 1; fi
@@ -132,6 +171,7 @@ fi
 if [[ "$*" == *"installation_checks indexes"* && "${INSTALL_TEST_CONFLICT:-0}" == 1 ]]; then exit 1; fi
 if [[ "$*" == *"installation_checks indexes-ready"* && "${INSTALL_TEST_INCOMPLETE:-0}" == 1 ]]; then exit 1; fi
 if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}" == 1 ]]; then exit 1; fi
+if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" == 1 ]]; then exit 1; fi
 """
     binaries = tmp_path / "bin"
     binaries.mkdir()
@@ -143,6 +183,8 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
                 "environment": {
                     "COYOTE3_DB": "synthetic",
                     "IDENTITY_DB": "synthetic_identity",
+                    "ENV_NAME": "production",
+                    "COYOTE3_MONGO_URI": "mongodb://synthetic-runtime:synthetic-secret@synthetic.invalid/?authSource=admin",
                     "PUBLIC_BASE_URL": "http://synthetic.invalid:6802",
                     "SCRIPT_NAME": "/coyote3",
                 }
@@ -171,6 +213,7 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "INSTALL_TEST_CONFIG": str(config),
         "INSTALL_TEST_LOG": str(log),
         "INSTALL_TEST_EXPECTED_TAG": "synthetic",
+        "GIT_COMMIT": "a" * 40,
     }
     for key in (
         "ENV_NAME",
@@ -199,6 +242,160 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "emergency@example.test",
     ]
     return command, env, log
+
+
+@pytest.mark.parametrize(
+    "environment,shared_uri,identity_uri,fails",
+    [
+        ("production", "mongodb://synthetic.invalid", "", True),
+        (
+            "stage",
+            "mongodb://synthetic:private-value@synthetic.invalid",
+            "mongodb://identity.invalid",
+            True,
+        ),
+        (
+            "production",
+            "mongodb://synthetic.invalid",
+            "mongodb://runtime:private-value@identity.invalid",
+            False,
+        ),
+        ("production", "mongodb://runtime:private-value@synthetic.invalid", "", False),
+        ("production", "mongodb://synthetic.invalid/?authMechanism=MONGODB-X509", "", False),
+        ("dev", "mongodb://synthetic.invalid", "", True),
+        ("test", "mongodb://synthetic.invalid", "", True),
+    ],
+)
+def test_anonymous_identity_is_reported_before_build_or_database_operations(
+    fake_installation, environment, shared_uri, identity_uri, fails
+):
+    """Require authenticated deployment settings without exposing URIs or denying external auth."""
+    command, env, log = fake_installation
+    path = Path(env["INSTALL_TEST_CONFIG"])
+    config = json.loads(path.read_text())
+    config["services"]["api"]["environment"].update(
+        ENV_NAME=environment, COYOTE3_MONGO_URI=shared_uri, IDENTITY_MONGO_URI=identity_uri
+    )
+    path.write_text(json.dumps(config))
+    result = subprocess.run(
+        command, env={**env, "INSTALL_TEST_STATE": "existing"}, text=True, capture_output=True
+    )
+    assert result.returncode == (1 if fails else 0), result.stderr
+    assert "private-value" not in result.stdout + result.stderr
+    if fails:
+        assert "Identity MongoDB connection is anonymous" in result.stderr
+        assert "IDENTITY_MONGO_URI" in result.stderr
+        calls = log.read_text()
+        assert " build" not in calls
+        assert "network inspect" not in calls
+        assert "installation_checks state" not in calls
+
+
+@pytest.mark.parametrize("failure", [False, True])
+def test_identity_role_upgrade_runs_before_state_validation_and_stops_on_failure(
+    fake_installation, failure
+):
+    """The one-command installer uses ephemeral credentials without logging their URI."""
+    command, env, log = fake_installation
+    secret = Path(env["INSTALL_TEST_CONFIG"]).parent / "identity-maintenance-uri"
+    uri = "mongodb://synthetic-identity-maintenance.invalid"
+    secret.write_text(uri)
+    result = subprocess.run(
+        [
+            *command,
+            "--skip-build",
+            "--steps",
+            "validate",
+            "--identity-maintenance-uri-file",
+            str(secret),
+        ],
+        env={
+            **env,
+            "INSTALL_TEST_STATE": "existing",
+            "INSTALL_TEST_IDENTITY_FAILURE": "1" if failure else "0",
+        },
+        capture_output=True,
+        text=True,
+    )
+    calls = log.read_text()
+    assert "--maintenance-uri-env COYOTE_INSTALL_IDENTITY_URI --apply" in calls
+    assert uri not in calls + result.stdout + result.stderr
+    if failure:
+        assert result.returncode != 0
+        assert "installation_checks state" not in calls
+    else:
+        assert result.returncode == 0, result.stderr
+        assert calls.index("manage_mongo_roles") < calls.index("installation_checks state")
+
+
+def test_empty_identity_maintenance_file_stops_before_role_or_state_operations(fake_installation):
+    command, env, log = fake_installation
+    secret = Path(env["INSTALL_TEST_CONFIG"]).parent / "empty-identity-uri"
+    secret.write_text("")
+    result = subprocess.run(
+        [
+            *command,
+            "--skip-build",
+            "--steps",
+            "validate",
+            "--identity-maintenance-uri-file",
+            str(secret),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "Identity maintenance URI file is empty" in result.stderr
+    assert "manage_mongo_roles" not in log.read_text()
+    assert "installation_checks state" not in log.read_text()
+
+
+def test_missing_sdk_artifact_stops_before_installation_stages(fake_installation):
+    """An invalid build input cannot trigger storage, network or database operations."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        command,
+        env={**env, "INSTALL_TEST_ARTIFACT_FAILURE": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    calls = log.read_text()
+    assert calls.endswith("sdk-artifact-preflight\n")
+    assert "network inspect" not in calls
+    assert " build" not in calls
+    assert " run " not in calls
+    assert " up " not in calls
+
+
+def test_skip_build_does_not_require_local_sdk_artifact(fake_installation):
+    """An installation using existing images does not need wheel build inputs."""
+    command, env, log = fake_installation
+    result = subprocess.run(
+        [*command, "--skip-build", "--steps", "network"],
+        env={**env, "INSTALL_TEST_ARTIFACT_FAILURE": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "sdk-artifact-preflight" not in log.read_text()
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_installer_defaults_commit_without_overwriting_explicit_value(fake_installation, explicit):
+    """Source provenance is available to Compose in a fresh operator shell."""
+    command, env, log = fake_installation
+    binary = Path(env["PATH"].split(os.pathsep)[0]) / "git"
+    binary.write_text('#!/bin/bash\nprintf "%s\\n" "' + "b" * 40 + '"\n')
+    binary.chmod(0o700)
+    if not explicit:
+        env.pop("GIT_COMMIT")
+    result = subprocess.run(
+        [*command, "--steps", "network"], env=env, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert f"commit={('a' if explicit else 'b') * 40}\n" in log.read_text()
 
 
 @pytest.mark.parametrize("stage", [None, "network", "validate", "bootstrap", "indexes", "start"])

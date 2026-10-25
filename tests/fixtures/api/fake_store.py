@@ -39,6 +39,11 @@ def build_fake_store() -> SimpleNamespace:
     fusion = fx.fusion_doc()
 
     return SimpleNamespace(
+        assay_configuration_repository=FakeHandler(
+            {
+                "get_aspc_no_meta": lambda *args: fx.assay_config_doc(),
+            }
+        ),
         sample_repository=FakeHandler(
             {
                 "get_sample": lambda sample_id: sample,
@@ -118,7 +123,7 @@ def build_fake_store() -> SimpleNamespace:
         ),
         annotation_repository=FakeHandler(
             {
-                "get_global_annotations": lambda variant, assay_group, subpanel: (
+                "get_global_annotations": lambda variant, assay_group, diagnosis: (
                     [],
                     {"class": 2},
                     [],

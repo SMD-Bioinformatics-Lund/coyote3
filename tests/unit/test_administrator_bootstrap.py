@@ -3,19 +3,21 @@
 import argparse
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 
-from api.contracts.auth import ApiPasswordChangeRequest
 from api.contracts.system import WhoamiPayload
-from api.interfaces.http.operations.auth import change_password
+from api.interfaces.http.v1.operations.auth import change_password
+from coyote3.application.operations.account import Account
+from coyote3.contracts.auth import ApiPasswordChangeRequest
+from coyote3.domain.exceptions import AppError
 from scripts.bootstrap.bootstrap_database import _make_bootstrap_user
+from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_role_bundles_separate_clinical_and_system_responsibilities():
-    path = Path("api/config/bootstrap/rbac/roles.seed.ndjson")
+    path = Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson")
     roles = {row["role_id"]: row for row in map(json.loads, path.read_text().splitlines())}
     clinical = set(roles["admin"]["permissions"])
     system = set(roles["sys_admin"]["permissions"])
@@ -63,13 +65,16 @@ def test_whoami_preserves_the_password_change_flag():
 
 @pytest.mark.parametrize("confirmation", [None, "different"])
 def test_temporary_password_change_requires_matching_confirmation(confirmation):
-    with pytest.raises(HTTPException) as error:
+    user = fx.api_user()
+    user.must_change_password = True
+    with pytest.raises(AppError) as error:
         change_password(
             ApiPasswordChangeRequest(
                 current_password="old",
                 new_password="NewPassword!234",
                 confirm_password=confirmation,
             ),
-            user=SimpleNamespace(must_change_password=True),
+            user=user,
+            service=sdk_fixtures.authorized_operations(Account, None, user),
         )
     assert error.value.status_code == 400

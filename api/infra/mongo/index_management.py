@@ -24,7 +24,7 @@ class IndexContract:
 RETIRED_INDEXES: dict[str, tuple[str, ...]] = {
     "roles": ("role_id_active_1",),
     "permissions": ("permission_id_active_1",),
-    "aspc": ("aspc_id_1", "asp_subpanel_environment_unique"),
+    "aspc": ("aspc_id_1", "asp_diagnosis_environment_unique"),
     "asp": ("asp_id_1",),
     "isgl": ("isgl_id_1", "assays_1"),
 }

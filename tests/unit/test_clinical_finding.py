@@ -1,6 +1,6 @@
 """Tests for canonical typed clinical-finding identity helpers."""
 
-from api.domain.core.clinical_finding import (
+from coyote3.domain.clinical_finding import (
     finding_analysis_type,
     finding_dedup_key,
     finding_display_fields,

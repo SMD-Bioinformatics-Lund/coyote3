@@ -2,7 +2,7 @@
 
 The platform's analytic engine is driven by the Assay-Specific Panel
 Configuration (ASPC) system. An ASPC is the current operational strategy for
-one assay, subpanel, and environment scope. It governs finding retrieval,
+one assay, diagnosis, and environment scope. It governs finding retrieval,
 filtering logic, and clinical review behavior. Configuration mutations are
 audited, while saved reports preserve immutable configuration, filter,
 finding, and rule snapshots for reproducibility.
@@ -14,7 +14,7 @@ finding, and rule snapshots for reproducibility.
 The resolution of analytic strategies follows a deterministic inheritance model to ensure consistency across varying center requirements:
 
 1. **ASPC Resolution**: The system resolves an active configuration from
-   `assay`, `subpanel_id`, and `profile` (environment). A specific subpanel is
+   `assay`, `diagnosis_id`, and `profile` (environment). A specific diagnosis is
    preferred; `base` is the controlled fallback. The resolved ObjectId,
    business ID, and version are persisted on the sample.
 2. **Initial Filter Seeding**: If a sample has no `filters` document, the resolved ASPC provides the initial threshold and reporting defaults.
@@ -24,7 +24,7 @@ The resolution of analytic strategies follows a deterministic inheritance model 
    data.
 
 Finding selection also resolves [published query rules](../administration/query-rules.md)
-from installed defaults through assay group, assay and subpanel. This hierarchy is
+from installed defaults through assay group, assay and diagnosis. This hierarchy is
 independent of ASPC resolution and supplies supported evidence modes and typed
 exceptions to the fixed query implementation.
 
@@ -97,9 +97,7 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 >
 > Somatic SNV results can include germline variants under the current queries.
 > Somatic and germline query intents do not partition the stored findings into
-> mutually exclusive biological categories. The dedicated germline SNV pathway
-> is not yet fully implemented; the configuration and routing described below
-> do not constitute a complete germline analysis workflow. Enabling germline
+> mutually exclusive biological categories. Enabling germline
 > intent does not remove germline variants from somatic results.
 > Published germline query exceptions also contribute to somatic SNV selection
 > for the same scope, even when the sample has only somatic intent enabled.
@@ -149,7 +147,7 @@ Analytic execution relies on the synchronization of three core architectural pil
 
 - **Assay-Specific Panels (ASP)**: Defines assay metadata and the physical set of covered genes or regions.
 - **Assay-Specific Panel Configuration (ASPC)**: The
-  assay/subpanel/environment-specific operational strategy governing filtered
+  assay/diagnosis/environment-specific operational strategy governing filtered
   evidence and reporting constraints.
 - **In-Silico Gene Lists (ISGL)**: Managed gene cohorts that dynamically restrict the interpretation scope during clinical review.
 
@@ -166,9 +164,8 @@ controlled exclusively by the ID saved in the corresponding target-specific
 selection field.
 
 When an analysis has no selected ISGL or ad-hoc genes, the query uses
-`ASP.covered_genes` as its physical assay scope. If `covered_genes` is empty,
-the query has no gene predicate and therefore includes all genes. This is the
-intended representation for broad WGS and WTS designs.
+`ASP.covered_genes` as its eligible scope. Empty eligibility selects no findings,
+including for WGS and WTS. Selected lists are intersected with this eligibility.
 
 ## Clinical Query Policy
 
@@ -205,7 +202,7 @@ and every configured match condition apply.
 | Review configuration | Sample's recorded ASPC revision | enabled analysis types, somatic/germline filter defaults, reporting sections | arbitrary data-store predicates |
 | Per-sample review state | `samples.filters` | reviewer-selected ISGLs, ad-hoc genes, and permitted threshold changes | assay-group policy |
 | Versioned annotation metadata | VEP metadata referenced by `sample.database_versions.vep` | expansion of UI consequence groups to VEP terms | query threshold values |
-| Clinical query policy | Application-owned Python/defaults plus published `query_rule_sets`; application seed criteria are installed by bootstrap | SNV evidence modes and analysis-specific typed exceptions resolved through default, group, assay and subpanel scopes | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
+| Clinical query policy | Application-owned Python/defaults plus published `query_rule_sets`; application seed criteria are installed by bootstrap | SNV evidence modes and analysis-specific typed exceptions resolved through default, group, assay and diagnosis scopes | raw MongoDB fields, operators, arbitrary query fragments, or cross-analysis keys |
 
 This design prevents an administrative form from broadening a clinical query by
 storing raw operators in MongoDB. A change to query semantics requires code
@@ -226,7 +223,7 @@ saved filters. The resulting inputs are shown below.
 | `max_control_freq` | `filters.somatic.snv` | maximum paired-control allele frequency; absence of a control genotype is allowed |
 | `max_popfreq` | `filters.somatic.snv` | maximum numeric value across each configured population-frequency source; string, null, and absent source values remain eligible because they are not safely comparable numeric values |
 | `vep_consequences` | selected profile plus versioned VEP metadata | UI groups are expanded to stored VEP consequence terms |
-| selected SNV ISGLs and ad-hoc genes | `filters.<intent>.snv` | optional gene or explicit-position scope |
+| selected SNV ISGLs and ad-hoc genes | `filters.<intent>.snv` | narrows assay eligibility; without a selection, uses the assay's eligible genes |
 | `fp`, `irrelevant` | request-level review controls | further restrict results to the requested review status |
 
 ### Review Visibility and Report Eligibility
@@ -275,7 +272,7 @@ transcript.
 ### Released SNV policies and exceptions
 
 Published `query_rule_sets` provide the live selection policy. Installation imports
-application-owned criteria from `api/config/clinical_query_seed.toml`; subsequent changes use the editor.
+application-owned criteria from `api/bootstrap/catalogs/reference/clinical_query_seed.toml`; subsequent changes use the editor.
 These rules are separate from ASPCs and cannot contain arbitrary MongoDB syntax. The application supports
 only the following baseline policies:
 
@@ -304,7 +301,7 @@ empty result set; it never falls back to an unfiltered query.
 #### Adding a scoped exception
 
 An exception can be limited to one or more `assay_groups`, `asp_ids`, or
-`subpanel_ids`, and can target a gene, indexed consequence term, VCF filter value,
+`diagnosis_ids`, and can target a gene, indexed consequence term, VCF filter value,
 chromosome/position interval, exact `simple_id`, declared `INFO` field, or ALT
 pattern. All supplied match fields are combined with AND. The configuration
 author selects `extend_consequence` only when the standard evidence gates must
@@ -316,15 +313,15 @@ admission policy.
 id = "endometrial_specific_variant"
 mode = "extend_consequence"
 intents = ["somatic"]
-asp_ids = ["solid_gmsv3"]
-subpanel_ids = ["endometrie"]
+asp_ids = ["demo-solid_gmsv3"]
+diagnosis_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
 consequence_terms = ["missense_variant"]
 ```
 
 The example does not bypass VAF, depth, control, or population-frequency
 checks. It only adds the listed consequence-term admission branch for the
-released ASP/subpanel scope.
+released ASP/diagnosis scope.
 
 Exception entries are evaluated as additive query branches. Their order has no
 effect on the returned findings, so query-policy exceptions intentionally do
@@ -344,13 +341,13 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 | Approved alternative consequence | A somatic `solid` sample matches an `extend_consequence` exception for `TERT` with `regulatory_region_variant`. | The added consequence term is accepted, but all ordinary case, control, depth, VAF, and population-frequency gates still apply. |
 | Germline exception-only review | The requested intent is `germline`; the policy is `exception_only`; an `admit` exception matches `INFO.MYELOID_GERMLINE = 1`. | The matching finding is admitted through the released germline rule. Findings without a matching `admit` rule are not returned. |
 | Reviewed exclusion | A finding first meets the baseline or an admission branch, then matches an `exclude` exception such as a scoped `LOWQUAL` rule. | The finding is removed after the inclusion branches are combined. Other findings remain eligible. |
-| No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | The query uses `ASP.covered_genes`; when that field is empty, no gene predicate is added. |
+| No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | The query uses `ASP.covered_genes`; when that field is empty, the resolved gene scope selects no findings. |
 | Selected CNV or fusion list | A compatible ISGL ID is persisted in `filters.somatic.cnv.cnvlists` or `filters.somatic.fusion.fusionlists`. | Only that target-specific list narrows the result. An SNV list never narrows CNV or fusion results. |
 
 ### Analysis-specific query-policy blocks
 
 The query-rule editor manages live policy. Its exception grammar also applies to
-the application seed file `api/config/clinical_query_seed.toml`. Neither contains sample
+the application seed file `api/bootstrap/catalogs/reference/clinical_query_seed.toml`. Neither contains sample
 documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
 values are persisted and resolved at runtime. The policy file supplies the SNV
 evidence model and narrowly typed, analysis-specific exception branches under
@@ -494,9 +491,9 @@ truth rather than deriving syntax from the abbreviated examples on this page.
 
 | Analysis | Filter and policy source | Retrieval behavior | Post-query processing |
 | --- | --- | --- | --- |
-| CNV | `filters.somatic.cnv`, selected CNV ISGLs, and `[[cnv.exceptions]]` | Uses two evidence branches. Ratio-based calls use strict loss/gain and minimum/maximum size boundaries; a ratio above `3` retains a high-level amplification beyond the size ceiling. Ratio-less structural calls are retained when `SR` or `PR` evidence is present, so callers such as Manta are not removed by segment-ratio rules. Optional CNV gene scope is applied independently of SNV lists. Targeted-panel review excludes `NORMAL` records; WGS/TumWGS review includes them. A scoped `admit` exception extends this ordinary query; a scoped `exclude` exception is subtracted last. | configured gain/loss effect selection, structural evidence retention, WGS normal-call scope, policy exclusions, and gene organisation are applied before search, sort, and pagination |
-| DNA fusion/translocation | `filters.somatic.translocation`, independently selected fusion-compatible ISGLs, and `[[translocation.exceptions]]` | Retrieves records for the sample, then applies the resolved DNA structural gene scope. A selected list or ad-hoc scope is used first; otherwise the query falls back to `ASP.covered_genes`; an empty ASP coverage list leaves the result unrestricted. Admissions can add reviewed genes or exact partner pairs to a restricted scope; exclusions remove matching genes, pairs, structural types, or chromosomes. | gene and pair matching, policy exclusions, text search, multi-column sorting, pagination, annotation, and review-state enrichment |
-| RNA fusion | `filters.somatic.fusion`, selected fusion ISGLs, and `[[fusion.exceptions]]` | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and optional fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. Admissions extend the ordinary query with a typed partner, pair, caller, effect, or description rule; exclusions are subtracted last. | global annotation enrichment, policy exclusions, text search, multi-column sorting, pagination, and report summary preparation |
+| CNV | `filters.somatic.cnv`, selected CNV ISGLs, and `[[cnv.exceptions]]` | Uses two evidence branches. Ratio-based calls use strict loss/gain and minimum/maximum size boundaries; a ratio above `3` retains a high-level amplification beyond the size ceiling. Ratio-less structural calls are retained when `SR` or `PR` evidence is present, so callers such as Manta are not removed by segment-ratio rules. Resolved CNV gene scope is applied independently of SNV lists. Targeted-panel review excludes `NORMAL` records; WGS/TumWGS review includes them. A scoped `admit` exception extends this ordinary query; a scoped `exclude` exception is subtracted last. | configured gain/loss effect selection, structural evidence retention, WGS normal-call scope, policy exclusions, and gene organisation are applied before search, sort, and pagination |
+| DNA fusion/translocation | `filters.somatic.translocation`, independently selected fusion-compatible ISGLs, and `[[translocation.exceptions]]` | Retrieves records for the sample, then applies the resolved DNA structural gene scope. A selected list or ad-hoc scope is bounded by assay eligibility; otherwise the query uses `ASP.covered_genes`. Empty scope selects no findings. Admissions can add reviewed genes or exact partner pairs to a restricted scope; exclusions remove matching genes, pairs, structural types, or chromosomes. | gene and pair matching, policy exclusions, text search, multi-column sorting, pagination, annotation, and review-state enrichment |
+| RNA fusion | `filters.somatic.fusion`, selected fusion ISGLs, and `[[fusion.exceptions]]` | RNA-only. Applies configured supporting-read/pair thresholds, selected effects, selected callers, known/Mitelman list markers, and resolved fusion-gene scope. The Arriba caller intentionally has no spanning-pair predicate. Admissions extend the ordinary query with a typed partner, pair, caller, effect, or description rule; exclusions are subtracted last. | global annotation enrichment, policy exclusions, text search, multi-column sorting, pagination, and report summary preparation |
 
 DNA translocation records do not currently have validated cross-caller numeric
 thresholds equivalent to RNA spanning-read filters. The supported DNA filter is
@@ -509,8 +506,8 @@ operate on the complete filtered result set, not only on the rows already
 visible in the browser.
 
 1. Load the sample's recorded ASPC revision. New samples receive the active
-   ASPC resolved from `asp_id`, `subpanel_id`, and `environment` at ingest;
-   `base` is used only through the documented subpanel fallback. A reviewer may
+   ASPC resolved from `asp_id`, `diagnosis_id`, and `environment` at ingest;
+   `base` is used only through the documented diagnosis fallback. A reviewer may
    explicitly replace the recorded revision with the latest active revision.
 2. Confirm that the requested analysis is enabled by the recorded ASPC revision, declared on the
    sample, and compatible with its omics layer.
@@ -559,11 +556,11 @@ can differ from these defaults. Query-policy exceptions remain a separate layer.
 ## Diagnosis-Based Gene-List Selection
 
 When `use_diagnosis_genelist` is enabled, the application compares the sample
-diagnosis and subpanel context with eligible ISGL definitions. Matching lists
+diagnosis and diagnosis context with eligible ISGL definitions. Matching lists
 can then be attached when the sample is initialized or its gene-list selection
 is reset. The selected list identifiers are stored with the sample context so
 that filtering and report generation use the same gene scope.
 
 Application baseline evidence modes and population-field names are defined in
-`api/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
+`src/coyote3/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
 supported evidence-mode overrides through database query rules, not TOML files.

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from api.application.ingest.upload_archive import extract_uploaded_archive
+from coyote3.application.ingest.upload_archive import extract_uploaded_archive
 
 
 def _archive(path: Path, *entries: tuple[str, bytes]) -> Path:

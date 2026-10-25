@@ -47,7 +47,7 @@ prefix used by the application.
 
 Set the mounted public origin, then read the enabled providers. The response
 contains one or both of `local` and `ldap`, as configured in
-`api/config/center/clinical_vocabulary.toml`.
+`config/examples/center/clinical_vocabulary.toml`.
 
 ```bash
 BASE_URL="https://localhost/coyote3_dev"

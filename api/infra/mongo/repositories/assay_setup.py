@@ -7,10 +7,10 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
 
-from api.domain.common.errors import api_error
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.common.errors import api_error
 
 
 class AssaySetupRepository(BaseRepository):
@@ -165,16 +165,16 @@ class AssaySetupRepository(BaseRepository):
                 ):
                     raise api_error(409, "An ASP already exists for this identifier")
                 for dependency in bundle["definitions"]:
-                    if not self.adapter.subpanels_collection.find_one(
+                    if not self.adapter.diagnoses_collection.find_one(
                         {
-                            "subpanel_id": dependency["subpanel_id"],
+                            "diagnosis_id": dependency["diagnosis_id"],
                             "version": dependency["version"],
                             "is_current": True,
                             "is_active": True,
                         },
                         session=session,
                     ):
-                        raise api_error(409, "A selected subpanel changed; review the setup again")
+                        raise api_error(409, "A selected diagnosis changed; review the setup again")
                 for rule in bundle["rules"]:
                     if not self.adapter.clinical_rule_sets_collection.find_one(
                         {
@@ -206,7 +206,7 @@ class AssaySetupRepository(BaseRepository):
                             raise api_error(409, f"Resource already exists: {document[key]}")
                         collection.insert_one(deepcopy(document), session=session)
                 for association in bundle["associations"]:
-                    self.adapter.subpanel_associations_collection.insert_one(
+                    self.adapter.diagnosis_associations_collection.insert_one(
                         deepcopy(association), session=session
                     )
             self.adapter.assay_setup_revisions_collection.insert_one(

@@ -15,11 +15,9 @@ from api.app.lifecycle import create_lifespan, register_route_modules
 from api.app.middleware import build_authentication_middleware, build_security_headers_middleware
 from api.app.openapi import SAMPLE_INGEST_PATHS, apply_openapi_security_schema
 from api.app.runtime_state import app as runtime_app
-from api.config import configure_process_env, get_runtime_mode_flags
 from api.config.runtime_settings import DefaultConfig
-from api.config.security import get_runtime_environment
+from api.config.security import get_runtime_mode_flags
 from api.contracts.http import ApiValidationIssue
-from api.domain.core.exceptions import AppError
 from api.infra.observability.logging import (
     bind_request_context,
     request_context_from_request,
@@ -28,6 +26,8 @@ from api.infra.observability.logging import (
 from api.interfaces.http.errors import error_response
 from api.interfaces.http.registry import ROUTERS, auth_http_exception_handler
 from api.interfaces.http.tags import OPENAPI_TAGS
+from coyote3.config.policy import get_runtime_environment
+from coyote3.domain.exceptions import AppError
 
 
 def _api_error(status_code: int, message: str) -> AppError:
@@ -147,7 +147,6 @@ async def app_error_handler(_request: Request, exc: AppError):
 
 def create_api_app() -> FastAPI:
     """Build and return the canonical FastAPI application instance."""
-    configure_process_env()
     mode_flags = get_runtime_mode_flags()
     script_name = _script_name()
     default_environment = (

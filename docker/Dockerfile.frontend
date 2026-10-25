@@ -6,7 +6,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 COPY frontend/ ./
-COPY api/version.py /app/api/version.py
+COPY release.toml /app/release.toml
 
 # Vite embeds these public, deployment-specific values in the generated assets.
 ARG SCRIPT_NAME=""

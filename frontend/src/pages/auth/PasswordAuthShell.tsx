@@ -18,7 +18,7 @@ export function AuthShell({
     <main className="login-page relative">
       <header className="login-header relative z-10">
         <Link to="/login" className="inline-flex min-w-max items-center gap-2.5">
-          <img src={appPath("/logo.png")} alt="Coyote3" className="h-8 w-10 dark:invert" />
+          <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-8 w-10" />
           <BrandWordmark />
         </Link>
         <ThemeToggle />

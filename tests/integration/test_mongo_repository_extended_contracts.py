@@ -22,6 +22,7 @@ from api.infra.mongo.repositories.samples import SampleRepository
 from api.infra.mongo.repositories.translocations import TranslocsRepository
 from api.infra.mongo.repositories.users import UsersRepository
 from api.infra.mongo.repositories.variants import VariantsRepository
+from coyote3.domain.selection import RecordField, select
 
 
 class _Cache:
@@ -50,10 +51,11 @@ def emulated_repository_transactions(monkeypatch):
         return operation(None)
 
     monkeypatch.setattr("api.infra.mongo.repositories.base.run_transaction", execute)
+    monkeypatch.setattr("api.infra.mongo.repositories.samples.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.assay_panels.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.revision_rotation.run_transaction", execute)
     monkeypatch.setattr("api.infra.mongo.repositories.audit_outbox.run_transaction", execute)
-    for module in ("audit_outbox", "assay_panels", "revision_rotation"):
+    for module in ("audit_outbox", "assay_panels", "revision_rotation", "samples"):
         monkeypatch.setattr(
             f"api.infra.mongo.repositories.{module}.enqueue_audit", lambda *_a, **_k: None
         )
@@ -88,7 +90,7 @@ def _adapter():
         "variants_collection": "variants",
         "finding_comments_collection": "finding_comments",
     }
-    adapter = SimpleNamespace(app=app, coyote_db=database)
+    adapter = SimpleNamespace(app=app, coyote_db=database, client=database.client)
     for attribute, collection_name in names.items():
         setattr(adapter, attribute, database[collection_name])
     adapter.sample_repository = SampleRepository(adapter)
@@ -490,7 +492,7 @@ def test_structural_repositories_normalize_query_and_mutate_records() -> None:
     ).inserted_id
 
     assert cnvs.get_cnv(str(cnv_id))["genes"] == ["MYC"]
-    assert cnvs.get_sample_cnvs({"SAMPLE_ID": str(sample_id)})[0]["genes"] == ["MYC"]
+    assert cnvs.get_sample_cnvs(select({RecordField.SAMPLE: str(sample_id)}))[0]["genes"] == ["MYC"]
     assert len(list(cnvs.get_interesting_sample_cnvs(str(sample_id)))) == 1
     assert cnvs.get_total_cnv_count() == 1 and cnvs.get_unique_cnv_count() == 1
     cnvs.mark_interesting_cnv(str(cnv_id), False)
@@ -542,7 +544,7 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     )
     repository.create_panel(
         {
-            "asp_id": "solid_gmsv3",
+            "asp_id": "demo-solid_gmsv3",
             "display_name": "Solid",
             "asp_group": "solid",
             "covered_genes": ["TP53", "KRAS"],
@@ -557,8 +559,10 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     assert repository.count_asps() == 3
     assert repository.count_asps(True) == 2
     assert repository.get_asp("HEMA_GMSV1")["asp_id"] == "hema_gmsv1"
-    assert repository.resolve_active_asp_ids_for_scope(["solid_gmsv3"], []) == ["solid_gmsv3"]
-    assert set(repository.resolve_active_asp_ids_for_scope([], ["solid"])) == {"solid_gmsv3"}
+    assert repository.resolve_active_asp_ids_for_scope(["demo-solid_gmsv3"], []) == [
+        "demo-solid_gmsv3"
+    ]
+    assert set(repository.resolve_active_asp_ids_for_scope([], ["solid"])) == {"demo-solid_gmsv3"}
     assert repository.resolve_active_asp_ids_for_scope([], []) == []
     assert len(repository.get_all_asps(True)) == 2
     rows, total = repository.search_asps(q="illumina", page=0, per_page=500)
@@ -569,10 +573,10 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     assert retired[0]["covered_genes_count"] == 0
     assert repository.get_all_asps_unique_gene_count() == 3
     assert set(repository.get_all_asp_groups()) == {"hematology", "solid", "demo"}
-    assert set(repository.get_all_assays(True)) == {"hema_gmsv1", "solid_gmsv3"}
+    assert set(repository.get_all_assays(True)) == {"hema_gmsv1", "demo-solid_gmsv3"}
     assert repository.get_asp_genes("hema_gmsv1") == (["TP53", "FLT3", ""], ["CEBPA"])
     assert repository.get_asp_genes("missing") == ([], [])
-    assert repository.get_asp_group_mappings()["solid_gmsv3"] == "solid"
+    assert repository.get_asp_group_mappings()["demo-solid_gmsv3"] == "solid"
 
     adapter.assay_panels_collection.update_one({"asp_id": "hema_gmsv1"}, {"$set": {"version": 1}})
     repository.rotate_asp(
@@ -610,12 +614,12 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
         lambda *_, **__: None,
     )
     assert repository.build_aspc_id("HEMA_GMSV1", "Production", "Hem-Snabb") == (
-        "hema_gmsv1_hem-snabb_production"
+        "hema_gmsv1::hem-snabb::production"
     )
     repository.create_assay_config(
         {
             "asp_id": "HEMA_GMSV1",
-            "subpanel_id": "Hem-Snabb",
+            "diagnosis_id": "Hem-Snabb",
             "environment": "production",
             "analysis_types": ["SNV", "CNV"],
             "reporting": {"report_sections": ["SNV"]},
@@ -625,15 +629,15 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
     repository.create_assay_config(
         {
             "asp_id": "hema_gmsv1",
-            "subpanel_id": "base",
+            "diagnosis_id": "base",
             "environment": "testing",
             "is_active": True,
         }
     )
-    aspc_id = "hema_gmsv1_hem-snabb_production"
+    aspc_id = "hema_gmsv1::hem-snabb::production"
     assert repository.count_aspcs() == 2
     assert repository.get_aspc("hema_gmsv1", "production", "hem-snabb")["aspc_id"] == aspc_id
-    assert repository.get_aspc_with_id(aspc_id)["subpanel_id"] == "hem-snabb"
+    assert repository.get_aspc_with_id(aspc_id)["diagnosis_id"] == "hem-snabb"
     assert "created_on" not in repository.get_aspc_no_meta("hema_gmsv1", "production", "hem-snabb")
     assert len(repository.get_active_aspcs_for_asp("hema_gmsv1", "production")) == 1
     assert repository.get_active_aspcs_for_asp("", "production") == []
@@ -652,7 +656,7 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
         {
             "aspc_id": aspc_id,
             "asp_id": "hema_gmsv1",
-            "subpanel_id": "hem-snabb",
+            "diagnosis_id": "hem-snabb",
             "environment": "production",
             "analysis_types": ["SNV"],
             "is_active": True,
@@ -707,7 +711,7 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
         {
             "isgl_id": "solid",
             "name": "Solid",
-            "asp_ids": ["solid_gmsv3"],
+            "asp_ids": ["demo-solid_gmsv3"],
             "asp_groups": ["solid"],
             "diagnosis": ["colon"],
             "list_type": ["snv"],
@@ -725,11 +729,11 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
     assert len(repository.get_all_isgl(adhoc=True)) == 1
     rows, total = repository.search_isgls(q="myeloid", page=0, per_page=500)
     assert total == 1 and rows[0]["isgl_id"] == "hem"
-    assert repository.get_subpanels_for_asp(["hema_gmsv1"], True, False) == ["hem", "mpn"]
-    assert repository.get_asp_subpanel_genes("hema_gmsv1", "hem") == ["TP53", "FLT3"]
-    assert repository.get_asp_subpanel_genes("missing", "hem") == []
-    assert repository.get_all_subpanels() == ["colon", "hem", "mpn"]
-    assert set(repository.get_all_subpanel_genes(["hem", "colon"])) == {"TP53", "FLT3", "KRAS"}
+    assert repository.get_diagnoses_for_asp(["hema_gmsv1"], True, False) == ["hem", "mpn"]
+    assert repository.get_asp_diagnosis_genes("hema_gmsv1", "hem") == ["TP53", "FLT3"]
+    assert repository.get_asp_diagnosis_genes("missing", "hem") == []
+    assert repository.get_all_diagnoses() == ["colon", "hem", "mpn"]
+    assert set(repository.get_all_diagnosis_genes(["hem", "colon"])) == {"TP53", "FLT3", "KRAS"}
     assert repository.isgl_exists("hem") is True
     assert len(repository.get_isgl_by_asp("hema_gmsv1", True, False, "snv")) == 1
     assert len(repository.get_isgl_for_scope(assay_group="solid", is_active=True)) == 1
@@ -919,15 +923,16 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         {
             "name": "CASE_A",
             "case_id": "CASE_A",
+            "version": 1,
             "asp_id": "hema_gmsv1",
-            "subpanel_id": "hem",
+            "diagnosis_id": "hem",
             "environment": "production",
             "ingest_status": "ready",
             "reported": False,
             "time_added": now,
             "paired": True,
-            "omics_layer": "dna",
-            "sequencing_scope": "panel",
+            "asp_category": "dna",
+            "asp_family": "panel-dna",
             "pipeline": "SomaticPanelPipeline",
             "pipeline_version": "4.0",
             "database_versions": {"vep": "113", "clinvar": "2026"},
@@ -938,16 +943,16 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
             {
                 "name": "CASE_B",
                 "control_id": "CTRL_B",
-                "asp_id": "solid_gmsv3",
-                "subpanel_id": "colon",
+                "asp_id": "demo-solid_gmsv3",
+                "diagnosis_id": "colon",
                 "environment": "testing",
                 "ingest_status": "ready",
                 "reported": True,
                 "latest_report_on": now,
                 "time_added": now - timedelta(days=1),
                 "paired": False,
-                "omics_layer": "dna",
-                "sequencing_scope": "panel",
+                "asp_category": "dna",
+                "asp_family": "panel-dna",
                 "pipeline": "SomaticPanelPipeline",
                 "pipeline_version": "3.2",
                 "database_versions": {"vep": "103"},
@@ -958,8 +963,8 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
                 "environment": "production",
                 "ingest_status": "loading",
                 "time_added": now - timedelta(days=2),
-                "omics_layer": "rna",
-                "sequencing_scope": "wts",
+                "asp_category": "rna",
+                "asp_family": "wts",
             },
         ]
     )
@@ -974,11 +979,8 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         user_assays=["hema_gmsv1"], user_envs=["production"]
     ) == {"hema_gmsv1": 1}
     assert repository.count_ready_samples_by_asp(
-        user_assays=["solid_gmsv3"], user_envs=["testing"]
-    ) == {"solid_gmsv3": 1}
-    assert repository.get_all_sample_counts() == 3
-    assert repository.get_all_sample_counts(True) == 1
-    assert repository.get_all_sample_counts(False) == 2
+        user_assays=["demo-solid_gmsv3"], user_envs=["testing"]
+    ) == {"demo-solid_gmsv3": 1}
     assert repository.user_sample_counts_by_assay(assays=["hema_gmsv1"]) == {"hema_gmsv1": 1}
     pipeline_stats = repository.get_dashboard_sample_rollup()["sample_stats"]["pipelines"]
     assert pipeline_stats == [
@@ -1004,9 +1006,9 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         "pending": 1,
     }
     assert [row["name"] for row in repository.get_all_samples(limit=1)] == ["CASE_A"]
-    assert [row["name"] for row in repository.get_all_samples(["solid_gmsv3"], search_str="B")] == [
-        "CASE_B"
-    ]
+    assert [
+        row["name"] for row in repository.get_all_samples(["demo-solid_gmsv3"], search_str="B")
+    ] == ["CASE_B"]
     rows, total = repository.search_samples_for_admin(
         search_str="ctrl_b", ready_only=False, page=0, per_page=500
     )
@@ -1023,6 +1025,7 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
     result = repository.update_sample(
         live_id,
         {
+            "version": repository.get_sample_by_id(str(live_id))["version"],
             "name": "CASE_A",
             "asp_id": "hema_gmsv1",
             "ingest_status": "ready",
@@ -1045,7 +1048,6 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
     assert repository.save_report("CASE_A", 1, "r1", "/tmp/report", "/tmp/report.pdf") is True
     assert repository.get_report("CASE_A", "r1")["report_id"] == "r1"
 
-    assert repository.get_profile_counts() == {None: 1, "production": 1, "testing": 1}
     software = repository.get_observed_software_versions()
     assert software["pipelines"] == {"SomaticPanelPipeline": ["3.2"]}
     assert software["vep"] == ["103"]
@@ -1058,8 +1060,8 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
                 "database_versions": {"vep": "113", "clinvar": "2026"},
                 "environment": "production",
                 "paired": True,
-                "omics_layer": "dna",
-                "sequencing_scope": "panel",
+                "asp_category": "dna",
+                "asp_family": "panel-dna",
             }
         },
     )
@@ -1070,9 +1072,6 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
         "clinvar": ["2026"],
         "vep": ["103", "113"],
     }
-    assert repository.get_omics_counts() == {"dna": 2, "rna": 1}
-    assert repository.get_sequencing_scope_counts() == {"panel": 2, "wts": 1}
-    assert repository.get_paired_sample_counts() == {"paired": 1, "unpaired": 1, "unknown": 1}
     assert repository.delete_sample(str(live_id)).deleted_count == 1
 
 
@@ -1082,10 +1081,10 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     repository.ensure_indexes()
     monkeypatch.setattr(repository, "invalidate_dashboard_metrics", lambda: None)
     sample_a = adapter.samples_collection.insert_one(
-        {"name": "A", "asp_id": "hema", "subpanel_id": "base"}
+        {"name": "A", "asp_id": "hema", "diagnosis_id": "base"}
     ).inserted_id
     sample_b = adapter.samples_collection.insert_one(
-        {"name": "B", "asp_id": "solid", "subpanel_id": "colon"}
+        {"name": "B", "asp_id": "solid", "diagnosis_id": "colon"}
     ).inserted_id
     simple_id = "7_140453136_A_T"
     identity = repository._simple_id_identity_query(simple_id)
@@ -1123,7 +1122,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
         }
     )
 
-    assert len(list(repository.get_case_variants({"SAMPLE_ID": str(sample_a)}))) == 2
+    assert len(list(repository.get_case_variants(select({RecordField.SAMPLE: str(sample_a)})))) == 2
     assert repository.get_variant(str(variant_a))["genes"] == ["BRAF"]
     selected = repository.update_selected_transcript(
         var_id=str(variant_a),
@@ -1139,7 +1138,7 @@ def test_variants_repository_identity_cross_sample_mutations_metrics_and_stats(m
     other = repository.get_variant_in_other_samples(repository.get_variant(str(variant_a)))
     assert other[0]["sample_name"] == "B" and other[0]["fp"] is True
     assert other[0]["assay"] == "solid"
-    assert other[0]["subpanel"] == "colon"
+    assert other[0]["diagnosis"] == "colon"
     assert other[0]["vaf"] == 0.7
     assert len(repository.get_variants_by_identity(simple_id=simple_id, limit=1)) == 1
     assert (
@@ -1224,31 +1223,37 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
     repository = AnnotationsRepository(adapter)
     created = datetime.now(timezone.utc)
     identity = {
+        "namespace": "clinical",
         "nomenclature": "p",
         "variant": "p.Val600Glu",
         "gene": "BRAF",
         "transcript": "NM_004333.6",
-        "assay": "solid",
+        "asp_group": "solid",
+        "asp_id": "demo-solid_gmsv3",
     }
     repository.get_collection().insert_many(
         [
             {**identity, "class": 3, "time_created": created - timedelta(days=1)},
             {**identity, "class": 2, "time_created": created},
             {
+                "namespace": "clinical",
                 "nomenclature": "p",
                 "variant": "p.Val617Phe",
                 "gene": "JAK2",
                 "transcript": "NM_004972.4",
-                "assay": "hematology",
+                "asp_group": "hematology",
+                "asp_id": "hema_gmsv1",
                 "class": 1,
                 "time_created": created,
             },
             {
+                "namespace": "clinical",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "gene": "TP53",
                 "transcript": "NM_000546.6",
-                "assay": "solid",
+                "asp_group": "solid",
+                "asp_id": "demo-solid_gmsv3",
                 "class": 4,
                 "time_created": created,
             },
@@ -1258,13 +1263,13 @@ def test_annotation_dashboard_classification_stats_use_latest_identity() -> None
     stats = repository.get_dashboard_classification_stats()
 
     assert stats["total"] == {"tier1": 1, "tier2": 1, "tier3": 0, "tier4": 1}
-    assert stats["by_assay"]["solid"] == {
+    assert stats["by_assay"]["demo-solid_gmsv3"] == {
         "tier1": 0,
         "tier2": 1,
         "tier3": 0,
         "tier4": 1,
     }
-    assert stats["by_assay"]["hematology"]["tier1"] == 1
+    assert stats["by_assay"]["hema_gmsv1"]["tier1"] == 1
 
 
 def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
@@ -1274,6 +1279,7 @@ def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
     genomic = "7_140753336_A_T"
     genomic_hash = "bd1db16fb7262c049364318a6f0873a3"
     braf_protein = {
+        "namespace": "clinical",
         "nomenclature": "p",
         "variant": "p.Val600Glu",
         "hgvsp": "p.Val600Glu",
@@ -1288,6 +1294,7 @@ def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
             {**braf_protein, "class": 3, "time_created": created - timedelta(days=1)},
             {**braf_protein, "class": 2, "time_created": created},
             {
+                "namespace": "clinical",
                 "nomenclature": "c",
                 "variant": "c.1799T>A",
                 "hgvsp": "p.Val600Glu",
@@ -1300,6 +1307,7 @@ def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
                 "time_created": created + timedelta(seconds=1),
             },
             {
+                "namespace": "clinical",
                 "nomenclature": "f",
                 "variant": "BCR::ABL1",
                 "gene1": "BCR",
@@ -1308,6 +1316,7 @@ def test_annotation_dashboard_top_tiered_genes_spans_nomenclatures() -> None:
                 "time_created": created,
             },
             {
+                "namespace": "clinical",
                 "nomenclature": "f",
                 "variant": "JAK2::JAK2",
                 "gene1": "JAK2",
@@ -1342,6 +1351,8 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
     repository.get_collection().insert_many(
         [
             {
+                "namespace": "clinical",
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1349,12 +1360,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "subpanel": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 3,
                 "time_created": created - timedelta(days=1),
             },
             {
+                "namespace": "clinical",
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1362,12 +1375,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "subpanel": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 2,
                 "time_created": created,
             },
             {
+                "namespace": "clinical",
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1375,12 +1390,14 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_001126112.3",
-                "assay": "solid",
-                "subpanel": "colon",
+                "asp_group": "solid",
+                "diagnosis_id": "colon",
                 "class": 4,
                 "time_created": created,
             },
             {
+                "namespace": "clinical",
+                "asp_id": "demo-solid_gmsv3",
                 "nomenclature": "p",
                 "variant": "p.Arg175His",
                 "hgvsp": "p.Arg175His",
@@ -1388,8 +1405,8 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
                 "genomic": genomic,
                 "gene": "TP53",
                 "transcript": "NM_000546.5",
-                "assay": "solid",
-                "subpanel": "breast",
+                "asp_group": "solid",
+                "diagnosis_id": "breast",
                 "class": 1,
                 "time_created": created + timedelta(days=1),
             },
@@ -1414,6 +1431,7 @@ def test_annotation_repository_returns_latest_tier_for_each_exact_transcript() -
         ],
         "solid",
         "colon",
+        sample_context={"assay_id": "demo-solid_gmsv3", "environment": "production"},
     )
 
     assert tiers["NM_000546.5"]["class"] == 2

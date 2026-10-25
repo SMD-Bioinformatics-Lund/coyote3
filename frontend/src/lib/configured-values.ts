@@ -6,7 +6,7 @@ export type ConfiguredValueMetadata = {
 /**
  * UI metadata for configuration values that are persisted by the API.
  *
- * The API owns allowed values in `api/config/constants.py`; this module owns
+ * The API owns allowed values in `src/coyote3/config/constants.py`; this module owns
  * their concise browser labels, colors, and explanatory hover text.
  */
 export const GENELIST_TYPE_METADATA: Record<string, ConfiguredValueMetadata> = {

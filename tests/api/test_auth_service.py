@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from api.domain.core.models.user import UserModel
 from api.security import auth_service
+from api.security.models import UserModel
 
 
 class _FakeRepo:
@@ -22,14 +22,7 @@ class _FakeRepo:
         self.calls = []
 
     def user_by_username(self, username):
-        """Return user by username.
-
-        Args:
-            username: Value for ``username``.
-
-        Returns:
-            The function result.
-        """
+        """Return user by username."""
         self.calls.append(("username", username))
         return self.by_username
 
@@ -40,14 +33,7 @@ class _FakeRepo:
 
 
 def test_lookup_user_doc_uses_username_for_local_login(monkeypatch):
-    """Username login uses username/local lookup.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
+    """Username login uses username/local lookup."""
     repo = _FakeRepo(by_username={"_id": "u1"})
     monkeypatch.setattr(auth_service, "get_user_repository", lambda: repo)
 
@@ -58,14 +44,7 @@ def test_lookup_user_doc_uses_username_for_local_login(monkeypatch):
 
 
 def test_lookup_user_doc_uses_email_for_ldap_login(monkeypatch):
-    """Email login uses email/LDAP lookup.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
+    """Email login uses email/LDAP lookup."""
     repo = _FakeRepo(by_email={"_id": "u2"})
     monkeypatch.setattr(auth_service, "get_user_repository", lambda: repo)
 
@@ -76,11 +55,6 @@ def test_lookup_user_doc_uses_email_for_ldap_login(monkeypatch):
 
 
 def test_resolve_user_identity_prefers_business_key():
-    """Test resolve user identity prefers business key.
-
-    Returns:
-        The function result.
-    """
     assert (
         auth_service.resolve_user_identity({"username": "coyote3.admin", "_id": "historical"})
         == "coyote3.admin"

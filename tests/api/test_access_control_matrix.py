@@ -5,7 +5,13 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.security.access import ApiUser, _enforce_access, _get_sample_for_api, is_public_api_path
+from api.security.access import (
+    ApiUser,
+    _enforce_access,
+    _get_sample_for_api,
+    is_public_api_path,
+    require_annotation_publication,
+)
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
 
@@ -29,7 +35,7 @@ def _isolate_policy_repositories(monkeypatch: pytest.MonkeyPatch):
                         {
                             "role_id": "manager",
                             "is_active": True,
-                            "permissions": ["report:create"],
+                            "permissions": ["report:create", "annotation:publish"],
                         },
                     ]
                 )
@@ -38,21 +44,22 @@ def _isolate_policy_repositories(monkeypatch: pytest.MonkeyPatch):
     )
 
 
+def test_clinical_publication_is_separate_from_sandbox_curation():
+    """Sandbox access cannot publish production interpretations without the clinical grant."""
+    require_annotation_publication(_u(), {"environment": "testing"})
+    with pytest.raises(HTTPException) as denied:
+        require_annotation_publication(_u(), {"environment": "production"})
+    assert denied.value.status_code == 403
+    require_annotation_publication(_u(role="manager"), {"environment": "production"})
+
+
 def _u(
     *,
     role: str = "user",
     level: int = 1,
     permissions: list[str] | None = None,
 ) -> ApiUser:
-    """U.
-
-    Args:
-            role: Role. Keyword-only argument.
-            level: Level. Keyword-only argument.
-            permissions: Permissions. Keyword-only argument.
-    Returns:
-            The  u result.
-    """
+    """U."""
     return ApiUser(
         id="u",
         email="u@example.com",
@@ -71,11 +78,6 @@ def _u(
 
 
 def test_enforce_access_allows_matching_permission():
-    """Test enforce access allows matching permission.
-
-    Returns:
-        The function result.
-    """
     _enforce_access(_u(permissions=["report:preview"]), permission="report:preview")
 
 

@@ -129,13 +129,14 @@ export function ResourceLink({ link, embedded = false }: { link: LinkLike; embed
   )
 }
 
-export function InfoCard({ icon: Icon, label, value, hint, tone }: { icon: any; label: string; value: string; hint?: string; tone: StaticTone }) {
+export function InfoCard({ icon: Icon, label, value, hint, tone, details = [] }: { icon: any; label: string; value: string; hint?: string; tone: StaticTone; details?: Array<{ label: string; value: string }> }) {
   return (
     <article className="static-metric flex min-w-0 items-start gap-3 bg-card p-4" data-static-tone={tone}>
       <div className="static-icon flex size-8 shrink-0 items-center justify-center rounded-lg"><Icon className="size-4" /></div>
       <div className="min-w-0">
         <p className="type-label text-muted-foreground">{label}</p>
         <p className="type-body-sm mt-0.5 break-words text-foreground">{value}</p>
+        {details.length > 0 && <dl className="mt-2 space-y-1 type-caption">{details.map(detail => <div key={detail.label} className="flex flex-wrap gap-x-2"><dt className="text-muted-foreground">{detail.label}</dt><dd className="break-words text-foreground">{detail.value}</dd></div>)}</dl>}
         {hint ? <p className="type-caption mt-0.5 break-words text-muted-foreground">{hint}</p> : null}
       </div>
     </article>

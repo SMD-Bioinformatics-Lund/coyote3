@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from hashlib import md5
 from typing import Any
 
-from api.domain.core.dna.variant_identity import build_simple_id, normalize_simple_id
+from coyote3.domain.dna.variant_identity import build_simple_id, normalize_simple_id
 
 
 def literal_text_query(value: object, *, contains: bool = False) -> dict[str, str]:

@@ -8,10 +8,12 @@ from types import SimpleNamespace
 import pytest
 
 from api.app.container import store
-from api.application.sample import catalog as sample_catalog_service_module
-from api.application.sample.catalog import SampleCatalogService
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical import samples
+from api.interfaces.http.v1.clinical import samples
+from coyote3.application.common.release_resources import capture_gene_lists
+from coyote3.application.sample import catalog as sample_catalog_service_module
+from coyote3.application.sample.catalog import SampleCatalogService
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -20,6 +22,9 @@ def _sample_catalog_service() -> SampleCatalogService:
         sample_repository=store.sample_repository,
         gene_list_repository=store.gene_list_repository,
         assay_panel_repository=store.assay_panel_repository,
+        assay_configuration_repository=SimpleNamespace(
+            get_aspc_no_meta=lambda *args: fx.assay_config_doc(),
+        ),
         variant_repository=store.variant_repository,
         copy_number_variant_repository=store.copy_number_variant_repository,
         fusion_repository=store.fusion_repository,
@@ -38,27 +43,12 @@ def _sample_catalog_service() -> SampleCatalogService:
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
-    """Test home samples read returns live and done.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user = fx.api_user()
     calls = []
     service = _sample_catalog_service()
 
     def _get_samples_page(**kwargs):
-        """Get samples.
-
-        Args:
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  get samples result.
-        """
+        """Get samples."""
         calls.append(kwargs)
         if kwargs.get("report"):
             return {
@@ -75,7 +65,8 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
     added_from = datetime(2026, 8, 1, tzinfo=timezone.utc)
     added_until = datetime(2026, 8, 4, tzinfo=timezone.utc)
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="both",
         page=2,
@@ -90,7 +81,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         live_sort="",
         reported_sort="latest_reported:desc",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
     assert len(payload["live_samples"]) == 1
     assert len(payload["done_samples"]) == 1
@@ -112,27 +103,12 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
-    """Test home samples read always fetches both tables.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     user = fx.api_user()
     calls = []
     service = _sample_catalog_service()
 
     def _get_samples_page(**kwargs):
-        """Get samples.
-
-        Args:
-                **kwargs: Kwargs. Additional keyword arguments.
-
-        Returns:
-                The  get samples result.
-        """
+        """Get samples."""
         calls.append(kwargs)
         return {"items": [{"_id": "d1", "reports": [{"time_created": 123}]}], "total": 1}
 
@@ -142,7 +118,8 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="live",
         page=1,
@@ -155,7 +132,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         live_sort="",
         reported_sort="",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
 
     assert payload["sample_view"] == "all"
@@ -183,7 +160,8 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
     monkeypatch.setattr(service.sample_repository, "get_samples_page", _get_samples_page)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.list_samples_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.list_samples_read,
         status="live",
         search_mode="both",
         page=1,
@@ -196,7 +174,7 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
         live_sort="",
         reported_sort="",
         user=user,
-        service=service,
+        service=sdk_fixtures.sample_catalog_operations(service, user),
     )
 
     assert payload["profile_scope"] == "all"
@@ -206,19 +184,15 @@ def test_home_samples_read_superuser_is_unscoped(monkeypatch):
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
-    """Test home apply isgl invalid payload raises 400.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(AppError) as exc:
-        samples.sample_apply_genelists_change(
-            "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=_sample_catalog_service()
+        sdk_fixtures.invoke_route(
+            samples.sample_apply_genelists_change,
+            "S1",
+            payload={"isgl_ids": "bad"},
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(_sample_catalog_service(), fx.api_user(), "S1"),
         )
 
     assert exc.value.status_code == 400
@@ -229,6 +203,11 @@ def test_home_apply_isgl_rejects_list_for_different_analysis_type(monkeypatch):
     """The API must reject an SNV-only list submitted to the CNV filter section."""
     sample = fx.sample_doc()
     service = _sample_catalog_service()
+    configuration = fx.assay_config_doc()
+    configuration["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "SNV_ONLY", "version": 1, "list_type": ["snv"], "genes": ["TP53"]}]
+    )
+    monkeypatch.setattr(service, "_get_formatted_assay_config", lambda sample: configuration)
     monkeypatch.setattr(
         service.gene_list_repository,
         "get_isgl_by_ids",
@@ -260,7 +239,13 @@ def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
     monkeypatch.setattr(
         service,
         "_get_formatted_assay_config",
-        lambda sample_doc: {"filters": submitted},
+        lambda sample_doc: {
+            **fx.assay_config_doc(),
+            "filters": submitted,
+            "gene_list_release": capture_gene_lists(
+                [{"isgl_id": "SNV_ONLY", "version": 1, "list_type": ["snv"], "genes": ["TP53"]}]
+            ),
+        },
     )
     monkeypatch.setattr(
         service.gene_list_repository,
@@ -281,21 +266,14 @@ def test_replace_sample_filters_rejects_snv_list_in_cnv_section(monkeypatch):
 
 
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
-    """Test home save adhoc genes mutation parses and sorts.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     calls = {}
     service = _sample_catalog_service()
 
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
 
-    def _update_sample_filters(sample_id, filters):
+    def _update_sample_filters(sample_id, filters, *, expected_version):
+        assert expected_version == sample["version"]
         """Update sample filters.
 
         Args:
@@ -310,11 +288,12 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     monkeypatch.setattr(service.sample_repository, "update_sample_filters", _update_sample_filters)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.sample_save_adhoc_genes_change(
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_save_adhoc_genes_change,
         "S1",
         payload={"genes": "NPM1 TP53\nIDH1", "label": "focus", "list_type": "cnv"},
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, fx.api_user(), "S1"),
     )
 
     assert payload["action"] == "save_adhoc_genes"
@@ -332,7 +311,7 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
     """Edit context should expose raw and gene-filtered counts for other analysis types too."""
     sample = fx.sample_doc()
     sample["_id"] = "s1"
-    sample["omics_layer"] = "dna"
+    sample["asp_category"] = "dna"
     sample["filters"]["somatic"]["snv"]["snvlists"] = ["gl1"]
     sample["filters"]["somatic"]["cnv"]["cnvlists"] = ["gl1"]
     sample["filters"]["somatic"]["snv"]["adhoc_genes"] = {}
@@ -347,7 +326,19 @@ def test_edit_context_payload_includes_analysis_counts(monkeypatch):
         sample_catalog_service_module,
         "get_formatted_assay_config",
         lambda sample_doc, **_kwargs: {
+            **fx.assay_config_doc(),
             "analysis_types": ["TMB"],
+            "gene_list_release": capture_gene_lists(
+                [
+                    {
+                        "isgl_id": "gl1",
+                        "version": 1,
+                        "is_active": True,
+                        "list_type": ["snv", "cnv"],
+                        "genes": ["TP53"],
+                    }
+                ]
+            ),
             "filters": dict(sample_doc.get("filters") or {}),
         },
     )
@@ -427,14 +418,28 @@ def test_edit_context_payload_uses_assay_merged_filters_for_counts(monkeypatch):
     """Edit-context counts should seed from ASPC only when the sample has no filters doc."""
     sample = fx.sample_doc()
     sample["_id"] = "s1"
-    sample["omics_layer"] = "dna"
+    sample["asp_category"] = "dna"
     sample["filters"] = None
     service = _sample_catalog_service()
 
     monkeypatch.setattr(
         sample_catalog_service_module,
         "get_formatted_assay_config",
-        lambda sample_doc, **_kwargs: {"filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}}},
+        lambda sample_doc, **_kwargs: {
+            **fx.assay_config_doc(),
+            "filters": {"somatic": {"snv": {"snvlists": ["gl1"]}}},
+            "gene_list_release": capture_gene_lists(
+                [
+                    {
+                        "isgl_id": "gl1",
+                        "version": 1,
+                        "is_active": True,
+                        "list_type": ["snv"],
+                        "genes": ["TP53"],
+                    }
+                ]
+            ),
+        },
     )
     monkeypatch.setattr(
         service.assay_panel_repository,

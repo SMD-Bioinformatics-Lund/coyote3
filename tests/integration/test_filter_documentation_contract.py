@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import get_args
 
-from api.contracts.schemas.filter_profiles import (
+from coyote3.contracts.schemas.filter_profiles import (
     DnaFilterProfilesDoc,
     GermlineSnvFiltersDoc,
     RnaFilterProfilesDoc,

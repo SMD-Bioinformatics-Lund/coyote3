@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 440" role="img" aria-labelledby="title description">
+  <title id="title">Configuration compilation and reviewed environment promotion</title>
+  <desc id="description">Published settings profiles and explicit configuration fields compile into an immutable release. Samples pin that release. A separate author and reviewer approve a hashed candidate for another environment without rebinding existing samples.</desc>
+  <defs>
+    <style>
+      :root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--paper:#fff}
+      text{font-family:Inter,ui-sans-serif,system-ui,sans-serif;fill:var(--ink)}
+      .title{font-size:22px;font-weight:650}.label{font-size:14px;font-weight:600}.detail{font-size:12px;fill:var(--muted)}
+      .blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}
+      .line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+      .icon{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+      @media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--paper:#17212d}}
+      @media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--paper:#fff}}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="m1 1 8 4-8 4" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker>
+    <symbol id="layers" viewBox="0 0 24 24"><path class="icon" d="m2 7 10-5 10 5-10 5ZM2 12l10 5 10-5M2 17l10 5 10-5"/></symbol>
+    <symbol id="document" viewBox="0 0 24 24"><path class="icon" d="M5 2h10l5 5v15H5ZM15 2v6h5M9 12h7M9 16h7M9 19h4"/></symbol>
+    <symbol id="review" viewBox="0 0 24 24"><path class="icon" d="M8 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM1 21v-3a7 7 0 0 1 12-5M15 17l3 3 5-7"/></symbol>
+    <symbol id="pin" viewBox="0 0 24 24"><path class="icon" d="M8 2h8l-1 7 4 5H5l4-5ZM12 14v9"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path class="icon" d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6ZM8 12l3 3 6-7"/></symbol>
+  </defs>
+  <text x="28" y="34" class="title">Define once · compile precisely · publish deliberately</text>
+  <text x="28" y="57" class="detail">Resource keys resolve scope; immutable releases preserve the decisions used for analysis.</text>
+  <g class="blue"><use href="#layers" x="30" y="95" width="34" height="34"/><text x="78" y="108" class="label">Published profiles</text><text x="78" y="128" class="detail">Center → group → family → diagnosis → assay</text><text x="78" y="147" class="detail">Shared scope, then selected environment</text><path d="M325 137C400 137 376 208 445 208" class="line" marker-end="url(#arrow)"/></g>
+  <g class="purple"><use href="#document" x="30" y="215" width="34" height="34"/><text x="78" y="229" class="label">Explicit configuration fields</text><text x="78" y="249" class="detail">Filter defaults · reporting settings</text><text x="78" y="268" class="detail">Exact fields override inherited defaults</text><path d="M325 247C400 247 376 218 445 218" class="line" marker-end="url(#arrow)"/></g>
+  <g class="teal"><circle cx="492" cy="212" r="40" fill="currentColor" opacity=".09"/><use href="#shield" x="469" y="187" width="46" height="46"/><text x="492" y="276" text-anchor="middle" class="label">Compiled release</text><text x="492" y="296" text-anchor="middle" class="detail">ObjectId · source versions · hashes</text><text x="492" y="315" text-anchor="middle" class="detail">Captured lists, settings and templates</text><path d="M535 204C635 204 606 119 700 119" class="line" marker-end="url(#arrow)"/></g>
+  <g class="blue"><use href="#pin" x="715" y="98" width="32" height="32"/><text x="762" y="111" class="label">Existing sample</text><text x="762" y="132" class="detail">Pins its exact configuration ObjectId</text><text x="762" y="151" class="detail">Reports retain their own evidence snapshot</text></g>
+  <g class="amber"><path d="M535 219C632 219 616 222 704 222" class="line" marker-end="url(#arrow)"/><use href="#document" x="717" y="202" width="32" height="32"/><text x="765" y="217" class="label">Promotion proposal</text><text x="765" y="238" class="detail">Target environment · evidence · candidate hash</text><path d="M737 252v32" class="line" marker-end="url(#arrow)"/></g>
+  <g class="purple"><use href="#review" x="717" y="297" width="32" height="32"/><text x="765" y="311" class="label">Independent approval</text><text x="765" y="331" class="detail">Recheck source and target, then publish atomically</text><text x="765" y="350" class="detail">New target revision; existing sample pins unchanged</text></g>
+  <path d="M28 383h1064" stroke="var(--muted)" opacity=".3"/>
+  <text x="28" y="412" class="detail">Ambiguous bindings, changed review hashes and incompatible templates stop publication. Previous releases remain available for traceability.</text>
+</svg>

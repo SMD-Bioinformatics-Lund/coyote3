@@ -22,7 +22,7 @@ from tests.unit.test_offline_legacy_migrations import make_index, sample
 
 def catalog():
     """Use current synthetic contract fixtures as preinstalled target configuration."""
-    root = Path("demo_data/collections/all_collections_dummy")
+    root = Path("tests/fixtures/collections/all_collections_dummy")
     records = {name: read_json(root / f"{name}.json")[:1] for name in CATALOG_COLLECTIONS}
     for rows in records.values():
         for row in rows:
@@ -41,10 +41,9 @@ def test_binding_uses_explicit_revision_and_does_not_invent_historical_metadata(
     )
     fields = result["sample"]["metadata"]
     assert fields["asp_id"] == aspc["asp_id"]
-    assert fields["current_aspc_version"] == aspc["version"]
-    assert (
-        not {"case_id", "pipeline", "sequencing_scope", "time_added", "ingested_by"} & fields.keys()
-    )
+    assert fields["current_aspc_id"] == aspc["_id"]
+    assert fields["asp_family"] == "panel-dna"
+    assert not {"case_id", "pipeline", "time_added", "ingested_by"} & fields.keys()
     with pytest.raises(ValueError, match="Select one"):
         bind_sample_review(target, {}, {})
     with pytest.raises(ValueError, match="conflicts"):
@@ -71,7 +70,7 @@ def test_missing_target_prerequisites_stop_preflight(missing):
         validate_snapshot(target)
 
 
-def test_target_gene_list_and_subpanel_relationships_are_required():
+def test_target_gene_list_and_diagnosis_relationships_are_required():
     target = catalog()
     aspc = target["collections"]["asp_configs"][0]
     aspc["filters"]["somatic"]["snv"]["snvlists"] = ["not-installed"]
@@ -79,9 +78,9 @@ def test_target_gene_list_and_subpanel_relationships_are_required():
     with pytest.raises(ValueError, match="ISGL"):
         validate_snapshot(target)
     aspc["filters"]["somatic"]["snv"]["snvlists"] = []
-    aspc["subpanel_id"] = "missing-scope"
+    aspc["diagnosis_id"] = "missing-scope"
     target["sha256"] = digest(target["collections"])
-    with pytest.raises(ValueError, match="subpanel"):
+    with pytest.raises(ValueError, match="diagnosis"):
         validate_snapshot(target)
 
 
@@ -167,7 +166,7 @@ def test_conversion_writes_success_or_blocked_run_report(tmp_path, monkeypatch, 
                 "sample": {
                     "metadata": {
                         "current_aspc_id": target["collections"]["asp_configs"][0]["_id"],
-                        "sequencing_scope": "panel",
+                        "asp_family": "panel-dna",
                         "ingest_status": "ready",
                     }
                 }

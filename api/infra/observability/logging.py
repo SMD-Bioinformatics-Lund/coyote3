@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from api.infra.observability.redaction import redact_diagnostics, redact_text
+from coyote3.domain.common.diagnostics import redact_diagnostics, redact_text
 
 
 @dataclass(frozen=True, slots=True)

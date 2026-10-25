@@ -15,11 +15,14 @@ from collections.abc import Iterable
 from itertools import batched
 from typing import Any
 
-from bson.objectid import ObjectId
-
-from api.contracts.operations import OperationResult
+from api.infra.mongo.persistence import require_object_id
+from api.infra.mongo.records import application_record
+from api.infra.mongo.repositories.annotation_queries import annotation_visibility_query
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.finding_comment_owner import FindingCommentOwnerMixin
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.selection import Selection
 
 
 # -------------------------------------------------------------------------
@@ -68,7 +71,7 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
 
     def get_sample_cnvs(
         self,
-        query: dict,
+        query: Selection,
         *,
         stream: bool = False,
     ) -> list[dict[str, Any]] | Iterable[dict[str, Any]]:
@@ -76,7 +79,7 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         Retrieve CNVs for a specific sample based on the provided query.
 
         Args:
-            query (dict): A dictionary containing the query parameters to filter CNVs.
+            query: Immutable clinical selection translated by this storage adapter.
             stream: Return a lazy, comment-hydrated stream when true; otherwise a list.
 
         Returns:
@@ -85,9 +88,12 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
 
         def rows() -> Iterable[dict[str, Any]]:
             """Hydrate comments in bounded cursor batches while preserving source order."""
-            cursor = self.get_collection().find(query)
+            cursor = self.get_collection().find(compile_selection(query))
             for batch in batched(cursor, 100):
-                yield from self.hydrate_finding_comments_many(list(batch))
+                yield from (
+                    application_record(row)
+                    for row in self.hydrate_finding_comments_many(list(batch))
+                )
 
         return rows() if stream else list(rows())
 
@@ -101,8 +107,10 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             dict | None: The CNV document if found, otherwise None.
         """
-        return self._hydrate_finding_comments(
-            self.get_collection().find_one({"_id": ObjectId(cnv_id)})
+        return application_record(
+            self._hydrate_finding_comments(
+                self.get_collection().find_one({"_id": require_object_id(cnv_id)})
+            )
         )
 
     def get_interesting_sample_cnvs(
@@ -120,7 +128,7 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         return self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
 
-    def get_cnv_annotations(self, cnv: str) -> list:
+    def get_cnv_annotations(self, cnv: dict, *, sample_context: dict) -> list:
         """
         Retrieve annotations for a specific CNV.
 
@@ -136,9 +144,14 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
             list: A list of annotation documents associated with the CNV.
         """
         var = f"{str(cnv['chr'])}:{str(cnv['start'])}-{str(cnv['end'])}"
-        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
-            "time_created", 1
-        )
+        annotations = self.adapter.annotations_collection.find(
+            {
+                "variant": var,
+                "asp_id": sample_context["assay_id"],
+                **annotation_visibility_query(sample_context["environment"]),
+                "diagnosis_id": sample_context["diagnosis_id"],
+            }
+        ).sort("time_created", 1)
 
         # Keep latest classification tracked for parity with translocation annotation handling.
         _latest_classification = {"class": 999}

@@ -1,5 +1,15 @@
 Coyote3
-Copyright 2026 Coyote3 Authors
+Copyright © 2026 Ram Nanduri and Section for Molecular Diagnostics,
+Lund, Region Skåne, Sweden. All rights reserved.
+
+Original developer: Ram Nanduri
+Affiliated organization: Section for Molecular Diagnostics, Lund,
+Region Skåne, Sweden
+
+The application is distributed under the COYOTE3 Free-Use Source-Available
+License, Version 1.0. See LICENSE.txt and LICENSING.md for scope and exceptions.
+The independent Python HTTP client has its own Apache License 2.0 in
+clients/python/LICENSE.txt. Third-party components retain their own terms.
 
 Clinical-use notice
 -------------------

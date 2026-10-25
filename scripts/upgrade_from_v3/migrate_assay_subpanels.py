@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Register assay subpanels, with opt-in ISGL diagnosis spelling normalization."""
+"""Import v3 assay subpanels into shared diagnosis definitions and associations."""
 
 from __future__ import annotations
 
@@ -15,15 +15,15 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.constants import SUBPANEL_BASE_ID, normalize_clinical_identifier  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.assay_subpanels import AssaySubpanelRepository  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
+from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from api.infra.seed.subpanels import plan_subpanels  # noqa: E402
+from api.infra.seed.diagnoses import plan_diagnoses  # noqa: E402
+from coyote3.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier  # noqa: E402
 
 
 def normalize_diagnosis_associations(lists: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Plan an explicit spelling migration for ISGL subpanel associations.
+    """Plan an explicit spelling migration for ISGL diagnosis associations.
 
     Args:
         lists: Gene-list metadata, including the original diagnosis arrays and IDs.
@@ -60,42 +60,42 @@ def normalize_diagnosis_associations(lists: list[dict]) -> tuple[list[dict], lis
 def validate_annotation_scopes(
     panels: list[dict], documents: list[dict], annotation_scopes: list[dict]
 ) -> list[dict]:
-    """Verify historical annotation group/subpanel pairs without changing their identity.
+    """Verify historical annotation group/diagnosis pairs without changing their identity.
 
     Args:
         panels: All ASP revisions, including historical group membership.
-        documents: Planned and already registered subpanel definitions.
-        annotation_scopes: Distinct pairs containing only assay and subpanel fields.
+        documents: Planned and already registered diagnosis definitions.
+        annotation_scopes: Distinct pairs containing only assay and diagnosis fields.
 
     Returns:
         Unmatched canonical scopes for operator review, without assigning ASP ownership.
 
     Raises:
-        ValueError: A named annotation subpanel is not a canonical identifier.
+        ValueError: A named annotation diagnosis is not a canonical identifier.
 
     Notes:
         Annotation assay values represent groups, not ASP identifiers. Null or empty
-        subpanels remain unscoped; they are not converted into the base scope.
+        diagnoses remain unscoped; they are not converted into the base scope.
         A group-level annotation alone cannot establish which ASP owns a new scope.
     """
     groups_by_assay: dict[str, set[str | None]] = {}
     for panel in panels:
         groups_by_assay.setdefault(panel["asp_id"], set()).add(panel.get("asp_group"))
     known = {
-        (group, document["subpanel_id"])
+        (group, document["diagnosis_id"])
         for document in documents
         for group in groups_by_assay.get(document["asp_id"], set())
     }
     unmatched = [
         scope
         for scope in annotation_scopes
-        if scope.get("subpanel") not in (None, "")
-        and scope.get("subpanel") != SUBPANEL_BASE_ID
-        and (scope.get("assay"), scope["subpanel"]) not in known
+        if scope.get("diagnosis") not in (None, "")
+        and scope.get("diagnosis") != DIAGNOSIS_BASE_ID
+        and (scope.get("assay"), scope["diagnosis"]) not in known
     ]
     invalid = []
     for scope in annotation_scopes:
-        value = scope.get("subpanel")
+        value = scope.get("diagnosis")
         if value in (None, ""):
             continue
         try:
@@ -107,10 +107,10 @@ def validate_annotation_scopes(
                 invalid.append(scope)
     if invalid:
         pairs = ", ".join(
-            sorted({f"{scope.get('assay')!r}/{scope['subpanel']!r}" for scope in invalid})
+            sorted({f"{scope.get('assay')!r}/{scope['diagnosis']!r}" for scope in invalid})
         )
         raise ValueError(
-            f"Noncanonical annotation group/subpanel scopes: {pairs}. "
+            f"Noncanonical annotation group/diagnosis scopes: {pairs}. "
             "Review a clinical identifier migration before retrying; annotations are not rewritten."
         )
     return unmatched
@@ -140,18 +140,21 @@ def migrate(
     changes = []
     if normalize_isgl_diagnosis:
         lists, changes = normalize_diagnosis_associations(lists)
-    documents = plan_subpanels(
+    documents = plan_diagnoses(
         panels,
-        list(db[mapping["aspc_collection"]].find({}, {"asp_id": 1, "subpanel_id": 1})),
+        list(db[mapping["aspc_collection"]].find({}, {"asp_id": 1, "diagnosis_id": 1})),
         list(db[mapping["clinical_rule_sets_collection"]].find({}, {"scope": 1})),
         lists,
         actor=actor,
     )
-    legacy = list(db["assay_subpanels"].find({"is_current": True}))
-    by_identity = {(doc["asp_id"], doc["subpanel_id"]): doc for doc in documents}
+    legacy = []
+    for row in db["assay_subpanels"].find({"is_current": True}):
+        row["diagnosis_id"] = row.pop("subpanel_id")
+        legacy.append(row)
+    by_identity = {(doc["asp_id"], doc["diagnosis_id"]): doc for doc in documents}
     for doc in legacy:
-        if doc["subpanel_id"] != SUBPANEL_BASE_ID:
-            by_identity[(doc["asp_id"], doc["subpanel_id"])] = {
+        if doc["diagnosis_id"] != DIAGNOSIS_BASE_ID:
+            by_identity[(doc["asp_id"], doc["diagnosis_id"])] = {
                 key: value
                 for key, value in doc.items()
                 if key not in {"_id", "definition_version", "definition_is_active"}
@@ -161,22 +164,22 @@ def migrate(
     for doc in documents:
         metadata = (doc["display_name"], doc.get("description", ""))
         if (
-            doc["subpanel_id"] in shared_metadata
-            and shared_metadata[doc["subpanel_id"]] != metadata
+            doc["diagnosis_id"] in shared_metadata
+            and shared_metadata[doc["diagnosis_id"]] != metadata
         ):
             raise ValueError(
-                f"Conflicting shared metadata for {doc['subpanel_id']!r}; review before merging"
+                f"Conflicting shared metadata for {doc['diagnosis_id']!r}; review before merging"
             )
-        shared_metadata[doc["subpanel_id"]] = metadata
+        shared_metadata[doc["diagnosis_id"]] = metadata
     existing_documents = list(
-        db[mapping["subpanel_associations_collection"]].find(
-            {"is_current": True}, {"asp_id": 1, "subpanel_id": 1}
+        db[mapping["diagnosis_associations_collection"]].find(
+            {"is_current": True}, {"asp_id": 1, "diagnosis_id": 1}
         )
     )
     annotation_scopes = [
         row["_id"]
         for row in db[mapping["annotations_collection"]].aggregate(
-            [{"$group": {"_id": {"assay": "$assay", "subpanel": "$subpanel"}}}]
+            [{"$group": {"_id": {"assay": "$assay", "diagnosis": "$diagnosis"}}}]
         )
     ]
     unmatched = validate_annotation_scopes(
@@ -188,24 +191,24 @@ def migrate(
             "Review ownership separately; these may be historical or cross-assay scopes.",
             file=sys.stderr,
         )
-        for group, subpanel in sorted(
-            {(repr(scope.get("assay")), repr(scope["subpanel"])) for scope in unmatched}
+        for group, diagnosis in sorted(
+            {(repr(scope.get("assay")), repr(scope["diagnosis"])) for scope in unmatched}
         ):
-            print(f"  {group}/{subpanel}", file=sys.stderr)
-    repository = AssaySubpanelRepository(
+            print(f"  {group}/{diagnosis}", file=sys.stderr)
+    repository = AssayDiagnosisRepository(
         SimpleNamespace(
-            subpanel_associations_collection=db[mapping["subpanel_associations_collection"]],
-            subpanels_collection=db[mapping["subpanels_collection"]],
+            diagnosis_associations_collection=db[mapping["diagnosis_associations_collection"]],
+            diagnoses_collection=db[mapping["diagnoses_collection"]],
         )
     )
     missing = [
         doc
         for doc in documents
-        if repository.get_current(doc["asp_id"], doc["subpanel_id"]) is None
+        if repository.get_current(doc["asp_id"], doc["diagnosis_id"]) is None
     ]
-    current_definitions = {doc["subpanel_id"]: doc for doc in repository.list_definitions()}
+    current_definitions = {doc["diagnosis_id"]: doc for doc in repository.list_definitions()}
     for document in missing:
-        definition = current_definitions.get(document["subpanel_id"])
+        definition = current_definitions.get(document["diagnosis_id"])
         if definition and (
             any(
                 document.get(key, "") != definition.get(key, "")
@@ -215,7 +218,7 @@ def migrate(
             and not definition["is_active"]
         ):
             raise ValueError(
-                f"Existing shared definition conflicts with {document['subpanel_id']!r}; review before applying"
+                f"Existing shared definition conflicts with {document['diagnosis_id']!r}; review before applying"
             )
     if apply:
         repository.ensure_indexes()

@@ -10,7 +10,7 @@ import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
-import { StatusBadges, TierBadge } from "@/lib/variant-ui";
+import { FallbackTierBadge, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/lib/fusion-ui";
 import {
   findingRowClass,
@@ -152,34 +152,30 @@ export function FusionsTab({
     {
       id: "effect",
       header: "Effect",
-      accessorFn: (row) => selectedFusionCall(row)?.effect || row.frame || "Unknown",
+      accessorFn: (row) => selectedFusionCall(row)?.effect || "Unknown",
       cell: ({ row }) => (
         <FusionEffectBadge
-          effect={selectedFusionCall(row.original)?.effect || row.original.frame}
+          effect={selectedFusionCall(row.original)?.effect}
         />
       ),
     },
     {
       id: "spanpairs",
       header: "SP",
-      accessorFn: (row) => selectedFusionCall(row)?.spanpairs || row.supporting_reads?.span || 0,
+      accessorFn: (row) => selectedFusionCall(row)?.spanpairs ?? 0,
       cell: ({ row }) => (
         <span className="type-table-value">
-          {selectedFusionCall(row.original)?.spanpairs ||
-            row.original.supporting_reads?.span ||
-            "-"}
+          {selectedFusionCall(row.original)?.spanpairs ?? "-"}
         </span>
       ),
     },
     {
       id: "unique_spanpairs",
       header: "Unique SR",
-      accessorFn: (row) => selectedFusionCall(row)?.spanreads || row.supporting_reads?.split || 0,
+      accessorFn: (row) => selectedFusionCall(row)?.spanreads ?? 0,
       cell: ({ row }) => (
         <span className="type-table-value">
-          {selectedFusionCall(row.original)?.spanreads ||
-            row.original.supporting_reads?.split ||
-            "-"}
+          {selectedFusionCall(row.original)?.spanreads ?? "-"}
         </span>
       ),
     },
@@ -190,17 +186,15 @@ export function FusionsTab({
         const call = selectedFusionCall(row);
         return (
           [call?.breakpoint1, call?.breakpoint2].filter(Boolean).join(", ") ||
-          row.breakpoints?.join(", ") ||
           "-"
         );
       },
       cell: ({ row }) => {
         const call = selectedFusionCall(row.original);
         const bps = [call?.breakpoint1, call?.breakpoint2].filter(Boolean);
-        const breakpoints = bps.length ? bps : row.original.breakpoints || [];
         return (
           <div className="type-table-value flex flex-col gap-0.5 leading-tight">
-            {breakpoints.map((bp: string, i: number) => (
+            {bps.map((bp: string, i: number) => (
               <span key={i} className="bg-muted/50 px-1.5 py-0.5 rounded w-max">
                 {bp}
               </span>
@@ -218,15 +212,15 @@ export function FusionsTab({
         cellClassName: "w-14 min-w-14",
       },
       header: "Tier",
-      cell: ({ row }) => <TierBadge tier={tierValue(row.original)} />,
+      cell: ({ row }) => tierValue(row.original) === 999 ? <FallbackTierBadge candidates={row.original.other_classification} /> : <TierBadge tier={tierValue(row.original)} />,
     },
     {
       id: "description",
       header: "Description",
-      accessorFn: (row) => selectedFusionCall(row)?.desc || row.desc || "-",
+      accessorFn: (row) => selectedFusionCall(row)?.desc || "-",
       cell: ({ row }) => (
         <FusionEvidenceBadges
-          description={selectedFusionCall(row.original)?.desc || row.original.desc}
+          description={selectedFusionCall(row.original)?.desc}
           metadata={data?.fusion_annotation_metadata}
         />
       ),

@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote3.domain.exceptions import AppError
 
 
 def test_custom_identity_resolves_by_scope_and_duplicate_scope_is_rejected(monkeypatch):
@@ -25,7 +25,7 @@ def test_custom_identity_resolves_by_scope_and_duplicate_scope_is_rejected(monke
     document = {
         "aspc_id": "chosen-copy-id",
         "asp_id": "synthetic",
-        "subpanel_id": "base",
+        "diagnosis_id": "base",
         "environment": "production",
         "is_active": True,
         "version": 1,

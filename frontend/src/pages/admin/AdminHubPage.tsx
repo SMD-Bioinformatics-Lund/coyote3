@@ -73,16 +73,16 @@ const utilityModules = [
     permission: "assay.panel:view",
   },
   {
-    title: "Subpanel definitions",
-    description: "Create shared subpanels and select their assays.",
-    href: "/admin/subpanels",
+    title: "Diagnosis definitions",
+    description: "Create shared diagnoses and select their assays.",
+    href: "/admin/diagnoses",
     icon: ListTree,
     permission: "assay.panel:view",
   },
   {
-    title: "Assay subpanel associations",
-    description: "Enable or disable subpanels for each assay.",
-    href: "/admin/assay-subpanels",
+    title: "Assay diagnosis associations",
+    description: "Enable or disable diagnoses for each assay.",
+    href: "/admin/assay-diagnoses",
     icon: SlidersHorizontal,
     permission: "assay.panel:view",
   },
@@ -152,7 +152,7 @@ const utilityModules = [
 ] as const
 
 const adminSections = [
-  { id: "assays", title: "Assays and subpanels", icon: Dna, paths: ["assay-groups", "assay-setups", "asp", "subpanels", "assay-subpanels", "aspc", "genelists"] },
+  { id: "assays", title: "Assays and diagnoses", icon: Dna, paths: ["assay-groups", "assay-setups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
   { id: "reporting", title: "Clinical rules and catalog", icon: BookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
   { id: "access", title: "Identity and access", icon: UsersRound, paths: ["users", "roles", "permissions"] },
   { id: "operations", title: "Application operations", icon: Settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
@@ -166,7 +166,7 @@ export function AdminHubPage() {
   const visibleResources = Object.values(specs).filter((spec) => hasPermission(user, spec.permissions.list))
   const authorizedUtilities = utilityModules.filter((module) =>
     hasPermission(user, module.permission)
-    && (!["/admin/subpanels", "/admin/assay-subpanels", "/admin/assay-setups"].includes(module.href) || hasPermission(user, "assay.panel:list"))
+    && (!["/admin/diagnoses", "/admin/assay-diagnoses", "/admin/assay-setups"].includes(module.href) || hasPermission(user, "assay.panel:list"))
   )
   const visibleUtilities = authorizedUtilities.filter(module => module.href !== "/admin/ingest" || (!modulesQuery.isLoading && !modulesQuery.isError && moduleIsEnabled(modulesQuery.data, "ingest_workspace")))
   const links = [

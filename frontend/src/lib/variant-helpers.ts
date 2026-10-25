@@ -58,22 +58,11 @@ export function selectedFusionCall(fusion: any) {
     return fusion.calls.find((call: any) => call?.selected === 1 || call?.selected === true) ?? fusion.calls[0]
   }
 
-  return {
-    effect: fusion?.frame,
-    spanpairs: fusion?.supporting_reads?.span,
-    spanreads: fusion?.supporting_reads?.split,
-    breakpoint1: fusion?.breakpoints?.[0],
-    breakpoint2: fusion?.breakpoints?.[1],
-    desc: fusion?.desc,
-    caller: Array.isArray(fusion?.callers) ? fusion.callers.join(", ") : fusion?.callers,
-  }
+  return {}
 }
 
 export function fusionGenes(fusion: any) {
   if (fusion?.gene1 || fusion?.gene2) return [fusion.gene1 || "", fusion.gene2 || ""]
-  if (typeof fusion?.genes === "string") return fusion.genes.split("^")
-  if (Array.isArray(fusion?.genes)) return fusion.genes
-  if (typeof fusion?.fusion_name === "string") return fusion.fusion_name.split("--")
   return []
 }
 
@@ -81,7 +70,7 @@ export function fusionCallers(fusion: any) {
   if (Array.isArray(fusion?.calls)) {
     return normalizedCallerList(fusion.calls.map((call: any) => call?.caller).filter(Boolean)).join(", ")
   }
-  return normalizedCallerList(fusion?.callers).join(", ") || "-"
+  return "-"
 }
 
 export function selectedTranslocationAnnotation(translocation: any) {

@@ -6,6 +6,7 @@ import {
 } from "@/pages/admin/resource-list"
 import type { AdminFormMode, AdminResourceSpec, FormSpec } from "@/pages/admin/resource-specs"
 import { Activity, Save } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { readFormPath, writeFormPath } from "./form-paths"
 import { FormControl } from "./FormControl"
 
@@ -39,7 +40,7 @@ export function AdminManagedForm({
       const changedName = pending.shift()
       Object.entries(form.fields || {}).forEach(([dependentName, dependentField]) => {
         const dependency = dependentField.options_by_field
-        if (!dependency || dependency.field !== changedName || changed.has(dependentName)) return
+        if (![(dependency?.field ?? dependentField.options_from_field), dependentField.options_require_inputs?.field].includes(changedName) || changed.has(dependentName)) return
         const allowedOptions = optionsForDependency(dependentField, updated) || []
         const allowed = new Set(allowedOptions.map(optionValue))
         if (["checkbox-group", "multi-select"].includes(dependentField.display_type || "")) {
@@ -47,7 +48,7 @@ export function AdminManagedForm({
         } else {
           const current = String(updated[dependentName] ?? "")
           const defaultValue = String(dependentField.default ?? "")
-          updated[dependentName] = allowed.has(current) ? current : allowed.has(defaultValue) ? defaultValue : ""
+          updated[dependentName] = allowed.has(current) ? current : allowed.has(defaultValue) ? defaultValue : allowed.size === 1 ? [...allowed][0] : ""
         }
         changed.add(dependentName)
         pending.push(dependentName)
@@ -77,28 +78,27 @@ export function AdminManagedForm({
     setValues(updated)
   }
   return (
-    <section className="surface-panel p-4">
+    <section className="glass-card min-w-0 p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {mode === "view" ? "Read-only view generated from the backend-managed schema contract." : "Form generated from the backend-managed schema contract."}
+          <h2 className="type-section-title">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
+          <p className="type-supporting text-muted-foreground">
+            {mode === "view" ? "Resource details and configuration." : "Choose the resource scope, then configure the available options."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-            Cancel
-          </button>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {mode === "view" ? "Close" : "Cancel"}
+          </Button>
           {mode !== "view" && (
-            <button
+            <Button
               type="button"
               onClick={onSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-2 text-sm font-semibold text-background disabled:opacity-50"
             >
               {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -107,12 +107,16 @@ export function AdminManagedForm({
         {Object.entries(sections).map(([sectionName, names]) => {
           const sectionFields = names.filter((name) => (
             form.fields?.[name] && !form.fields[name].hidden_mode?.includes(mode)
+            && (!form.fields[name].visible_when || String(values[form.fields[name].visible_when!.field] ?? "") === form.fields[name].visible_when!.value)
           ))
           if (!sectionFields.length) return null
           return (
-            <div key={sectionName} className="rounded-xl border border-border bg-card/70 p-3">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">{sectionName.replaceAll("_", " ")}</h3>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <fieldset key={sectionName} className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <legend className="rounded-lg border border-border bg-muted px-3 py-1 type-section-title text-foreground">{sectionName.replaceAll("_", " ")}</legend>
+              {sectionName === "configuration scope" && mode === "edit" && (
+                <p className="mb-4 type-supporting text-muted-foreground">Assay, diagnosis and environment identify this configuration. Use Copy as new to create another scope.</p>
+              )}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {sectionFields.map((name) => {
                   const field = form.fields[name]
                   const wide = ["textarea", "checkbox-group", "jsoneditor", "jsoneditor-or-upload", "filters-structured", "reporting-structured", "catalog-structured", "user-settings"].includes(field.display_type || "") || field.data_type === "json"
@@ -130,7 +134,7 @@ export function AdminManagedForm({
                   )
                 })}
               </div>
-            </div>
+            </fieldset>
           )
         })}
       </div>

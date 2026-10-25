@@ -4,20 +4,22 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
-from api.config.loaders.collections import load_collection_section
-from api.domain.common.errors import api_error
+from bson import ObjectId
+
+from api.config.collections import load_collection_section
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.clinical_rule_sets import build_revision_snapshot
 from api.infra.mongo.repositories.query_rule_revisions import build_query_revision
 from api.infra.mongo.transactions import run_transaction
+from coyote3.domain.common.errors import api_error
 
 IDENTITIES = {
     "assay_specific_panels": ("asp_collection", "asp_id"),
     "asp_configs": ("aspc_collection", "aspc_id"),
     "clinical_rule_sets": ("clinical_rule_sets_collection", "rule_set_id"),
     "insilico_genelists": ("insilico_genelist_collection", "isgl_id"),
-    "subpanels": ("subpanels_collection", "subpanel_id"),
-    "subpanel_associations": ("subpanel_associations_collection", "subpanel_id"),
+    "diagnoses": ("diagnoses_collection", "diagnosis_id"),
+    "diagnosis_associations": ("diagnosis_associations_collection", "diagnosis_id"),
     "query_rule_sets": ("query_rule_sets_collection", "scope_key"),
     "public_assay_catalog_versions": ("public_assay_catalog_versions_collection", "_id"),
 }
@@ -25,6 +27,18 @@ IDENTITIES = {
 
 class DemoInstallationRepository:
     """Keep demo writes on the configured application client and database."""
+
+    @staticmethod
+    def identifier(value: str | None) -> Any:
+        """Allocate a provider ID or restore the bundle's fixed public catalogue ID.
+
+        Args:
+            value: Fixed serialized ID, or None to allocate a fresh ID.
+
+        Returns:
+            MongoDB identifier owned by the repository boundary.
+        """
+        return ObjectId(value) if value is not None else ObjectId()
 
     def __init__(self, database: Any) -> None:
         """Bind the explicitly selected application database."""
@@ -47,8 +61,11 @@ class DemoInstallationRepository:
         for name, rows in documents.items():
             collection, key = IDENTITIES[name]
             for row in rows:
+                selector = {key: row[key]}
+                if name == "diagnosis_associations":
+                    selector["asp_id"] = row["asp_id"]
                 if not self.database[self.mapping[collection]].find_one(
-                    {key: row[key], **({"system_installed": True} if require_packaged else {})},
+                    {**selector, **({"system_installed": True} if require_packaged else {})},
                     {"_id": 1},
                     session=session,
                 ):
@@ -111,7 +128,7 @@ class DemoInstallationRepository:
                 target = self.database[self.mapping[attribute]]
                 for row in rows:
                     selector = {key: row[key]}
-                    if name == "subpanel_associations":
+                    if name == "diagnosis_associations":
                         selector["asp_id"] = row["asp_id"]
                     existing = target.find_one(selector, session=session)
                     if existing is not None:

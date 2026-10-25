@@ -8,10 +8,10 @@ new reference-data collection.
 The backend uses the following ownership boundaries:
 
 - `api/infra/mongo/repositories/*`: collection-scoped persistence
-- `api/application/*`: orchestration and use-case logic
+- `src/coyote3/application/*`: orchestration and use-case logic
 - `api/app/deps/services.py`: service factory layer
-- `api/interfaces/http/{clinical,admin,public,operations,knowledgebase}`: HTTP boundary
-- `api/interfaces/http/clinical/{dna,rna,reporting,common}`: clinical route subcategories
+- `api/interfaces/http/v1/{clinical,admin,public,operations,knowledgebase}`: HTTP boundary
+- `api/interfaces/http/v1/clinical/{dna,rna,reporting,common}`: clinical route subcategories
 
 ## Option A: add a new analysis domain
 
@@ -20,17 +20,17 @@ Example: DNA methylation.
 ### Files to add
 
 ```text
-api/contracts/schemas/dna.py              # extend or add schema
+src/coyote3/contracts/schemas/dna.py              # extend or add schema
 api/infra/mongo/repositories/methylation.py   # collection repository
-api/application/dna/methylation.py           # application service
-api/interfaces/http/clinical/dna/methylation.py   # HTTP routes
+src/coyote3/application/dna/methylation.py           # application service
+api/interfaces/http/v1/clinical/dna/methylation.py   # HTTP routes
 tests/unit/test_methylation_service.py
 tests/api/routers/test_methylation_routes.py
 ```
 
 ### 1. Add the collection contract
 
-Register the collection in `api/contracts/schemas/registry.py`.
+Register the collection in `src/coyote3/contracts/schemas/registry.py`.
 
 ```python
 COLLECTION_MODEL_ADAPTERS["methylation"] = TypeAdapter(MethylationDoc)
@@ -71,7 +71,7 @@ class MethylationService:
         return cls(methylation_repository=store.methylation_repository)
 ```
 
-If the domain becomes large, keep `api/application/dna/methylation.py` as the public entrypoint
+If the domain becomes large, keep `src/coyote3/application/dna/methylation.py` as the public entrypoint
 and split support logic into nearby modules such as `methylation_reads.py`,
 `methylation_writes.py`, or `methylation_exports.py`.
 
@@ -98,8 +98,8 @@ def list_methylation(
 
 If the collection is reference data or a support collection:
 
-1. add the schema to `api/contracts/schemas/*`
-2. register it in `api/contracts/schemas/registry.py`
+1. add the schema to `src/coyote3/contracts/schemas/*`
+2. register it in `src/coyote3/contracts/schemas/registry.py`
 3. add a collection repository
 4. register it in `api/infra/mongo/runtime_adapter.py`
 5. add service methods only if a route or workflow needs them
@@ -129,7 +129,7 @@ def get_sample_catalog_service() -> SampleCatalogService:
 ```
 
 ```python
-# api/application/sample/catalog.py
+# src/coyote3/application/sample/catalog.py
 class SampleCatalogService:
     @classmethod
     def from_store(cls, store):
@@ -147,14 +147,14 @@ class SampleCatalogService:
 - One handler owns one collection
 - Services may combine many handlers
 - Routers should depend on services, not `store`
-- `api/domain/core` should stay pure and reusable
+- `src/coyote3/domain` should stay pure and reusable
 - Do not reintroduce repository facades or hidden bridging layers
 - Do not pass raw Mongo collections through the app layer unless you are at the infra/composition boundary
 
 ## Quality checks
 
 ```bash
-.venv/bin/ruff check api tests
+.venv/bin/ruff check src api tests
 .venv/bin/python -m pytest -q
 .venv/bin/python -m mkdocs build --strict
 ```

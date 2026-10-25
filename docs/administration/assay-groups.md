@@ -1,6 +1,10 @@
 # Assay Groups
 
-Assay groups are stable scope identifiers shared by ASPs, ASPCs, gene lists,
+Assay groups are center-defined biological or clinical categories. Their names do
+not determine which analyses the application implements. A group can organize
+assays that use any compatible [supported analysis workflow](supported-capabilities.md).
+
+Groups have stable scope identifiers shared by ASPs, ASPCs, gene lists,
 annotations and user access assignments. The `assay_groups` collection belongs
 to the application database; each environment manages its own registry.
 
@@ -11,6 +15,7 @@ to the application database; each environment manages its own registry.
 | Create `group_id` | Yes, 1–100 characters | No default; normalized stable identifier. |
 | Create `display_name` | Yes, 1–200 characters | No default; trimmed display label. |
 | Create `description` | No, at most 4000 characters | Empty text. |
+| Create `parent_group_id` | No | Null selects a top-level group; otherwise references a registered active biological parent. |
 | Status `is_active` | Yes | Explicit target availability, not a toggle inferred from the current state. |
 | Status `expected_version` | Yes, integer at least 1 | Revision precondition; refresh after a conflict. |
 | Status `reason` | Yes, 1–2000 nonblank characters | Recorded explanation; no generated justification. |
@@ -23,9 +28,22 @@ fields: [assay-group contract](../reference/mongodb-collections.md#assay_groups)
 Open **Admin > Assay groups** (`/admin/assay-groups`). Search the registry or
 select **Create group**, enter a display name and description, review the
 suggested identifier, and save. Identifiers use lowercase letters,
-numbers and single underscores between words. Hyphens, spaces and leading,
+numbers with single hyphen or underscore separators. Spaces and leading,
 trailing or repeated underscores are rejected for new groups. Existing group
 identifiers are not renamed. Spaces are allowed in display names, not keys.
+
+Select **Parent group (optional)** to record a more specific biological branch, or keep
+**None — top-level group**. Creation validates the complete ancestor chain in the same
+transaction as the new record. Missing or inactive ancestors and cycles are
+rejected. Parentage does not inherit assay assignments, access rights or filters.
+Variant interpretations from ancestors are available as fallback evidence, ordered
+nearest ancestor first. These classifications require confirmation in the current
+assay and diagnosis before report inclusion. Exact-context classifications take
+precedence regardless of the date of a parent interpretation.
+
+The bundled Myeloid and Lymphoid groups are children of Hematology. A sample's
+group resolves from its pinned assay configuration; its diagnosis does not change
+that group. The sample document does not duplicate the ancestor path.
 
 | Operation | Permission |
 | --- | --- |
@@ -62,7 +80,7 @@ Existing samples, annotations, reports and configuration history remain readable
 under their existing access permissions. Clinical review and reporting of existing
 samples are not disabled. Child records are never marked inactive by a group
 status change. Reactivation makes only individually active children available.
-Shared subpanels and gene lists retain availability through other active groups.
+Shared diagnoses and gene lists retain availability through other active groups.
 
 ## Configuration order
 
@@ -74,7 +92,7 @@ assay, group, and environment scope to users separately.
 
 1. Install the system groups and register any additional center groups.
 2. Select a registered group when creating an ASP or assay setup draft.
-3. Configure subpanels, gene lists, reporting rules and ASPCs for that assay.
+3. Configure diagnoses, gene lists, reporting rules and ASPCs for that assay.
 4. Assign assay and group access explicitly through user administration.
 
 ASP, ISGL and user-access forms read group choices from the registry. ASPC group
@@ -85,12 +103,12 @@ grant access, add report wording or introduce group-specific clinical query rule
 ## Installation
 
 New database bootstrap includes
-`api/config/bootstrap/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
-`lymphoid`, `solid`, `pgx`, `tumwgs`, `wts`, `fusion` and `demo`, with
+`api/bootstrap/catalogs/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
+`lymphoid`, `solid` and `pgx`, with
 `system_managed: true`.
 
-`demo` is reserved for demonstration and training assays; it does not grant
-access or change the deployment environment. Environment choices remain
+`myeloid` and `lymphoid` are retained for legacy samples. New demonstration
+assays use hematology or solid; sequencing technologies are not groups. Environment choices remain
 application-configured, not entries in this registry.
 
 For an existing deployment, export the intended `COYOTE3_MONGO_URI` and

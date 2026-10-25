@@ -5,7 +5,7 @@ using the [registered field/operator catalog](../reference/query-condition-field
 Within an exception, a tree and the additional criteria documented below are joined
 with AND. A condition tree does not replace mandatory sample or access boundaries.
 
-The application-owned `api/config/clinical_query_seed.toml` supplies installation criteria for
+The application-owned `api/bootstrap/catalogs/reference/clinical_query_seed.toml` supplies installation criteria for
 [database-managed finding query rules](../administration/query-rules.md). Bootstrap
 combines these criteria with the bundled group catalog and stores published versions.
 Runtime queries read application defaults and published database rules, not this file.
@@ -20,17 +20,16 @@ Editing or restarting with a changed file does not update an installed policy.
 | Routine clinical policy changes | Use **Administration → Query rules** to draft, review and publish database versions. Editing this file does not update existing rules. |
 | Live finding retrieval | Not read. Retrieval uses application-owned defaults, published database policies and sample filters. |
 
-Python bootstrap tools load this file from the application package. It is not
+Python bootstrap tools load this file from the API host's installation catalogs. It is not
 editable center configuration, cannot be redirected through the center directory,
 and has no installer command-line override. Database publications are the supported
 way to change clinical selection criteria after installation.
 
 > **Warning: SNV intent is not a classification of variant origin**
 >
-> Current somatic SNV queries can also return germline variants. The dedicated
-> germline SNV pathway is not yet fully implemented. The `somatic` and `germline`
-> settings documented here scope query criteria; they do not guarantee distinct
-> result sets or a complete germline analysis workflow.
+> Somatic SNV policies include effective germline exceptions for the same scope.
+> The `somatic` and `germline` settings select review criteria; they do not
+> guarantee distinct result sets or establish biological origin.
 
 ## Policy inputs and runtime boundaries
 
@@ -67,7 +66,7 @@ PGX finding query is introduced.
 ## Required values and defaults
 
 The seed file is packaged with the application; centers do not supply it. Application baseline settings come from
-`api/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
+`src/coyote3/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
 or invalid key fails configuration validation. A default below means loader behavior, not a
 clinically approved center choice.
 
@@ -87,9 +86,9 @@ Do not copy an exception without reviewing its scope. Empty/missing scope can
 make it apply more widely. The following tables specify valid modes, keys and
 combinations and explain how conditions compose.
 
-The application seed supports default and registered group scopes. Assay/subpanel-scoped
+The application seed supports default and registered group scopes. Assay/diagnosis-scoped
 file exceptions are rejected by the installer; create those through the editor once
-the assay and subpanel exist. Empty PGX configuration is required because no PGX
+the assay and diagnosis exist. Empty PGX configuration is required because no PGX
 retrieval namespace is implemented. At installation, file exceptions replace catalog
 exceptions with the same ID and scope. Missing or empty arrays do not remove bundled
 rules; retire or replace unwanted publications through the editor.
@@ -153,8 +152,8 @@ not depend on declaration order:
 
 | Situation | Combination rule | Example |
 | --- | --- | --- |
-| Values within `intents`, `assay_groups`, `asp_ids`, or `subpanel_ids` | **OR** within that field | `assay_groups = ["solid", "hematology"]` permits either group. |
-| Different populated scope fields | **AND** | `intents = ["somatic"]` plus `asp_ids = ["solid_gmsv3"]` requires both. |
+| Values within `intents`, `assay_groups`, `asp_ids`, or `diagnosis_ids` | **OR** within that field | `assay_groups = ["solid", "hematology"]` permits either group. |
+| Different populated scope fields | **AND** | `intents = ["somatic"]` plus `asp_ids = ["demo-solid_gmsv3"]` requires both. |
 | Values within `genes`, `consequence_terms`, `filter_values`, `chromosomes`, or `simple_ids` | **OR** within that match field | `genes = ["TERT", "TP53"]` matches either gene. |
 | Different populated match fields | **AND** | `genes = ["TERT"]` plus `filter_values = ["LOWQUAL"]` matches only low-quality TERT findings. |
 | `info_fields_present` values | **AND** | `info_fields_present = ["SVTYPE", "END"]` requires both INFO fields to exist. |
@@ -175,8 +174,8 @@ coordinate, INFO, FILTER, or ALT condition.
 id = "endometrial_specific_variant"
 mode = "extend_consequence"
 intents = ["somatic"]
-asp_ids = ["solid_gmsv3"]
-subpanel_ids = ["endometrie"]
+asp_ids = ["demo-solid_gmsv3"]
+diagnosis_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
 consequence_terms = ["missense_variant"]
 ```
@@ -223,8 +222,8 @@ MongoDB expressions.
 | `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds an approved consequence-term route while retaining all baseline gates. `admit` is an alternative admission route used by `exception_only`. `exclude` removes matching findings after all baseline and admission rules are evaluated. |
 | `snv.exceptions[].intents` | No | Array of strings | `somatic`, `germline` | Scope key. Restricts the exception to one or both review intents. Omit for either intent. |
 | `snv.exceptions[].assay_groups` | No | Array of strings | Supported normalized assay-group identifiers | Scope key. Restricts to assay groups such as `solid` or `hematology`. |
-| `snv.exceptions[].asp_ids` | No | Array of strings | Existing normalized ASP identifiers | Scope key. Restricts to design panels, for example `solid_gmsv3`. |
-| `snv.exceptions[].subpanel_ids` | No | Array of strings | Existing normalized subpanel identifiers; use `base` only for the base scope | Scope key. Restricts to in-silico subpanels. |
+| `snv.exceptions[].asp_ids` | No | Array of strings | Existing normalized ASP identifiers | Scope key. Restricts to design panels, for example `demo-solid_gmsv3`. |
+| `snv.exceptions[].diagnosis_ids` | No | Array of strings | Existing normalized diagnosis identifiers; use `base` only for the base scope | Scope key. Restricts to in-silico diagnoses. |
 | `snv.exceptions[].genes` | No | Array of strings | HGNC symbols; values are normalized to uppercase | Match key. Requires `INFO.selected_CSQ.SYMBOL` to be one listed gene. |
 | `snv.exceptions[].consequence_terms` | No | Array of strings | Exact VEP consequence terms, for example `missense_variant` | Match key. Requires `variants.consequence_terms` to contain one listed term. Ingest derives this index from every VEP transcript consequence for the variant; it does not query a selected transcript or the versioned vault at request time. |
 | `snv.exceptions[].filter_values` | No | Array of strings | Exact VCF FILTER values; values are normalized to uppercase | Match key. Requires the stored `FILTER` array to contain one listed value. |
@@ -306,7 +305,7 @@ consequence_terms = ["regulatory_region_variant", "TF_binding_site_variant"]
 
 ### Exact Variant Identity
 
-Include one exact normalized variant identity for a named ASP and subpanel.
+Include one exact normalized variant identity for a named ASP and diagnosis.
 This is the narrowest rule form and is preferred when the clinical decision is
 about one known variant:
 
@@ -315,8 +314,8 @@ about one known variant:
 id = "endometrial_known_variant"
 mode = "extend_consequence"
 intents = ["somatic"]
-asp_ids = ["solid_gmsv3"]
-subpanel_ids = ["endometrie"]
+asp_ids = ["demo-solid_gmsv3"]
+diagnosis_ids = ["endometrie"]
 simple_ids = ["17_7674220_C_T"]
 ```
 
@@ -413,7 +412,7 @@ one match key. The only modes are:
 
 | Mode | Meaning |
 | --- | --- |
-| `admit` | Adds a narrow alternative to the ordinary query or effective gene scope for that analysis. When the ordinary query is already unrestricted, an admission cannot broaden it further. |
+| `admit` | Adds an explicitly configured alternative to the ordinary query or resolved sample gene scope for that analysis. |
 | `exclude` | Removes a matching finding after the ordinary query and applicable admissions have been combined. |
 
 These modes are deliberately simpler than SNV modes. `extend_consequence` is
@@ -429,7 +428,7 @@ The shared scope keys are:
 | `intents` | No | `somatic`, `germline` | Restricts the rule to a review intent. Germline execution remains limited by the application capability for the analysis. |
 | `assay_groups` | No | Supported normalized assay-group IDs | Restricts the rule to one or more assay groups. |
 | `asp_ids` | No | Existing normalized ASP IDs | Restricts the rule to one or more design panels. |
-| `subpanel_ids` | No | Existing normalized subpanel IDs | Restricts the rule to named in-silico scopes; use `base` for the base ASPC scope. |
+| `diagnosis_ids` | No | Existing normalized diagnosis IDs | Restricts the rule to named in-silico scopes; use `base` for the base ASPC scope. |
 
 Values inside one scope or match array are alternatives. Different populated
 keys in the same rule are combined with AND. Separate applicable `admit` rules
@@ -457,7 +456,7 @@ gene-scope configuration.
 id = "solid_retain_egfr_amplification"
 mode = "admit"
 intents = ["somatic"]
-asp_ids = ["solid_gmsv3"]
+asp_ids = ["demo-solid_gmsv3"]
 genes = ["EGFR"]
 effects = ["AMP"]
 size_min = 1000
@@ -552,7 +551,7 @@ empty; configuring an exception does not enable PGX finding retrieval.
    `extend_consequence` when the
    normal case, control, depth, VAF, and population-frequency gates must remain
    mandatory.
-2. Use the narrowest applicable scope. The editor supports group, assay and subpanel
+2. Use the narrowest applicable scope. The editor supports group, assay and diagnosis
    policies; installation files support default and group scopes only.
 3. Use match keys from the selected analysis only. For SNV, use `simple_ids`
    for one identity or `genes` plus `consequence_terms` for a gene-level rule.

@@ -168,7 +168,7 @@ export function VariantDetail() {
                 resourceType="small_variant"
                 resource={variant}
                 assayGroup={data.assay_group}
-                subpanel={data.subpanel}
+                diagnosis={data.diagnosis}
                 queryKeys={[["variant", id, varId]]}
                 draftText={commentDraft}
                 onDraftChange={setCommentDraft}

@@ -16,7 +16,7 @@ or case identifier. Select the sample name to open its workspace.
 | Ready | The required ingest transaction committed. Optional expected evidence may still be unavailable. |
 | Unreported | No saved report has completed the sample workflow. |
 | Reported | At least one report has been saved. |
-| Base configuration | No subpanel-specific ASPC was active, so the base ASPC was resolved. |
+| Base configuration | No diagnosis-specific ASPC was active, so the base ASPC was resolved. |
 
 ## 2. Check the overview
 

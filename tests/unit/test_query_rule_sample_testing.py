@@ -8,16 +8,17 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 
-from api.application.query_rules import testing
-from api.contracts.schemas.query_rules import (
+from api.infra.mongo.repositories.base import BaseRepository
+from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from coyote3.application.query_rules import testing
+from coyote3.contracts.schemas.query_rules import (
     QueryRuleDoc,
     QueryRulePreview,
     QueryRuleSampleResult,
     QueryRuleScope,
 )
-from api.domain.core.exceptions import AppError
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from coyote3.domain.exceptions import AppError
+from coyote3.domain.selection import select
 
 
 @pytest.fixture
@@ -33,7 +34,7 @@ def context(monkeypatch):
         "asp_group": "group",
         "asp_category": "dna",
         "asp_family": "wgs",
-        "covered_genes": [],
+        "covered_genes": ["ALK"],
     }
     config = {
         "asp_group": "group",
@@ -52,7 +53,7 @@ def context(monkeypatch):
         assay_panel_repository=SimpleNamespace(
             get_asp=lambda *a, **kw: panel, get_all_asps=lambda **kw: [panel]
         ),
-        assay_subpanel_repository=SimpleNamespace(),
+        assay_diagnosis_repository=SimpleNamespace(),
         assay_configuration_repository=SimpleNamespace(),
         gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
         vep_metadata_repository=SimpleNamespace(
@@ -64,8 +65,8 @@ def context(monkeypatch):
         "_id": "sample",
         "name": "SYNTHETIC",
         "asp_id": "example",
-        "subpanel_id": "base",
-        "omics_layer": "dna",
+        "diagnosis_id": "base",
+        "asp_category": "dna",
         "environment": "validation",
         "ingest_status": "ready",
         "analysis_intents": ["somatic"],
@@ -166,12 +167,19 @@ def test_sample_comparison_uses_real_query_builders_without_writes(
         }
     }
     if analysis == "fusion":
-        sample["omics_layer"] = "rna"
+        sample["asp_category"] = "rna"
         config["filters"] = {}
         workflow = object.__new__(testing.RNAWorkflowService)
         workflow.gene_list_repository = service.store.gene_list_repository
         monkeypatch.setattr(testing.RNAWorkflowService, "from_store", lambda store: workflow)
     docs = [{"_id": str(index), "SAMPLE_ID": "sample", **row} for index, row in enumerate(rows)]
+    for document in docs:
+        if analysis == "snv":
+            document["genes"] = ["ALK"]
+        elif analysis == "cnv":
+            document["genes"] = [{"gene": "ALK"}]
+        elif analysis == "translocation":
+            document["gene1"] = "ALK"
     db[repository].insert_many(docs + [{"_id": "other", "SAMPLE_ID": "different", **rows[0]}])
     before = deepcopy(sample)
     collection = db[repository]
@@ -255,7 +263,7 @@ def test_search_intersects_access_and_never_treats_empty_assays_as_unrestricted(
 def test_repository_forces_sample_scope_even_for_a_broad_predicate(context):
     service, db, _, _ = context
     db.variant.insert_many([{"SAMPLE_ID": "sample"}, {"SAMPLE_ID": "other"}])
-    assert len(service.store.variant_repository.preview_sample_findings("sample", {})) == 1
+    assert len(service.store.variant_repository.preview_sample_findings("sample", select({}))) == 1
 
 
 def test_candidate_overflow_rejects_partial_comparison(context):
@@ -274,6 +282,7 @@ def test_sample_preview_resolves_references_from_saved_filters(context):
                 "_id": str(index),
                 "SAMPLE_ID": "sample",
                 "consequence_terms": ["missense_variant"],
+                "genes": ["ALK"],
                 "GT": [{"type": "case", "AF": af, "DP": 1000, "VD": 200}],
             }
         )
@@ -291,7 +300,9 @@ def test_sample_preview_resolves_references_from_saved_filters(context):
 def test_germline_draft_is_tested_against_somatic_sample_selection(context):
     service, db, sample, config = context
     config["filters"] = {"somatic": {"snv": {"vep_consequences": ["missense"]}}}
-    db.variant.insert_one({"_id": "germline-finding", "SAMPLE_ID": "sample", "FILTER": "GERMLINE"})
+    db.variant.insert_one(
+        {"_id": "germline-finding", "SAMPLE_ID": "sample", "FILTER": "GERMLINE", "genes": ["ALK"]}
+    )
     db.variant.insert_one({"_id": "other-sample", "SAMPLE_ID": "different", "FILTER": "GERMLINE"})
     req = QueryRulePreview(
         scope=QueryRuleScope(assay_group="group", analysis="snv", intent="germline"),

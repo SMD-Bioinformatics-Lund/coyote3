@@ -4,6 +4,7 @@ import { TextField, PresentationFields } from "./CatalogFields"
 import type { Catalog, Category, Workspace } from "./catalog-types"
 import { CatalogAnalysisLists } from "./CatalogAnalysisLists"
 import { effectiveCatalogEntry } from "./catalog-hierarchy"
+import { CatalogOfferingFields } from "./CatalogOfferingFields"
 
 export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange }: {
   catalog: Catalog; section: string; entryKey: string; workspace: Workspace
@@ -75,7 +76,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
     }
     return true
   }
-  return <div className="space-y-5 p-4">
+  return <div className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-4 shadow-sm">
     <div className="grid gap-3 md:grid-cols-2">
       <label className="grid gap-1 type-label">Parent entry
         <select aria-label="Parent entry" className="paper-inset rounded-lg p-2 type-body" value={entry.parent_key || ""}
@@ -88,7 +89,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
       <label className="grid gap-1 type-label">Entry type
         <select aria-label="Entry type" className="paper-inset rounded-lg p-2 type-body" value={entry.node_kind || "entry"}
           onChange={(e) => updateCategory({ ...entry, node_kind: e.target.value as "entry" | "folder" })}>
-          <option value="folder">Folder (family or group)</option><option value="entry">Assay or subpanel</option>
+          <option value="folder">Folder (family or group)</option><option value="entry">Assay or diagnosis</option>
         </select>
       </label>
     </div>
@@ -101,7 +102,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
     }}><Plus /> Add child entry</Button>
     <label className="grid gap-1 type-label">Assay
       <select aria-label="Assay" className="paper-inset rounded-lg p-2 type-body" value={entry.asp_id || ""}
-        onChange={(e) => updateCategory({ ...entry, asp_id: e.target.value, aspc_id: null, aspc_ids: {}, subpanel_id: null, gene_lists: [], no_gene_list: [] })}>
+        onChange={(e) => updateCategory({ ...entry, asp_id: e.target.value, aspc_id: null, aspc_ids: {}, diagnosis_id: null, gene_lists: [], no_gene_list: [] })}>
         <option value="">{effective.asp_id && !entry.asp_id ? `Inherit: ${effective.asp_id}` : "Select assay"}</option>
         {workspace.sources.asps.filter((v) => !modality.omics || v.category === modality.omics).map((v) => <option key={v.asp_id} value={v.asp_id}>{v.label} ({v.asp_id})</option>)}
       </select>
@@ -111,12 +112,13 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
         onChange={(e) => {
           const config = configurations.find((v) => v.aspc_id === e.target.value)
           updateCategory({ ...entry, aspc_id: config?.aspc_id || null,
-            aspc_ids: {}, subpanel_id: config?.subpanel_id || null })
+            aspc_ids: {}, diagnosis_id: config?.diagnosis_id || null })
         }}>
         <option value="">{effective.aspc_id && !selectedConfig ? `Inherit: ${effective.aspc_id}` : "Select configuration"}</option>
-        {configurations.map((v) => <option key={v.aspc_id} value={v.aspc_id}>{v.subpanel_id || "Base"}</option>)}
+        {configurations.map((v) => <option key={v.aspc_id} value={v.aspc_id}>{v.diagnosis_id || "Base"} · {v.aspc_id}</option>)}
       </select>
     </label>
+    {entry.node_kind !== "folder" && <CatalogOfferingFields value={entry} onChange={updateCategory} />}
     <PresentationFields key={entryKey} value={entry} presets={presets} onChange={(v) => updateCategory({ ...entry, ...v,
       no_gene_list: (entry.no_gene_list || []).filter((analysis) => v.analysis?.includes(analysis)),
       gene_lists: genes.flatMap((gene) => {

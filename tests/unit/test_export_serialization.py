@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from api.application.dna.export import (
+from coyote3.application.dna.export import (
     build_cnv_export_rows,
     build_snv_export_rows,
     build_transloc_export_rows,
     join_tokens,
 )
-from api.application.rna.expression_analysis import RnaService
+from coyote3.application.rna.expression_analysis import RnaService
 
 
 def test_join_tokens_deduplicates_case_insensitively_and_preserves_order() -> None:

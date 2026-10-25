@@ -1,0 +1,92 @@
+[
+  {
+    "group_id": "hematology",
+    "display_name": "Hematology",
+    "description": "Hematological assays",
+    "parent_group_id": null,
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": "c981f91a16c98bf3384c270b"
+  },
+  {
+    "group_id": "myeloid",
+    "display_name": "Myeloid",
+    "description": "Myeloid child group of Hematology, retained for legacy samples.",
+    "parent_group_id": "hematology",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": "e6b7aead97e880435afb84df"
+  },
+  {
+    "group_id": "lymphoid",
+    "display_name": "Lymphoid",
+    "description": "Lymphoid child group of Hematology, retained for legacy samples.",
+    "parent_group_id": "hematology",
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": "be4d20d0b77065f5a2fd02aa"
+  },
+  {
+    "group_id": "solid",
+    "display_name": "Solid tumors",
+    "description": "Solid tumor assays",
+    "parent_group_id": null,
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": "3dcbd1c880b805dfa41ffa99"
+  },
+  {
+    "group_id": "pgx",
+    "display_name": "Pharmacogenomics",
+    "description": "Pharmacogenomic assays",
+    "parent_group_id": null,
+    "system_managed": true,
+    "created_by": "system",
+    "created_on": {
+      "$date": "2026-01-01T00:00:00Z"
+    },
+    "is_active": true,
+    "version": 1,
+    "publication_serial": 0,
+    "updated_by": null,
+    "updated_on": null,
+    "status_reason": "",
+    "_id": "f171d9a7ebb10f25ad8ac18f"
+  }
+]

@@ -17,10 +17,10 @@ if str(ROOT_DIR) not in sys.path:
 from bson.json_util import dumps  # noqa: E402
 from dotenv import dotenv_values  # noqa: E402
 
-from api.application.ingest.jobs import sample_entry_source  # noqa: E402
-from api.config.loaders.collections import load_collection_section  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.connections import MongoConnections  # noqa: E402
 from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote3.application.ingest.jobs import sample_entry_source  # noqa: E402
 
 ATTRIBUTION_FIELDS = ("ingested_by", "ingest_source")
 

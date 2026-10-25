@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from api.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from scripts.migration_common.offline import digest
 
 CATALOG_COLLECTIONS = (
@@ -13,8 +13,8 @@ CATALOG_COLLECTIONS = (
     "assay_specific_panels",
     "asp_configs",
     "insilico_genelists",
-    "subpanels",
-    "subpanel_associations",
+    "diagnoses",
+    "diagnosis_associations",
 )
 
 
@@ -58,28 +58,28 @@ def validate_catalog(records: dict) -> None:
     for row in records["asp_configs"]:
         if row["asp_id"] not in assays or row["asp_group"] not in groups:
             raise ValueError("Installed ASPC references a missing ASP or assay group")
-        validate_scope(records, row["asp_id"], row.get("subpanel_id") or "base")
+        validate_scope(records, row["asp_id"], row.get("diagnosis_id") or "base")
         validate_genelists(records, row.get("filters", {}))
 
 
-def validate_scope(records: dict, asp_id: str, subpanel_id: str) -> None:
-    """Require a current non-base subpanel definition and its assay association."""
-    if subpanel_id == "base":
+def validate_scope(records: dict, asp_id: str, diagnosis_id: str) -> None:
+    """Require a current non-base diagnosis definition and its assay association."""
+    if diagnosis_id == "base":
         return
     definitions = [
         row
-        for row in records["subpanels"]
-        if row["subpanel_id"] == subpanel_id and row.get("is_current", True)
+        for row in records["diagnoses"]
+        if row["diagnosis_id"] == diagnosis_id and row.get("is_current", True)
     ]
     associations = [
         row
-        for row in records["subpanel_associations"]
-        if row["subpanel_id"] == subpanel_id
+        for row in records["diagnosis_associations"]
+        if row["diagnosis_id"] == diagnosis_id
         and row["asp_id"] == asp_id
         and row.get("is_current", True)
     ]
     if len(definitions) != 1 or len(associations) != 1:
-        raise ValueError("Install an unambiguous subpanel definition and ASP association")
+        raise ValueError("Install an unambiguous diagnosis definition and ASP association")
 
 
 def validate_genelists(records: dict, value: Any) -> None:
@@ -155,12 +155,12 @@ def bind_sample_review(catalog: dict, original: dict, review: dict) -> dict:
         raise ValueError("Selected ASP and ASPC have different assay groups")
     fields = {
         "current_aspc_id": aspc["_id"],
-        "current_aspc_key": aspc["aspc_id"],
-        "current_aspc_version": aspc["version"],
         "asp_id": aspc["asp_id"],
+        "asp_group": asp["asp_group"],
         "environment": aspc["environment"],
-        "omics_layer": aspc["asp_category"],
-        "subpanel_id": aspc.get("subpanel_id") or "base",
+        "asp_category": aspc["asp_category"],
+        "asp_family": asp["asp_family"],
+        "diagnosis_id": aspc.get("diagnosis_id") or "base",
     }
     for key, value in fields.items():
         if key in metadata and str(metadata[key]) != str(value):
@@ -178,15 +178,28 @@ def validate_plan_scope(catalog: dict, plan: dict) -> None:
     groups = {row["group_id"] for row in records["assay_groups"]}
     for name in ("annotation", "blacklist", "d4_coverage_blacklist"):
         for row in plan.get(name, []):
-            group = (
-                row.get("group")
-                if name == "d4_coverage_blacklist"
-                else row.get("assay_group", row.get("assay"))
-            )
+            if name == "d4_coverage_blacklist":
+                group = row.get("group")
+            elif name == "annotation":
+                group = row.get("asp_group")
+            else:
+                group = row.get("assay_group", row.get("assay"))
             if group not in groups:
                 raise ValueError(f"{name} references an assay group not installed in the target")
-            if name == "annotation" and row.get("subpanel") not in (None, "", "base"):
-                scope = row["subpanel"]
+            if name == "annotation" and row.get("asp_id") is not None:
+                asp = next(
+                    (
+                        item
+                        for item in records["assay_specific_panels"]
+                        if item["asp_id"] == row["asp_id"]
+                    ),
+                    None,
+                )
+                if asp is None or asp["asp_group"] != group:
+                    raise ValueError("Annotation ASP is not installed in its assay group")
+                validate_scope(records, row["asp_id"], row.get("diagnosis_id") or "base")
+            elif name == "annotation" and row.get("diagnosis_id") not in (None, "", "base"):
+                scope = row["diagnosis_id"]
                 assays = {
                     item["asp_id"]
                     for item in records["assay_specific_panels"]
@@ -194,17 +207,17 @@ def validate_plan_scope(catalog: dict, plan: dict) -> None:
                 }
                 links = [
                     item
-                    for item in records["subpanel_associations"]
-                    if item["subpanel_id"] == scope
+                    for item in records["diagnosis_associations"]
+                    if item["diagnosis_id"] == scope
                     and item["asp_id"] in assays
                     and item.get("is_current", True)
                 ]
                 if not links:
                     raise ValueError(
-                        "Annotation subpanel has no installed association in its assay group"
+                        "Annotation diagnosis has no installed association in its assay group"
                     )
                 for link in links:
                     validate_scope(records, link["asp_id"], scope)
     for row in plan.get("samples", []):
-        validate_scope(records, row["asp_id"], row.get("subpanel_id") or "base")
+        validate_scope(records, row["asp_id"], row.get("diagnosis_id") or "base")
         validate_genelists(records, row.get("filters", {}))

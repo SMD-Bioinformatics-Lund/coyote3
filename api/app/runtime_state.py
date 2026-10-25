@@ -7,7 +7,7 @@ from contextvars import Token
 from dataclasses import dataclass
 from typing import Any
 
-from api.infra import request_context
+from coyote3.application.common import execution_context
 
 
 @dataclass
@@ -50,7 +50,7 @@ def set_current_user(user: Any) -> Token:
     Returns:
         Context token for restoring the previous binding with reset_current_user.
     """
-    return request_context.set_current_user(user)
+    return execution_context.set_current_user(user)
 
 
 def reset_current_user(token: Token) -> None:
@@ -63,12 +63,12 @@ def reset_current_user(token: Token) -> None:
     Raises:
         RuntimeError: The token has already been used for a reset.
     """
-    request_context.reset_current_user(token)
+    execution_context.reset_current_user(token)
 
 
 def current_user() -> Any | None:
     """Get request-local API user context."""
-    return request_context.current_user()
+    return execution_context.current_user()
 
 
 def current_username(default: str = "api") -> str:
@@ -81,12 +81,12 @@ def current_username(default: str = "api") -> str:
     Returns:
         str(username) for a truthy username, otherwise default unchanged.
     """
-    return request_context.current_username(default=default)
+    return execution_context.current_username(default=default)
 
 
 def current_user_is_superuser() -> bool:
     """Resolve current request unrestricted superuser flag."""
-    return request_context.current_user_is_superuser()
+    return execution_context.current_user_is_superuser()
 
 
 def set_current_request_id(request_id: str | None) -> Token:
@@ -98,7 +98,7 @@ def set_current_request_id(request_id: str | None) -> Token:
     Returns:
         Context token for restoring the prior request ID.
     """
-    return request_context.set_current_request_id(request_id)
+    return execution_context.set_current_request_id(request_id)
 
 
 def reset_current_request_id(token: Token) -> None:
@@ -111,7 +111,7 @@ def reset_current_request_id(token: Token) -> None:
     Raises:
         RuntimeError: The token has already been used for a reset.
     """
-    request_context.reset_current_request_id(token)
+    execution_context.reset_current_request_id(token)
 
 
 def current_request_id(default: str = "-") -> str:
@@ -123,4 +123,4 @@ def current_request_id(default: str = "-") -> str:
     Returns:
         The truthy request ID as text, otherwise default unchanged.
     """
-    return request_context.current_request_id(default=default)
+    return execution_context.current_request_id(default=default)

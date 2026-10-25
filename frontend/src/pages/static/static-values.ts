@@ -22,7 +22,7 @@ export type PublicContactPayload = {
 }
 
 export type PublicAboutPayload = PublicContactPayload & {
-  application: Record<string, any>
+  application: { name?: string; version?: string; environment?: string; description?: string; script_name?: string; sdk_version?: string | null; client_sdk_version?: string | null }
   references: Record<string, any>
   software: Record<string, any>
   databases: Record<string, any>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -9,18 +10,16 @@ from fastapi.routing import iter_route_contexts
 from pydantic import ValidationError
 
 from api.app.main import app as api_app
-from api.domain.core.exceptions import AppError
-from api.interfaces.http.clinical import samples
+from api.interfaces.http.v1.clinical import samples
 from api.security.access import ApiUser
+from coyote3.application.interpretation import report_summary
+from coyote3.domain.exceptions import AppError
+from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
 def _route_test_user() -> ApiUser:
-    """Route test user.
-
-    Returns:
-            The  route test user result.
-    """
+    """Route test user."""
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -45,11 +44,6 @@ def _route_test_user() -> ApiUser:
 
 
 def test_update_sample_filters_rejects_invalid_filters_payload():
-    """Test update sample filters rejects invalid filters payload.
-
-    Returns:
-        The function result.
-    """
     with pytest.raises(ValidationError) as exc:
         samples.SampleFiltersUpdateRequest.model_validate({"filters": "bad"})
 
@@ -64,25 +58,71 @@ def test_bam_service_lookup_is_sample_scoped():
     assert "/api/v1/knowledgebases/bam-files" not in paths
 
 
+def test_sample_field_route_authorizes_before_returning_one_value(monkeypatch):
+    """Sample metadata uses the normal sample authorization before service access."""
+    paths = {route.path for route in iter_route_contexts(api_app.routes)}
+    assert "/api/v1/samples/{sample_id}/fields/{field}" in paths
+    assert "/api/v1/samples/{sample_id}/summary" not in paths
+    sample = {"name": "DEMO_001"}
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    service = SimpleNamespace(sample_field=lambda received, field: received[field])
+    assert (
+        sdk_fixtures.invoke_route(
+            samples.sample_field_read,
+            "sample-1",
+            "name",
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(service, fx.api_user(), "sample-1"),
+        )
+        == "DEMO_001"
+    )
+
+
+def test_sample_field_does_not_bypass_sample_access(monkeypatch):
+    """Out-of-scope sample lookup fails before metadata is returned."""
+
+    def denied(*args):
+        raise AppError(status_code=403, message="Outside scope")
+
+    monkeypatch.setattr(sdk_fixtures, "load_sample", denied)
+    with pytest.raises(AppError) as error:
+        sdk_fixtures.invoke_route(
+            samples.sample_field_read,
+            "other-sample",
+            "name",
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(
+                SimpleNamespace(sample_field=lambda *args: pytest.fail("Scope bypass")),
+                fx.api_user(),
+                "other-sample",
+            ),
+        )
+    assert error.value.status_code == 403
+
+
 def test_coverage_mutation_rejects_out_of_scope_before_writing():
     user = SimpleNamespace(is_superuser=False, asp_groups=["allowed"], username="reviewer")
     with pytest.raises(AppError) as exc:
-        samples.create_coverage_blacklist_entry(
+        sdk_fixtures.invoke_route(
+            samples.create_coverage_blacklist_entry,
             payload=samples.CoverageBlacklistUpdateRequest(
                 gene="TP53", smp_grp="other", region="gene"
             ),
             user=user,
-            service=SimpleNamespace(),
+            service=sdk_fixtures.coverage_operations(SimpleNamespace(), user),
         )
     assert exc.value.status_code == 403
 
 
 def test_coverage_delete_missing_entry_is_not_written():
     with pytest.raises(AppError) as exc:
-        samples.delete_coverage_blacklist_entry(
+        sdk_fixtures.invoke_route(
+            samples.delete_coverage_blacklist_entry,
             "missing",
             user=fx.api_user(),
-            service=SimpleNamespace(get_coverage_blacklist_entry=lambda **kwargs: None),
+            service=sdk_fixtures.coverage_operations(
+                SimpleNamespace(get_coverage_blacklist_entry=lambda **kwargs: None), fx.api_user()
+            ),
         )
     assert exc.value.status_code == 404
 
@@ -93,15 +133,24 @@ def test_saved_report_files_are_served_with_correct_disposition(
 ):
     path = tmp_path / f"synthetic.{file_type}"
     path.write_bytes(b"synthetic report")
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *args: {"name": "synthetic"})
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *args: {"name": "synthetic"})
     context = {"filepath": str(path), "pdf_filepath": str(path)}
-    response = samples._sample_report_file_response(
-        sample_id="synthetic",
-        report_id="r1",
+    response = sdk_fixtures.invoke_route(
+        (
+            samples.sample_report_pdf_download_read
+            if file_type == "pdf"
+            else samples.sample_report_download_read
+            if attachment
+            else samples.sample_report_html_read
+        ),
+        "synthetic",
+        "r1",
         user=fx.api_user(),
-        service=SimpleNamespace(report_context_payload=lambda **kwargs: context),
-        as_attachment=attachment,
-        file_type=file_type,
+        service=sdk_fixtures.sample_operations(
+            SimpleNamespace(report_context_payload=lambda **kwargs: context),
+            fx.api_user(),
+            "synthetic",
+        ),
     )
     assert response.media_type == ("application/pdf" if file_type == "pdf" else "text/html")
     assert response.headers["cache-control"] == "no-store"
@@ -115,39 +164,55 @@ def test_saved_report_files_are_served_with_correct_disposition(
 
 @pytest.mark.parametrize("missing_path", [True, False])
 def test_missing_saved_report_files_return_not_found(monkeypatch, tmp_path, missing_path):
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *args: {"name": "synthetic"})
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *args: {"name": "synthetic"})
     context = {} if missing_path else {"filepath": str(tmp_path / "absent.html")}
     with pytest.raises(AppError) as exc:
-        samples._sample_report_file_response(
-            sample_id="synthetic",
-            report_id="r1",
+        sdk_fixtures.invoke_route(
+            samples.sample_report_html_read,
+            "synthetic",
+            "r1",
             user=fx.api_user(),
-            service=SimpleNamespace(report_context_payload=lambda **kwargs: context),
-            as_attachment=False,
+            service=sdk_fixtures.sample_operations(
+                SimpleNamespace(report_context_payload=lambda **kwargs: context),
+                fx.api_user(),
+                "synthetic",
+            ),
         )
     assert exc.value.status_code == 404
 
 
 @pytest.mark.parametrize("requested", ["other.png", "../registered.png", "absent.png"])
 def test_plot_download_rejects_unregistered_names(monkeypatch, tmp_path, requested):
-    monkeypatch.setattr("api.application.common.file_access.DATA_CONTAINER_ROOT", tmp_path)
+    monkeypatch.setattr("api.infra.artifact_paths.DATA_CONTAINER_ROOT", tmp_path)
     registered = tmp_path / "registered.png"
     registered.write_bytes(b"synthetic")
     (tmp_path / "other.png").write_bytes(b"other sample")
     monkeypatch.setattr(
-        samples,
-        "_get_sample_for_api",
+        sdk_fixtures,
+        "load_sample",
         lambda *_: {"files": {"cnvprofile": {"path": str(registered)}}},
     )
     with pytest.raises(AppError) as exc:
-        samples.sample_plot_read("authorized", requested, user=fx.api_user())
+        sdk_fixtures.invoke_route(
+            samples.sample_plot_read,
+            "authorized",
+            requested,
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(SimpleNamespace(), fx.api_user(), "authorized"),
+        )
     assert exc.value.status_code == 404
 
 
 def test_plot_download_requires_registered_artifact(monkeypatch):
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda *_: {"files": {}})
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda *_: {"files": {}})
     with pytest.raises(AppError) as exc:
-        samples.sample_plot_read("authorized", "other.png", user=fx.api_user())
+        sdk_fixtures.invoke_route(
+            samples.sample_plot_read,
+            "authorized",
+            "other.png",
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(SimpleNamespace(), fx.api_user(), "authorized"),
+        )
     assert exc.value.status_code == 404
 
 
@@ -155,21 +220,35 @@ def test_plot_download_requires_registered_artifact(monkeypatch):
 def test_plot_download_allows_only_registered_raster_images(
     monkeypatch, tmp_path, suffix, expected
 ):
-    monkeypatch.setattr("api.application.common.file_access.DATA_CONTAINER_ROOT", tmp_path)
+    monkeypatch.setattr("api.infra.artifact_paths.DATA_CONTAINER_ROOT", tmp_path)
     registered = tmp_path / f"registered.{suffix}"
     registered.write_bytes(b"synthetic")
     monkeypatch.setattr(
-        samples,
-        "_get_sample_for_api",
+        sdk_fixtures,
+        "load_sample",
         lambda *_: {"files": {"cnvprofile": {"path": str(registered)}}},
     )
     if expected == 415:
         with pytest.raises(AppError) as exc:
-            samples.sample_plot_read("authorized", registered.name, user=fx.api_user())
+            sdk_fixtures.invoke_route(
+                samples.sample_plot_read,
+                "authorized",
+                registered.name,
+                user=fx.api_user(),
+                service=sdk_fixtures.sample_operations(
+                    SimpleNamespace(), fx.api_user(), "authorized"
+                ),
+            )
         assert exc.value.status_code == 415
     else:
-        response = samples.sample_plot_read("authorized", registered.name, user=fx.api_user())
-        assert response.path == registered
+        response = sdk_fixtures.invoke_route(
+            samples.sample_plot_read,
+            "authorized",
+            registered.name,
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(SimpleNamespace(), fx.api_user(), "authorized"),
+        )
+        assert Path(response.path) == registered
         assert response.media_type == "image/png"
         assert response.headers["cache-control"] == "no-store"
 
@@ -188,13 +267,14 @@ def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):
         "control": {"id": "CTRL1"},
         "paired": True,
     }
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_name, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_name, user: sample)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.sample_bam_files_read(
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_bam_files_read,
         sample_name="CASE_DEMO",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, fx.api_user(), "CASE_DEMO"),
     )
 
     assert payload["sample"] == {
@@ -210,20 +290,17 @@ def test_sample_bam_files_read_returns_case_control_bam_paths(monkeypatch):
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
-    """Test reset sample filters requires assay config.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(samples, "get_formatted_assay_config", lambda _sample: None)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "configuration", lambda _sample: None)
 
     with pytest.raises(AppError) as exc:
-        samples.reset_sample_filters("S1", user=fx.api_user())
+        sdk_fixtures.invoke_route(
+            samples.reset_sample_filters,
+            "S1",
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(SimpleNamespace(), fx.api_user(), "S1"),
+        )
 
     assert exc.value.status_code == 422
     assert exc.value.detail["error"] == "ASPC could not be resolved for the sample"
@@ -235,21 +312,28 @@ def test_apply_latest_aspc_replaces_a_sample_snapshot_explicitly(monkeypatch):
     sample = {"_id": "sample-object-id", "name": "CASE_DEMO"}
     calls = {}
 
-    def apply_latest_aspc(*, sample):
+    def apply_latest_aspc(*, sample, **options):
         calls["sample"] = sample
+        calls["options"] = options
         return {"aspc_id": "hema_gmsv1_hem_production", "version": 3}
 
     service = SimpleNamespace(apply_latest_aspc=apply_latest_aspc)
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = samples.apply_latest_sample_aspc(
+    payload = sdk_fixtures.invoke_route(
+        samples.apply_latest_sample_aspc,
         "CASE_DEMO",
+        payload=samples.ConfigurationApplyRequest(
+            expected_version=2, configuration_id="release-3", reason="Validated release"
+        ),
         user=_route_test_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, _route_test_user(), "CASE_DEMO"),
     )
 
-    assert calls["sample"] is sample
+    assert calls["sample"] == sample
+    assert calls["sample"] is not sample
+    assert calls["options"]["expected_version"] == 2
     assert payload["resource"] == "sample_aspc"
     assert payload["action"] == "apply_latest"
     assert payload["meta"]["applied_aspc"] == {
@@ -268,12 +352,13 @@ def test_update_coverage_blacklist_gene_returns_change_payload(monkeypatch):
         )
     )
 
-    payload = samples.create_coverage_blacklist_entry(
+    payload = sdk_fixtures.invoke_route(
+        samples.create_coverage_blacklist_entry,
         payload=samples.CoverageBlacklistUpdateRequest(
             gene="TP53", status="blacklisted", smp_grp="dna", region="gene"
         ),
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.coverage_operations(service, fx.api_user()),
     )
 
     assert calls["gene"] == ("TP53", "dna")
@@ -292,10 +377,11 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
         remove_coverage_blacklist=lambda *, obj_id: calls.setdefault("obj_id", obj_id),
     )
 
-    payload = samples.delete_coverage_blacklist_entry(
+    payload = sdk_fixtures.invoke_route(
+        samples.delete_coverage_blacklist_entry,
         "abc123",
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.coverage_operations(service, fx.api_user()),
     )
 
     assert calls["obj_id"] == "abc123"
@@ -305,33 +391,26 @@ def test_remove_coverage_blacklist_returns_change_payload(monkeypatch):
 
 
 def test_restful_sample_comment_route_creates_comment(monkeypatch):
-    """Test restful sample comment route creates comment.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     calls = {}
     service = SimpleNamespace(
         add_sample_comment=lambda sample_id, doc: calls.setdefault("sample_id", sample_id)
     )
-    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     monkeypatch.setattr(
-        samples,
+        report_summary,
         "create_comment_doc",
         lambda form_data, key="sample_comment": {"key": key, **form_data},
     )
 
-    payload = samples.create_sample_comment(
+    payload = sdk_fixtures.invoke_route(
+        samples.create_sample_comment,
         "S1",
         payload=samples.SampleCommentCreateRequest(form_data={"comment": "hello"}),
         user=fx.api_user(),
-        service=service,
+        service=sdk_fixtures.sample_operations(service, fx.api_user(), "S1"),
     )
 
     assert calls["sample_id"] == "S1"

@@ -25,11 +25,15 @@ from typing import Any, Dict, List
 
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
-from api.contracts.operations import OperationResult
-from api.contracts.schemas.dna import ReportedVariantsDoc
-from api.domain.core.dna.variant_identity import build_simple_id_hash_from_simple_id
+from api.infra.mongo.persistence import to_provider_id
+from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import literal_text_query
+from api.infra.mongo.selection import compile_selection
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.dna import ReportedVariantsDoc
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote3.domain.selection import Selection
 
 
 def _reported_variant_search_query(
@@ -45,7 +49,7 @@ def _reported_variant_search_query(
 
     exact = str(search_str).strip()
     gene_exact = exact.upper()
-    subpanel_exact = exact.lower()
+    diagnosis_exact = exact.lower()
     contains = literal_text_query(search_str, contains=True)
     mode = str(search_mode or "variant").lower()
     variant_fields = [
@@ -97,8 +101,8 @@ def _reported_variant_search_query(
         query = {"$or": [{field: exact} for field in variant_fields]}
     elif mode == "author":
         query = {"created_by": contains}
-    elif mode == "subpanel":
-        query = {"subpanel": subpanel_exact}
+    elif mode == "diagnosis":
+        query = {"diagnosis": diagnosis_exact}
     elif mode == "all":
         query = {
             "$or": [
@@ -108,7 +112,7 @@ def _reported_variant_search_query(
                 {"gene2": gene_exact},
                 {"transcript": exact},
                 {"created_by": contains},
-                {"subpanel": subpanel_exact},
+                {"diagnosis": diagnosis_exact},
                 *[{field: exact} for field in variant_fields],
             ]
         }
@@ -167,7 +171,7 @@ class ReportedVariantsRepository(BaseRepository):
         report_num: int | None = None,
         assay: str | None = None,
         assay_group: str | None = None,
-        subpanel: str | None = None,
+        diagnosis: str | None = None,
         environment: str | None = None,
         session: Any = None,
     ) -> int:
@@ -203,7 +207,7 @@ class ReportedVariantsRepository(BaseRepository):
                 "report_num": report_num,
                 "assay": assay,
                 "assay_group": assay_group,
-                "subpanel": subpanel,
+                "diagnosis": diagnosis,
                 "environment": environment,
                 "created_by": created_by,
                 **r,  # r can include var_oid, tier, gene, etc.
@@ -218,7 +222,7 @@ class ReportedVariantsRepository(BaseRepository):
             doc["report_num"] = report_num
             doc["assay"] = assay
             doc["assay_group"] = assay_group
-            doc["subpanel"] = subpanel
+            doc["diagnosis"] = diagnosis
             doc["environment"] = environment
             doc["created_by"] = created_by
 
@@ -244,11 +248,38 @@ class ReportedVariantsRepository(BaseRepository):
             self.invalidate_dashboard_metrics()
         return int(res.upserted_count or 0)
 
-    def list_reported_variants(self, query: dict) -> list:
+    def list_reported_variants(self, query: Selection) -> list:
         """
         List reported variant snapshot documents matching the given Mongo query.
         """
-        return list(self.get_collection().find(query).sort("time_created", -1))
+        return [
+            application_record(record)
+            for record in self.get_collection()
+            .find(compile_selection(query))
+            .sort("time_created", -1)
+        ]
+
+    def list_for_report(self, *, sample_id: str, report_id: str) -> list[dict[str, Any]]:
+        """Read one sample's immutable finding snapshots for an exact saved report.
+
+        Args:
+            sample_id: Canonical sample identifier, serialized by the application.
+            report_id: Canonical saved-report identifier, serialized by the application.
+
+        Returns:
+            Detached snapshots in the established newest-first order.
+        """
+        return [
+            application_record(record)
+            for record in self.get_collection()
+            .find(
+                {
+                    "sample_oid": to_provider_id(sample_id),
+                    "report_oid": to_provider_id(report_id),
+                }
+            )
+            .sort("time_created", -1)
+        ]
 
     def summarize_reports(self, report_oids: list[Any]) -> dict[str, dict[str, Any]]:
         """Return finding totals and analysis-type counts for report object ids."""
@@ -524,7 +555,7 @@ class ReportedVariantsRepository(BaseRepository):
             "report_num": 1,
             "assay": 1,
             "assay_group": 1,
-            "subpanel": 1,
+            "diagnosis": 1,
             "analysis_type": 1,
             "finding_type": 1,
             "nomenclature": 1,

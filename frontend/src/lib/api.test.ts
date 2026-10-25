@@ -51,6 +51,31 @@ describe("typed API client", () => {
     expect(new Headers(options.headers).has("Content-Type")).toBe(false)
   })
 
+  it("sends an OpenAPI-checked operation with encoded path/query values and existing CSRF handling", async () => {
+    vi.mocked(fetch).mockResolvedValue(response('{"report":{"id":"synthetic"}}'))
+    setCsrfToken("synthetic-csrf")
+    await api.contract("POST /samples/{sample_id}/reports/{report_type}", {
+      path: { sample_id: "synthetic/case", report_type: "dna" },
+      body: { preview_fingerprint: "a".repeat(64) },
+    })
+    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe("/api/v1/samples/synthetic%2Fcase/reports/dna")
+    expect(options?.method).toBe("POST")
+    expect(new Headers(options?.headers).get("X-CSRF-Token")).toBe("synthetic-csrf")
+    expect(JSON.parse(String(options?.body))).toEqual({ preview_fingerprint: "a".repeat(64) })
+  })
+
+  it("serializes typed sample filters and keeps cancellation attached to the request", async () => {
+    vi.mocked(fetch).mockResolvedValue(response('{"live_samples":[],"done_samples":[]}'))
+    const controller = new AbortController()
+    await api.contract("GET /samples", {
+      query: { panel_type: "dna", assay_group: "synthetic group", live_page: 1 },
+      signal: controller.signal,
+    })
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/v1/samples?panel_type=dna&assay_group=synthetic+group&live_page=1")
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal).toBe(controller.signal)
+  })
+
   it("shows HTTP detail strings and structured field validation reasons", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(response(JSON.stringify({ detail: "CNV file 'synthetic.json' is empty" }), 400, "Bad Request"))
     await expect(api.post("/internal/ingest/sample-bundle/upload/async", {})).rejects.toThrow("CNV file 'synthetic.json' is empty")
@@ -110,14 +135,14 @@ describe("typed API client", () => {
 
   it("preserves validation fields, hints, reference IDs and retry headers", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
-      error: "Validation failed", code: "validation_failed", hint: "Choose an associated subpanel.",
-      details: [{ field: "subpanel_id", message: "Not associated with this assay" }],
+      error: "Validation failed", code: "validation_failed", hint: "Choose an associated diagnosis.",
+      details: [{ field: "diagnosis_id", message: "Not associated with this assay" }],
     }), { status: 422, headers: { "X-Request-ID": "reference-42", "Retry-After": "30" } }))
     await expect(api.post("/admin/aspc", {})).rejects.toMatchObject({
       requestId: "reference-42", code: "validation_failed", retryAfter: "30",
-      message: expect.stringContaining("subpanel_id: Not associated with this assay"),
+      message: expect.stringContaining("diagnosis_id: Not associated with this assay"),
     })
-    expect(notifyMock.mock.calls[0][0].message).toContain("Choose an associated subpanel.")
+    expect(notifyMock.mock.calls[0][0].message).toContain("Choose an associated diagnosis.")
     expect(notifyMock.mock.calls[0][0].message).toContain("Reference: reference-42")
   })
 

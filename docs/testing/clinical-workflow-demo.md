@@ -14,16 +14,15 @@ are not expected and must not be treated as validation results.
 
 Follow [Local disposable full-stack validation](disposable-stack-validation.md) or
 [First installation](../deployment/first-installation.md). Use separate application,
-identity, cache and storage settings from clinical work. The configuration loader
-below accepts only a loopback MongoDB URI and application database names
-`coyote3_demo` or `coyote3_demo_*`. MongoDB must be a writable replica-set member.
-It neither connects to nor modifies the current center database automatically.
+identity, cache and storage settings from clinical work. MongoDB must be a writable
+replica-set member. The administrative installer uses the deployment's configured
+application database and requires an authenticated, authorized operator.
 
 Install the normal baseline first: active assay groups, installed query sets,
 roles and initial accounts. The bundle uses the release's group/query catalogs;
 it does not install another copy of those definitions. Install HGNC/VEP references
-if the deployed review UI requires them. The offline exporter uses no external
-references, and uses deterministic fallback transcript selection.
+if the deployed review UI requires them. The offline exporter loads packaged HGNC
+references without contacting external services.
 
 Provide separate demonstration users for authoring, independent review and
 publication, plus a read-only user. Give them the relevant roles and `testing`
@@ -48,122 +47,76 @@ is synthetic, then choose:
   A retry after an ingest failure reuses the committed configuration and retries the
   sample. Existing sample content is never replaced.
 
-The starter package contains:
+## Demo resource relationships
 
-| Resource | Hematology DNA | RNA fusion |
-| --- | --- | --- |
-| Assay group | `hematology` | `fusion` |
-| Assay | `demo_starter_dna` | `demo_starter_rna` |
-| Subpanel and assay association | `demo_starter_focus` | `demo_starter_fusion` |
-| Gene list | `demo_starter_genes` | `demo_starter_fusion_genes` |
-| Testing configuration | `demo_starter_dna_focus_testing` | `demo_starter_rna_fusion_testing` |
-| Published query rule | `hematology__demo_starter_dna__demo_starter_focus__somatic_snvs` | `fusion__demo_starter_rna__demo_starter_fusion__somatic_fusions` |
-| Published reporting rules | `demo_starter_dna__demo_starter_focus__en` | `demo_starter_rna__demo_starter_fusion__en` |
-| Sample | `DEMO_STARTER_DNA` | `DEMO_STARTER_RNA` |
-| Raw inputs | DNA VCF, CNV, coverage, translocation VCF, biomarkers, PGX and plot | RNA fusion JSON and QC JSON |
+One `setup/` bundle supplies both default installation and additional scenarios.
+Biological groups are `hematology` and `solid`. The registry also retains `myeloid`
+and `lymphoid` for legacy samples and `pgx` for pharmacogenomics. None of the new
+demo assays use a technology or analysis type as their group.
 
-A shared catalog contains both assays and their per-analysis gene-list links:
-DNA → Panels → Hematology → Demo starter DNA offers SNV and CNV; its Demo SNV focus
-child offers SNV only. RNA → Panels → Fusion offers FUSION. Separate production
-configurations support catalog publication; the synthetic samples use testing configurations.
+| Group | Shared diagnosis | DNA panel | DNA WGS | RNA assays |
+| --- | --- | --- | --- | --- |
+| Hematology | MPN | `demo-hematology_gmsv1`, `demo-myeloid_gmsv1` | `demo-tumwgs-hema` | — |
+| Hematology | CLL | `demo-hematology_gmsv1`, `demo-lymphoid_gmsv5` | `demo-tumwgs-hema` | `demo-gms_rnafusionv5`, `demo-wts-hema` |
+| Solid | Lung | `demo-solid_gmsv3` | `demo-tumwgs-solid` | `demo-wts-solid` |
+| Solid | Breast | `demo-solid_gmsv3` | `demo-tumwgs-solid` | — |
+| Hematology | Myeloid | `demo-hematology-training` | — | — |
+| Hematology | Lymphoid | — | — | `demo-rna-training` |
 
-“Clinical rules” and “report rules” refer to the same governed reporting-rule set.
-Other finding types use the application baseline selection unless an additional
-scope-specific query rule is defined.
+All associations are explicit records. The combined hematology panel covers a
+synthetic set of genes; its name does not imply MPN or CLL eligibility. Each
+diagnosis association has its own configuration. MPN is directly selectable;
+selecting myeloid first is not required.
 
-Before installation, complete the application baseline, configure a working ingest
-service and grant the operator access to the `testing` environment and demo assay.
-Install the standard HGNC/VEP references for reference-backed transcript selection.
-After installation, open either starter sample in Samples to review findings and test
-query and report generation. Open the demo catalog in Assay Catalog to view
-its modalities, analysis tabs and gene lists.
+### Same diagnosis, different sequencing assay
 
-> [!IMPORTANT]
-> Starter query and reporting rules are supplied as published software examples,
-> scoped exclusively to the starter assays. They are not center-approved clinical
-> policies. When no public catalog exists, demo installation installs the catalog as
-> a published software baseline. If a public catalog already exists, the demo catalog
-> remains a draft and does not replace it. No report is automatically signed or issued.
+`DEMO_MPN_PANEL` uses `demo-hematology_gmsv1::mpn::testing`;
+`DEMO_MPN_WGS` uses `demo-tumwgs-hema::mpn::testing`. Both select `mpn-variants`
+for SNV and CNV analysis. The synthetic panel SNV depth threshold is 100 and
+the WGS threshold is 30. These demonstrate independent configuration, not
+clinically validated thresholds or performance claims.
 
-Under **Additional workflow scenarios**, choose:
+CLL and lung provide the same paired scenarios. `cll-variants`, `lung-variants`
+and `breast-variants` support both SNV and CNV. `cll-fusion` is shared by the RNA
+panel and WTS assay. Lists retain their own identities and revisions; they are
+not copies of assay documents. Effective scope depends on selected lists and
+the selected assay's validated gene coverage.
 
-- **Install configuration only** for assays, testing ASPCs, gene-list/subpanel
-  configuration and published demo report-rule sets.
-- **Install configuration and samples** to install that configuration followed
-  by each packaged sample through normal ingestion.
+Samples pin exact configuration revisions with native ObjectIds. Configurations
+capture assay resources and gene lists. Query policies and report rules resolve
+independently from current published scopes. MPN panel and
+WGS reporting rules have distinct assay scopes. Classification reuse and report
+eligibility follow the annotation context, not a shared gene-list name.
 
-The page displays progress and refreshes sample presence after completion or an
-error. Each sample commits independently. Completed samples remain available if a
-later sample fails; retry installs only missing items. Existing configuration is
-preserved, and conflicting or partial configuration requires administrator review.
-No users, knowledgebase releases, BAM files or saved clinical reports are installed.
-For review and publication exercises, create a new draft version from an installed
-demo rule set.
+### Default samples and catalog
 
-> [!IMPORTANT]
-> Installation targets this application's configured database. Profiles use the
-> `testing` environment; users need matching environment and assay access to review
-> these samples. Use an isolated demonstration deployment for training.
+The default samples are `DEMO_STARTER_DNA` on `demo-hematology-training` / `myeloid`
+and `DEMO_STARTER_RNA` on `demo-rna-training` / `lymphoid`. Both belong to hematology.
+The installation includes 11 assays, six shared diagnoses, 15 explicit diagnosis
+links, eight reusable lists and 39 configurations. Testing configurations serve
+the samples; 15 production configurations support synthetic catalog offerings.
 
-The authenticated administrative endpoints are excluded from public OpenAPI,
-Swagger and ReDoc. Hiding their documentation does not replace authorization:
-every operation enforces `demo:install` and the application's session protections.
+The catalog presents biological group → diagnosis → modality and sequencing
+family → assay. Its 15 offerings capture the linked resources and effective gene
+scopes. MPN can therefore be compared across panel and WGS offerings. Turnaround
+values are illustrative and no service prices are advertised.
 
-The installation page and navigation entry are also restricted to `demo:install`.
-Ordinary users cannot inspect the installation plan or invoke installation endpoints,
-even when they know the URL or can access hematology or fusion samples. Assigning
-`demo_installer` does not grant clinical viewing or reporting permissions.
+The catalog is published only if the center has no public catalog. Otherwise,
+the demo publication remains a draft. Demo report rules are packaged synthetic
+examples, not center approval for clinical use. No saved report is created.
 
-After installation, samples use the normal assay-group, assay and environment access
-checks. Users with the appropriate clinical permissions and access scopes can review
-the demo samples without `demo:install`; that permission is only for installation.
-Re-running installation preserves existing samples and configuration rather than
-replacing them.
+### Install additional scenarios
 
-### Standalone configuration installation
+Under **Additional workflow scenarios**, select **Install configuration only**
+or **Install configuration and samples**. Both use the same resource bundle as
+the default installation. The page skips configuration already present and
+ingests missing samples independently. A failed sample does not remove completed
+samples. Conflicting resource identities require administrator review.
 
-Run from the repository root with development dependencies installed. Substitute
-your local replica-set name and existing demo administrator:
-
-```bash
-.venv/bin/python scripts/bootstrap/install_demo_workflows.py \
-  --mongo-uri 'mongodb://127.0.0.1:27017/?replicaSet=YOUR_REPLICA_SET' \
-  --db coyote3_demo \
-  --actor demo.admin
-```
-
-This prints a plan. Repeat with `--apply` to insert the validated configuration
-and published demo report-rule baseline revisions in one transaction. Existing fixture identities
-cause the command to stop; nothing is overwritten. The loader does not ingest
-samples, assign roles or reset databases.
-
-| Assay | Group / family | Configuration |
-| --- | --- | --- |
-| `demo_e2e_demo_dna` | demo / panel-dna | Full synthetic DNA evidence and application-default query selection |
-| `demo_e2e_demo_rna` | demo / wts | RNA fusion, expression, classification and QC evidence |
-| `demo_e2e_hematology` | hematology / panel-dna | Full synthetic DNA evidence |
-| `demo_e2e_myeloid` | myeloid / panel-dna | Full DNA evidence; base and `demo_focus` ASPCs |
-| `demo_e2e_solid` | solid / panel-dna | Solid-specific query comparison |
-| `demo_e2e_tumwgs` | tumwgs / wgs | WGS group-query comparison |
-| `demo_e2e_lymphoid` | lymphoid / panel-dna | Application-default query comparison |
-| `demo_e2e_fusion` | fusion / panel-rna | RNA FUSION and QC only |
-| `demo_e2e_wts` | wts / wts | RNA FUSION, EXPRESSION, CLASSIFICATION and QC |
-
-All ASPCs are scoped to `testing`. DNA enables SNV, CNV, CNV_PROFILE, COVERAGE,
-TRANSLOCATION, HRD, MSI, TMB and PGX. RNA has no SNVs. The focus ISGL contains
-FLT3 and CEBPA; initially it is available for selection, not automatically applied.
-The focus ASPC starts with the same filter values as base to isolate scope tests.
-
-Report sets are **published software examples**, language `en`, scoped to the
-packaged demo assays. They use the existing DNA and RNA fusion report templates.
-They include synthetic wording, tiered SNV output and presence-based
-CNV/translocation/HRD/MSI/TMB sections and support report preview immediately.
-They contain no clinical assertions about the supplied measurements.
-
-The rule sets include 32 embedded cases: no-findings output, each SNV tier and
-additional-evidence presence for DNA, plus the RNA summary cases. They pass
-submission-time rule validation. Center-authored versions follow the normal
-independent review and publication workflow.
+Installation requires `demo:install`; clinical viewing requires separate assay,
+environment and review permissions. No identity records, external knowledgebase
+releases or BAM files are included. The normal application baseline and a working
+ingest service must already be available.
 
 ## 3. Validate and ingest the raw files
 
@@ -204,7 +157,7 @@ including its configured prefix and port. Then upload one sample first:
 ```
 
 After its terminal success acknowledgement, ingest the remaining manifests in the
-same way. Do not send files under `negative/` in the normal batch. All resource
+same way. Do not send files under `tests/fixtures/clinical_workflows/negative/` in the normal batch. All resource
 paths resolve relative to each manifest. The manifest format and raw field
 contracts are documented in [Sample manifest](../reference/sample-manifest.md)
 and [Raw ingest formats](../reference/ingest-files/README.md).
@@ -214,32 +167,32 @@ and [Raw ingest formats](../reference/ingest-files/README.md).
 | Sample | Expected state |
 | --- | --- |
 | `DEMO_HEMATOLOGY`, `DEMO_MYELOID`, `DEMO_SOLID`, `DEMO_TUMWGS`, `DEMO_LYMPHOID` | Ready; 30 retained SNVs, 5 CNVs, 4 DNA structural findings, coverage, HRD/MSI/TMB and PGX data. One of the 31 raw VCF records is excluded by `FAIL_NVAF`. |
-| `DEMO_MYELOID_FOCUS` | Same evidence, named subpanel `demo_focus`, matching focus ASPC. |
+| `DEMO_MYELOID_FOCUS` | Same evidence, named diagnosis `mpn`, matching focus ASPC. |
 | `DEMO_MYELOID_UNPAIRED` | Same raw variant scenarios; only the case genotype is supplied. |
 | `DEMO_MYELOID_MISSING` | Ready with HRD/MSI/TMB missing; no biomarker document. Missing optional files are shown as unavailable, not as zero measurements. |
 | `DEMO_FUSION` | 2 RNA fusions and QC; no SNVs or RNA expression/classification. |
 | `DEMO_WTS` | 2 RNA fusions plus expression, classification and QC. |
-| `DEMO_GROUP_DNA` | Dedicated `demo` group DNA sample with small variants, CNVs, structural events, coverage, biomarkers and PGX. |
-| `DEMO_GROUP_RNA` | Dedicated `demo` group RNA sample with fusions, expression, classification and QC. |
+| `DEMO_GROUP_DNA` | `solid` group WGS sample with small variants, CNVs, structural events, coverage, biomarkers and PGX. |
+| `DEMO_GROUP_RNA` | `solid` group WTS sample with fusions, expression, classification and QC. |
 
 Inspect the data-status tooltip, sample metadata, selected transcript and annotation
-vault. Compare shapes with `expected/after_ingest/`, allowing for real IDs, times,
+vault. Compare shapes with `tests/fixtures/clinical_workflows/expected/after_ingest/`, allowing for real IDs, times,
 paths and HGNC-dependent transcript provenance. The CNV profile PNG is a placeholder
 for file handling and display, not a computed profile. The PGX object exercises the
 current flexible data contract, not a validated diplotype interpretation pipeline.
 
 ## 5. Verify query rules and filters
 
-Use `scenarios/variants.json` to locate each finding by its exact `simple_id`.
+Use `tests/fixtures/clinical_workflows/scenarios/variants.json` to locate each finding by its exact `simple_id`.
 VCF IDs are human-readable labels; the application uses its derived finding identity.
-The unchanged filters admit six ordinary records: `baseline_pass`, the three
+With no selected diagnosis list, the base filters admit six ordinary records: `baseline_pass`, the three
 `tier*_candidate` records, `depth_boundary` and `alt_reads_boundary`.
 
 | Group | Additional selected labels | Total selected SNVs |
 | --- | --- | --- |
-| hematology, myeloid, tumwgs | `flt3_svtype`, `flt3_long_alt`, `marker_admitted`, `cebpa_germline`, `interval_first`, `interval_last` | 12 |
+| hematology and retained myeloid group | `flt3_svtype`, `flt3_long_alt`, `marker_admitted`, `cebpa_germline`, `interval_first`, `interval_last` | 12 |
 | solid | `tert_regulatory`, `nfkbie_binding`, `cebpa_germline`, `non_cebpa_germline` | 10 |
-| lymphoid | None | 6 |
+| retained lymphoid group | None | 6 |
 
 `low_af`, `low_depth`, `low_alt_reads`, `population_high`, `control_high`, incorrect
 genes, short ALT, low-evidence FLT3 and positions just outside the admitted interval
@@ -279,7 +232,7 @@ selection hierarchy.
 
 ### Query authoring and inheritance
 
-`scenarios/query_drafts.json` contains validated request examples. Use the `request`
+`tests/fixtures/clinical_workflows/scenarios/query_drafts.json` contains validated request examples. Use the `request`
 object for authoring; `scenario` is a fixture label, not an API field. Test one
 alternative at a time against the matching sample:
 
@@ -288,8 +241,8 @@ alternative at a time against the matching sample:
 2. `assay_extend`: exclude TP53 at the myeloid assay scope. This also excludes
    TP53 findings otherwise admitted by germline exceptions. Other assays retain
    their results.
-3. `subpanel_replace`: replace somatic exceptions with an empty list for
-   `demo_focus`. This removes inherited FLT3 extensions; it does not remove the
+3. `diagnosis_replace`: replace somatic exceptions with an empty list for
+   `mpn`. This removes inherited FLT3 extensions; it does not remove the
    separately composed germline admissions. Base-scope samples remain unchanged.
 4. `nested_logic`: exercise AND, OR and NOT using FLT3/CEBPA and marker predicates
    in the lymphoid assay. Inspect positive and negative condition traces.
@@ -310,8 +263,8 @@ nomenclature for this exercise so the synthetic HGVS labels cannot accidentally
 share a protein-level annotation. Add a sample comment and a finding comment,
 hide a second comment, and verify author/time/hiding metadata and scope.
 
-`expected/after_review/` illustrates those document contracts using the parsed
-finding identities. Classification annotations are group/subpanel scoped and can
+`tests/fixtures/clinical_workflows/expected/after_review/` illustrates those document contracts using the parsed
+finding identities. Classification annotations are group/diagnosis scoped and can
 be shared by matching findings in other samples. Finding comments remain
 sample-specific. The example annotations for the full and missing-result myeloid
 samples are shared; they are not independent duplicate classifications.
@@ -332,7 +285,7 @@ tier-4 NFKBIE candidate receives none. Present CNV, translocation, HRD, MSI and 
 evidence enables its corresponding synthetic section. The missing-result sample
 has no HRD/MSI/TMB section. RNA rules produce a synthetic fusion summary.
 
-`expected/report_previews.json` contains real engine output for these constructed
+`tests/fixtures/clinical_workflows/expected/report_previews.json` contains real engine output for these constructed
 review contexts. It does not prove report preparation selected the same findings;
 verify that through the live preview. Coverage, PGX, RNA expression/classification
 and QC are available for their analysis views but have no custom narrative logic
@@ -346,7 +299,7 @@ saved report, publication approval or audit trail is seeded to bypass this proce
 
 ## 8. Exercise rejected and repeated ingestion
 
-Run the three `negative/` manifests individually after recording the sample count:
+Run the three `tests/fixtures/clinical_workflows/negative/` manifests individually after recording the sample count:
 
 | Manifest | Expected rejection |
 | --- | --- |

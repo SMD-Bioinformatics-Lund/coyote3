@@ -1,14 +1,18 @@
 """Verify that unattended sample ingestion never grants general user administration."""
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from api.interfaces.http.operations import internal
+from api.app.deps import services
+from api.infra.security.ingest_policy import SampleIngestPolicy
+from api.interfaces.http.v1.operations import internal
 from api.security import access
+from coyote3.application.operations.ingest_permissions import enforce_sample_ingest_permission
 
 
 @pytest.fixture
@@ -53,8 +57,12 @@ def test_expiring_machine_token_is_accepted_without_login(token_policy):
     try:
         assert user.username.startswith("ingest-token-")
         assert not user.is_superuser
-        internal._enforce_sample_ingest_permission(
-            user, {"asp_id": "synthetic", "environment": "production"}
+        enforce_sample_ingest_permission(
+            SimpleNamespace(
+                policy_factory=lambda actor: SampleIngestPolicy(access.InternalIngestPrincipal)
+            ),
+            user,
+            {"asp_id": "synthetic", "environment": "production"},
         )
         with pytest.raises(HTTPException):
             access._enforce_access(user, permission="user:create")
@@ -68,11 +76,19 @@ def test_machine_principal_is_scoped_without_user_account(token_policy):
     try:
         assert user.username == "internal-ingest"
         assert not user.is_superuser
-        internal._enforce_sample_ingest_permission(
-            user, {"asp_id": "synthetic", "environment": "development"}
+        enforce_sample_ingest_permission(
+            SimpleNamespace(
+                policy_factory=lambda actor: SampleIngestPolicy(access.InternalIngestPrincipal)
+            ),
+            user,
+            {"asp_id": "synthetic", "environment": "development"},
         )
-        internal._enforce_sample_ingest_permission(
-            user, {"asp_id": "synthetic", "environment": "production"}
+        enforce_sample_ingest_permission(
+            SimpleNamespace(
+                policy_factory=lambda actor: SampleIngestPolicy(access.InternalIngestPrincipal)
+            ),
+            user,
+            {"asp_id": "synthetic", "environment": "production"},
         )
         with pytest.raises(HTTPException):
             access._enforce_access(user, permission="user:create")
@@ -108,10 +124,12 @@ def test_upload_accepts_internal_token_but_collection_routes_do_not(token_policy
         "data_counts": {},
     }
     service = SimpleNamespace(ingest_sample_bundle=lambda *a, **kw: result)
-    app.dependency_overrides[internal.get_internal_ingest_service] = lambda: service
+    monkeypatch.setattr(services, "get_internal_ingest_service", lambda: service)
     monkeypatch.setattr(
-        internal,
-        "prepare_uploaded_bundle",
+        services, "get_audit_service", lambda: SimpleNamespace(record=Mock(return_value="audit-id"))
+    )
+    monkeypatch.setattr(
+        "coyote3.application.ingest.upload_bundle.prepare_uploaded_bundle",
         lambda **kw: {"asp_id": "synthetic", "environment": "production"},
     )
     monkeypatch.setattr(

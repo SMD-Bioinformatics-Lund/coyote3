@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.application.notifications.service import NotificationService
+from coyote3.application.notifications.service import NotificationService
 
 
 class _UserRepository:

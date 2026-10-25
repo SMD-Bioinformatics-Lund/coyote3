@@ -34,10 +34,20 @@ it("creates a custom group with an editable generated identifier", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "Create group" }))
   fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "New group" } })
-  expect(screen.getByLabelText(/Group identifier/)).toHaveValue("new_group")
+  expect(screen.getByLabelText(/Group identifier/)).toHaveValue("new-group")
   fireEvent.change(screen.getByLabelText(/Group identifier/), { target: { value: "custom" } })
   fireEvent.click(screen.getByRole("button", { name: "Save group" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/assay-groups", { group_id: "custom", display_name: "New group", description: "" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/assay-groups", { group_id: "custom", parent_group_id: null, display_name: "New group", description: "" }))
+})
+it("records the selected biological parent explicitly", async () => {
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "Create group" }))
+  fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Lung" } })
+  fireEvent.change(screen.getByLabelText(/Parent group/), { target: { value: "solid" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/assay-groups", {
+    group_id: "lung", parent_group_id: "solid", display_name: "Lung", description: "",
+  }))
 })
 it("rejects invalid identifiers before submitting", async () => {
   mount()

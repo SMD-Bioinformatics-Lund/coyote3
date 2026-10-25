@@ -1,13 +1,61 @@
 """Transactional deletion of sample-owned data, retaining shared clinical knowledge."""
 
+from typing import Any
+
 from api.config.paths import REPORTS_BASE_PATH
-from api.contracts.operations import OperationResult
-from api.domain.core.exceptions import AppError
 from api.infra.mongo.persistence import to_provider_id
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.report_artifact_erasure import enqueue_report_erasure
 from api.infra.mongo.transactions import run_transaction
 from api.infra.samples_cache import invalidate_samples_cache
+from coyote3.contracts.operations import OperationResult
+from coyote3.domain.exceptions import AppError
+
+
+class SampleDeletionRepository:
+    """Bind transactional sample deletion and artifact erasure to the owning repositories."""
+
+    def __init__(self, store: Any, *, reports_root: Any) -> None:
+        """Bind the deployment repositories and registered report-artifact root.
+
+        Args:
+            store: Initialized repositories sharing the application's MongoClient.
+            reports_root: Configured directory containing generated report files.
+        """
+        self.repositories = {
+            name: getattr(store, name)
+            for name in (
+                "sample_repository",
+                "variant_repository",
+                "copy_number_variant_repository",
+                "d4_coverage_repository",
+                "translocation_repository",
+                "fusion_repository",
+                "biomarker_repository",
+                "pgx_repository",
+                "rna_expression_repository",
+                "rna_classification_repository",
+                "rna_quality_repository",
+                "sample_comment_repository",
+                "finding_comment_repository",
+                "report_repository",
+                "reported_variant_repository",
+            )
+        }
+        self.reports_root = reports_root
+
+    def delete(self, sample_id: str) -> dict[str, Any]:
+        """Delete sample-owned rows and enqueue artifact erasure in the existing transaction.
+
+        Args:
+            sample_id: Canonical serialized sample identifier.
+
+        Returns:
+            Committed deletion counts, sample name and queued artifact count.
+        """
+        return delete_all_sample_traces(
+            sample_id, **self.repositories, reports_root=self.reports_root
+        )
 
 
 def delete_all_sample_traces(

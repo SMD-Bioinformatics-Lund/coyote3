@@ -1,385 +1,204 @@
 # Public Assay Catalog
 
-The catalog describes a center's publicly offered assays. It combines governed
-presentation content with active assay definitions, production configurations,
-and public gene lists. Catalog editing never changes ingest requirements,
-clinical filters, reporting rules, or existing samples.
+The public catalog presents reviewed genomic services. Assays, biological groups,
+diagnoses, production configurations and public gene lists remain authoritative
+resources. Editing catalog wording does not change sample analysis or reporting rules.
 
-The public view presents offered analyses, included genes, categories, sample
-requirements and turnaround times. Reporting sections are controlled by the ASPC
-and reporting rules, not the catalog. Internal catalog, assay, configuration and
-subpanel identifiers are omitted from public detail cards; administrators can
-inspect the underlying links in the editor's **Database references** section.
+## Find a service
 
-The landing page displays the configured **Catalog heading** and **Introduction**
-beside the category navigation. The introduction supports formatted text and links.
-Assay details and gene tables appear after selecting a category; **Catalog overview**
-returns to the introduction. Set this public introduction in the catalog editor and
-preview it before publishing.
+**By Diagnosis** is the default view: select a biological group, a diagnosis,
+then a technical family. **By Assay** provides modality, family and assay filters
+before diagnosis selection. Both views use the same published offerings.
 
-Navigation arrows expand or collapse branches without changing the displayed entry.
-Select an entry's name to view its details. The gene table includes available HGNC,
-OMIM and MANE transcript references from the installed gene database; missing values
-are shown as a dash. These references describe genes and transcripts, not a clinical
-classification of a sample finding.
+For example, Solid → Breast can contain a targeted DNA panel and a WGS service.
+Each offering has its own price, capabilities and effective gene scope.
+**No diagnosis / General testing** represents an explicitly configured Base context.
+It appears only when a Base offering has been published. An unselected diagnosis
+filter includes all published contexts and does not select Base.
 
-Platform, read mode and read length come from the linked assay definition. In
-**Administration → Assays**, the form offers editable defaults of **Illumina**,
-**PE (paired-end)** and **150 bp per read**. Confirm these values before saving;
-**SE** means single-end, and available modes depend on the platform. Update the
-assay definition to change these catalog details. Missing stored values are not
-presented as confirmed sequencing specifications.
+Search accepts group names, diagnoses, tests, assay identifiers, modalities,
+technical families and published gene symbols. Results identify which field matched.
+Gene searches include only the effective scope in the publication. WGS sequencing
+breadth does not imply that every gene is assessed or reportable.
 
-Before catalog entries are available, the public catalog displays **Add catalog**
-setup guidance. An empty catalog is a normal installation state. The shared layout
-also reads catalog context to build navigation, even outside the catalog page;
-this background read returns an empty context without a request-failure notification.
-Requests for a specific unavailable entry still return a not-found response.
+Select **View details** to open an offering's service information and searchable,
+downloadable gene table. Details include methodology, material requirements,
+turnaround, report deliverables, limitations and ordering instructions when configured.
+The offering identifier is retained in the page URL.
 
-## Create the dependent records first
+Select **Compare** on two or three offerings to compare methods, enabled analyses,
+gene counts, deliverables, prices and limitations. Price sorting is available only
+when the selected group's published prices share a currency and pricing basis.
+The default order follows the catalog's section order and entry order.
+No published offerings produces **No published services**.
 
-Anonymous gene-list endpoints, catalog gene tables, exports, and the matrix expose
-only explicitly public, active, non-adhoc gene lists. Gene-list descriptions are
-sanitized and the public response excludes private administrative fields. ASP
-descriptions use the same restricted public HTML formatting policy.
+## Prepare resources
 
-1. Create and activate the ASP in **Assay Panels**.
-2. Create the relevant public ISGLs, linked to their assays and subpanels.
-3. Create and activate the production ASPCs for those assays and subpanels.
-4. Open **Admin > Public Assay Catalog** at `/admin/assay-catalog`.
-5. Link each public entry to its ASP and production ASPC, then select its analyses.
-6. For each analysis, select one or more eligible ISGLs or check **No gene list**.
+1. Create and activate the biological group and assay.
+2. Define the assay's supported analyses and validated covered genes.
+3. Associate the shared diagnosis with the assay, or configure an explicit Base context.
+4. Create active public gene lists and select them in the production configuration's
+   analysis filters.
+5. Activate the production configuration for the assay and diagnosis.
+6. Open **Administration → Assay catalog** and create a draft.
 
-The builder lists active assays, active production configurations, and active,
-public, non-ad-hoc gene lists. It does not expose sample data. Publishing does
-not make a private gene list public. Each entry can link a given gene list only
-once; duplicate references prevent submission for approval.
-That reference can serve multiple analyses. The builder filters lists by the
-selected assay and, where a list declares group restrictions, the assay group.
-Changing the assay clears its gene-list assignments so they can be reviewed for
-the new assay.
+Publication requires the offering's group, assay, diagnosis and production
+configuration to agree. A named diagnosis requires an active assay association.
+Analyses must be supported by the assay and enabled in the configuration.
+Catalog text cannot enable an unsupported analysis.
 
-## Gene lists by analysis
+## Author an offering
 
-Each selected analysis has its own selection card. Search narrows the eligible
-lists without clearing checked values. Select multiple lists when an analysis
-uses more than one diagnostic or reporting gene set. List descriptions remain
-editable under **Selected gene-list descriptions**.
+Select **Create first draft**, or **Edit published catalog** for an existing release.
+Choose a section or entry in the editor sidebar. Folders organize presentation;
+they do not create biological groups, diagnoses, assays or configurations.
+An offering's public placement comes from its registered resources.
 
-**No gene list** is an explicit catalog declaration, not an empty selection. It
-removes list links for that analysis while retaining their links to other analyses.
-Submission and publication reject incomplete assignments, contradictory selections,
-and lists that are no longer active, public or eligible for the assay and group.
-Catalog assignments describe the public offering; they do not alter sample filters.
+Link each entry to its assay and production configuration. Set its display name,
+description, materials, turnaround and analyses. Assign public gene lists per
+analysis, or explicitly select **No gene list** when appropriate. Duplicate list
+references, contradictory assignments and unavailable resources prevent submission.
 
-| Stored field | Meaning |
-| --- | --- |
-| Entry `analysis` | Analyses offered by the catalog entry |
-| Entry `gene_lists[].isgl_id` | Reference to the public ISGL; gene contents remain in the source list |
-| Entry `gene_lists[].analysis` | One or more entry analyses that use this list |
-| Entry `no_gene_list` | Entry analyses explicitly declared to have no linked gene list; defaults to an empty list |
+SNV, CNV and fusion list bindings must also be selected in their corresponding
+production filter configuration. Effective published genes are the intersection
+of those lists with the assay's validated covered genes. This applies to targeted
+panels and genome-wide families. The detail page reports how many list genes lie
+outside that coverage; excluded genes are not advertised as assessed.
+SNV and CNV scopes remain separately identified.
 
-The catalog and draft preview show analysis tabs in the gene-table card on the right.
-The first analysis and its first linked list open automatically. Selecting a tab
-shows only that analysis's lists. Selecting a list displays its
-genes. The matrix adds analysis to the section, assay, subpanel and gene-list
-dimensions, with filters for each. Rows remain paginated; shared lists are read
-once per matrix request. **N/A** means no list is assigned to an analysis, while
-the absence marker means a gene is not in a selected list.
+A general list without an analysis binding does not establish an effective
+analysis scope. Analyses without an implemented list selector must use **No gene list**.
 
-> [!IMPORTANT]
-> When analyses are defined, assign all linked lists to those analyses.
-> Before submitting a successor draft, assign those
-> lists to analyses or remove the references and select **No gene list** where
-> appropriate. No assignment is inferred from a list name or gene content, and no
-> published document is rewritten automatically.
+### Pricing and service information
 
-## Hierarchy and identity
+Enable **Publish an offering-specific price** and supply an amount, three-letter
+currency code, and fixed, starting or estimated basis. Add pricing conditions
+where applicable. Amounts are nonnegative with up to two decimal places.
 
-The left navigation represents the catalog hierarchy. For example:
+Prices belong to individual offerings and do not inherit from folders or diagnoses.
+Without a price, **Pricing message** supplies the alternative wording; its default
+is **Contact for pricing**.
 
-```text
-DNA
-  WGS
-    Hematology
-    Solid
-  Panels
-    Solid
-      Breast
-      Colon
-RNA
-  Panels
-    Fusion
-  WTS
-```
+Set report deliverables, methodology and ordering information on each offering.
+These describe the public service; they do not configure report templates,
+clinical rules or order submission.
 
-These are example offerings, not installed clinical definitions. Each section has
-a DNA/RNA category. **Folder** entries organize families and groups; **Assay or
-subpanel** entries reference installed clinical resources. Use **Add child entry**
-and **Parent entry** to build or move branches. A parent cannot be removed while
-it has children. Missing parents and cycles are rejected when a draft is saved.
-Without a published catalog, collection-derived navigation groups active assays
-by DNA/RNA, family, and assay group.
+### Presentation inheritance
 
-The right panel describes the selected entry. Analysis tabs belong to its gene-table
-card, not the navigation tree. Each tab offers only gene lists assigned to that
-analysis. Changing the gene list does not replace the selected entry's heading or
-available analyses.
+Blank descriptions, material requirements, turnaround, analyses, resource references
+and list bindings inherit from their immediate presentation parent. Nonempty values
+replace inherited values. **Suppress inherited details** keeps selected fields empty.
+Labels, entry identity, pricing and the additional offering service fields remain local.
 
-Entry details remain independent of gene-table selection. The coverage summary
-describes the assay, while the table count describes the selected list. List-specific
-wording appears inside the gene-table card. Navigation typography distinguishes
-sections, families, groups and deeper entries.
+Missing parents and cycles are rejected. Resolved references must pass the same
+resource validation as explicit references. Inheritance affects presentation only.
 
-If an entry has no analyses after inheritance, its first general gene list opens
-automatically. General lists are references without analysis assignments and can
-be configured under **General gene lists** in the editor. An unspecified list
-inherits from the nearest parent that defines one. Assay, group, subpanel and
-public-visibility checks still apply. An analysis explicitly marked **No gene list**
-does not fall back to a general list.
+Turnaround accepts a positive integer or ascending integer range and a unit of days,
+weeks, months or years. Blank means unspecified. Descriptions support restricted HTML;
+executable content, unsafe URLs and event handlers are removed. Display names and
+structured fields remain plain text.
 
-### Inherited information
+## Preview, review and publish
 
-An unspecified field inherits from the immediate parent, recursively up to the
-section. Nonempty values replace the inherited field; lists are replaced rather
-than appended. Labels, navigation identities and entry types are always local.
-**Suppress inherited details** keeps selected fields empty. **No gene list** is an
-explicit per-analysis declaration and removes inherited list bindings for that analysis.
+**Preview changes** resolves a draft without saving it. **Save draft** records a
+revision and opens its preview. Preview uses the same diagnosis-first discovery,
+offering details and matrix projection as the public service.
 
-| Field | Inheritance and validation |
-| --- | --- |
-| Description, material, sample modes, turnaround, indications, limitations, notes | Inherit when blank; override locally or explicitly suppress |
-| Analyses | Inherit the complete list; local selections replace it |
-| Assay, configuration and subpanel references | Inherit when unspecified; all resolved references must match on publication |
-| Gene lists and analysis assignments | Inherit the list of references; no gene content is copied |
-| `parent_key` | Entry key in the same section; absent means section root |
-| `node_kind` | `folder` for organization or `entry` for an assay/subpanel offering |
-| `clear_fields` | Names of fields that must not inherit; defaults to an empty list |
-| Section `omics` | `dna` or `rna`; determines supported analysis choices |
-
-> [!IMPORTANT]
-> Presentation inheritance does not change query rules, reporting rules, assay
-> membership or sample filters. The resolved gene lists must belong to the selected
-> assay, respect declared group and subpanel restrictions, and support the analysis
-> through their ISGL `list_type`. The supported ISGL types are a subset of the DNA/RNA
-> analysis types. An analysis without an applicable list uses **No gene list**.
-
-DNA/RNA analysis choices come from the application-owned clinical capability
-constants. A center cannot introduce an unsupported analysis by editing catalog text.
-The packaged demo uses DNA → Panels → Hematology and RNA → Panels → Fusion, with
-an inherited DNA focus entry demonstrating child presentation defaults.
-
-DNA and RNA are starter sections containing editable WGS, WES, WTS and Panels
-folders. On a new installation, select **Create first draft** beneath
-**Starter catalog** in the sidebar. For an existing publication, select
-**Edit published catalog**. In a draft, use **Add section** for another section, edit
-**Section display name** to rename it, use the arrow controls to reorder it, or
-choose **Remove section**. The public catalog and matrix retain the entered name.
-Section identifiers remain stable when display names change. These presentation
-sections are separate from application-owned assay families and analysis types.
-
-| Identifier | Purpose | Editable in builder |
+| State | Next operation | Public visibility |
 | --- | --- | --- |
-| Section and entry map keys | Stable public navigation identity | No; generated for new items |
-| Entry `catalog_id` | Stable presentation identity | No; generated when saved |
-| `asp_id` | Reference to `assay_specific_panels` | Select an installed assay |
-| `aspc_id` | Reference to `asp_configs` | Select a production configuration |
-| `isgl_id` | Reference to `insilico_genelists` | Select a public gene list |
-| Version document `_id` | Identifies one draft or published release | No |
-| Display name | Public heading, independent of database identifiers | Yes |
+| Draft | Edit, save, preview, submit to a reviewer | None |
+| Submitted | Assigned reviewer approves or rejects | None |
+| Approved | Assigned publisher publishes | None |
+| Rejected | Revise as a new draft | None |
+| Published | Read, export and inspect history | Current release only |
 
-Database references remain visible in expandable reference details. They are not
-substitutes for public display names.
+Submission captures public service details and effective gene scopes alongside
+private resource revision references. The assigned reviewer reviews this snapshot.
+Publication rechecks resource eligibility and compares the current resolved content
+and revisions with the reviewed snapshot. Changes require a revised draft and review;
+they cannot silently enter the release.
 
-The [catalog contract](../reference/mongodb-collections.md#public_assay_catalog) lists
-stored fields and defaults. Public visibility also requires the references and
-publication steps below; a valid JSON document alone does not publish an offering.
+The reviewer must not be a content editor or the submitter. The assigned publisher
+must also be independent of every content editor. Reviewer and publisher may be the
+same person if they hold both permissions. Eligibility is checked again at publication.
+Rejection requires a reason. Submitted and approved documents cannot be edited.
 
-## Authoring
+Workflow notifications link assigned reviewers and publishers to the version.
+The workspace records actors, review reasons and lifecycle events.
 
-The initial view is the published catalog, read-only. **Edit published catalog**
-creates a separate draft from that publication. **Create first draft** is
-available when no catalog has been published. Several drafts can coexist.
+## Publication data and history
 
-Select a section or entry in the structure sidebar to edit its fields. Add,
-remove, and reorder sections; add or remove assay entries and gene-list
-descriptions. Use the introduction view for the catalog heading, introduction,
-and maintainer.
+The public discovery endpoint, matrix, catalog gene lookup and CSV export read
+approved offering snapshots. They do not rebuild service scope from current
+configuration or list contents. Later source edits do not alter the publication.
+To remove a service from discovery, publish a reviewed successor without that entry.
 
-Introductions, section descriptions, assay and gene-list descriptions, limitations
-and public notes have visual formatting controls for **bold**, *italic*, underline,
-bulleted and numbered lists, hyperlinks, link removal and clearing inline formatting.
-Select text before applying a format or inserting a link. Links accept `https://`,
-`http://` and `mailto:` addresses. Pasted text is inserted without external formatting;
-apply the editor controls as needed. Saved and displayed HTML is sanitized.
-Display names, identifiers, badges and other structured fields remain plain text.
+Public projections include service wording, resource display names, enabled analyses,
+pricing and effective gene scopes. Internal configuration identifiers, revision maps,
+query expressions and confidential reporting rules are excluded.
 
-| Field | Input and validation |
+| Collection | Responsibility |
 | --- | --- |
-| Input material | Select preset badges; add custom material beside the presets |
-| Turnaround time | Positive integer or ascending integer range, plus days, weeks, months, or years |
-| Sample modes | Select preset badges |
-| Analysis | Select the canonical ASPC analysis options |
-| Configuration | Active production ASPCs for the selected assay; no environment entry required |
-| Gene lists | Active public ISGL references with editable public wording |
-| Additional content | Limitations, public notes, report sections, and clinical indications |
+| `public_assay_catalog` | Current publication |
+| `public_assay_catalog_versions` | Workflow documents and preserved releases |
+| `public_assay_catalog_revisions` | Snapshot of each workflow revision |
 
-For example, enter `7-10` and select `days`. Zero, negative durations, decimals,
-descending ranges, and unstructured duration text are invalid. Blank means
-unspecified, not zero. Invalid durations are indicated beside the input and
-rejected by the API.
+The catalog stores `published_offerings` and a separate private
+`resource_revisions` map. References include assay, configuration, group,
+diagnosis association, shared diagnosis definition and gene-list revisions.
 
-**Preview changes** displays the current local edit without saving. **Save
-draft** saves a new draft revision and opens its preview. The preview resolves
-ASP/ASPC/ISGL presentation metadata through the same application renderer as
-the public catalog. View mode uses the public page's modality navigation,
-assay details, gene-list selection, gene counts, and gene table on an opaque
-theme surface. Draft selections resolve against the draft, not the current
-publication. Check all sections before submitting. Unsaved changes
-cannot be submitted. A draft is not public, even after it has been saved.
+Only publication increments the public version. Each workflow save increments
+its document revision. Stale revisions and drafts based on an older publication
+return HTTP 409. Publication updates the version, current projection and history
+in one MongoDB transaction. A replica set is required; see
+[MongoDB deployment](../deployment/mongodb-setup-and-recovery.md).
 
-## Review and publication
+Historical review previews retain their captured service content and prices.
+Draft previews resolve current resources. Imported or saved content cannot supply
+its own publication snapshot: derived fields are cleared and rebuilt for review.
+Back up all three collections together, with identity audit records and application
+notifications according to the deployment retention policy.
 
-| State | Allowed next operation | Publicly visible |
-| --- | --- | --- |
-| Draft | Edit, save, preview, submit to a selected reviewer | No |
-| Submitted | Assigned reviewer approves or rejects | No |
-| Approved | Assigned publisher publishes | No |
-| Rejected | Create a revised draft from its content | No |
-| Published | Read, export, inspect history | Yes, for the current release |
+## JSON exchange
 
-The author selects an active reviewer with `catalog:review`. The reviewer
-must not be any user who edited that draft, nor the user submitting it.
-Approval assigns an active publisher with `catalog:publish`; the publisher
-must also be independent of every content editor. The reviewer and publisher
-may be the same person if that person has both permissions.
+**Export catalog** downloads the displayed document. **Export section** downloads a
+section envelope. **Import draft** validates JSON and creates a draft; it cannot
+publish directly or grant approval authority. References must resolve at the
+destination before submission. Exported presentation documents contain no sample data.
 
-Only the assigned reviewer or publisher can complete their respective stage.
-The API rechecks eligibility at publication. Rejection requires a reason.
-Submitted, approved, rejected, and published documents cannot be edited.
-To revise rejected content, use **Revise as new draft**, then obtain approval
-again. Publication requires valid active production references and supported
-analysis badges.
+The **Matrix** action compares the selected preview's effective scopes by modality,
+group, assay, diagnosis, analysis and list. No list means no inferred coverage column.
+Public matrix search and pagination operate on the current publication.
 
-The assigned reviewer receives an in-app notification containing a direct link
-to the draft. Review results notify the creator, approval notifies the assigned
-publisher, and publication notifies the creator. The workspace displays the
-assigned users, review reason, and lifecycle events.
+See the [collection contract](../reference/mongodb-collections.md#public_assay_catalog)
+for stored fields and defaults.
 
-## Gene metadata
+## Permissions and API
 
-Assay gene pages retain every covered gene even when HGNC metadata is unavailable.
-Those rows are marked **Unresolved** and have no fabricated HGNC identifier.
-For targeted panels, assay-specific gene-list views intersect the list with the
-panel's covered genes. WGS and WTS views retain the complete associated public
-gene list rather than applying a targeted-panel intersection.
-
-## Permissions and roles
-
-| Bundled role | Permissions |
+| Role | Permissions |
 | --- | --- |
 | `catalog_viewer` | `catalog:view` |
 | `catalog_author` | `catalog:view`, `catalog:draft`, `catalog:submit` |
 | `catalog_reviewer` | `catalog:view`, `catalog:review` |
 | `catalog_publisher` | `catalog:view`, `catalog:publish` |
 
-An identity administrator assigns these roles to the appropriate users.
-Seeding roles does not grant them to users. Read-only access includes previews,
-JSON downloads, lifecycle history, and revision snapshots, but no mutations.
+An identity administrator assigns roles. Installing role definitions does not assign
+them to users.
 
-## Versions, revisions, and storage
+Public discovery uses `GET /api/v1/public/assay-catalog/offerings`.
+Administrative paths below use `/api/v1/admin/assay-catalog`.
 
-| Collection in the application database | Responsibility |
-| --- | --- |
-| `public_assay_catalog` | Single current public projection, identified by `catalog_id: default` |
-| `public_assay_catalog_versions` | Separate draft/workflow documents and immutable published releases |
-| `public_assay_catalog_revisions` | Full preserved document at each saved workflow revision |
-
-The public version increases only when a release is published. Saving,
-importing, submitting, and reviewing do not increment the public version.
-Drafts record `base_version`; `content_version` is assigned at publication.
-Each save or lifecycle transition increments that draft's `revision`.
-
-Writes require the revision the caller inspected. A stale revision returns
-HTTP 409 rather than overwriting another user's work. A draft based on an older
-public version cannot replace a newer publication: create a draft from the
-current publication and obtain fresh approval.
-
-Publication updates the release, public projection, and revision snapshot in
-one MongoDB transaction. MongoDB must run as a replica set; a single-node
-replica set is sufficient for local development. A standalone MongoDB server
-cannot support this workflow. See [MongoDB deployment](../deployment/mongodb-setup-and-recovery.md).
-
-Lifecycle snapshots retain content, actors, assignments, decisions, and times.
-Exporting while previewing a historical revision downloads that revision's
-content. Historical previews are read-only; return to the current revision
-before editing a draft.
-Mutation requests use the application's traceability audit logging. Revision
-snapshots do not expire through the catalog API and are distinct from the
-operational audit log. Historical previews cannot be used to approve a different
-current revision. A catalog that predates governed publication is preserved as
-an explicitly marked baseline, without inventing a reviewer or approval.
-
-Back up all three collections together. Audit events reside in the identity
-database; notifications reside in the application database. Back up both
-according to the deployment's retention policy.
-
-## JSON exchange
-
-The database catalog is the sole source of presentation hierarchy and wording;
-there is no catalog YAML file, loader, or YAML import script. JSON uploads enter
-the governed draft workflow rather than replacing the published catalog.
-
-The **Matrix** action in view mode stays within the selected draft or historical
-revision. Matrix columns use its section order, display names, assay entries,
-and linked gene lists. Entries without gene lists show their ASP's covered genes.
-Search and pagination retain the selected catalog. **Catalog** returns to its
-catalog view; neither action publishes content. The public matrix uses the
-currently published catalog with the same matrix builder.
-
-The catalog gene table and matrix keep knowledgebase badges in a separate
-**Annotations** column. Its checkbox shows or hides the column without changing
-gene coverage. Annotations are initially visible in the catalog and hidden in
-the matrix; each table remembers its setting in browser storage. Compact badges
-show the full knowledgebase description on hover.
-
-Public HTML formatting is sanitized during validation. Paragraphs, lists,
-emphasis, tables, and HTTP/HTTPS/mail links are retained; executable content,
-event handlers, embedded media, and unsafe URLs are removed. Review the saved
-preview to inspect the validated content before submitting it.
-
-**Export catalog** downloads the selected content; **Export section** downloads
-one section as a `coyote3.public_assay_catalog_modality` envelope. Exports contain
-presentation content and references, not user assignments, approval authority,
-or patient data. They can include unsaved local edits.
-
-**Import draft** validates a JSON file and creates a draft. A whole-catalog
-import uses the supplied content. A section import copies the current public
-catalog and replaces or adds only that section. References must resolve in the
-destination installation before submission. Imported content must follow the
-same preview, review, and publication workflow; an imported file cannot grant
-itself published status. JSON is not an alternative database authority or an
-in-browser editing surface.
-
-## API
-
-All routes below use the `/api/v1/admin/assay-catalog` prefix.
-
-The workspace response's `presets` object contains `analysis`, `input_material`,
-and `sample_modes` lists. `analysis_by_omics` maps `dna` and `rna` to their
-supported analysis lists. The builder uses the selected section's omics layer
-to choose its analysis options.
-
-| Method and path | Permission | Purpose |
+| Method and path | Permission | Operation |
 | --- | --- | --- |
-| `GET /` | `catalog:view` | Published content, versions, source choices, eligible users, presets |
-| `GET /versions/{oid}` | `catalog:view` | One complete workflow document |
-| `GET /versions/{oid}/revisions` | `catalog:view` | Preserved revision snapshots |
-| `POST /preview` | `catalog:view` | Resolve presentation content without persisting it |
-| `POST /preview/matrix` | `catalog:view` | Resolve a draft matrix with gene search and pagination, without writes |
-| `POST /drafts` | `catalog:draft` | Copy the current publication into a draft |
-| `POST /imports` | `catalog:draft` | Create a draft from JSON content |
-| `PATCH /drafts/{oid}` | `catalog:draft` | Save content with an expected revision |
-| `POST /drafts/{oid}/submit` | `catalog:submit` | Assign reviewer and submit |
-| `POST /drafts/{oid}/review` | `catalog:review` | Assigned reviewer approves or rejects |
-| `POST /drafts/{oid}/publish` | `catalog:publish` | Assigned publisher atomically releases content |
+| `GET /` | `catalog:view` | Workspace, source choices and assigned users |
+| `GET /versions/{oid}` | `catalog:view` | Workflow document |
+| `GET /versions/{oid}/revisions` | `catalog:view` | Preserved revisions |
+| `POST /preview/offerings` | `catalog:view` | Read-only offering preview |
+| `POST /preview` | `catalog:view` | Read-only navigation and gene projection |
+| `POST /preview/matrix` | `catalog:view` | Read-only effective gene matrix |
+| `POST /drafts` | `catalog:draft` | Create a draft |
+| `POST /imports` | `catalog:draft` | Create a draft from JSON |
+| `PATCH /drafts/{oid}` | `catalog:draft` | Save with an expected revision |
+| `POST /drafts/{oid}/submit` | `catalog:submit` | Capture scope and assign review |
+| `POST /drafts/{oid}/review` | `catalog:review` | Approve or reject |
+| `POST /drafts/{oid}/publish` | `catalog:publish` | Publish the reviewed release |

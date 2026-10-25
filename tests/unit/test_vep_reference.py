@@ -11,14 +11,16 @@ import mongomock
 import pytest
 from PIL import Image
 
-from api.application.public.catalog import PublicCatalogService
-from api.contracts.public import PublicVepReferencePayload
-from api.domain.core.exceptions import AppError
+from api.app.deps import services
 from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
 from api.infra.seed.diagrams import load_seed_diagrams
-from api.interfaces.http.public import routes
+from api.interfaces.http.v1.public import routes
+from coyote3.application.public.catalog import PublicCatalogService
+from coyote3.contracts.public import PublicVepReferencePayload
+from coyote3.domain.exceptions import AppError
 from scripts.knowledgebase import update_vep_diagrams
 from scripts.knowledgebase.update_vep_metadata import SEED, diagram_document
+from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 def test_public_reference_projects_only_reference_fields(monkeypatch):
@@ -30,14 +32,16 @@ def test_public_reference_projects_only_reference_fields(monkeypatch):
     repository.get_collection = lambda: collection
     service = object.__new__(PublicCatalogService)
     service.vep_metadata_repository = repository
-    monkeypatch.setattr(routes, "get_public_catalog_service", lambda: service)
-    assert routes.public_vep_versions_read() == {"versions": ["103"]}
-    payload = routes.public_vep_reference_read("103")
+    monkeypatch.setattr(services, "get_public_catalog_service", lambda: service)
+    assert routes.public_vep_versions_read(service=sdk_fixtures.public_operations()) == {
+        "versions": ["103"]
+    }
+    payload = routes.public_vep_reference_read("103", service=sdk_fixtures.public_operations())
     PublicVepReferencePayload.model_validate(payload)
     assert not {"_id", "created_by", "created_on", "private_field"} & payload.keys()
     assert payload["consequence_diagram"]["release"] == "103"
     with pytest.raises(AppError) as error:
-        routes.public_vep_reference_read("999")
+        routes.public_vep_reference_read("999", service=sdk_fixtures.public_operations())
     assert error.value.status_code == 404
 
 
@@ -123,13 +127,15 @@ def test_binary_endpoint_is_release_scoped_and_metadata_has_no_image_bytes(monke
     repository.adapter = SimpleNamespace(vep_diagrams_collection=database.vep_diagrams)
     service = object.__new__(PublicCatalogService)
     service.vep_metadata_repository = repository
-    monkeypatch.setattr(routes, "get_public_catalog_service", lambda: service)
+    monkeypatch.setattr(services, "get_public_catalog_service", lambda: service)
     import hashlib
 
     for row in rows:
-        response = routes.public_vep_diagram_read(row["vep_id"])
+        response = routes.public_vep_diagram_read(
+            row["vep_id"], service=sdk_fixtures.public_operations()
+        )
         assert hashlib.sha256(response.body).hexdigest() == row["consequence_diagram"]["sha256"]
         assert response.headers["x-content-type-options"] == "nosniff"
         assert "data_base64" not in json.dumps(repository.get_public_reference(row["vep_id"]))
     with pytest.raises(AppError):
-        routes.public_vep_diagram_read("999")
+        routes.public_vep_diagram_read("999", service=sdk_fixtures.public_operations())

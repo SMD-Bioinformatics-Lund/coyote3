@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 
-from api.config.loaders.collections import load_collection_mapping
+from api.config.collections import load_collection_mapping
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
 from api.infra.mongo.index_management import build_index_plan, retire_index
 from api.infra.mongo.repositories.assay_setup import AssaySetupRepository
@@ -58,6 +58,7 @@ def adapter_for(repository: FakeRepository):
     security_collections = {
         "api_sessions": FakeCollection("api_sessions", []),
         "audit_events": FakeCollection("audit_events", []),
+        "operational_audit_events": FakeCollection("operational_audit_events", []),
         "app_controls": FakeCollection("app_controls", []),
         "report_artifact_erasure": FakeCollection("report_artifact_erasure", []),
     }

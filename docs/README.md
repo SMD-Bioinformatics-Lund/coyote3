@@ -9,7 +9,7 @@ assay configuration, access management, integration, deployment, and operations.
 | Task | Start here |
 | --- | --- |
 | Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
-| Install at a new center | [First installation](deployment/first-installation.md), then the [installation checklist](deployment/installation-checklist.md) |
+| Install at a new center | [First installation](deployment/first-installation.md), then the [deployment acceptance checklist](deployment/acceptance-checklist.md) |
 | Understand an environment file, setting or input format | [Configuration and file formats](configuration/README.md) |
 | Update or restart an existing installation | [Choose a procedure](deployment/production-deployment.md) |
 | Migrate an existing Coyote v2 database | [Migration from v2](migration_from_v2/README.md) |
@@ -20,6 +20,7 @@ assay configuration, access management, integration, deployment, and operations.
 | Plan a clinical configuration change | [Planning configuration changes](administration/planning-configuration-changes.md) |
 | Submit samples from a pipeline or client | [Sample ingestion API](api/sample-ingestion.md) and [sample manifest](reference/sample-manifest.md) |
 | Change or extend the application | [Developer guide](development/developer-guide.md) |
+| Use Python operations, build a host or release the SDK | [SDK guides](sdk/README.md) |
 | Investigate an installed-system failure | [Operations troubleshooting](operations/troubleshooting.md) |
 | Investigate an accepted or failed ingest job | [Ingest job recovery](operations/ingest-job-recovery.md) |
 
@@ -29,8 +30,9 @@ assay configuration, access management, integration, deployment, and operations.
 | --- | --- |
 | [getting-started/](getting-started/README.md) | Entry point for evaluation, first installation, upgrades, redeployment and configuration references. |
 | [user-guide/](user-guide/README.md) | Clinical review, samples, coverage, dashboards, pages, and controls. |
-| [administration/](administration/README.md) | Users, access, assay groups, subpanels, clinical configuration, and catalog publication. |
+| [administration/](administration/README.md) | Users, access, assay groups, diagnoses, clinical configuration, and catalog publication. |
 | [api/](api/README.md) | Authentication, HTTP routes, ingestion, collection imports, and compatibility. |
+| [sdk/](sdk/README.md) | Python installation, local operations, remote client, host development, reference and independent versions. |
 | [architecture/](architecture/README.md) | Components, resource relationships, clinical data flow, security, and design decisions. |
 | [deployment/](deployment/README.md) | Installation and infrastructure source guides, grouped under Getting started in the site. |
 | [configuration/](configuration/README.md) | File syntax, supported fields, defaults, examples and links to clinical resource contracts. |
@@ -46,7 +48,7 @@ assay configuration, access management, integration, deployment, and operations.
 
 - [Samples and clinical review](user-guide/sample-management.md)
 - [Assays, configurations, and gene lists](user-guide/gene-lists-and-assay-context.md)
-- [Assay groups](administration/assay-groups.md) and [subpanels](administration/assay-subpanels.md)
+- [Assay groups](administration/assay-groups.md) and [diagnoses](administration/assay-diagnoses.md)
 - [Report preview and save](user-guide/application-guide.md#reports)
 - [Raw ingest files and examples](reference/ingest-files/README.md)
 - [Clinical concepts and resource identities](reference/clinical-concepts.md): ASP,

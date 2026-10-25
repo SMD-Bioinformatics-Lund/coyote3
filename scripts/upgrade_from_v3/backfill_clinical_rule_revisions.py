@@ -15,11 +15,11 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.config.loaders.collections import load_collection_section  # noqa: E402
-from api.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from api.config.collections import load_collection_section  # noqa: E402
 from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
 )
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

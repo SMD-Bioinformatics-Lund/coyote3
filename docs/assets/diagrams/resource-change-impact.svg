@@ -154,9 +154,9 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="240" y="290" text-anchor="middle" class="entity-detail">Does not rewrite child statuses</text>
   </g>
   <g data-node="1" data-left="520" data-top="139" data-right="840" data-bottom="328" class="entity purple">
-    <title>Subpanel availability change</title>
+    <title>Diagnosis availability change</title>
     <use href="#icon-pen" x="651" y="144" width="58" height="58" aria-hidden="true" />
-    <text x="680" y="229" text-anchor="middle" class="entity-title">Subpanel availability change</text>
+    <text x="680" y="229" text-anchor="middle" class="entity-title">Diagnosis availability change</text>
     <text x="680" y="254" text-anchor="middle" class="entity-detail">Shared definition has global</text>
     <text x="680" y="272" text-anchor="middle" class="entity-detail">status</text>
     <text x="680" y="290" text-anchor="middle" class="entity-detail">Each assay link has its own status</text>

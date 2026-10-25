@@ -10,7 +10,10 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pytest
 from fastapi import HTTPException
 
-from api.interfaces.http.operations import internal
+from api.interfaces.http.v1.operations import internal
+from api.security import access
+from coyote3.application.ingest.service import InternalIngestService
+from tests.fixtures.api import application_sdk as sdk_fixtures
 
 
 def _admin_user():
@@ -80,18 +83,10 @@ def _ingest_service_stub(**methods):
 
 
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
-    """Test get role levels internal returns id to level map.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {"token": 0}
 
     monkeypatch.setattr(
-        internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
+        access, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
     )
     monkeypatch.setattr(
         internal.util,
@@ -103,7 +98,12 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
         get_all_roles=lambda: [{"role_id": "admin", "level": 99}, {"role_id": "viewer"}]
     )
 
-    payload = internal.get_role_levels_internal(request=object(), roles_repository=roles_repository)
+    payload = internal.get_role_levels_internal(
+        request=object(),
+        service=sdk_fixtures.internal_reference_operations(
+            roles=roles_repository, request=object()
+        ),
+    )
 
     assert calls["token"] == 1
     assert payload["status"] == "ok"
@@ -111,18 +111,10 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
 
 
 def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
-    """Test get isgl meta internal reads adhoc and display name.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
     calls = {"token": 0}
 
     monkeypatch.setattr(
-        internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
+        access, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
     )
     monkeypatch.setattr(
         internal.util,
@@ -136,7 +128,11 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
     )
 
     payload = internal.get_isgl_meta_internal(
-        "isgl123", request=object(), gene_list_repository=gene_list_repository
+        "isgl123",
+        request=object(),
+        service=sdk_fixtures.internal_reference_operations(
+            gene_lists=gene_list_repository, request=object()
+        ),
     )
 
     assert calls["token"] == 1
@@ -176,14 +172,14 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
         sample={
             "name": "S1",
             "asp_id": "assay_1",
-            "subpanel_id": None,
+            "diagnosis_id": None,
             "environment": "testing",
             "genome_build": 38,
             "case_id": "CASE_1",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipe",
             "pipeline_version": "v1",
             "vcf_files": "/tmp/a.vcf",
@@ -193,7 +189,9 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     response = internal.ingest_sample_bundle_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=_ingest_service_stub(ingest_sample_bundle=_ingest),
+        ingest_service=sdk_fixtures.ingestion_operations(
+            _ingest_service_stub(ingest_sample_bundle=_ingest), _admin_user()
+        ),
     )
 
     assert calls["payload"]["name"] == "S1"
@@ -230,7 +228,7 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     response = internal.ingest_sample_bundle_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
 
     assert response["sample_name"] == "S2"
@@ -243,7 +241,7 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         internal.ingest_sample_bundle_internal(
             payload=empty_payload,
             user=_admin_user(),
-            ingest_service=_ingest_service_stub(),
+            ingest_service=sdk_fixtures.ingestion_operations(_ingest_service_stub(), _admin_user()),
         )
         assert False, "Expected HTTPException for empty payload"
     except HTTPException as exc:
@@ -254,13 +252,13 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         sample={
             "name": "X",
             "asp_id": "assay_1",
-            "subpanel_id": None,
+            "diagnosis_id": None,
             "environment": "testing",
             "case_id": "CASE_X",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipe",
             "pipeline_version": "v1",
             "vcf_files": "/tmp/x.vcf",
@@ -271,7 +269,7 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         internal.ingest_sample_bundle_internal(
             payload=dual_payload,
             user=_admin_user(),
-            ingest_service=_ingest_service_stub(),
+            ingest_service=sdk_fixtures.ingestion_operations(_ingest_service_stub(), _admin_user()),
         )
         assert False, "Expected HTTPException for duplicate payload forms"
     except HTTPException as exc:
@@ -281,11 +279,6 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
 def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_update(monkeypatch):
     """Test update mode requires authenticated user with sample:edit:own permission."""
     calls = {"enforced": 0, "allow_update": None}
-    monkeypatch.setattr(
-        internal,
-        "_enforce_access",
-        lambda _user, permission=None, context=None: calls.__setitem__("enforced", 1),
-    )
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -308,13 +301,13 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
         sample={
             "name": "S3",
             "asp_id": "assay_1",
-            "subpanel_id": None,
+            "diagnosis_id": None,
             "environment": "testing",
             "case_id": "CASE_3",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipe",
             "pipeline_version": "v1",
             "vcf_files": "/tmp/s3.vcf",
@@ -324,7 +317,9 @@ def test_ingest_sample_bundle_internal_requires_sample_edit_own_permission_for_u
     response = internal.ingest_sample_bundle_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=_ingest_service_stub(ingest_sample_bundle=_ingest),
+        ingest_service=sdk_fixtures.ingestion_operations(
+            _ingest_service_stub(ingest_sample_bundle=_ingest), _admin_user()
+        ),
     )
     assert calls["enforced"] == 0
     assert calls["allow_update"] is True
@@ -351,11 +346,10 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         collection="hgnc_genes",
         document={"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
     )
-    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     response = internal.ingest_collection_document_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 1
@@ -384,11 +378,10 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
             {"hgnc_id": "HGNC:6", "hgnc_symbol": "A1CF"},
         ],
     )
-    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     response = internal.ingest_collection_documents_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 2
@@ -408,7 +401,7 @@ def test_list_supported_ingest_collections_internal(monkeypatch):
 
     response = internal.list_supported_ingest_collections_internal(
         _user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["status"] == "ok"
     assert response["collections"] == ["asp_configs", "hgnc_genes", "samples"]
@@ -421,7 +414,6 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
         upsert_collection_document=lambda *, collection, match, document, upsert=False, ingested_by: {
             "status": "ok",
@@ -440,7 +432,7 @@ def test_upsert_collection_document_internal_forwards_payload(monkeypatch):
     response = internal.upsert_collection_document_internal(
         payload=payload,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["collection"] == "asp_configs"
     assert response["matched_count"] == 1
@@ -456,7 +448,7 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(
-        internal.InternalIngestService,
+        InternalIngestService,
         "parse_yaml_payload",
         lambda _text: {
             "name": "UPLOAD_SAMPLE",
@@ -466,8 +458,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "vcf_files": "generic_case_control.final.filtered.vcf",
@@ -497,8 +489,8 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "files": {
@@ -522,7 +514,7 @@ def test_ingest_sample_bundle_upload_internal_stages_files(monkeypatch):
         update_existing=False,
         increment=True,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["status"] == "ok"
     payload = calls["payload"]
@@ -554,8 +546,8 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(tmp_path, hos
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "vcf_files": str(host_file),
@@ -572,7 +564,7 @@ def test_ingest_sample_bundle_upload_internal_rejects_missing_file(tmp_path, hos
             increment=True,
             acknowledge=False,
             user=_admin_user(),
-            ingest_service=ingest_service,
+            ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
         )
     assert exc_info.value.status_code == 400
     assert "Missing required files for YAML references" in str(exc_info.value)
@@ -611,8 +603,8 @@ def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_f
             "case_id": "CASE_UPLOAD",
             "sample_no": 1,
             "paired": False,
-            "sequencing_scope": "panel",
-            "omics_layer": "dna",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
             "pipeline": "pipeline",
             "pipeline_version": "v1",
             "vcf_files": "/unavailable/required.vcf",
@@ -632,7 +624,7 @@ def test_ingest_sample_bundle_upload_internal_allows_missing_declared_optional_f
         increment=True,
         acknowledge=False,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert result["status"] == "ok"
     assert "transloc" not in calls["payload"]
@@ -645,7 +637,7 @@ def test_ingest_sample_bundle_upload_internal_acknowledges_failures(monkeypatch)
         parse_yaml_payload=lambda _text: {
             "name": "UPLOAD_SAMPLE",
             "asp_id": "assay_1",
-            "omics_layer": "dna",
+            "asp_category": "dna",
             "vcf_files": "required.vcf",
         },
         _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
@@ -659,7 +651,7 @@ def test_ingest_sample_bundle_upload_internal_acknowledges_failures(monkeypatch)
         update_existing=False,
         increment=False,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
 
     assert response == {
@@ -680,7 +672,6 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
         insert_collection_document=lambda *, collection, document, ignore_duplicate=False, ingested_by: {
             "status": "ok",
@@ -699,7 +690,7 @@ def test_ingest_collection_upload_internal_insert(monkeypatch):
         documents_file=upload,
         match_json=None,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["status"] == "ok"
     assert response["collection"] == "users"
@@ -715,7 +706,6 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
         SimpleNamespace(convert_to_serializable=lambda payload: payload),
         raising=False,
     )
-    monkeypatch.setattr(internal, "_enforce_collection_permission", lambda **_: None)
     ingest_service = _ingest_service_stub(
         insert_collection_documents=lambda *, collection, documents, ignore_duplicates=False, ingested_by: {
             "status": "ok",
@@ -733,7 +723,7 @@ def test_ingest_collection_upload_internal_bulk(monkeypatch):
         documents_file=upload,
         match_json=None,
         user=_admin_user(),
-        ingest_service=ingest_service,
+        ingest_service=sdk_fixtures.ingestion_operations(ingest_service, _admin_user()),
     )
     assert response["status"] == "ok"
     assert response["collection"] == "roles"
@@ -760,7 +750,7 @@ def test_ingest_collection_upload_internal_upsert_requires_match_json(monkeypatc
             documents_file=upload,
             match_json=None,
             user=_admin_user(),
-            ingest_service=_ingest_service_stub(),
+            ingest_service=sdk_fixtures.ingestion_operations(_ingest_service_stub(), _admin_user()),
         )
     assert exc_info.value.status_code == 400
     assert "match_json" in str(exc_info.value)

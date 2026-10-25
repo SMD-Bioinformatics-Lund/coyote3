@@ -484,7 +484,7 @@ Pipeline identity fields are normalized before any ASP/ASPC lookup:
 | Pipeline field | Internal field | Notes |
 | --- | --- | --- |
 | `assay` | `asp_id` | Normalized to the canonical lowercase ASP identifier. |
-| `subpanel` | `subpanel_id` | Normalized to the canonical lowercase subpanel identifier. |
+| `diagnosis` | `diagnosis_id` | Normalized to the canonical lowercase diagnosis identifier. |
 | `profile` | `environment` | Normalized as the environment identifier. |
 | `sequencing_technology` | `platform` | Normalized against configured platform values. |
 
@@ -594,10 +594,10 @@ Behavior:
 
 Seed source policy for a new deployment:
 
-- The application-owned RBAC catalog is `api/config/bootstrap/rbac`. It installs
+- The application-owned RBAC catalog is `api/bootstrap/catalogs/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
   direct bootstrap or explicit catalog synchronization.
-- `api/config/bootstrap/demo_center` provides synthetic ASP, ASPC, and ISGL
+- `api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
 - HGNC and VEP metadata are bundled release snapshots. The optional
@@ -617,8 +617,8 @@ Validate assay consistency before ingesting sample bundles:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/config/bootstrap/demo_center \
-  --yaml demo_data/ingest/generic_case_control.yaml
+  --seed-file api/bootstrap/catalogs/demo_center \
+  --yaml tests/fixtures/ingest/generic_case_control.yaml
 ```
 
 This validator checks:
@@ -738,7 +738,7 @@ curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   "yaml_content": $(${PYTHON_BIN:-python} - <<'PY'
 import json
 from pathlib import Path
-print(json.dumps(Path("demo_data/ingest/generic_case_control.yaml").read_text(encoding="utf-8")))
+print(json.dumps(Path("tests/fixtures/ingest/generic_case_control.yaml").read_text(encoding="utf-8")))
 PY
   ),
   "update_existing": false
@@ -756,14 +756,14 @@ Command (multipart upload mode):
 
 ```bash
 zip -j sample_bundle.zip \
-  demo_data/ingest/generic_case_control.final.filtered.vcf \
-  demo_data/ingest/generic_case_control.cnvs.merged.json \
-  demo_data/ingest/generic_case_control.cov.json \
-  demo_data/ingest/generic_case_control.modeled.png
+  tests/fixtures/ingest/generic_case_control.final.filtered.vcf \
+  tests/fixtures/ingest/generic_case_control.cnvs.merged.json \
+  tests/fixtures/ingest/generic_case_control.cov.json \
+  tests/fixtures/ingest/generic_case_control.modeled.png
 
 curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  -F "yaml_file=@demo_data/ingest/generic_case_control.yaml;type=text/yaml" \
+  -F "yaml_file=@tests/fixtures/ingest/generic_case_control.yaml;type=text/yaml" \
   -F "data_archive=@sample_bundle.zip;type=application/zip" \
   -F "increment=true" \
   -F "update_existing=false"
@@ -867,14 +867,14 @@ Use this as the minimum deployment contract:
 | `permissions` | `permission_id` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
 | `users` | `username`, `email`, `roles[]`, `environments[]` | Login + authorization subject (the first superuser is created by `bootstrap/bootstrap_database.py`) |
-| `asp_configs` | `aspc_id`, `asp_id`, `subpanel_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+subpanel+environment runtime config |
+| `asp_configs` | `aspc_id`, `asp_id`, `diagnosis_id`, `environment`, `asp_group`, `asp_category`, `analysis_types[]`, `display_name`, `filters{...}`, `reporting{...}`, `is_active`, `version` | Assay+diagnosis+environment runtime config |
 | `assay_specific_panels` | `asp_id`, `asp_group`, `asp_family`, `asp_category`, `display_name`, `expected_files[]`, `required_files[]`, `is_active` | Assay metadata and declared file requirements |
 | `insilico_genelists` | `isgl_id`, `diagnosis[]`, `asp_ids[]`, `asp_groups[]`, `list_type[]`, `genes[]`, `is_active` | In-silico gene-list filtering logic |
 | `hgnc_genes` | `hgnc_id`, `hgnc_symbol` | Gene metadata and symbol mapping |
 
 Managed-admin form source:
 
-- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
+- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`src/coyote3/contracts/authoring/forms.py`).
 - ASP, ASPC, and ISGL start at `version: 1`. Each edit writes a successor
   document with the same business identifier and the next version, then retires
   the previous active revision. Users, roles, and permissions instead update in
@@ -885,12 +885,13 @@ Assay-group contract:
 
 - `asp_group` is a stable identifier registered in the application's
   [`assay_groups` collection](../administration/assay-groups.md).
-- Bundled system groups are `tumwgs`, `wts`, `hematology`, `myeloid`, `lymphoid`,
-  `solid`, `fusion`, and `pgx`; administrators can register additional groups.
+- Bundled groups are `hematology`, `solid`, and `pgx`. The `myeloid` and
+  `lymphoid` groups are retained for legacy samples. Administrators can register
+  additional biological or clinical-domain groups. WGS, WTS and fusion are not groups.
 - `asp_family` is separate: use `panel-dna`, `panel-rna`, `wgs`, or `wts` for
   sequencing-design classification. `asp_category` is separately `dna` or
-  `rna`, and `subpanel_id` identifies the in-silico target subset within the
-  selected design panel.
+  `rna`. Shared `diagnosis_id` definitions can be explicitly associated with
+  several panel or whole-genome assays.
 - Register the group before creating an ASP. ASPCs use their parent ASP's group.
 - Adding a group does not rewrite clinical records or introduce custom query logic.
 
@@ -909,7 +910,7 @@ Other fixed admin/runtime vocabularies:
   - `development`
   - `testing`
   - `validation`
-- sample `sequencing_scope`:
+- sample `asp_family`:
   - `panel`
   - `wgs`
   - `wts`
@@ -943,14 +944,14 @@ Other fixed admin/runtime vocabularies:
 
 ```json
 {
-  "yaml_content": "name: seed_sample\nassay: assay_1\nsubpanel: base\nprofile: production\n...",
+  "yaml_content": "name: seed_sample\nassay: assay_1\ndiagnosis: base\nprofile: production\n...",
   "update_existing": false,
   "increment": false
 }
 ```
 
 Use the raw, flat pipeline manifest format documented in the DNA and RNA
-manifest sections. The service resolves `assay`, `subpanel`, and `profile` to
+manifest sections. The service resolves `assay`, `diagnosis`, and `profile` to
 the active ASPC for analysis filters and policy snapshots. File acceptance and
 mandatory inputs come exclusively from the active ASP's `expected_files` and
 `required_files`. ASPC `analysis_types` neither adds required files nor overrides
@@ -985,8 +986,8 @@ belong to [administration](../administration/administration-guide.md).
 
 ## Test fixtures for ingestion
 
-- `demo_data/ingest/*`
-- `demo_data/collections/all_collections_dummy` (automated tests only; not a deployment seed)
+- `tests/fixtures/ingest/*`
+- `tests/fixtures/collections/all_collections_dummy` (automated tests only; not a deployment seed)
 
 ## Client example (Python)
 
@@ -1000,7 +1001,7 @@ base = os.environ["PUBLIC_BASE_URL"].rstrip("/")
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {
-    "yaml_content": Path("demo_data/ingest/generic_case_control.yaml").read_text(),
+    "yaml_content": Path("tests/fixtures/ingest/generic_case_control.yaml").read_text(),
     "update_existing": False,
     "increment": False,
 }
@@ -1022,8 +1023,8 @@ print(response.json())
 | `Seed contract-shape errors` | Seed files contain invalid document shape/metadata typing | Keep each collection file as `list[object]`, use ISO-8601 datetimes, numeric `version`, and plain JSON scalar values |
 | `Unknown assay references in seed` | Seed collections use assay IDs not present in ASPC/panel/ISGL docs | Align assay IDs across `asp_configs`, `assay_specific_panels`, `insilico_genelists` |
 | `Bootstrap dependency errors` | Missing required baseline collection docs or broken refs | Populate required collections in onboarding order |
-| `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched ASP/subpanel/environment | Ensure the active ASPC has the matching `asp_id`, `subpanel_id`, and `environment`, then keep the manifest `assay`, `subpanel`, and `profile` aligned |
+| `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched ASP/diagnosis/environment | Ensure the active ASPC has the matching `asp_id`, `diagnosis_id`, and `environment`, then keep the manifest `assay`, `diagnosis`, and `profile` aligned |
 | `No DB document model registered` | Unsupported collection name in ingest request | Use `/api/v1/internal/ingest/collections` and correct `collection` |
 | `diagnosis must include at least one value` | ISGL payload missing diagnosis | Provide non-empty `diagnosis` list/string |
-| `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Use the center ASPC identifier format and keep `environment`, `asp_id`, and `subpanel_id` aligned with the document identity |
+| `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Use the center ASPC identifier format and keep `environment`, `asp_id`, and `diagnosis_id` aligned with the document identity |
 | `403 Forbidden` on update mode | User missing `sample:edit:own` permission | Add `sample:edit:own` to an assigned role |

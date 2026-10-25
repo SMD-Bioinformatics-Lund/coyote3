@@ -5,13 +5,23 @@ from urllib.parse import unquote
 
 from bson import ObjectId
 
-from api.config.constants import SUBPANEL_BASE_ID
 from api.infra.mongo.repository_utils import literal_text_query
 
 
-def _named_subpanel(value: str | None) -> bool:
-    """Require exact subpanel matching unless the sample uses the implicit Base scope."""
-    return bool(value and value.strip() and value.strip().lower() != SUBPANEL_BASE_ID)
+def annotation_visibility_query(environment: str | None) -> dict[str, Any]:
+    """Select namespaces permitted by the sample environment.
+
+    Args:
+        environment: Sample environment; production or None permits clinical records only.
+
+    Returns:
+        Production reads clinical records; nonproduction reads both namespaces.
+    """
+    if environment in (None, "production"):
+        return {"namespace": "clinical"}
+    if environment not in {"development", "testing", "validation"}:
+        raise ValueError("Unrecognized annotation lookup environment")
+    return {"namespace": {"$in": ["clinical", "sandboxed"]}}
 
 
 def _annotation_object_id(oid: object) -> ObjectId | None:
@@ -41,7 +51,7 @@ def _annotation_search_query(
 
     exact = str(search_str).strip()
     gene_exact = exact.upper()
-    subpanel_exact = exact.lower()
+    diagnosis_exact = exact.lower()
     contains = literal_text_query(search_str, contains=True)
     mode = str(search_mode or "variant").lower()
     variant_fields = (
@@ -72,8 +82,8 @@ def _annotation_search_query(
         query = {"$or": [{field: exact} for field in variant_fields]}
     elif mode == "author":
         query = {"author": contains}
-    elif mode == "subpanel":
-        query = {"subpanel": subpanel_exact}
+    elif mode == "diagnosis":
+        query = {"diagnosis_id": diagnosis_exact}
     elif mode == "annotation":
         query = {"text": contains}
     elif mode == "all":
@@ -82,7 +92,7 @@ def _annotation_search_query(
                 {"gene": gene_exact},
                 {"transcript": exact},
                 {"author": contains},
-                {"subpanel": subpanel_exact},
+                {"diagnosis_id": diagnosis_exact},
                 {"text": contains},
                 {"gene1": gene_exact},
                 {"gene2": gene_exact},
@@ -92,12 +102,12 @@ def _annotation_search_query(
     else:
         return None
 
-    query_parts = [query]
+    query_parts = [query, {"namespace": "clinical"}]
     if not include_annotation_text and mode != "annotation":
         query_parts.append({"$or": [{"text": {"$exists": False}}, {"text": None}, {"text": ""}]})
 
     if asp_ids:
-        query_parts.append({"assay": {"$in": asp_ids}})
+        query_parts.append({"asp_group": {"$in": asp_ids}})
     if nomenclatures:
         query_parts.append({"nomenclature": {"$in": nomenclatures}})
 
@@ -146,7 +156,16 @@ def _classification_text_lookup_query(annotation: dict[str, Any]) -> dict[str, A
         "text": {"$exists": True, "$type": "string", "$ne": ""},
     }
 
-    for key in ("gene", "gene1", "gene2", "transcript", "assay", "subpanel"):
+    for key in (
+        "gene",
+        "gene1",
+        "gene2",
+        "transcript",
+        "asp_group",
+        "diagnosis_id",
+        "asp_id",
+        "namespace",
+    ):
         if annotation.get(key) is not None:
             query[key] = annotation.get(key)
 

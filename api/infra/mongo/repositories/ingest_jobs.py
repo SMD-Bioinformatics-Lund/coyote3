@@ -6,8 +6,8 @@ from uuid import uuid4
 from pymongo import ReturnDocument
 from pymongo.write_concern import WriteConcern
 
-from api.contracts.schemas.ingest_jobs import IngestJobDoc
 from api.infra.mongo.repositories.base import BaseRepository
+from coyote3.contracts.schemas.ingest_jobs import IngestJobDoc
 
 
 class IngestJobsRepository(BaseRepository):

@@ -8,15 +8,15 @@ from typing import Any
 from bson import ObjectId
 from pymongo.write_concern import WriteConcern
 
-from api.config.contracts.application import OPERATIONAL_COLLECTIONS
 from api.config.mongo import MongoEndpoint, mongo_uri
-from api.config.security import get_runtime_environment
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.mongo.repositories.audit_integrity import append_event
 from api.infra.mongo.transactions import run_transaction
-from api.infra.observability.audit import safe_audit_metadata
 from api.infra.observability.logging import current_request_context
-from api.infra.observability.redaction import redact_diagnostics
-from api.infra.request_context import current_user, current_username
+from coyote3.application.audit.metadata import safe_audit_metadata
+from coyote3.application.common.execution_context import current_user, current_username
+from coyote3.config.policy import get_runtime_environment
+from coyote3.domain.common.diagnostics import redact_diagnostics
 
 
 def audit_route(config: Any) -> str:

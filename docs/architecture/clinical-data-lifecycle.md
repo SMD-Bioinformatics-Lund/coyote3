@@ -10,11 +10,11 @@ This separation keeps sample lists efficient, permits independent server-side fi
 
 ## From manifest to ready sample
 
-A completed YAML manifest is the ingest declaration. Pipeline keys such as assay, subpanel, and profile are normalized to asp_id, subpanel_id, and environment before configuration is resolved. Canonical identifiers are lower-case join keys; display labels remain human-facing values.
+A completed YAML manifest is the ingest declaration. Pipeline keys such as assay, diagnosis, and profile are normalized to asp_id, diagnosis_id, and environment before configuration is resolved. Canonical identifiers are lower-case join keys; display labels remain human-facing values.
 
 1. A watch-folder task or authorized internal request receives a manifest.
 2. The service validates identity, case/control structure, omics layer, platform, sequencing scope, and the declared file-key family against SamplesDoc.
-3. It resolves the active ASP from assay_specific_panels and the active ASPC from asp_configs using asp_id, subpanel_id, and environment. If the requested subpanel configuration is absent, the configured base ASPC is resolved and the sample records that base configuration is in use.
+3. It resolves the active ASP from assay_specific_panels and the active ASPC from asp_configs using asp_id, diagnosis_id, and environment. If the requested diagnosis configuration is absent, the configured base ASPC is resolved and the sample records that base configuration is in use.
 4. The ASP defines accepted and required file keys. The ASPC defines enabled analysis types. ASPC analysis selection does not add mandatory files. Missing or unreadable optional expected resources are skipped and recorded in `missing_expected_files`. Every readable database-backed resource passed to a parser must parse, validate, and persist successfully.
 5. The DNA or RNA parser reads declared files into an internal preload payload. Parsers never write directly to MongoDB.
 6. Every database-backed payload is normalized through the Pydantic collection registry. The sample anchor, declared evidence, ready state, and async completion receipt commit in one required MongoDB transaction.
@@ -29,7 +29,7 @@ A completed YAML manifest is the ingest declaration. Pipeline keys such as assay
 
 ## Configured file ownership
 
-The center-configurable mapping is in api/config/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
+The center-configurable mapping is in config/examples/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
 
 | Omics layer | Analysis type | Default manifest key | Internal preload | Persistent destination |
 | --- | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ Manifest names are center-configurable. Internal preload names are application c
 
 ## Storage contract by artifact
 
-Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through api/contracts/schemas/registry.py.
+Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through src/coyote3/contracts/schemas/registry.py.
 
 | Collection | One document per | Stored content | How it is fetched |
 | --- | --- | --- | --- |
@@ -242,17 +242,17 @@ The sample filter state stores applied ISGL identities. Each analysis consumes o
 
 | Analysis | Applied list type | Fallback with no attached list |
 | --- | --- | --- |
-| Small variants | SNV | ASP covered_genes; no gene restriction when empty |
-| CNVs | CNV | ASP covered_genes; no gene restriction when empty |
-| DNA translocations | translocation or fusion | ASP covered_genes; no gene restriction when empty |
-| RNA fusions | fusion | ASP covered_genes; no gene restriction when empty |
+| Small variants | SNV | ASP covered_genes; no findings when empty |
+| CNVs | CNV | ASP covered_genes; no findings when empty |
+| DNA translocations | translocation or fusion | ASP covered_genes; no findings when empty |
+| RNA fusions | fusion | ASP covered_genes; no findings when empty |
 | Expression | expression | ASP or analysis-specific configured scope |
 
 An ISGL can declare multiple list types and be selectable for several analyses. It filters an analysis only when that analysis-specific filter has applied it. Selecting an SNV list therefore does not filter CNVs or fusions.
 
 ## Reporting, rollback, and deletion
 
-Review actions update the active analysis record and create their audit events. Reusable tiered annotations live in annotation; reported_variants records freeze the subset attached to a saved report. The report service receives filtered findings, biomarkers, coverage, applied gene lists, ASP, and ASPC, then resolves the active published rule set by assay, subpanel, analyte, and reporting language, trying the exact scope before the same assay's Base scope. It does not parse report-rule files or broaden the prepared finding set.
+Review actions update the active analysis record and create their audit events. Reusable tiered annotations live in annotation; reported_variants records freeze the subset attached to a saved report. The report service receives filtered findings, biomarkers, coverage, applied gene lists, ASP, and ASPC, then resolves the active published rule set by assay, diagnosis, analyte, and reporting language, trying the exact scope before the same assay's Base scope. It does not parse report-rule files or broaden the prepared finding set.
 
 Annotation persistence uses one flat, validated contract. Current finding
 fields are translated at the classification boundary, then only canonical

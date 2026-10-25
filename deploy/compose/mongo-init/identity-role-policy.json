@@ -1,0 +1,262 @@
+{
+  "identity_role": {
+    "privileges": [
+      {
+        "actions": [
+          "find",
+          "insert",
+          "update",
+          "remove",
+          "createIndex",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "api_sessions",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "update",
+          "remove",
+          "createIndex",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "permissions",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "update",
+          "remove",
+          "createIndex",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "roles",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "update",
+          "remove",
+          "createIndex",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "users",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "update"
+        ],
+        "resource": {
+          "collection": "audit_chain_heads",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "remove"
+        ],
+        "resource": {
+          "collection": "audit_outbox",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "remove",
+          "createIndex",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "operational_audit_events",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "audit_events",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "listCollections"
+        ],
+        "resource": {
+          "collection": "",
+          "db": "identity"
+        }
+      }
+    ],
+    "role": "coyote3_runtime_identity",
+    "roles": []
+  },
+  "indexes": [
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "source.environment",
+          1
+        ],
+        [
+          "occurred_at",
+          1
+        ],
+        [
+          "_id",
+          1
+        ]
+      ],
+      "name": "idx_audit_notification_cursor"
+    },
+    {
+      "collection": "audit_events",
+      "expireAfterSeconds": 0,
+      "fields": [
+        [
+          "expires_at",
+          1
+        ]
+      ],
+      "name": "ttl_audit_expiry"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_occurred_at"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "integrity.chain_id",
+          1
+        ],
+        [
+          "integrity.sequence",
+          1
+        ]
+      ],
+      "name": "uniq_audit_chain_sequence",
+      "partialFilterExpression": {
+        "integrity.version": 1
+      },
+      "unique": true
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "severity",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_severity_time"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "category",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_category_time"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "event_type",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_event_type_time"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "actor.username",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_actor_time"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "tags",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_tags_time"
+    },
+    {
+      "collection": "audit_events",
+      "fields": [
+        [
+          "retention_class",
+          1
+        ],
+        [
+          "occurred_at",
+          -1
+        ]
+      ],
+      "name": "idx_audit_retention_time"
+    }
+  ]
+}

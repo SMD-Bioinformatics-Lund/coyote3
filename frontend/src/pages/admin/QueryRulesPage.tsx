@@ -23,13 +23,13 @@ import { storedWidth } from "./rule-workspace-storage"
 
 type Analysis = "snv" | "cnv" | "translocation" | "fusion"
 type Exception = { id: string; mode: string; condition?: QueryCondition; [key: string]: unknown }
-type Scope = { assay_group: string | null; asp_id: string | null; subpanel_id: string | null; analysis: Analysis; intent: string }
+type Scope = { assay_group: string | null; asp_id: string | null; diagnosis_id: string | null; analysis: Analysis; intent: string; modality?: string | null; family?: string | null; environment?: string | null }
 type Content = { evidence_mode: string | null; exceptions: Exception[] | null; exception_mode?: "replace" | "extend" }
 type Draft = { name: string; reason: string; scope: Scope; content: Content }
 export type Rule = Draft & { _id: string; version: number; revision: number; status: "draft" | "approved" | "published" | "retired"; created_by: string; approved_by?: string; system_installed?: boolean }
-type Options = { groups: { id: string; name: string }[]; assays: { id: string; group: string; category: string; subpanels: string[] }[]; conditions?: QueryConditionCatalog }
+type Options = { groups: { id: string; name: string }[]; assays: { id: string; group: string; category: string; family?: string; diagnoses: string[] }[]; families?: { id: string; modality: string }[]; environments?: string[]; conditions?: QueryConditionCatalog }
 type Resolution = { evidence_mode: string | null; exceptions: Exception[]; lineage: { source: string; version: number | null; fields?: string[]; application?: string }[]; compiled_conditions?: { id: string; mode: string; predicate: unknown }[] }
-const initial = (): Draft => ({ name: "", reason: "", scope: { assay_group: "", asp_id: null, subpanel_id: null, analysis: "snv", intent: "somatic" }, content: { evidence_mode: null, exceptions: null } })
+const initial = (): Draft => ({ name: "", reason: "", scope: { assay_group: "", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic", modality: null, family: null, environment: null }, content: { evidence_mode: null, exceptions: null } })
 const fields: Record<Analysis, string[]> = {
   snv: ["genes", "consequence_terms", "filter_values", "chromosomes", "position_min", "position_max", "simple_ids", "info_fields_present", "alt_regex"],
   cnv: ["genes", "callers", "effects", "chromosomes", "size_min", "size_max"],
@@ -38,7 +38,7 @@ const fields: Record<Analysis, string[]> = {
 }
 const control = "rounded-md border border-input bg-background px-3 py-2 text-foreground"
 const label = (key: string) => key.replaceAll("_", " ").replace(/^./, text => text.toUpperCase())
-const queryId = (scope: Scope) => [scope.assay_group || "default", scope.asp_id || "all", scope.subpanel_id || "base", `${scope.intent}_${{ snv: "snvs", cnv: "cnvs", fusion: "fusions", translocation: "translocations" }[scope.analysis]}`].join("__")
+const queryId = (scope: Scope) => [scope.assay_group || "default", scope.asp_id || "all", scope.diagnosis_id || "base", `${scope.intent}_${{ snv: "snvs", cnv: "cnvs", fusion: "fusions", translocation: "translocations" }[scope.analysis]}`, ...(scope.family ? [scope.modality, scope.family] : []), ...(scope.environment ? [scope.environment] : [])].join("__")
 
 function InfoEqualityEditor({ value, onChange }: { value: Record<string, string | number | boolean>; onChange: (value: Record<string, string | number | boolean>) => void }) {
   const entries = Object.entries(value)
@@ -115,7 +115,16 @@ export function QueryRulesPage() {
       if (!selected) throw new Error("Select a saved version first")
       return (await api.post<Rule>(`/admin/query-rule-sets/${selected._id}/${action}`, { expected_revision: selected.revision, reason: draft.reason })).data
     },
-    onSuccess: result => { choose(result); void client.invalidateQueries({ queryKey: ["query-rules"] }); notifySuccess("Query policy saved", `${result.name} · ${result.status}`, "Query rules") },
+    onSuccess: result => {
+      choose(result)
+      void client.invalidateQueries({ queryKey: ["query-rules"] })
+      if (result.status === "published" || result.status === "retired") {
+        for (const key of ["sample-variants", "sample-cnvs", "sample-fusions", "sample-translocations", "sample-rna-analysis", "sample-comment-suggestion", "report-preview"]) {
+          void client.invalidateQueries({ queryKey: [key] })
+        }
+      }
+      notifySuccess("Query policy saved", `${result.name} · ${result.status}`, "Query rules")
+    },
     onError: error => notifyActionError("Unable to save query policy", error, "Query rules"),
   })
   const deletion = useMutation({
@@ -135,7 +144,7 @@ export function QueryRulesPage() {
     onSuccess: data => { if (data.generation === previewGeneration.current) { setBaseline(data.current); setPreview(data.proposed) } },
     onError: error => notifyActionError("Unable to preview query policy", error, "Query rules"),
   })
-  const scopeChange = (scope: Scope) => change({ ...draft, scope })
+  const scopeChange = (scope: Scope) => change({ ...draft, scope: { ...scope, ...(!scope.assay_group || scope.asp_id ? { modality: null, family: null } : {}) } })
   const exceptionChange = (index: number, value: Exception) => change({ ...draft, content: { ...draft.content, exceptions: draft.content.exceptions!.map((rule, i) => i === index ? value : rule) } })
   const changeExceptionMode = (mode: string) => {
     const run = () => change({ ...draft, content: { ...draft.content, exception_mode: mode === "extend" ? "extend" : "replace", exceptions: mode === "inherit" ? null : draft.content.exceptions ?? [] } })
@@ -143,7 +152,7 @@ export function QueryRulesPage() {
     else run()
   }
   const assays = (options.data?.assays ?? []).filter(a => a.group === draft.scope.assay_group && a.category === (draft.scope.analysis === "fusion" ? "rna" : "dna")).sort((a, b) => a.id.localeCompare(b.id))
-  const subpanels = [...new Set(assays.find(a => a.id === draft.scope.asp_id)?.subpanels ?? [])].filter(id => id !== "base").sort((a, b) => a.localeCompare(b))
+  const diagnoses = [...new Set(assays.filter(a => (!draft.scope.asp_id || a.id === draft.scope.asp_id) && (!draft.scope.family || a.family === draft.scope.family)).flatMap(a => a.diagnoses))].filter(id => id !== "base").sort((a, b) => a.localeCompare(b))
   const addCondition = () => {
     const catalog = options.data?.conditions
     if (!catalog) return
@@ -151,10 +160,10 @@ export function QueryRulesPage() {
   }
   const visibleRules = (list.data?.items ?? []).filter(rule => {
     const groupName = options.data?.groups.find(group => group.id === rule.scope.assay_group)?.name ?? ""
-    const searchable = [rule.name, groupName, rule.scope.assay_group, rule.scope.asp_id, rule.scope.subpanel_id, rule.scope.analysis, rule.scope.intent].join(" ").toLowerCase()
+    const searchable = [rule.name, groupName, rule.scope.assay_group, rule.scope.asp_id, rule.scope.diagnosis_id, rule.scope.analysis, rule.scope.intent, rule.scope.family, rule.scope.environment].join(" ").toLowerCase()
     return (!statusFilter || rule.status === statusFilter) && (!groupFilter || (rule.scope.assay_group ?? "__default__") === groupFilter) && searchable.includes(search.trim().toLowerCase())
   })
-  return <PageShell eyebrow="Finding selection" title="Query rules" description="Author, review and publish finding-selection policies for groups, assays and subpanels."
+  return <PageShell eyebrow="Finding selection" title="Query rules" description="Author, review and publish finding-selection policies for groups, assays and diagnoses."
     actions={<>{dirty && <Badge variant="outline">Unsaved</Badge>}{hasPermission(access, "query_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to={selected ? `/admin/query-rules/testing?version=${encodeURIComponent(selected._id)}` : "/admin/query-rules/testing"} />}><Beaker />Test rules</Button>}<Button variant="outline" onClick={() => selectVersion(null)} disabled={mutation.isPending || !hasPermission(access, "query_rules:draft")}><Plus />New scope version</Button></>}>
     {(list.isError || options.isError) && <p role="alert">Unable to load query rules. Refresh to retry.</p>}
     <div className={cn("query-rules-layout clinical-rules-workspace surface-panel overflow-hidden", listCollapsed && "is-rule-list-collapsed")} style={{ "--rule-list-width": `${listWidth}px`, "--preview-width": `${previewWidth}px` } as CSSProperties}>
@@ -172,7 +181,7 @@ export function QueryRulesPage() {
           <nav className="min-h-0 max-h-96 flex-1 overflow-y-auto p-2 xl:max-h-none" aria-label="Query rule sets">
             {list.isLoading ? <p className="p-3 type-body-sm text-muted-foreground">Loading…</p> : !list.data?.items.length ? <p className="p-3 type-body-sm text-muted-foreground">No published overrides. Default policies apply.</p> : !visibleRules.length ? <p className="p-3 type-body-sm text-muted-foreground">No versions match these filters.</p> : visibleRules.map(rule => <button type="button" key={rule._id} disabled={mutation.isPending} aria-pressed={selected?._id === rule._id} className={cn("mb-2 w-full rounded-lg border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60", selected?._id === rule._id ? "border-primary/40 bg-primary/10" : "border-border bg-card hover:border-primary/30 hover:bg-muted")} onClick={() => selectVersion(rule)}>
               <span className="block truncate type-body-sm font-semibold" title={rule.name}>{rule.name}</span>
-              <span className="mt-0.5 block truncate type-meta text-muted-foreground" title={`${rule.scope.assay_group ?? "All groups"} / ${rule.scope.asp_id ?? "All assays"} / ${rule.scope.subpanel_id ?? "All subpanels"}`}>{rule.scope.assay_group ?? "Default: all groups"} · {rule.scope.asp_id ?? "All assays"} · {rule.scope.subpanel_id ?? "All subpanels"}</span>
+              <span className="mt-0.5 block truncate type-meta text-muted-foreground" title={`${rule.scope.assay_group ?? "All groups"} / ${rule.scope.asp_id ?? "All assays"} / ${rule.scope.diagnosis_id ?? "All diagnoses"}`}>{rule.scope.assay_group ?? "Default: all groups"} · {rule.scope.asp_id ?? "All assays"} · {rule.scope.diagnosis_id ?? "All diagnoses"}</span>
               <span className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5"><span className="type-meta text-muted-foreground">{rule.scope.analysis.toUpperCase()} · {label(rule.scope.intent)}</span><ClinicalRuleStatusBadge status={rule.status} prefix={`v${rule.version} `} /></span>
               {rule.system_installed && <span className="mt-0.5 block"><RecordProvenance record={rule} /></span>}
             </button>)}
@@ -197,11 +206,11 @@ export function QueryRulesPage() {
         </nav>
         </div>
         <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {selected && <p className="type-supporting text-muted-foreground">The scope of a saved version is fixed. Select New scope version to choose another group, assay or subpanel.</p>}
+        {selected && <p className="type-supporting text-muted-foreground">The scope of a saved version is fixed. Select New scope version to choose another group, assay or diagnosis.</p>}
         {selected && selected.status !== "draft" && <Button disabled={!hasPermission(access, "query_rules:draft")} onClick={() => { setSelected(null); setDirty(true); setDraft({ ...draft, reason: "" }) }}>Copy to new draft version</Button>}
         {!editable && selected ? <section className="space-y-4" aria-label="Saved query definition">
           <dl hidden={activeSection !== "scope"} className="grid gap-3 rounded-lg border bg-background p-4 sm:grid-cols-2">
-            {Object.entries({ "Query ID": queryId(draft.scope), Analysis: draft.scope.analysis.toUpperCase(), Intent: label(draft.scope.intent), "Assay group": draft.scope.assay_group ?? "All groups", Assay: draft.scope.asp_id ?? "All assays", Subpanel: draft.scope.subpanel_id ?? "All subpanels", ...(draft.content.evidence_mode ? { "Evidence mode": label(draft.content.evidence_mode) } : {}), Exceptions: draft.content.exceptions === null ? "Inherit parent" : draft.content.exception_mode === "extend" ? "Inherit and add" : "Replace parent list" }).map(([key, value]) => <div key={key} className="min-w-0"><dt className="type-label text-muted-foreground">{key}</dt><dd className="mt-1 break-words type-supporting">{value}</dd></div>)}
+            {Object.entries({ "Query ID": queryId(draft.scope), Analysis: draft.scope.analysis.toUpperCase(), Intent: label(draft.scope.intent), "Assay group": draft.scope.assay_group ?? "All groups", Family: draft.scope.family ?? "All families", Environment: draft.scope.environment ?? "Shared across environments", Assay: draft.scope.asp_id ?? "All assays", Diagnosis: draft.scope.diagnosis_id ?? "All diagnoses", ...(draft.content.evidence_mode ? { "Evidence mode": label(draft.content.evidence_mode) } : {}), Exceptions: draft.content.exceptions === null ? "Inherit parent" : draft.content.exception_mode === "extend" ? "Inherit and add" : "Replace parent list" }).map(([key, value]) => <div key={key} className="min-w-0"><dt className="type-label text-muted-foreground">{key}</dt><dd className="mt-1 break-words type-supporting">{value}</dd></div>)}
           </dl>
           {(draft.content.exceptions === null || draft.content.exception_mode === "extend") && <PolicySummary title="Inherited policy" value={parent.data} />}
           {draft.content.exceptions?.map(rule => <section hidden={activeSection !== "conditions"} key={rule.id} className="space-y-3 rounded-lg border bg-background p-4">
@@ -214,15 +223,17 @@ export function QueryRulesPage() {
           <div hidden={activeSection !== "scope"} className="space-y-4">
           <label className="block">Query ID<Input readOnly value={draft.scope.assay_group === "" ? "" : queryId(draft.scope)} placeholder="Select a scope to generate the query ID" /></label>
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-1">Analysis<select className={control} disabled={!!selected} value={draft.scope.analysis} onChange={e => change({ ...draft, scope: { ...draft.scope, analysis: e.target.value as Analysis, intent: "somatic", asp_id: null, subpanel_id: null }, content: { evidence_mode: null, exceptions: null } })}>{Object.keys(fields).map(key => <option key={key} value={key}>{key.toUpperCase()}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Analysis<select className={control} disabled={!!selected} value={draft.scope.analysis} onChange={e => change({ ...draft, scope: { ...draft.scope, analysis: e.target.value as Analysis, intent: "somatic", asp_id: null, diagnosis_id: null, modality: null, family: null }, content: { evidence_mode: null, exceptions: null } })}>{Object.keys(fields).map(key => <option key={key} value={key}>{key.toUpperCase()}</option>)}</select></label>
             <label className="flex flex-col gap-1">Intent<select className={control} disabled={!!selected || draft.scope.analysis !== "snv"} value={draft.scope.intent} onChange={e => scopeChange({ ...draft.scope, intent: e.target.value })}><option value="somatic">Somatic</option><option value="germline">Germline</option></select></label>
-            <label className="flex flex-col gap-1">Assay group<select className={control} disabled={!!selected} value={draft.scope.assay_group ?? "__all_groups__"} onChange={e => scopeChange({ ...draft.scope, assay_group: e.target.value === "__all_groups__" ? null : e.target.value, asp_id: null, subpanel_id: null })}><option value="">Select scope</option><option value="__all_groups__">Default: all assay groups</option>{options.data?.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
-            <label className="flex flex-col gap-1">Assay<select className={control} disabled={!!selected || !draft.scope.assay_group} value={draft.scope.asp_id ?? ""} onChange={e => scopeChange({ ...draft.scope, asp_id: e.target.value || null, subpanel_id: null })}><option value="">All assays in group</option>{assays.map(a => <option key={a.id} value={a.id}>{a.id}</option>)}</select></label>
-            <label className="flex flex-col gap-1">Subpanel<select className={control} disabled={!!selected || !draft.scope.asp_id} value={draft.scope.subpanel_id ?? ""} onChange={e => scopeChange({ ...draft.scope, subpanel_id: e.target.value || null })}><option value="">All subpanels in assay</option>{subpanels.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Assay group<select className={control} disabled={!!selected} value={draft.scope.assay_group ?? "__all_groups__"} onChange={e => scopeChange({ ...draft.scope, assay_group: e.target.value === "__all_groups__" ? null : e.target.value, asp_id: null, diagnosis_id: null })}><option value="">Select scope</option><option value="__all_groups__">Default: all assay groups</option>{options.data?.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Assay<select className={control} disabled={!!selected || !draft.scope.assay_group} value={draft.scope.asp_id ?? ""} onChange={e => scopeChange({ ...draft.scope, asp_id: e.target.value || null, diagnosis_id: null })}><option value="">All assays in group</option>{assays.map(a => <option key={a.id} value={a.id}>{a.id}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Family<select className={control} disabled={!!selected || !draft.scope.assay_group || !!draft.scope.asp_id} value={draft.scope.family ?? ""} onChange={e => scopeChange({ ...draft.scope, family: e.target.value || null, modality: e.target.value ? (draft.scope.analysis === "fusion" ? "rna" : "dna") : null, diagnosis_id: null })}><option value="">All families</option>{options.data?.families?.filter(f => f.modality === (draft.scope.analysis === "fusion" ? "rna" : "dna")).map(f => <option key={f.id} value={f.id}>{f.id.toUpperCase()}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Environment<select className={control} disabled={!!selected} value={draft.scope.environment ?? ""} onChange={e => scopeChange({ ...draft.scope, environment: e.target.value || null })}><option value="">Shared across environments</option>{options.data?.environments?.map(environment => <option key={environment} value={environment}>{label(environment)}</option>)}</select></label>
+            <label className="flex flex-col gap-1">Diagnosis<select className={control} disabled={!!selected || !draft.scope.assay_group} value={draft.scope.diagnosis_id ?? ""} onChange={e => scopeChange({ ...draft.scope, diagnosis_id: e.target.value || null })}><option value="">All diagnoses in scope</option>{diagnoses.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
             {draft.scope.analysis === "snv" && <label className="flex flex-col gap-1">Evidence mode<select className={control} value={draft.content.evidence_mode ?? ""} onChange={e => change({ ...draft, content: { ...draft.content, evidence_mode: e.target.value || null } })}><option value="">Inherit parent</option>{["paired", "case_only", "exception_only"].map(mode => <option key={mode} value={mode}>{label(mode)}</option>)}</select></label>}
           </div>
           {draft.scope.analysis === "snv" && <p className="type-supporting text-muted-foreground">Transitional SNV workflow: published germline exceptions also apply to somatic SNV selection. Test either intent’s rules against the sample’s somatic SNV results. A germline rule’s evidence mode does not replace somatic evidence settings.</p>}
-          <p className="type-supporting text-muted-foreground">Assays are limited to the selected group and analysis category. All assays applies across the group; select one assay to choose its related subpanels. All subpanels includes the base scope and every subpanel of that assay.</p>
+          <p className="type-supporting text-muted-foreground">Policies apply in order: center, group, family, diagnosis, diagnosis and family, assay, diagnosis and assay. At each level, the selected environment overrides shared settings. Diagnosis policies can span several assays in the group.</p>
           {draft.scope.assay_group && !assays.length && !options.isLoading && <p role="status" className="type-supporting text-muted-foreground">No active assays match this group and analysis. A group-wide policy can still be defined.</p>}
           {draft.scope.analysis === "snv" && <p className="type-supporting text-muted-foreground">{draft.content.evidence_mode === "paired" ? "Paired: require case evidence and check control evidence when present, plus population-frequency limits and eligible consequences. Records without a control remain eligible. This does not create or pair samples." : draft.content.evidence_mode === "case_only" ? "Case only: accept a genotype meeting case thresholds, without requiring a case role label or checking control evidence. Population-frequency limits and eligible consequences still apply." : draft.content.evidence_mode === "exception_only" ? "Exception only: omit the ordinary evidence branch. Only matching admission exceptions can admit findings; without them no findings are admitted." : "Inherit parent: use the nearest published ancestor’s evidence setting—assay, group, default—then the application default. Preview effective policy shows the selected sources."}</p>}
           </div>

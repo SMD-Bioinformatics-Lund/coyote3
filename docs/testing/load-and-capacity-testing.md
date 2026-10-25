@@ -112,7 +112,7 @@ and the other workflows each 1. Weights apply only within that account's selecte
 workflows. For distinct workload proportions, use separate accounts with a single
 workflow and control their count.
 
-Rule-test pairs must belong to matching assays and subpanels. Ingest requires a
+Rule-test pairs must belong to matching assays and diagnoses. Ingest requires a
 dedicated synthetic ASP with `expected_files: ["biomarkers"]` and
 `required_files: ["biomarkers"]`, and a matching ASPC with
 `analysis_types: ["MSI"]`. The bootstrap `assay_1`

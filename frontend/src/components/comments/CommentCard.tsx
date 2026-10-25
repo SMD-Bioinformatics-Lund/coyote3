@@ -22,7 +22,8 @@ function isGlobalComment(comment: any) {
   return comment?.global === true
     || comment?.global === "global"
     || comment?.scope === "global"
-    || comment?.assay === "global"
+    || comment?.namespace === "clinical"
+    || comment?.namespace === "sandboxed"
 }
 
 export function CommentCard({
