@@ -141,6 +141,7 @@ fi
 if [[ "$*" == *"installation_checks indexes"* && "${INSTALL_TEST_CONFLICT:-0}" == 1 ]]; then exit 1; fi
 if [[ "$*" == *"installation_checks indexes-ready"* && "${INSTALL_TEST_INCOMPLETE:-0}" == 1 ]]; then exit 1; fi
 if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}" == 1 ]]; then exit 1; fi
+if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" == 1 ]]; then exit 1; fi
 """
     binaries = tmp_path / "bin"
     binaries.mkdir()
@@ -209,6 +210,66 @@ if [[ "$*" == *"installation_checks redis"* && "${INSTALL_TEST_REDIS_FAILURE:-0}
         "emergency@example.test",
     ]
     return command, env, log
+
+
+@pytest.mark.parametrize("failure", [False, True])
+def test_identity_role_upgrade_runs_before_state_validation_and_stops_on_failure(
+    fake_installation, failure
+):
+    """The one-command installer uses ephemeral credentials without logging their URI."""
+    command, env, log = fake_installation
+    secret = Path(env["INSTALL_TEST_CONFIG"]).parent / "identity-maintenance-uri"
+    uri = "mongodb://synthetic-identity-maintenance.invalid"
+    secret.write_text(uri)
+    result = subprocess.run(
+        [
+            *command,
+            "--skip-build",
+            "--steps",
+            "validate",
+            "--identity-maintenance-uri-file",
+            str(secret),
+        ],
+        env={
+            **env,
+            "INSTALL_TEST_STATE": "existing",
+            "INSTALL_TEST_IDENTITY_FAILURE": "1" if failure else "0",
+        },
+        capture_output=True,
+        text=True,
+    )
+    calls = log.read_text()
+    assert "--maintenance-uri-env COYOTE_INSTALL_IDENTITY_URI --apply" in calls
+    assert uri not in calls + result.stdout + result.stderr
+    if failure:
+        assert result.returncode != 0
+        assert "installation_checks state" not in calls
+    else:
+        assert result.returncode == 0, result.stderr
+        assert calls.index("manage_mongo_roles") < calls.index("installation_checks state")
+
+
+def test_empty_identity_maintenance_file_stops_before_role_or_state_operations(fake_installation):
+    command, env, log = fake_installation
+    secret = Path(env["INSTALL_TEST_CONFIG"]).parent / "empty-identity-uri"
+    secret.write_text("")
+    result = subprocess.run(
+        [
+            *command,
+            "--skip-build",
+            "--steps",
+            "validate",
+            "--identity-maintenance-uri-file",
+            str(secret),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "Identity maintenance URI file is empty" in result.stderr
+    assert "manage_mongo_roles" not in log.read_text()
+    assert "installation_checks state" not in log.read_text()
 
 
 def test_missing_sdk_artifact_stops_before_installation_stages(fake_installation):

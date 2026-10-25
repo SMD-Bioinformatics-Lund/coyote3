@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from pymongo import MongoClient  # noqa: E402
 from pymongo.errors import PyMongoError  # noqa: E402
+from pymongo.uri_parser import parse_uri  # noqa: E402
 
 from api.config.mongo import MongoEndpoint, mongo_endpoints  # noqa: E402
 from api.infra.security.mongo_roles import (  # noqa: E402
@@ -23,6 +24,21 @@ from api.infra.security.mongo_roles import (  # noqa: E402
 )
 
 POLICY = ROOT / "deploy/compose/mongo-init/identity-role-policy.json"
+
+
+def runtime_principal(config: dict[str, str]) -> tuple[str, str]:
+    """Select the username and authentication database from the runtime identity URI.
+
+    Args:
+        config: Explicit MongoDB endpoint configuration; passwords are never returned.
+
+    Returns:
+        Username and authSource, falling back to the URI path or admin as PyMongo does.
+        The username is empty when the URI contains no username.
+    """
+    parsed = parse_uri(mongo_endpoints(config)["identity"].uri)
+    auth_database = parsed["options"].get("authSource") or parsed["database"] or "admin"
+    return parsed["username"] or "", auth_database
 
 
 def policy_text() -> str:
@@ -47,9 +63,18 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--export-policy", action="store_true")
     mode.add_argument("--check-policy", action="store_true")
-    parser.add_argument("--maintenance-uri-file", type=Path)
-    parser.add_argument("--username")
-    parser.add_argument("--authentication-database", default="admin")
+    credentials = parser.add_mutually_exclusive_group()
+    credentials.add_argument("--maintenance-uri-file", type=Path)
+    credentials.add_argument(
+        "--maintenance-uri-env", help="Name of an ephemeral maintenance-URI environment variable"
+    )
+    parser.add_argument(
+        "--username", help="Runtime username; defaults to the configured identity URI"
+    )
+    parser.add_argument(
+        "--authentication-database",
+        help="Defaults to the configured identity URI's authentication database",
+    )
     parser.add_argument(
         "--apply",
         action="store_true",
@@ -65,12 +90,21 @@ def main() -> int:
         key: os.environ.get(key, "").strip()
         for key in ("COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB")
     }
-    if not args.username or not args.maintenance_uri_file or not all(names.values()):
-        parser.error("Set four database names and provide --username and --maintenance-uri-file")
+    if not (args.maintenance_uri_file or args.maintenance_uri_env) or not all(names.values()):
+        parser.error("Set four database names and provide maintenance credentials")
     try:
         roles = runtime_roles(dict(os.environ))
+        configured_username, configured_auth_database = runtime_principal(dict(os.environ))
     except RuntimeError as error:
         parser.error(str(error))
+    except ValueError:
+        parser.error("Invalid MongoDB identity connection settings")
+    except PyMongoError:
+        parser.error("Cannot resolve MongoDB identity connection settings")
+    args.username = args.username or configured_username
+    args.authentication_database = args.authentication_database or configured_auth_database
+    if not args.username:
+        parser.error("Provide --username or include the runtime username in the identity URI")
     print(
         json.dumps(
             {
@@ -85,7 +119,13 @@ def main() -> int:
     if not args.apply:
         return 0
     try:
-        uri = args.maintenance_uri_file.read_text().strip()
+        uri = (
+            args.maintenance_uri_file.read_text()
+            if args.maintenance_uri_file
+            else os.environ.get(args.maintenance_uri_env, "")
+        ).strip()
+        if not uri:
+            raise ValueError("Maintenance URI is empty")
         expected = mongo_endpoints(os.environ)["identity"]
         if MongoEndpoint(uri, names["IDENTITY_DB"]).namespace != expected.namespace:
             raise ValueError(

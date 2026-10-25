@@ -422,6 +422,22 @@ credentials are not installed in API or worker environment settings.
 For container installations, run this command in a one-off API container with
 the maintenance URI file mounted read-only.
 
+The normal one-command installer can perform the upgrade before validation when
+the administrator explicitly supplies the maintenance URI file:
+
+```bash
+bash scripts/deployment/install_center.sh --setup-center \
+  --env-file "$COYOTE_ENV_FILE" --project "$COYOTE_PROJECT" \
+  --compose-file deploy/compose/docker-compose.yml \
+  --identity-maintenance-uri-file /protected/identity-maintenance-uri
+```
+
+It selects the runtime username and authentication database from the configured
+identity URI and supplies the maintenance URI only to a one-off container. The URI
+is not included in command arguments or persistent service settings. The upgrade
+must succeed before normal state validation proceeds. Already-hardened deployments
+can continue using the original installer command without the additional option.
+
 Production/staging installation checks reject unauthenticated identity connections
 and effective privileges that can mutate retained audit history. Adding a custom
 role while retaining broad `readWrite` access does not remove the broad grant.

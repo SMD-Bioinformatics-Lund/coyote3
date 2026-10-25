@@ -17,6 +17,8 @@ from the initializer. Existing and externally managed instances require the
 [runtime role upgrade](../operations/audit-and-logging.md#runtime-database-privileges)
 before production/staging installation validation. Use a separate maintenance
 principal for that upgrade; the installer does not elevate runtime credentials.
+Add `--identity-maintenance-uri-file /protected/identity-maintenance-uri` to the
+normal installer command to apply the upgrade within the same invocation.
 
 Have the following available before proceeding:
 
