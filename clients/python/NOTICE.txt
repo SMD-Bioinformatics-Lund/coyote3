@@ -1,6 +1,5 @@
 Coyote3 Python HTTP Client
-Copyright © 2026 Ram Nanduri and Section for Molecular Diagnostics,
-Lund, Region Skåne, Sweden.
+Copyright © 2026 Ram Nanduri.
 
 Original developer: Ram Nanduri
 Distributed under the Apache License, Version 2.0. See LICENSE.txt.

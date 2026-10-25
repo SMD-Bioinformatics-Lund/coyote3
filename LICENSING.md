@@ -23,8 +23,9 @@ component. Third-party rights remain unaffected.
 
 ## Ownership and permissions
 
-Copyright © 2026 Ram Nanduri and Section for Molecular Diagnostics, Lund,
-Region Skåne, Sweden. Original developer: Ram Nanduri. See [NOTICE.txt](NOTICE.txt).
+Module and package notices identify Ram Nanduri: Copyright © 2026 Ram Nanduri.
+Original developer: Ram Nanduri. See [NOTICE.txt](NOTICE.txt).
+The main [LICENSE.txt](LICENSE.txt) retains its existing copyright statement.
 Authorship attribution and copyright ownership are distinct.
 
 Free institutional and commercial operation is permitted under the license.

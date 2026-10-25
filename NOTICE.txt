@@ -1,6 +1,5 @@
 Coyote3
-Copyright © 2026 Ram Nanduri and Section for Molecular Diagnostics,
-Lund, Region Skåne, Sweden. All rights reserved.
+Copyright © 2026 Ram Nanduri. All rights reserved.
 
 Original developer: Ram Nanduri
 Affiliated organization: Section for Molecular Diagnostics, Lund,

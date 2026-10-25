@@ -49,8 +49,8 @@ its supported clinical workflows.
   catalog, and cohort-review workflows.
 - Removed the legacy Flask application and its compatibility paths.
 - Apply the COYOTE3 Free-Use Source-Available License 1.0 to the application,
-  record Ram Nanduri and Section for Molecular Diagnostics, Lund, Region Skåne
-  as copyright holders, and retain Apache 2.0 for the independent Python client.
+  identify Ram Nanduri in module/package notices and retain Apache 2.0 for the
+  independent Python client. Preserve the main license's copyright statement.
 - Package core and root-level FastAPI modules together with optional `api` and
   `all` dependencies and the installed `coyote3-api` entry point. Move HTTP clients
   into the independent `coyote3-client` distribution with sync/async operations.
