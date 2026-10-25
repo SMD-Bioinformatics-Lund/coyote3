@@ -1,5 +1,7 @@
 """Transactional storage of governed query-policy release versions."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from bson import ObjectId

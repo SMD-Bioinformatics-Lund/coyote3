@@ -1,5 +1,7 @@
 """Resolve and govern hierarchical finding-selection policies."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timezone

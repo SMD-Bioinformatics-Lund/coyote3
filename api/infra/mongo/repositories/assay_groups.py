@@ -1,5 +1,7 @@
 """Persistence for registered assay groups; no rename or deletion operations."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from pymongo.errors import DuplicateKeyError

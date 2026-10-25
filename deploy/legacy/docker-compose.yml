@@ -145,7 +145,7 @@ services:
     image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.docs
+      dockerfile: docker/Dockerfile.docs.legacy
       network: host
       args:
         PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
@@ -162,7 +162,7 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile
       network: host
-      target: coyote3_api
+      target: coyote3_source_api
       args:
         PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
