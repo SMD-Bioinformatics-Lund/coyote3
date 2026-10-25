@@ -276,6 +276,8 @@ export function Layout() {
     for (const key of ["category", "panel_type", "panel_tech", "group", "assay_group", "assay"]) {
       newParams.delete(key)
     }
+    newParams.delete("live_page")
+    newParams.delete("reported_page")
     if (!isActive) {
       newParams.set("panel_type", group.category)
       newParams.set("panel_tech", group.family)

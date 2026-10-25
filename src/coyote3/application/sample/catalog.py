@@ -21,6 +21,22 @@ from coyote3.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomark
 runtime_app = SimpleNamespace(config={})
 
 
+def _assay_navigation_key(assay: dict[str, Any]) -> tuple[str, str, str]:
+    """Return the shared category, family and group key for assay navigation.
+
+    Args:
+        assay: Registered assay metadata, including category, family and biological group.
+
+    Returns:
+        Lowercase, trimmed keys with panel-family variants grouped under panel.
+    """
+    category = str(assay.get("asp_category") or "assay").strip().lower()
+    raw_family = str(assay.get("asp_family") or "").strip().lower()
+    family = "panel" if raw_family.startswith("panel") else (raw_family or "assay")
+    group = str(assay.get("asp_group") or "unassigned").strip().lower()
+    return category, family, group
+
+
 class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixin):
     """Own sample-list and sample-context workflows for the API."""
 
@@ -205,7 +221,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         added_from: datetime | None = None,
         added_until: datetime | None = None,
     ) -> dict[str, Any]:
-        """Return the sample list payload for the catalog view.
+        """Return live and reported sample pages within the user's assay and profile scope.
 
         Args:
             user: Authenticated user requesting the catalog.
@@ -221,17 +237,30 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
             done_page: Current page for completed samples.
             per_done_page: Page size for completed samples.
             profile_scope: Environment/profile scope to apply.
-            panel_type: Optional panel-type filter.
-            panel_tech: Optional panel-technology filter.
-            assay_group: Optional assay-group filter.
+            panel_type: Optional navigation category, applied with panel_tech and assay_group.
+            panel_tech: Optional navigation family, with panel variants grouped under panel.
+            assay_group: Optional biological group from the assay registry.
+            added_from: Inclusive sample-added time boundary, or None for no lower bound.
+            added_until: Exclusive sample-added time boundary, or None for no upper bound.
+
         Returns:
-            dict[str, Any]: Normalized sample catalog payload.
+            Live and reported rows, their totals, pagination and applied filter values.
+
+        Notes:
+            Complete navigation filters resolve registered assays independently of cached
+            user navigation maps. Non-superusers remain restricted to assigned assay IDs.
         """
         if panel_type and panel_tech and assay_group:
-            assay_list = user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
-            accessible_assays = (
-                assay_list if user.is_superuser else [a for a in assay_list if a in user.asp_ids]
+            selected_group = tuple(
+                value.strip().lower() for value in (panel_type, panel_tech, assay_group)
             )
+            accessible_assays = []
+            for asp in self.assay_panel_repository.get_all_asps() or []:
+                asp_id = str(asp.get("asp_id") or "").strip()
+                if not asp_id or _assay_navigation_key(asp) != selected_group:
+                    continue
+                if user.is_superuser or asp_id in user.asp_ids:
+                    accessible_assays.append(asp_id)
         elif user.is_superuser:
             accessible_assays = None
         else:
@@ -397,11 +426,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
                 continue
             if accessible_assays is not None and asp_id not in accessible_assays:
                 continue
-            category = str(asp.get("asp_category") or "assay").strip().lower()
-            raw_family = str(asp.get("asp_family") or "").strip().lower()
-            family = "panel" if raw_family.startswith("panel") else (raw_family or "assay")
-            group = str(asp.get("asp_group") or "unassigned").strip().lower()
-            key = f"{category}:{family}:{group}"
+            key = ":".join(_assay_navigation_key(asp))
             counts[key] = counts.get(key, 0) + by_asp.get(asp_id, 0)
 
         return {

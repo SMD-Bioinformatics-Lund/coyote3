@@ -189,6 +189,12 @@ Route: `/samples`
 
 The Samples page lists loaded samples visible to the user. It starts in production scope and can be switched to all permitted profiles. The date control can show all samples, samples added today, or rolling 24-hour, 3-day, 7-day, and 30-day windows. A custom range accepts inclusive local calendar dates; the browser converts those boundaries to UTC before querying the API. The **Maximum rows per page** control selects 25, 50, 100, or 200 rows without limiting the complete result set. Live and reported samples have independent page numbers.
 
+The DNA/RNA navigation menus filter by assay family and assay group using the
+registered assays. Counts and group filters follow the same assay-access and
+profile scope. Selecting or clearing a group returns both worklists to page one.
+Other list filters, such as search text and date range, still apply, so the visible
+result count can be lower than the navigation count.
+
 Search is evaluated by the API against the complete sample catalog available to the user before pagination. It matches sample, case, control, and case/control Clarity identifiers. The table total reports the exact number of matching samples, and **Previous** and **Next** navigate every matching page. Sorting is also applied by the API before pagination, including multi-column sorting.
 
 The default **Classic** layout shows the live and reported worklists on the same page. **Modern** provides a focused worklist with separate Live samples and Reported samples tabs. The choice is stored in `users.ui_settings.sample_list_layout` as `classic` or `modern`. An informational banner offers Modern until the user selects that layout for the first time. That acknowledgement is stored in `sample_list_modern_view_tried`, so returning to Classic does not restore the banner.

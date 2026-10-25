@@ -133,6 +133,18 @@ describe("Layout", () => {
     })
   })
 
+  it("resets sample pagination when selecting a navigation group and preserves profile scope", async () => {
+    mockPrivateQueries()
+    renderLayout("/?live_page=7&reported_page=3&profile_scope=all")
+    fireEvent.click(await screen.findByRole("button", { name: /dna/i }))
+    fireEvent.click(screen.getByTitle("DNA / panel / hematology"))
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith(
+        "/samples?profile_scope=all&panel_type=dna&panel_tech=panel&assay_group=hematology",
+      )
+    })
+  })
+
   it("requests navigation counts for the selected profile scope", async () => {
     mockPrivateQueries()
     renderLayout("/samples?profile_scope=all")
