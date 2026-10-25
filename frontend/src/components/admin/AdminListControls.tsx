@@ -1,4 +1,5 @@
 import { AppLoader } from "@/components/layout/AppLoader"
+import { BulkInstall } from "./BulkInstall"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   resourceFilterOptionLabel,
@@ -70,7 +71,10 @@ export function AdminListContent({ state, spec, children }: { state: AdminListSt
         {error instanceof Error ? error.message : "Unable to load resource"}
       </div>
     ) : (
-      children
+      <>
+        {state.canCreate && (spec.key === "asp" || spec.key === "aspc" || spec.key === "genelists") && <div className="mb-3"><BulkInstall kind={spec.key} /></div>}
+        {children}
+      </>
     )}
   </>
 }

@@ -48,6 +48,7 @@ You do not need to read every reference before starting.
 | [Planning configuration changes](planning-configuration-changes.md) | Identify affected resources, validate changes, and preserve historical review evidence. |
 | [Assay Groups](assay-groups.md) | Register and manage assay-group scope and availability. |
 | [Assay Diagnoses](assay-diagnoses.md) | Manage shared diagnosis definitions and assay associations. |
+| [Bulk installation](bulk-installation.md) | Upload JSON/YAML lists of diagnoses, groups, assays, gene lists or assay configurations. |
 | [Assay Setup](assay-setup.md) | Prepare and review an assay's configuration resources. |
 | [Finding query rules](query-rules.md) | Manage inherited finding-selection policies for groups, assays and diagnoses. |
 | [Clinical reporting rules](../reference/clinical-reporting-rules.md) | Author, test, review and publish the rules that produce clinical report content. |

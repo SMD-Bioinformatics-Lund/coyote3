@@ -14,6 +14,7 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import type { DiagnosisDefinition } from "./AssayDiagnoses"
 import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
+import { BulkInstall } from "@/components/admin/BulkInstall"
 
 type Assay = { asp_id: string; display_name: string; is_active: boolean }
 const empty = { diagnosis_id: "", display_name: "", description: "", is_active: true, asp_ids: [] as string[] }
@@ -71,6 +72,7 @@ export function DiagnosisDefinitionsPage() {
   return <PageShell eyebrow="Admin" title="Diagnosis definitions" actions={<AdminHomeLink />}>
     <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="definitions" />
+    {allowed && canEdit && <BulkInstall kind="diagnoses" />}
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay list and view permissions are required.</p> : <>
       {definitions.isLoading && <p role="status">Loading diagnoses...</p>}
       {definitions.error && <p role="alert" className="text-destructive">Unable to load shared diagnoses.</p>}

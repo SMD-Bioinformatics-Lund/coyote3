@@ -50,10 +50,10 @@ def client(monkeypatch):
     group = {
         "group_id": "demo",
         "display_name": "Demo",
-        "system_managed": True,
+        "system_managed": False,
         "is_active": True,
         "version": 1,
-        "created_by": "system",
+        "created_by": "author",
         "created_on": datetime.now(timezone.utc),
     }
     service = AssayGroupService(

@@ -288,7 +288,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/asp",
     page: "AssaysPage",
     area: "admin",
-    api: ["GET /resources/asp","DELETE /resources/asp/:id","PATCH /resources/asp/:id/status"],
+    api: ["GET /resources/asp","GET /resources/asp/create_context","POST /resources/asp","DELETE /resources/asp/:id","PATCH /resources/asp/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -309,7 +309,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/aspc",
     page: "AssayConfigurationsPage",
     area: "admin",
-    api: ["GET /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
+    api: ["GET /resources/aspc","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -337,7 +337,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/genelists",
     page: "GeneListsPage",
     area: "admin",
-    api: ["GET /resources/genelists","DELETE /resources/genelists/:id","PATCH /resources/genelists/:id/status"],
+    api: ["GET /resources/genelists","GET /resources/genelists/create_context","POST /resources/genelists","DELETE /resources/genelists/:id","PATCH /resources/genelists/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {

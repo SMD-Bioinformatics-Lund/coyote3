@@ -12,6 +12,7 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { StatusBadge } from "@/pages/admin/resource-list"
 import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
+import { BulkInstall } from "@/components/admin/BulkInstall"
 import type { RecordProvenanceData } from "./record-provenance"
 
 type Group = RecordProvenanceData & { group_id: string; parent_group_id: string | null; display_name: string; description: string; system_managed: boolean; is_active: boolean; version: number }
@@ -81,6 +82,7 @@ export function AssayGroupsPage() {
         {status.error && <p role="alert" className="text-destructive">{status.error.message}</p>}
       </div>} />
     <section aria-label="Assay group registry" className="glass-card min-w-0 space-y-3 p-3">
+    {allowed && canCreate && <BulkInstall kind="assay-groups" />}
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay view permission is required.</p> : <>
       {groups.isLoading && <p role="status">Loading assay groups...</p>}
       {groups.error && <p role="alert" className="text-destructive">Unable to load assay groups.</p>}

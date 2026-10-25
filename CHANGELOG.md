@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Add permission-controlled JSON/YAML bulk creation for diagnoses, assay groups,
+  assays, gene lists and assay configurations, with example files, a paste editor
+  with live validation, preview and per-record installation results.
+
 - Show one analysis at a time in the assay catalog matrix, with an analysis selector
   and gene-list headers without repeated SNV/CNV/fusion badges.
 

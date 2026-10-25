@@ -107,6 +107,7 @@ nav:
           - "Prerequisites and setup steps": administration/assay-setup.md
           - "Register assay groups": administration/assay-groups.md
           - "Register diagnoses (subpanel scopes)": administration/assay-diagnoses.md
+          - "Bulk install from JSON or YAML": administration/bulk-installation.md
           - "Resources and missing prerequisites": administration/clinical-configuration-resources.md
           - "Supported analyses": administration/supported-capabilities.md
           - "Enable analysis and reporting": administration/assay-analysis-availability.md

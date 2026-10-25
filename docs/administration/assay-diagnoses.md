@@ -19,6 +19,8 @@ disabled independently. Sharing a diagnosis does not share ASPCs, genes or repor
 
 ## Why associations belong to assays
 
+To create several definitions from a file, see [Bulk installation](bulk-installation.md).
+
 An association means that a particular assay supports a diagnosis. An assay group
 is a broader clinical category: two assays in hematology can support different
 diagnoses. Linking diagnoses automatically to the whole group would also enable
