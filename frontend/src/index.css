@@ -233,6 +233,40 @@
     background-image: var(--app-canvas-gradient);
     overflow: hidden;
   }
+  .app-canvas-frame {
+    position: absolute;
+    width: clamp(12rem, 26vw, 30rem);
+    aspect-ratio: 1.35;
+    border: 1px solid color-mix(in srgb, var(--brand-start) 14%, transparent);
+    border-radius: 2rem;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand-start) 3%, transparent),
+      color-mix(in srgb, var(--brand-end) 2%, transparent)
+    );
+    box-shadow: 0 0 0 1rem color-mix(in srgb, var(--brand-start) 2%, transparent);
+  }
+  .app-canvas-frame:nth-child(1) {
+    top: 12%;
+    left: -8%;
+    transform: rotate(-24deg);
+  }
+  .app-canvas-frame:nth-child(2) {
+    top: -12%;
+    right: 14%;
+    transform: rotate(18deg);
+  }
+  .app-canvas-frame:nth-child(3) {
+    bottom: -10%;
+    left: 28%;
+    transform: rotate(32deg);
+  }
+  .app-canvas-frame:nth-child(4) {
+    right: -10%;
+    bottom: 18%;
+    border-color: color-mix(in srgb, var(--brand-end) 14%, transparent);
+    transform: rotate(-18deg);
+  }
   .brand-gradient-text {
     background: var(--brand-gradient);
     background-clip: text;
@@ -270,7 +304,7 @@
   .glass-panel {
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--panel-shadow);
   }
   .glass-card {
     border: 1px solid var(--paper-edge);
@@ -281,7 +315,7 @@
     @apply relative overflow-hidden;
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--panel-shadow);
   }
   .surface-panel-title-marker {
     background: var(--panel-accent, var(--primary));
@@ -291,7 +325,7 @@
     padding: 1rem !important;
     background: var(--paper-surface);
     border-color: var(--paper-edge);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--panel-shadow);
   }
   .dashboard-panel--teal {
     --panel-accent: var(--color-wgs);
@@ -639,7 +673,10 @@
   .detail-card-info {
     background-image: var(--surface-sheen);
   }
-  /* Small neutral cards share a raised border without changing clinical colors. */
+  /* Content cards rise above the flat panels that group them. */
+  .glass-card,
+  .chart-panel,
+  .detail-card,
   .dashboard-subcard,
   .dashboard-snapshot-card,
   .content-item,
@@ -649,22 +686,30 @@
     background: var(--inner-card-background);
     box-shadow: var(--inner-card-shadow);
   }
-  /* Keep the same treatment for reusable cards nested inside larger panels. */
+  /* Nested sections use the same raised surface, including deeper layout wrappers. */
   :where(.glass-panel, .glass-card, .surface-panel, .content-section, .detail-card, .dashboard-panel)
-    > :is(.glass-card, .surface-panel, .content-section, .content-item, .detail-card, .chart-panel),
-  :where(.glass-panel, .glass-card, .surface-panel, .content-section, .detail-card, .dashboard-panel)
-    > :where(div, section) > :is(.glass-card, .surface-panel, .content-section, .content-item, .detail-card, .chart-panel) {
+    :is(.surface-panel, .content-section) {
     background: var(--inner-card-background);
     border-color: transparent;
     border-radius: calc(var(--radius) * 0.8);
     box-shadow: var(--inner-card-shadow);
+  }
+  /* Preserve semantic colors on accented cards and status indicators. */
+  .detail-card-accent,
+  .detail-card-success,
+  .detail-card-info {
+    box-shadow: var(--inner-card-shadow);
+  }
+  [data-slot="badge"][data-variant="outline"] {
+    background-color: var(--paper-raised);
+    box-shadow: var(--shadow-sm);
   }
   .knowledgebase-block {
     --knowledgebase-accent: var(--status-info);
     --knowledgebase-tint: var(--status-info-soft);
     border-color: color-mix(in srgb, var(--knowledgebase-accent) 38%, var(--paper-edge));
     background: color-mix(in srgb, var(--paper-raised) 96%, var(--knowledgebase-tint));
-    box-shadow: 0 1px 2px var(--paper-shadow);
+    box-shadow: var(--inner-card-shadow);
   }
   .knowledgebase-block[data-knowledgebase="brca-exchange"] {
     --knowledgebase-accent: var(--status-warning);

@@ -132,7 +132,7 @@ export function PublicAssayCatalogPage() {
   const username = access.data?.username
   const independent = !editors.includes(username || "")
   const order = [...new Set([...draft.layout.order, ...Object.keys(draft.modalities)])].filter((key) => draft.modalities[key])
-  return <PageShell className="rounded-lg bg-background" title="Assay Catalog" eyebrow="Administration" actions={<>
+  return <PageShell className="flex-1" title="Assay Catalog" eyebrow="Administration" actions={<>
     {version && <span>Created by <RecordProvenance record={version} /> · Updated by {version.updated_by || "Unknown"}</span>}
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
     <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><FileUp /> Import draft</Button>
@@ -145,8 +145,8 @@ export function PublicAssayCatalogPage() {
     {editable && !snapshot && <><Button variant="outline" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? <Eye /> : <Edit />}{editing ? "Preview changes" : "Edit draft"}</Button>
       <Button disabled={!dirty || busy} onClick={() => mutation.mutate({ action: "save" })}><Save /> Save draft</Button></>}
   </>}>
-    <div className="grid gap-3 rounded-lg border border-border bg-card text-card-foreground lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="space-y-4 border-r border-border p-3">
+    <div className="grid flex-1 gap-3 rounded-lg border border-border bg-card text-card-foreground lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside className="space-y-4 border-b border-border p-3 lg:border-b-0 lg:border-r">
         <Button className="w-full" variant={!id ? "default" : "outline"} onClick={() => select("")}>{data.has_published ? `Published catalog v${data.catalog.version}` : "Starter catalog"}</Button>
         {!id && <div className="space-y-2">
           <Button className="w-full whitespace-normal" disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><Edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>

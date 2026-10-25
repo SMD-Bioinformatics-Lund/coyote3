@@ -1,6 +1,39 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
+test("empty catalog panel fills the viewport without stretching preview cards", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const catalog = { header: "Assay Catalog", description: "Synthetic catalog.",
+    version: 1, layout: { order: [] }, modalities: {} }
+  await installApiFixtures(page, (path) => {
+    if (path === "/api/v1/admin/assay-catalog") return { json: {
+      catalog, has_published: false, items: [], sources: {}, presets: {},
+      reviewers: [], publishers: [],
+    } }
+    if (path.endsWith("/assay-catalog/preview/offerings")) return { json: {
+      ...catalog, offerings: [],
+    } }
+  })
+  await page.goto("/admin/assay-catalog")
+  await expect(page.getByText("No published services", { exact: true })).toBeVisible()
+  const preview = page.getByRole("region", { name: "Catalog preview" })
+  const panel = preview.locator("../..")
+  const main = page.getByRole("main")
+  const panelBounds = await panel.boundingBox()
+  const mainBounds = await main.boundingBox()
+  const previewBounds = await preview.boundingBox()
+  expect(panelBounds).not.toBeNull()
+  expect(mainBounds).not.toBeNull()
+  expect(previewBounds).not.toBeNull()
+  expect(Math.abs(panelBounds!.y + panelBounds!.height - mainBounds!.y - mainBounds!.height))
+    .toBeLessThanOrEqual(16)
+  expect(previewBounds!.height).toBeLessThan(panelBounds!.height / 2)
+  await page.evaluate(() => document.documentElement.classList.remove("dark"))
+  await page.screenshot({ path: "/tmp/catalog-empty-light.png" })
+  await page.evaluate(() => document.documentElement.classList.add("dark"))
+  await page.screenshot({ path: "/tmp/catalog-empty-dark.png" })
+})
+
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`catalog draft and preview fit ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport)

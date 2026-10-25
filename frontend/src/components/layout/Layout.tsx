@@ -295,7 +295,12 @@ export function Layout() {
     <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">
       <EnvironmentBanner />
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
-      <div className="app-chrome-bg pointer-events-none absolute inset-0 z-0" />
+      <div aria-hidden="true" className="app-chrome-bg pointer-events-none absolute inset-0 z-0">
+        <span className="app-canvas-frame" />
+        <span className="app-canvas-frame" />
+        <span className="app-canvas-frame" />
+        <span className="app-canvas-frame" />
+      </div>
       <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-chrome-foreground shadow-sm">
         <div className="flex h-full w-full items-center justify-between gap-4 px-2">
           <Button

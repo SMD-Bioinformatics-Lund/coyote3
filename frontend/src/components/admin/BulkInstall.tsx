@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from "react"
 import { Dialog } from "@base-ui/react/dialog"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { FileJson, FileUp, ClipboardPaste, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { api, ApiClientError } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
@@ -87,7 +88,10 @@ export function BulkInstall({ kind }: { kind: BulkKind }) {
       ["public-catalog-matrix"], ["bulk-install-contract"],
     ].map((queryKey) => client.invalidateQueries({ queryKey })))
   }
-  return <div className="flex flex-wrap items-center gap-2">
+  return <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-2 text-foreground">
+    <span className="mr-2 inline-flex items-center gap-2 px-1 type-label text-muted-foreground">
+      <Layers aria-hidden="true" className="size-4 text-primary" /> Bulk install
+    </span>
     {kind === "aspc" && <label className="type-label">Bulk category <select aria-label="Bulk configuration category" className="paper-inset rounded p-2" value={category} disabled={running || reading} onChange={(event) => setCategory(event.target.value)}><option>DNA</option><option>RNA</option></select></label>}
     <input ref={input} type="file" accept=".json,.yaml,.yml" aria-label={`Bulk upload ${kind}`} className="sr-only" disabled={running || reading || !contract.data} onChange={async (event) => {
       const file = event.target.files?.[0]
@@ -102,9 +106,9 @@ export function BulkInstall({ kind }: { kind: BulkKind }) {
       } catch (failure) { setError(failure instanceof Error ? failure.message : "Unable to read file") }
       finally { setReading(false) }
     }} />
-    <Button variant="outline" disabled={running || reading || !contract.data} onClick={() => input.current?.click()}>Upload JSON / YAML</Button>
-    <Button variant="outline" disabled={running || reading || !contract.data} onClick={() => setMode("paste")}>Paste JSON / YAML</Button>
-    <Button variant="outline" disabled={running || reading || !contract.data} onClick={() => setMode("example")}>Show example</Button>
+    <Button size="sm" variant="outline" disabled={running || reading || !contract.data} onClick={() => input.current?.click()}><FileUp aria-hidden="true" />Upload JSON / YAML</Button>
+    <Button size="sm" variant="ghost" disabled={running || reading || !contract.data} onClick={() => setMode("paste")}><ClipboardPaste aria-hidden="true" />Paste JSON / YAML</Button>
+    <Button size="sm" variant="ghost" disabled={running || reading || !contract.data} onClick={() => setMode("example")}><FileJson aria-hidden="true" />Show example</Button>
     {contract.isLoading && <span role="status" className="type-meta">Loading accepted fields…</span>}
     {(error || contract.error) && <p role="alert" className="type-body-sm text-destructive">{error || contract.error?.message}</p>}
     <Dialog.Root open={mode !== null} onOpenChange={(open) => { if (!open && !running) setMode(null) }}>
