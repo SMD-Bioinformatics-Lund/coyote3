@@ -59,11 +59,6 @@ coyote3-api = "api.cli:main"
 
 [project.optional-dependencies]
 api = [
-    "arrow==1.4.0",
-    "json5==0.14.0",
-    "pytz==2026.1.post1",
-    "rich-click==1.9.7",
-    "toml==0.10.2",
     "pymongo==4.18.2",
     "python-dotenv==1.2.2",
     "Brotli==1.2.0",
@@ -99,9 +94,6 @@ api = [
 ]
 all = ["Coyote3[api,dev,test,docs,load]==4.0.0"]
 dev = [
-    "black==26.10.1",
-    "flake8==7.1.0",
-    "isort==5.13.2",
     "mypy==1.20.1",
     "mypy-extensions==1.1.0",
     "pre-commit==4.5.1",
@@ -187,10 +179,6 @@ convention = "google"
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-
-[tool.black]
-line-length = 100
-target-version = ["py312"]
 
 [tool.mypy]
 python_version = "3.12"

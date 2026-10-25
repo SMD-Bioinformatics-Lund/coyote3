@@ -39,9 +39,3 @@ weasyprint==70.0
 webencodings==0.5.1
 Werkzeug==3.1.9
 casbin==1.36.1
-
-arrow==1.4.0
-json5==0.14.0
-pytz==2026.1.post1
-rich-click==1.9.7
-toml==0.10.2

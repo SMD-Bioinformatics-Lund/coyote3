@@ -129,9 +129,7 @@ def test_server_and_core_share_a_distribution_with_optional_api_dependencies() -
     assert discovery["include"] == ["coyote3*", "api", "api.*"]
     assert library["project"]["optional-dependencies"]["api"]
     assert library["project"]["scripts"]["coyote3-api"] == "api.cli:main"
-    api = tomllib.loads(Path("api/pyproject.toml").read_text())
-    assert "project" not in api and "build-system" not in api
-    assert api["tool"]["coyote3"]["asgi"] == "api.app.main:app"
+    assert not Path("api/pyproject.toml").exists()
     client = tomllib.loads(Path("clients/python/pyproject.toml").read_text())
     assert client["project"]["name"] == "coyote3-client"
     assert not any(
