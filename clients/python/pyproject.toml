@@ -12,13 +12,15 @@ license = "Apache-2.0"
 license-files = ["LICENSE.txt", "NOTICE.txt"]
 authors = [
     {name = "Ram Nanduri"},
-    {name = "Sailendra Pradhananga"},
-    {name = "Viktor Henmyr"},
 ]
 dependencies = ["httpx==0.28.1", "pydantic==2.13.5"]
 
 [project.optional-dependencies]
 test = ["pytest==9.0.3", "pytest-asyncio==1.3.0"]
+
+# Contributor acknowledgments; not part of the package Author metadata.
+[tool.coyote3.attribution]
+contributors = ["Sailendra Pradhananga", "Viktor Henmyr"]
 
 [tool.setuptools.package-dir]
 "" = "."

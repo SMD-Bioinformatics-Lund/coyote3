@@ -12,8 +12,6 @@ license-files = ["LICENSE.txt", "NOTICE.txt", "LICENSING.md", "THIRD_PARTY_NOTIC
 description = "A Bioinformatics Interpretation and Analysis Tool built by bioinformaticians at the Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 authors = [
     {name = "Ram Nanduri"},
-    {name = "Sailendra Pradhananga"},
-    {name = "Viktor Henmyr"},
 ]
 maintainers = [
     {name = "Ram Nanduri"},
@@ -118,6 +116,10 @@ docs = [
 load = [
     "locust==2.46.5",
 ]
+
+# Contributor acknowledgments; not part of the package Author metadata.
+[tool.coyote3.attribution]
+contributors = ["Sailendra Pradhananga", "Viktor Henmyr"]
 
 [tool.ruff]
 line-length = 100
