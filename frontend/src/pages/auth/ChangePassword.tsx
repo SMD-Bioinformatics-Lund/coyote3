@@ -70,7 +70,7 @@ export function ChangePassword() {
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <img src={appPath("/logo.png")} alt="Coyote3" className="h-10 w-16 object-contain dark:invert" />
+          <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-10 w-16 object-contain dark:invert" />
           <span className="text-xl font-semibold">Coyote3</span>
         </div>
         <Button variant="ghost" onClick={signOut} disabled={pending}>

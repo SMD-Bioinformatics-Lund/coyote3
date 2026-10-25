@@ -307,7 +307,7 @@ export function Layout() {
           </Button>
           <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
             <div className="py-1">
-              <img src={appPath("/logo.png")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
+              <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
               <BrandWordmark className="text-chrome-foreground" />
