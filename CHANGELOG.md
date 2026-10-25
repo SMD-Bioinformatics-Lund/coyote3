@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Require installed HGNC/VEP metadata before shared VEP preparation. Add per-assay
+  findings, sample and final snapshot migration stages, retain original sample
+  ObjectIds, and split historical tumwgs samples into hema and solid ASPs.
+
 - Select annotation sources explicitly: hematology from v3, all other groups from v2.
   Block sample conversion when a saved report references an excluded annotation.
 

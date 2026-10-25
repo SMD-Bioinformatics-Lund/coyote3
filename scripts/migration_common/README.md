@@ -20,6 +20,8 @@ and [v3 runbook](../../docs/migration_from_v3/migration-guide.md) for source con
 | `commands.py` | Version-specific CLI behavior and reviewed TSV backfills |
 | `apply_bundle.py` | Guarded local target preflight and transactional bundle application |
 | `prepare_target.py`, `target_catalog.py` | Read-only validation and fingerprinting of preinstalled target configuration |
+| `prepare_references.py` | Read-only verification of installed HGNC and historical VEP metadata prerequisites |
+| `sample_scope.py` | Supported assay/source selection, tumwgs splitting and lowercase sample scope mapping |
 | `run_report.py` | Private JSON and Markdown evidence for completed or blocked migration runs |
 
 Only target preflight and bundle application open MongoDB connections. Neither has
@@ -161,10 +163,13 @@ do not downgrade the application driver or connect to the live source.
 ## Migration commands, in order
 
 Run these commands yourself from the repository root after preparing consistent
-offline BSON exports with source-compatible tooling. None of steps 1–7 connects
-to either source database. Step 3 reads target configuration; steps 2 and 4–7 are
-offline. Step 8 performs read-only target preflight. Step 9 writes to MongoDB
-only when explicitly invoked with `--apply`.
+offline BSON exports with source-compatible tooling. The collection order is:
+**HGNC/VEP metadata → anno_vep and findings → samples → annotations → saved finding
+snapshots**. These scripts never connect to the legacy source databases. Reference
+and target preflight read the isolated destination; conversion is offline. Only
+the explicit `apply_bundle.py --apply` commands write clinical records to MongoDB.
+Keep the destination application and workers offline until all stages are complete:
+findings intentionally precede their owning sample documents during this process.
 
 ### 1. Select private working paths and the isolated target
 
@@ -175,12 +180,30 @@ V3="$MIGRATION_ROOT/v3"
 VEP="$MIGRATION_ROOT/vep103"
 TARGET_CATALOG="$MIGRATION_ROOT/target-catalog.json"
 TARGET_DB=coyote4_migration_validation
+TARGET_KB_DB=coyote4_migration_knowledgebase
+REFERENCE_CATALOG="$MIGRATION_ROOT/reference-catalog.json"
 ```
 
 Use existing private directories outside the checkout. Place consistent BSON
 exports under `$V2/export/coyote` and `$V3/export/coyote3`. Set
 `COYOTE_MIGRATION_TARGET_URI` through the approved secret store to an isolated local
 MongoDB replica set. Do not use the source tunnel or the application production DB.
+
+First install the normal knowledgebase catalogs using the supported installation
+workflow; do not derive HGNC definitions or VEP metadata from clinical variants.
+Both `vep_metadata` (including release 103) and `hgnc_genes` must be populated in
+the isolated knowledgebase database. See the [knowledgebase operations guide](../../docs/operations/knowledgebase-updates.md)
+for maintained reference import tools. Set `COYOTE_MIGRATION_KNOWLEDGEBASE_URI`
+through the secret store to that isolated local knowledgebase, then verify it:
+
+```bash
+.venv/bin/python scripts/migration_common/prepare_references.py \
+  --target-db "$TARGET_KB_DB" --vep-version 103 --output "$REFERENCE_CATALOG"
+```
+
+This command validates both reference contracts, requires nonempty collections
+and the requested VEP metadata release, and records content fingerprints without
+creating collections, indexes, or records.
 
 ### 2. Inventory and index each source
 
@@ -223,6 +246,7 @@ measurements come from v3 `panel_cov`/measurement-shaped `group_coverage` record
   --source 2 "$V2/source.sqlite" "$V2/review.json" "$V2/schema-audit" \
   --source 3 "$V3/source.sqlite" "$V3/review.json" "$V3/schema-audit" \
   --vep-version 103 --target-catalog "$TARGET_CATALOG" \
+  --reference-catalog "$REFERENCE_CATALOG" \
   --batch-size 1000 --output "$VEP" --issues "$MIGRATION_ROOT/vep-issues.json"
 ```
 
@@ -231,7 +255,75 @@ and a checksum. `anno_vep.sqlite` is the local lookup cache used by annotation
 conversion. Numbered directories under `$VEP/bundles` are the MongoDB apply bundles.
 A failed build has no root completion manifest and must not be applied.
 
-### 5. Convert shared annotations, using the built VEP reference
+### 5. Select one assay and build its variants and related findings
+
+Use one supported destination `--assay-id` per invocation. Names are normalized to
+lowercase. The source version is checked; an assay cannot be taken from the other
+database.
+
+| Source | Supported destination ASP IDs |
+| --- | --- |
+| v3 | `gmshem`, `hema_gmsv1` |
+| v2 | `parp_inhib`, `fusion`, `fusion_validation_nf`, `lymph_gmsv3`, `lymphoid_gmsv1`, `myeloid_gmsv1`, `solidrna_gmsv5`, `solid_gmsv3`, `tumwgs-hema`, `tumwgs-solid`, `twistrnafusionv1-0` |
+
+`GMSHem` becomes `gmshem`; it is not silently renamed to `hema_gmsv1`.
+Legacy `tumwgs` with subpanel `hema` selects `tumwgs-hema`; with `solid` it
+selects `tumwgs-solid`. Other/missing tumwgs subpanels require reconciliation.
+The original subpanel becomes lowercase `diagnosis_id`; the selected installed
+ASP supplies `asp_group`. The reviewed ASPC must agree with both the selected
+ASP and recorded diagnosis. No new ObjectIds are generated for samples.
+
+Set the source field explicitly using `--assay-field group`, `assay`, or `asp_id`;
+the converter does not guess which field contains the listed assay names. For example,
+if they are in `group`, prepare one v3 assay:
+
+```bash
+ASSAY_ID=hema_gmsv1
+ASSAY_FIELD=group
+SOURCE="$V3"
+MIGRATOR=scripts/upgrade_from_v3/migrate_samples.py
+```
+
+For a v2 assay, change only the selected assay, source and wrapper, for example:
+
+```bash
+ASSAY_ID=myeloid_gmsv1
+ASSAY_FIELD=group
+SOURCE="$V2"
+MIGRATOR=scripts/migrate_from_v2/migrate_samples.py
+```
+
+Run the following command for the selected assay. It includes `variants` and
+other supported findings, finding comments, RNA results, D4 measurements and the
+matching shared `anno_vep` records. It excludes samples, reports and clinical
+annotations. The shared VEP build in step 4 still merges evidence across both
+exports so overlapping genomic records remain consistent across assay batches.
+
+```bash
+.venv/bin/python "$MIGRATOR" \
+  --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
+  --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
+  --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
+  --stage findings --output "$SOURCE/$ASSAY_ID-findings" \
+  --issues "$SOURCE/$ASSAY_ID-findings-issues.json"
+```
+
+### 6. Convert the selected assay's samples, retaining original ObjectIds
+
+```bash
+.venv/bin/python "$MIGRATOR" \
+  --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
+  --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
+  --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
+  --stage samples --output "$SOURCE/$ASSAY_ID-samples" \
+  --issues "$SOURCE/$ASSAY_ID-samples-issues.json"
+```
+
+This stage contains `samples`, sample comments and report references, preserving
+the original sample `_id` and related identities. It does not convert annotations
+or saved finding snapshots. Findings continue to reference the original sample ID.
+
+### 7. Convert annotations after VEP evidence and samples are available
 
 ```bash
 .venv/bin/python scripts/upgrade_from_v3/migrate_annotations.py \
@@ -245,7 +337,14 @@ A failed build has no root completion manifest and must not be applied.
   --vep-index "$VEP" --output "$V2/annotations" --issues "$V2/annotation-issues.json"
 ```
 
-### 6. Convert blacklists
+These commands retain v3 hematology annotations and v2 non-hematology annotations.
+For one annotation ASP at a time, add `--assay-id hema_gmsv1` to the v3 command
+or the appropriate supported v2 ASP to the v2 command, and use a unique output
+directory. Filtering uses the mapped annotation ASP; it does not infer new annotation
+ownership from sample assay names. Group-only annotations without an ASP need
+reviewed ASP attribution before they can be selected by this option.
+
+### 8. Convert blacklists
 
 ```bash
 .venv/bin/python scripts/upgrade_from_v3/migrate_blacklist.py \
@@ -259,20 +358,17 @@ A failed build has no root completion manifest and must not be applied.
 
 V3 actual coverage exclusions use `migrate_d4_coverage_blacklist.py` with the same
 index, audit, catalog and review arguments and a separate output directory. Sample
-coverage measurements are handled in step 7, not by the exclusion converter.
+coverage measurements are handled in step 5, not by the exclusion converter.
 
-### 7. Convert every sample and all supported related data
+### 9. Complete saved finding snapshots for the selected assay
 
 ```bash
-.venv/bin/python scripts/upgrade_from_v3/migrate_samples.py \
-  --index "$V3/source.sqlite" --schema-audit "$V3/schema-audit" \
-  --target-catalog "$TARGET_CATALOG" --review "$V3/review.json" \
-  --vep-index "$VEP" --output "$V3/samples" --issues "$V3/sample-issues.json"
-
-.venv/bin/python scripts/migrate_from_v2/migrate_samples.py \
-  --index "$V2/source.sqlite" --schema-audit "$V2/schema-audit" \
-  --target-catalog "$TARGET_CATALOG" --review "$V2/review.json" \
-  --vep-index "$VEP" --output "$V2/samples" --issues "$V2/sample-issues.json"
+.venv/bin/python "$MIGRATOR" \
+  --index "$SOURCE/source.sqlite" --schema-audit "$SOURCE/schema-audit" \
+  --target-catalog "$TARGET_CATALOG" --review "$SOURCE/review.json" \
+  --vep-index "$VEP" --assay-id "$ASSAY_ID" --assay-field "$ASSAY_FIELD" \
+  --stage complete --output "$SOURCE/$ASSAY_ID-complete" \
+  --issues "$SOURCE/$ASSAY_ID-complete-issues.json"
 ```
 
 | Related data | Handling |
@@ -289,8 +385,9 @@ coverage measurements are handled in step 7, not by the exclusion converter.
 | Reported findings | v3 `reported_variants`, retaining report, finding, annotation and sample-comment references |
 | Shared annotations and VEP | Linked snapshot annotations are included; shared reference records use the same completed VEP index |
 
-Each numbered directory is a complete per-sample bundle with a private conversion
-report. The root manifest is written only after all selected samples succeed.
+Each numbered directory contains one sample's selected migration stage and a private
+conversion report. In `complete` mode it includes all supported related collections.
+The root manifest is written only after all selected samples succeed.
 Multiple embedded QC results require review; the converter does not average them or
 choose one silently. Files referenced by reports or analyses require separate transfer.
 
@@ -300,7 +397,7 @@ Use `--sample-ids-file /private/selected-sample-ids.json`, a JSON array of sourc
 strings, to convert an explicit subset; default behavior converts every source sample.
 For one sample, use `migrate_sample.py --sample-id ID` with the same other arguments.
 
-### 8. Preflight a target bundle without writing
+### 10. Preflight each target bundle without writing
 
 ```bash
 .venv/bin/python scripts/migration_common/apply_bundle.py \
@@ -311,7 +408,7 @@ Inspect each completion manifest, issue report, counts and target preflight befo
 applying. Preflight is read-only; it does not prove a later concurrent target change
 will be acceptable. Application rechecks the target catalog and conflicts transactionally.
 
-### 9. Apply approved bundles to MongoDB, one stage at a time
+### 11. Apply approved bundles to MongoDB, one stage at a time
 
 These commands write to the isolated destination. They are not run automatically by
 conversion. First apply the VEP bundles:
@@ -328,7 +425,25 @@ conversion. First apply the VEP bundles:
 )
 ```
 
-Apply each reviewed source's shared resources separately:
+Apply findings first, then samples, for the selected assay:
+
+```bash
+(
+  set -e
+  for stage in findings samples; do
+    test -f "$SOURCE/$ASSAY_ID-$stage/manifest.json"
+    for bundle in "$SOURCE/$ASSAY_ID-$stage"/[0-9]*; do
+      test -d "$bundle" || continue
+      .venv/bin/python scripts/migration_common/apply_bundle.py \
+        --bundle "$bundle" --target-db "$TARGET_DB" --apply
+    done
+  done
+)
+```
+
+Apply each reviewed source's annotations and blacklists after the sample stage.
+If annotations were prepared with `--assay-id`, replace the annotations bundle
+path with that assay-specific output directory:
 
 ```bash
 .venv/bin/python scripts/migration_common/apply_bundle.py \
@@ -341,23 +456,15 @@ Apply each reviewed source's shared resources separately:
   --bundle "$V2/blacklist" --target-db "$TARGET_DB" --apply
 ```
 
-Then apply approved complete sample bundles, reviewing v3 and v2 separately:
+Then apply the selected assay's complete bundles to finish saved finding snapshots.
+Identical findings and samples from earlier stages are verified and skipped;
+conflicts stop the transaction:
 
 ```bash
 (
   set -e
-  test -f "$V3/samples/manifest.json"
-  for bundle in "$V3"/samples/[0-9]*; do
-    test -d "$bundle" || continue
-    .venv/bin/python scripts/migration_common/apply_bundle.py \
-      --bundle "$bundle" --target-db "$TARGET_DB" --apply
-  done
-)
-
-(
-  set -e
-  test -f "$V2/samples/manifest.json"
-  for bundle in "$V2"/samples/[0-9]*; do
+  test -f "$SOURCE/$ASSAY_ID-complete/manifest.json"
+  for bundle in "$SOURCE/$ASSAY_ID-complete"/[0-9]*; do
     test -d "$bundle" || continue
     .venv/bin/python scripts/migration_common/apply_bundle.py \
       --bundle "$bundle" --target-db "$TARGET_DB" --apply

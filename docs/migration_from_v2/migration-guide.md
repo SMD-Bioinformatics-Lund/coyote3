@@ -159,15 +159,18 @@ validate their contents or availability.
 
 ## Conversion and application order
 
-1. Complete target configuration, reference installation, and target preflight.
+1. Install `vep_metadata` and `hgnc_genes`, verify release 103 using
+   `prepare_references.py`, and complete target configuration preflight.
 2. Complete the offline source inventory, index, and operator review.
 3. Build the shared `anno_vep` reference from the complete v2/v3 variant indexes,
-   using reviewed release provenance. Convert shared annotations against that
-   reference, then convert finding blacklist entries.
-4. Use `migrate_samples.py` for all selected samples, or `migrate_sample.py` for one,
-   including findings, embedded RNA results, comments, saved reports,
-   reported-finding references where present, and original transcript evidence.
-5. Reconcile collection counts, identities, report links, exclusions, missing values,
+   using reviewed release provenance and `--reference-catalog`.
+4. Select one supported v2 `--assay-id` and its explicit `--assay-field` with
+   `migrate_samples.py --stage findings`, then `--stage samples`. Findings precede
+   samples; original sample ObjectIds are retained. The installed ASP supplies
+   `asp_group`, and the recorded subpanel supplies lowercase `diagnosis_id`.
+5. Convert non-hematology annotations against the completed VEP reference, then
+   blacklist entries. Use `--stage complete` for final saved-reference validation.
+6. Reconcile collection counts, identities, report links, exclusions, missing values,
    and all source records before clinical acceptance and cutover.
 
 The [shared migration README](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/migration_common/README.md#migration-commands-in-order)

@@ -34,10 +34,13 @@ use `variants_idref` and `cnvs_wgs`. Both packages operate on offline BSON expor
 the [v2 procedure](../migration_from_v2/migration-guide.md) and
 [v3 procedure](../migration_from_v3/migration-guide.md) specify their order.
 
-`scripts/migration_common/build_anno_vep.py` builds the shared historical transcript
-reference and bounded MongoDB bundles from reviewed variant exports. Both version
-packages provide `migrate_samples.py` to convert all selected samples and related
-clinical collections. These are offline conversion tools; applying bundles is a
+`scripts/migration_common/prepare_references.py` verifies installed HGNC genes and
+historical VEP metadata without writes. `build_anno_vep.py` requires that reference
+catalog before building shared transcript evidence from reviewed variant exports.
+Both version packages provide `migrate_samples.py --assay-id` with an explicit source
+field and `--stage findings`, `samples`, or `complete`: findings precede sample
+insertion, annotations follow, and saved snapshots are validated last. Samples retain
+their original ObjectIds. These are offline conversion tools; applying bundles is a
 separate explicit operation against an isolated MongoDB target. SQLite files are
 local lookup indexes, not the migration destination.
 

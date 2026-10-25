@@ -10,8 +10,9 @@ BSON exports; they do not migrate the application to SQL. Conversion commands on
 write private files. Only the separately invoked target apply command writes to MongoDB.
 
 Use the [numbered migration commands](../migration_common/README.md#migration-commands-in-order)
-for both versions: inventory, source preparation, shared `anno_vep`, annotations,
-blacklist, all sample data, target preflight, and explicit application.
+for both versions: installed HGNC/VEP references, inventory, shared `anno_vep`,
+findings and samples selected by one `--assay-id`, annotations, and final saved
+finding snapshots. MongoDB application remains a separate explicit step.
 
 Follow the [v2 migration runbook](../../docs/migration_from_v2/migration-guide.md)
 for collection mappings, source relationships, reconciliation, commands, and recovery.
