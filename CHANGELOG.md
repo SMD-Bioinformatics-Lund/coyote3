@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Coyote3/center branding and labeled metadata fields to the modern report,
+  with embedded validated SVG logos and print-safe A4 layout. Remove obsolete
+  logo files, use the current vector assets throughout, and support dark-theme lettering.
+- Add in-place PDF preview to the established report tab and show independently
+  installed core SDK and Python HTTP client versions on the About page.
+
 - Build the application wheel inside the normal Docker installation, without
   requiring host SDK preparation. Keep tested-wheel verification in the optional
   release Compose overlay and release CI target.

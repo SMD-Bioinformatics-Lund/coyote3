@@ -68,7 +68,8 @@ export function AboutPage() {
           tone="primary"
           bodyClassName="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4"
         >
-          <InfoCard tone="primary" icon={GitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined} />
+          <InfoCard tone="primary" icon={GitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined}
+            details={[{ label: "Core SDK", value: application.sdk_version || "Not installed" }, { label: "Python client SDK", value: application.client_sdk_version || "Not installed" }]} />
           <InfoCard
             tone="info"
             icon={Database}

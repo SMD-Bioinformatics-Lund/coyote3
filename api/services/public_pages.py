@@ -1,12 +1,28 @@
 """Public product and contact pages composed by the standalone web application."""
 
 from collections.abc import Mapping
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 from api.config.application_metadata import APPLICATION_DESCRIPTION
 from api.config.contact import application_integration_links
 from coyote3.application.operations.public import PublicApplication
 from coyote3.config.policy import get_runtime_environment
+
+
+def _installed_version(package: str) -> str | None:
+    """Return an installed distribution's version, or None when it is absent.
+
+    Args:
+        package: Distribution name from its Python packaging metadata.
+
+    Returns:
+        Actual installed version, without substituting a release-manifest expectation.
+    """
+    try:
+        return version(package)
+    except PackageNotFoundError:
+        return None
 
 
 class PublicPages:
@@ -33,6 +49,8 @@ class PublicPages:
                 "application": {
                     "name": "Coyote3",
                     "version": self._config.get("APP_VERSION"),
+                    "sdk_version": _installed_version("Coyote3"),
+                    "client_sdk_version": _installed_version("coyote3-client"),
                     "environment": get_runtime_environment(self._config),
                     "script_name": self._config.get("SCRIPT_NAME"),
                     "description": APPLICATION_DESCRIPTION,

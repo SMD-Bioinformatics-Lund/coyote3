@@ -889,6 +889,6 @@ or delete a superuser account.
 | Route | Purpose |
 | --- | --- |
 | `/profile` | Shows account identity, roles, auth types, scopes, editable profile settings, and password controls when local auth is enabled. |
-| `/about` | Product, application version, database names, software versions, reference versions, support summary, and useful operational links including documentation, license, repository, and issue submission. |
+| `/about` | Product, application version, installed core SDK and Python HTTP client SDK versions, database names, software versions, reference versions, support summary, and operational links. SDK values come from installed distribution metadata; an absent package is shown as not installed. The client version identifies the server-installed Python client, not clients installed on other workstations. |
 | `/contact` | Public contact, service hours, support roles, address, and configured center links from the contact TOML file. |
 | External license link | License and usage terms from the configured codebase link. |

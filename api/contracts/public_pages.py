@@ -17,10 +17,22 @@ class PublicContactPayload(BaseModel):
     meta: dict[str, Any] = {}
 
 
+class PublicApplicationMetadata(BaseModel):
+    """Identify the application release and independently installed Python SDK versions."""
+
+    name: str
+    version: str | None
+    sdk_version: str | None
+    client_sdk_version: str | None
+    environment: str
+    script_name: str | None
+    description: str
+
+
 class PublicAboutPayload(PublicContactPayload):
     """Represent public application, organization, and reference metadata."""
 
-    application: dict[str, Any]
+    application: PublicApplicationMetadata
     references: dict[str, Any]
     software: dict[str, Any]
     databases: dict[str, Any]

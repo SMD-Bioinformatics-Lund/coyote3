@@ -50,7 +50,7 @@ const publicPayload = {
     feature_request_url: "https://github.com/example/coyote3/issues/new?template=feature.md",
     support_request_url: "https://github.com/example/coyote3/issues/new?template=support.md",
   },
-  application: { version: "4.0.0", environment: "production", description: "Coyote3" },
+  application: { version: "4.0.0", sdk_version: "4.0.0", client_sdk_version: "1.0.0", environment: "production", description: "Coyote3" },
   references: {
     vep_metadata: ["103", "110"],
     sample_database_versions: { assembly: ["GRCh38.p13", "GRCh38"], clinvar: ["202008"] },
@@ -73,7 +73,7 @@ describe("public static pages", () => {
 
   it("groups About information inside themed content panels", async () => {
     mount(<AboutPage />)
-    expect(await screen.findByText("4.0.0")).toBeVisible()
+    expect(await screen.findAllByText("4.0.0")).toHaveLength(2)
     const versions = screen.getByRole("region", { name: "Reference and software versions" })
     expect(versions).toHaveClass("glass-card")
     expect(versions).toContainElement(screen.getByText("Analysis pipelines"))
@@ -110,8 +110,11 @@ describe("public static pages", () => {
   it("renders application, pipeline, reference, database, and codebase metadata", async () => {
     mount(<AboutPage />)
 
-    expect(await screen.findByText("4.0.0")).toBeVisible()
+    expect(await screen.findAllByText("4.0.0")).toHaveLength(2)
     expect(screen.getByText("Environment: production")).toBeVisible()
+    expect(screen.getByText("Core SDK")).toBeVisible()
+    expect(screen.getByText("Python client SDK")).toBeVisible()
+    expect(screen.getByText("1.0.0")).toBeVisible()
     expect(screen.getByText("coyote3")).toBeVisible()
     expect(screen.getByText("Identity: coyote3_identity | BAM service: BAM_Service")).toBeVisible()
     expect(screen.getByText("SomaticPanelPipeline")).toBeVisible()
@@ -126,7 +129,7 @@ describe("public static pages", () => {
 
   it("deduplicates configured and default about links by URL", async () => {
     mount(<AboutPage />)
-    await screen.findByText("4.0.0")
+    await screen.findAllByText("4.0.0")
 
     expect(screen.getAllByRole("link", { name: /Documentation/ })).toHaveLength(1)
   })
