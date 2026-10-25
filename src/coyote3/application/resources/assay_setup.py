@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from coyote3.application.accounts.common import build_managed_form
+from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.reporting.clinical_rules.resolution import resolve_published_rule_set
 from coyote3.application.resources.aspc import AspcService
 from coyote3.application.resources.helpers import require_new_identifier
@@ -73,6 +74,36 @@ class SetupWorkspace:
             )
             or []
         )
+        self.linked_lists: list[dict] = []
+        for identifier in dict.fromkeys(content.existing_gene_list_ids):
+            source = store.gene_list_repository.get_isgl(identifier)
+            if not source or not source.get("is_active"):
+                raise api_error(422, f"Gene list is unavailable: {identifier}")
+            if self.panel["asp_id"] in (source.get("asp_ids") or []):
+                continue
+            reject_system_managed_change(source, resource="gene list")
+            if set(source.get("diagnosis") or []) - set(content.scopes):
+                raise api_error(422, f"Select the diagnoses required by gene list: {identifier}")
+            linked = deepcopy(source)
+            linked.pop("_id", None)
+            linked.pop("gene_count", None)
+            linked.update(
+                asp_ids=list(dict.fromkeys([*(source.get("asp_ids") or []), self.panel["asp_id"]])),
+                asp_groups=list(
+                    dict.fromkeys([*(source.get("asp_groups") or []), self.panel["asp_group"]])
+                ),
+                version=int(source.get("version") or 1) + 1,
+                supersedes_id=source["_id"],
+                updated_by=actor,
+                updated_on=self.now,
+            )
+            linked = InsilicoGenelistsDoc.model_validate(linked).model_dump(
+                by_alias=True, exclude_computed_fields=True
+            )
+            linked.pop("_id", None)
+            self.linked_lists.append(linked)
+            if not any(g["_id"] == source["_id"] for g in self.existing_lists):
+                self.existing_lists.append(source)
 
     def document(self, source: dict) -> dict:
         """Remove imported persistence identity and assign authoritative creation metadata."""
@@ -117,7 +148,10 @@ class SetupWorkspace:
 
     def get_isgl_for_scope(self, **_kwargs: Any) -> list[dict]:
         """Combine active shared lists and validated staged lists for filter choices."""
-        return self.existing_lists + [g for g in self.gene_lists if not g.get("adhoc")]
+        replacements = {g["isgl_id"]: g for g in self.linked_lists}
+        return [
+            replacements.get(g["isgl_id"], g) for g in self.existing_lists if not g.get("adhoc")
+        ] + [g for g in self.gene_lists if not g.get("adhoc")]
 
     def build_aspc_id(self, *args: Any) -> str:
         """Use the canonical ASPC identity builder."""
@@ -353,6 +387,7 @@ class AssaySetupService:
         return {
             "panel": workspace.panel,
             "gene_lists": workspace.gene_lists,
+            "linked_gene_lists": workspace.linked_lists,
             "configurations": workspace.configurations,
             "rules": list(rules.values()),
             "definitions": workspace.definitions,

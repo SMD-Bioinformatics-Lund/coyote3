@@ -20,6 +20,7 @@ export function AdminManagedForm({
   onCancel,
   isSaving,
   error,
+  saveLabel = "Save",
 }: {
   mode: AdminFormMode
   spec: AdminResourceSpec
@@ -30,6 +31,7 @@ export function AdminManagedForm({
   onCancel: () => void
   isSaving: boolean
   error: string
+  saveLabel?: string
 }) {
   const sections = form.sections && Object.keys(form.sections).length ? form.sections : { general: Object.keys(form.fields || {}) }
   const updateField = (name: string, next: any) => {
@@ -97,7 +99,7 @@ export function AdminManagedForm({
               disabled={isSaving}
             >
               {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save
+              {saveLabel}
             </Button>
           )}
         </div>

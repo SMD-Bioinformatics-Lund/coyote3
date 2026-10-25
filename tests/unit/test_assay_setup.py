@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 from bson import ObjectId
+from pydantic import ValidationError
 
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
@@ -17,9 +18,41 @@ from api.infra.mongo.repositories.assay_setup import (
 from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from coyote3.application.reporting.clinical_rules.validation import content_hash
 from coyote3.application.resources.assay_setup import AssaySetupService
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.contracts.schemas.assay_setup import AssaySetupContent
 from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote3.domain.exceptions import AppError
+
+
+@pytest.mark.parametrize(
+    ("family", "category"), CLINICAL_VOCABULARY.assay_family_categories.items()
+)
+def test_setup_derives_missing_modality_from_family(family, category):
+    """Managed forms can save every supported family without a readonly modality."""
+    panel = dict(
+        asp_id="synthetic_assay",
+        asp_group="hematology",
+        asp_family=family,
+        display_name="Synthetic assay",
+    )
+    result = AssaySetupContent.model_validate({"panel": panel})
+    assert result.panel.asp_category == category
+    assert "asp_category" not in panel
+
+
+@pytest.mark.parametrize("family, category", [("panel-dna", "rna"), ("unknown", None)])
+def test_setup_rejects_conflicting_modality_and_unknown_family(family, category):
+    """Deriving modality does not permit invalid or conflicting family selections."""
+    panel = dict(
+        asp_id="synthetic_assay",
+        asp_group="hematology",
+        asp_family=family,
+        display_name="Synthetic assay",
+    )
+    if category is not None:
+        panel["asp_category"] = category
+    with pytest.raises(ValidationError):
+        AssaySetupContent.model_validate({"panel": panel})
 
 
 @pytest.fixture
@@ -184,6 +217,67 @@ def test_draft_isolation_and_atomic_publication_bundle(setup_service):
     assert len(service.repository.revisions(identifier)) == 3
     with pytest.raises(AppError, match="current draft"):
         service.save(content(), actor="reviewer", identifier=identifier, revision=3)
+
+
+def test_existing_gene_list_link_is_staged_then_versioned_at_activation(setup_service):
+    """Linking preserves list content and provenance and writes only during activation."""
+    service, db = setup_service
+    created = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    original = dict(
+        isgl_id="shared",
+        name="Shared",
+        displayname="Shared list",
+        genes=["TP53"],
+        list_type=["snv"],
+        diagnosis=["base"],
+        asp_ids=[],
+        asp_groups=[],
+        is_active=True,
+        version=1,
+        created_by="original-author",
+        created_on=created,
+    )
+    original_id = db.isgl.insert_one(original).inserted_id
+    draft = service.save(content(existing_gene_list_ids=["shared", "SHARED"]), actor="author")
+    assert draft["content"]["existing_gene_list_ids"] == ["shared"]
+    assert db.isgl.find_one({"_id": original_id})["asp_ids"] == []
+    submitted = service.transition(str(draft["_id"]), 1, "submit", actor="author")
+    assert db.isgl.count_documents({}) == 1
+    service.transition(str(draft["_id"]), submitted["revision"], "publish", actor="reviewer")
+    linked = db.isgl.find_one({"is_active": True})
+    assert linked["asp_ids"] == ["assay_1"]
+    assert linked["asp_groups"] == ["hematology"]
+    assert linked["genes"] == ["TP53"]
+    assert linked["created_by"] == "original-author"
+    assert linked["created_on"] == created.replace(tzinfo=None)
+    assert linked["updated_by"] == "reviewer"
+    assert linked["version"] == 2
+    assert linked["supersedes_id"] == original_id
+    assert db.isgl.find_one({"_id": original_id})["is_active"] is False
+
+
+@pytest.mark.parametrize(
+    "changes", [{"system_installed": True}, {"is_active": False}, {"diagnosis": ["unselected"]}]
+)
+def test_setup_rejects_unavailable_or_protected_gene_list_links(setup_service, changes):
+    """Shared lists retain ownership, activity and diagnosis restrictions."""
+    service, db = setup_service
+    db.isgl.insert_one(
+        dict(
+            isgl_id="shared",
+            is_active=True,
+            diagnosis=["base"],
+            **{
+                key: value
+                for key, value in changes.items()
+                if key not in {"is_active", "diagnosis"}
+            },
+        )
+        | changes
+    )
+    with pytest.raises(AppError):
+        service.save(content(existing_gene_list_ids=["shared"]), actor="author")
+    assert db.assay_setups.count_documents({}) == 0
 
 
 @pytest.mark.parametrize("action", ["publish", "return"])

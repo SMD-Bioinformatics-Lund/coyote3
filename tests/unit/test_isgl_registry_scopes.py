@@ -1,10 +1,13 @@
 """ISGL scope choices come from associated registry records rather than free text."""
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
 from coyote3.application.resources.isgl import IsglService
+from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.assay import InsilicoGenelistsDoc
 from coyote3.domain.exceptions import AppError
 
 
@@ -48,6 +51,38 @@ def service():
             )
         ),
     )
+
+
+def test_unassigned_gene_list_and_explicit_unlink(service):
+    """Lists can precede assays, and clearing links does not restore old associations."""
+    unassigned = InsilicoGenelistsDoc(
+        isgl_id="shared",
+        name="Shared",
+        displayname="Shared list",
+        asp_ids=[],
+        asp_groups=[],
+        list_type=["snv"],
+    )
+    assert unassigned.asp_ids == []
+    previous = unassigned.model_dump(exclude_computed_fields=True)
+    previous.update(asp_ids=["panel-a"], asp_groups=["custom-group"])
+    rotate = Mock(return_value=OperationResult(inserted_id="synthetic"))
+    service.gene_list_repository = SimpleNamespace(get_isgl=lambda _: previous, rotate_isgl=rotate)
+    service.update(
+        genelist_id="shared",
+        payload={"expected_version": 1, "config": {"asp_ids": [], "asp_groups": []}},
+    )
+    assert rotate.call_args.args[1]["asp_ids"] == []
+    assert rotate.call_args.args[1]["asp_groups"] == []
+
+
+def test_association_update_rejects_stale_list_version(service):
+    """A stale picker cannot replace associations from a newer revision."""
+    service.gene_list_repository = SimpleNamespace(get_isgl=lambda _: {"version": 2})
+    with pytest.raises(AppError, match="Gene list changed"):
+        service.update(
+            genelist_id="shared", payload={"expected_version": 1, "config": {"asp_ids": []}}
+        )
 
 
 def test_form_uses_registry_choices_and_implicit_base(service):

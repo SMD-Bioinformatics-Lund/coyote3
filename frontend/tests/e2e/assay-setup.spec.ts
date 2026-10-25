@@ -14,6 +14,10 @@ for (const width of [1440, 1024, 390]) {
     } }
     const context = () => ({ panel_form: panelForm, diagnoses: [{ diagnosis_id: "myeloid", display_name: "Myeloid", is_active: true }], environments: ["development", "production"], ...(saved ? { setup: saved, history: [], rules: [], readiness: { ready: false, issues: ["Missing ASPCs: base/development"] } } : {}) })
     await installApiFixtures(page, (path, _url, route) => {
+      if (path === "/api/v1/resources/genelists") return { json: {
+        genelists: [{ isgl_id: "shared", name: "Shared list", asp_ids: [], asp_groups: [], is_active: true, version: 1 }],
+        pagination: { has_next: false },
+      } }
       if (path === "/api/v1/admin/assay-setups") {
         if (route.request().method() === "POST") {
           saved = { _id: "setup-1", asp_id: "synthetic-assay", content: route.request().postDataJSON(), status: "draft", revision: 1, created_by: "coyote3.admin", content_editors: ["coyote3.admin"] }
@@ -31,14 +35,18 @@ for (const width of [1440, 1024, 390]) {
     await page.goto("/admin/assay-setups?setup=new")
     await page.getByLabel("Assay identifier", { exact: true }).fill("synthetic-assay")
     await page.getByLabel("Display name", { exact: true }).fill("Synthetic assay")
-    await page.getByRole("button", { name: "Save", exact: true }).click()
+    await page.getByRole("button", { name: "Save and continue", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeChecked()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeDisabled()
     await expect(page.getByRole("checkbox", { name: "Myeloid", exact: true })).not.toBeChecked()
     await page.getByRole("checkbox", { name: "Myeloid", exact: true }).check()
     await page.getByRole("checkbox", { name: "development", exact: true }).check()
-    await page.getByRole("button", { name: "Save diagnoses and environments" }).click()
+    await page.getByRole("button", { name: "Save and continue" }).click()
+    await expect(page.getByRole("region", { name: "Gene list workspace" })).toBeVisible()
     await expect(page.getByText("draft · Revision 2", { exact: true })).toBeVisible()
+    await page.getByRole("button", { name: "Link", exact: true }).click()
+    await expect(page.getByText("Selected: shared", { exact: true })).toBeVisible()
+    expect((saved!.content as { existing_gene_list_ids: string[] }).existing_gene_list_ids).toEqual(["shared"])
     await page.reload()
     await page.getByRole("button", { name: "2. Diagnoses", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeChecked()

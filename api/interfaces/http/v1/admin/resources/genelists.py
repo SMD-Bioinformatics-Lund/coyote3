@@ -196,7 +196,10 @@ def update_genelist_change(
     user: ApiUser = Depends(require_access(permission="gene_list.insilico:edit")),
     service: GeneLists = Depends(get_gene_lists),
 ):
-    """Update a genelist.
+    """Update a gene list with gene_list.insilico:edit permission.
+
+    An optional top-level expected_version rejects stale edits with HTTP 409.
+    Explicit empty asp_ids or asp_groups clear those associations.
 
     \u000c
 

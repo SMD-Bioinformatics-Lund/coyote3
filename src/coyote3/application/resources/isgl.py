@@ -274,7 +274,8 @@ class IsglService:
 
         Args:
             genelist_id: Genelist identifier to update.
-            payload: Submitted config payload.
+            payload: Submitted config and optional expected_version precondition.
+            actor_username: Authenticated editor used for revision attribution.
 
         Returns:
             dict[str, Any]: Normalized change response payload.
@@ -282,6 +283,10 @@ class IsglService:
         genelist = self.gene_list_repository.get_isgl(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
+        if "expected_version" in payload and payload["expected_version"] != int(
+            genelist.get("version") or 1
+        ):
+            raise api_error(409, "Gene list changed; refresh it before editing associations")
         updated = payload.get("config", {})
         if not updated:
             raise api_error(400, "Missing genelist config payload")
@@ -293,11 +298,6 @@ class IsglService:
         updated_doc.pop("_id", None)
         updated_doc.pop("gene_count", None)
         updated_doc.pop("diagnosis_id", None)
-        # Required contract fields should not be unintentionally blanked by partial form submits.
-        if not updated_doc.get("asp_ids"):
-            updated_doc["asp_ids"] = list(genelist.get("asp_ids", []))
-        if not updated_doc.get("asp_groups"):
-            updated_doc["asp_groups"] = list(genelist.get("asp_groups", []))
         actor = current_actor(actor_username)
         now = utc_now()
         previous_version = int(genelist.get("version") or 1)

@@ -207,6 +207,31 @@ class AssaySetupRepository(BaseRepository):
                         if collection.find_one({key: document[key]}, session=session):
                             raise api_error(409, f"Resource already exists: {document[key]}")
                         collection.insert_one(deepcopy(document), session=session)
+                for linked in bundle.get("linked_gene_lists", []):
+                    collection = self.adapter.insilico_genelist_collection
+                    retired = collection.update_one(
+                        {
+                            "_id": linked["supersedes_id"],
+                            "is_active": True,
+                            "version": linked["version"] - 1,
+                        },
+                        {
+                            "$set": {
+                                "is_active": False,
+                                "retired_by": payload["updated_by"],
+                                "retired_on": payload["updated_at"],
+                                "retired_reason": "assay_setup_association",
+                            }
+                        },
+                        session=session,
+                    )
+                    if retired.matched_count != 1:
+                        raise api_error(409, "A shared gene list changed; review the setup again")
+                    successor = deepcopy(linked)
+                    successor.update(
+                        updated_by=payload["updated_by"], updated_on=payload["updated_at"]
+                    )
+                    collection.insert_one(successor, session=session)
                 for association in bundle["associations"]:
                     self.adapter.diagnosis_associations_collection.insert_one(
                         deepcopy(association), session=session

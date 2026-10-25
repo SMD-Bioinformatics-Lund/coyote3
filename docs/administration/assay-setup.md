@@ -123,15 +123,53 @@ new setup saves, submission and activation.
 
 ### 2. Save the assay definition in the setup workspace
 
-Open **Admin > Assay setup**, create a draft and save the **Assay** step. Supply a
-stable identifier, display name, group, family, DNA/RNA category, sequencing
+Open **Admin > Assay setup**, create a draft and choose **Save and continue** on
+the **Assay** step to move to **Diagnoses** after validation succeeds. Supply a
+stable identifier, display name, group, family, sequencing
 settings, physical gene coverage and input-file policy. Define `expected_files`
 for evidence the pipeline produces and `required_files` for inputs whose absence
 must reject ingest. Select only implemented file/analysis combinations.
 
+**Modality** (`asp_category`) is DNA or RNA and is derived from the sequencing
+family. It is read-only; for example, `panel-dna` determines `dna`.
+Saving diagnoses and environments advances to **Gene lists**. Use **Next** for
+the remaining steps after saving any open gene-list or configuration editor.
+
 This saved draft reserves the assay identity and makes it available to the rule
 builder. It is not yet an operational ASP; creating it does not enable ingest.
 Do not create a second ASP with the same identifier through another workflow.
+
+### Gene-list creation order and associations
+
+A gene list can be saved before its assay exists: leave **Assays** empty, and
+leave **Assay groups** empty if the list should be unassigned. Use Base until
+named diagnoses have been associated with the assay.
+
+In the setup's **Gene lists** step, **Existing gene lists** searches the full
+registry, including unassigned lists. Link suitable active, center-owned lists
+or create new lists in the staged workspace. Existing-list selections are saved
+in `existing_gene_list_ids`; they do not alter operational lists until independent
+approval and activation. Activation updates each selected list's `asp_ids` and
+`asp_groups` in the same transaction as the new assay and configurations. The old
+list revision remains in history; genes and original creation attribution are retained.
+If a selected list changes after submission, the setup requires a new review.
+
+For an already registered assay, open **Admin > Assays > Edit > Existing gene lists**
+to link or unlink a list. You can also edit **Assays** on the gene-list page.
+Both editors use the gene list's `asp_ids` as the authoritative association, so
+changes appear in both places. Unlinking an assay retains the list's other assay
+links and group scope; group-scoped lists may still be offered to assays in that group.
+The assay editor sends `expected_version` with the existing gene-list update
+request; a stale selection is rejected rather than replacing newer associations.
+
+Browsing requires `gene_list.insilico:list`; changing an existing list requires
+`gene_list.insilico:edit`, including setup authors selecting lists and reviewers
+activating those links. System-installed lists remain protected. Named list
+diagnoses must be included in the setup's selected scopes.
+
+Association does not automatically select a list for filtering or reporting.
+Choose eligible lists in the assay configuration for the intended analysis type
+and diagnosis. Ad-hoc lists remain excluded from standard configuration choices.
 
 ### 3. Select scopes and environments
 

@@ -8,6 +8,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { hasPermission } from "@/lib/access-control";
 import { AdminManagedForm } from "@/pages/admin/AdminManagedForm";
 import { AssayDiagnoses } from "@/pages/admin/AssayDiagnoses";
+import { AssayGeneLists } from "@/pages/admin/AssayGeneLists";
 import { submitPayload } from "@/pages/admin/resource-list";
 import { type AdminFormMode, type FormSpec } from "@/pages/admin/resource-specs";
 import { resource as spec } from "./resource";
@@ -65,6 +66,7 @@ export function AssayEditorPage({ mode }: { mode: AdminFormMode }) {
             />
           </div>
         )}
+        {doc && <AssayGeneLists aspId={String(doc.asp_id)} aspGroup={String(doc.asp_group)} readonly={effectiveMode === "view"} />}
       </AdminEditorContent>
     </PageShell>
   );

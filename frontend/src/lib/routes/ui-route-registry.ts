@@ -295,14 +295,14 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/asp/:id/edit",
     page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/diagnoses","POST /resources/asp/{assay_panel_id}/diagnoses","GET /resources/asp/{assay_panel_id}/diagnoses","PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
+    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/diagnoses","POST /resources/asp/{assay_panel_id}/diagnoses","GET /resources/asp/{assay_panel_id}/diagnoses","PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status", "GET /resources/genelists", "PUT /resources/genelists/{genelist_id}"],
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
     path: "/admin/asp/:id/view",
     page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /resources/asp/:id/context","GET /resources/asp/{assay_panel_id}/diagnoses"],
+    api: ["GET /resources/asp/:id/context","GET /resources/asp/{assay_panel_id}/diagnoses", "GET /resources/genelists"],
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
@@ -477,7 +477,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/assay-setups",
     page: "AssaySetupPage",
     area: "admin",
-    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "GET /admin/assay-setups/{identifier}/context", "POST /admin/assay-setups", "PUT /admin/assay-setups/{identifier}", "POST /admin/assay-setups/{identifier}/submit", "POST /admin/assay-setups/{identifier}/publish", "POST /admin/assay-setups/{identifier}/return", "DELETE /admin/assay-setups/{identifier}"],
+    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "GET /admin/assay-setups/{identifier}/context", "POST /admin/assay-setups", "PUT /admin/assay-setups/{identifier}", "POST /admin/assay-setups/{identifier}/submit", "POST /admin/assay-setups/{identifier}/publish", "POST /admin/assay-setups/{identifier}/return", "DELETE /admin/assay-setups/{identifier}", "GET /resources/genelists"],
     dataUsed: ["setup drafts", "managed resource forms", "scope readiness", "review history"],
   },
   {

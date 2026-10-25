@@ -770,11 +770,11 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "asp_groups": {
             "display_type": "checkbox-group",
             "options": [],
-            "help": "Select one or more assay groups to expose the assays that may use this gene list.",
+            "help": "Select assay groups to see available assays, or leave the list unassigned and link it after the assay is registered.",
         },
         "asp_ids": {
             "display_type": "checkbox-group",
-            "help": "Select one or more assay groups first, then select the specific assays that may use this gene list.",
+            "help": "Select existing assays, or save without an assay and link it later from the assay or gene-list editor. Association does not automatically select the list in assay configurations.",
         },
         "genes": {
             "display_type": "jsoneditor-or-upload",

@@ -1685,7 +1685,8 @@ class AssaySetups:
         """
         return self._runtime.execute(
             "assay_setups.create_setup",
-            ("assay.panel:create", "assay.config:create", "gene_list.insilico:create"),
+            ("assay.panel:create", "assay.config:create", "gene_list.insilico:create")
+            + (("gene_list.insilico:edit",) if payload.existing_gene_list_ids else ()),
             lambda actor, sample: self._service().save(payload, actor=actor.username),
         )
 
@@ -1710,7 +1711,8 @@ class AssaySetups:
                 "assay.panel:create",
                 "assay.config:create",
                 "gene_list.insilico:create",
-            ),
+            )
+            + (("gene_list.insilico:edit",) if payload.content.existing_gene_list_ids else ()),
             lambda actor, sample: self._service().save(
                 payload.content,
                 identifier=identifier,
@@ -1768,7 +1770,35 @@ class AssaySetups:
                 "assay.config:create",
                 "gene_list.insilico:create",
             ),
-            lambda actor, sample: self._service().transition(
+            lambda actor, sample: self._publish_with_gene_list_access(identifier, payload),
+        )
+
+    def _publish_with_gene_list_access(
+        self, identifier: str, payload: AssaySetupAction
+    ) -> dict[str, Any]:
+        """Require gene-list edit permission when activation links shared lists.
+
+        Args:
+            identifier: Submitted setup identity, checked by the outer operation.
+            payload: Expected revision and review notes.
+
+        Returns:
+            Published setup after atomic activation.
+
+        Raises:
+            AppError: The actor lacks edit permission or publication validation fails.
+        """
+        service = self._service()
+        document = service.get(identifier)
+        permissions = (
+            ("gene_list.insilico:edit",)
+            if document["content"].get("existing_gene_list_ids")
+            else ()
+        )
+        return self._runtime.execute(
+            "assay_setups.activate_associations",
+            permissions,
+            lambda actor, sample: service.transition(
                 identifier, payload.revision, "publish", actor=actor.username, reason=payload.reason
             ),
         )

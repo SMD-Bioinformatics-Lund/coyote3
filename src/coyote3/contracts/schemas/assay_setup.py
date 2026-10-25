@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
+from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.config.constants import (
     DIAGNOSIS_BASE_ID,
     normalize_clinical_identifier,
@@ -21,18 +22,33 @@ class AssaySetupContent(_StrictDocBase):
     scopes: list[str] = Field(default_factory=lambda: [DIAGNOSIS_BASE_ID], max_length=100)
     environments: list[str] = Field(default_factory=list, max_length=20)
     gene_lists: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    existing_gene_list_ids: list[str] = Field(default_factory=list, max_length=100)
     configurations: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
 
     @field_validator("panel", mode="before")
     @classmethod
-    def discard_display_counts(cls, value: Any) -> Any:
-        """Ignore derived response counts when a client resubmits an assay form."""
+    def prepare_panel(cls, value: Any) -> Any:
+        """Prepare an assay form for validation without requiring derived modality.
+
+        Args:
+            value: Submitted assay document or an already validated model.
+
+        Returns:
+            A copy without display counts, with missing modality derived from a known
+            sequencing family. Explicit modality values remain subject to validation.
+        """
         if isinstance(value, dict):
-            return {
+            panel = {
                 key: item
                 for key, item in value.items()
                 if key not in {"covered_genes_count", "germline_genes_count"}
             }
+            family = str(panel.get("asp_family") or "").strip().lower()
+            if "asp_category" not in panel:
+                category = CLINICAL_VOCABULARY.assay_family_categories.get(family)
+                if category is not None:
+                    panel["asp_category"] = category
+            return panel
         return value
 
     @field_validator("scopes")
@@ -42,6 +58,22 @@ class AssaySetupContent(_StrictDocBase):
         return list(
             dict.fromkeys([DIAGNOSIS_BASE_ID, *(normalize_clinical_identifier(v) for v in values)])
         )
+
+    @field_validator("existing_gene_list_ids")
+    @classmethod
+    def canonical_gene_list_ids(cls, values: list[str]) -> list[str]:
+        """Normalize and deduplicate shared list references before staging links.
+
+        Args:
+            values: Selected existing gene-list identifiers; empty means no explicit links.
+
+        Returns:
+            Canonical identifiers in selection order.
+
+        Raises:
+            ValueError: A reference is not a valid clinical identifier.
+        """
+        return list(dict.fromkeys(normalize_clinical_identifier(v) for v in values))
 
     @field_validator("environments")
     @classmethod

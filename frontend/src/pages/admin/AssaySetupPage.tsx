@@ -15,9 +15,10 @@ import { formStateFromSpec, submitPayload } from "./resource-list"
 import { specs, type FormSpec } from "./resource-specs"
 import { SetupNavigation } from "./assay-setup/SetupNavigation"
 import { SetupEmptyState } from "./assay-setup/SetupEmptyState"
+import { AssayGeneLists } from "./AssayGeneLists"
 
 type Document = Record<string, unknown>
-type Content = { panel: Document; scopes: string[]; environments: string[]; gene_lists: Document[]; configurations: Document[] }
+type Content = { panel: Document; scopes: string[]; environments: string[]; gene_lists: Document[]; existing_gene_list_ids?: string[]; configurations: Document[] }
 type Setup = { _id: string; asp_id: string; status: "draft" | "submitted" | "published"; revision: number; content: Content; content_editors: string[]; created_by: string; updated_by: string; review_reason: string }
 type Context = {
   setup?: Setup
@@ -34,14 +35,15 @@ type Context = {
 const emptyContent = (panel: Document): Content => ({ panel, scopes: ["base"], environments: [], gene_lists: [], configurations: [] })
 const writePermissions = ["assay.panel:create", "assay.panel:edit", "assay.config:create", "gene_list.insilico:create"]
 
-function ResourceEditor({ kind, form, source, readonly, pending, onSave, onCancel }: {
+function ResourceEditor({ kind, form, source, readonly, pending, onSave, onCancel, saveLabel }: {
   kind: "asp" | "aspc" | "genelists"; form: FormSpec; source: Document; readonly: boolean; pending: boolean
   onSave: (document: Document) => void; onCancel: () => void
+  saveLabel?: string
 }) {
   const [values, setValues] = useState(() => formStateFromSpec(form, source))
   const [error, setError] = useState("")
   const stagedForm = { ...form, fields: { ...form.fields, is_active: { ...form.fields.is_active, hidden_mode: ["create", "view"] } } }
-  return <AdminManagedForm mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
+  return <AdminManagedForm saveLabel={saveLabel} mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
     try { onSave(submitPayload(form, values, "create")) } catch (err) { setError(err instanceof Error ? err.message : "Check the form values") }
   }} />
 }
@@ -58,7 +60,7 @@ function ScopeEditor({ content, context, readonly, pending, onSave, onRefresh }:
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{context.diagnoses.filter((scope) => scope.diagnosis_id !== "base" && (scope.is_active || scopes.includes(scope.diagnosis_id))).map((scope) => <label key={scope.diagnosis_id} className={cn("flex min-w-0 items-center gap-3 rounded-lg border p-3 type-body transition-colors", scopes.includes(scope.diagnosis_id) ? "border-primary/30 bg-primary/5" : "border-border hover:bg-muted/40")}><input type="checkbox" checked={scopes.includes(scope.diagnosis_id)} onChange={() => setScopes(toggle(scopes, scope.diagnosis_id))} /><span className="min-w-0 break-words">{scope.display_name}{!scope.is_active && " (retired)"}</span></label>)}</div>
     </fieldset>
     <fieldset disabled={readonly || pending} className="space-y-3 border-t border-border pt-4"><legend className="type-title pr-3">Environments to activate</legend><div className="flex flex-wrap gap-2">{context.environments.map((env) => <label key={env} className={cn("flex items-center gap-3 rounded-lg border px-4 py-3 type-body", environments.includes(env) ? "border-primary/30 bg-primary/5" : "border-border")}><input type="checkbox" checked={environments.includes(env)} onChange={() => setEnvironments(toggle(environments, env))} />{env}</label>)}</div></fieldset>
-    {!readonly && <Button disabled={pending} onClick={() => onSave({ ...content, scopes, environments })}><Save />Save diagnoses and environments</Button>}
+    {!readonly && <Button disabled={pending} onClick={() => onSave({ ...content, scopes, environments })}><Save />Save and continue</Button>}
   </section>
 }
 
@@ -83,19 +85,22 @@ export function AssaySetupPage() {
   const content = setup?.content
   const readonly = !canWrite || (setup != null && setup.status !== "draft")
   const mutation = useMutation({
-    mutationFn: ({ content: next, action }: { content?: Content; action?: string }) => action
+    mutationFn: ({ content: next, action }: { content?: Content; action?: string; nextStep?: number }) => action
       ? api.post<Setup>(`/admin/assay-setups/${selected}/${action}`, { revision: setup?.revision, reason })
       : isNew ? api.post<Setup>("/admin/assay-setups", next) : api.put<Setup>(`/admin/assay-setups/${selected}`, { revision: setup?.revision, content: next }),
     onSuccess: async (response, variables) => {
       setParams({ setup: response.data._id })
       setEditing(null)
       setReason("")
-      if (isNew) setStep(1)
+      if (variables.nextStep !== undefined) setStep(variables.nextStep)
+      else if (isNew) setStep(1)
       await client.invalidateQueries({ queryKey: ["assay-setup-context"] })
       await client.invalidateQueries({ queryKey: ["assay-setups"] })
       void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
       if (variables.action === "publish") {
         void client.invalidateQueries({ queryKey: ["admin-resource"] })
+        void client.invalidateQueries({ queryKey: ["admin-resource-context"] })
+        void client.invalidateQueries({ queryKey: ["assay-gene-lists"] })
         void client.invalidateQueries({ queryKey: ["diagnosis-assay-options"] })
       }
       notifySuccess(variables.action === "publish" ? "Assay activated" : variables.action === "submit" ? "Setup submitted for review" : "Setup draft saved")
@@ -114,7 +119,7 @@ export function AssaySetupPage() {
     },
     onError: (error) => notifyActionError("Assay setup deletion failed", error),
   })
-  const save = (next: Content) => mutation.mutate({ content: next })
+  const save = (next: Content, nextStep?: number) => mutation.mutate({ content: next, nextStep })
   const records = step === 2 ? content?.gene_lists || [] : content?.configurations || []
   const form = step === 2 ? context.data?.genelist_form : context.data?.configuration_form
   const field = step === 2 ? "gene_lists" : "configurations"
@@ -134,8 +139,9 @@ export function AssaySetupPage() {
         <SetupNavigation step={step} isNew={isNew} pending={mutation.isPending} onChange={(index) => { setStep(index); setEditing(null) }} />
         {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}
         {context.data.context_error && <p role="alert" className="text-destructive">{context.data.context_error}</p>}
-        {step === 0 && <ResourceEditor key={`${selected}-${setup?.revision}`} kind="asp" form={{ ...context.data.panel_form, fields: { ...context.data.panel_form.fields, is_active: { ...context.data.panel_form.fields.is_active, hidden_mode: ["create", "view"] }, ...(setup ? { asp_id: { ...context.data.panel_form.fields.asp_id, readonly: true } } : {}) } }} source={content?.panel || {}} readonly={readonly} pending={mutation.isPending} onCancel={() => choose("")} onSave={(panel) => save(content ? { ...content, panel: { ...panel, asp_id: content.panel.asp_id } } : emptyContent(panel))} />}
-        {step === 1 && content && <ScopeEditor key={`${selected}-${setup?.revision}`} content={content} context={context.data} readonly={readonly} pending={mutation.isPending} onSave={save} onRefresh={() => void context.refetch()} />}
+        {step === 0 && <ResourceEditor saveLabel="Save and continue" key={`${selected}-${setup?.revision}`} kind="asp" form={{ ...context.data.panel_form, fields: { ...context.data.panel_form.fields, is_active: { ...context.data.panel_form.fields.is_active, hidden_mode: ["create", "view"] }, ...(setup ? { asp_id: { ...context.data.panel_form.fields.asp_id, readonly: true } } : {}) } }} source={content?.panel || {}} readonly={readonly} pending={mutation.isPending} onCancel={() => choose("")} onSave={(panel) => save(content ? { ...content, panel: { ...panel, asp_id: content.panel.asp_id } } : emptyContent(panel), 1)} />}
+        {step === 1 && content && <ScopeEditor key={`${selected}-${setup?.revision}`} content={content} context={context.data} readonly={readonly} pending={mutation.isPending} onSave={(next) => save(next, 2)} onRefresh={() => void context.refetch()} />}
+        {step === 2 && content && <AssayGeneLists aspId={String(content.panel.asp_id)} aspGroup={String(content.panel.asp_group)} readonly={readonly} pending={mutation.isPending} selected={content.existing_gene_list_ids || []} onChange={(ids) => save({ ...content, existing_gene_list_ids: ids })} />}
         {(step === 2 || step === 4) && content && <section aria-label={step === 2 ? "Gene list workspace" : "Configuration workspace"} className="surface-panel min-w-0 space-y-5 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2">{step === 2 ? <ListTree className="size-5 text-primary" /> : <Settings2 className="size-5 text-primary" />}{step === 2 ? "Staged gene lists" : "Scope configurations"}<span className="type-meta text-muted-foreground">({records.length})</span></h2>{!readonly && <Button variant="outline" disabled={!form || mutation.isPending} onClick={() => setEditing(records.length)}><Plus />{step === 2 ? "Add gene list" : "Add configuration"}</Button>}</div>
           {!form && !readonly && <p role="status" className="type-body text-muted-foreground">{step === 2 ? "Gene list" : "Configuration"} form unavailable. <Button variant="link" onClick={() => void context.refetch()}>Retry</Button></p>}
@@ -152,6 +158,7 @@ export function AssaySetupPage() {
           {!context.data.rules?.length && <SetupEmptyState icon={FileCheck} title="No published reporting rules for this assay." />}
         </section>}
         {step === 5 && setup && <section className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><h2 className="type-title flex items-center gap-2 border-b border-border pb-4"><ClipboardCheck className="size-5 text-primary" />Review and activation</h2><dl className="grid gap-5 type-body sm:grid-cols-2 [&_dd]:mt-1 [&_dd]:break-words [&>div]:min-w-0"><div><dt className="type-label text-muted-foreground">Assay</dt><dd>{String(setup.content.panel.display_name)} ({setup.asp_id})</dd></div><div><dt className="type-label text-muted-foreground">Scopes</dt><dd>{setup.content.scopes.join(", ")}</dd></div><div><dt className="type-label text-muted-foreground">Environments</dt><dd>{setup.content.environments.join(", ") || "None selected"}</dd></div><div><dt className="type-label text-muted-foreground">Created by</dt><dd>{setup.created_by}</dd></div></dl>
+          <p className="type-body">Existing gene lists to associate: {setup.content.existing_gene_list_ids?.join(", ") || "None"}</p>
           {setup.status !== "published" && <div role="status" className={cn("rounded-md border p-3", context.data.readiness?.ready ? "border-pass text-pass" : "border-warning")}>
             <p className="mb-2 flex items-center gap-2 type-body font-medium">{context.data.readiness?.ready ? <Check className="size-4 shrink-0" /> : <CircleAlert className="size-4 shrink-0 text-warning" />}{context.data.readiness?.ready ? "Ready for independent review" : "Setup requires attention"}</p>
             {!context.data.readiness?.ready && <ul className="space-y-2 type-body">{context.data.readiness?.issues.map((issue) => <li className="break-words" key={issue}>{issue}</li>)}</ul>}
@@ -163,7 +170,7 @@ export function AssaySetupPage() {
           {setup.status === "published" && <p role="status">Assay setup published. Manage subsequent changes from the individual resource pages.</p>}
           <details><summary className="cursor-pointer type-label">Revision history</summary><ul className="mt-3 divide-y divide-border">{context.data.history?.map((entry) => <li key={entry.revision} className="py-2 type-body">r{entry.revision} · {entry.action} · {entry.actor} · {new Date(entry.at).toLocaleString()}</li>)}</ul></details>
         </section>}
-        {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || mutation.isPending} onClick={() => { setStep(step - 1); setEditing(null) }}><ArrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6</span><Button variant="outline" disabled={step === 5 || mutation.isPending} onClick={() => { setStep(step + 1); setEditing(null) }}>Next<ArrowRight /></Button></footer>}
+        {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || mutation.isPending} onClick={() => { setStep(step - 1); setEditing(null) }}><ArrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6{!readonly && (step < 2 || editing !== null) && " · Save the form to continue"}</span><Button variant="outline" disabled={step === 5 || mutation.isPending || (!readonly && (step < 2 || editing !== null))} onClick={() => { setStep(step + 1); setEditing(null) }}>Next<ArrowRight /></Button></footer>}
       </>}
     </>}
     {setup && ["draft", "submitted"].includes(setup.status) && hasPermission(user, "assay.panel:delete") && <Button variant="destructive" disabled={mutation.isPending || deletion.isPending} onClick={() => setConfirmDelete(true)}><Trash2 />Delete unpublished setup</Button>}

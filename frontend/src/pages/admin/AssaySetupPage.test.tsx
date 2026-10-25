@@ -67,7 +67,7 @@ it("preserves the reserved assay identifier when saving the assay form", async (
   setup.status = "draft"
   mount()
   fireEvent.change(await screen.findByLabelText("Display name"), { target: { value: "Updated display name" } })
-  fireEvent.click(screen.getByRole("button", { name: "Save" }))
+  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }))
   await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) })))
 })
 it("keeps gene lists and configurations in named workspaces with explicit empty states", async () => {

@@ -11,6 +11,8 @@ from api.app.deps.application import get_assay_setups
 from api.interfaces.http.v1.admin.resources.assay_setup import router
 from api.security.access import ApiUser
 from coyote3.application.operations.administration import AssaySetups
+from coyote3.contracts.schemas.assay_setup import AssaySetupAction, AssaySetupContent
+from coyote3.domain.exceptions import AppError
 from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api.permission_catalog import PermissionCatalog
 
@@ -129,3 +131,32 @@ def test_create_returns_canonical_base_and_accepts_response_counts(client):
     assert result.json()["content"]["scopes"] == ["base"]
     # Derived gene counts in a response must not break subsequent form submissions.
     assert http.post("/api/v1/admin/assay-setups", json=result.json()["content"]).status_code == 201
+
+
+def test_linking_existing_lists_requires_edit_permission_on_create_and_publish(client):
+    """Create grants alone cannot modify shared gene lists through setup activation."""
+    _http, user, doc = client
+    service = SimpleNamespace(
+        save=lambda *a, **kw: doc, get=lambda _: doc, transition=lambda *a, **kw: doc
+    )
+    operations = sdk_fixtures.authorized_operations(AssaySetups, service, user)
+    operations._runtime.policy_factory = lambda actor: SimpleNamespace(
+        permission_allowed=lambda actor, permission, **kwargs: permission in user.permissions,
+        scope_allowed=lambda *args, **kwargs: True,
+    )
+    user.permissions = [
+        "assay.panel:create",
+        "assay.panel:edit",
+        "assay.config:create",
+        "gene_list.insilico:create",
+    ]
+    doc["content"]["existing_gene_list_ids"] = ["shared"]
+    content = AssaySetupContent.model_validate(doc["content"])
+    action = AssaySetupAction(revision=1)
+    with pytest.raises(AppError):
+        operations.create_setup(payload=content)
+    with pytest.raises(AppError):
+        operations.publish_setup(identifier="test", payload=action)
+    user.permissions.append("gene_list.insilico:edit")
+    assert operations.create_setup(payload=content) == doc
+    assert operations.publish_setup(identifier="test", payload=action) == doc

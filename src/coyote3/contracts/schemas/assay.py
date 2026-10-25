@@ -932,7 +932,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     @field_validator("asp_ids")
     @classmethod
     def _validate_asp_ids(cls, value: list[str]) -> list[str]:
-        """Require at least one assay identifier and canonicalize each entry.
+        """Canonicalize assay identifiers; an empty list leaves the resource unassigned.
 
         Args:
             value: Assay identifiers associated with the gene list.
@@ -941,16 +941,14 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
             Canonical identifiers in input order, retaining duplicates.
 
         Raises:
-            ValueError: If the list is empty or an identifier is invalid.
+            ValueError: If an identifier is invalid.
         """
-        if not value:
-            raise ValueError("asp_ids must include at least one ASP identifier")
         return [normalize_clinical_identifier(item, label="asp_ids") for item in value]
 
     @field_validator("asp_groups")
     @classmethod
     def _validate_asp_groups(cls, value: list[str]) -> list[str]:
-        """Require and canonicalize the gene list's assay groups.
+        """Canonicalize assay groups, allowing an unassigned resource.
 
         Args:
             value: Assay groups associated with the gene list.
@@ -959,10 +957,8 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
             Canonical configured groups in first-occurrence order.
 
         Raises:
-            ValueError: If the list is empty or a group is unsupported.
+            ValueError: If a group is unsupported.
         """
-        if not value:
-            raise ValueError("asp_groups must include at least one ASP group")
         normalized: list[str] = []
         seen: set[str] = set()
         for item in value:

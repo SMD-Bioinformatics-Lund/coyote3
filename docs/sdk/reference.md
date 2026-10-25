@@ -5394,7 +5394,7 @@ Concurrency precondition and review explanation.
 ### `AssaySetupContent`
 
 ```python
-AssaySetupContent(*, panel: coyote3.contracts.schemas.assay.AssaySpecificPanelsDoc, scopes: Annotated[list[str], MaxLen(max_length=100)] = <factory>, environments: Annotated[list[str], MaxLen(max_length=20)] = <factory>, gene_lists: Annotated[list[dict[str, Any]], MaxLen(max_length=100)] = <factory>, configurations: Annotated[list[dict[str, Any]], MaxLen(max_length=200)] = <factory>) -> None
+AssaySetupContent(*, panel: coyote3.contracts.schemas.assay.AssaySpecificPanelsDoc, scopes: Annotated[list[str], MaxLen(max_length=100)] = <factory>, environments: Annotated[list[str], MaxLen(max_length=20)] = <factory>, gene_lists: Annotated[list[dict[str, Any]], MaxLen(max_length=100)] = <factory>, existing_gene_list_ids: Annotated[list[str], MaxLen(max_length=100)] = <factory>, configurations: Annotated[list[dict[str, Any]], MaxLen(max_length=200)] = <factory>) -> None
 ```
 
 ```text
@@ -5411,6 +5411,25 @@ AssaySetupContent.canonical_environments(values: list[str]) -> list[str]
 Validate and deduplicate the environments selected for activation.
 ```
 
+#### `AssaySetupContent.canonical_gene_list_ids`
+
+```python
+AssaySetupContent.canonical_gene_list_ids(values: list[str]) -> list[str]
+```
+
+```text
+Normalize and deduplicate shared list references before staging links.
+
+Args:
+    values: Selected existing gene-list identifiers; empty means no explicit links.
+
+Returns:
+    Canonical identifiers in selection order.
+
+Raises:
+    ValueError: A reference is not a valid clinical identifier.
+```
+
 #### `AssaySetupContent.canonical_scopes`
 
 ```python
@@ -5421,14 +5440,21 @@ AssaySetupContent.canonical_scopes(values: list[str]) -> list[str]
 Include Base once and canonicalize optional named scope identifiers.
 ```
 
-#### `AssaySetupContent.discard_display_counts`
+#### `AssaySetupContent.prepare_panel`
 
 ```python
-AssaySetupContent.discard_display_counts(value: Any) -> Any
+AssaySetupContent.prepare_panel(value: Any) -> Any
 ```
 
 ```text
-Ignore derived response counts when a client resubmits an assay form.
+Prepare an assay form for validation without requiring derived modality.
+
+Args:
+    value: Submitted assay document or an already validated model.
+
+Returns:
+    A copy without display counts, with missing modality derived from a known
+    sequencing family. Explicit modality values remain subject to validation.
 ```
 
 ### `AssaySetupUpdate`
