@@ -12,6 +12,7 @@ its subject without requiring the site navigation.
 | `user-guide/` | Clinical review, application pages, controls, and finding actions. |
 | `administration/` | Accounts, permissions, assays, gene lists, and clinical configuration. |
 | `api/` | Authentication, HTTP routes, ingestion requests, and API compatibility. |
+| `sdk/` | Application SDK and independent HTTP client installation, use, extension, and version compatibility. |
 | `architecture/` | Runtime boundaries, data flows, persistence, security, and design decisions. |
 | `deployment/` | Installation and update procedures, infrastructure, and acceptance; published under Getting started. |
 | `configuration/` | File formats, setting requirements, defaults, examples and application effects. |

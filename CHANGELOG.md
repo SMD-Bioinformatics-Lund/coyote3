@@ -1,95 +1,100 @@
 # Changelog
 
-## Unreleased
+## v4.0.0
 
-- Separate expiring operational audit records from retained clinical history;
-  enforce collection-scoped MongoDB runtime permissions and insert-only replay.
-  Existing deployments require the documented one-time identity role upgrade
-  before production installation checks. Add optional hourly checkpoint exports
-  to independently retained archival storage.
-- Generate frontend HTTP types from FastAPI OpenAPI, with source and running-server
-  checks and a verified-build CI gate. Use generated types for sample/navigation
-  and report responses; retain explicit transports for binary downloads/uploads.
+Version 4 replaces the Flask application with FastAPI and React while preserving
+its supported clinical workflows.
 
-- Add Coyote3/center branding and labeled metadata fields to the modern report,
-  with embedded validated SVG logos and print-safe A4 layout. Remove obsolete
-  logo files, use the current vector assets throughout, and support dark-theme lettering.
-- Add in-place PDF preview to the established report tab and show independently
-  installed core SDK and Python HTTP client versions on the About page.
+### Application and packages
 
-- Build the application wheel inside the normal Docker installation, without
-  requiring host SDK preparation. Keep tested-wheel verification in the optional
-  release Compose overlay and release CI target.
+- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
+  catalog, and cohort-review workflows.
+- Removed the legacy Flask application and its compatibility paths.
 - Apply the COYOTE3 Free-Use Source-Available License 1.0 to the application,
   record Ram Nanduri and Section for Molecular Diagnostics, Lund, Region Skåne
   as copyright holders, and retain Apache 2.0 for the independent Python client.
-
-- Extract legacy and modern report HTML/CSS into packaged Jinja layouts and
-  modality-specific components. Preserve legacy template identities and clinical
-  content; allow registered modern layouts through governed template profiles.
 - Package core and root-level FastAPI modules together with optional `api` and
   `all` dependencies and the installed `coyote3-api` entry point. Move HTTP clients
   into the independent `coyote3-client` distribution with sync/async operations.
   External client imports change from `coyote3.client` to `coyote3_client`.
-- Add separately named vector logo assets and use them in the web interface;
-  retain existing raster and SVG files.
-
-- Add **Try new report** for DNA/RNA with matching temporary HTML/PDF previews and
-  local downloads. Preserve established clinical content and saved-report behavior;
-  embed styles and bypass report numbering, snapshots and server report-file writes.
 - Keep deployment catalogs, demo installers, contact/about pages, collection names
   and product assets outside the core namespace. Group domain modules by clinical
   responsibility and reusable authoring contracts under `contracts/authoring/`.
   Document clinical record fields separately from physical storage keys and add
   explicit MongoDB-adapter field bindings.
 
+### Clinical review and reporting
+
+- Added versioned data contracts, ASPC-driven filtering, reference annotations,
+  MongoDB-backed clinical reporting rules, and immutable report snapshots.
+- Add Coyote3/center branding and labeled metadata fields to the modern report,
+  with embedded validated SVG logos and print-safe A4 layout. Remove obsolete
+  logo files, use the current vector assets throughout, and support dark-theme lettering.
+- Add in-place PDF preview to the established report tab and show independently
+  installed core SDK and Python HTTP client versions on the About page.
+- Extract legacy and modern report HTML/CSS into packaged Jinja layouts and
+  modality-specific components. Preserve legacy template identities and clinical
+  content; allow registered modern layouts through governed template profiles.
+- Add **Try new report** for DNA/RNA with matching temporary HTML/PDF previews and
+  local downloads. Preserve established clinical content and saved-report behavior;
+  embed styles and bypass report numbering, snapshots and server report-file writes.
 - Resolve query policies and clinical reporting rules from current published scopes,
   independently of ASPC revisions. Capture rules used by each report and require
   another preview when publications change before save. Preserve issued reports.
+- Add configured SNV flag exclusions for both intents and tumor WGS groups while
+  retaining the existing `tumwgs` group. Preserve saved report snapshots.
 
-- Use Ruff for Python linting, formatting and import ordering; remove redundant
-  Black, Flake8 and isort tools and unused runtime dependencies. Remove the
-  documentation linter's vulnerable globbing dependencies and run Markdown checks
-  through the repository runner with a patched math renderer.
+### Security and audit
+
+- Added database-backed access control, authentication, auditing, notifications,
+  background processing, and operational controls.
+- Separate expiring operational audit records from retained clinical history;
+  enforce collection-scoped MongoDB runtime permissions and insert-only replay.
+  Existing deployments require the documented one-time identity role upgrade
+  before production installation checks. Add optional hourly checkpoint exports
+  to independently retained archival storage.
+- Enforce finding ownership and current clinical access for report notifications;
+  restrict sample deletion to its explicit permission. Add audit integrity chains,
+  durable outboxes/checkpoints and transaction-owned report-file erasure jobs.
+
+### Deployment and maintenance
+
+- Added container deployment, backup and restore tooling, automated tests,
+  and operator and clinical documentation.
+- Build the application wheel inside the normal Docker installation, without
+  requiring host SDK preparation. Keep tested-wheel verification in the optional
+  release Compose overlay and release CI target.
 - Make fresh installation create identity, application catalogs, bundled references
   and synthetic starter data by default, with module skip flags and preservation of
   existing data. Later additions/repairs use API authentication, role checks and
   first-login password change handling.
-- Enforce finding ownership and current clinical access for report notifications;
-  restrict sample deletion to its explicit permission. Add audit integrity chains,
-  durable outboxes/checkpoints and transaction-owned report-file erasure jobs.
 - Separate ingestion and maintenance worker queues, bound activity scans and deep
   sorted-page memory, and add error-mail backoff/quarantine and erasure diagnostics.
-- Add configured SNV flag exclusions for both intents and tumor WGS groups while
-  retaining the existing `tumwgs` group. Preserve saved report snapshots.
 - Add optional production Redis TLS and certificate procedures. Development and
   staging keep the base Redis transport. Clarify application versus monitor email controls.
+
+### Quality and documentation
+
+- Add optional self-hosted load testing with synthetic fixtures, target checks,
+  authenticated workflows and separate measurement of ingest completion.
+- Generate frontend HTTP types from FastAPI OpenAPI, with source and running-server
+  checks and a verified-build CI gate. Use generated types for sample/navigation
+  and report responses; retain explicit transports for binary downloads/uploads.
+- Use Ruff for Python linting, formatting and import ordering; remove redundant
+  Black, Flake8 and isort tools and unused runtime dependencies. Remove the
+  documentation linter's vulnerable globbing dependencies and run Markdown checks
+  through the repository runner with a patched math renderer.
 - Replace obsolete release-validation commands, require real replica-set CI coverage,
   and remove retired runtime/Compose compatibility tests while retaining supported
   migration and clinical safety tests. Keep archived Compose definitions.
+- Separate frontend OpenAPI guidance from collection-contract documentation,
+  correct test and versioning instructions, and organize audit tests by responsibility.
+  Remove placeholder test docstrings while preserving their assertions and fixtures.
 
 For deployment prerequisites, index/retention maintenance, coordinated service
 replacement and rollback limits, follow
 [release maintenance](docs/deployment/release-maintenance.md) before the
 [upgrade procedure](docs/deployment/application-upgrades.md).
-
-## v4.0.0 - 2026-08-10
-
-Version 4 replaces the Flask/Jinja application with a production-oriented
-FastAPI and React platform while preserving its supported clinical workflows.
-
-- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
-  catalog, and cohort-review workflows.
-- Added versioned data contracts, ASPC-driven filtering, reference annotations,
-  MongoDB-backed clinical reporting rules, and immutable report snapshots.
-- Added database-backed access control, authentication, auditing, notifications,
-  background processing, and operational controls.
-- Added secure container deployment, backup and restore tooling, automated tests,
-  and complete operator and clinical documentation.
-- Removed the legacy Flask application, compatibility paths, and automatic
-  first-run orchestration.
-- Add optional self-hosted load testing with synthetic fixtures, target checks,
-  authenticated workflows and separate measurement of ingest completion.
 
 ## v3.1.23
 

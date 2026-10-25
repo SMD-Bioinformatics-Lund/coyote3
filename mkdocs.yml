@@ -162,7 +162,8 @@ nav:
       - "Remote development deployment": development/remote-development.md
       - "Engineering command reference": development/engineering-commands.md
       - "Engineering and Refactoring Standards": development/refactoring-standards.md
-      - "Schema Contracts And Versioning": development/schema-contracts.md
+      - "Collection contracts and resource versioning": development/schema-contracts.md
+      - "Frontend API contracts": development/frontend-api-contracts.md
       - "Add a New Domain or Collection": development/adding-domains-and-collections.md
       - "UI Action Modal": development/action-dialogs.md
       - "Plotting And Chart Export": development/charts-and-exports.md

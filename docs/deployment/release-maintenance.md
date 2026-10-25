@@ -1,7 +1,7 @@
 # Maintenance for the pending release
 
 Use this release record with the [upgrade procedure](application-upgrades.md).
-It applies to the changes listed under **Unreleased** in the repository changelog.
+It applies to the changes listed under **v4.0.0** in the repository changelog.
 Record the reviewed commit and image digests before deployment; this page does not
 assign a new release version or approve a center's promotion.
 

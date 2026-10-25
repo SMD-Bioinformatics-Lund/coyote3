@@ -15,12 +15,19 @@ active.
 | Python formatting | `ruff format --check src api tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
+| Independent Python client tests | `.venv/bin/python -m pytest -q clients/python/tests` |
 | Frontend lint | `npm --prefix frontend run lint` |
 | Frontend unit tests | `npm --prefix frontend run test:unit` |
 | Frontend build | `npm --prefix frontend run build` |
+| OpenAPI contract check and frontend build | `npm --prefix frontend run build:verified` |
 | Browser tests | `npm --prefix frontend run test:e2e` |
 | Markdown lint | `npm run docs:lint` |
 | Documentation build | `.venv/bin/python -m mkdocs build --strict` |
+
+For running-server contract checks, generation commands, and source-revision
+comparisons, see [Frontend API contracts](frontend-api-contracts.md). Backend
+transaction tests use the disposable replica runner described in the
+[test strategy](../testing/test-strategy-and-quality-gates.md#unified-quality-gate).
 
 The strict mypy boundary covers the complete domain and security packages plus the
 application and infrastructure modules listed in `pyproject.toml`. New domain modules

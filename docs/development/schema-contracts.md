@@ -1,61 +1,11 @@
-# Schema Contracts And Versioning
+# Collection contracts and resource versioning
 
-Coyote3 enforces collection contracts through domain-oriented Pydantic models.
-All managed admin writes and ingest writes are contract-validated before persistence.
+Coyote3 validates managed-resource and ingest documents with Pydantic collection
+models before persistence. This page covers collection validation, generated
+administration forms, and stored resource revisions.
 
-## Frontend HTTP contracts
-
-FastAPI's OpenAPI document is the authority for HTTP paths, parameters, bodies and
-responses. `@hey-api/openapi-ts` generates TypeScript types into
-`frontend/src/lib/generated/`; these files are derived and must not be edited manually.
-The generator is pinned and supports the repository's TypeScript 6 compiler.
-
-To generate from a running deployment, include its application prefix:
-
-```bash
-npm --prefix frontend run api:generate -- \
-  --url https://COYOTE_HOST/COYOTE_PREFIX/api/v1/openapi.json
-npm --prefix frontend run api:check -- \
-  --url https://COYOTE_HOST/COYOTE_PREFIX/api/v1/openapi.json
-```
-
-`COYOTE3_OPENAPI_URL` supplies the same URL. TLS verification remains enabled;
-configure the institution's trusted CA through Node's supported CA settings when
-needed. A remote fetch failure is an error, not a fallback to another schema.
-
-Without a URL, the generator imports the canonical FastAPI application and calls
-its OpenAPI generator without starting database, Redis or worker lifecycles. The
-JSON file is temporary and removed afterwards; there is no separately maintained
-local schema. Select the matching center vocabulary when exporting center-specific
-contracts. Host URLs, deployment descriptions and application release labels are
-excluded from generated type comparisons; HTTP contracts remain intact.
-
-```bash
-npm --prefix frontend run api:generate
-npm --prefix frontend run build:verified
-```
-
-`build:verified` checks generated types against the selected source/server and then
-builds the UI. CI runs it on every non-draft change, including backend-only changes.
-Plain `build` compiles the checked-in generated contracts and remains available for
-the independent Node-only frontend container build. Production builds do not need
-access to a live clinical deployment. A running server check is useful for verifying
-the deployed contract; it cannot establish what an unreleased backend revision exposes.
-
-For JSON operations, `api.contract("GET /samples", { query: { live_page: 1 } })` checks operation names,
-path/query fields and bodies and uses the existing authentication, CSRF, cancellation
-and error handling. Existing URL-based calls remain supported. Sample lists, navigation
-counts and report previews/trials consume generated response types. UI display models
-remain separate from transport contracts. Compile-time assertions reject invented
-operations and invalid parameter/body types.
-Multipart uploads and binary/text downloads retain their explicit existing transports;
-they are excluded from the JSON-operation helper, while their documented types are
-still generated.
-
-Generation does not validate runtime JSON or replace permission checks. Fields
-declared as unstructured dictionaries by the backend remain `unknown` until narrowed;
-endpoints without a documented response schema cannot acquire precise types from
-code generation alone. Preserve those distinctions when tightening contracts.
+HTTP paths, payloads and frontend types are documented in
+[Frontend API contracts](frontend-api-contracts.md).
 
 Managed-resource wiring lives in one registry:
 
@@ -80,7 +30,7 @@ DB contracts are organized in `src/coyote3/contracts/schemas/`:
 
 - admin resource key (for example `role`, `user`, `asp`, `aspc_dna`)
 - target Mongo collection contract (for example `roles`, `users`, `asp_configs`)
-- contract-owned UI schema identity (`schema_type`, `schema_category`, `schema_id`)
+- form identity (`form_type`, `form_category`) and form contract version (`contract_version`)
 
 Managed resources currently covered end-to-end:
 
@@ -135,8 +85,8 @@ Operational flow:
 2. API builds schema from managed contracts.
 3. UI renders fields from returned `sections` + `fields`.
 4. UI submits form payload only.
-5. API services stamp mutation metadata and write the corresponding audit event.
-6. API validates payload with collection contract and writes to Mongo.
+5. Application services stamp server-owned metadata and validate the collection contract.
+6. Repositories persist the document; the mutation path records the audit event.
 
 This keeps UI schema behavior and DB-write validation in one backend source of truth.
 
@@ -176,8 +126,9 @@ state without rewriting its clinical payload.
 Samples and saved reports retain resolved configuration identity, including the
 ASPC document ObjectId, business key, and version. Retired revisions therefore
 remain available for historical reconstruction after a newer revision becomes
-active. Static report-rule identity and report snapshots provide the remaining
-report-boundary provenance.
+active. Query policies and reporting rules resolve independently by published
+scope; they are not pinned to ASPC revisions. Saved report snapshots record the
+resolved reporting rules. See [clinical reporting rules](../reference/clinical-reporting-rules.md).
 
 Managed ASP, ASPC, and ISGL mutations emit non-expiring traceability audit
 events. These events identify the prior and successor revision but do not embed

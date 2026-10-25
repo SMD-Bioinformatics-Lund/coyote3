@@ -1,22 +1,12 @@
 # Test strategy and quality gates
 
-Repository Markdown is validated from the repository root with
-`npm run docs:lint`. The root `.markdownlint.json` defines spacing and final-newline
-rules. `scripts/docs/lint_markdown.mjs` runs markdownlint over `README.md`, `docs/`
-and `.github/`, excluding issue/PR templates and the generated collection reference.
-`npm run docs:test` checks file selection, lint failures and math rendering. Both
-commands use the root Node package and require Node.js 22 or later.
+Tests protect application behavior, HTTP contracts, clinical rules, and deployment
+operations. Choose the suite for the changed boundary and use the full quality
+gate for cross-layer changes or release preparation.
 
-The root manifest constrains the math extension's KaTeX renderer to 0.19.0. Its
-inline/display rendering interface is covered by the lint-runner checks.
-
-## Testing Boundary Diagram
+## Test boundaries
 
 ![Test layers and quality gates](../assets/diagrams/test-coverage-map.svg)
-
-This document defines the test and validation expectations for Coyote3.
-
-## Formal Testing Tiers
 
 The test suite is grouped by runtime boundary:
 
@@ -140,11 +130,24 @@ cross-layer change:
 PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
-This runs the backend unit/API/integration suites, scoped family coverage gates,
-contract integrity checks, frontend linting, production build, browser tests,
-and the strict documentation build. Browser tests start a local Vite server
-with intercepted deterministic API responses. The quality suite does not
-contact external knowledgebases or write to MongoDB.
+This runs backend and independent Python client tests, family coverage gates,
+typing and contract checks, frontend lint/unit/browser tests, the OpenAPI-checked
+build, and documentation checks. Browser tests start a local Vite server with
+intercepted deterministic API responses. External knowledgebase calls use fixtures.
+
+Database integration tests require disposable MongoDB replicas. Some tests skip
+without their explicit test URI settings; the audit runtime-permission test starts
+its own authentication-enabled replica when `mongod` is available. Run the backend
+suite against owned temporary replicas to exercise transaction tests:
+
+```bash
+.venv/bin/python scripts/quality/run_transaction_tests.py -- \
+  -q tests/unit tests/api tests/integration
+```
+
+The runner starts two loopback-only replicas, supplies test database settings, and
+terminates its child processes afterwards. It never connects to an existing
+deployment. Do not point integration tests at production databases.
 
 To validate rendered Docker Compose configuration as part of the same gate:
 
@@ -217,11 +220,11 @@ translocation query builders and the RNA fusion query builder. This is a
 combined branch-aware gate, not a line-count exclusion. It protects the code
 that decides which findings enter clinical review.
 
-When run directly, the gate first collects coverage for the `api` package and
-then evaluates each family by its filesystem scope. The repository quality
+When run directly, the gate collects coverage for both `api` and `coyote3`
+for each selected suite, then evaluates the family by filesystem scope. The repository quality
 suite and CI collect the complete backend coverage database once and invoke
 the gate with `--from-existing`. Reusing that database preserves the same
-family thresholds without executing the backend suite four additional times.
+family thresholds without repeating the backend suites for each family.
 This also prevents a stale or renamed Python module path from silently turning
 a family gate into a repository-wide total.
 
@@ -238,6 +241,11 @@ coverage also includes adapters, deployment helpers and administrative code;
 it does not replace the clinical, application or HTTP family gates.
 
 ## Python docstrings
+
+Test names should identify the condition and expected behavior. Add a short
+docstring when it explains a non-obvious clinical or security invariant. Avoid
+parameter sections that repeat fixture names and return sections on tests that
+return nothing.
 
 Production Python modules, classes and named functions require docstrings,
 including private helpers and nested callbacks. Use Google-style sections:
@@ -270,6 +278,25 @@ the executable load harness under `tests/load/` is included.
 
 ## Continuous Integration
 
+### Documentation checks
+
+Run documentation checks from the repository root:
+
+```bash
+npm run docs:lint
+npm run docs:test
+.venv/bin/python scripts/docs/check_markdown_links.py
+.venv/bin/python -m mkdocs build --strict
+```
+
+The Markdown runner checks repository documentation and GitHub guidance, excluding
+the generated collection reference and issue/PR templates. Its tests cover file
+selection, lint failures, and math rendering. See
+[Writing documentation](../development/writing-documentation.md) for ownership,
+generated references, and placement rules.
+
+### Automated checks
+
 CI should run these checks:
 
 1. **Static analysis**: Ruff lint and formatting checks.
@@ -289,9 +316,9 @@ CI should run these checks:
 
 ### GitHub Actions execution policy
 
-Branch protection should require one `quality / lint-and-test` check. The workflow
-is designed for a repository without paid GitHub Actions capacity while still
-protecting clinical and security boundaries:
+Branch protection should require both `quality / lint-and-test` and
+`quality / api-contracts`. The latter checks generated TypeScript contracts against
+the backend revision and builds the frontend. The workflow limits runner usage:
 
 | Policy | Behavior |
 | --- | --- |
@@ -326,7 +353,7 @@ failure and retained for three days.
 
 ## Browser And External API Contracts
 
-The quality suite combines three distinct validation layers:
+The quality suite and deployment checks cover these boundaries:
 
 | Layer | Command or workflow | Responsibility |
 | --- | --- | --- |
