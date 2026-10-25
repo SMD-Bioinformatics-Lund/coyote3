@@ -6,9 +6,10 @@ import math
 from copy import deepcopy
 from pathlib import Path
 
+from bson import ObjectId
+
 from coyote3.application.ingest.parsers import _parse_transcripts
 from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
-from coyote3.contracts.schemas.dna import VariantCsqDoc
 from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from scripts.migration_common.clinical_plan import build_plan
 from scripts.migration_common.offline import (
@@ -17,6 +18,7 @@ from scripts.migration_common.offline import (
     SourceIndex,
     digest,
 )
+from scripts.migration_common.vep import VepReference, normalize_csq
 from scripts.upgrade_from_v3.clinical_documents import (
     convert_annotation,
     rename_field,
@@ -168,16 +170,6 @@ def prepare_sample(source: dict, review: dict) -> tuple[dict, dict]:
         if report.get("filepath"):
             report.setdefault("report_name", Path(report["filepath"]).name)
     return document, metadata
-
-
-def normalize_csq(source: dict) -> dict:
-    """Convert numeric VEP scalar labels to text while preserving transcript selection."""
-    result = deepcopy(source)
-    for key, field in VariantCsqDoc.model_fields.items():
-        if key not in {"Consequence", "CLIN_SIG"} and key in result:
-            if isinstance(result[key], (int, float)) and not isinstance(result[key], bool):
-                result[key] = str(result[key])
-    return result
 
 
 def recorded_frequency(value: object, allele: str) -> float | None:
@@ -396,13 +388,57 @@ def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
     return document
 
 
-def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, list[dict]]:
+def _embedded_rna(sample: dict) -> dict[str, list[dict]]:
+    """Extract recorded RNA measurements without creating or averaging measurements.
+
+    Args:
+        sample: Prepared sample copy; embedded RNA payloads are removed in place.
+
+    Returns:
+        Current RNA collections with deterministic IDs for formerly embedded records.
+
+    Raises:
+        ValueError: A payload is malformed, has conflicting ownership, or contains
+            multiple QC records where the current model expects one sample result.
+    """
+    records = {}
+    for field, collection in (
+        ("expr", "rna_expression"),
+        ("classification", "rna_classification"),
+        ("QC", "rna_qc"),
+    ):
+        payload = sample.pop(field, None)
+        if payload in (None, {}, []):
+            continue
+        if field == "QC":
+            if not isinstance(payload, list) or len(payload) != 1:
+                raise ValueError(
+                    "Embedded RNA QC requires one recorded result; review multiple entries"
+                )
+            payload = payload[0]
+        if not isinstance(payload, dict):
+            raise ValueError("Embedded RNA data must be documents")
+        record = deepcopy(payload)
+        owner = str(sample["_id"])
+        if record.get("SAMPLE_ID", owner) != owner:
+            raise ValueError("Embedded RNA data has conflicting sample ownership")
+        record["SAMPLE_ID"] = owner
+        record.setdefault("_id", ObjectId(digest((owner, collection))[:24]))
+        records[collection] = [validate_document(collection, record)]
+    return records
+
+
+def sample_plan(
+    source: SourceIndex, sample_id: str, review: dict, *, vep: VepReference | None = None
+) -> dict[str, list[dict]]:
     """Build one complete sample bundle, preserving related histories and snapshot links.
 
     Args:
         source: Prepared read-only export index of the selected major version.
         sample_id: Original BSON sample identity as text.
         review: Mapping with sample, records, and optional coverage reconciliation.
+        vep: Optional shared historical reference used for linked annotations and
+            consistent vault records. None retains original sample-only VEP evidence.
 
     Returns:
         Validated destination collections, including referenced clinical annotations.
@@ -413,6 +449,7 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
     original = source.get("samples", sample_id)
     sample, metadata = prepare_sample(original, review.get("sample", {}))
     documents = {"samples": [sample]}
+    documents.update(_embedded_rna(sample))
     coverage = d4_coverage_plan(source, sample_id, review.get("d4_coverage", {}))
     if coverage:
         documents["d4_coverage"] = coverage
@@ -442,7 +479,14 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
         )
         for identity in sorted(annotation_ids)
     ]
+    if vep is not None:
+        documents["annotation"] = [vep.enrich(row) for row in documents["annotation"]]
     plan = build_plan(documents, {sample_id: metadata})
+    if vep is not None:
+        plan["anno_vep"] = [
+            vep.record(row["simple_id_hash"]) if row["vep_version"] == vep.version else row
+            for row in plan.get("anno_vep", [])
+        ]
     comments = {str(row["_id"]) for row in plan.get("sample_comments", [])}
     for snapshot in plan.get("reported_variants", []):
         if (
@@ -453,8 +497,25 @@ def sample_plan(source: SourceIndex, sample_id: str, review: dict) -> dict[str, 
     return plan
 
 
-def independent_plan(source: SourceIndex, kind: str, review: dict) -> dict[str, list[dict]]:
-    """Convert shared annotations or blacklist entries independently of sample batches."""
+def independent_plan(
+    source: SourceIndex, kind: str, review: dict, *, vep: VepReference | None = None
+) -> dict[str, list[dict]]:
+    """Convert shared annotations or blacklist entries independently of sample batches.
+
+    Args:
+        source: Completed offline source index.
+        kind: Annotation, blacklist, or supported v3 coverage-exclusion collection.
+        review: Record-specific, digest-bound scope and missing-field reconciliation.
+        vep: Shared VEP reference for exact annotation identity enrichment. None keeps
+            the primary recorded identity without resolving complementary identities.
+
+    Returns:
+        Contract-validated destination records, preserving source identifiers.
+
+    Raises:
+        RecordConversionError: A source record is invalid, ambiguous or unreconciled.
+        ValueError: The requested collection is unsupported for this source version.
+    """
     physical = "group_coverage" if kind == "d4_coverage_blacklist" else kind
     if kind == "d4_coverage_blacklist" and source.version != 3:
         raise ValueError("D4 coverage blacklist migration is only supported for v3")
@@ -466,6 +527,8 @@ def independent_plan(source: SourceIndex, kind: str, review: dict) -> dict[str, 
         try:
             record = scoped_record(original, review.get(str(original["_id"])), kind)
             if kind == "annotation":
+                if vep is not None:
+                    record = vep.enrich(record)
                 record = convert_annotation(record)
             elif kind == "blacklist":
                 rename_field(record, "assay", "assay_group")

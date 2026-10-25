@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import sys
+from collections import Counter
 from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
@@ -31,6 +32,7 @@ from scripts.migration_common.target_catalog import (
     validate_plan_scope,
     validate_snapshot,
 )
+from scripts.migration_common.vep import VepReference
 
 BACKFILL_FIELDS = {
     "case.sequencing_run": str,
@@ -160,11 +162,107 @@ def backfill_bundle(bundle: Path, tsv: Path, output: Path, version: int) -> dict
     )
 
 
+def _review_for_sample(review: dict, identity: str) -> dict:
+    """Reuse authoritative shared annotation reconciliation in sample conversions.
+
+    Args:
+        review: Complete reviewed source mappings, including samples and annotations.
+        identity: Original sample identity as text.
+
+    Returns:
+        Copied per-sample review with shared annotation mappings included.
+
+    Raises:
+        ValueError: A sample supplies a different mapping for a shared annotation.
+    """
+    item = deepcopy(review.get("samples", {}).get(identity, {}))
+    shared = item.setdefault("records", {}).setdefault("annotation", {})
+    for key, value in review.get("annotation", {}).items():
+        if key in shared and shared[key] != value:
+            raise ValueError("Sample annotation mapping conflicts with the shared review")
+        shared[key] = deepcopy(value)
+    return item
+
+
+def sample_bundles(
+    source: SourceIndex,
+    review: dict,
+    catalog: dict,
+    output: Path,
+    *,
+    provenance: dict,
+    vep: VepReference,
+    sample_ids: list[str] | None = None,
+) -> dict:
+    """Build all sample-related collections in bounded per-sample bundles.
+
+    Args:
+        source: Complete read-only offline source index.
+        review: Reviewed sample configuration, missing metadata, and record mappings.
+        catalog: Validated installed destination configuration snapshot.
+        output: New private directory for numbered sample bundles and a completion manifest.
+        provenance: Source, review, schema-audit, reference and destination fingerprints.
+        vep: Shared historical transcript reference built before sample conversion.
+        sample_ids: Optional explicit subset for resolving overlap between sources.
+            None converts all samples; empty or repeated selections are rejected.
+
+    Returns:
+        Completion manifest including aggregate collection counts and per-sample results.
+
+    Raises:
+        RecordConversionError: A sample or related record cannot be reconciled.
+        FileExistsError: The output already exists.
+    """
+    if sample_ids is not None and (
+        not isinstance(sample_ids, list)
+        or not sample_ids
+        or any(not isinstance(identity, str) or not identity for identity in sample_ids)
+        or len(set(sample_ids)) != len(sample_ids)
+    ):
+        raise ValueError("Sample selection must contain distinct source identities")
+    originals = (
+        source.rows("samples")
+        if sample_ids is None
+        else (source.get("samples", identity) for identity in sorted(sample_ids))
+    )
+    output.mkdir(mode=0o700, parents=False, exist_ok=False)
+    totals = Counter()
+    samples = []
+    for number, original in enumerate(originals, 1):
+        identity = str(original["_id"])
+        try:
+            item = bind_sample_review(catalog, original, _review_for_sample(review, identity))
+            plan = sample_plan(source, identity, item, vep=vep)
+            validate_plan_scope(catalog, plan)
+            folder = output / f"{number:06d}"
+            details = {
+                **provenance,
+                "sample_id": identity,
+                "configuration_binding": item.get("sample", {}).get("metadata", {}),
+            }
+            counts = write_bundle(folder, plan, provenance=details)
+            write_report(folder / "conversion.json", details, plan, None)
+            totals.update(counts)
+            samples.append({"sample_id": identity, "bundle": folder.name, "counts": counts})
+        except (ValueError, TypeError, KeyError) as error:
+            raise RecordConversionError("samples", original, error) from error
+    manifest = {
+        "format": 1,
+        "complete": True,
+        "provenance": provenance,
+        "counts": dict(totals),
+        "samples": samples,
+    }
+    private_json(output / "manifest.json", manifest)
+    return manifest
+
+
 def run(version: int, operation: str) -> int:
     """Execute one version-specific offline operation and print only aggregate results."""
     parser = argparse.ArgumentParser(description=f"Offline Coyote v{version} {operation}")
     conversion = operation in {
         "sample",
+        "samples",
         "annotation",
         "blacklist",
         "d4_coverage_blacklist",
@@ -172,6 +270,7 @@ def run(version: int, operation: str) -> int:
     if conversion:
         parser.add_argument("--schema-audit", type=Path, required=True)
         parser.add_argument("--target-catalog", type=Path, required=True)
+        parser.add_argument("--vep-index", type=Path, required=operation == "samples")
     reporting = conversion or operation == "backfill"
     if reporting:
         parser.add_argument(
@@ -193,6 +292,12 @@ def run(version: int, operation: str) -> int:
         parser.add_argument("--review", type=Path, required=conversion)
     if operation == "sample":
         parser.add_argument("--sample-id", required=True)
+    if operation == "samples":
+        parser.add_argument(
+            "--sample-ids-file",
+            type=Path,
+            help="Private JSON array selecting a reviewed subset; default: all samples",
+        )
     if operation == "inspect":
         parser.add_argument("--collection", choices=SOURCE_COLLECTIONS[version], required=True)
         parser.add_argument("--record-id", required=True)
@@ -200,6 +305,7 @@ def run(version: int, operation: str) -> int:
         parser.add_argument("--tsv", type=Path, required=True)
     args = parser.parse_args()
     source = None
+    vep = None
     report_path = None
     plan = None
     failure = None
@@ -262,15 +368,41 @@ def run(version: int, operation: str) -> int:
         catalog = read_json(args.target_catalog)
         validate_snapshot(catalog)
         provenance.update(source_sha256=source.fingerprint(), target_sha256=catalog["sha256"])
+        if args.vep_index:
+            vep = VepReference(args.vep_index)
+            if not any(item["source_sha256"] == source.fingerprint() for item in vep.sources):
+                raise ValueError("VEP reference does not include this source snapshot")
+            provenance.update(vep_sha256=vep.fingerprint, vep_version=vep.version)
+        elif operation == "annotation":
+            raise ValueError(
+                "Build anno_vep first and supply --vep-index for annotation conversion"
+            )
+        provenance.update(review_sha256=digest(review), schema_audit_sha256=audit_digest)
+        provenance["source_dispositions"] = review.get("schema_audit", {}).get(
+            "unprofiled_files", {}
+        )
+        if operation == "samples":
+            manifest = sample_bundles(
+                source,
+                review,
+                catalog,
+                args.output,
+                provenance=provenance,
+                vep=vep,
+                sample_ids=read_json(args.sample_ids_file) if args.sample_ids_file else None,
+            )
+            provenance["batch_counts"] = manifest["counts"]
+            print(json.dumps(manifest["counts"]))
+            return 0
         if operation == "sample":
             sample_review = bind_sample_review(
                 catalog,
                 source.get("samples", args.sample_id),
-                review.get("samples", {}).get(args.sample_id, {}),
+                _review_for_sample(review, args.sample_id),
             )
-            plan = sample_plan(source, args.sample_id, sample_review)
+            plan = sample_plan(source, args.sample_id, sample_review, vep=vep)
         else:
-            plan = independent_plan(source, operation, review.get(operation, {}))
+            plan = independent_plan(source, operation, review.get(operation, {}), vep=vep)
         validate_plan_scope(catalog, plan)
         provenance.update(
             {
@@ -308,6 +440,8 @@ def run(version: int, operation: str) -> int:
             print(str(error), file=sys.stderr)
         return 1
     finally:
+        if vep is not None:
+            vep.close()
         if source is not None:
             source.close()
         if report_path is not None:
