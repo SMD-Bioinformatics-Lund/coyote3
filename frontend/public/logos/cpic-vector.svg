@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="395px" height="194px" viewBox="0 0 395 194" version="1.1" role="img" aria-labelledby="logo-title">
   <title id="logo-title">CPIC</title>
+  <style>@media (prefers-color-scheme: dark) { [fill="#336699"] { fill: #91b4df; } [fill="#000000"] { fill: #eae3ef; } [fill="#C9134A"] { fill: #f06b92; } stop[stop-color="#000000"], stop[stop-color="#272727"] { stop-color: #a99db7; } stop[stop-color="#4A4A4A"], stop[stop-color="#636363"] { stop-color: #c6bacf; } }</style>
   <desc>CPIC artwork with original vector geometry retained.</desc>
   <defs>
     <linearGradient x1="100.006908%" y1="49.9936988%" x2="0.00690846287%" y2="49.9936988%" id="linearGradient-1">

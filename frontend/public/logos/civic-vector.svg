@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
   <title id="title">CIViC logo</title>
+  <style>@media (prefers-color-scheme: dark) { g[fill="#665276"] { fill: #dac3e9; } }</style>
   <desc id="desc">Reference: the official griffithlab/civic-v2 CIViC medical staff and silver wordmark. Hand-built vector geometry; no raster image or traced pixels.</desc>
   <defs>
     <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">

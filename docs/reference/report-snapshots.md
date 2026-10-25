@@ -84,7 +84,9 @@ them for reconciliation; check saved-report metadata before submitting another s
 Unreferenced staging files are included in the artifact inventory.
 
 Report folders must be relative paths within the configured report root. PDF rendering
-accepts embedded PNG/JPEG images only; it cannot fetch remote URLs or local files.
+accepts embedded PNG/JPEG images and validated self-contained SVG logos; it cannot
+fetch remote URLs or local files. SVG scripts, external references and nested images
+are rejected.
 HTML presentational hints remain disabled.
 
 This document describes the Coyote3 sample-to-report workflow, the rules used

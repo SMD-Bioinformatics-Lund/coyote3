@@ -264,53 +264,53 @@
 @page {
   size: A4; margin: 18mm 15mm 20mm;
   @top-right { content: none; }
-  @bottom-left { content: "Coyote3 · Try new report"; color: #536574; font: 8pt sans-serif; }
-  @bottom-right { content: counter(page) " / " counter(pages); color: #536574; font: 8pt sans-serif; }
+  @bottom-left { content: "Coyote3 · Try new report"; color: #716879; font: 8pt sans-serif; }
+  @bottom-right { content: counter(page) " / " counter(pages); color: #716879; font: 8pt sans-serif; }
 }
-html { background: #edf1f4; }
-body { margin: 0; color: #192e3d; font: 10pt/1.55 Arial, Helvetica, sans-serif; overflow-wrap: anywhere; }
+html { background: #f3f0f5; color-scheme: light; }
+body { margin: 0; color: #2d2535; font: 10pt/1.55 Arial, Helvetica, sans-serif; overflow-wrap: anywhere; }
 body .page {
   box-sizing: border-box; position: static; top: auto; width: auto;
   max-width: 900px; margin: 32px auto; padding: 36px 42px;
-  background: white; border-top: 6px solid #246875; box-shadow: 0 8px 32px #203b4814;
+  background: white; border-top: 4px solid #765486; box-shadow: 0 8px 32px #203b4814;
   font-family: Arial, Helvetica, sans-serif;
 }
-.trial-notice { margin: 0 0 24px; color: #536574; font-size: 9pt; letter-spacing: .06em; }
+.trial-notice { margin: 0 0 24px; color: #716879; font-size: 9pt; letter-spacing: .06em; }
 .report-preview-card { display: none; }
 body span.report_header {
-  margin: 28px 0 12px; padding: 0 0 8px; border-bottom: 1px solid #dce4e8;
-  color: #185464; font-size: 14pt; font-weight: 600; line-height: 1.35;
+  margin: 28px 0 12px; padding: 0 0 8px; border-bottom: 1px solid #e4dce9;
+  color: #664678; font-size: 14pt; font-weight: 600; line-height: 1.35;
 }
 .page > span.report_header:first-of-type {
-  margin-top: 0; border: 0; padding: 0 0 12px; color: #192e3d; font-size: 23pt;
+  margin-top: 0; border: 0; padding: 0 0 12px; color: #2d2535; font-size: 20pt;
 }
 body table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9pt; }
-body table.report_general { width: 100%; margin: 0 0 24px; border: 1px solid #dce4e8; background: #f5f8fa; }
-body table.report_variant { width: 100%; margin: 16px 0 24px; border: 1px solid #dce4e8; background: white; }
-body table.variant_table { margin: 12px 0 24px; border: 1px solid #dce4e8; }
+body table.report_general { width: 100%; margin: 0 0 24px; border: 1px solid #e4dce9; background: #faf8fb; }
+body table.report_variant { width: 100%; margin: 16px 0 24px; border: 1px solid #e4dce9; background: white; }
+body table.variant_table { margin: 12px 0 24px; border: 1px solid #e4dce9; }
 body table.variant_table td, body table.variant_table th {
-  padding: 8px 10px; border: 1px solid #dce4e8; font-size: 9pt;
+  padding: 8px 10px; border: 1px solid #e4dce9; font-size: 9pt;
 }
-body table.variant_table th { background: #e6eff2; color: #192e3d; }
+body table.variant_table th { background: #f0e9f3; color: #2d2535; }
 body table.variant_table:has(th:nth-child(4)) th:nth-child(2) { width: 40%; }
 body td.report_comment, body td.report_annotation {
-  padding: 10px; background: #f5f8fa; border: 1px solid #dce4e8;
+  padding: 10px; background: #faf8fb; border: 1px solid #e4dce9;
 }
 body td, body th { padding: 8px 10px; vertical-align: top; overflow-wrap: anywhere; }
 body td.top_report_key, body td.report_key {
-  width: auto; background: #f0f5f7; color: #365461; border: 1px solid #dce4e8;
+  width: auto; background: #f6f1f8; color: #64556c; border: 1px solid #e4dce9;
   font-size: 8pt; font-weight: 600;
 }
 body td.top_report_val, body td.report_val, body td.var_report_val {
-  width: auto; background: white; border: 1px solid #dce4e8;
+  width: auto; background: white; border: 1px solid #e4dce9;
 }
 body th.top_report, body th.report_variant_header {
-  padding: 9px 10px; border: 0; background: #e6eff2; color: #192e3d; text-align: left;
+  padding: 9px 10px; border: 0; background: #f0e9f3; color: #2d2535; text-align: left;
 }
-body span.report_variant_header { color: #192e3d; font-size: 10pt; padding: 0; }
+body span.report_variant_header { color: #2d2535; font-size: 10pt; padding: 0; }
 body .results_summary {
-  padding: 16px 20px; border: 1px solid #c8dce2; border-left: 4px solid #246875;
-  border-radius: 3px; background: #f1f7f8; font-size: 10pt;
+  padding: 16px 20px; border: 1px solid #dfd0e7; border-left: 4px solid #765486;
+  border-radius: 3px; background: #f8f4fa; font-size: 10pt;
 }
 body .report_text, body .report_medium { font-size: inherit; }
 body .wrapping { width: auto; overflow-wrap: anywhere; white-space: normal; }
@@ -318,14 +318,37 @@ body pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 body table.info td:first-child { width: 14%; }
 body table.report_general td.top_report_key { width: 26%; }
 body img { max-width: 100%; height: auto; }
-body a { color: #185464; text-decoration: underline; }
+body a { color: #664678; text-decoration: underline; }
 body tr { break-inside: avoid; }
 body thead { display: table-header-group; }
 body span.report_header { break-after: avoid; }
 body p, body li { orphans: 3; widows: 3; }
+.report-brand-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding-bottom: 20px; margin-bottom: 24px; border-bottom: 2px solid #d8ba8b;
+  break-inside: avoid;
+}
+.report-product-brand { display: flex; align-items: center; gap: 12px; flex: 0 0 45%; }
+.report-product-brand strong { display: block; color: #664678; font-size: 13pt; letter-spacing: .12em; white-space: nowrap; }
+.report-product-brand span { display: block; color: #716879; font-size: 8pt; }
+.report-coyote-logo { width: 72px; height: 48px; flex: 0 0 72px; object-fit: contain; }
+.report-center-brand { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex: 0 0 48%; max-width: 48%; }
+.report-center-brand span { width: 190px; max-width: 190px; color: #64556c; font-size: 8pt; line-height: 1.4; }
+.report-center-logo { width: 58px; height: 54px; flex: 0 0 58px; object-fit: contain; }
+.report-coyote-logo, .report-center-logo { color-scheme: light; }
+.report-metadata { margin: 8px 0 28px; padding: 8px 20px; background: #faf8fb; border: 1px solid #e4dce9; border-radius: 8px; }
+.report-metadata dl { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; margin: 0; }
+.report-metadata-field { box-sizing: border-box; flex: 0 0 48%; min-width: 0; padding: 10px 0; border-bottom: 1px solid #e4dce9; break-inside: avoid; }
+.report-metadata-wide { flex-basis: 100%; }
+.report-metadata dt { color: #716879; font-size: 7.5pt; font-weight: 600; letter-spacing: .04em; }
+.report-metadata dd { margin: 4px 0 0; color: #2d2535; font-size: 9pt; line-height: 1.45; overflow-wrap: anywhere; }
+.report-metadata-field:last-child { border-bottom: 0; }
 @media (max-width: 650px) {
   body .page { margin: 0; padding: 22px 16px; }
   body td, body th { padding: 6px; }
+  .report-metadata-field { flex-basis: 100%; }
+  .report-brand-header { gap: 12px; }
+  .report-center-brand span { max-width: 110px; }
 }
 @media print {
   html, body { background: white; }
@@ -344,8 +367,8 @@ body p, body li { orphans: 3; widows: 3; }
   body table.report_variant tr:has(td.report_annotation) > td.report_key,
   body table.report_variant tr:has(td.report_comment) > td.report_key { display: block; width: auto; }
   /* The legacy image is rotated and padded for its fixed-width layout. */
-  body .page div:has(> img[src^="data:image/"]) { transform: none !important; }
-  body .page img[src^="data:image/"] {
+  body .page div[style*="rotate(90deg)"] { transform: none !important; }
+  body .page div[style*="rotate(90deg)"] > img {
     box-sizing: border-box; position: static; max-width: 100% !important;
     max-height: 215mm; width: auto !important; height: auto !important; padding: 0 !important;
     object-fit: contain; break-inside: avoid;
@@ -355,7 +378,13 @@ body p, body li { orphans: 3; widows: 3; }
 
 <body>
 
-<div class="page"><p class="trial-notice">TRY NEW REPORT · TEMPORARY PREVIEW</p>
+<div class="page"><header class="report-brand-header">
+  <div class="report-product-brand">
+    
+    <div><strong>COYOTE3</strong><span>Clinical genomics</span></div>
+  </div>
+  
+</header><p class="trial-notice">TRY NEW REPORT · TEMPORARY PREVIEW</p>
   
 
 
@@ -367,21 +396,25 @@ body p, body li { orphans: 3; widows: 3; }
 
 <span class="report_header">Synthetic report - SYNTHETIC_EXTRACTION</span>
 
-<div class="report_div">
-  <table class='report_general'>
-    <tr><td class="top_report_key">Patientnamn</td><td class="top_report_val">&lt;PATIENT_NAME&gt;</td></tr>
-    <tr><td class="top_report_key">Personnummer</td><td class="top_report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td></tr>
-    <tr><td class="top_report_key">Prov-ID</td><td class="top_report_val">SYNTHETIC_EXTRACTION</td></tr>
-    <tr><td class="top_report_key">Registreringsdatum</td><td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td></tr>
-    <tr><td class="top_report_key">Provtyp</td><td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td></tr>
+
+<section class="report-metadata" aria-label="Provinformation">
+  <dl>
+    <div class="report-metadata-field"><dt>Patientnamn</dt><dd>&lt;PATIENT_NAME&gt;</dd></div>
+    <div class="report-metadata-field"><dt>Personnummer</dt><dd>&lt;PERSONAL_IDENTITY_NUMBER&gt;</dd></div>
+    <div class="report-metadata-field"><dt>Prov-ID</dt><dd>SYNTHETIC_EXTRACTION</dd></div>
     
-    <tr><td class="top_report_key">Rapportdatum</td><td class="top_report_val"></td></tr>
-    <tr><td class="top_report_key">Analysmetod</td><td class="top_report_val"></td></tr>
+    <div class="report-metadata-field"><dt>Registreringsdatum</dt><dd>&lt;REGISTRATION_DATE&gt;</dd></div>
+    <div class="report-metadata-field"><dt>Provtyp</dt><dd>&lt;SAMPLE_TYPE&gt; / RNA</dd></div>
     
-    <tr><td class="top_report_key">Rapport genererad av</td><td class="top_report_val">Unknown</td></tr>
-    <tr><td class="top_report_key">Rapport-ID</td><td class="top_report_val">SYNTHETIC_EXTRACTION.1</td></tr>
-  </table>
-</div>
+    <div class="report-metadata-field"><dt>Rapportdatum</dt><dd></dd></div>
+    <div class="report-metadata-field"><dt>Analysmetod</dt><dd></dd></div>
+    
+    <div class="report-metadata-field"><dt>Rapport genererad av</dt><dd>Unknown</dd></div>
+    
+      <div class="report-metadata-field report-metadata-wide"><dt>Rapport-ID</dt><dd>SYNTHETIC_EXTRACTION.1</dd></div>
+    
+  </dl>
+</section>
 
 <span class="report_header">Analysresultat</span>
 <table class="variant_table">

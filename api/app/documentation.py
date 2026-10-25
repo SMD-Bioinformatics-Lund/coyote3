@@ -7,6 +7,8 @@ from fastapi import FastAPI, Request
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from starlette.responses import HTMLResponse
 
+from api.config.paths import API_CONFIG_DIR
+
 PRODUCT_OVERVIEW = (
     "Coyote3 is a clinical genomics application developed by the bioinformatics team at "
     "the Section for Molecular Diagnostics (SMD), Lund, within Region Sk\u00e5ne's "
@@ -119,7 +121,10 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
         Loads the template and logo immediately; rendered pages disable caching.
     """
     template = _ENVIRONMENT.get_template("api_reference.html")
-    logo = "data:image/png;base64," + b64encode((_TEMPLATES / "logo.png").read_bytes()).decode()
+    logo = (
+        "data:image/svg+xml;base64,"
+        + b64encode((API_CONFIG_DIR / "assets" / "coyote.svg").read_bytes()).decode()
+    )
 
     def render(request: Request, view: str) -> HTMLResponse:
         """Render a documentation view with deployment-prefixed schema links.

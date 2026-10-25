@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 350" role="img" aria-labelledby="title desc">
   <title id="title">ClinPGx logo</title>
+  <style>@media (prefers-color-scheme: dark) { [stroke="#336699"] { stroke: #8ab1de; } [fill="#336699"] { fill: #8ab1de; } [stroke="#c9134a"] { stroke: #f06b92; } [stroke="#a7193c"] { stroke: #d9537f; } }</style>
   <desc id="desc">Reference: PharmGKB/pgkb-branding official ClinPGx logo, blue and red lettering with a blue and green helix. Hand-built vector geometry; no raster image or traced pixels.</desc>
   <defs>
     <linearGradient id="helix-rungs" x1="0" y1="0" x2="0" y2="1">

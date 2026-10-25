@@ -9,19 +9,22 @@ from coyote3.application.reporting.report_renderer import render_pdf_bytes, rend
 
 
 class BodyText(HTMLParser):
-    """Collect visible clinical text while excluding styles and the trial-only notice."""
+    """Collect clinical text while excluding styles, branding and the trial-only notice."""
 
     def __init__(self):
         """Prepare an empty body-text collector."""
         super().__init__()
         self.body = False
         self.notice = False
+        self.brand = False
         self.text = []
 
     def handle_starttag(self, tag, attrs):
         """Track body entry and the additional temporary-preview notice."""
         if tag == "body":
             self.body = True
+        if tag == "header" and dict(attrs).get("class") == "report-brand-header":
+            self.brand = True
         if tag == "p" and dict(attrs).get("class") == "trial-notice":
             self.notice = True
 
@@ -31,10 +34,12 @@ class BodyText(HTMLParser):
             self.body = False
         if tag == "p":
             self.notice = False
+        if tag == "header":
+            self.brand = False
 
     def handle_data(self, data):
         """Retain nonblank body text without changing its clinical wording."""
-        if self.body and not self.notice and data.strip():
+        if self.body and not self.notice and not self.brand and data.strip():
             self.text.append(data.strip())
 
 

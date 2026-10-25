@@ -86,7 +86,7 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert 'href="/center/api/v1/docs"' in html
     assert 'href="/center/docs-site/"' in html
     assert 'const schemaUrl = "/center/api/v1/openapi.json"' in html
-    assert "data:image/png;base64," in html
+    assert "data:image/svg+xml;base64," in html
     assert ('class="environment-warning"' in html) is (environment != "production")
     assert response.headers["Cache-Control"] == "no-store"
     assert "validatorUrl: null" in html

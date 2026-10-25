@@ -23,8 +23,9 @@ Reviewed: 2026-09-09. Reassess whenever WeasyPrint changes.
 when HTML presentational hints are enabled in affected releases. Coyote3 pins
 WeasyPrint 70.0; the dependency audit passes without an advisory exception.
 Coyote3 explicitly calls `write_pdf(presentational_hints=False)` and uses
-a resource fetcher restricted to embedded PNG/JPEG images. Network URLs, local files,
-SVG resources, and oversized embedded images are rejected.
+a resource fetcher restricted to embedded PNG/JPEG images and validated self-contained
+SVG logos. SVG scripts, external references and nested images are rejected.
+Network URLs, local files and oversized embedded images are rejected.
 
 Regression tests in `tests/unit/reporting/test_release_regressions.py` verify the
 disabled option and forbidden resource schemes. CI does not suppress this advisory.

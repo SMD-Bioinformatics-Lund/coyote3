@@ -146,7 +146,7 @@ export function Login() {
             <img
               src={appPath("/logos/coyote-vector.svg")}
               alt={organizationName}
-              className="w-11 h-7 dark:invert"
+              className="w-11 h-7"
             />
             <BrandWordmark />
           </div>

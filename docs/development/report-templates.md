@@ -12,6 +12,8 @@ Jinja's package loader resolves files independently of the working directory.
 | `legacy/report.html` | Legacy inheritance entry point. |
 | `legacy/dna.html`, `legacy/rna.html` | Modality-specific body composition. |
 | `components/dna/`, `components/rna/` | Sample information, finding tables and classification wording; distinct markup remains distinct. |
+| `modern/components/dna/`, `modern/components/rna/` | Modern sample-information overrides; the legacy components retain their original markup. |
+| `components/modern/` | Branded report header and labeled sample-details layout. |
 | `modern/report.html` | Modern inheritance and overrides over the same clinical body. |
 | `components/header.html`, `components/footer.html` | Modern head metadata/styles and temporary-preview notice. |
 
@@ -66,6 +68,12 @@ reformatting because whitespace participates in approved source identities.
 
 ## Modern PDF pagination
 
+Modern reports use the Coyote3 purple and warm accent palette. The report header
+contains Coyote3 and center logos; sample details use paired labeled fields with
+full-width question and report-identifier fields. The same clinical values and
+wording remain available in both formats. Presentation overrides are loaded only
+for the modern layout, and their sources participate in its content hash.
+
 The modern stylesheet defines A4 paper, 18 mm top, 15 mm side and 20 mm bottom
 margins, plus page counters. Fixed table layouts and wrapping keep long identifiers
 within the printable width. Section headings stay with the following content.
@@ -78,3 +86,27 @@ truncated or scaled down to force a single page. Pagination tests render DNA/RNA
 long annotations and identifiers, and portrait/landscape CNV images with WeasyPrint.
 They check A4 dimensions, text and image bounds, and retention of the final annotation.
 Review a real PDF after changing print styles, including multi-page text and images.
+
+## Center branding
+
+The HTTP host resolves branding; the application SDK accepts embedded image URLs
+and never reads center directories. In the center-owned `contact.toml`:
+
+```toml
+[organization]
+report_logo = "region-skane"
+```
+
+`region-skane` selects the bundled mark for the affiliated center and is the default
+when this key is absent. Other centers can set a relative SVG, PNG or JPEG path
+inside their mounted center configuration directory, or `""` to omit the mark.
+The selected file must be at most one megabyte. Paths escaping that directory,
+SVG scripts, nested images and external references are rejected.
+The performing organization name comes from the existing organization setting.
+Apply center configuration through the normal deployment/restart procedure.
+
+Logos are embedded in the HTML for offline viewing and PDF generation. Report
+paper uses fixed ink colors independently of the web UI's dark/light theme.
+Existing issued HTML/PDF files retain their embedded branding. Published modern
+template profiles require review and publication of the new content hash after
+template or stylesheet changes; the legacy template identities are unchanged.

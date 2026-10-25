@@ -1,6 +1,7 @@
 """Deployment composition for the in-process application SDK."""
 
 from collections.abc import Callable
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from coyote3.application.operations import (
@@ -103,11 +104,12 @@ def application_services() -> ApplicationServices:
     from api.app.http import get_formatted_assay_config
     from api.app.runtime_state import app
     from api.infra.registered_artifacts import FilesystemRegisteredArtifacts
+    from api.presentation.reports.branding import render_branded_report_html
     from api.presentation.reports.modern import render_modern_report_html
     from coyote3.application.interpretation.report_summary import create_classified_variant_doc
     from coyote3.application.operations.administration import AdministrationServices
     from coyote3.application.operations.system import OperationsServices
-    from coyote3.application.reporting.report_renderer import render_pdf_bytes, render_report_html
+    from coyote3.application.reporting.report_renderer import render_pdf_bytes
     from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     return ApplicationServices(
@@ -159,13 +161,13 @@ def application_services() -> ApplicationServices:
                 get_dna_workflow_service() if analyte == "dna" else get_rna_workflow_service()
             ),
             configuration=get_formatted_assay_config,
-            render_html=render_report_html,
+            render_html=partial(render_branded_report_html, config=app.config),
             organization_name=str(app.config.get("ORGANIZATION_NAME") or ""),
             reports_base_path=str(app.config.get("REPORTS_BASE_PATH") or "reports"),
             logger=app.logger,
             library=get_report_library_service,
             render_pdf=render_pdf_bytes,
-            render_trial_html=render_modern_report_html,
+            render_trial_html=partial(render_modern_report_html, branding_config=app.config),
         ),
         ingest=get_internal_ingest_service,
         ingest_submission=ingest_submission_services(),

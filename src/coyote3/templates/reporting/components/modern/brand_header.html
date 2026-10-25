@@ -1,0 +1,10 @@
+<header class="report-brand-header">
+  <div class="report-product-brand">
+    {% if branding.coyote_logo %}<img class="report-coyote-logo" src="{{ branding.coyote_logo }}" alt="Coyote3">{% endif %}
+    <div><strong>COYOTE3</strong><span>Clinical genomics</span></div>
+  </div>
+  {% if branding.center_logo or organization_name %}<div class="report-center-brand">
+    {% if branding.center_logo %}<img class="report-center-logo" src="{{ branding.center_logo }}" alt="{{ organization_name or 'Center' }}">{% endif %}
+    {% if organization_name %}<span>{{ organization_name }}</span>{% endif %}
+  </div>{% endif %}
+</header>

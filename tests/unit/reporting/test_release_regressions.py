@@ -22,7 +22,7 @@ def test_unconditional_rule_validates():
     "url", ["https://example.test/image.png", "file:///etc/passwd", "data:image/svg+xml,<svg/>"]
 )
 def test_report_resources_cannot_read_network_or_files(url):
-    with pytest.raises(ValueError, match="embedded PNG or JPEG"):
+    with pytest.raises(ValueError, match="embedded PNG, JPEG or self-contained SVG"):
         ReportResourceFetcher()(url)
 
 

@@ -56,6 +56,9 @@ def template_content_hash(template_name: str) -> str:
     content = base + body
     if layout == "modern":
         content += _expanded_source("modern/report.html")
+        content += _expanded_source(
+            f"modern/components/{REPORT_TEMPLATES[template_name][0]}/sample_information.html"
+        )
     return sha256(content.encode()).hexdigest()
 
 

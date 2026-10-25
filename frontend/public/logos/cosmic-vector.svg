@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 190" role="img" aria-labelledby="title desc">
   <title id="title">COSMIC logo</title>
+  <style>@media (prefers-color-scheme: dark) { g[stroke="#284a72"] { stroke: #a9c4ef; } g[fill="#284a72"] { fill: #a9c4ef; } }</style>
   <desc id="desc">Reference: the official COSMIC site banner at cancer.sanger.ac.uk. Hand-built vector geometry; no raster image or traced pixels.</desc>
   <g fill="none" stroke="#284a72" stroke-width="10" stroke-linejoin="round">
     <path d="M27 65 Q60 22 89 18 Q119 23 150 65 M27 106 Q60 148 89 153 Q119 148 150 106"/>

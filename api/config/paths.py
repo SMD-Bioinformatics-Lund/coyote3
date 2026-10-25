@@ -8,7 +8,7 @@ from pathlib import Path
 
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = Path(os.getenv("COYOTE3_RUNTIME_ROOT") or Path.cwd()).resolve()
-EMAIL_LOGO_PATH = API_CONFIG_DIR / "assets" / "logo.png"
+EMAIL_LOGO_PATH = API_CONFIG_DIR / "assets" / "coyote-email.png"
 _SOURCE_CENTER_CONFIG_DIR = REPO_ROOT / "config" / "examples" / "center"
 BUNDLED_CENTER_CONFIG_DIR = (
     _SOURCE_CENTER_CONFIG_DIR

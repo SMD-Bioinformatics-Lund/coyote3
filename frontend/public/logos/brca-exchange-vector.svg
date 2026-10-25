@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 200" role="img" aria-labelledby="title desc">
   <title id="title">BRCA Exchange logo</title>
+  <style>@media (prefers-color-scheme: dark) { g[fill="#181818"] { fill: #f2ecf5; } g[fill="#353535"] { fill: #dcd1e4; } }</style>
   <desc id="desc">Reference: the BRCA Exchange project site and BRCAChallenge/brca-exchange ribbon. Hand-built vector geometry; no raster image or traced pixels.</desc>
   <path fill="#ed9d9c" d="M69 0 5 60 101 187 126 187 33 60 87 18Z"/>
   <path fill="#c53455" d="M69 0 134 60 49 187 23 187 106 60 50 18Z"/>

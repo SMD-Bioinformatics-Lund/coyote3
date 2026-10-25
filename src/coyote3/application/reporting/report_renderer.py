@@ -6,7 +6,7 @@ from typing import Any
 
 import bleach
 import markdown
-from jinja2 import Environment, PackageLoader, select_autoescape
+from jinja2 import ChoiceLoader, Environment, PackageLoader, select_autoescape
 
 from coyote3.application.reporting.report_context import prepare_render_context
 from coyote3.application.reporting.report_service import (
@@ -18,10 +18,20 @@ from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.reporting import TIER_NAME
 
 
-def _environment() -> Environment:
-    """Return the report Jinja environment with Coyote3 report filters."""
+def _environment(*, modern: bool = False) -> Environment:
+    """Return report filters and the selected layout's component lookup order.
+
+    Args:
+        modern: Prefer modern presentation components while retaining the shared clinical body.
+
+    Returns:
+        An escaping Jinja environment independent of the current working directory.
+    """
+    loader = PackageLoader("coyote3", "templates/reporting")
     env = Environment(
-        loader=PackageLoader("coyote3", "templates/reporting"),
+        loader=ChoiceLoader([PackageLoader("coyote3", "templates/reporting/modern"), loader])
+        if modern
+        else loader,
         autoescape=select_autoescape(["html", "xml"]),
     )
     env.filters["perc_no_dec"] = _perc_no_dec
@@ -123,6 +133,7 @@ def render_report_html(
     organization_name: str = "",
     generated_by: str = "",
     layout: str | None = None,
+    branding: dict[str, str] | None = None,
 ) -> str:
     """Render report HTML with explicitly supplied institutional and user identity.
 
@@ -136,6 +147,7 @@ def render_report_html(
         generated_by: Authenticated user's display name or username; empty shows Unknown.
         layout: Optional presentation override, legacy or modern. None uses the
             approved template profile, falling back to the established legacy layout.
+        branding: Host-provided embedded logo URLs for modern presentation. None omits images.
 
     Returns:
         Escaped HTML suitable for browser preview and PDF rendering.
@@ -164,8 +176,9 @@ def render_report_html(
     if selected_layout not in {"legacy", "modern"}:
         raise ValueError("Report layout must be legacy or modern")
     context["legacy_template"] = leaf
+    context.update(report_analyte=analyte, branding=branding or {})
     return (
-        _environment()
+        _environment(modern=selected_layout == "modern")
         .get_template("modern/report.html" if selected_layout == "modern" else leaf)
         .render(**context)
     )

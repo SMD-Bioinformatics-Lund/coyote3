@@ -1,9 +1,9 @@
 include build_support.py release.toml LICENSE.txt NOTICE.txt LICENSING.md THIRD_PARTY_NOTICES.md
 recursive-include config/examples/center *.toml *.yaml
 recursive-include demo_data/clinical_workflows *
-recursive-include api/app/templates *.html *.css *.js *.png
+recursive-include api/app/templates *.html *.css *.js
 recursive-include api/bootstrap/catalogs *
-recursive-include api/config *.toml *.png
+recursive-include api/config *.toml *.png *.svg
 recursive-include src/coyote3/templates *.html *.css
 global-exclude *.pyc
 global-exclude __pycache__

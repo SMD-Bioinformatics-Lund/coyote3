@@ -2,6 +2,8 @@
 [organization]
 name = "Example Molecular Diagnostics Center"
 department = "Molecular Diagnostics"
+# Bundled mark, a relative SVG/PNG/JPEG path inside this center directory, or "" to omit.
+report_logo = "region-skane"
 
 [support]
 primary_email = "support@example.org"
