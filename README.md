@@ -367,8 +367,8 @@ clinical users and platform maintainers.
 
 Contributors:
 
-- Sailedra Pradhananga
-- Viktor Henmry
+- Sailendra Pradhananga
+- Viktor Henmyr
 
 The application uses the [COYOTE3 Free-Use Source-Available License 1.0](LICENSE.txt).
 Free use includes institutional and commercial use; protected code modifications
