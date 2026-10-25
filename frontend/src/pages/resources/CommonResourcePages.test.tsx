@@ -82,13 +82,12 @@ describe("public gene resources", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("loads a selected gene list with the assay query and normalizes string rows", async () => {
-    mocks.get.mockResolvedValue({ data: { title: "Myeloid genes", genes: ["FLT3", { gene: "NPM1", evidence: { source: "curated" } }] } })
+    mocks.get.mockResolvedValue({ data: { genelist: { name: "Myeloid genes" }, filtered_genes: ["FLT3", "NPM1"] } })
     renderRoute("/public/genelists/myeloid?assay=hema_gmsv1", "/public/genelists/:genelistId", <PublicGenelistPage />)
     expect(await screen.findByRole("heading", { name: "Myeloid genes" })).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/public/genelists/myeloid/view_context?assay=hema_gmsv1")
     expect(screen.getByText("FLT3")).toBeVisible()
     expect(screen.getByText("NPM1")).toBeVisible()
-    expect(screen.getByText('{"source":"curated"}')).toBeVisible()
   })
 
   it("shows a public gene-list request error", async () => {
@@ -108,7 +107,7 @@ describe("public gene resources", () => {
         gene_lists: [{ key: "myeloid", label: "Myeloid", tat: "21 days", analysis: ["SNV"], sample_modes: ["tumor-normal"] }],
       },
       stats: { covered_total: 2, germline_total: 1 },
-      genes: ["FLT3", { hgnc_symbol: "NPM1", hgnc_id: "HGNC:7910" }],
+      gene_details: [{ hgnc_symbol: "FLT3" }, { hgnc_symbol: "NPM1", hgnc_id: "HGNC:7910" }],
     } })
     renderRoute("/public/asp/hema_gmsv1/genes", "/public/asp/:aspId/genes", <PublicAspGenesPage />)
 

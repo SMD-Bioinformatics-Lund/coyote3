@@ -171,7 +171,7 @@ export function Dashboard() {
   const vStats = data?.variant_stats || {}
   const uStats = data?.user_samples_stats || {}
   const sStats = data?.sample_stats || {}
-  const tierStats = data?.tier_stats?.total || data?.tier_stats || {}
+  const tierStats = data?.tier_stats?.total || {}
   const quality = data?.quality_stats || {}
   const capacity = data?.capacity_counts || {}
   const geneGroups = data?.panel_gene_stats_grouped || {}

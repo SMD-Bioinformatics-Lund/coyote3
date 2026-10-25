@@ -68,32 +68,17 @@ describe("variant display normalization", () => {
     ])
   })
 
-  it("selects fusion calls and supports legacy fusion shapes", () => {
+  it("selects fusion calls from the current gene-pair contract", () => {
     const selected = { selected: true, caller: "arriba" }
     expect(selectedFusionCall({ calls: [{ caller: "star" }, selected] })).toBe(selected)
     expect(selectedFusionCall({ calls: [{ caller: "star" }] })).toEqual({ caller: "star" })
-    expect(
-      selectedFusionCall({
-        frame: "in-frame",
-        supporting_reads: { span: 12, split: 8 },
-        breakpoints: ["1:10", "2:20"],
-        callers: ["arriba", "star"],
-      }),
-    ).toMatchObject({
-      effect: "in-frame",
-      spanpairs: 12,
-      spanreads: 8,
-      breakpoint1: "1:10",
-      breakpoint2: "2:20",
-      caller: "arriba, star",
-    })
-    expect(fusionGenes({ genes: "BCR^ABL1" })).toEqual(["BCR", "ABL1"])
-    expect(fusionGenes({ fusion_name: "EML4--ALK" })).toEqual(["EML4", "ALK"])
+    expect(selectedFusionCall({ calls: [] })).toEqual({})
+    expect(fusionGenes({ gene1: "BCR", gene2: "ABL1" })).toEqual(["BCR", "ABL1"])
     expect(fusionGenes({})).toEqual([])
     expect(
       fusionCallers({ calls: [{ caller: "arriba" }, { caller: "arriba" }, { caller: "star" }] }),
     ).toBe("arriba, star")
-    expect(fusionCallers({ callers: ["manta", "gridss"] })).toBe("manta, gridss")
+    expect(fusionCallers({ calls: [{ caller: "manta" }, { caller: "gridss" }] })).toBe("manta, gridss")
     expect(fusionCallers({})).toBe("-")
   })
 

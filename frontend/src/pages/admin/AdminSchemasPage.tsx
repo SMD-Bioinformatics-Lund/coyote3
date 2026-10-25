@@ -18,7 +18,7 @@ export default function AdminSchemasPage() {
     queryFn: () => api.get("/admin/schemas").then((res) => res.data),
     retry: false,
   })
-  const rows: ContractCatalogRow[] = useMemo(() => data?.schemas || data?.items || [], [data])
+  const rows: ContractCatalogRow[] = useMemo(() => data?.schemas || [], [data])
   const groupedRows = useMemo(() => rows.reduce((acc: Record<string, ContractCatalogRow[]>, row) => {
     const group = String(row.collection || "other").split("_")[0] || "other"
     acc[group] = [...(acc[group] || []), row]

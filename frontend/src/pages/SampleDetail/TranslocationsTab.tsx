@@ -90,7 +90,7 @@ export function TranslocationsTab({
       </div>
     );
 
-  const translocations = data?.display_sections_data?.translocs || data?.translocations || [];
+  const translocations = data?.translocations || [];
   const translocationCount = Number(data?.meta?.count ?? translocations.length);
   const hasNext = Boolean(data?.meta?.has_next);
   const hasPrevious = Boolean(data?.meta?.has_previous);

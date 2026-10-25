@@ -15,14 +15,13 @@ export function PublicAspGenesPage() {
     queryFn: () => api.get(`/public/asp/${aspId}/genes`).then((res) => res.data),
     enabled: Boolean(aspId),
   })
-  const genes = useMemo(() => data?.gene_details || data?.genes || data?.gene_objects || [], [data])
-  const rows = useMemo(() => Array.isArray(genes) ? genes.map((gene: any) => typeof gene === "string" ? { gene } : gene) : [], [genes])
+  const rows = useMemo(() => data?.gene_details || [], [data])
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene", "hgnc_id", "ensembl_gene_id"]), [rows])
   const catalog = data?.catalog || {}
   const asp = data?.asp || {}
   const stats = data?.stats || {}
   const geneLists = Array.isArray(catalog.gene_lists) ? catalog.gene_lists.filter((item: any) => item?.key || item?.label) : []
-  const title = catalog.title || catalog.label || asp.display_name || asp.assay_name || aspId
+  const title = catalog.title || catalog.label || asp.display_name || aspId
   const description = catalog.description || asp.description || "Assay-panel gene table."
   const diagnosis = catalog.diagnosis_id && catalog.diagnosis_id !== "base" ? catalog.diagnosis_id : null
 
