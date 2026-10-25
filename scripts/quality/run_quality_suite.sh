@@ -38,7 +38,7 @@ PYTHON_BIN="$PYTHON_BIN" bash scripts/quality/check_contract_integrity.sh
 echo "[quality] Frontend lint and build"
 npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
-npm --prefix frontend run build
+PYTHON_BIN="$PYTHON_BIN" npm --prefix frontend run build:verified
 
 echo "[quality] Frontend browser tests"
 npm --prefix frontend run test:e2e

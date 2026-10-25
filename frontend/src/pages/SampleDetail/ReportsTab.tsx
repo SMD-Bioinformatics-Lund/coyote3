@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
+import type { ReportPreviewPayload } from "@/lib/generated"
 import { downloadBlob } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { apiPath } from "@/lib/runtime-paths"
@@ -46,7 +47,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
     queryKey: ["report-preview", sampleId, reportType, includeSnapshot],
     queryFn: () =>
       api
-        .get(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false`)
+        .get<ReportPreviewPayload>(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false`)
         .then((response) => response.data),
     retry: false,
     refetchOnMount: "always",
@@ -106,7 +107,9 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   })
 
   const templateStatus = data?.meta?.template_status
-  const snapshotRows: ReportSnapshotRow[] = data?.report?.snapshot_rows || []
+  const snapshotRows: ReportSnapshotRow[] = (data?.report?.snapshot_rows || []).filter(
+    (row): row is ReportSnapshotRow => row !== null && typeof row === "object" && !Array.isArray(row),
+  )
   const snapshotCount = data?.meta?.snapshot_count ?? snapshotRows.length
   const visibleSnapshotSections = REPORT_SNAPSHOT_SECTIONS
     .map((section) => ({
@@ -115,9 +118,13 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
     }))
     .filter((section) => section.rows.length > 0)
   const hasRenderedHtml = Boolean(templateStatus?.has_html && data?.report?.html)
-  const templateStatusMessage = templateStatus?.message || "Report preview has not been rendered yet."
+  const templateStatusMessage = typeof templateStatus?.message === "string"
+    ? templateStatus.message : "Report preview has not been rendered yet."
   const sampleName = data?.sample?.name || sampleId
-  const ruleSource = data?.report?.context?.clinical_rule_evaluation?.source
+  const evaluation = data?.report?.context?.clinical_rule_evaluation
+  const ruleSource = evaluation && typeof evaluation === "object" && "source" in evaluation
+    && evaluation.source !== null && typeof evaluation.source === "object"
+    ? evaluation.source as Record<string, unknown> : undefined
   const pdfPreview = useQuery({
     queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint],
     queryFn: ({ signal }) => loadPreviewPdf(pdfEndpoint, signal),
@@ -225,7 +232,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
               <div className="report-paper-scroll" role="region" aria-label="Report document" tabIndex={0}>
                 {previewFormat === "html" ? <ReportHtmlFrame
                   title="Report preview"
-                  html={hasRenderedHtml ? data?.report?.html : "<p>No report preview available.</p>"}
+                  html={hasRenderedHtml ? data?.report?.html ?? "" : "<p>No report preview available.</p>"}
                   className="report-paper"
                 /> : pdfPreview.error ? <div role="alert" className="space-y-3 p-4 type-body-sm text-destructive">
                   <p>{pdfPreview.error instanceof Error ? pdfPreview.error.message : "Unable to prepare PDF preview."}</p>
@@ -285,7 +292,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
               {ruleSource && <details className="report-rule-details type-meta text-muted-foreground">
                 <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Report rule details</summary>
                 <p className="mt-2 break-words">
-                  {ruleSource.rule_set_id} · v{ruleSource.content_version} · {ruleSource.language}
+                  {String(ruleSource.rule_set_id ?? "")} · v{String(ruleSource.content_version ?? "")} · {String(ruleSource.language ?? "")}
                   {ruleSource.resolved_diagnosis_id === "base" && ruleSource.requested_diagnosis_id !== "base" ? " · Assay Base scope" : " · Exact scope"}
                 </p>
               </details>}

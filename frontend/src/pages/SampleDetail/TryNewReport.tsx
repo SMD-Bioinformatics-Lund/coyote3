@@ -6,10 +6,11 @@ import type { ReportType } from "@/components/reports/report-snapshot"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
+import type { ReportTrialPayload } from "@/lib/generated"
 import { downloadBlob, downloadText } from "@/lib/browser-download"
 import { AnalysisTableCard } from "./AnalysisTableCard"
 
-type Trial = { html: string; pdf_base64: string; filename: string; snapshot_count: number }
+type Trial = ReportTrialPayload
 type PreparedTrial = Trial & { pdf: Blob }
 
 export function TryNewReport({ sampleId, reportType, onClose }: {

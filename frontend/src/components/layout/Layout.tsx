@@ -8,6 +8,7 @@ import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard,
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import type { SampleNavigationCountsPayload } from "@/lib/generated"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
@@ -77,7 +78,7 @@ export function Layout() {
   const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
   const { data: navigationCounts } = useQuery({
     queryKey: ['sample-navigation-counts', navigationProfileScope],
-    queryFn: () => api.get<{ counts: Record<string, number> }>(
+    queryFn: () => api.get<SampleNavigationCountsPayload>(
       `/samples/navigation-counts?profile_scope=${encodeURIComponent(navigationProfileScope)}`,
     ).then(res => res.data),
     enabled: !isPublicRoute && Boolean(user) && !user?.must_change_password,

@@ -19,6 +19,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import type { HomeSamplesPayload } from "@/lib/generated"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 import { shortCount } from "@/lib/detail-formatters"
 import {
@@ -101,7 +102,7 @@ export function Samples() {
       params.set("live_sort", liveSortParam)
       params.set("reported_sort", reportedSortParam)
 
-      return api.get(`/samples?${params.toString()}`).then(res => res.data)
+      return api.get<HomeSamplesPayload>(`/samples?${params.toString()}`).then(res => res.data)
     }
   })
 

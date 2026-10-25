@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Separate expiring operational audit records from retained clinical history;
+  enforce collection-scoped MongoDB runtime permissions and insert-only replay.
+  Existing deployments require the documented one-time identity role upgrade
+  before production installation checks. Add optional hourly checkpoint exports
+  to independently retained archival storage.
+- Generate frontend HTTP types from FastAPI OpenAPI, with source and running-server
+  checks and a verified-build CI gate. Use generated types for sample/navigation
+  and report responses; retain explicit transports for binary downloads/uploads.
+
 - Add Coyote3/center branding and labeled metadata fields to the modern report,
   with embedded validated SVG logos and print-safe A4 layout. Remove obsolete
   logo files, use the current vector assets throughout, and support dark-theme lettering.

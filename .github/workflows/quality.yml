@@ -16,6 +16,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  api-contracts:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENV_NAME: test
+      TESTING: "1"
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
+      COYOTE3_DB: coyote3_contract_test
+      IDENTITY_DB: coyote3_identity_contract_test
+      KNOWLEDGEBASE_DB: coyote3_kb_contract_test
+      BAM_DB: coyote3_bam_contract_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.7"
+      - name: Install API schema dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libldap2-dev libsasl2-dev libpango-1.0-0 libpangoft2-1.0-0
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps -e .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci --ignore-scripts
+      - name: Verify frontend contracts against the canonical API and compile the UI
+        env:
+          PYTHON_BIN: python
+        run: npm --prefix frontend run build:verified
+
   python-client:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest

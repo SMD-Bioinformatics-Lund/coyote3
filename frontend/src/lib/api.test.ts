@@ -51,6 +51,31 @@ describe("typed API client", () => {
     expect(new Headers(options.headers).has("Content-Type")).toBe(false)
   })
 
+  it("sends an OpenAPI-checked operation with encoded path/query values and existing CSRF handling", async () => {
+    vi.mocked(fetch).mockResolvedValue(response('{"report":{"id":"synthetic"}}'))
+    setCsrfToken("synthetic-csrf")
+    await api.contract("POST /samples/{sample_id}/reports/{report_type}", {
+      path: { sample_id: "synthetic/case", report_type: "dna" },
+      body: { preview_fingerprint: "a".repeat(64) },
+    })
+    const [url, options] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe("/api/v1/samples/synthetic%2Fcase/reports/dna")
+    expect(options?.method).toBe("POST")
+    expect(new Headers(options?.headers).get("X-CSRF-Token")).toBe("synthetic-csrf")
+    expect(JSON.parse(String(options?.body))).toEqual({ preview_fingerprint: "a".repeat(64) })
+  })
+
+  it("serializes typed sample filters and keeps cancellation attached to the request", async () => {
+    vi.mocked(fetch).mockResolvedValue(response('{"live_samples":[],"done_samples":[]}'))
+    const controller = new AbortController()
+    await api.contract("GET /samples", {
+      query: { panel_type: "dna", assay_group: "synthetic group", live_page: 1 },
+      signal: controller.signal,
+    })
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/v1/samples?panel_type=dna&assay_group=synthetic+group&live_page=1")
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal).toBe(controller.signal)
+  })
+
   it("shows HTTP detail strings and structured field validation reasons", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(response(JSON.stringify({ detail: "CNV file 'synthetic.json' is empty" }), 400, "Bad Request"))
     await expect(api.post("/internal/ingest/sample-bundle/upload/async", {})).rejects.toThrow("CNV file 'synthetic.json' is empty")
