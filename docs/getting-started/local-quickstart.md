@@ -25,7 +25,8 @@ when resuming a local installation.
 
 Edit `.coyote3_dev_env`: replace every applicable placeholder secret, select four
 distinct database names and configure each URI to a writable replica set with its
-intended grants. Compose pins MongoDB 7.0.41 when the optional database services
+intended grants. MongoDB authentication and the restricted identity role are
+required in development as well as production. Compose pins MongoDB 7.0.41 when the optional database services
 are used. Database infrastructure has its own lifecycle; follow
 [first-time provisioning](../deployment/mongodb-first-setup.md) for a new server.
 

@@ -104,11 +104,9 @@ def check_endpoints() -> str:
                 raise ValueError(
                     f"{service} endpoint check failed ({type(error).__name__})"
                 ) from None
-        environment = os.environ.get("ENV_NAME", "production").strip().lower()
-        if environment not in {"dev", "development", "test", "testing"}:
-            verify_runtime_audit_permissions(
-                databases["identity"].client, endpoints["identity"].database
-            )
+        verify_runtime_audit_permissions(
+            databases["identity"].client, endpoints["identity"].database
+        )
         return installation_state(databases["primary"], databases["identity"])
 
 

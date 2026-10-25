@@ -7,6 +7,17 @@ its supported clinical workflows.
 
 ### Application and packages
 
+- Remove duplicate Python HTTP login helpers and the unused API authentication
+  re-export. Publish Python client 2.0 with one validated sync/async client flow;
+  move operational CLIs to that flow and preserve explicit token-output controls.
+- Rebuild distribution package trees before wheel creation so deleted modules cannot
+  reappear from stale setuptools output. Verify the installed client independently.
+- Remove obsolete flat fusion presentation adapters; consume the current gene-pair
+  and caller-evidence contracts, including zero read counts.
+- Remove obsolete response-envelope alternatives from finding, public gene-list,
+  knowledgebase, dashboard, audit and contract-catalog pages; align their fixtures
+  and the release workflow checker with the current API contracts.
+
 - Added typed DNA and RNA ingestion, analysis, reporting, administration, public
   catalog, and cohort-review workflows.
 - Removed the legacy Flask application and its compatibility paths.
@@ -63,6 +74,9 @@ its supported clinical workflows.
   durable outboxes/checkpoints and transaction-owned report-file erasure jobs.
 
 ### Deployment and maintenance
+
+- Require authenticated, restricted identity connections for installation in every
+  environment. Replace anonymous local MongoDB examples with authenticated settings.
 
 - Reject obviously anonymous production identity connections before image builds
   and explain runtime credential, server authorization, and role prerequisites.

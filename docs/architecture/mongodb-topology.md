@@ -69,15 +69,20 @@ for that process and initialize its single-member replica set once. Do not creat
 per-database `dbPath` directories or start another `mongod` for each logical name.
 
 ```dotenv
-COYOTE3_MONGO_URI=mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs
-IDENTITY_MONGO_URI=mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs
-KNOWLEDGEBASE_MONGO_URI=mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs
-BAM_MONGO_URI=mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs
+COYOTE3_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
+IDENTITY_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
+KNOWLEDGEBASE_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
+BAM_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
 COYOTE3_DB=coyote3_dev
 IDENTITY_DB=coyote3_identity_dev
 KNOWLEDGEBASE_DB=coyote3_knowledgebases
 BAM_DB=bam_dev
 ```
+
+Provision the account with the restricted identity role and service grants, and
+enable MongoDB authorization before using these settings. The same authentication
+requirement applies to development, test, staging, and production installations.
+See [MongoDB provisioning](../deployment/mongodb-first-setup.md).
 
 These loopback URIs are for host-run processes. Docker clients of a host-installed
 MongoDB need `host.docker.internal` or another reachable host, not their own

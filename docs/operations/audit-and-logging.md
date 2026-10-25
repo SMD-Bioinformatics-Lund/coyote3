@@ -438,10 +438,11 @@ is not included in command arguments or persistent service settings. The upgrade
 must succeed before normal state validation proceeds. Already-hardened deployments
 can continue using the original installer command without the additional option.
 
-Production/staging installation checks reject unauthenticated identity connections
+Installation checks in every environment reject unauthenticated identity connections
 and effective privileges that can mutate retained audit history. Adding a custom
 role while retaining broad `readWrite` access does not remove the broad grant.
-The installer detects an obviously anonymous identity URI before building images.
+The installer detects an obviously anonymous identity URI before building images,
+including development and test deployments.
 An empty `IDENTITY_MONGO_URI` inherits `COYOTE3_MONGO_URI`; an explicitly anonymous
 identity URI does not inherit credentials from the shared URI. Configure an
 authenticated runtime connection and provision MongoDB authorization and its

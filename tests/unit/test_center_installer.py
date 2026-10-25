@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import mongomock
 import pytest
@@ -18,6 +18,35 @@ from scripts.deployment.installation_checks import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize("environment", ["production", "stage", "dev", "test"])
+def test_identity_runtime_authentication_is_required_in_every_environment(monkeypatch, environment):
+    """Environment labels cannot bypass retained-audit database permission enforcement."""
+    from scripts.deployment import installation_checks
+
+    monkeypatch.setenv("ENV_NAME", environment)
+    for key, value in {
+        "COYOTE3_MONGO_URI": "mongodb://synthetic.invalid/?replicaSet=synthetic",
+        "IDENTITY_MONGO_URI": "",
+        "KNOWLEDGEBASE_MONGO_URI": "",
+        "BAM_MONGO_URI": "",
+        "COYOTE3_DB": "synthetic_app",
+        "IDENTITY_DB": "synthetic_identity",
+        "KNOWLEDGEBASE_DB": "synthetic_kb",
+        "BAM_DB": "synthetic_bam",
+    }.items():
+        monkeypatch.setenv(key, value)
+    client = MagicMock()
+    client.admin.command.return_value = {"isWritablePrimary": True, "setName": "synthetic"}
+    connection = MagicMock()
+    connection.__enter__.return_value = client
+    monkeypatch.setattr(installation_checks, "MongoClient", Mock(return_value=connection))
+    verify = Mock(side_effect=ValueError("Runtime authentication required"))
+    monkeypatch.setattr(installation_checks, "verify_runtime_audit_permissions", verify)
+    with pytest.raises(ValueError, match="Runtime authentication required"):
+        installation_checks.check_endpoints()
+    verify.assert_called_once_with(client["synthetic_identity"].client, "synthetic_identity")
 
 
 def test_redis_gate_checks_all_three_endpoints(monkeypatch):
@@ -232,14 +261,14 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         ),
         ("production", "mongodb://runtime:private-value@synthetic.invalid", "", False),
         ("production", "mongodb://synthetic.invalid/?authMechanism=MONGODB-X509", "", False),
-        ("dev", "mongodb://synthetic.invalid", "", False),
-        ("test", "mongodb://synthetic.invalid", "", False),
+        ("dev", "mongodb://synthetic.invalid", "", True),
+        ("test", "mongodb://synthetic.invalid", "", True),
     ],
 )
 def test_anonymous_identity_is_reported_before_build_or_database_operations(
     fake_installation, environment, shared_uri, identity_uri, fails
 ):
-    """Catch anonymous production settings early without exposing URIs or denying external auth."""
+    """Require authenticated deployment settings without exposing URIs or denying external auth."""
     command, env, log = fake_installation
     path = Path(env["INSTALL_TEST_CONFIG"])
     config = json.loads(path.read_text())

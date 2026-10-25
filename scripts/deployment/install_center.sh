@@ -118,12 +118,9 @@ with open(sys.argv[1]) as stream:
 if config["networks"]["app"].get("external") is not True:
     raise SystemExit("Application network must be external and provisioned before installation")
 env = config["services"]["api"]["environment"]
-environment = (env.get("ENV_NAME") or "production").strip().lower()
 identity_uri = env.get("IDENTITY_MONGO_URI") or env.get("COYOTE3_MONGO_URI") or ""
 identity = urlsplit(identity_uri)
-if environment not in {"dev", "development", "test", "testing"} and not (
-    identity.username or parse_qs(identity.query).get("authMechanism")
-):
+if not (identity.username or parse_qs(identity.query).get("authMechanism")):
     raise SystemExit(
         "Identity MongoDB connection is anonymous. Set IDENTITY_MONGO_URI (or its "
         "COYOTE3_MONGO_URI fallback) to an authenticated runtime connection before "
