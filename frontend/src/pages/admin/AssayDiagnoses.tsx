@@ -27,6 +27,34 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   const client = useQueryClient()
   const endpoint = `/resources/asp/${encodeURIComponent(aspId)}/diagnoses`
   const [search, setSearch] = useState("")
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState("")
+  const definitions = useQuery({
+    queryKey: ["diagnosis-definitions"], enabled: canEdit,
+    queryFn: () => api.get<{ diagnoses: DiagnosisDefinition[] }>("/resources/diagnoses").then((response) => response.data.diagnoses),
+  })
+  const refreshAssociations = async () => {
+    await Promise.all([
+      ["assay-diagnoses"], ["diagnosis-definitions"],
+      ["admin-resource-context", "aspc"], ["admin-resource-context", "genelists"],
+      ["assay-setup-context"], ["clinical-rule-authoring-options"],
+    ].map((queryKey) => client.invalidateQueries({ queryKey })))
+  }
+  const link = useMutation({
+    mutationFn: async () => {
+      const definition = definitions.data?.find((row) => row.diagnosis_id === selectedDiagnosis)
+      if (!definition) throw new Error("Select an available diagnosis")
+      return api.post(endpoint, {
+        diagnosis_id: definition.diagnosis_id, display_name: definition.display_name,
+        description: definition.description, is_active: true,
+      })
+    },
+    onSuccess: async () => {
+      setSelectedDiagnosis("")
+      await refreshAssociations()
+      notifySuccess("Diagnosis associated with assay")
+    },
+    onError: (error) => notifyActionError("Associate diagnosis", error),
+  })
   const associations = useQuery({
     queryKey: ["assay-diagnoses", aspId],
     queryFn: () => api.get<{ diagnoses: Association[] }>(endpoint).then((response) => response.data.diagnoses),
@@ -34,11 +62,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   const mutation = useMutation({
     mutationFn: (association: Association) => api.patch(`${endpoint}/${encodeURIComponent(association.diagnosis_id)}/status`, { is_active: !association.is_active, expected_version: association.version }),
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ["assay-diagnoses", aspId] })
-      void client.invalidateQueries({ queryKey: ["admin-resource-context", "aspc"] })
-      void client.invalidateQueries({ queryKey: ["admin-resource-context", "genelists"] })
-      void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
-      void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
+      await refreshAssociations()
       notifySuccess("Assay association updated")
     },
     onError: (error) => notifyActionError("Update assay association", error),
@@ -47,6 +71,20 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   const error = associations.error
   const rows = (associations.data ?? []).filter((row) => `${row.diagnosis_id} ${row.display_name}`.toLowerCase().includes(search.toLowerCase()))
   return <section className="min-w-0 space-y-3" aria-label="Assay diagnosis associations">
+    {canEdit && <div className="space-y-2">
+      <p className="type-body-sm text-muted-foreground">Link an existing diagnosis now or return after creating one in <Link className="link-text" to="/admin/diagnoses">Diagnosis definitions</Link>.</p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="type-label">Diagnosis to associate
+          <select className="paper-inset block rounded-md p-2" value={selectedDiagnosis} onChange={(event) => setSelectedDiagnosis(event.target.value)} disabled={definitions.isLoading || Boolean(definitions.error) || loading || Boolean(error) || link.isPending}>
+            <option value="">Select a diagnosis</option>
+            {(definitions.data ?? []).filter((row) => row.is_active && !associations.data?.some((association) => association.diagnosis_id === row.diagnosis_id)).map((row) => <option key={row.diagnosis_id} value={row.diagnosis_id}>{row.display_name} ({row.diagnosis_id})</option>)}
+          </select>
+        </label>
+        <Button disabled={!selectedDiagnosis || link.isPending || loading || Boolean(error) || Boolean(definitions.error)} onClick={() => link.mutate()}>Associate diagnosis</Button>
+      </div>
+      {definitions.error && <p role="alert" className="text-destructive">Unable to load available diagnoses.</p>}
+      {link.error && <p role="alert" className="text-destructive">{link.error.message}</p>}
+    </div>}
     {loading && <p role="status">Loading associations...</p>}
     {error && <p role="alert" className="text-destructive">Unable to load diagnosis associations.</p>}
     {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}

@@ -17,6 +17,23 @@ An ASP identifies an assay. A diagnosis has one shared identifier and display
 definition, and can be associated with several assays. Each association can be
 disabled independently. Sharing a diagnosis does not share ASPCs, genes or report rules.
 
+## Why associations belong to assays
+
+An association means that a particular assay supports a diagnosis. An assay group
+is a broader clinical category: two assays in hematology can support different
+diagnoses. Linking diagnoses automatically to the whole group would also enable
+them for assays that have not been configured for those diagnoses, including new
+assays added later. Diagnosis definitions are shared; availability is explicit for
+each assay.
+
+Either resource can be created first. A diagnosis can be saved without selecting
+assays, and an assay can be created before its named diagnoses exist. Once both
+exist, add the link from **Diagnosis definitions > Edit > Associate assays**, or
+from the assay editor's diagnosis section or **Assay diagnosis associations**.
+Save a new assay before managing its links. Both entry points use the same
+association records; they do not maintain separate lists that need synchronizing.
+The diagnosis list shows linked assay identifiers, including inactive links.
+
 ## Field requirements and defaults
 
 | Field / operation | Required | Omission behavior and meaning |
@@ -78,9 +95,10 @@ The audit event records the requested additions and shared revision numbers.
 Open **Admin > Assay diagnosis associations** (`/admin/assay-diagnoses`) and select
 an ASP. Only diagnoses already associated with that assay are shown, including
 inactive links. Use **Activate** or **Deactivate** to change that assay's
-availability without affecting other assays. There are no association creation or
-definition-edit controls on this page. The same association controls appear in the
-ASP editor.
+availability without affecting other assays. Select an available, unassociated
+diagnosis and choose **Associate diagnosis** to add a link. Shared definition
+editing remains on **Diagnosis definitions**. The same association controls appear
+in the ASP editor. Saving a link refreshes the diagnosis and association views.
 
 A globally retired definition cannot be enabled for an assay. Its existing links
 can still be disabled. Reactivating a shared definition does not reactivate disabled

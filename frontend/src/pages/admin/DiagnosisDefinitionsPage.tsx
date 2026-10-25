@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Edit, Plus, Save, X } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
@@ -87,6 +87,7 @@ export function DiagnosisDefinitionsPage() {
         columns={[
           { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.diagnosis_id}</span></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
+          { id: "assays", header: "Associated assays", cell: ({ row }) => <div className="flex max-w-80 flex-wrap gap-2">{row.original.associated_asp_ids?.length ? row.original.associated_asp_ids.map((id) => <Link key={id} className="link-text" to={`/admin/assay-diagnoses?assay=${encodeURIComponent(id)}`}>{id}</Link>) : "None"}</div> },
           { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
           { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
           { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <span className="break-words">{row.original.updated_by}</span> },

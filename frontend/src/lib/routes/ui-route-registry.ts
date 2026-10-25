@@ -295,7 +295,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/asp/:id/edit",
     page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/asp/{assay_panel_id}/diagnoses","PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
+    api: ["GET /resources/asp/:id/context","PUT /resources/asp/:id","GET /resources/diagnoses","POST /resources/asp/{assay_panel_id}/diagnoses","GET /resources/asp/{assay_panel_id}/diagnoses","PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
@@ -505,7 +505,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/assay-diagnoses",
     page: "AssayDiagnosesPage",
     area: "admin",
-    api: ["GET /resources/asp", "GET /resources/asp/{assay_panel_id}/diagnoses", "PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
+    api: ["GET /resources/asp", "GET /resources/diagnoses", "POST /resources/asp/{assay_panel_id}/diagnoses", "GET /resources/asp/{assay_panel_id}/diagnoses", "PATCH /resources/asp/{assay_panel_id}/diagnoses/{diagnosis_id}/status"],
     dataUsed: ["assay choices", "shared definitions", "independent association status"],
   },
 

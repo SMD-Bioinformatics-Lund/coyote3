@@ -38,14 +38,26 @@ describe("Assay associations", () => {
     await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/resources/asp/panel-a/diagnoses/myeloid/status", { is_active: false, expected_version: 2 }))
     expect(api.post).not.toHaveBeenCalled()
   })
-  it("does not fetch or display unassociated definitions", async () => {
+  it("links an existing diagnosis from the assay without changing its shared metadata", async () => {
     vi.mocked(api.get).mockImplementation(async (url) => ({ status: 200, data: { diagnoses: url === "/resources/diagnoses" ? [row] : [] } }))
     mount()
     expect(await screen.findByText("No diagnoses are associated with this assay.")).toBeVisible()
-    expect(screen.queryByText("Myeloid")).not.toBeInTheDocument()
-    expect(api.get).toHaveBeenCalledTimes(1)
-    expect(api.get).toHaveBeenCalledWith("/resources/asp/panel-a/diagnoses")
-    expect(api.post).not.toHaveBeenCalled()
+    await screen.findByRole("option", { name: "Myeloid (myeloid)" })
+    fireEvent.change(screen.getByLabelText("Diagnosis to associate"), { target: { value: "myeloid" } })
+    fireEvent.click(screen.getByRole("button", { name: "Associate diagnosis" }))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/asp/panel-a/diagnoses", {
+      diagnosis_id: "myeloid", display_name: "Myeloid", description: "", is_active: true,
+    }))
+  })
+  it("keeps a failed association visible for retry", async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => ({ status: 200, data: { diagnoses: url === "/resources/diagnoses" ? [row] : [] } }))
+    vi.mocked(api.post).mockRejectedValue(new Error("Shared metadata differs"))
+    mount()
+    await screen.findByRole("option", { name: "Myeloid (myeloid)" })
+    fireEvent.change(screen.getByLabelText("Diagnosis to associate"), { target: { value: "myeloid" } })
+    fireEvent.click(screen.getByRole("button", { name: "Associate diagnosis" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Shared metadata differs")
+    expect(screen.getByLabelText("Diagnosis to associate")).toHaveValue("myeloid")
   })
   it("keeps inactive associations visible and allows reactivation", async () => {
     vi.mocked(api.get).mockResolvedValue({ status: 200, data: { diagnoses: [{ ...row, is_active: false }] } })
