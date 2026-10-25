@@ -5899,24 +5899,6 @@ Normalize and deduplicate assays requested for association.
 
 ## `coyote3_client`
 
-### `ApiLoginSession`
-
-```python
-ApiLoginSession(base_url: 'str', user: 'dict[str, Any]', session_token: 'str | None' = None, cookie_name: 'str' = 'coyote3_api_session') -> None
-```
-
-```text
-Represent authenticated session details for API callers.
-```
-
-#### `ApiLoginSession.bearer_headers`
-
-Return Authorization header map when token is available.
-
-#### `ApiLoginSession.cookie_headers`
-
-Return Cookie header map when token is available.
-
 ### `AsyncCoyoteClient`
 
 ```python
@@ -5989,6 +5971,13 @@ AsyncCoyoteClient.logout(self) -> 'None'
 ```text
 Revoke the server session and clear local credentials even when revocation fails.
 ```
+
+#### `AsyncCoyoteClient.session_token`
+
+Return the validated bearer credential, or None before login or after logout.
+
+Treat this value as a secret. It grants the current session's server-enforced
+permissions and must not be included in logs or ordinary diagnostic output.
 
 ### `AuthenticationError`
 
@@ -6095,6 +6084,13 @@ Raises:
     httpx.HTTPError: If revocation fails; local credentials are still cleared.
 ```
 
+#### `CoyoteClient.session_token`
+
+Return the validated bearer credential, or None before login or after logout.
+
+Treat this value as a secret. It grants the current session's server-enforced
+permissions and must not be included in logs or ordinary diagnostic output.
+
 ### `NotFoundError`
 
 ```python
@@ -6153,26 +6149,6 @@ ResponseValidationError (see class documentation)
 
 ```text
 A successful server response does not satisfy the SDK's response contract.
-```
-
-### `login_with_password`
-
-```python
-login_with_password(*, base_url: 'str', username: 'str', password: 'str', provider: 'str', timeout: 'float' = 30.0, cookie_name: 'str' = 'coyote3_api_session') -> 'ApiLoginSession'
-```
-
-```text
-Authenticate with an explicit configured provider and return session details.
-```
-
-### `login_with_token`
-
-```python
-login_with_token(*, base_url: 'str', token: 'str', timeout: 'float' = 30.0, cookie_name: 'str' = 'coyote3_api_session') -> 'ApiLoginSession'
-```
-
-```text
-Validate an existing token and return session details.
 ```
 
 ## `coyote3.config`

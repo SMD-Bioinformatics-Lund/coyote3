@@ -689,7 +689,7 @@ def _get_sample_for_api(
             sample_id=sample_id,
             extra={
                 "sample_assay": sample_assay,
-                "sample_profile": sample.get("environment") or sample.get("environment"),
+                "sample_profile": sample.get("environment"),
                 "sample_assay_group": sample.get("assay_group"),
             },
         )

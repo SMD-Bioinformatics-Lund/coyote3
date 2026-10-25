@@ -104,6 +104,7 @@ the default creates a review artifact without database access.
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
 | `quality/run_quality_suite.sh` | Orchestrator | Developer and release workflow | Runs backend, frontend, contract, documentation, and browser quality stages |
+| `quality/check_demo_workflow.py` | Operator / CI | Disposable full-stack validation | Reads ready synthetic starter samples through the public proxy using the typed HTTP client and revokes its session; credentials come from `ADMIN_USERNAME` / `ADMIN_PASSWORD`, and `--api-url` includes the proxy prefix. |
 | `quality/run_family_coverage_gates.sh` | Automated | CI; `quality/run_quality_suite.sh` | Enforces backend coverage thresholds by source family; `--from-existing` reuses the unified `.coverage` database so the complete backend suite runs once |
 | `quality/check_contract_integrity.sh` | Automated | pre-commit; quality suite | Coordinates repository-local dependency, shell, generated-contract, permission-catalog, and documentation checks. It does not connect to an API or database. |
 | `quality/check_shell_quality.sh` | Internal helper | `quality/check_contract_integrity.sh` | Runs syntax and ShellCheck validation for tracked shell scripts |

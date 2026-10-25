@@ -71,7 +71,9 @@ def api_transport(monkeypatch):
 
     client = httpx.Client
     monkeypatch.setattr(
-        httpx, "Client", lambda **kwargs: client(transport=httpx.MockTransport(handle), **kwargs)
+        httpx,
+        "Client",
+        lambda **kwargs: client(**{**kwargs, "transport": httpx.MockTransport(handle)}),
     )
     monkeypatch.setattr(manage_data.sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr("builtins.input", Mock(return_value="admin"))

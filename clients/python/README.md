@@ -6,6 +6,10 @@ Install independently of the server and application SDK:
 pip install coyote3-client
 ```
 
+Version 2 uses `CoyoteClient` and `AsyncCoyoteClient` for all authentication and
+HTTP operations. The standalone login helpers and `ApiLoginSession` are removed;
+see [version compatibility](../../docs/sdk/compatibility.md#python-client-20-authentication).
+
 ```python
 from coyote3_client import CoyoteClient
 

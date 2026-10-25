@@ -89,11 +89,11 @@ Coyote3 keeps security code in two deliberately separate packages:
   creation. It must not contain route permissions, role semantics, or clinical
   authorization decisions.
 
-Route modules should depend on `api.security.access.require_access` or the
-thin dependency re-export in `api.app.deps.auth`. They should not query role or
+Route modules use `require_access` and `require_authenticated` directly from
+`api.security.access`. They should not query role or
 permission collections directly and should not implement local minimum-role
-checks. The API remains the authorization source of truth; UI visibility is only
-an ergonomic reflection of the session payload.
+checks. Trusted application operations enforce authorization for both API and
+local SDK callers. UI visibility reflects the session payload; it does not grant access.
 
 ![RBAC and scoped access decision](../assets/diagrams/rbac-access-decision.svg)
 

@@ -10,7 +10,11 @@ class ServerBuildPy(build_py):
     """Stage server-only resources without copying them into the core source tree."""
 
     def run(self) -> None:
-        """Build Python packages and copy release identity, defaults and demo resources."""
+        """Replace generated packages, then copy current code and server resources."""
+        for name in ("api", "coyote3"):
+            package = Path(self.build_lib) / name
+            if package.is_dir():
+                shutil.rmtree(package)
         super().run()
         root = Path(__file__).resolve().parent
         destination = Path(self.build_lib) / "api"

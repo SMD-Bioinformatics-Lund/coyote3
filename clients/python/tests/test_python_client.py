@@ -73,9 +73,11 @@ def requests_and_client():
 
 def test_password_login_and_list(requests_and_client):
     requests, client = requests_and_client
+    assert client.session_token is None
     user = client.login(username="synthetic", password="example-password", provider="local")
     assert user == client.user
     assert user.username == "synthetic"
+    assert client.session_token == "synthetic-token"
     assert requests[0].url.path == "/mounted/api/v1/auth/sessions"
     assert requests[0].read() == (
         b'{"username":"synthetic","password":"example-password","provider":"local"}'
@@ -148,6 +150,7 @@ def test_login_required_logout_and_close(requests_and_client):
     assert requests[-1].method == "DELETE"
     assert requests[-1].url.path == "/mounted/api/v1/auth/sessions/current"
     assert client.user is None
+    assert client.session_token is None
     with pytest.raises(RuntimeError):
         client.samples.list()
     count = len(requests)

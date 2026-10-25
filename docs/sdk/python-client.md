@@ -325,8 +325,8 @@ Import these errors from `coyote3_client`. They expose `.status_code`, `.code`,
 `.message`, `.request_id`, `.retry_after`, and the original `.response`.
 `.response.json()` retains structured server details. Server bodies and session
 credentials are excluded from the default error string. SDK errors apply to
-`CoyoteClient` and its resource/endpoint methods; the older standalone login helpers
-retain their existing return and error behavior.
+`CoyoteClient`, `AsyncCoyoteClient`, and their resource/endpoint methods. All login
+operations use these clients; standalone login helpers are not part of version 2.
 
 Invalid successful responses and malformed JSON raise `ResponseValidationError`.
 Transport failures retain HTTPX transport exceptions. The SDK does not automatically

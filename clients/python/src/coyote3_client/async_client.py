@@ -395,6 +395,15 @@ class AsyncCoyoteClient:
         self._session_generation += 1
         self._http.cookies.clear()
 
+    @property
+    def session_token(self) -> str | None:
+        """Return the validated bearer credential, or None before login or after logout.
+
+        Treat this value as a secret. It grants the current session's server-enforced
+        permissions and must not be included in logs or ordinary diagnostic output.
+        """
+        return self._token
+
     async def login(self, *, username: str, password: str, provider: str) -> SessionUser:
         """Authenticate through the existing provider endpoint without retaining the password.
 

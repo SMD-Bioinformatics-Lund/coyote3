@@ -62,6 +62,7 @@ async def test_async_password_login_typed_sample_and_concurrent_clinical_reads(w
             username="synthetic", password="temporary-example", provider="local"
         )
         assert user.username == "synthetic"
+        assert client.session_token == "synthetic-token"
         sample = await client.samples.get("SYNTHETIC")
         assert sample.name == "SYNTHETIC" and sample.reported is False
         variants, trial = await asyncio.gather(
@@ -74,6 +75,7 @@ async def test_async_password_login_typed_sample_and_concurrent_clinical_reads(w
         assert requests[0].url.path == "/mounted/api/v1/auth/sessions"
         assert requests[0].extensions["timeout"]["read"] == 30.0
         await client.logout()
+        assert client.session_token is None
         with pytest.raises(ResourceNotLoadedError):
             _ = sample.data
         with pytest.raises(RuntimeError, match="Log in"):

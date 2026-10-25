@@ -3,6 +3,19 @@
 Coyote3 tracks the core/server distribution, complete application deployment and
 independent HTTP client separately.
 
+## Python client 2.0 authentication
+
+Use `CoyoteClient.login()` or `AsyncCoyoteClient.login()` for password sessions,
+and their `login_with_token()` methods for existing server sessions. Version 2.0
+removes the duplicate `coyote3_client.auth` module and its `ApiLoginSession`,
+`login_with_password`, and standalone `login_with_token` exports. There are no
+forwarding aliases. The retained clients validate response contracts, require the
+configured session cookie, preserve deployment prefixes, and send bearer tokens
+through their owned transports. Explicit CLI token export uses `client.session_token`;
+normal output and user metadata exclude this credential.
+
+## Version identities
+
 | Identifier | Authoritative source | Meaning |
 | --- | --- | --- |
 | SDK/server distribution | `[project].version` in `pyproject.toml` | Installable core and bundled API modules; any changed wheel content requires a new published version. |
