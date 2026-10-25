@@ -118,7 +118,10 @@ def preview_report_pdf(
     return Response(
         content=artifact.content,
         media_type=artifact.media_type,
-        headers={"Content-Disposition": f'attachment; filename="{artifact.filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{artifact.filename}"',
+            "Cache-Control": "no-store",
+        },
     )
 
 

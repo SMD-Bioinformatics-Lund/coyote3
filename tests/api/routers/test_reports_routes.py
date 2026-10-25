@@ -220,6 +220,7 @@ def test_pdf_is_an_http_attachment_of_the_authorized_sdk_artifact(boundary):
     assert response.status_code == 200
     assert response.content == b"synthetic-pdf"
     assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["cache-control"] == "no-store"
     assert "SYNTHETIC_001_dna_preview.pdf" in response.headers["content-disposition"]
     boundary.pdf.assert_called_once_with("<p>Synthetic report</p>")
     boundary.workflow.persist_report.assert_not_called()

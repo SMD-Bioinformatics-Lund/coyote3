@@ -12,6 +12,8 @@ report wording or reporting-rule resolution.
 
 Both previews and downloads use the same trial render. HTML includes its CSS;
 it does not need a separate stylesheet. The PDF is generated from that HTML.
+The modern layout uses Coyote3 branding, the configured center logo, and labeled
+sample-detail fields. Both logos are embedded for offline HTML and PDF viewing.
 
 The trial has no save action. It does not allocate a report number, create a
 saved report or snapshot, or write report files to server storage. Rendering
@@ -22,3 +24,11 @@ workflow retain their established behavior.
 The trial requires the same sample access and `report:preview` permission as
 other report previews. It is a temporary review/download feature, not a persisted
 clinical report.
+
+## Current report PDF preview
+
+The established report also offers **HTML preview** and **PDF preview** in the
+sample's Reports tab. Select **PDF preview** to generate and view its temporary
+PDF in place. **Download PDF** saves a copy to your computer. Return to **HTML
+preview** to review the document in the existing format. These preview actions do
+not save a report; the existing **Save report** confirmation remains separate.

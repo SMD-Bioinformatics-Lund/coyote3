@@ -330,6 +330,29 @@ describe("sample analysis table tabs", () => {
     )
   })
 
+  it("previews the current report PDF in place and releases its object URL", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "SYNTHETIC_REPORT" },
+      meta: { preview_fingerprint: "a".repeat(64), template_status: { has_html: true } },
+      report: { html: "Current report HTML", snapshot_rows: [] },
+    } })
+    const fetchPdf = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("%PDF-synthetic", { headers: { "Content-Type": "application/pdf" } }))
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:current-report")
+    const revoke = vi.spyOn(URL, "revokeObjectURL")
+    try {
+      mount(<ReportsTab sampleId="SYNTHETIC_REPORT" />, "/samples/SYNTHETIC_REPORT?tab=reports")
+      await screen.findByTestId("report-frame")
+      expect(fetchPdf).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole("tab", { name: "PDF preview" }))
+      expect(await screen.findByTitle("Report PDF preview")).toHaveAttribute("src", "blob:current-report")
+      expect(fetchPdf).toHaveBeenCalledWith(expect.stringContaining("/preview/pdf?include_snapshot=true"), expect.objectContaining({ cache: "no-store", credentials: "same-origin", signal: expect.any(AbortSignal) }))
+      expect(mocks.post).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole("tab", { name: "HTML preview" }))
+      expect(await screen.findByTestId("report-frame")).toHaveTextContent("Current report HTML")
+      await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:current-report"))
+    } finally { fetchPdf.mockRestore(); create.mockRestore(); revoke.mockRestore() }
+  })
+
   it("groups included findings by analysis and shows a compact TMB result", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "MULTI_REPORT" },
