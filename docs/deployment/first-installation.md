@@ -39,6 +39,11 @@ host's operating system; installing software is separate from configuring Coyote
 The normal installer builds and installs the application wheel inside Docker.
 No host virtual environment, prebuilt SDK wheel or `.release/sdk` directory is
 required. The installer defaults `GIT_COMMIT` to the checkout's current commit.
+Host commands use `PYTHON_BIN` when supplied; otherwise they select the repository's
+`.venv/bin/python` if supported, then a supported system interpreter. The selected
+interpreter must be Python 3.12 or later. This also applies after `sudo` or `runuser`
+changes `PATH`. `tomllib` is included with supported Python versions; do not install
+a separate package to compensate for an older host interpreter.
 Release CI can select the separate
 [verified-artifact build](../sdk/compatibility.md#build-and-record-an-application-release)
 using `deploy/compose/docker-compose.release.yml` as an additional overlay.

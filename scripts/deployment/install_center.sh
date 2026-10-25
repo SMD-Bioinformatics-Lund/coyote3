@@ -94,6 +94,8 @@ if [[ -n "$maintenance_file" && "$kb_seeds" == 0 && "$kb_indexes" == 0 ]]; then
 fi
 [[ -f "$env_file" && -n "$project" && ${#compose_files[@]} -gt 0 ]] || { usage; exit 2; }
 cd "$ROOT_DIR"
+source "$ROOT_DIR/scripts/deployment/python_runtime.sh"
+select_deployment_python "$ROOT_DIR"
 export GIT_COMMIT="${GIT_COMMIT:-$(git rev-parse HEAD)}"
 if selected health; then command -v curl >/dev/null; fi
 docker compose version >/dev/null
@@ -106,10 +108,10 @@ trap 'rm -rf "$scratch_dir"; unset COYOTE_INSTALL_KB_URI COYOTE_INSTALL_IDENTITY
 # Resolve only nonsecret orchestration values from Compose, never source/eval an env file.
 compose config --format json > "$scratch_dir/compose.json"
 if selected build && [[ "$skip_build" == 0 ]]; then
-  python3 scripts/release/verify_sdk_artifact.py \
+  "$PYTHON_BIN" scripts/release/verify_sdk_artifact.py \
     --compose-config "$scratch_dir/compose.json" --release "$ROOT_DIR/release.toml"
 fi
-python3 - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
+"$PYTHON_BIN" - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
 import json
 import sys
 from urllib.parse import parse_qs, urlsplit

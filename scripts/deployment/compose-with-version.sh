@@ -4,8 +4,10 @@ set -euo pipefail
 SCRIPT_PATH="$(realpath "$0")"
 APP_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_PATH")")")"
 VALIDATE_SCRIPT="$APP_DIR/scripts/deployment/validate_env_secrets.sh"
+source "$APP_DIR/scripts/deployment/python_runtime.sh"
+select_deployment_python "$APP_DIR"
 
-COYOTE3_VERSION="$(python3 "$APP_DIR/api/version.py")"
+COYOTE3_VERSION="$("$PYTHON_BIN" "$APP_DIR/api/version.py")"
 export COYOTE3_VERSION
 echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}" >&2
 
@@ -61,7 +63,7 @@ for ((i=1; i<=$#; i++)); do
   fi
 done
 
-deployment_environment="$(python3 - "${env_file:-.env}" <<'PY'
+deployment_environment="$("$PYTHON_BIN" - "${env_file:-.env}" <<'PY'
 import os
 import pathlib
 import re
@@ -143,7 +145,7 @@ if [[ "$has_compose_file" -eq 0 ]]; then
 fi
 if [[ "$prepare_directories" -eq 1 ]]; then
   "${COMPOSE_BIN[@]}" "${global_args[@]}" config --format json |
-    python3 "$APP_DIR/scripts/deployment/prepare_host_directories.py"
+    "$PYTHON_BIN" "$APP_DIR/scripts/deployment/prepare_host_directories.py"
 fi
 
 if [[ "$has_compose_file" -eq 1 ]]; then

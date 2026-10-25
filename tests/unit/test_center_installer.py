@@ -134,6 +134,7 @@ def fake_installation(tmp_path):
     deployment = tmp_path / "scripts/deployment"
     deployment.mkdir(parents=True)
     shutil.copy(ROOT / "scripts/deployment/install_center.sh", deployment)
+    shutil.copy(ROOT / "scripts/deployment/python_runtime.sh", deployment)
     (tmp_path / "api").mkdir(parents=True)
     (tmp_path / "api/version.py").write_text('print("synthetic")\n')
     (deployment / "validate_env_secrets.sh").write_text("#!/bin/bash\nexit 0\n")
