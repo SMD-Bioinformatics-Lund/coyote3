@@ -391,7 +391,8 @@ def scoped_record(source: dict, review: dict | None, kind: str) -> dict:
         if kind != "annotation":
             raise ValueError("Only annotations have a diagnosis scope mapping")
         document.pop("subpanel", None)
-        document["diagnosis"] = mapping["diagnosis"]
+        document.pop("subpanel_id", None)
+        document["diagnosis_id"] = mapping["diagnosis"]
     return document
 
 

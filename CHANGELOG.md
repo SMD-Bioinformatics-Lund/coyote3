@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Correct offline v2/v3 migration persistence for blacklist assay scopes and reviewed
+  annotation diagnoses. Verify migrated blacklist entries through the runtime repository.
+
 - Align the modern report's center logo to the right edge with the center name below
   it in HTML and PDF. Preserve clinical content and the existing report format.
 - Consolidate deployment acceptance into one checklist, remove the pending-development

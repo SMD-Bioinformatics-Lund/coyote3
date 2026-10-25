@@ -2,11 +2,13 @@
 
 from copy import deepcopy
 from datetime import datetime
+from types import SimpleNamespace
 
 import mongomock
 import pytest
 from bson import BSON, ObjectId
 
+from api.infra.mongo.repositories.blacklist import BlacklistRepository
 from scripts.migration_common.apply_bundle import apply_plan, guard_target, load_bundle
 from scripts.migration_common.commands import backfill_bundle, backfill_review
 from scripts.migration_common.conversion import (
@@ -305,6 +307,99 @@ def test_blacklist_is_independent_of_configuration(tmp_path):
     result = independent_plan(source, "blacklist", {})["blacklist"][0]
     assert result["assay_group"] == "synthetic" and result["pos"] == "1_100"
     source.close()
+
+
+@pytest.mark.parametrize("version", [2, 3])
+def test_migrated_blacklist_is_visible_to_the_runtime_repository(tmp_path, monkeypatch, version):
+    """Canonical bundle scopes must reach the repository's physical assay field."""
+    original = {
+        "_id": ObjectId(),
+        "assay": "synthetic",
+        "pos": "1_100_A_T",
+        "in_normal_perc": 0,
+    }
+    source = make_index(tmp_path, version, {"blacklist": [original]})
+    try:
+        plan = independent_plan(source, "blacklist", {})
+        before = deepcopy(plan)
+        target = mongomock.MongoClient().coyote4_migration_test
+        monkeypatch.setattr(
+            "scripts.migration_common.apply_bundle.run_transaction", lambda _, call: call(None)
+        )
+        assert apply_plan(target, plan, apply=True)["applied"]
+        stored = target.blacklist.find_one({"_id": original["_id"]})
+        assert stored == {**original, "in_normal_perc": 0.0}
+        assert "assay_group" not in stored
+        repository = BlacklistRepository(SimpleNamespace(blacklist_collection=target.blacklist))
+        finding = {"simple_id": original["pos"]}
+        assert repository.add_blacklist_data([finding], "synthetic")[0]["blacklist"] == 0
+        assert (
+            "blacklist"
+            not in repository.add_blacklist_data(
+                [{"simple_id": original["pos"]}], "another_synthetic_group"
+            )[0]
+        )
+        assert apply_plan(target, plan)["insert_counts"] == {"blacklist": 0}
+        assert plan == before
+        assert source.get("blacklist", str(original["_id"])) == original
+    finally:
+        source.close()
+
+
+def test_null_annotation_scopes_require_a_digest_bound_mapping(tmp_path):
+    """V2 null scopes cannot silently become an assay group or a base diagnosis."""
+    original = {
+        "_id": ObjectId(),
+        "assay": None,
+        "subpanel": None,
+        "nomenclature": "p",
+        "variant": "p.Synthetic",
+        "gene": "SYNTHETIC_GENE",
+        "transcript": "SYNTHETIC_TRANSCRIPT",
+        "class": 1,
+        "author": "synthetic_reviewer",
+        "time_created": datetime(2024, 1, 1),
+    }
+    source = make_index(tmp_path, 2, {"annotation": [original]})
+    try:
+        with pytest.raises(ValueError, match="reconciliation"):
+            independent_plan(source, "annotation", {})
+        mapping = {
+            str(original["_id"]): {
+                "source_sha256": digest(original),
+                "reason": "Reviewed legacy scope",
+                "scope": {"assay_group": "synthetic", "diagnosis": "base"},
+            }
+        }
+        converted = independent_plan(source, "annotation", mapping)["annotation"][0]
+        assert converted["asp_group"] == "synthetic"
+        assert converted["diagnosis_id"] == "base"
+        for key in ("_id", "variant", "gene", "transcript", "class", "author", "time_created"):
+            assert converted[key] == original[key]
+        assert source.get("annotation", str(original["_id"])) == original
+        stale = deepcopy(mapping)
+        stale[str(original["_id"])]["source_sha256"] = "unrelated-source"
+        with pytest.raises(ValueError, match="reconciliation"):
+            independent_plan(source, "annotation", stale)
+    finally:
+        source.close()
+
+
+@pytest.mark.parametrize("version", [2, 3])
+def test_blacklist_repeated_positions_preserve_distinct_records(tmp_path, version):
+    """Repeated position/scope pairs are not silently merged or assigned one frequency."""
+    originals = [
+        {"_id": ObjectId(), "assay": "synthetic", "pos": "1_100_A_T", "in_normal_perc": value}
+        for value in (0, 0.25)
+    ]
+    source = make_index(tmp_path, version, {"blacklist": originals})
+    try:
+        records = independent_plan(source, "blacklist", {})["blacklist"]
+        assert len(records) == 2
+        assert {record["_id"] for record in records} == {row["_id"] for row in originals}
+        assert {record["in_normal_perc"] for record in records} == {0, 0.25}
+    finally:
+        source.close()
 
 
 def test_private_bundle_checksums_and_insert_idempotence(tmp_path, monkeypatch):

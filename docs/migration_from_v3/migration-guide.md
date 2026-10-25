@@ -50,7 +50,7 @@ configuration change requires a new snapshot and newly reviewed bundles.
 | --- | --- |
 | `samples` | `samples`, extracted `sample_comments` and `reports` |
 | `annotation` | `annotation`, with explicitly resolved scope and nomenclature identity |
-| `blacklist` | `blacklist`; recorded `assay` becomes `assay_group` |
+| `blacklist` | `blacklist`; bundle scope is `assay_group`, persisted as the runtime's `assay` key |
 | `biomarkers` | `biomarkers`; measurements require typed payloads and known units |
 | `transloc` | `translocations` |
 | `variants` | `variants`, `anno_vep`, and extracted finding comments |
@@ -123,7 +123,7 @@ A changed clinical scope requires an explicit mapping rather than a missing-fiel
 supplement. `sample.scope_mapping` contains a source digest, reason, and `fields`
 restricted to ASP, subpanel, environment, or omics scope. Those values must agree with
 the selected installed ASPC. Annotation and blacklist review entries can contain
-`scope.assay_group`; annotations additionally support `scope.subpanel`. These entries
+`scope.assay_group`; annotations additionally support `scope.diagnosis`. These entries
 also require the exact original digest and a reason.
 
 Nullable unknown values remain unknown. Missing required fields stop conversion and
