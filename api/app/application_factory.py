@@ -103,6 +103,7 @@ def application_services() -> ApplicationServices:
     )
     from api.app.http import get_formatted_assay_config
     from api.app.runtime_state import app
+    from api.config.report_presentation import load_report_presentation
     from api.infra.registered_artifacts import FilesystemRegisteredArtifacts
     from api.presentation.reports.branding import render_branded_report_html
     from api.presentation.reports.modern import render_modern_report_html
@@ -168,6 +169,7 @@ def application_services() -> ApplicationServices:
             library=get_report_library_service,
             render_pdf=render_pdf_bytes,
             render_trial_html=partial(render_modern_report_html, branding_config=app.config),
+            presentation=load_report_presentation,
         ),
         ingest=get_internal_ingest_service,
         ingest_submission=ingest_submission_services(),

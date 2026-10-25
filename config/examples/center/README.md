@@ -10,6 +10,7 @@ configuration in a separate Git repository. Deploy a reviewed release through
 | `contact.toml` | Center department, support channels, service hours, and any number of contact cards. |
 | `clinical_vocabulary.toml` | Fusion evidence terms and optional DNA caller display metadata. Transcript selection belongs to the application; annotation wording belongs to reporting rules. |
 | `filter_flag_metadata.yaml` | VCF filter labels, severity, tooltips, and literal SNV flag choices. |
+| `report_presentation.toml` (optional) | Plain-text messages for empty modern-report sections; loaded on each render. |
 
 API, worker, beat, and monitor mount the external directory read-only. Recreate
 them together after a configuration release. Rebuild documentation when public

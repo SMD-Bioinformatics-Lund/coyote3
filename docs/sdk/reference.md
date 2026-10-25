@@ -4133,7 +4133,7 @@ Hold an unsaved alternate report and its PDF entirely in memory.
 ### `ReportingServices`
 
 ```python
-ReportingServices(*, workflow: 'Callable[[Analyte], DNAWorkflowService | RNAWorkflowService]', configuration: 'Callable[[dict[str, Any]], dict[str, Any]]', render_html: 'Callable[..., str]', organization_name: 'str', reports_base_path: 'str', logger: 'Any', library: 'Callable[[], ReportLibraryService]', render_pdf: 'Callable[[str], bytes]', render_trial_html: 'Callable[..., str] | None' = None) -> 'None'
+ReportingServices(*, workflow: 'Callable[[Analyte], DNAWorkflowService | RNAWorkflowService]', configuration: 'Callable[[dict[str, Any]], dict[str, Any]]', render_html: 'Callable[..., str]', organization_name: 'str', reports_base_path: 'str', logger: 'Any', library: 'Callable[[], ReportLibraryService]', render_pdf: 'Callable[[str], bytes]', render_trial_html: 'Callable[..., str] | None' = None, presentation: 'Callable[[], ReportPresentation] | None' = None) -> 'None'
 ```
 
 ```text

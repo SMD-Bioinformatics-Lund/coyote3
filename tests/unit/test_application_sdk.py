@@ -26,6 +26,7 @@ from coyote3.application.operations.ingest import Ingestion
 from coyote3.application.operations.models import TierChange
 from coyote3.application.operations.reporting import ReportingServices, Reports
 from coyote3.application.operations.samples import Samples
+from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.contracts.operations import OperationResult
 from coyote3.domain.exceptions import AppError
 
@@ -417,6 +418,37 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
         reports.try_new("demo", analyte)
     assert error.value.status_code == 403
     assert render_pdf.call_count == 1
+
+
+def test_changed_modern_wording_requires_a_new_preview_before_save(sdk):
+    """Reject changed host wording before allocating a report number or writing artifacts."""
+    workflow = Mock()
+    workflow.build_report_payload.return_value = ("modern/dna_report.html", {"sample": {}}, [])
+    wording = {"empty_results": {"SNV": "First reviewed message"}}
+    reports = Reports(
+        sdk.runtime,
+        ReportingServices(
+            library=Mock(),
+            render_pdf=Mock(),
+            workflow=lambda analyte: workflow,
+            configuration=lambda sample: {"synthetic": True},
+            render_html=Mock(return_value=""),
+            organization_name="Synthetic",
+            reports_base_path="reports",
+            logger=Mock(),
+            presentation=lambda: ReportPresentation.model_validate(wording),
+        ),
+    )
+    preview = reports.preview("demo", "dna")
+    assert (
+        preview.context["report_presentation"]["empty_results"]["SNV"] == "First reviewed message"
+    )
+    wording["empty_results"]["SNV"] = "Changed message"
+    with pytest.raises(AppError, match="Refresh and review"):
+        reports.save("demo", "dna", fingerprint=preview.fingerprint)
+    workflow.next_report_num.assert_not_called()
+    workflow.prepare_report_output.assert_not_called()
+    workflow.persist_report.assert_not_called()
 
 
 def test_report_save_retains_snapshot_receipt_and_authenticated_author(sdk):

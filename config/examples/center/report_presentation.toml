@@ -1,0 +1,14 @@
+# Optional center-owned wording for enabled modern-report sections with no findings.
+# Plain text only. Omitted keys retain the software's existing Swedish wording.
+# Changes take effect on the next render, without changing ASPC revisions.
+[empty_results]
+SNV = "Inga detekterade mutationer"
+GERMLINE_SNV = "Inga detekterade germline-mutationer"
+CNV = "Inga detekterade kopietalsförändringar."
+TRANSLOCATION = "Inga detekterade fusioner"
+FUSION = "Inga detekterade fusioner"
+HRD = "Inga rapporterbara biomarkörresultat"
+MSI = "Inga rapporterbara biomarkörresultat"
+TMB = "Inga rapporterbara biomarkörresultat"
+BIOMARKER = "Inga rapporterbara biomarkörresultat"
+PGX = "Inga rapporterbara farmakogenomiska resultat"

@@ -8,6 +8,7 @@ import bleach
 import markdown
 from jinja2 import ChoiceLoader, Environment, PackageLoader, select_autoescape
 
+from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_context import prepare_render_context
 from coyote3.application.reporting.report_service import (
     REPORT_TEMPLATES,
@@ -134,6 +135,7 @@ def render_report_html(
     generated_by: str = "",
     layout: str | None = None,
     branding: dict[str, str] | None = None,
+    presentation: ReportPresentation | None = None,
 ) -> str:
     """Render report HTML with explicitly supplied institutional and user identity.
 
@@ -148,6 +150,7 @@ def render_report_html(
         layout: Optional presentation override, legacy or modern. None uses the
             approved template profile, falling back to the established legacy layout.
         branding: Host-provided embedded logo URLs for modern presentation. None omits images.
+        presentation: Validated modern-report wording. None retains the existing Swedish text.
 
     Returns:
         Escaped HTML suitable for browser preview and PDF rendering.
@@ -177,6 +180,10 @@ def render_report_html(
         raise ValueError("Report layout must be legacy or modern")
     context["legacy_template"] = leaf
     context.update(report_analyte=analyte, branding=branding or {})
+    settings = presentation or ReportPresentation.model_validate(
+        context.get("report_presentation") or {}
+    )
+    context["empty_result_messages"] = settings.empty_results.model_dump()
     return (
         _environment(modern=selected_layout == "modern")
         .get_template("modern/report.html" if selected_layout == "modern" else leaf)

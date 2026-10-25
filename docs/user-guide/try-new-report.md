@@ -25,6 +25,10 @@ The trial requires the same sample access and `report:preview` permission as
 other report previews. It is a temporary review/download feature, not a persisted
 clinical report.
 
+The modern report uses compact patient/sample details. Enabled sections with no
+reportable findings show a message instead of an empty table. Centers can configure
+these messages in the [report presentation file](../configuration/report-presentation-file.md).
+
 ## Current report PDF preview
 
 The established report also offers **HTML preview** and **PDF preview** in the

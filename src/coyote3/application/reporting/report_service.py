@@ -48,6 +48,19 @@ def template_content_hash(template_name: str) -> str:
     for block in ("format_head", "format_notice"):
         base = base.replace("{% block " + block + " %}{% endblock %}", "")
     body = _expanded_source(leaf).replace('"legacy/report.html"', '"report_layout.html"')
+    # Presentation-only blocks leave legacy output byte-for-byte unchanged.
+    for block in (
+        "snv_table",
+        "germline_snv_table",
+        "cnv_table",
+        "translocation_table",
+        "biomarker_table",
+        "pgx_table",
+        "fusion_table",
+        "fusion_details",
+    ):
+        body = body.replace("{% block " + block + " scoped %}", "")
+        body = body.replace("{% endblock " + block + " %}", "")
     # The preselected-call view is prepared in Python. Its canonical legacy spelling
     # retains approved digests for the same selected flags and displayed values.
     body = body.replace(

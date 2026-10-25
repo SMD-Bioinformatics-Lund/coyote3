@@ -25,9 +25,12 @@ reference imports, migration inputs, backups and generated artifacts.
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
 The [center configuration guide](../deployment/center-configuration.md) describes
-where the three editable center files live, how local/Git releases are prepared,
+where required and optional center files live, how local/Git releases are prepared,
 and which processes load them. The environment filename is independent of this
 center directory. Never place passwords in public contact or clinical-policy files.
+
+Empty-section messages for modern reports are configured separately in the optional
+[report presentation file](report-presentation-file.md). They do not require a new ASPC revision.
 
 ## Clinical resources managed in the application
 

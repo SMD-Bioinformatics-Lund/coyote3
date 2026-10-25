@@ -14,11 +14,11 @@
 {% include 'components/rna/sample_information.html' %}
 
 <span class="report_header">Analysresultat</span>
-{% include 'components/rna/variant_table.html' %}
+{% block fusion_table scoped %}{% include 'components/rna/variant_table.html' %}{% endblock fusion_table %}
 
 {% if "PGX" in report_sections %}
   <span class="report_header">Farmakogenomiska resultat</span>
-  <table class="variant_table">
+  {% block pgx_table scoped %}<table class="variant_table">
     <tr><th>Gen</th><th>Resultat</th></tr>
     {% for result in pgx %}
       <tr>
@@ -28,7 +28,7 @@
     {% else %}
       <tr><td>Inga rapporterbara farmakogenomiska resultat</td><td></td></tr>
     {% endfor %}
-  </table>
+  </table>{% endblock pgx_table %}
 {% endif %}
 
 <span class="report_header">Slutsats</span>
@@ -41,7 +41,7 @@
 <p style="page-break-before: always;"></p>
 <br>
 
-<span class="report_header">Detekterade fusioner</span>
+{% block fusion_details scoped %}<span class="report_header">Detekterade fusioner</span>
 {% for var in fusions|sort(attribute='classification.class') %}
   {% set selected_calls = var.report_selected_calls %}
   {% set sel_fus = selected_calls[0] %}
@@ -68,7 +68,7 @@
   </div>
 {% else %}
   <tr><td>Inga detekterade fusioner</td><td></td></tr>
-{% endfor %}
+{% endfor %}{% endblock fusion_details %}
 
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">

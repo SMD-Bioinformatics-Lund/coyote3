@@ -43,7 +43,9 @@ def context():
     ],
 )
 @pytest.mark.parametrize("layout", ["legacy", "modern"])
-def test_extraction_preserves_exact_html_and_approved_legacy_digest(analyte, name, digest, layout):
+def test_registered_layout_matches_html_fixture_and_preserves_legacy_digest(
+    analyte, name, digest, layout
+):
     inputs = context()
     original = deepcopy(inputs)
     html = render_report_html(

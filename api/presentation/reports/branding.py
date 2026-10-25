@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Any
 
 from api.config.paths import API_CONFIG_DIR, CENTER_CONFIG_DIR
+from api.config.report_presentation import load_report_presentation
 from coyote3.application.reporting.pdf_resources import validate_report_svg
+from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_renderer import render_report_html
 
 
@@ -79,6 +81,15 @@ def render_branded_report_html(*, config: dict[str, Any], **report_inputs: Any) 
     template = release.get("template_name", report_inputs.get("template_name", ""))
     layout = report_inputs.get("layout")
     modern = layout == "modern" or (layout is None and template.startswith("modern/"))
+    presentation = None
+    if modern:
+        presentation = (
+            ReportPresentation.model_validate(context["report_presentation"])
+            if "report_presentation" in context
+            else load_report_presentation()
+        )
     return render_report_html(
-        **report_inputs, branding=load_report_branding(config) if modern else None
+        **report_inputs,
+        branding=load_report_branding(config) if modern else None,
+        presentation=presentation,
     )

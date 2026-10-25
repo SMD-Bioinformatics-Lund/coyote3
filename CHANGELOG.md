@@ -25,6 +25,11 @@ its supported clinical workflows.
 
 ### Clinical review and reporting
 
+- Compact modern-report metadata and replace empty finding tables with configurable
+  per-analysis text. Keep center wording separate from ASPC revisions and preserve
+  legacy output and populated finding tables. Capture saved modern-report wording
+  in the preview fingerprint so changed messages require another review before save.
+
 - Added versioned data contracts, ASPC-driven filtering, reference annotations,
   MongoDB-backed clinical reporting rules, and immutable report snapshots.
 - Add Coyote3/center branding and labeled metadata fields to the modern report,

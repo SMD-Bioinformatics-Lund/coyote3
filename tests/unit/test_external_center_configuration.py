@@ -1,5 +1,6 @@
 """Verify persistent center configuration selection and validated release staging."""
 
+import json
 import os
 import shutil
 import subprocess
@@ -14,6 +15,31 @@ from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 from scripts.deployment.prepare_center_config import FILES, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_optional_report_wording_is_validated_and_recorded_in_release(tmp_path, valid):
+    """A center release retains optional report wording only after successful validation."""
+    source = tmp_path / "source"
+    source.mkdir()
+    for name in FILES:
+        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
+    wording = (
+        '[empty_results]\nSNV = "Synthetic no findings"\n'
+        if valid
+        else '[empty_results]\nSNVV = "Typo"\n'
+    )
+    (source / "report_presentation.toml").write_text(wording)
+    destination = tmp_path / "release"
+    if not valid:
+        with pytest.raises(subprocess.CalledProcessError):
+            prepare(str(source), destination, None, ".")
+        assert not destination.exists()
+        return
+    prepare(str(source), destination, None, ".")
+    assert (destination / "report_presentation.toml").read_text() == wording
+    manifest = json.loads((destination / "manifest.json").read_text())
+    assert "report_presentation.toml" in manifest["sha256"]
 
 
 @pytest.mark.parametrize("key", ["required_aspc_fields", "unrecognized_setting"])
@@ -134,7 +160,10 @@ def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp
         load_clinical_vocabulary(path)
 
 
-def test_git_source_extracts_only_configuration_at_the_requested_commit(tmp_path, monkeypatch):
+@pytest.mark.parametrize("include_wording", [True, False])
+def test_git_source_extracts_only_configuration_at_the_requested_commit(
+    tmp_path, monkeypatch, include_wording
+):
     """Git content is read as files, without checking out or running repository code."""
     calls = []
     run = subprocess.run
@@ -146,14 +175,19 @@ def test_git_source_extracts_only_configuration_at_the_requested_commit(tmp_path
             return subprocess.CompletedProcess(command, 0)
         return run(command, **kwargs)
 
-    def fake_output(command):
+    def fake_output(command, **kwargs):
         """Return synthetic repository files for exact commit-qualified paths."""
         calls.append(command)
+        if "ls-tree" in command:
+            assert kwargs == {"text": True}
+            names = (*FILES, "report_presentation.toml") if include_wording else FILES
+            return "\n".join(f"center/{name}" for name in names)
         assert command[-1].startswith("a" * 40 + ":center/")
         return (ROOT / "config/examples/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "check_output", fake_output)
     prepare("https://github.com/example/center.git", tmp_path / "release", "a" * 40, "center")
-    assert sum("show" in command for command in calls) == len(FILES)
+    assert sum("show" in command for command in calls) == len(FILES) + int(include_wording)
+    assert (tmp_path / "release/report_presentation.toml").exists() == include_wording
     assert not any("checkout" in command for command in calls)

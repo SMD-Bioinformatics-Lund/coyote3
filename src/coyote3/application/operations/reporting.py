@@ -15,6 +15,7 @@ from coyote3.application.operations.models import (
     SavedReport,
 )
 from coyote3.application.operations.runtime import ApplicationRuntime
+from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.domain.common.errors import api_error
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ class ReportingServices:
         library: Callable[[], ReportLibraryService],
         render_pdf: Callable[[str], bytes],
         render_trial_html: Callable[..., str] | None = None,
+        presentation: Callable[[], ReportPresentation] | None = None,
     ) -> None:
         """Bind report workflows and host-owned rendering and artifact capabilities.
 
@@ -54,12 +56,15 @@ class ReportingServices:
             render_pdf: Converts rendered HTML into PDF bytes for preview downloads.
             render_trial_html: Optional host renderer accepting the same prepared inputs
                 as render_html. None selects the packaged modern layout directly.
+            presentation: Supplies modern wording before preview fingerprinting. None
+                retains defaults; the SDK does not read host configuration files.
         """
         self.workflow, self.configuration, self.render_html = workflow, configuration, render_html
         self.organization_name, self.reports_base_path = organization_name, reports_base_path
         self.logger = logger
         self.library, self.render_pdf = library, render_pdf
         self.render_trial_html = render_trial_html
+        self.presentation = presentation or ReportPresentation
 
 
 class Reports:
@@ -222,6 +227,9 @@ class Reports:
                 str(exc),
                 category="validation",
             ) from exc
+        release = (context.get("assay_config") or {}).get("template_release") or {}
+        if str(release.get("template_name") or template).startswith("modern/"):
+            context["report_presentation"] = self._services.presentation().model_dump(mode="json")
         return template, context, rows or [], config
 
     def preview(

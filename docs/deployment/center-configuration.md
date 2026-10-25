@@ -35,17 +35,20 @@ config/examples/center/        # complete examples to copy into an external dire
   contact.toml                 # public center identity and support contacts
   clinical_vocabulary.toml     # clinical policy and presentation metadata
   filter_flag_metadata.yaml    # human-facing VCF filter badge metadata
+  report_presentation.toml     # optional modern-report empty-section messages
 ```
 
 ## Persistent local files or a Git configuration release
 
 Copy the examples once into a private working directory outside the checkout,
-then edit the two TOML files and the filter metadata YAML:
+then edit the required TOML/YAML files and optional report wording:
 
 ```bash
 mkdir -p /srv/coyote3/center-config-work
 cp config/examples/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
   /srv/coyote3/center-config-work/
+# Optional: configure wording for empty modern-report sections.
+cp config/examples/center/report_presentation.toml /srv/coyote3/center-config-work/
 
 .venv/bin/python scripts/deployment/prepare_center_config.py \
   --source /srv/coyote3/center-config-work \
@@ -64,7 +67,8 @@ Alternatively, stage the same files from a separate GitHub or other Git reposito
 
 Replace the repository URL, commit ID, and paths. SSH repositories are supported;
 use an SSH agent or Git credential helper for private access. Do not embed tokens
-in URLs. The command retrieves only the three data files, validates them with the
+in URLs. The command retrieves the three required data files and the optional
+[report presentation file](../configuration/report-presentation-file.md), validates them with the
 installed application, writes a SHA-256 manifest, and refuses an existing destination.
 A branch name, tag, or shortened commit ID is not accepted. No remote configuration
 is downloaded during application startup or requests.

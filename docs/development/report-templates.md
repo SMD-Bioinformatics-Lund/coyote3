@@ -69,7 +69,7 @@ reformatting because whitespace participates in approved source identities.
 ## Modern PDF pagination
 
 Modern reports use the Coyote3 purple and warm accent palette. The report header
-contains Coyote3 and center logos; sample details use paired labeled fields with
+contains Coyote3 and center logos; sample details use compact inline label/value pairs with
 full-width question and report-identifier fields. The same clinical values and
 wording remain available in both formats. Presentation overrides are loaded only
 for the modern layout, and their sources participate in its content hash.
@@ -110,3 +110,11 @@ paper uses fixed ink colors independently of the web UI's dark/light theme.
 Existing issued HTML/PDF files retain their embedded branding. Published modern
 template profiles require review and publication of the new content hash after
 template or stylesheet changes; the legacy template identities are unchanged.
+
+Empty modern finding sections display plain text rather than empty tables.
+The host supplies validated [per-analysis wording](../configuration/report-presentation-file.md)
+through `ReportPresentation`; local SDK callers can supply the same model explicitly.
+Trusted SDK hosts bind `ReportingServices.presentation` to their settings provider;
+application operations include those values in saved modern-report preview fingerprints.
+Presentation blocks reuse the existing tables for populated sections. Legacy
+output and its approved digests remain unchanged.
