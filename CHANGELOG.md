@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Apply operator-supplied historical annotation assay/ASP and solid-diagnosis mappings
+  during v2/v3 migration, lowercase scope identifiers, and validate installed target scopes.
+
 - Build shared historical `anno_vep` migration bundles from v2/v3 variant evidence,
   resolve annotations against exact transcripts, and add all-sample batch conversion
   with embedded RNA results and per-sample reports. Document MongoDB apply commands

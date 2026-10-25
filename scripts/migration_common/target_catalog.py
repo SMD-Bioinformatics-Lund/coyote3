@@ -177,15 +177,28 @@ def validate_plan_scope(catalog: dict, plan: dict) -> None:
     groups = {row["group_id"] for row in records["assay_groups"]}
     for name in ("annotation", "blacklist", "d4_coverage_blacklist"):
         for row in plan.get(name, []):
-            group = (
-                row.get("group")
-                if name == "d4_coverage_blacklist"
-                else row.get("assay_group", row.get("assay"))
-            )
+            if name == "d4_coverage_blacklist":
+                group = row.get("group")
+            elif name == "annotation":
+                group = row.get("asp_group")
+            else:
+                group = row.get("assay_group", row.get("assay"))
             if group not in groups:
                 raise ValueError(f"{name} references an assay group not installed in the target")
-            if name == "annotation" and row.get("diagnosis") not in (None, "", "base"):
-                scope = row["diagnosis"]
+            if name == "annotation" and row.get("asp_id") is not None:
+                asp = next(
+                    (
+                        item
+                        for item in records["assay_specific_panels"]
+                        if item["asp_id"] == row["asp_id"]
+                    ),
+                    None,
+                )
+                if asp is None or asp["asp_group"] != group:
+                    raise ValueError("Annotation ASP is not installed in its assay group")
+                validate_scope(records, row["asp_id"], row.get("diagnosis_id") or "base")
+            elif name == "annotation" and row.get("diagnosis_id") not in (None, "", "base"):
+                scope = row["diagnosis_id"]
                 assays = {
                     item["asp_id"]
                     for item in records["assay_specific_panels"]

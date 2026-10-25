@@ -54,6 +54,44 @@ record digest and a reason. Unknown scopes do not default to `base` or a configu
 group. Blacklist records with the same position and scope are not collapsed: their
 distinct identities remain in the bundle, and conflicting values require review.
 
+### One-time annotation scope mappings
+
+The v2 and v3 annotation converters apply the following historical data mappings
+supplied by the operator. These rules exist only in migration scripts; they do not
+change application annotation behavior or sample scope mappings. They also apply
+to annotations referenced by saved reports in sample bundles.
+
+- Legacy `assay` becomes `asp_group`; legacy `subpanel` becomes `diagnosis_id`.
+- Scope identifiers are lowercase, including `asp_group`, `asp_id`, and `diagnosis_id`.
+- Annotation content, gene/transcript identities, classification, author, timestamps,
+  and original `_id` are preserved.
+
+| Legacy assay | Destination `asp_group` | Destination `asp_id` |
+| --- | --- | --- |
+| `myeloid` | `myeloid` | `myeloid_gmsv1` |
+| `solid` | `solid` | `solid_gmsv3` |
+| `hematology` | `hematology` | `hema_gmsv1` |
+
+Only within the `solid` group, diagnosis aliases are:
+
+| Legacy subpanel | Destination `diagnosis_id` |
+| --- | --- |
+| `BC` | `breast` |
+| `BP` | `breast-pilot` |
+| `CRC` | `crc` |
+| `LP` | `lung` |
+| Literal string `None` | `base` |
+| `solid` | `base` |
+
+Other diagnosis values retain their lowercase spelling. In particular, `colon`
+remains `colon`; `lungthyroid` remains `lungthyroid`; outside `solid`, the literal
+string `None` becomes `none`. Empty strings remain empty, and missing/null scope
+values are not inferred from an empty grouped `_id`; unresolved required scopes
+still need digest-bound review. No ASP is inferred for `gmsonco`, `lymphoid`,
+`tumwgs`, or `unknown`. An explicitly supplied ASP is lowercased and must agree
+with any mapping above. Target preflight checks mapped groups, ASPs, and diagnosis
+associations against the installed configuration before application.
+
 Saved report HTML/PDF and referenced analysis files require separate operator-managed
 file transfer or retained compatible mounts. Database migration preserves their
 references; it does not fetch remote files or recreate historical reports.
