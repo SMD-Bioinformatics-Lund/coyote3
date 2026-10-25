@@ -90,6 +90,7 @@ def fixture():
     )
     activity = NotificationActivityRepository(
         audit_collection=client.identity.audit,
+        operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
     )
@@ -273,15 +274,17 @@ def test_activity_pages_survive_restart_and_reconcile_late_events():
     client.identity.audit.insert_many(
         [event(occurred_at=now - timedelta(days=2)) for _ in range(60)]
     )
-    assert service.deliver() == 25
+    assert service.deliver() == 16
     # A fresh repository resumes the persisted page instead of starting at the oldest row.
     service.activity = NotificationActivityRepository(
         audit_collection=client.identity.audit,
+        operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
     )
-    assert service.deliver() == 25
-    assert service.deliver() == 10
+    assert service.deliver() == 16
+    assert service.deliver() == 16
+    assert service.deliver() == 12
     late = event(occurred_at=now - timedelta(days=3))
     client.identity.audit.insert_one(late)
     for _ in range(4):
@@ -298,6 +301,7 @@ def test_unrelated_audit_history_advances_in_bounded_pages():
     client.identity.audit.insert_one(expected)
     assert service.deliver() == 0
     assert service.deliver() == 0
+    assert service.deliver() == 0
     assert service.deliver() == 1
     assert client.app.notifications.find_one({"_id": expected["_id"]})
 
@@ -312,8 +316,8 @@ def test_publication_cursor_handles_mixed_identifier_types_at_the_same_timestamp
         ]
         + [{"_id": ObjectId(), "published_at": now, "status": "active"}]
     )
-    assert service.deliver() == 25
-    assert service.deliver() == 1
+    assert service.deliver() == 16
+    assert service.deliver() == 10
     assert service.deliver() == 0
 
 

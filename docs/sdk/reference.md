@@ -2972,6 +2972,16 @@ MaintenanceExecution.erase_reports(self) -> 'dict[str, int]'
 Complete up to 100 report erasures authorized by committed sample deletion.
 ```
 
+#### `MaintenanceExecution.export_audit_checkpoint`
+
+```python
+MaintenanceExecution.export_audit_checkpoint(self) -> 'dict[str, Any]'
+```
+
+```text
+Verify and archive audit hashes using the host's optional archival destination.
+```
+
 #### `MaintenanceExecution.finalize_reports`
 
 ```python
@@ -3041,7 +3051,7 @@ Run configured audit and disk-log retention under the fixed worker identity.
 ### `MaintenanceServices`
 
 ```python
-MaintenanceServices(*, erase_reports: 'Callable[[], dict[str, int]]', finalize_reports: 'Callable[[], dict[str, int]]', replay_audit: 'Callable[[], int]', deliver_activity: 'Callable[[], Any]', deliver_emails: 'Callable[[], dict[str, Any]]', retention: 'Callable[[], dict[str, Any]]', oncokb: 'Callable[[], dict[str, Any]]', dashboard: 'Callable[[], DashboardService]', users: 'Callable[[], list[dict[str, Any]]]', identity: 'Callable[[dict[str, Any]], Any]', logger: 'Logger') -> 'None'
+MaintenanceServices(*, erase_reports: 'Callable[[], dict[str, int]]', finalize_reports: 'Callable[[], dict[str, int]]', replay_audit: 'Callable[[], int]', deliver_activity: 'Callable[[], Any]', deliver_emails: 'Callable[[], dict[str, Any]]', retention: 'Callable[[], dict[str, Any]]', oncokb: 'Callable[[], dict[str, Any]]', dashboard: 'Callable[[], DashboardService]', users: 'Callable[[], list[dict[str, Any]]]', identity: 'Callable[[dict[str, Any]], Any]', logger: 'Logger', checkpoint: 'Callable[[], dict[str, Any]] | None' = None) -> 'None'
 ```
 
 ```text

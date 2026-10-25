@@ -108,6 +108,7 @@ class OperationsSettings:
     """Audit, logging, notification, and request-rate settings."""
 
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "730"))
+    AUDIT_CHECKPOINT_DIRECTORY = os.getenv("AUDIT_CHECKPOINT_DIRECTORY", "")
     LOG_SERVICE_NAME = os.getenv("LOG_SERVICE_NAME", "api")
     LOG_ROOT = os.getenv("LOG_ROOT", "logs")
     LOG_TIMEZONE = os.getenv("LOCAL_TIME_ZONE", "UTC")

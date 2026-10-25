@@ -6,7 +6,6 @@ from typing import Any
 from pymongo import ReturnDocument
 
 from api.config.operational_collections import OPERATIONAL_COLLECTIONS
-from api.config.security import get_audit_events_collection_name
 from api.infra.mongo.transactions import run_transaction
 
 
@@ -22,7 +21,7 @@ class MongoAppControlsRepository:
             config: Deployment collection-name configuration.
         """
         self.controls = db[OPERATIONAL_COLLECTIONS.app_controls]
-        self.audit = identity_db[get_audit_events_collection_name(config)]
+        self.audit = identity_db[OPERATIONAL_COLLECTIONS.operational_audit_events]
 
     def read(self) -> dict[str, Any] | None:
         """Return persisted controls without exposing a MongoDB collection."""

@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from api.app.container import util
 from api.app.deps.repositories import get_store
 from api.app.runtime_state import app as runtime_app
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.config.security import (
     get_api_session_ttl_seconds,
     get_api_sessions_collection_name,
@@ -363,6 +364,9 @@ def get_audit_service() -> AuditService | None:
             store.identity_db[get_audit_events_collection_name(runtime_app.config)].with_options(
                 write_concern=WriteConcern("majority", j=True)
             ),
+            operational_collection=store.identity_db[
+                OPERATIONAL_COLLECTIONS.operational_audit_events
+            ].with_options(write_concern=WriteConcern("majority", j=True)),
             outbox_route=namespace,
             outboxes=tuple(
                 AuditOutboxRepository(db)

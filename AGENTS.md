@@ -258,4 +258,7 @@ Do not manually edit or commit:
 - Generated documentation such as `docs/sdk/reference.md`, `docs/reference/mongodb-collections.md` and
   `docs/administration/permission-catalog.md`; change their source and run the repository
   generator instead.
+- Generated HTTP types under `frontend/src/lib/generated/` and
+  `deploy/compose/mongo-init/identity-role-policy.json`; change the authoritative
+  API or permission policy and run the documented generator instead.
 - Dependency lockfiles unless the dependency graph intentionally changes.

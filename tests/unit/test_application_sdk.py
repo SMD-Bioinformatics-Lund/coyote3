@@ -757,6 +757,10 @@ def test_maintenance_worker_cannot_invoke_interactive_resources(sdk, monkeypatch
     monkeypatch.setattr(services, "get_app_controls_service", lambda: maintenance)
     executor = maintenance_executor(Mock())
     assert executor.retention() == {"removed": 2}
+    from api.app.runtime_state import app
+
+    monkeypatch.setitem(app.config, "AUDIT_CHECKPOINT_DIRECTORY", "")
+    assert executor.export_audit_checkpoint() == {"status": "not_configured"}
     with pytest.raises(AppError) as denied:
         Samples(executor._runtime, sdk.services).get("demo")
     assert denied.value.status_code == 403

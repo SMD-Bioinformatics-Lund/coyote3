@@ -589,6 +589,20 @@ def maintenance_executor(logger: Any) -> "MaintenanceExecution":
         service = get_audit_service()
         return int(service.replay_pending()) if service is not None else 0
 
+    def checkpoint() -> dict[str, Any]:
+        """Export verified audit hashes when a dedicated archive mount is configured."""
+        from pathlib import Path
+
+        from api.app.runtime_state import app
+
+        directory = str(app.config.get("AUDIT_CHECKPOINT_DIRECTORY") or "").strip()
+        if not directory:
+            return {"status": "not_configured"}
+        service = get_audit_service()
+        if service is None:
+            raise RuntimeError("Audit repository is unavailable for checkpoint export")
+        return dict(service.repository.export_checkpoint(Path(directory)))
+
     runtime = ApplicationRuntime(
         authenticate=MaintenanceWorkerIdentity,
         policy_factory=lambda actor: MaintenanceWorkerPolicy(),
@@ -600,6 +614,7 @@ def maintenance_executor(logger: Any) -> "MaintenanceExecution":
                 "maintenance.erase_reports",
                 "maintenance.finalize_reports",
                 "maintenance.replay_audit",
+                "maintenance.export_audit_checkpoint",
                 "maintenance.deliver_emails",
                 "maintenance.retention",
                 "maintenance.refresh_public_oncokb",
@@ -611,6 +626,7 @@ def maintenance_executor(logger: Any) -> "MaintenanceExecution":
         erase_reports=erase_committed_report_files,
         finalize_reports=finalize_committed_report_files,
         replay_audit=replay,
+        checkpoint=checkpoint,
         deliver_activity=lambda: get_activity_notification_service().deliver(),
         deliver_emails=lambda: dict(get_notification_service().deliver_emails(limit=10)),
         retention=lambda: dict(get_app_controls_service().run_maintenance()),

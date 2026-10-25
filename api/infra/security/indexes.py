@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pymongo import ASCENDING, DESCENDING
@@ -31,7 +31,7 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
     """Return the canonical session, audit, and application-control indexes."""
     sessions = get_api_sessions_collection_name(config)
     audit = get_audit_events_collection_name(config)
-    return (
+    contracts = (
         SecurityIndexContract(
             OPERATIONAL_COLLECTIONS.report_artifact_erasure,
             "primary",
@@ -130,6 +130,11 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
             "idx_app_controls_updated_on",
         ),
     )
+    return contracts + tuple(
+        replace(contract, collection=OPERATIONAL_COLLECTIONS.operational_audit_events)
+        for contract in contracts
+        if contract.collection == audit and contract.name != "uniq_audit_chain_sequence"
+    )
 
 
 def ensure_security_indexes(
@@ -143,12 +148,19 @@ def ensure_security_indexes(
             list(contract.fields),
             name=contract.name,
             logger=logger,
+            read_existing=contract.collection == get_audit_events_collection_name(config),
             **contract.options,
         )
 
 
 def _create_index(
-    collection: Any, fields: list[tuple[str, int]], *, name: str, logger, **kwargs
+    collection: Any,
+    fields: list[tuple[str, int]],
+    *,
+    name: str,
+    logger,
+    read_existing: bool = False,
+    **kwargs,
 ) -> None:
     """Attempt to create a security index and log MongoDB failures.
 
@@ -157,12 +169,20 @@ def _create_index(
         fields: Ordered field and direction pairs.
         name: Explicit index name.
         logger: Destination for index-creation warnings.
+        read_existing: Verify existing protected indexes without requiring index-write privileges.
         **kwargs: Additional options forwarded to ``create_index``.
 
     Notes:
         PyMongo errors are logged and suppressed; other exceptions propagate.
     """
     try:
+        if read_existing and any(
+            index.get("name") == name
+            and list(index["key"].items()) == fields
+            and all(index.get(key) == value for key, value in kwargs.items())
+            for index in collection.list_indexes()
+        ):
+            return
         collection.create_index(fields, name=name, **kwargs)
     except PyMongoError as exc:
         logger.warning(

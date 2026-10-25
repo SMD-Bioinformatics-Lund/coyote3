@@ -90,7 +90,11 @@ def test_mongo_session_repository_stores_only_token_hash():
 
 def test_audit_service_redacts_sensitive_metadata_and_sets_expiry():
     collection = _Collection()
-    service = AuditService(AuditRepository(collection), retention_days=90, environment="test")
+    service = AuditService(
+        AuditRepository(collection, operational_collection=collection),
+        retention_days=90,
+        environment="test",
+    )
 
     event_id = service.record(
         "auth.login.failed",
@@ -120,7 +124,13 @@ def test_traceability_audit_events_do_not_expire(monkeypatch):
         audit_integrity, "run_transaction", lambda client, operation: operation(None)
     )
     collection = mongomock.MongoClient().identity.audit_events
-    service = AuditService(AuditRepository(collection), retention_days=90, environment="test")
+    service = AuditService(
+        AuditRepository(
+            collection, operational_collection=collection.database.operational_audit_events
+        ),
+        retention_days=90,
+        environment="test",
+    )
 
     service.record(
         "clinical.configuration.updated",

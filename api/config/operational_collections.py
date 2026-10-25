@@ -12,6 +12,7 @@ class OperationalCollectionContract:
 
     api_sessions: str = "api_sessions"
     audit_events: str = "audit_events"
+    operational_audit_events: str = "operational_audit_events"
     audit_chain_heads: str = "audit_chain_heads"
     audit_outbox: str = "audit_outbox"
     report_artifact_erasure: str = "report_artifact_erasure"

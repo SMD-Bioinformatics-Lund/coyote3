@@ -11,6 +11,13 @@ the UI. Start at **step 9** to check service status and the browser URL.
 
 ## 1. Check prerequisites
 
+The identity database must use authenticated, collection-scoped runtime permissions.
+Fresh bundled MongoDB instances receive the protected audit indexes and custom role
+from the initializer. Existing and externally managed instances require the
+[runtime role upgrade](../operations/audit-and-logging.md#runtime-database-privileges)
+before production/staging installation validation. Use a separate maintenance
+principal for that upgrade; the installer does not elevate runtime credentials.
+
 Have the following available before proceeding:
 
 - A checkout of the reviewed application release.

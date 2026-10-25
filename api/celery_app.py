@@ -69,6 +69,10 @@ celery_app.conf.beat_schedule = {
         "task": "api.tasks.maintenance.replay_audit_events",
         "schedule": 30.0,
     },
+    "coyote3-audit-checkpoint-export": {
+        "task": "api.tasks.maintenance.export_audit_checkpoint",
+        "schedule": crontab(minute=0),
+    },
     "coyote3-notification-email-delivery": {
         "task": "api.tasks.maintenance.deliver_notification_emails",
         "schedule": 30,

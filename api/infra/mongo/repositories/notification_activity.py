@@ -27,21 +27,33 @@ class NotificationActivityRepository:
         """
         return cls(
             audit_collection=store.identity_db[get_audit_events_collection_name(config)],
+            operational_collection=store.identity_db[
+                OPERATIONAL_COLLECTIONS.operational_audit_events
+            ],
             versions_collection=store.knowledgebase_db[
                 load_collection_section("knowledgebase")["knowledgebase_versions_collection"]
             ],
             notifications=store.notification_repository.get_collection(),
         )
 
-    def __init__(self, *, audit_collection: Any, versions_collection: Any, notifications: Any):
+    def __init__(
+        self,
+        *,
+        audit_collection: Any,
+        operational_collection: Any,
+        versions_collection: Any,
+        notifications: Any,
+    ):
         """Bind explicitly selected source collections and the destination collection.
 
         Args:
             audit_collection: Identity database audit collection.
+            operational_collection: New operational events, separate from retained history.
             versions_collection: Knowledgebase release registry.
             notifications: Application database notification collection.
         """
         self.audit = audit_collection
+        self.operational = operational_collection
         self.versions = versions_collection
         self.notifications = notifications
         self.progress = notifications.database[
@@ -56,7 +68,7 @@ class NotificationActivityRepository:
             since: Oldest event within the notification retention interval.
             environment: Deployment environment; excludes other deployments' audit events.
             limit: Scan budget, split between forward and reconciliation readers for each source.
-                At least four records are scanned per call.
+                At least six records are scanned per call.
 
         Returns:
             Events without a notification bearing the same stable identifier.
@@ -68,8 +80,13 @@ class NotificationActivityRepository:
         query = {"occurred_at": {"$gte": since}, "source.environment": environment}
         state = self.progress.find_one({"_id": environment}) or {"_id": environment}
         result = []
-        budget = max(1, limit // 4)
+        budget = max(1, limit // 6)
         events = self._scan_source(self.audit, query, "occurred_at", "audit", state, budget)
+        events.extend(
+            self._scan_source(
+                self.operational, query, "occurred_at", "operational_audit", state, budget
+            )
+        )
         releases = self._scan_source(
             self.versions,
             {

@@ -30,6 +30,7 @@ class MaintenanceServices:
         users: Callable[[], list[dict[str, Any]]],
         identity: Callable[[dict[str, Any]], Any],
         logger: Logger,
+        checkpoint: Callable[[], dict[str, Any]] | None = None,
     ) -> None:
         """Bind fixed maintenance operations and current-user scope projection.
 
@@ -45,11 +46,13 @@ class MaintenanceServices:
             users: Loads current account records for scope-based metric refresh.
             identity: Projects a stored account into its current verified scope attributes.
             logger: Records per-user/per-metric failures without aborting remaining scopes.
+            checkpoint: Optional host archival integration; None disables checkpoint export.
         """
         self.erase_reports, self.finalize_reports = erase_reports, finalize_reports
         self.replay_audit, self.deliver_activity = replay_audit, deliver_activity
         self.deliver_emails, self.retention, self.oncokb = deliver_emails, retention, oncokb
         self.dashboard, self.users, self.identity, self.logger = dashboard, users, identity, logger
+        self.checkpoint = checkpoint
 
 
 class MaintenanceExecution:
@@ -84,6 +87,18 @@ class MaintenanceExecution:
                 "delivered": self._services.replay_audit(),
                 "notifications": self._services.deliver_activity(),
             },
+        )
+
+    def export_audit_checkpoint(self) -> dict[str, Any]:
+        """Verify and archive audit hashes using the host's optional archival destination."""
+        return self._runtime.execute(
+            "maintenance.export_audit_checkpoint",
+            ("app.maintenance:run",),
+            lambda actor, sample: (
+                self._services.checkpoint()
+                if self._services.checkpoint
+                else {"status": "not_configured"}
+            ),
         )
 
     def deliver_emails(self) -> dict[str, Any]:

@@ -85,7 +85,9 @@ def test_audit_outage_spools_sanitized_event_then_replays(tmp_path):
     collection = Mock()
     collection.insert_one.side_effect = AutoReconnect("synthetic outage")
     service = AuditService(
-        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
+        AuditRepository(collection, operational_collection=collection, spool_directory=tmp_path),
+        retention_days=90,
+        environment="test",
     )
     identity = service.record("example.changed", "password=synthetic-secret", category="test")
     paths = list(tmp_path.glob("*.json"))
@@ -93,11 +95,12 @@ def test_audit_outage_spools_sanitized_event_then_replays(tmp_path):
     assert paths[0].stem == identity
     assert "synthetic-secret" not in paths[0].read_text()
     assert paths[0].stat().st_mode & 0o777 == 0o600
-    collection.update_one.return_value.acknowledged = True
+    collection.insert_one.side_effect = None
+    collection.insert_one.return_value.acknowledged = True
     assert service.replay_pending() == 1
     assert not list(tmp_path.glob("*.json"))
-    assert collection.update_one.call_args.args[0] == {"_id": ObjectId(identity)}
-    assert "$setOnInsert" in collection.update_one.call_args.args[1]
+    assert collection.insert_one.call_args.args[0]["_id"] == ObjectId(identity)
+    collection.update_one.assert_not_called()
 
 
 def test_failed_replay_retains_original_identity_and_file(tmp_path):
@@ -105,13 +108,13 @@ def test_failed_replay_retains_original_identity_and_file(tmp_path):
     document = {"_id": ObjectId(), "message": "Synthetic event"}
     spool.persist(document)
     collection = Mock()
-    collection.update_one.side_effect = AutoReconnect("unknown acknowledgement")
-    assert spool.replay(collection) == 0
+    collection.insert_one.side_effect = AutoReconnect("unknown acknowledgement")
+    assert spool.replay(collection, operational_collection=collection) == 0
     assert len(list(tmp_path.glob("*.json"))) == 1
-    collection.update_one.side_effect = None
-    collection.update_one.return_value.acknowledged = True
-    assert spool.replay(collection) == 1
-    assert collection.update_one.call_args_list[0] == collection.update_one.call_args_list[1]
+    collection.insert_one.side_effect = None
+    collection.insert_one.return_value.acknowledged = True
+    assert spool.replay(collection, operational_collection=collection) == 1
+    assert collection.insert_one.call_args_list[0] == collection.insert_one.call_args_list[1]
 
 
 def test_damaged_spool_file_does_not_block_valid_events(tmp_path, caplog):
@@ -119,8 +122,8 @@ def test_damaged_spool_file_does_not_block_valid_events(tmp_path, caplog):
     (tmp_path / "broken.json").write_text("not valid JSON")
     spool.persist({"_id": ObjectId(), "message": "Synthetic valid event"})
     destination = Mock()
-    destination.update_one.return_value.acknowledged = True
-    assert spool.replay(destination) == 1
+    destination.insert_one.return_value.acknowledged = True
+    assert spool.replay(destination, operational_collection=destination) == 1
     assert (tmp_path / "broken.invalid").read_text() == "not valid JSON"
     assert "retained for operator recovery" in caplog.text
 
@@ -130,7 +133,9 @@ def test_unacknowledged_writes_remain_pending(tmp_path):
     collection.insert_one.return_value.acknowledged = False
     collection.update_one.return_value.acknowledged = False
     service = AuditService(
-        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
+        AuditRepository(collection, operational_collection=collection, spool_directory=tmp_path),
+        retention_days=90,
+        environment="test",
     )
     identity = service.record("example.changed", "Synthetic event", category="test")
     assert (tmp_path / f"{identity}.json").exists()
@@ -142,7 +147,9 @@ def test_dual_storage_failure_is_not_silently_ignored(tmp_path, monkeypatch):
     collection = Mock()
     collection.insert_one.side_effect = AutoReconnect("synthetic outage")
     service = AuditService(
-        AuditRepository(collection, spool_directory=tmp_path), retention_days=90, environment="test"
+        AuditRepository(collection, operational_collection=collection, spool_directory=tmp_path),
+        retention_days=90,
+        environment="test",
     )
     monkeypatch.setattr(service.repository.spool, "persist", Mock(side_effect=OSError("disk full")))
     with pytest.raises(OSError, match="disk full"):
@@ -158,7 +165,7 @@ def test_audit_retention_lookup_does_not_block_outage_spooling():
         effective_audit_retention_days(
             MongoAppControlsRepository(
                 {OPERATIONAL_COLLECTIONS.app_controls: collection},
-                identity_db={"audit_events": collection},
+                identity_db={"operational_audit_events": collection},
                 config={},
             ),
             {"AUDIT_RETENTION_DAYS": 120},

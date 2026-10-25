@@ -18,12 +18,16 @@ def test_replaying_an_already_committed_event_keeps_one_immutable_record(tmp_pat
         db = client[f"coyote3_audit_test_{uuid4().hex}"]
         try:
             original = {"_id": ObjectId(), "message": "Original synthetic event"}
-            db.audit_events.insert_one(original)
+            db.operational_audit_events.insert_one(original)
             spool = AuditSpool(tmp_path)
             spool.persist({**original, "message": "Must not replace the original"})
-            assert spool.replay(db.audit_events) == 1
-            assert db.audit_events.count_documents({}) == 1
-            assert db.audit_events.find_one({"_id": original["_id"]}) == original
+            assert (
+                spool.replay(db.audit_events, operational_collection=db.operational_audit_events)
+                == 1
+            )
+            assert db.operational_audit_events.count_documents({}) == 1
+            assert db.operational_audit_events.find_one({"_id": original["_id"]}) == original
+            assert db.audit_events.count_documents({}) == 0
             assert not list(tmp_path.glob("*.json"))
         finally:
             client.drop_database(db.name)

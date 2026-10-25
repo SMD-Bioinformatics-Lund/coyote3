@@ -52,6 +52,13 @@ def deliver_notification_emails() -> dict[str, Any]:
     return maintenance_executor(logger).deliver_emails()
 
 
+@celery_app.task(name="api.tasks.maintenance.export_audit_checkpoint")
+def export_audit_checkpoint() -> dict[str, Any]:
+    """Export verified chain hashes hourly when an archival mount is configured."""
+    _ensure_worker_runtime()
+    return maintenance_executor(logger).export_audit_checkpoint()
+
+
 @celery_app.task(name="api.tasks.maintenance.run_retention_maintenance", bind=True)
 def run_retention_maintenance(self) -> dict[str, Any]:
     """Run audit and disk-log retention maintenance."""

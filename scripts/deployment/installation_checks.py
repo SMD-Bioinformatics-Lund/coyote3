@@ -8,6 +8,7 @@ from pymongo import MongoClient
 
 from api.config.collections import load_collection_section
 from api.config.mongo import MongoEndpoint, mongo_endpoints
+from api.infra.security.mongo_roles import verify_runtime_audit_permissions
 
 
 def has_documents(database) -> bool:
@@ -103,6 +104,11 @@ def check_endpoints() -> str:
                 raise ValueError(
                     f"{service} endpoint check failed ({type(error).__name__})"
                 ) from None
+        environment = os.environ.get("ENV_NAME", "production").strip().lower()
+        if environment not in {"dev", "development", "test", "testing"}:
+            verify_runtime_audit_permissions(
+                databases["identity"].client, endpoints["identity"].database
+            )
         return installation_state(databases["primary"], databases["identity"])
 
 

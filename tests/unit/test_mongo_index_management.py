@@ -58,6 +58,7 @@ def adapter_for(repository: FakeRepository):
     security_collections = {
         "api_sessions": FakeCollection("api_sessions", []),
         "audit_events": FakeCollection("audit_events", []),
+        "operational_audit_events": FakeCollection("operational_audit_events", []),
         "app_controls": FakeCollection("app_controls", []),
         "report_artifact_erasure": FakeCollection("report_artifact_erasure", []),
     }
