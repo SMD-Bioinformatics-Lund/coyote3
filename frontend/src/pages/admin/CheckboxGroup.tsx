@@ -59,7 +59,11 @@ export function CheckboxGroup({
         <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
           {hasDependentValue
             ? "No options match the selected scope and inputs."
-            : "Select the related resource or inputs to see available options."}
+            : dependent?.field === "asp_ids"
+              ? "Select assays first to see available diagnosis options."
+              : dependent?.field === "asp_groups"
+                ? "Select assay groups first to see available assays."
+                : "Select the related resource or inputs to see available options."}
         </div>
       )
     }

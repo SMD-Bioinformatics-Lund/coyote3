@@ -245,6 +245,11 @@ any identifier carried over from an imported or copied configuration.
 
 ### In-Silico Gene Lists (ISGL)
 
+In the gene-list editor, configure **Clinical scope** in this order: **Assay groups**,
+**Assays**, then **Diagnoses**. Diagnosis options appear after selecting an assay
+and include Base plus its active associated diagnoses. If a named diagnosis is
+missing, associate it with the assay in **Admin > Assay diagnosis associations**.
+
 An ISGL is a versioned gene set with assay or assay-group eligibility and one or more
 analysis types. Active status and scope determine availability; a list affects review
 only when it is selected in the corresponding filter. Gene membership, eligibility,

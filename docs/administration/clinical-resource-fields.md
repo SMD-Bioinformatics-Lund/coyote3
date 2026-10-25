@@ -85,16 +85,19 @@ An ISGL selects genes for supported analyses. Full contract:
 | --- | --- | --- |
 | `isgl_id`, `name`, `displayname` | Required; no default | Stable key, name and displayed label. Note the exact `displayname` spelling. |
 | `list_type` | Supply explicitly | Omission/null initially selects all configured types, which can fail the standard/ad-hoc compatibility check. Use only the intended supported types. |
-| `adhoc` | Optional; `false` | Chooses standard versus ad-hoc type validation. |
+| `adhoc` | Optional; `false` | Uses ad-hoc analysis types and excludes the list from standard ASPC gene-list choices. Leave false for routine curated lists. |
 | `genes` | Optional; `[]` | Curated genes; an empty array adds no genes. Germline membership resolves from the selected assay's germline genes. |
 | `asp_ids`, `asp_groups` | Contract default `[]`; eligibility validated by workflow | Assay/group bindings. Explicit `asp_ids` and `asp_groups` must each be nonempty and contain valid identifiers; unrelated lists are not offered. |
 | `diagnosis`, `aliases` | Optional; each `[]` | Diagnosis scope and alternate lookup/display names. |
-| `is_public` | Optional; `false` | Public-list eligibility; independent from clinical selection. |
+| `is_public` | Optional; `false` | Allows an active list and its genes in public gene-list views. Does not publish an assay offering or select the list for analysis. |
 | `is_active` | Optional; `true` | Whether the list can be selected, subject to eligibility. |
 
 Creating a list does not select it for any ASPC or existing sample. Configure that
 selection separately. The [gene-list guide](../user-guide/gene-lists-and-assay-context.md)
 explains standard, ad-hoc and diagnosis-based selection.
+
+System ownership is assigned by the installer, not selected during creation or
+editing. User-created lists remain center-managed regardless of public visibility.
 
 ## Other clinical and access records
 

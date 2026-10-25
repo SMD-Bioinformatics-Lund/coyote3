@@ -32,8 +32,8 @@ it("switches assay modality without retaining incompatible files or analyses", a
   expect(screen.getByRole("checkbox", { name: /Analyses FUSION/ })).toBeVisible()
 })
 
-function ScopedForm({ multiple = false }: { multiple?: boolean }) {
-  const [values, setValues] = useState<Record<string, unknown>>(multiple
+function ScopedForm({ multiple = false, empty = false }: { multiple?: boolean; empty?: boolean }) {
+  const [values, setValues] = useState<Record<string, unknown>>(empty ? { asp_groups: [], asp_ids: [], diagnosis: [] } : multiple
     ? { asp_groups: ["group-a"], asp_ids: ["assay-a"], diagnosis: ["panel-a"] }
     : { asp_id: "assay-a", diagnosis_id: "panel-a" })
   const field = { label: "Diagnosis", display_type: multiple ? "checkbox-group" : "select", default: "base",
@@ -56,6 +56,17 @@ function ScopedForm({ multiple = false }: { multiple?: boolean }) {
 }
 
 describe("assay-associated diagnosis choices", () => {
+  it("guides an empty gene list from groups to assays to eligible diagnoses", async () => {
+    render(<ScopedForm multiple empty />)
+    const user = userEvent.setup()
+    expect(screen.getByText("Select assay groups first to see available assays.")).toBeVisible()
+    expect(screen.getByText("Select assays first to see available diagnosis options.")).toBeVisible()
+    await user.click(screen.getByRole("checkbox", { name: /Groups group-a/ }))
+    await user.click(screen.getByRole("checkbox", { name: /Assays assay-a/ }))
+    expect(screen.getByRole("checkbox", { name: "panel-a" })).toBeVisible()
+    expect(screen.getByRole("checkbox", { name: /Diagnosis base/ })).toBeVisible()
+    expect(screen.queryByRole("checkbox", { name: "panel-b" })).not.toBeInTheDocument()
+  })
   it("shows only the chosen assay's diagnoses and resets to Base when changing assays", async () => {
     render(<ScopedForm />)
     const user = userEvent.setup()

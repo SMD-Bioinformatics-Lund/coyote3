@@ -241,14 +241,16 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
                     field["options_from_field"] = "analysis_types"
                     field["show_unavailable_options"] = True
 
-    if "system_managed" in fields:
-        fields["system_managed"].update(
+    for ownership_field in ("system_managed", "system_installed"):
+        if ownership_field not in fields:
+            continue
+        fields[ownership_field].update(
             {
                 "readonly": True,
-                "hidden_mode": ["create"],
+                "hidden_mode": ["create", "edit"],
                 "help": (
-                    "Set by first-installation bootstrap. System-installed records "
-                    "can be deactivated where supported, but cannot be deleted."
+                    "Assigned by the application installer. System-installed records "
+                    "are read-only; create a separate resource to customize them."
                 ),
             }
         )

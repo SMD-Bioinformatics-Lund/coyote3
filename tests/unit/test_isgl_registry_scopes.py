@@ -8,6 +8,27 @@ from coyote3.application.resources.isgl import IsglService
 from coyote3.domain.exceptions import AppError
 
 
+def test_gene_list_form_places_diagnosis_after_its_scope_prerequisites():
+    """An empty gene-list form asks for groups and assays before dependent diagnoses."""
+    from coyote3.application.accounts.common import build_managed_form
+    from coyote3.contracts.authoring.resources import MANAGED_RESOURCE_SPECS
+
+    form = build_managed_form(MANAGED_RESOURCE_SPECS["isgl"])
+    assert "diagnosis" not in form["sections"]["list identity"]
+    assert form["sections"]["clinical scope"] == ["asp_groups", "asp_ids", "diagnosis"]
+
+
+def test_gene_list_ownership_is_not_an_editable_installation_choice():
+    """Creation and editing cannot present installer-owned flags as user options."""
+    from coyote3.application.accounts.common import build_managed_form
+    from coyote3.contracts.authoring.resources import MANAGED_RESOURCE_SPECS
+
+    fields = build_managed_form(MANAGED_RESOURCE_SPECS["isgl"])["fields"]
+    for key in ("system_managed", "system_installed"):
+        assert fields[key]["readonly"] is True
+        assert set(fields[key]["hidden_mode"]) == {"create", "edit"}
+
+
 @pytest.fixture
 def service():
     """Provide arbitrary center-defined group and diagnosis identifiers."""

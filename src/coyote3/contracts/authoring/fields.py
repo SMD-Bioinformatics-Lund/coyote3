@@ -761,7 +761,7 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "help": "Readable names for this gene list, separated by commas or new lines. Names are searchable; references always use isgl_id.",
         },
         "diagnosis": {
-            "label": "Diagnosis / Diagnosis IDs",
+            "label": "Diagnoses",
             "display_type": "checkbox-group",
             "options": [],
             "default": [DIAGNOSIS_BASE_ID],
@@ -780,8 +780,16 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
             "display_type": "jsoneditor-or-upload",
             "help": "Curated gene symbols for the selected clinical list type, one per entry.",
         },
-        "adhoc": {"display_type": "checkbox"},
-        "is_public": {"display_type": "checkbox"},
+        "adhoc": {
+            "display_type": "checkbox",
+            "label": "Ad-hoc list",
+            "help": "Uses ad-hoc analysis list types instead of standard types. Ad-hoc lists are excluded from standard assay-configuration gene-list choices. Leave disabled for a routine curated list.",
+        },
+        "is_public": {
+            "display_type": "checkbox",
+            "label": "Public catalog visibility",
+            "help": "Allows an active list and its genes to be exposed through public gene-list views. This does not publish an assay offering or select the list for clinical analysis.",
+        },
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True, "hidden_mode": ["create"]},
         "created_on": {"readonly": True, "hidden_mode": ["create"]},
@@ -971,8 +979,8 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ),
     ],
     "isgl": [
-        ("list identity", ["isgl_id", "name", "displayname", "aliases", "list_type", "diagnosis"]),
-        ("clinical scope", ["asp_groups", "asp_ids"]),
+        ("list identity", ["isgl_id", "name", "displayname", "aliases", "list_type"]),
+        ("clinical scope", ["asp_groups", "asp_ids", "diagnosis"]),
         ("curated gene content", ["genes"]),
         ("availability", ["adhoc", "is_public", "system_managed", "is_active"]),
         (
