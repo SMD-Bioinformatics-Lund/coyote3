@@ -1,14 +1,26 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
-import { useDocumentEditor } from "./useDocumentEditor"
+import { useDocumentEditor, withDocumentEditor } from "./useDocumentEditor"
 
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }))
 const response = (owned = true) => ({ status: 200, data: {
   owned, owner: "first.editor", expires_at: new Date(Date.now() + 90_000).toISOString(), renew_after_seconds: 30,
 } })
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(api.post).mockImplementation(async () => response()) })
-afterEach(() => { vi.useRealTimers() })
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
+
+it("opens form and immediate-action sessions when HTTP does not expose randomUUID", async () => {
+  vi.stubGlobal("crypto", { getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) })
+  const { result } = renderHook(() => useDocumentEditor("draft", "one", true))
+  await waitFor(() => expect(result.current.owned).toBe(true))
+  const action = vi.fn().mockResolvedValue("saved")
+  await expect(withDocumentEditor("draft", "two", action)).resolves.toBe("saved")
+  const sessions = vi.mocked(api.post).mock.calls.filter(([path]) => path.endsWith("/acquire"))
+    .map(([, body]) => (body as { editor_id: string }).editor_id)
+  expect(new Set(sessions).size).toBe(2)
+  for (const session of sessions) expect(session).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+})
 
 it("blocks saves until ownership and a fresh document have both loaded", async () => {
   let ready!: () => void

@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
 test("a second editor is read-only until the first editor leaves", async ({ page, browser }) => {
+  // HTTP intranet origins expose getRandomValues but not randomUUID.
+  const httpCrypto = () => Object.defineProperty(window.crypto, "randomUUID", { value: undefined, configurable: true })
+  await page.addInitScript(httpCrypto)
   let owner: string | null = null
   let savedName = "Shared draft"
   let revision = 1
@@ -30,6 +33,7 @@ test("a second editor is read-only until the first editor leaves", async ({ page
   const otherContext = await browser.newContext()
   try {
     const other = await otherContext.newPage()
+    await other.addInitScript(httpCrypto)
     await install(other)
     await other.goto("/admin/assay-setups?setup=setup-one")
     await expect(other.getByText(/editor.one is editing this document/)).toBeVisible()

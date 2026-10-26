@@ -4,9 +4,18 @@ import { useEffect, useRef, useState } from "react"
 type Lease = { owned: boolean; owner: string | null; expires_at: string | null; renew_after_seconds: number }
 type State = { key: string; session: string; lease: Lease | null; error: string }
 
+/** Generate a UUID v4 using Web Crypto, including on HTTP intranet deployments. */
+function newEditorSession(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 /** Take a short editing session for a version-checked action without a persistent form. */
 export async function withDocumentEditor<T>(kind: string, identity: string, action: (options: RequestInit) => Promise<T>): Promise<T> {
-  const editor_id = crypto.randomUUID()
+  const editor_id = newEditorSession()
   const path = `/editing/${encodeURIComponent(kind)}/${encodeURIComponent(identity)}`
   const { data } = await api.post<Lease>(`${path}/acquire`, { editor_id })
   if (!data.owned) throw new Error(`${data.owner || "Another user"} is editing this document.`)
@@ -26,7 +35,7 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
   prepareRef.current = prepare
   useEffect(() => {
     if (!enabled || !identity) return
-    const session = crypto.randomUUID()
+    const session = newEditorSession()
     const endpoint = `/editing/${encodeURIComponent(kind)}/${encodeURIComponent(identity)}`
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | undefined

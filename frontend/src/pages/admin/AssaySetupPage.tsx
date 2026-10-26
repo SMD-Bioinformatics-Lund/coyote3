@@ -133,7 +133,13 @@ export function AssaySetupPage() {
     <DocumentEditorNotice editor={documentEditor} />
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
       <section className="surface-panel flex flex-wrap items-end gap-3 p-4">
-        <label className="type-label min-w-0 flex-1">Saved setups<select aria-label="Saved setups" className="paper-inset mt-1 w-full rounded-md p-2" value={selected} disabled={mutation.isPending} onChange={(event) => choose(event.target.value)}><option value="">Select a setup</option>{isNew && <option value="new">New assay</option>}{(list.data || []).map((item) => <option key={item._id} value={item._id}>{item.asp_id} · {item.status} · r{item.revision}</option>)}</select></label>
+        <label className="type-label min-w-0 flex-1">Saved setups
+          <select aria-label="Saved setups" className="paper-inset mt-1 w-full rounded-md p-2 text-foreground [&>option]:bg-background [&>option]:text-foreground" value={selected} disabled={mutation.isPending} onChange={(event) => choose(event.target.value)}>
+            <option value="">Select a setup</option>
+            {isNew && <option value="new">New assay</option>}
+            {(list.data || []).map((item) => <option key={item._id} value={item._id}>{`${item.asp_id} · ${item.status} · Revision ${item.revision}`}</option>)}
+          </select>
+        </label>
         {setup && <span className="inline-flex shrink-0 items-center rounded-md border border-primary/20 bg-primary/5 px-3 py-2 type-body font-medium text-primary">{setup.status} · Revision {setup.revision}</span>}
       </section>
       {(list.error || context.error) && <p role="alert" className="text-destructive">Unable to load assay setup.</p>}

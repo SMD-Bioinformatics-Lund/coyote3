@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Fix document editors crashing on HTTP deployments without `crypto.randomUUID`;
+  clarify saved assay setup revision labels and theme colours in the selector.
+
 - Add shared, expiring document-editing sessions for administration, governed drafts
   and sample filters. Saves require the owning form's session; competing editors
   remain read-only, and delete/publication actions respect active sessions.

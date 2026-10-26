@@ -31,6 +31,10 @@ it("allows an independent reviewer to approve the loaded revision", async () => 
   fireEvent.click(screen.getByRole("button", { name: "Approve and activate" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/publish", { revision: 3, reason: "" }, {}))
 })
+it("labels saved setups with the assay, status and revision", async () => {
+  mount()
+  expect(await screen.findByRole("option", { name: "assay_1 · submitted · Revision 3" })).toHaveValue("setup-1")
+})
 it("does not offer self-approval to a content editor", async () => {
   access.username = "author"
   mount()
