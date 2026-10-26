@@ -12,6 +12,15 @@ _report_rules: ContextVar[dict[str, dict[str, Any]] | None] = ContextVar(
     "report_clinical_rules", default=None
 )
 
+MISSING_REPORTING_RULES_WARNING = (
+    "No published reporting rules are available for this assay, diagnosis and language. "
+    "The report is available without an automatically generated summary."
+)
+
+
+class MissingClinicalRuleSet(ValueError):
+    """No published exact-scope or assay Base reporting rules exist."""
+
 
 @contextmanager
 def capture_clinical_rules() -> Iterator[dict[str, dict[str, Any]]]:
@@ -83,6 +92,6 @@ def resolve_published_rule_set(
             if rule_set.content_hash != content_hash(rule_set):
                 raise ValueError("Published clinical rule-set content failed integrity validation")
             return rule_set
-    raise ValueError(
+    raise MissingClinicalRuleSet(
         f"No active published clinical rule set for {asp_id}/{scope}/{analyte}/{language} or assay Base"
     )

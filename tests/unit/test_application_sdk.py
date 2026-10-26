@@ -404,6 +404,7 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
     assert result.html == html
     assert result.pdf == b"%PDF-synthetic"
     assert result.snapshot_count == 1
+    assert "without an automatically generated summary" in result.reporting_warning
     render_pdf.assert_called_once_with(result.html)
     assert trial_renderer.call_count == 1
     assert trial_renderer.call_args.kwargs["snapshot_rows"] == [{"gene": "TP53"}]

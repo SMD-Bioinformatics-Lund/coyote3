@@ -417,7 +417,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     monkeypatch.setattr(
         store.blacklist_repository,
         "add_blacklist_data",
-        lambda variants, assay_group: variants,
+        lambda variants, assay_group, *, asp_id: variants,
     )
     monkeypatch.setattr(store.variant_repository, "get_variant_in_other_samples", lambda var: [])
     monkeypatch.setattr(store.variant_repository, "hidden_var_comments", lambda var_id: False)
@@ -520,7 +520,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(
         store.blacklist_repository,
         "add_blacklist_data",
-        lambda variants, assay_group: variants,
+        lambda variants, assay_group, *, asp_id: variants,
     )
     monkeypatch.setattr(
         dna_service_module,

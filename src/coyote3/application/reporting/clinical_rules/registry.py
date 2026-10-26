@@ -115,6 +115,67 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         value_options=("GRCh37", "GRCh38"),
     ),
     _fact("asp.asp_group", "Assay group", "Assay", "string", _EQUALITY),
+    _fact("asp.display_name", "Assay full display name", "Assay", "string", _EQUALITY),
+    _fact("asp.name", "Assay short name", "Assay", "string", _EQUALITY),
+    _fact("asp.covered_genes_count", "Assay covered gene count", "Assay", "integer", _NUMBER),
+    *(
+        _fact(
+            f"gene_lists.{analysis}.{field}",
+            f"{analysis.upper()} selected lists: {label}",
+            "Selected gene lists",
+            kind,
+            operators,
+        )
+        for analysis in ("snv", "cnv", "translocation", "fusion", "expression", "pgx")
+        for field, label, kind, operators in (
+            ("ids", "identifiers", "string_list", _LIST),
+            ("names", "short names", "string_list", _LIST),
+            ("display_names", "full names", "string_list", _LIST),
+            ("genes", "unique genes", "string_list", _LIST),
+            ("gene_count", "unique gene count", "integer", _NUMBER),
+            ("germline_genes", "selected germline genes", "string_list", _LIST),
+        )
+    ),
+    _fact(
+        "item.isgl_id",
+        "Gene list identifier",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.name",
+        "Gene list short name",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.displayname",
+        "Gene list full name",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.gene_count",
+        "Gene list unique gene count",
+        "Current gene list",
+        "integer",
+        _NUMBER,
+        ("each_item",),
+    ),
+    _fact(
+        "item.selected_for",
+        "Gene list selected analyses",
+        "Current gene list",
+        "string_list",
+        _LIST,
+        ("each_item",),
+    ),
     _fact(
         "asp.asp_category",
         "Assay category",
@@ -187,6 +248,25 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     ),
     _fact("finding.hgvsc", "HGVS.c", "Finding", "string", _EQUALITY, ("each_finding",)),
     _fact("finding.hgvsp", "HGVS.p", "Finding", "string", _EQUALITY, ("each_finding",)),
+    _fact(
+        "finding.cnv_ratio", "CNV recorded ratio", "Finding", "number", _NUMBER, ("each_finding",)
+    ),
+    _fact(
+        "finding.chromosome", "CNV chromosome", "Finding", "string", _EQUALITY, ("each_finding",)
+    ),
+    _fact("finding.start", "CNV start", "Finding", "integer", _NUMBER, ("each_finding",)),
+    _fact("finding.end", "CNV end", "Finding", "integer", _NUMBER, ("each_finding",)),
+    *(
+        _fact(f"finding.{field}", label, "Fusion", kind, operators, ("each_finding",))
+        for field, label, kind, operators in (
+            ("fusion_breakpoint_1", "First fusion breakpoint", "string", _EQUALITY),
+            ("fusion_breakpoint_2", "Second fusion breakpoint", "string", _EQUALITY),
+            ("fusion_effect", "Fusion effect", "string", _EQUALITY),
+            ("fusion_spanning_pairs", "Fusion spanning pairs", "integer", _NUMBER),
+            ("fusion_spanning_reads", "Fusion spanning reads", "integer", _NUMBER),
+            ("fusion_annotation", "Fusion annotation text", "string", _EQUALITY),
+        )
+    ),
     _fact(
         "finding.cnv_effect",
         "Copy-number effect",

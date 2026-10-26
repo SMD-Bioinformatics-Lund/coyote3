@@ -207,7 +207,9 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                 get_isgl_by_ids=lambda ids: {},
             ),
             variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
-            blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+            blacklist_repository=SimpleNamespace(
+                add_blacklist_data=lambda rows, group, *, asp_id: rows
+            ),
             sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
             copy_number_variant_repository=SimpleNamespace(
                 get_interesting_sample_cnvs=lambda sample_id: []
@@ -293,7 +295,9 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             get_case_variants=lambda query: [],
             hydrate_finding_comments_many=lambda rows: rows,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, group, *, asp_id: rows
+        ),
         sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
         copy_number_variant_repository=SimpleNamespace(
             get_interesting_sample_cnvs=lambda sample_id: [
@@ -359,7 +363,9 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
             get_case_variants=lambda query: [],
             hydrate_finding_comments_many=unexpected,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay=None: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, group, *, asp_id: rows
+        ),
         sample_repository=SimpleNamespace(get_latest_sample_comment=unexpected),
         copy_number_variant_repository=SimpleNamespace(),
         biomarker_repository=SimpleNamespace(),

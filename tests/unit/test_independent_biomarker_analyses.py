@@ -5,7 +5,6 @@ from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-import mongomock
 import pytest
 from pydantic import ValidationError
 
@@ -25,11 +24,6 @@ from coyote3.contracts.schemas.dna import BiomarkersDoc
 from coyote3.contracts.schemas.samples import SamplesDoc
 from coyote3.domain.common.biomarkers import project_biomarkers
 from coyote3.domain.exceptions import AppError
-from scripts.upgrade_from_v3.migrate_biomarker_analyses import (
-    migrate,
-    requires_rule_review,
-    transform_configuration,
-)
 
 MEASUREMENTS = {
     "name": "SYNTHETIC-T",
@@ -38,21 +32,6 @@ MEASUREMENTS = {
     "MSIP": {"tot": 100, "som": 1, "per": 1.0},
     "TMB": {"value": 0.0, "unit": "mut/Mb"},
 }
-
-
-@pytest.mark.parametrize(
-    "expression",
-    [
-        {"analysis_declarations": {"BIOMARKER": {}}},
-        {"analysis": "LOH"},
-        {"evaluation": {"collection": "biomarkers"}},
-        {"condition": {"fact": "aggregates.biomarker_count"}},
-    ],
-)
-def test_migration_flags_obsolete_rule_resources(expression):
-    """Existing aggregate rules require reviewed replacement releases."""
-    assert requires_rule_review({"blocks": [expression]})
-    assert not requires_rule_review({"analysis": "MSI", "collection": "msi"})
 
 
 @pytest.mark.parametrize("collection", ["biomarkers", "loh"])
@@ -139,15 +118,6 @@ def test_invalid_shared_measurement_roots_fail(tmp_path, document):
     source.write_text(json.dumps(document))
     with pytest.raises(ValueError, match="Biomarkers JSON requires"):
         DnaIngestParser().parse({"biomarkers": str(source)})
-
-
-def test_migration_refuses_distinct_measurement_file_references():
-    db = mongomock.MongoClient().test
-    db.samples.insert_one({"files": {"hrd": {"path": "a.json"}, "msi": {"path": "b.json"}}})
-    original = db.samples.find_one()
-    with pytest.raises(ValueError, match="Combine distinct"):
-        migrate(db, analyses=["HRD", "MSI"], apply=True)
-    assert db.samples.find_one() == original
 
 
 @pytest.mark.parametrize("field,value", [("TMB", -1), ("TMB", float("inf"))])
@@ -251,36 +221,6 @@ def test_api_selection_uses_stored_configuration(monkeypatch):
         service.list_payload(sample=sample, analysis_type="LOH")
 
 
-def test_migration_requires_explicit_selection_and_preserves_history():
-    original = {
-        "analysis_types": ["SNV", "BIOMARKER", "TMB"],
-        "reporting": {"report_sections": ["BIOMARKER"]},
-        "expected_files": ["biomarkers"],
-    }
-    updated = transform_configuration(original, ["HRD", "MSI"])
-    assert updated["analysis_types"] == ["SNV", "HRD", "MSI", "TMB"]
-    assert updated["expected_files"] == ["biomarkers"]
-    assert original["expected_files"] == ["biomarkers"]
-    db = mongomock.MongoClient().test
-    db.asp_configs.insert_one({**original, "asp_id": "assay"})
-    db.assay_specific_panels.insert_one(
-        {"asp_id": "assay", "expected_files": ["biomarkers", "tmb"]}
-    )
-    db.reports.insert_one({"report_sections": ["BIOMARKER"]})
-    db.clinical_rule_sets.insert_one(
-        {
-            "active": True,
-            "status": "published",
-            "analysis_declarations": {"BIOMARKER": {"narrative": "enabled"}},
-        }
-    )
-    assert migrate(db, analyses=["HRD", "MSI"])["rules_requiring_review"] == 1
-    with pytest.raises(ValueError, match="Publish reviewed"):
-        migrate(db, analyses=["HRD", "MSI"], apply=True)
-    assert db.asp_configs.find_one()["analysis_types"] == original["analysis_types"]
-    assert db.reports.find_one()["report_sections"] == ["BIOMARKER"]
-
-
 def test_report_renders_only_selected_measurement_table():
     """Unselected stored values cannot leak into the rendered report body."""
     html = render_report_html(
@@ -303,26 +243,3 @@ def test_report_renders_only_selected_measurement_table():
     assert ">HRD</span>" not in html
     assert "mut/Mb" in html
     assert "'value':" not in html
-
-
-def test_migration_applies_configuration_but_not_saved_evidence(monkeypatch):
-    """Applying twice is idempotent and leaves source records and reports unchanged."""
-    monkeypatch.setattr(
-        "scripts.upgrade_from_v3.migrate_biomarker_analyses.run_transaction",
-        lambda client, write: write(None),
-    )
-    db = mongomock.MongoClient().test
-    db.asp_configs.insert_one({"asp_id": "assay", "analysis_types": ["BIOMARKER"]})
-    db.assay_specific_panels.insert_one({"asp_id": "assay", "expected_files": ["biomarkers"]})
-    db.samples.insert_one(
-        {"_id": "sample", "files": {"biomarkers": {"path": "/synthetic/results.json"}}}
-    )
-    db.biomarkers.insert_one({**MEASUREMENTS, "SAMPLE_ID": "sample"})
-    original = db.biomarkers.find_one()
-    db.reports.insert_one({"report_sections": ["BIOMARKER"]})
-    assert migrate(db, analyses=["HRD", "MSI"], apply=True)["samples"] == 1
-    assert db.asp_configs.find_one()["analysis_types"] == ["HRD", "MSI"]
-    assert set(db.samples.find_one()["files"]) == {"biomarkers"}
-    assert db.biomarkers.find_one() == original
-    assert db.reports.find_one()["report_sections"] == ["BIOMARKER"]
-    assert migrate(db, analyses=["HRD", "MSI"], apply=True)["samples"] == 0

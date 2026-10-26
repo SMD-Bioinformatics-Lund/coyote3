@@ -3,13 +3,11 @@
 Coyote3 tracks the core/server distribution, complete application deployment and
 independent HTTP client separately.
 
-## Python client 2.0 authentication
+## Python client 1.0 authentication
 
 Use `CoyoteClient.login()` or `AsyncCoyoteClient.login()` for password sessions,
-and their `login_with_token()` methods for existing server sessions. Version 2.0
-removes the duplicate `coyote3_client.auth` module and its `ApiLoginSession`,
-`login_with_password`, and standalone `login_with_token` exports. There are no
-forwarding aliases. The retained clients validate response contracts, require the
+and their `login_with_token()` methods for existing server sessions. Authentication
+is owned by these clients. They validate response contracts, require the
 configured session cookie, preserve deployment prefixes, and send bearer tokens
 through their owned transports. Explicit CLI token export uses `client.session_token`;
 normal output and user metadata exclude this credential.
@@ -25,6 +23,11 @@ normal output and user metadata exclude this credential.
 | HTTP API major | Existing `/api/v1` route contracts; recorded as `http_api_major` | HTTP compatibility generation, separate from software releases. |
 | Center configuration format | `center_configuration_format` in `release.toml` | Supported staged configuration manifest format, currently 1. |
 | Clinical configuration/data revisions | Existing published resources and migration contracts | Governed content and stored-data compatibility, not application release counters. |
+
+The current application release is `4.0.0`, the core SDK is `1.0.0`, and the
+HTTP client is `1.0.0`. Each package owns its version; matching numbers do not
+couple their release cycles. Published artifacts must never be replaced with
+different content under the same version.
 
 There is no separate `APPLICATION_SDK_VERSION` counter. API and frontend share the
 application release while they are released together. The remote client has its
@@ -47,8 +50,8 @@ major releases. Clinical changes still require their established review and
 regression validation regardless of version classification.
 
 Ordinary working-tree edits do not require new release numbers. Released artifacts
-are immutable. Use Python development or candidate versions such as `4.1.0.dev1`
-and `4.1.0rc1` for unreleased SDK builds. Environment image labels such as `-dev`
+are immutable. Use Python development or candidate versions such as `1.1.0.dev1`
+and `1.1.0rc1` for unreleased SDK builds. Environment image labels such as `-dev`
 are deployment labels and are not Python package versions.
 
 An API/frontend-only fix can release a new application using the same SDK. An
@@ -68,10 +71,10 @@ breaking change does not require `/api/v2` if the API preserves its HTTP contrac
    ```bash
    .venv/bin/python scripts/release/build_sdk.py --output-dir .release/sdk
    .venv/bin/python -m pip install --no-deps --force-reinstall \
-     .release/sdk/coyote3-4.0.0-py3-none-any.whl
+     .release/sdk/coyote3-1.0.0-py3-none-any.whl
    PYTHONPATH=. .venv/bin/pytest -q tests/unit tests/api tests/integration
    .venv/bin/python scripts/release/check_release.py --production \
-     --wheel .release/sdk/coyote3-4.0.0-py3-none-any.whl \
+     --wheel .release/sdk/coyote3-1.0.0-py3-none-any.whl \
      --output .release/sdk/release-record.json
    export GIT_COMMIT="$(git rev-parse HEAD)"
    ```
@@ -90,7 +93,7 @@ breaking change does not require `/api/v2` if the API preserves its HTTP contrac
    installation. It retains both files under `/opt/coyote3-sdk/` in the image.
    Retain deployment
    image digests and the selected center manifest alongside it.
-5. Tag SDK and application releases separately, for example `sdk-v4.0.0` and
+5. Tag SDK and application releases separately, for example `sdk-v1.0.0` and
    `app-v4.0.0`. Publishing to a public package index is not required.
 
 Normal installations use the `coyote3_source_api` Docker target. It builds the

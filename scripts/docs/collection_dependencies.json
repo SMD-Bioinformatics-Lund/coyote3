@@ -100,7 +100,7 @@
   },
   "notes": {
     "primary.asp_configs": "The operational identity is assay + diagnosis + environment, with retained document versions. query_policy_release, clinical_rule_release and clinical_rule_base are historical capture fields: current schema comments and writes explicitly exclude them from new runtime captures. Preserve historical data without making these fields a prerequisite for new configurations.",
-    "primary.blacklist": "pos matches variants.simple_id, not variants._id. The migration bundle contract declares assay_group; scripts/migration_common/apply_bundle.py deliberately persists it as assay because the repository queries and indexes (assay,pos). This is an explicit serialization boundary, not two interchangeable stored fields. Coverage exclusions use d4_coverage_blacklist instead.",
+    "primary.blacklist": "pos matches variants.simple_id, not variants._id. The repository queries and indexes (assay,pos); assay stores the biological group identifier. Coverage exclusions use d4_coverage_blacklist instead.",
     "primary.annotation": "No SAMPLE_ID, sample_oid or variant_oid foreign key exists here. Nomenclature p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Preserve namespace, assay scope, author, timestamps and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.",
     "primary.anno_vep": "Shared transcript vault in PRIMARY, not the knowledgebase database. Unique index: (simple_id_hash, vep_version). Not owned by one sample; never delete it just because one sample is removed.",
     "primary.samples": "case_id, control_id, case.id and control.id describe sample material/case-control identifiers; they are not self-references to samples._id. The primary samples collection and BAM-service samples collection are different namespaces.",
@@ -321,14 +321,23 @@
     },
     {
       "source": "primary.blacklist",
-      "field": "assay",
-      "repository_field": true,
+      "field": "assay_groups[]",
       "target": "primary.assay_groups",
       "target_field": "group_id",
       "kind": "optional scope",
-      "cardinality": "many → one",
-      "notes": "Persisted scope is assay. Validated migration bundles call it assay_group and translate it before writing. Preserve pos and in_normal_perc with this scope.",
-      "evidence": "scripts/migration_common/apply_bundle.py"
+      "cardinality": "many → many",
+      "notes": "One canonical simple_id, its validated MD5 simple_id_hash and separate chrom/pos/ref/alt per allele. Exclusions apply to every listed biological group; normal-sample measurements remain keyed by exact assay ID.",
+      "evidence": "api/infra/mongo/repositories/blacklist.py"
+    },
+    {
+      "source": "primary.blacklist",
+      "field": "in_normal_perc.{asp_id}",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "business key",
+      "cardinality": "many → many",
+      "notes": "Dictionary keys identify the assay owning each normal-sample measurement. Values are retained without rescaling. Never substitute a different assay's measurement.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
     },
     {
       "source": "primary.d4_coverage_blacklist",

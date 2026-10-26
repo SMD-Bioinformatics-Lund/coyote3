@@ -10,7 +10,11 @@ from pydantic import ValidationError
 
 from coyote3.application.accounts.common import build_managed_form
 from coyote3.application.common.protected_records import reject_system_managed_change
-from coyote3.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from coyote3.application.reporting.clinical_rules.resolution import (
+    MISSING_REPORTING_RULES_WARNING,
+    MissingClinicalRuleSet,
+    resolve_published_rule_set,
+)
 from coyote3.application.resources.aspc import AspcService
 from coyote3.application.resources.helpers import require_new_identifier
 from coyote3.application.resources.isgl import IsglService
@@ -348,7 +352,7 @@ class AssaySetupService:
         """Validate every selected scope/environment and prepare operational documents.
 
         Raises:
-            AppError: Configuration is incomplete, references an unavailable rule,
+            AppError: Configuration is incomplete, resolves an invalid rule,
                 duplicates an identity or includes an unselected scope/environment.
         """
         content = AssaySetupContent.model_validate(document["content"])
@@ -359,6 +363,7 @@ class AssaySetupService:
         expected = {(scope, env) for scope in content.scopes for env in content.environments}
         actual = set()
         rules = {}
+        warnings = []
         for source in content.configurations:
             config = workspace.document(source)
             config["asp_id"] = content.panel.asp_id
@@ -376,6 +381,9 @@ class AssaySetupService:
                     analyte=config["asp_category"].lower(),
                     language=reporting.get("language", "sv"),
                 )
+            except MissingClinicalRuleSet:
+                warnings.append(f"{key[0]}/{key[1]}: {MISSING_REPORTING_RULES_WARNING}")
+                continue
             except ValueError as exc:
                 raise api_error(409, str(exc)) from exc
             rules[rule.rule_set_id] = rule.model_dump(mode="python", by_alias=True)
@@ -390,6 +398,7 @@ class AssaySetupService:
             "linked_gene_lists": workspace.linked_lists,
             "configurations": workspace.configurations,
             "rules": list(rules.values()),
+            "warnings": warnings,
             "definitions": workspace.definitions,
             "existing_lists": workspace.existing_lists,
             "associations": [
@@ -409,8 +418,8 @@ class AssaySetupService:
     def readiness(self, document: dict, *, actor: str) -> dict:
         """Return actionable validation feedback without changing setup or sample data."""
         try:
-            self.bundle(document, actor=actor)
-            return {"ready": True, "issues": []}
+            bundle = self.bundle(document, actor=actor)
+            return {"ready": True, "issues": [], "warnings": bundle["warnings"]}
         except (AppError, ValidationError, ValueError) as exc:
             return {"ready": False, "issues": [str(exc)]}
 

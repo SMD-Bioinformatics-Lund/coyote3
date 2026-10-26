@@ -6,9 +6,6 @@ commands, their callers, and operational prerequisites.
 
 | Directory | Purpose |
 | --- | --- |
-| [upgrade_from_v3](upgrade_from_v3/README.md) | Clinical application data upgrades from Coyote v3; excludes identity and external knowledgebases |
-| [migrate_from_v2](migrate_from_v2/README.md) | Offline v2 clinical migration using `variants_idref` and `cnvs_wgs` |
-| `migration_common/` | Shared offline indexing, conversion, metadata reconciliation, and isolated target bundle application |
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
 | `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
 | `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
@@ -23,9 +20,9 @@ commands, their callers, and operational prerequisites.
 Migration commands are operator tools, not application startup hooks. Read their
 runbooks and inspect the plan before enabling writes. Keep credentials, database
 exports, migration plans containing identifiers, and backups outside the repository.
-The [shared migration README](migration_common/README.md#migration-commands-in-order)
-contains numbered v2/v3 commands. MongoDB is the destination; SQLite files are local
-lookup indexes only. Source conversion never applies bundles automatically.
+Clinical-data conversion lives in `migrations_scripts/`. Follow the
+[execution order and commands](../docs/operations/migrations/clinical-data.md).
+Export and preparation do not write to the source databases.
 
 Fresh deployment includes the connected DNA/RNA starter configuration and both samples
 unless `--skip-demo` is selected. Later additions and repairs use

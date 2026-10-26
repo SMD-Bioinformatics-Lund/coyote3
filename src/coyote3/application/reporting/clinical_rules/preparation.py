@@ -116,6 +116,10 @@ def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
         "genes": genes,
         "tier": (cnv.get("classification") or {}).get("class"),
         "cnv_effect": effect,
+        "cnv_ratio": ratio,
+        "chromosome": str(cnv["chr"]) if cnv.get("chr") is not None else None,
+        "start": cnv.get("start"),
+        "end": cnv.get("end"),
         "variant_type": "cnv",
     }
 
@@ -193,6 +197,9 @@ def _gene_list_fact(gene_list: dict[str, Any], assay: dict[str, Any]) -> dict[st
         list_type = [list_type]
     return {
         "isgl_id": str(gene_list.get("isgl_id") or ""),
+        "name": gene_list.get("name"),
+        "displayname": gene_list.get("displayname"),
+        "gene_count": len(set(gene_list.get("genes") or [])),
         "version": gene_list.get("version"),
         "list_type": list(list_type),
         "selected_for": list(gene_list.get("selected_for") or []),
@@ -202,6 +209,35 @@ def _gene_list_fact(gene_list: dict[str, Any], assay: dict[str, Any]) -> dict[st
         ),
         "adhoc": bool(gene_list.get("adhoc")),
     }
+
+
+def _gene_scopes(gene_lists: list[dict[str, Any]], asp: dict[str, Any]) -> dict[str, Any]:
+    """Group selected lists by analysis without counting overlapping genes twice.
+
+    Args:
+        gene_lists: Resolved list documents carrying their actual selected_for domains.
+        asp: Physical assay supplying the germline gene set.
+
+    Returns:
+        Per-analysis identifiers, names and unique genes, independent of findings.
+    """
+    scopes = {}
+    for analysis in ("snv", "cnv", "translocation", "fusion", "expression", "pgx"):
+        selected = [item for item in gene_lists if analysis in (item.get("selected_for") or [])]
+        genes = list(dict.fromkeys(gene for item in selected for gene in item.get("genes") or []))
+        scopes[analysis] = {
+            "ids": [item["isgl_id"] for item in selected],
+            "names": [item["name"] for item in selected]
+            if all(item.get("name") for item in selected)
+            else None,
+            "display_names": [item["displayname"] for item in selected]
+            if all(item.get("displayname") for item in selected)
+            else None,
+            "genes": genes,
+            "gene_count": len(genes),
+            "germline_genes": [gene for gene in genes if gene in (asp.get("germline_genes") or [])],
+        }
+    return scopes
 
 
 def _tier_summaries(snvs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -290,6 +326,11 @@ def prepare_report_context(
         asp={
             "asp_id": str(asp.get("asp_id") or sample.get("asp_id") or ""),
             "asp_group": asp.get("asp_group"),
+            "display_name": asp.get("display_name"),
+            "name": asp.get("name"),
+            "covered_genes_count": len(set(asp["covered_genes"]))
+            if asp.get("covered_genes") is not None
+            else None,
             "asp_category": asp.get("asp_category"),
             "accredited": bool(asp.get("accredited")),
             "germline_genes": list(asp.get("germline_genes") or []),
@@ -308,6 +349,7 @@ def prepare_report_context(
             },
         },
         applied_gene_lists=[_gene_list_fact(item, asp) for item in applied_gene_lists],
+        gene_lists=_gene_scopes(applied_gene_lists, asp),
         findings=findings,
         biomarkers=biomarkers,
         **measurement_facts(biomarkers),

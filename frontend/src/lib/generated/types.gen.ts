@@ -1430,6 +1430,12 @@ export type AssaySpecificPanelsDoc = {
      */
     kit_version?: string | null;
     /**
+     * Name
+     *
+     * Optional short assay name for report wording.
+     */
+    name?: string | null;
+    /**
      * Platform
      */
     platform?: string | null;
@@ -8581,6 +8587,10 @@ export type ReportTrialPayload = {
      */
     pdf_base64: string;
     /**
+     * Reporting Warning
+     */
+    reporting_warning?: string | null;
+    /**
      * Snapshot Count
      */
     snapshot_count: number;
@@ -8943,8 +8953,10 @@ export type SampleCaseControlDoc = {
     reads?: number | null;
     /**
      * Sequencing Run
+     *
+     * One sequencing run, or multiple nonfailed runs confirmed for this specimen.
      */
-    sequencing_run?: string | null;
+    sequencing_run?: string | Array<string> | null;
     [key: string]: unknown;
 };
 

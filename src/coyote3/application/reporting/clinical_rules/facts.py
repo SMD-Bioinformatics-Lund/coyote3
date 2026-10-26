@@ -33,6 +33,9 @@ class PreparedAspFacts(_FactModel):
 
     asp_id: str
     asp_group: str | None = None
+    display_name: str | None = None
+    name: str | None = None
+    covered_genes_count: int | None = None
     asp_category: str | None = None
     accredited: bool = False
     germline_genes: list[str] = Field(default_factory=list)
@@ -62,12 +65,26 @@ class PreparedGeneListFacts(_FactModel):
     """One exact ISGL selected during report preparation."""
 
     isgl_id: str
+    name: str | None = None
+    displayname: str | None = None
+    gene_count: int = 0
     version: int | str | None = None
     list_type: list[str] = Field(default_factory=list)
     selected_for: list[str] = Field(default_factory=list)
     genes: list[str] = Field(default_factory=list)
     germline_genes: list[str] = Field(default_factory=list)
     adhoc: bool = False
+
+
+class PreparedGeneScopeFacts(_FactModel):
+    """Names and unique gene counts for lists actually selected for one analysis."""
+
+    ids: list[str] = Field(default_factory=list)
+    names: list[str] | None = Field(default_factory=list)
+    display_names: list[str] | None = Field(default_factory=list)
+    genes: list[str] = Field(default_factory=list)
+    gene_count: int = 0
+    germline_genes: list[str] = Field(default_factory=list)
 
 
 class PreparedFindingFacts(_FactModel):
@@ -89,6 +106,10 @@ class PreparedFindingFacts(_FactModel):
     hgvsp: str | None = None
     variant_type: str | None = None
     cnv_effect: str | None = None
+    cnv_ratio: float | None = None
+    chromosome: str | None = None
+    start: int | None = None
+    end: int | None = None
     fusion_gene_1: str | None = None
     fusion_gene_2: str | None = None
     fusion_breakpoint_1: str | None = None
@@ -161,6 +182,7 @@ class PreparedReportContext(BaseModel):
     asp: PreparedAspFacts
     aspc: PreparedAspcFacts
     applied_gene_lists: list[PreparedGeneListFacts] = Field(default_factory=list)
+    gene_lists: dict[str, PreparedGeneScopeFacts] = Field(default_factory=dict)
     findings: list[PreparedFindingFacts] = Field(default_factory=list)
     biomarkers: list[dict[str, Any]] = Field(default_factory=list)
     hrd: list[PreparedMeasurementFacts] = Field(default_factory=list)
@@ -177,6 +199,9 @@ class PreparedReportContext(BaseModel):
         return {
             "sample": self.sample.model_dump(mode="python"),
             "asp": self.asp.model_dump(mode="python"),
+            "gene_lists": {
+                key: value.model_dump(mode="python") for key, value in self.gene_lists.items()
+            },
             "aspc": self.aspc.model_dump(mode="python"),
             "applied_gene_lists": [
                 gene_list.model_dump(mode="python") for gene_list in self.applied_gene_lists

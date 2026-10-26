@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional
 
@@ -16,6 +15,7 @@ from coyote3.contracts.schemas.base import (
 )
 from coyote3.contracts.schemas.filter_profiles import SnvFlagFiltersDoc
 from coyote3.contracts.schemas.normalizers import normalize_ampersand_terms
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
 class DnaFiltersDoc(SnvFlagFiltersDoc):
@@ -306,7 +306,7 @@ class VariantsDoc(_FindingDocBase):
 
     @model_validator(mode="after")
     def _validate_simple_id_and_hash(self) -> "VariantsDoc":
-        """Check the genomic identifier and its UTF-8 MD5 digest.
+        """Check the genomic identifier using the shared canonical MD5 function.
 
         Returns:
             This variant, filling the hash if it is None when this validator runs.
@@ -321,7 +321,7 @@ class VariantsDoc(_FindingDocBase):
         if not self.simple_id:
             raise ValueError("simple_id is required. Usually it is CHROM_POS_REF_ALT")
 
-        expected_hash = hashlib.md5(self.simple_id.encode("utf-8")).hexdigest()
+        expected_hash = build_simple_id_hash_from_simple_id(self.simple_id)
 
         if self.simple_id_hash is None:
             self.simple_id_hash = expected_hash

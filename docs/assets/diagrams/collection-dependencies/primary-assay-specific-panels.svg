@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1900" viewBox="0 0 1200 1900" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2013" viewBox="0 0 1200 2013" role="img" aria-labelledby="title description">
 <title id="title">primary.assay_specific_panels field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
 <style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
-<rect width="1200" height="1900" fill="white"/>
+<rect width="1200" height="2013" fill="white"/>
 <text x="20" y="32" style="font-size:23px;font-weight:600">primary.assay_specific_panels</text>
 <text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
 <rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
@@ -63,47 +63,47 @@
 <path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="857" class="kind">snapshot · many → one</text>
 <rect x="20" y="883" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="907" font-weight="600">primary.samples</text>
-<text x="34" y="926" font-weight="400">asp_id</text>
+<text x="34" y="907" font-weight="600">primary.blacklist</text>
+<text x="34" y="926" font-weight="400">in_normal_perc.{asp_id}</text>
 <rect x="660" y="883" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="907" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="926" font-weight="400">asp_id</text>
 <path d="M540 917.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="970" class="kind">business key · many → one</text>
+<text x="20" y="970" class="kind">business key · many → many</text>
 <rect x="20" y="996" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1020" font-weight="600">primary.annotation</text>
+<text x="34" y="1020" font-weight="600">primary.samples</text>
 <text x="34" y="1039" font-weight="400">asp_id</text>
 <rect x="660" y="996" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1020" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1039" font-weight="400">asp_id</text>
 <path d="M540 1030.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1083" class="kind">scope · many → one</text>
+<text x="20" y="1083" class="kind">business key · many → one</text>
 <rect x="20" y="1109" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1133" font-weight="600">primary.assay_setups</text>
-<text x="34" y="1152" font-weight="400">asp_id + content.panel.asp_id</text>
+<text x="34" y="1133" font-weight="600">primary.annotation</text>
+<text x="34" y="1152" font-weight="400">asp_id</text>
 <rect x="660" y="1109" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1133" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1152" font-weight="400">asp_id</text>
 <path d="M540 1143.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1196" class="kind">staged identity · many → one</text>
+<text x="20" y="1196" class="kind">scope · many → one</text>
 <rect x="20" y="1222" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1246" font-weight="600">primary.configuration_profiles</text>
-<text x="34" y="1265" font-weight="400">bindings[].asp_id</text>
+<text x="34" y="1246" font-weight="600">primary.assay_setups</text>
+<text x="34" y="1265" font-weight="400">asp_id + content.panel.asp_id</text>
 <rect x="660" y="1222" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1246" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1265" font-weight="400">asp_id</text>
 <path d="M540 1256.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1309" class="kind">optional scope · many ↔ many</text>
+<text x="20" y="1309" class="kind">staged identity · many → one</text>
 <rect x="20" y="1335" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1359" font-weight="600">primary.clinical_rule_sets</text>
-<text x="34" y="1378" font-weight="400">scope.asp_id</text>
+<text x="34" y="1359" font-weight="600">primary.configuration_profiles</text>
+<text x="34" y="1378" font-weight="400">bindings[].asp_id</text>
 <rect x="660" y="1335" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1359" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1378" font-weight="400">asp_id</text>
 <path d="M540 1369.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1422" class="kind">scope lookup · many → one</text>
+<text x="20" y="1422" class="kind">optional scope · many ↔ many</text>
 <rect x="20" y="1448" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1472" font-weight="600">primary.query_rule_sets</text>
+<text x="34" y="1472" font-weight="600">primary.clinical_rule_sets</text>
 <text x="34" y="1491" font-weight="400">scope.asp_id</text>
 <rect x="660" y="1448" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1472" font-weight="600">primary.assay_specific_panels</text>
@@ -111,27 +111,35 @@
 <path d="M540 1482.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="1535" class="kind">scope lookup · many → one</text>
 <rect x="20" y="1561" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1585" font-weight="600">primary.public_assay_catalog</text>
-<text x="34" y="1604" font-weight="400">modalities.{modality}.categories.{key}.asp_id</text>
+<text x="34" y="1585" font-weight="600">primary.query_rule_sets</text>
+<text x="34" y="1604" font-weight="400">scope.asp_id</text>
 <rect x="660" y="1561" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1585" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1604" font-weight="400">asp_id</text>
 <path d="M540 1595.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1648" class="kind">optional binding · many ↔ many</text>
+<text x="20" y="1648" class="kind">scope lookup · many → one</text>
 <rect x="20" y="1674" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1698" font-weight="600">identity.users</text>
-<text x="34" y="1717" font-weight="400">asp_ids[]</text>
+<text x="34" y="1698" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="1717" font-weight="400">modalities.{modality}.categories.{key}.asp_id</text>
 <rect x="660" y="1674" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1698" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1717" font-weight="400">asp_id</text>
 <path d="M540 1708.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1761" class="kind">access scope · many ↔ many</text>
+<text x="20" y="1761" class="kind">optional binding · many ↔ many</text>
 <rect x="20" y="1787" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1811" font-weight="600">primary.edit_leases</text>
-<text x="34" y="1830" font-weight="400">_id (kind=asp)</text>
+<text x="34" y="1811" font-weight="600">identity.users</text>
+<text x="34" y="1830" font-weight="400">asp_ids[]</text>
 <rect x="660" y="1787" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1811" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1830" font-weight="400">asp_id</text>
 <path d="M540 1821.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1874" class="kind">encoded operational key · 0..1 per resource kind/key</text>
+<text x="20" y="1874" class="kind">access scope · many ↔ many</text>
+<rect x="20" y="1900" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1924" font-weight="600">primary.edit_leases</text>
+<text x="34" y="1943" font-weight="400">_id (kind=asp)</text>
+<rect x="660" y="1900" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1924" font-weight="600">primary.assay_specific_panels</text>
+<text x="674" y="1943" font-weight="400">asp_id</text>
+<path d="M540 1934.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1987" class="kind">encoded operational key · 0..1 per resource kind/key</text>
 </svg>

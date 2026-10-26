@@ -31,7 +31,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Link } from "react-router-dom"
-import { ANALYSES, clone, emptyRuleSetScope, generatedRuleSetName, newRule, newRuleBlock, type CreationMode, type NewRuleSetScope } from "./clinical-rule-authoring"
+import { ANALYSES, clone, emptyRuleSetScope, generatedRuleSetName, newRule, newRuleBlock, SECTION_STARTERS, sectionStarter, type CreationMode, type NewRuleSetScope } from "./clinical-rule-authoring"
 import type {
   ClinicalRuleAssayOption,
   ClinicalRuleReviewerOption,
@@ -276,12 +276,28 @@ export function ClinicalRulesPage() {
                 {sectionsCollapsed ? <div className="clinical-rules-section-rail"><Button type="button" variant="ghost" size="icon-sm" title="Expand report sections" aria-label="Expand report sections" onClick={() => setSectionsCollapsed(false)}><PanelLeftOpen /></Button><nav aria-label="Collapsed report sections">{draft.blocks.map((item, index) => { const tone = clinicalRuleSectionTone(index); return <button key={item.block_id} type="button" title={item.section} aria-label={`Select section ${item.section}`} className={cn("clinical-rules-section-tab", tone.rail, selectedBlock === index && "is-active")} onClick={() => { setSelectedBlock(index); setSelectedRule(0) }}><span>{item.section}</span></button> })}</nav></div> : <>
                 <div className="mb-2 flex items-center justify-between gap-2"><span className="type-label">Sections</span><Button size="icon-sm" variant="ghost" title="Collapse report sections" aria-label="Collapse report sections" onClick={() => setSectionsCollapsed(true)}><PanelLeftClose /></Button></div>
                 {draft.blocks.map((item, index) => { const tone = clinicalRuleSectionTone(index); return <div key={item.block_id} className="mb-1 flex items-center gap-1"><button type="button" className={cn("min-w-0 flex-1 rounded-md border p-2 text-left text-sm", selectedBlock === index ? tone.surface : "border-transparent hover:bg-muted")} onClick={() => { setSelectedBlock(index); setSelectedRule(0) }}><span className="block truncate font-medium">{item.section}</span><span className="text-xs text-muted-foreground">{item.rules.length} rules · {item.evaluation.mode.replaceAll("_", " ")}</span></button>{editableDraft && <Button type="button" variant="ghost" size="icon-sm" title="Remove section" onClick={() => mutateDraft((document) => { document.blocks.splice(index, 1); setSelectedBlock(Math.max(0, Math.min(selectedBlock, document.blocks.length - 1))); setSelectedRule(0) })}><Trash2 /></Button>}</div> })}
-                {editableDraft && <Button className="mt-2 w-full" variant="outline" size="sm" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add section</Button>}
+                {editableDraft && <><label className="type-label mt-3 block">Start a section<select aria-label="Section starter" className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value="" onChange={event => {
+                  const key = event.target.value
+                  if (!key) return
+                  mutateDraft(document => {
+                    const starter = sectionStarter(document.blocks, key, { ...document.scope, name: document.name })
+                    document.blocks.push(starter)
+                    if (starter.analysis) document.analysis_declarations[starter.analysis] = { narrative: "enabled" }
+                    setSelectedBlock(document.blocks.length - 1); setSelectedRule(0)
+                  })
+                }}><option value="">Choose a section…</option>{SECTION_STARTERS.filter(([, , analysis]) => !analysis || (ANALYSES[draft.scope.analyte] as readonly string[]).includes(analysis)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><p className="mt-2 text-xs text-muted-foreground">Starters add editable rules, initially disabled. Review wording and enable each rule. Introduction and closing text have no heading by default.</p><Button className="mt-2 w-full" variant="outline" size="sm" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add section</Button></>}
                 </>}
               </aside>
               {!sectionsCollapsed && <ResizeDivider label="Resize report sections" width={sectionsWidth} setWidth={setSectionsWidth} min={160} max={360} />}
               <div className="min-h-0 min-w-0 overflow-y-auto">
                 {block && <div className="space-y-3 border-b border-border p-3">
+                  {editableDraft && <div className="flex flex-wrap items-center gap-2"><span className="text-sm text-muted-foreground">Section {selectedBlock + 1} of {draft.blocks.length}</span>{([-1, 1] as const).map(direction => <Button key={direction} type="button" variant="outline" size="sm" disabled={selectedBlock + direction < 0 || selectedBlock + direction >= draft.blocks.length} onClick={() => mutateDraft(document => {
+                    const destination = selectedBlock + direction
+                    const [moved] = document.blocks.splice(selectedBlock, 1)
+                    document.blocks.splice(destination, 0, moved)
+                    document.blocks.forEach((item, index) => { item.section_order = (index + 1) * 100; item.block_order = (index + 1) * 10 })
+                    setSelectedBlock(destination)
+                  })}>Move section {direction === -1 ? "up" : "down"}</Button>)}</div>}
                   {editableDraft && <div className="grid gap-2 lg:grid-cols-3">
                     <label className="type-label">Output destination<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={["report_header_suffix", "clinical_question"].includes(block.section) ? block.section : "summary"} onChange={(event) => mutateDraft((document) => {
                       const current = document.blocks[selectedBlock]
@@ -311,7 +327,7 @@ export function ClinicalRulesPage() {
                   {editableDraft && <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={metadataOutput} checked={block.show_heading} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].show_heading = event.target.checked })} /> Show section heading</label>}
                   <div className="flex gap-2 overflow-x-auto">{block.rules.map((item, index) => <div key={item.rule_id} className={cn("flex shrink-0 items-center rounded-md", selectedRule === index ? "bg-primary text-primary-foreground" : "bg-muted")}><button type="button" className="px-3 py-1.5 text-sm" onClick={() => setSelectedRule(index)}>{item.name}</button>{editableDraft && block.rules.length > 1 && <Button type="button" variant="ghost" size="icon-sm" title="Remove rule" onClick={() => mutateDraft((document) => { document.blocks[selectedBlock].rules.splice(index, 1); setSelectedRule(Math.max(0, Math.min(selectedRule, document.blocks[selectedBlock].rules.length - 1))) })}><Trash2 /></Button>}</div>)}{editableDraft && <Button className="shrink-0" variant="outline" size="sm" onClick={() => mutateDraft((document) => { const currentBlock = document.blocks[selectedBlock]; const allRuleIds = document.blocks.flatMap((item) => item.rules.map((itemRule) => itemRule.rule_id)); currentBlock.rules.push(newRule(currentBlock, allRuleIds)); setSelectedRule(currentBlock.rules.length - 1) })}><Plus /> Add rule</Button>}</div>
                 </div>}
-                {rule && block ? <fieldset disabled={!editableDraft}><RuleEditor rule={rule} block={block} facts={facts} controlledValues={controlledValues} change={(next) => mutateDraft((document) => { document.blocks[selectedBlock].rules[selectedRule] = next })} /></fieldset> : <div className="grid min-h-72 place-items-center p-8 text-center"><div><p className="text-sm text-muted-foreground">This rule set does not have an authored section yet.</p>{editableDraft && <Button className="mt-3" variant="outline" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add first section</Button>}</div></div>}
+                {rule && block ? <fieldset disabled={!editableDraft}><RuleEditor rule={rule} block={block} facts={facts} controlledValues={controlledValues} terminology={draft.terminology} changeTerminology={(terms) => mutateDraft(document => { document.terminology = terms })} change={(next) => mutateDraft((document) => { document.blocks[selectedBlock].rules[selectedRule] = next })} /></fieldset> : <div className="grid min-h-72 place-items-center p-8 text-center"><div><p className="text-sm text-muted-foreground">This rule set does not have an authored section yet.</p>{editableDraft && <Button className="mt-3" variant="outline" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add first section</Button>}</div></div>}
               </div>
             </div>
           </>}
@@ -319,6 +335,7 @@ export function ClinicalRulesPage() {
         <ResizeDivider label="Resize text preview" width={previewWidth} setWidth={setPreviewWidth} min={280} max={720} direction={-1} />
         <aside className="min-h-0 min-w-0 overflow-y-auto bg-muted/10 p-4">
           <div className="flex items-center justify-between"><h2 className="type-section-title">Live text preview</h2><GitCompareArrows className="h-4 w-4 text-primary" /></div>
+          <p className="mt-2 text-xs text-muted-foreground">Brackets show dynamic values, not sample results. Use Test rules to resolve values and conditions against a sample.</p>
           <div className={cn("mt-3 whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed", clinicalRuleSectionTone(selectedBlock).surface)}>{selectedPreview}</div>
           {editableDraft && <section className="mt-5 border-t border-border pt-4"><h2 className="type-section-title">Report analyses</h2><div className="mt-2 space-y-2">{ANALYSES[draft.scope.analyte].map((analysis) => <label key={analysis} className="flex items-center justify-between gap-3 text-sm"><span>{analysis}</span><select className="paper-inset rounded-lg p-1.5 text-xs" value={draft.analysis_declarations[analysis]?.narrative || "undeclared"} onChange={(event) => mutateDraft((document) => { if (event.target.value === "undeclared") delete document.analysis_declarations[analysis]; else document.analysis_declarations[analysis] = { narrative: event.target.value as "enabled" | "none" } })}><option value="undeclared">Not declared</option><option value="enabled">Generate text</option><option value="none">No narrative</option></select></label>)}</div></section>}
           {draft?.scope.analyte === "dna" && <section className="mt-5 border-t border-border pt-4">

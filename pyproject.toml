@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Coyote3"
-version = "4.0.0"
+version = "1.0.0"
 requires-python = ">=3.12"
 readme = "README.md"
 license = "LicenseRef-COYOTE3-Free-Use-Source-Available-1.0"
@@ -177,6 +177,7 @@ convention = "google"
 "api/**/*.py" = ["TID251"]
 "src/coyote3/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
+"migrations_scripts/**/*.py" = ["TID251"]
 "tests/**/*.py" = ["TID251"]
 
 [tool.ruff.format]

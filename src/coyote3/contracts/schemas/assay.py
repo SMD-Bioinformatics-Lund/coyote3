@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, computed_field, field_validator, model_validator
 
@@ -41,6 +41,12 @@ from coyote3.domain.common.assay_capabilities import supported_assay_analyses
 from coyote3.domain.common.sample_filters import (
     normalize_analysis_intents,
     normalize_sample_filters,
+)
+from coyote3.domain.dna.variant_identity import (
+    build_simple_id,
+    build_simple_id_hash_from_simple_id,
+    normalize_allele,
+    normalize_chrom,
 )
 
 DNA_EXPECTED_FILE_OPTIONS: tuple[str, ...] = SAMPLE_FILE_KEYS["dna"]
@@ -521,6 +527,9 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     asp_category: str
     supported_analyses: list[str] | None = None
     display_name: str
+    name: str | None = Field(
+        default=None, description="Optional short assay name for report wording."
+    )
     description: str | None = None
     igv: AspIgvDoc | None = None
     expected_files: list[str] = Field(default_factory=list)
@@ -976,8 +985,60 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
 
 
 class BlacklistDoc(_StrictCollectionDocBase):
-    """Blacklisted position with optional assay group and normal-sample frequency."""
+    """One blacklisted allele with group scopes and per-assay normal-sample measurements."""
 
-    pos: str
-    assay_group: str | None = None
-    in_normal_perc: float | None = None
+    simple_id: str
+    simple_id_hash: str
+    chrom: str = Field(min_length=1)
+    pos: int = Field(gt=0, strict=True)
+    ref: str = Field(min_length=1)
+    alt: str = Field(min_length=1)
+    assay_groups: list[str] = Field(min_length=1)
+    in_normal_perc: dict[str, Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)]] = Field(
+        default_factory=dict
+    )
+
+    @field_validator("chrom")
+    @classmethod
+    def normalize_chromosome(cls, value: str) -> str:
+        """Use the canonical chromosome representation used in variant identities."""
+        normalized = normalize_chrom(value)
+        if not normalized:
+            raise ValueError("chrom must not be empty")
+        return normalized
+
+    @field_validator("ref", "alt")
+    @classmethod
+    def normalize_alleles(cls, value: str) -> str:
+        """Store alleles in uppercase to match the canonical variant identifier."""
+        normalized = normalize_allele(value)
+        if not normalized:
+            raise ValueError("Alleles must not be empty")
+        return normalized
+
+    @field_validator("assay_groups")
+    @classmethod
+    def normalize_groups(cls, values: list[str]) -> list[str]:
+        """Normalize and deduplicate biological group identifiers."""
+        return sorted({normalize_asp_group(value) for value in values})
+
+    @field_validator("in_normal_perc")
+    @classmethod
+    def normalize_assay_percentages(cls, values: dict[str, float]) -> dict[str, float]:
+        """Normalize assay keys while rejecting duplicate measurements after normalization."""
+        normalized = {}
+        for key, value in values.items():
+            identifier = normalize_clinical_identifier(key, label="asp_id")
+            if identifier in normalized:
+                raise ValueError("Duplicate assay identifier in in_normal_perc")
+            normalized[identifier] = value
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> "BlacklistDoc":
+        """Reject coordinates or an MD5 digest that disagree with the variant identifier."""
+        if self.simple_id != build_simple_id(self.chrom, self.pos, self.ref, self.alt):
+            raise ValueError("simple_id must match chrom, pos, ref and alt")
+        if self.simple_id_hash != build_simple_id_hash_from_simple_id(self.simple_id):
+            raise ValueError("simple_id_hash does not match simple_id (MD5 mismatch)")
+        return self

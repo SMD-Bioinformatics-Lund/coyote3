@@ -61,6 +61,7 @@ export function TryNewReport({ sampleId, reportType, onClose }: {
       </div>
     </header>
     <p className="type-meta text-muted-foreground">Temporary preview · {sampleId}{data ? ` · ${data.snapshot_count} included findings` : ""}</p>
+    {data?.reporting_warning && <p role="alert" className="rounded-md border border-warning p-3 type-body">{data.reporting_warning}</p>}
     {error ? <p role="alert" className="text-destructive type-body-sm">{error}</p> : !data ? <AppLoader label="Preparing HTML and PDF preview" /> : <>
       <SegmentedControl ariaLabel="New report preview format" value={format} onValueChange={setFormat}
         items={[{ value: "html", label: "HTML preview" }, { value: "pdf", label: "PDF preview" }]} />

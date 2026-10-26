@@ -37,6 +37,14 @@ it("previews and downloads the same temporary HTML/PDF without a save request", 
   expect(revoke).toHaveBeenCalledWith("blob:synthetic-pdf")
 })
 
+it("warns about missing reporting rules while allowing report downloads", async () => {
+  const warning = "No published reporting rules. The report has no automatic summary."
+  vi.mocked(api.get).mockResolvedValue({ data: { ...trial, reporting_warning: warning }, status: 200 })
+  render(<TryNewReport sampleId="SYNTHETIC" reportType="dna" onClose={vi.fn()} />)
+  expect(await screen.findByRole("alert")).toHaveTextContent(warning)
+  expect(screen.getByRole("button", { name: "Download PDF" })).toBeEnabled()
+})
+
 it("shows authorization and rendering failures without enabling downloads", async () => {
   vi.mocked(api.get).mockRejectedValue(new Error("Report preview permission required"))
   render(<TryNewReport sampleId="SYNTHETIC" reportType="rna" onClose={vi.fn()} />)

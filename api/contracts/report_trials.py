@@ -10,3 +10,4 @@ class ReportTrialPayload(BaseModel):
     pdf_base64: str
     filename: str
     snapshot_count: int
+    reporting_warning: str | None = None

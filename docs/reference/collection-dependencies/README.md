@@ -200,8 +200,8 @@ MongoDB services. A diagram edge also does not mean those clients share a transa
   the repository lookup queries `Gene`. Confirm the installed importer shape before
   assuming those keys are interchangeable. `onkokb` is the actual configured
   physical name for the licensed annotation collection.
-- Blacklist `assay_group` in the migration contract is explicitly translated to
-  physical `assay` by `scripts/migration_common/apply_bundle.py`.
+- Blacklist group scope is stored in physical `assay`; the repository indexes
+  `(assay, pos)`. The fresh shared-blacklist converter remains to be implemented.
 - `asp_to_groups` and `mane_select` have registered schema contracts but no current
   physical binding in `collections.toml`. They are listed separately in the
   inventory; their schema presence alone is not evidence of a required live collection.

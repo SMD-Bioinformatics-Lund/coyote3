@@ -119,7 +119,7 @@ def build_fake_store() -> SimpleNamespace:
         ),
         translocation_repository=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
         blacklist_repository=FakeHandler(
-            {"add_blacklist_data": lambda variants, assay_group: variants}
+            {"add_blacklist_data": lambda variants, assay_group, *, asp_id: variants}
         ),
         annotation_repository=FakeHandler(
             {

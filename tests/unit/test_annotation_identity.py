@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from hashlib import md5
-
 import pytest
 
 from api.infra.mongo.repositories.annotations import AnnotationsRepository
@@ -14,6 +12,7 @@ from coyote3.domain.annotation_identity import (
     primary_small_variant_identity,
 )
 from coyote3.domain.dna.dna_variants import get_variant_nomenclature
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
 @pytest.mark.parametrize(
@@ -66,7 +65,7 @@ def test_small_variant_identity_keeps_all_available_representations():
         "hgvsp": "p.Met89Val",
         "hgvsc": "c.265A>G",
         "genomic": "17_76736896_T_C",
-        "genomic_hash": md5(b"17_76736896_T_C").hexdigest(),
+        "genomic_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
     }
 
 
@@ -85,7 +84,7 @@ def test_identity_enrichment_uses_explicit_transient_finding_source():
     assert enriched["hgvsp"] == "p.Arg248Gln"
     assert enriched["hgvsc"] == "c.743G>A"
     assert enriched["genomic"] == "17_7674220_C_T"
-    assert enriched["genomic_hash"] == md5(b"17_7674220_C_T").hexdigest()
+    assert enriched["genomic_hash"] == build_simple_id_hash_from_simple_id("17_7674220_C_T")
 
 
 def test_annotation_action_requires_explicit_canonical_identity():
@@ -124,7 +123,7 @@ def test_selected_csq_can_supply_hgvs_identifiers():
         "hgvsp": "p.Met89Val",
         "hgvsc": "c.265A>G",
         "genomic": "17_76736896_T_C",
-        "genomic_hash": md5(b"17_76736896_T_C").hexdigest(),
+        "genomic_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
     }
 
 
@@ -134,12 +133,12 @@ def test_enrichment_removes_annotation_level_simple_id_aliases():
             "variant": "p.Met89Val",
             "nomenclature": "p",
             "simple_id": "17_76736896_T_C",
-            "simple_id_hash": md5(b"17_76736896_T_C").hexdigest(),
+            "simple_id_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
         }
     )
 
     assert enriched["genomic"] == "17_76736896_T_C"
-    assert enriched["genomic_hash"] == md5(b"17_76736896_T_C").hexdigest()
+    assert enriched["genomic_hash"] == build_simple_id_hash_from_simple_id("17_76736896_T_C")
     assert "simple_id" not in enriched
     assert "simple_id_hash" not in enriched
 
@@ -166,7 +165,7 @@ def test_enrichment_keeps_only_nomenclature_specific_fields():
         "hgvsp": "p.Val157GlyfsTer24",
         "hgvsc": "c.469_470del",
         "genomic": "17_7673800_AC_A",
-        "genomic_hash": md5(b"17_7673800_AC_A").hexdigest(),
+        "genomic_hash": build_simple_id_hash_from_simple_id("17_7673800_AC_A"),
         "gene": "TP53",
         "transcript": "NM_000546.6",
         "class": 1,
@@ -248,7 +247,7 @@ def test_single_classification_insert_uses_the_stable_flat_identity_shape():
             "hgvsp": "p.Val157GlyfsTer24",
             "hgvsc": "c.469_470del",
             "genomic": "17_7673800_AC_A",
-            "genomic_hash": md5(b"17_7673800_AC_A").hexdigest(),
+            "genomic_hash": build_simple_id_hash_from_simple_id("17_7673800_AC_A"),
         },
     )
 
@@ -257,7 +256,9 @@ def test_single_classification_insert_uses_the_stable_flat_identity_shape():
     assert collection.inserted["hgvsp"] == "p.Val157GlyfsTer24"
     assert collection.inserted["hgvsc"] == "c.469_470del"
     assert collection.inserted["genomic"] == "17_7673800_AC_A"
-    assert collection.inserted["genomic_hash"] == md5(b"17_7673800_AC_A").hexdigest()
+    assert collection.inserted["genomic_hash"] == build_simple_id_hash_from_simple_id(
+        "17_7673800_AC_A"
+    )
     assert "cnv" not in collection.inserted
     assert "fusion" not in collection.inserted
     assert "translocation" not in collection.inserted

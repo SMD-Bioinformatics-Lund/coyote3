@@ -202,7 +202,7 @@ ad-hoc genes, applicable gene filtering uses the ASP's eligible genes. Empty
 eligibility selects no findings. Confirm the intended scope before approving
 the assay.
 
-### 5. Publish compatible reporting rules
+### 5. Optionally publish reporting rules
 
 After saving the assay draft, use **Open rule builder**. Select the draft assay,
 DNA/RNA analyte, Base or registered named scope, and intended reporting language.
@@ -210,16 +210,17 @@ Author the clinical content, declare the analyses used by the report sections,
 run its tests, and complete independent clinical review and publication.
 
 Return to setup and choose **Refresh reporting rules**. Draft or merely reviewed
-rules do not satisfy publication requirements. An exact named-scope release is
+rules are not used for report generation. An exact named-scope release is
 used when published; otherwise resolution can use a compatible assay Base release
 for the same analyte and language. Do not assume a different language or another
 assay's rule will be selected.
 
 Rules and ISGLs can be prepared in either order after their assay/scope dependencies
-exist. Neither publishes the other. Setup activation resolves a published rule
-for every selected ASPC; even an ASPC with no report sections does not bypass this
-setup-level check. The individual ASPC editor has a narrower rule check: it requires
-a compatible published release when that ASPC is active and has report sections.
+exist. Neither publishes the other. Reporting rules are optional: setup can be
+reviewed and activated without a compatible publication. The UI warns that reports
+will be available without an automatically generated summary. Existing published
+rules must pass integrity and compatibility checks. Individual ASPC creation and
+editing do not require a rule publication.
 
 ### 6. Complete one ASPC for each selected combination
 
@@ -271,7 +272,7 @@ create an ASPC or make sample data public.
 | --- | --- | --- |
 | Assay group and ASP | Register/activate the group before saving the assay setup. | Shared diagnosis definitions can be created without an assay association. |
 | Assay identity and rules | Save the setup's ASP draft before authoring its rule scope. | An operational ASP is not required for rules authored against a saved setup draft. |
-| Gene lists and rules | Both must be suitable before configurations that use them are approved. | ISGL authoring and rule authoring/publication have no required order relative to each other. |
+| Gene lists and rules | Referenced gene lists must be valid; reporting rules can be added later. | ISGL authoring and rule authoring/publication have no required order relative to each other. Missing reporting rules produce a warning and no automatic summary. |
 | Named scopes and configurations | Register and select the named scope before configuring it. | Base has no definition or association to create. |
 | ASPC and selected ISGL | The referenced list must exist in the draft workspace or be an eligible existing active list. | Unselected lists are optional and do not block setup. |
 | Setup and catalog | Activate operational resources before catalog publication. | Public wording can be prepared separately; it does not control ingest. |

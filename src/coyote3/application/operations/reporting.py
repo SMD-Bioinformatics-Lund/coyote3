@@ -117,6 +117,7 @@ class Reports:
                 pdf=self._services.render_pdf(html),
                 filename=f"coyote3_{analyte}_report_trial",
                 snapshot_count=len(rows),
+                reporting_warning=context.get("reporting_warning"),
             )
 
         return self._runtime.execute(
@@ -202,7 +203,10 @@ class Reports:
             capture_query_policies,
             query_policies_hash,
         )
-        from coyote3.application.reporting.clinical_rules.resolution import capture_clinical_rules
+        from coyote3.application.reporting.clinical_rules.resolution import (
+            MISSING_REPORTING_RULES_WARNING,
+            capture_clinical_rules,
+        )
 
         try:
             with capture_query_policies() as policies, capture_clinical_rules() as rules:
@@ -218,6 +222,11 @@ class Reports:
                     "content_hash": query_policies_hash(resolved),
                 }
                 selected_rules = next(iter(rules.values()), {})
+                context["reporting_warning"] = (
+                    MISSING_REPORTING_RULES_WARNING
+                    if context.get("clinical_rule_evaluation") is None
+                    else None
+                )
                 context["clinical_rule_resolution"] = selected_rules.get("rule_set")
                 context["clinical_rule_sources"] = selected_rules
         except (KeyError, ValueError) as exc:

@@ -226,6 +226,7 @@ Optional keys:
 - `system_installed` (bool)
 - `id_` (Any | None)
 - `supported_analyses` (list[str] | None)
+- `name` (str | None)
 - `description` (str | None)
 - `igv` (coyote3.contracts.schemas.assay.AspIgvDoc | None)
 - `expected_files` (list[str])
@@ -270,15 +271,20 @@ Optional keys:
 ## `blacklist`
 
 Required keys:
-- `pos` (str)
+- `simple_id` (str)
+- `simple_id_hash` (str)
+- `chrom` (str)
+- `pos` (int)
+- `ref` (str)
+- `alt` (str)
+- `assay_groups` (list[str])
 
 Optional keys:
 - `created_by` (str | None)
 - `updated_by` (str | None)
 - `system_installed` (bool)
 - `id_` (Any | None)
-- `assay_group` (str | None)
-- `in_normal_perc` (float | None)
+- `in_normal_perc` (dict[str, Annotated[float, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=0), Le(le=100), _PydanticGeneralMetadata(allow_inf_nan=False)])]])
 
 ## `brcaexchange`
 

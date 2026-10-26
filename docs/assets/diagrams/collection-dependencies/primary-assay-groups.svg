@@ -40,12 +40,12 @@
 <text x="20" y="518" class="kind">business key · many ↔ many</text>
 <rect x="20" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="34" y="568" font-weight="600">primary.blacklist</text>
-<text x="34" y="587" font-weight="400">assay</text>
+<text x="34" y="587" font-weight="400">assay_groups[]</text>
 <rect x="660" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="568" font-weight="600">primary.assay_groups</text>
 <text x="674" y="587" font-weight="400">group_id</text>
 <path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="631" class="kind">optional scope · many → one</text>
+<text x="20" y="631" class="kind">optional scope · many → many</text>
 <rect x="20" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="34" y="681" font-weight="600">primary.d4_coverage_blacklist</text>
 <text x="34" y="700" font-weight="400">group</text>

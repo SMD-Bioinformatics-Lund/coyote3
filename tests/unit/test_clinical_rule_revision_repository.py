@@ -16,7 +16,6 @@ from api.infra.mongo.repositories.clinical_rule_sets import (
     build_revision_snapshot,
     verify_revision_snapshot,
 )
-from scripts.upgrade_from_v3.backfill_clinical_rule_revisions import capture_missing_baselines
 from tests.unit.reporting.test_clinical_rules import _document
 
 
@@ -212,19 +211,3 @@ def test_revision_reader_orders_history_and_rejects_invalid_identifiers(monkeypa
     adapter.clinical_rule_revisions_collection.replace_one({"_id": tampered["_id"]}, tampered)
     with pytest.raises(RuntimeError, match="hash chain is broken"):
         reader.list_for_version(document["_id"])
-
-
-def test_backfill_is_validated_idempotent_and_supports_dry_run() -> None:
-    database = mongomock.MongoClient().coyote3
-    document = _payload()
-    document["revision"] = 3
-    database.clinical_rule_sets.insert_one(document)
-
-    assert capture_missing_baselines(database, actor="operator", dry_run=True) == (1, 0)
-    assert database.clinical_rule_revisions.count_documents({}) == 0
-    assert list(database.clinical_rule_revisions.list_indexes()) == []
-    assert capture_missing_baselines(database, actor="operator", dry_run=False) == (1, 0)
-    assert capture_missing_baselines(database, actor="operator", dry_run=False) == (0, 1)
-    snapshot = database.clinical_rule_revisions.find_one({})
-    assert snapshot["revision"] == 3
-    assert snapshot["document"]["revision"] == 3

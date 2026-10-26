@@ -1,7 +1,12 @@
 [
   {
-    "pos": "7_140453136_A_T",
-    "assay_group": "hematology",
-    "in_normal_perc": 0.2
+    "simple_id": "7_140453136_A_T",
+    "simple_id_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
+    "chrom": "7",
+    "pos": 140453136,
+    "ref": "A",
+    "alt": "T",
+    "assay_groups": ["hematology"],
+    "in_normal_perc": {"synthetic_assay": 0.2}
   }
 ]

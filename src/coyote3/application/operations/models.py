@@ -64,6 +64,7 @@ class ReportTrial(BaseModel):
     pdf: bytes
     filename: str
     snapshot_count: int
+    reporting_warning: str | None = None
 
 
 class ReportPreview(BaseModel):

@@ -46,6 +46,7 @@ def try_new_report(
         pdf_base64=b64encode(trial.pdf).decode("ascii"),
         filename=trial.filename,
         snapshot_count=trial.snapshot_count,
+        reporting_warning=trial.reporting_warning,
     )
 
 

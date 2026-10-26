@@ -74,7 +74,7 @@ or request bodies cannot override server attribution. Existing samples without
 recoverable submission evidence retain null attribution rather than being
 assigned to the administrator performing a migration.
 
-Run `scripts/upgrade_from_v3/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
+Run `scripts/maintenance/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
 to preview a backfill from successful initial sample-bundle jobs. Add
 `--apply --backup <new-backup-file>` to persist it. The backup contains only
 sample identifiers and the previous attribution fields. The command preserves
@@ -647,6 +647,14 @@ small variant:
   consequence terms for the variant.
 - The global `anno_vep` vault stores all parsed transcript summaries by
   `simple_id_hash` and `vep_version`.
+
+All `simple_id_hash` generation uses
+`coyote3.domain.dna.variant_identity.build_simple_id_hash_from_simple_id`.
+It normalizes the identifier and returns its lowercase MD5 digest from UTF-8
+bytes. Ingest, annotation identity, blacklist creation, migrations and report
+snapshots use this same function. Reuse it in Python import workflows rather
+than implementing a separate hash calculation. Canonical small-variant
+identifiers retain the form `CHROM_POS_REF_ALT`.
 
 > **Info: Transcript vault**
 >

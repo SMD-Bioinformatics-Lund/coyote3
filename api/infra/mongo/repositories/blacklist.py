@@ -1,144 +1,111 @@
-"""
-BlacklistRepository module for Coyote3
-===================================
+"""Persist one blacklist record per variant with group scopes and assay measurements."""
 
-This module defines the `BlacklistRepository` class used for accessing and managing
-blacklist data in MongoDB.
+from typing import Any
 
-It is part of the MongoDB infrastructure layer.
-"""
+from pymongo.errors import DuplicateKeyError
 
-# -------------------------------------------------------------------------
-# Imports
-# -------------------------------------------------------------------------
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import get_simple_id
+from coyote3.config.constants import normalize_asp_group, normalize_clinical_identifier
 from coyote3.contracts.operations import OperationResult
+from coyote3.contracts.schemas.assay import BlacklistDoc
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
-# -------------------------------------------------------------------------
-# Class Definition
-# -------------------------------------------------------------------------
 class BlacklistRepository(BaseRepository):
-    """
-    The `BlacklistRepository` class provides methods to manage and interact with
-    blacklist data stored in the MongoDB database. It allows adding blacklist
-    information to variants, inserting new blacklist entries, and retrieving
-    unique blacklist counts.
-
-    This class belongs to the MongoDB infrastructure layer and extends the functionality
-    of the `BaseRepository` class.
-    """
+    """Manage allele exclusions shared by biological groups, with per-assay frequencies."""
 
     def __init__(self, adapter):
-        """
-        Initialize the repository with a given adapter and bind the collection.
-        """
+        """Bind the configured application blacklist collection."""
         super().__init__(adapter)
         self.set_collection(self.adapter.blacklist_collection)
 
     def ensure_indexes(self) -> None:
-        """
-        Create indexes used by blacklist read/write paths and dashboard metrics.
+        """Enforce one record per allele and index biological group lookups.
+
+        Notes:
+            Existing collections must be converted before deploying this schema.
         """
         col = self.get_collection()
-        col.create_index(
-            [("blacklist_entry_id", 1)],
-            name="blacklist_entry_id_1",
-            unique=True,
-            background=True,
-            partialFilterExpression={"blacklist_entry_id": {"$exists": True, "$type": "string"}},
-        )
-        col.create_index([("assay", 1), ("pos", 1)], name="assay_pos_1", background=True)
-        col.create_index([("pos", 1)], name="pos_1", background=True)
+        col.create_index([("simple_id", 1)], name="simple_id_1", unique=True)
+        col.create_index([("assay_groups", 1), ("simple_id", 1)], name="assay_groups_simple_id_1")
 
-    def add_blacklist_data(self, variants: list, assay: str) -> dict:
-        """
-        Add blacklist data to variants.
-
-        This method enriches a list of variants with blacklist data from the database.
-        It checks if each variant's `simple_id` exists in the blacklist collection
-        for the specified assay and adds the corresponding `in_normal_perc` value
-        to the variant if found.
+    def add_blacklist_data(
+        self, variants: list[dict[str, Any]], assay_group: str, *, asp_id: str
+    ) -> list[dict[str, Any]]:
+        """Attach group exclusions and the selected assay's normal-sample frequency.
 
         Args:
-            variants (list): A list of variant dictionaries, each containing a `simple_id` key.
-            assay (str): The assay type used to filter blacklist data.
+            variants: Findings containing canonical simple_id values; updated in place.
+            assay_group: Biological group whose exclusions apply to these findings.
+            asp_id: Exact sample assay used to select its measurement.
 
         Returns:
-            list: The updated list of variants with blacklist data added where applicable.
+            Input findings with blacklist set to the assay's positive measurement or True
+            when excluded without a positive measured frequency. Other assays'
+            measurements are never substituted. Unmatched findings are unchanged.
         """
-        short_pos = [var.get("simple_id") for var in variants]
-
-        blacklisted = self.get_collection().find(
-            {"assay": assay, "pos": {"$in": short_pos}},
-            {"pos": 1, "in_normal_perc": 1, "_id": 0},
+        group = normalize_asp_group(assay_group)
+        assay = normalize_clinical_identifier(asp_id, label="asp_id")
+        entries = self.get_collection().find(
+            {"assay_groups": group, "simple_id": {"$in": [v["simple_id"] for v in variants]}},
+            {"simple_id": 1, "in_normal_perc": 1, "_id": 0},
         )
-        blacklisted_dict = {elem["pos"]: elem["in_normal_perc"] for elem in list(blacklisted)}
-
-        for var in variants:
-            if var["simple_id"] in blacklisted_dict:
-                var["blacklist"] = blacklisted_dict[var["simple_id"]]
-
+        by_id = {entry["simple_id"]: entry["in_normal_perc"] for entry in entries}
+        for variant in variants:
+            if variant["simple_id"] in by_id:
+                variant["blacklist"] = by_id[variant["simple_id"]].get(assay) or True
         return variants
 
     def blacklist_variant(self, var: dict, assay: str) -> OperationResult:
-        """
-        Add a variant to the blacklist collection.
-
-        This method inserts a variant into the blacklist collection in the database.
-        It uses the `simple_id` of the variant to identify it and associates it with
-        the specified assay.
+        """Atomically add an exclusion group without overwriting measured frequencies.
 
         Args:
-            var (dict): A dictionary containing variant details. If `simple_id` is not
-                        present, it will be generated from canonical variant coordinates.
-            assay (str): The assay type to associate with the variant.
+            var: Finding with a canonical simple_id or CHROM/POS/REF/ALT coordinates.
+            assay: Biological group receiving the exclusion.
 
         Returns:
-            OperationResult: JSON-safe mutation summary.
-        """
-        short_pos = var.get("simple_id", get_simple_id(var))
+            JSON-safe upsert summary. Repeated additions are idempotent.
 
-        result = OperationResult.from_insert_one(
-            self.get_collection().insert_one(
-                {"assay": assay, "in_normal_perc": 1, "pos": short_pos}
-            )
+        Raises:
+            ValueError: The finding identity or biological group is invalid.
+
+        Notes:
+            Manual exclusions do not invent a normal-sample frequency. The unique
+            identity index and atomic set union preserve concurrent group additions.
+        """
+        identity = get_simple_id(var)
+        parts = identity.split("_", 3)
+        if len(parts) != 4:
+            raise ValueError("Blacklist entries require chrom, pos, ref and alt")
+        document = BlacklistDoc(
+            simple_id=identity,
+            simple_id_hash=build_simple_id_hash_from_simple_id(identity),
+            chrom=parts[0],
+            pos=int(parts[1]),
+            ref=parts[2],
+            alt=parts[3],
+            assay_groups=[assay],
         )
-        if result.inserted_id:
+        fields = document.model_dump(exclude={"id_", "assay_groups"})
+        query = {"simple_id": identity}
+        change = {
+            "$setOnInsert": fields,
+            "$addToSet": {"assay_groups": document.assay_groups[0]},
+        }
+        try:
+            updated = self.get_collection().update_one(query, change, upsert=True)
+        except DuplicateKeyError:
+            updated = self.get_collection().update_one(query, change)
+        result = OperationResult.from_update(updated)
+        if result.modified_count or result.upserted_id:
             self.invalidate_dashboard_metrics()
         return result
 
     def get_blacklisted_count(self) -> int:
-        """
-        Get the count of blacklisted entries.
-        This method retrieves all blacklist entries from the collection
-        and returns their count.
-        Returns:
-            int: The count of blacklisted entries. Returns 0 if no entries are found.
-        """
-        return self.get_collection().count_documents({}) or 0
+        """Return the number of distinct blacklisted alleles across all groups."""
+        return self.get_collection().count_documents({})
 
     def get_unique_blacklist_count(self) -> int:
-        """
-        Get the count of unique blacklist entries.
-
-        This method aggregates the blacklist collection to count the number of unique
-        blacklist entries based on the `pos` field.
-
-        Returns:
-            int: The count of unique blacklist entries. Returns 0 if no entries are found
-                 or if an error occurs during the aggregation.
-        """
-        result = list(
-            self.get_collection().aggregate(
-                [
-                    {"$group": {"_id": "$pos"}},
-                    {"$count": "count"},
-                ],
-                allowDiskUse=True,
-            )
-        )
-        if not result:
-            return 0
-        return int(result[0].get("count", 0) or 0)
+        """Return the allele count; uniqueness is enforced by the simple_id index."""
+        return self.get_blacklisted_count()

@@ -372,7 +372,7 @@ def test_changed_rule_release_requires_resubmission(setup_service):
     assert db.asp.count_documents({}) == 0
 
 
-def test_missing_rules_and_duplicate_configurations_are_not_ready(setup_service):
+def test_duplicate_configurations_block_setup_but_missing_rules_only_warn(setup_service):
     service, db = setup_service
     selected = content()
     selected.configurations.append(deepcopy(selected.configurations[0]))
@@ -381,7 +381,16 @@ def test_missing_rules_and_duplicate_configurations_are_not_ready(setup_service)
     selected.configurations.pop()
     db.rules.delete_many({})
     draft = service.save(selected, actor="author", identifier=str(draft["_id"]), revision=1)
-    assert "published clinical rule" in service.readiness(draft, actor="author")["issues"][0]
+    readiness = service.readiness(draft, actor="author")
+    assert readiness["ready"]
+    assert readiness["issues"] == []
+    assert "without an automatically generated summary" in readiness["warnings"][0]
+    assert service.bundle(draft, actor="author")["rules"] == []
+    identifier = str(draft["_id"])
+    submitted = service.transition(identifier, draft["revision"], "submit", actor="author")
+    published = service.transition(identifier, submitted["revision"], "publish", actor="reviewer")
+    assert published["status"] == "published"
+    assert db.aspc.count_documents({}) == 1
 
 
 def test_identifier_reservation_and_unknown_scope_are_rejected(setup_service):

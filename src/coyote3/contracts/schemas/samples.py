@@ -43,7 +43,10 @@ class SampleCaseControlDoc(_DocBase):
     clarity_id: str | None = None
     clarity_pool_id: str | None = None
     ffpe: bool = False
-    sequencing_run: str | None = None
+    sequencing_run: str | list[str] | None = Field(
+        default=None,
+        description="One sequencing run, or multiple nonfailed runs confirmed for this specimen.",
+    )
     reads: int | None = None
     purity: float | None = None
 

@@ -40,7 +40,9 @@ def test_list_variants_payload_sorts_main_variant_table_by_case_af_desc() -> Non
             get_case_variants=lambda query: queries.append(query) or variants,
             hydrate_finding_comments_many=lambda findings: findings,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, assay_group, *, asp_id: rows
+        ),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda vep: {},
@@ -99,7 +101,9 @@ def test_paginated_small_variant_list_only_enriches_the_current_page() -> None:
             get_case_variants=lambda query: variants,
             hydrate_finding_comments_many=lambda findings: findings,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, assay_group, *, asp_id: rows
+        ),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda vep: {}, get_conseq_translations=lambda vep: {}
@@ -152,7 +156,9 @@ def test_list_variants_payload_keeps_tmb_and_pgx_independent() -> None:
             get_case_variants=lambda query: [],
             hydrate_finding_comments_many=lambda findings: findings,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, assay_group: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, assay_group, *, asp_id: rows
+        ),
         bam_record_repository=SimpleNamespace(get_bams=lambda sample_ids: {}),
         vep_metadata_repository=SimpleNamespace(
             get_variant_class_translations=lambda vep: {},

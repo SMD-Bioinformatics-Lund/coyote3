@@ -33,7 +33,7 @@ mkdir -p logs/maintenance-backups
 The script verifies that every current named legacy `assay_subpanels` scope has
 a current shared definition and assay association. Current registry status and
 metadata take precedence over old records. Missing replacements block removal;
-run `scripts/upgrade_from_v3/migrate_assay_subpanels.py` first if needed.
+run `scripts/maintenance/migrate_assay_subpanels.py` first if needed.
 
 Original documents, collection options and indexes are backed up as BSON in a
 mode-0700 directory with mode-0600 files. HGNC/VEP documents retain their IDs and

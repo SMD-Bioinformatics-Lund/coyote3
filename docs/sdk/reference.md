@@ -4145,7 +4145,7 @@ Rendered report and the fingerprint required to save the reviewed inputs.
 ### `ReportTrial`
 
 ```python
-ReportTrial(*, html: str, pdf: bytes, filename: str, snapshot_count: int) -> None
+ReportTrial(*, html: str, pdf: bytes, filename: str, snapshot_count: int, reporting_warning: str | None = None) -> None
 ```
 
 ```text

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
 from pathlib import Path
 
@@ -25,6 +24,7 @@ from coyote3.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
 from coyote3.contracts.schemas.variant_annotations import (
     VepAnnoTranscriptDoc,
 )
+from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
 def test_isgl_diagnosis_is_the_canonical_multi_diagnosis_scope():
@@ -84,7 +84,7 @@ def test_variant_info_accepts_selected_csq_fields():
             "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
-        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "simple_id_hash": build_simple_id_hash_from_simple_id("1_100_A_G"),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.selected_CSQ is not None
@@ -106,7 +106,7 @@ def test_variant_contract_preserves_review_state() -> None:
             "selected_CSQ_criteria": "first_available",
         },
         "simple_id": "1_100_A_G",
-        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "simple_id_hash": build_simple_id_hash_from_simple_id("1_100_A_G"),
         "fp": True,
         "irrelevant": False,
         "interesting": True,
@@ -135,7 +135,7 @@ def test_variant_info_normalizes_variant_callers_string():
             "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
         },
         "simple_id": "1_100_A_G",
-        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "simple_id_hash": build_simple_id_hash_from_simple_id("1_100_A_G"),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.variant_callers == ["tnscope", "strelka"]
@@ -156,7 +156,7 @@ def test_variant_consequence_terms_normalize_all_transcript_terms() -> None:
         },
         "consequence_terms": ["missense_variant&splice_region_variant", "missense_variant"],
         "simple_id": "1_100_A_G",
-        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
+        "simple_id_hash": build_simple_id_hash_from_simple_id("1_100_A_G"),
     }
 
     doc = VariantsDoc.model_validate(payload)

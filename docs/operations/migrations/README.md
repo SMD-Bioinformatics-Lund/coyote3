@@ -11,6 +11,8 @@ shared VEP records, report snapshots and historical identities that must be pres
 
 | Guide | Use it to |
 | --- | --- |
+| [Variant blacklist](variant-blacklist.md) | Consolidate allele records, retain group scopes and assign normal-sample frequencies to their exact assays. |
+| [Clinical data: execution order and commands](clinical-data.md) | Run the fresh v2/v3 export and preparation tools, then import reviewed data in dependency order. |
 | [Migrate from Coyote v2](../../migration_from_v2/README.md) | Review the v2 source scope, inventory requirements and staged clinical-data conversion procedure. |
 | [Migrate from Coyote v3](../../migration_from_v3/README.md) | Review the v3 source scope, inventory requirements and staged clinical-data conversion procedure. |
 | [Independent measurement analyses](independent-biomarker-analyses.md) | Convert generic biomarker configuration to explicit HRD, MSI, and TMB selections. |

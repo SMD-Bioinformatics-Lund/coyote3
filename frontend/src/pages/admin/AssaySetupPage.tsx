@@ -30,7 +30,7 @@ type Context = {
   diagnoses: { diagnosis_id: string; display_name: string; is_active: boolean }[]
   environments: string[]
   rules?: { _id: string; rule_set_id: string; name: string; content_version: number; scope: { diagnosis_id: string } }[]
-  readiness?: { ready: boolean; issues: string[] }
+  readiness?: { ready: boolean; issues: string[]; warnings?: string[] }
   context_error?: string
   history?: { revision: number; action: string; actor: string; at: string }[]
 }
@@ -165,7 +165,7 @@ export function AssaySetupPage() {
         </section>}
         {step === 3 && content && <section aria-label="Reporting rule workspace" className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2"><FileCheck className="size-5 text-primary" />Published reporting rules</h2><div className="flex flex-wrap items-center gap-2"><Link className="inline-flex items-center gap-2 text-primary underline" to="/admin/clinical-rules" target="_blank" rel="noopener noreferrer">Open rule builder</Link><Button variant="outline" size="icon" aria-label="Refresh reporting rules" title="Refresh reporting rules" onClick={() => void context.refetch()}><RefreshCw /></Button></div></div>
           <ul className="divide-y divide-border">{(context.data.rules || []).map((rule) => <li key={rule._id} className="flex flex-wrap items-center gap-2 py-3"><Check className="size-4 text-pass" /><span className="type-body">{rule.scope.diagnosis_id} · {rule.name} · v{rule.content_version}</span></li>)}</ul>
-          {!context.data.rules?.length && <SetupEmptyState icon={FileCheck} title="No published reporting rules for this assay." />}
+          {!context.data.rules?.length && <p role="alert" className="rounded-md border border-warning p-3 type-body">Reporting rules are optional. You can complete assay setup now. Reports will be available without an automatically generated summary until compatible rules are published.</p>}
         </section>}
         {step === 5 && setup && <section className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><h2 className="type-title flex items-center gap-2 border-b border-border pb-4"><ClipboardCheck className="size-5 text-primary" />Review and activation</h2><dl className="grid gap-5 type-body sm:grid-cols-2 [&_dd]:mt-1 [&_dd]:break-words [&>div]:min-w-0"><div><dt className="type-label text-muted-foreground">Assay</dt><dd>{String(setup.content.panel.display_name)} ({setup.asp_id})</dd></div><div><dt className="type-label text-muted-foreground">Scopes</dt><dd>{setup.content.scopes.join(", ")}</dd></div><div><dt className="type-label text-muted-foreground">Environments</dt><dd>{setup.content.environments.join(", ") || "None selected"}</dd></div><div><dt className="type-label text-muted-foreground">Created by</dt><dd>{setup.created_by}</dd></div></dl>
           <p className="type-body">Existing gene lists to associate: {setup.content.existing_gene_list_ids?.join(", ") || "None"}</p>
@@ -174,6 +174,7 @@ export function AssaySetupPage() {
             {!context.data.readiness?.ready && <ul className="space-y-2 type-body">{context.data.readiness?.issues.map((issue) => <li className="break-words" key={issue}>{issue}</li>)}</ul>}
           </div>}
           {setup.review_reason && <p className="type-body">Review: {setup.review_reason}</p>}
+          {context.data.readiness?.warnings?.map((warning) => <p key={warning} role="alert" className="rounded-md border border-warning p-3 type-body">{warning}</p>)}
           {setup.status === "draft" && canWrite && <Button disabled={!context.data.readiness?.ready || mutation.isPending} onClick={() => mutation.mutate({ action: "submit" })}><ClipboardCheck />Submit for review</Button>}
           {reviewAllowed && <><label className="type-label block">Review notes<textarea className="paper-inset mt-1 min-h-24 w-full rounded-md p-3" value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="flex flex-wrap gap-3">{canWrite && <Button disabled={!context.data.readiness?.ready || mutation.isPending} onClick={() => mutation.mutate({ action: "publish" })}><Check />Approve and activate</Button>}<Button variant="outline" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate({ action: "return" })}><ArrowLeft />Return for changes</Button></div></>}
           {setup.status === "submitted" && !reviewAllowed && <p role="status">Awaiting independent review.</p>}

@@ -111,6 +111,7 @@ nav:
           - "Resources and missing prerequisites": administration/clinical-configuration-resources.md
           - "Supported analyses": administration/supported-capabilities.md
           - "Enable analysis and reporting": administration/assay-analysis-availability.md
+          - "Build report wording and conditions": administration/report-rule-authoring.md
       - Configure finding selection:
           - "Application base queries and UI rules": administration/query-rules.md
           - "Installed group rules and demo defaults": administration/installed-defaults.md
@@ -204,6 +205,8 @@ nav:
           - "HGNC genes": operations/hgnc-gene-installation.md
       - Data migrations:
           - "Choose a migration": operations/migrations/README.md
+          - "Clinical data: order and commands": operations/migrations/clinical-data.md
+          - "Variant blacklist": operations/migrations/variant-blacklist.md
           - From Coyote v2:
               - "Scope and prerequisites": migration_from_v2/README.md
               - "Source schema inventory": migration_from_v2/schema-inventory.md

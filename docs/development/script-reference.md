@@ -28,22 +28,11 @@ bundle and deployment exercises.
 | `scripts/quality/export_demo_workflows.py` | Replays the bundle offline through ingest and report evaluation using development dependencies. Writes deterministic expected artifacts; `--check` compares them without writes. Never reads deployment credentials or contacts a database. |
 
 The [script directory index](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/README.md) groups commands by purpose.
-[V3 clinical migrations](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/upgrade_from_v3/README.md) have a dedicated
-source contract and run order. [V2 clinical migrations](../migration_from_v2/README.md)
-use `variants_idref` and `cnvs_wgs`. Both packages operate on offline BSON exports;
-the [v2 procedure](../migration_from_v2/migration-guide.md) and
-[v3 procedure](../migration_from_v3/migration-guide.md) specify their order.
-
-`scripts/migration_common/prepare_references.py` verifies installed HGNC genes and
-historical VEP metadata without writes. `build_anno_vep.py` requires that reference
-catalog before building shared transcript evidence from reviewed variant exports.
-Both version packages provide `migrate_samples.py --assay-id` with an explicit source
-field and `--stage findings`, `samples`, `related`, or `complete`: variants precede
-sample insertion, related data and annotations follow, and saved snapshots are validated
-last. Repeat `--collection` to select individual related types. Samples retain
-their original ObjectIds. These are offline conversion tools; applying bundles is a
-separate explicit operation against an isolated MongoDB target. SQLite files are
-local lookup indexes, not the migration destination.
+Clinical conversion lives in `migrations_scripts/`, outside the operational script
+directory. The [migration execution guide](../operations/migrations/clinical-data.md)
+lists reference prerequisites, export, sample preparation, VEP/variant preparation,
+related collections and explicit import commands. The converters use Extended JSON
+and preserve original sample ObjectIds; they do not use SQLite.
 
 > **Info:** A script can be operationally supported without being called automatically.
 > Backup, restore, reference synchronization, and one-time seed imports are intentionally
@@ -57,23 +46,6 @@ local lookup indexes, not the migration destination.
 | Orchestrator | Runs several validation or deployment steps; inspect the individual results. |
 | Manual operation | Requires an operator to select the target and follow the relevant runbook. |
 | Internal helper | Used by another script rather than invoked as an operator command. |
-
-## Clinical data upgrades
-
-| Script | Class | Current caller or entry point | Purpose |
-| --- | --- | --- | --- |
-| `{migrate_from_v2,upgrade_from_v3}/audit_source_schema.py` | Manual operation | Before legacy conversion | Inventories every nested field, decoded BSON type, and object-key shape across the full offline export |
-| `{migrate_from_v2,upgrade_from_v3}/prepare_source.py` | Manual operation | Legacy migration runbook | Indexes a version-specific BSON snapshot with sample-reference checks |
-| `{migrate_from_v2,upgrade_from_v3}/inspect_record.py` | Manual operation | Reconciliation | Writes one original record and its digests to a private file |
-| `migration_common/prepare_target.py` | Read-only operation | Before conversion | Validates preinstalled ASP, ASPC, ISGL, group, and diagnosis records and exports a fingerprinted target catalog |
-| `{migrate_from_v2,upgrade_from_v3}/migrate_annotations.py` | Manual migration | Shared clinical resources | Preserves annotation identities, scope, and clinical content |
-| `{migrate_from_v2,upgrade_from_v3}/migrate_blacklist.py` | Manual migration | Shared clinical resources | Converts blacklist assay-group scope |
-| `{migrate_from_v2,upgrade_from_v3}/migrate_sample.py` | Manual migration | Per-sample stage | Builds related findings, histories, saved snapshots, and VEP evidence |
-| `{migrate_from_v2,upgrade_from_v3}/backfill_sample_metadata.py` | Manual operation | Metadata reconciliation | Reads reviewed TSV fields into supplements or later run/read patches |
-| `migration_common/apply_bundle.py` | Manual migration | Isolated local target | Preflights and transactionally applies bundles with production endpoint guards |
-| `upgrade_from_v3/migrate_d4_coverage_blacklist.py` | Manual migration | After assay-group configuration | Converts only exclusion-shaped v3 `group_coverage` records; measurements remain sample-scoped |
-| `migration_common/{offline,commands,conversion,clinical_plan}.py` | Internal helper | Version-specific commands | Shares indexing, conversion, and reconciliation without source MongoDB access |
-| `upgrade_from_v3/clinical_documents.py` | Internal helper | Clinical migration | Defines source-specific conversions with explicit metadata and current contract validation |
 
 ## First deployment and center validation
 

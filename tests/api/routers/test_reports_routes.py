@@ -139,6 +139,7 @@ def test_trial_returns_matching_temporary_outputs_and_never_allocates_a_report(b
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     result = response.json()
+    assert "without an automatically generated summary" in result["reporting_warning"]
     assert result["html"] == "<article><p>Synthetic report</p></article>"
     assert b64decode(result["pdf_base64"]) == b"synthetic-pdf"
     boundary.pdf.assert_called_once_with(result["html"])

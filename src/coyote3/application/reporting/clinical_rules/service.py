@@ -7,6 +7,7 @@ from typing import Any
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
 from coyote3.application.reporting.clinical_rules.resolution import (
+    MissingClinicalRuleSet,
     record_clinical_rules,
     resolve_published_rule_set,
 )
@@ -121,13 +122,16 @@ class ClinicalRuleService:
         """
         if sample.get("asp_category") != "dna":
             raise ValueError("Automatic variant annotation requires a DNA configuration")
-        release = resolve_published_rule_set(
-            self.repository,
-            asp_id=sample["asp_id"],
-            diagnosis_id=sample.get("diagnosis_id") or "base",
-            analyte="dna",
-            language=aspc.get("reporting", {}).get("language", "sv"),
-        )
+        try:
+            release = resolve_published_rule_set(
+                self.repository,
+                asp_id=sample["asp_id"],
+                diagnosis_id=sample.get("diagnosis_id") or "base",
+                analyte="dna",
+                language=aspc.get("reporting", {}).get("language", "sv"),
+            )
+        except MissingClinicalRuleSet:
+            return None
         if release.scope.analyte != "dna":
             raise ValueError("Automatic variant annotation requires a DNA configuration")
         language = release.scope.language
@@ -159,7 +163,7 @@ class ClinicalRuleService:
         *,
         aspc: dict[str, Any],
         context: PreparedReportContext,
-    ) -> ClinicalRuleEvaluation:
+    ) -> ClinicalRuleEvaluation | None:
         """Evaluate current published scope rules against the sample's configuration settings.
 
         Args:
@@ -167,7 +171,7 @@ class ClinicalRuleService:
             context: Prepared facts and reporting configuration.
 
         Returns:
-            Rendered sections, source provenance, and rule decision traces.
+            Rendered sections, provenance and traces, or None when no publication exists.
 
         Raises:
             ValueError: Release resolution fails, report analyses are undeclared,
@@ -179,7 +183,10 @@ class ClinicalRuleService:
             or aspc.get("aspc_id") != context.aspc.aspc_id
         ):
             raise ValueError("Report context does not match its pinned configuration")
-        rule_set = self.resolve(context=context)
+        try:
+            rule_set = self.resolve(context=context)
+        except MissingClinicalRuleSet:
+            return None
         return self.evaluate_document(rule_set=rule_set, context=context)
 
     def evaluate_document(

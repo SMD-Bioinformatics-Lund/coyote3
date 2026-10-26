@@ -1,6 +1,10 @@
 # Clinical Reporting Rules
 
-For assay setup, start with [prepare and publish reporting rules](../administration/assay-setup.md#5-publish-compatible-reporting-rules).
+For a step-by-step UI guide, see [build report wording from assay and sample data](../administration/report-rule-authoring.md).
+It covers named section starters, dynamic assay/list names, distinct panel and
+selected-list gene counts, conditions and heading-free introduction/closing text.
+
+For assay setup, start with [optional reporting rules](../administration/assay-setup.md#5-optionally-publish-reporting-rules).
 Within this reference, use [the authoring workspace](#authoring-workspace),
 [sample-backed testing](#sample-backed-testing) and
 [lifecycle and permissions](#lifecycle-and-permissions) for the UI workflow.
@@ -93,9 +97,9 @@ Environment-specific samples can resolve the same reviewed reporting source.
 Runtime evaluation checks the sample environment against its configuration.
 There is no cross-database or cross-assay lookup.
 
-A report can be prepared only when all of the following are true:
+When a published rule set is available, report preparation checks the following:
 
-- Preparation resolves an active published rule set for `reporting.language` (default `sv`).
+- Preparation selects rules for `reporting.language` (default `sv`).
 - The rule-set analyte matches the ASPC category.
 - Every entry in `reporting.report_sections` has an explicit analysis declaration.
 - A declaration is either `enabled`, meaning rule blocks may produce wording, or
@@ -107,7 +111,7 @@ Report preparation selects a source for the same assay, analyte and language:
 | --- | --- | --- |
 | 1 | Exact sample diagnosis | Resolve its sole active published release |
 | 2 | Assay `base` | Use Base only when no exact active published release exists |
-| 3 | Neither | Reject report preparation |
+| 3 | Neither | Prepare the report without an automatic summary and show a UI warning |
 
 Missing diagnosis means `base`. Other named diagnoses, languages, analytes and assays
 are never substituted. Ambiguous matches fail; an invalid exact release does not
@@ -116,7 +120,8 @@ are checked before rendering. A partial unique index enforces one active publish
 release per exact scope. Draft, review and approved-but-unpublished versions are
 not eligible.
 
-Assay setup readiness checks current reporting publications. Individual ASPC
+Assay setup readiness warns when reporting publications are absent and allows
+review and activation. Individual ASPC
 creation and editing do not attach or require rule publications. Report generation
 validates the selected publication's schema, hash and analysis declarations on use.
 
@@ -746,7 +751,8 @@ and retry behavior with focused correctness tests, separately from HTTP timing.
 Report preparation creates facts only from the exact filtered findings, biomarkers,
 applied gene lists, ASP, and ASPC used for that report. The service then:
 
-1. resolves the current published clinical rule document for the sample scope;
+1. resolves the current published clinical rule document for the sample scope,
+   or returns no automatic summary when no compatible publication exists;
 2. checks configuration identity, environment, source scope and analyte;
 3. verifies the release content hash and document schema;
 4. checks all selected report sections are declared;
@@ -775,7 +781,7 @@ PYTHONPATH=. .venv/bin/python scripts/identity/sync_rbac_catalog.py \
 Before the first clinical-rule edit, capture one immutable baseline of every current version:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/upgrade_from_v3/backfill_clinical_rule_revisions.py \
+PYTHONPATH=. .venv/bin/python scripts/maintenance/backfill_clinical_rule_revisions.py \
   --mongo-uri "${COYOTE3_MONGO_URI}" \
   --db coyote3_new \
   --actor reporting.migration \

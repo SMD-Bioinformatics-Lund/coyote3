@@ -1,6 +1,7 @@
 import type {
   ClinicalRule,
   ClinicalRuleAssayOption,
+  OutputNode,
   RuleBlock
 } from "./clinical-rules-types"
 
@@ -101,5 +102,62 @@ export const newRuleBlock = (blocks: RuleBlock[]): RuleBlock => {
   }
   const existingRuleIds = blocks.flatMap((item) => item.rules.map((rule) => rule.rule_id))
   block.rules.push(newRule(block, existingRuleIds))
+  return block
+}
+
+export const SECTION_STARTERS = [
+  ["intro", "General introduction", ""],
+  ["snv", "Variant text", "SNV"],
+  ["cnv", "CNV text", "CNV"],
+  ["translocation", "DNA fusion text", "TRANSLOCATION"],
+  ["fusion", "RNA fusion text", "FUSION"],
+  ["hrd", "HRD text", "HRD"],
+  ["msi", "MSI text", "MSI"],
+  ["tmb", "TMB text", "TMB"],
+  ["closing", "Closing text", ""],
+] as const
+
+export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleSetScope): RuleBlock {
+  const preset = SECTION_STARTERS.find(([id]) => id === key)
+  const block = newRuleBlock(blocks)
+  if (!preset) return block
+  block.block_id = nextIdentifier(`${scope.asp_id}_${scope.diagnosis_id}_${key}`, blocks.map(item => item.block_id))
+  block.section = block.name = preset[1]
+  block.analysis = preset[2] || null
+  block.show_heading = !["intro", "closing"].includes(key)
+  block.rules = []
+  const used = blocks.flatMap(item => item.rules.map(rule => rule.rule_id))
+  const add = (name: string, output: OutputNode[], condition: ClinicalRule["condition"] = null) => {
+    const rule = newRule(block, used)
+    rule.name = name
+    rule.enabled = false
+    rule.output = output
+    rule.condition = condition
+    block.rules.push(rule)
+    used.push(rule.rule_id)
+  }
+  const text = (value: string): OutputNode => ({ type: "text", value })
+  const fact = (path: string): OutputNode => ({ type: "fact", path, formatter: "text", missing: "error" })
+  const list = (path: string): OutputNode => ({ type: "list", path, formatter: "text", missing: "error", conjunction: scope.language === "sv" ? "och" : "and" })
+  const number = (path: string): OutputNode => ({ type: "number", path, precision: 0, unit: "", missing: "error" })
+  const predicate = (fact: string, operator: string, value: unknown): ClinicalRule["condition"] => ({ type: "predicate", fact, operator, value })
+  const sv = scope.language === "sv"
+  if (key === "intro") {
+    block.match_strategy = "all_matches"
+    const analysis = scope.analyte === "rna" ? "fusion" : "snv"
+    add("Assay and panel scope", [text(sv ? "Analysen omfattar " : "The analysis covers "), number("asp.covered_genes_count"), text(sv ? " gener i " : " genes in "), fact("asp.display_name"), text(". ")])
+    add("Paired control wording", [text(sv ? "Ange granskad text om kontrollmaterial. " : "Enter reviewed wording about the control material. ")], predicate("sample.paired", "eq", true))
+    add("Selected gene lists", [text(sv ? "Analysen omfattar genlistan: " : "Selected gene lists: "), list(`gene_lists.${analysis}.names`), text(sv ? " som innefattar " : " covering "), number(`gene_lists.${analysis}.gene_count`), text(sv ? " gener. " : " genes. ")], predicate(`gene_lists.${analysis}.gene_count`, "gt", 0))
+    add("Selected germline genes", [text(sv ? "För " : "For "), list(`gene_lists.${analysis}.germline_genes`), text(sv ? " undersöks även konstitutionella mutationer." : " constitutional variants are also investigated.")], { type: "all", children: [predicate("sample.paired", "eq", true)!, { type: "not", child: { type: "predicate", fact: `gene_lists.${analysis}.germline_genes`, operator: "is_empty" } }] })
+  } else if (key === "closing") {
+    block.match_strategy = "all_matches"
+    add("Closing wording", [text(sv ? "Ange granskad avslutande text." : "Enter reviewed closing text.")])
+    add("Outside accreditation", [text(sv ? "Analysen omfattas inte av ackrediteringen." : "The analysis is not covered by accreditation.")], predicate("asp.accredited", "eq", false))
+  } else {
+    block.evaluation = ["hrd", "msi", "tmb"].includes(key)
+      ? { mode: "each_item", collection: key as "hrd" | "msi" | "tmb" }
+      : { mode: "each_finding", collection: null }
+    add(preset[1], [text("Enter reviewed report wording.")], ["hrd", "msi", "tmb"].includes(key) ? null : predicate("finding.kind", "eq", key))
+  }
   return block
 }

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+
+from coyote3.contracts.schemas.dna import VariantsDoc
 from coyote3.domain.dna.variant_identity import (
     build_simple_id,
     build_simple_id_hash_from_simple_id,
@@ -41,3 +44,25 @@ def test_historical_document_can_be_backfilled_safely() -> None:
 
     assert normalized["simple_id"] == "17_7579472_C_T"
     assert normalized["simple_id_hash"] == "862b46287a08e369aa99f8f3777f44b9"
+
+
+@pytest.mark.parametrize("simple_id", ["17_7579472_C_T", " chr17_07579472_c_t "])
+def test_variant_contract_uses_the_canonical_hash_for_normalized_and_raw_ids(simple_id):
+    """Contract validation accepts the digest produced by every canonical generation path."""
+    digest = build_simple_id_hash_from_simple_id(simple_id)
+    assert digest == "862b46287a08e369aa99f8f3777f44b9"
+    document = VariantsDoc(
+        SAMPLE_ID="synthetic-sample",
+        CHROM="17",
+        POS=7579472,
+        REF="C",
+        ALT="T",
+        ID=".",
+        INFO={
+            "selected_CSQ": {"Feature": "SYNTHETIC_TRANSCRIPT"},
+            "selected_CSQ_criteria": "ncbi_mane_plus_clinical",
+        },
+        simple_id=simple_id,
+        simple_id_hash=digest,
+    )
+    assert document.simple_id_hash == digest

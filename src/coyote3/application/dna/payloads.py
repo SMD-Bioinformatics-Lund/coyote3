@@ -506,7 +506,9 @@ def list_variants_payload(
     variants = service.variant_repository.hydrate_finding_comments_many(
         list(service.variant_repository.get_case_variants(finding_query))
     )
-    variants = service.blacklist_repository.add_blacklist_data(variants, assay_group)
+    variants = service.blacklist_repository.add_blacklist_data(
+        variants, assay_group, asp_id=sample["asp_id"]
+    )
     variants = hotspot_variant(variants)
     variants = sorted(variants, key=_variant_case_af_value, reverse=True)
     search_query = str(query_params.get("q", "")).strip()
@@ -760,7 +762,9 @@ def variant_context_payload(
     assay_group = assay_config.get("asp_group", "unknown")
     diagnosis = sample.get("diagnosis_id")
 
-    variant = service.blacklist_repository.add_blacklist_data([variant], assay_group)[0]
+    variant = service.blacklist_repository.add_blacklist_data(
+        [variant], assay_group, asp_id=sample["asp_id"]
+    )[0]
     annotations, latest_classification, other_classifications, annotations_interesting = (
         service.annotation_repository.get_global_annotations(
             variant,

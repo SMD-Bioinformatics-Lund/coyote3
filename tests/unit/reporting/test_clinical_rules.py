@@ -12,7 +12,10 @@ from bson import ObjectId
 from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
-from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
+from coyote3.application.reporting.clinical_rules.service import (
+    ClinicalRuleService,
+    rendered_summary,
+)
 from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
@@ -48,8 +51,7 @@ def test_annotation_terminology_is_scoped_published_and_integrity_checked():
     doc.content_hash = content_hash(doc)
     configuration = _configuration(doc)
     configuration["reporting"]["language"] = "en"
-    with pytest.raises(ValueError, match="No active published"):
-        service.annotation_tumor_type(aspc=configuration, sample=sample)
+    assert service.annotation_tumor_type(aspc=configuration, sample=sample) is None
 
 
 def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
@@ -78,6 +80,15 @@ def test_automatic_annotation_term_rejects_invalid_values(value):
         ClinicalRuleDraftUpdate(
             expected_revision=1, terminology={"automatic_annotation_tumor_type": value}
         )
+
+
+def test_missing_published_rules_produce_no_automatic_summary():
+    """An unconfigured rule scope permits a report without generated wording."""
+    service = ClinicalRuleService(SimpleNamespace(list_active_for_assay=lambda *args, **kwargs: []))
+    context = _context()
+    evaluation = service.evaluate(aspc=context.aspc.model_dump(), context=context)
+    assert evaluation is None
+    assert rendered_summary(evaluation) == ""
 
 
 def _context():

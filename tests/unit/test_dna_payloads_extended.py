@@ -298,7 +298,9 @@ def _context_service(variant):
             ],
             hidden_var_comments=lambda variant_id: True,
         ),
-        blacklist_repository=SimpleNamespace(add_blacklist_data=lambda rows, group: rows),
+        blacklist_repository=SimpleNamespace(
+            add_blacklist_data=lambda rows, group, *, asp_id: rows
+        ),
         annotation_repository=SimpleNamespace(
             get_global_annotations=lambda row, group, diagnosis, **kwargs: (
                 [{"text": "annotation"}],
@@ -494,7 +496,7 @@ def test_variant_context_sets_special_clinical_descriptions(
             },
         }
     )
-    sample = {"_id": "sample-1", "database_versions": {"vep": "110"}}
+    sample = {"_id": "sample-1", "asp_id": "demo-hematology", "database_versions": {"vep": "110"}}
     observed = payloads.variant_context_payload(
         service=_context_service(variant),
         sample=sample,

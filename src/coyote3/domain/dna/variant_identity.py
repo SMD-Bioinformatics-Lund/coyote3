@@ -68,7 +68,16 @@ def normalize_simple_id(simple_id: Any) -> str:
 
 
 def build_simple_id_hash_from_simple_id(simple_id: Any) -> str:
-    """Build deterministic MD5 hex digest from canonical simple_id."""
+    """Generate the shared simple_id_hash used by all finding identity workflows.
+
+    Args:
+        simple_id: Genomic identifier normalized by normalize_simple_id, or an
+            existing structural/report finding identity preserved by that function.
+
+    Returns:
+        Lowercase MD5 hexadecimal digest of the normalized identifier's UTF-8 bytes.
+        This identity checksum is not a security or password hash.
+    """
     normalized = normalize_simple_id(simple_id)
     return md5(normalized.encode("utf-8")).hexdigest()
 

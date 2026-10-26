@@ -597,7 +597,9 @@ def build_dna_report_payload(
     variants = list(variant_repository.get_case_variants(query) or [])
     if not clinical_rule_only:
         variants = variant_repository.hydrate_finding_comments_many(variants)
-    variants = blacklist_repository.add_blacklist_data(variants, assay=assay_group)
+    variants = blacklist_repository.add_blacklist_data(
+        variants, assay_group, asp_id=sample["asp_id"]
+    )
 
     variants, tiered_variants = shared_add_global_annotations(
         variants,
@@ -662,7 +664,7 @@ def build_dna_report_payload(
         if not clinical_rule_only:
             germline_variants = variant_repository.hydrate_finding_comments_many(germline_variants)
         germline_variants = blacklist_repository.add_blacklist_data(
-            germline_variants, assay=assay_group
+            germline_variants, assay_group, asp_id=sample["asp_id"]
         )
         germline_variants, _ = shared_add_global_annotations(
             germline_variants,

@@ -24,12 +24,6 @@ from coyote3.contracts.schemas.diagnoses import (
     SharedDiagnosisUpdate,
 )
 from coyote3.domain.exceptions import AppError
-from scripts.upgrade_from_v3.migrate_assay_subpanels import (
-    migrate,
-    normalize_diagnosis_associations,
-    plan_diagnoses,
-    validate_annotation_scopes,
-)
 
 
 @pytest.fixture
@@ -277,26 +271,6 @@ def test_new_aspc_requires_registry_not_gene_list():
     service.gene_list_repository.get_isgl_for_scope.assert_not_called()
 
 
-def test_migration_covers_existing_scopes_without_cross_assay_leakage():
-    result = plan_diagnoses(
-        [
-            {"asp_id": "panel-a", "asp_group": "hematology"},
-            {"asp_id": "panel-b", "asp_group": "solid"},
-        ],
-        [{"asp_id": "panel-a", "diagnosis_id": "historical"}],
-        [{"scope": {"asp_id": "panel-b", "diagnosis_id": "rules-only"}}],
-        [{"is_active": True, "asp_groups": ["hematology"], "diagnosis": ["myeloid"]}],
-        actor="operator",
-    )
-    assert {(row["asp_id"], row["diagnosis_id"]) for row in result} == {
-        ("panel-a", "historical"),
-        ("panel-a", "myeloid"),
-        ("panel-b", "rules-only"),
-    }
-    with pytest.raises(ValueError, match="unknown assay"):
-        plan_diagnoses([], [{"asp_id": "absent"}], [], [], actor="operator")
-
-
 def test_transactions_fail_closed_without_replica_set():
     db = mongomock.MongoClient().test
     repo = AssayDiagnosisRepository(
@@ -315,22 +289,6 @@ def test_transactions_fail_closed_without_replica_set():
     with pytest.raises(NotImplementedError):
         repo.save(doc.model_dump(exclude_none=True))
     assert repo.get_collection().count_documents({}) == 0
-
-
-def test_migration_is_read_only_by_default_and_preserves_retirement(repository):
-    """An explicit apply is repeatable and never reactivates an existing scope."""
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_one({"asp_id": "panel-a", "asp_group": "hematology"})
-    db.asp_configs.insert_one({"asp_id": "panel-a", "diagnosis_id": "named"})
-    before = set(db.list_collection_names())
-    assert migrate(db, actor="operator") == (1, 0)
-    assert set(db.list_collection_names()) == before
-    assert repository.get_collection().count_documents({}) == 0
-    assert migrate(db, actor="operator", apply=True) == (1, 0)
-    assert migrate(db, actor="operator", apply=True) == (0, 1)
-    db.diagnoses.update_one({"diagnosis_id": "named"}, {"$set": {"display_name": "Center name"}})
-    assert migrate(db, actor="operator", apply=True) == (0, 1)
-    assert repository.get_current("panel-a", "named")["display_name"] == "Center name"
 
 
 def test_clinical_rule_scopes_require_an_active_registered_diagnosis():
@@ -356,113 +314,6 @@ def test_clinical_rule_scopes_require_an_active_registered_diagnosis():
         ClinicalRuleAuthoringService(object())._registered_diagnoses("panel-a")
 
 
-def test_migration_never_registers_implicit_or_explicit_base():
-    assert (
-        plan_diagnoses(
-            [{"asp_id": "panel-a"}],
-            [{"asp_id": "panel-a"}, {"asp_id": "panel-a", "diagnosis_id": None}],
-            [{"scope": {"asp_id": "panel-a", "diagnosis_id": "base"}}],
-            [{"is_active": True, "asp_ids": ["panel-a"], "diagnosis": ["base"]}],
-            actor="operator",
-        )
-        == []
-    )
-
-
-def test_annotation_scopes_use_groups_and_preserve_unscoped_records():
-    panels = [
-        {"asp_id": "panel-a", "asp_group": "solid"},
-        {"asp_id": "panel-b", "asp_group": "hematology"},
-    ]
-    definitions = [{"asp_id": "panel-a", "diagnosis_id": "breast"}]
-    validate_annotation_scopes(
-        panels,
-        definitions,
-        [{"assay": "solid", "diagnosis": "breast"}, {"assay": "old", "diagnosis": None}],
-    )
-    unknown = {"assay": "hematology", "diagnosis": "breast"}
-    assert validate_annotation_scopes(panels, definitions, [unknown]) == [unknown]
-    with pytest.raises(ValueError, match="Noncanonical annotation"):
-        validate_annotation_scopes(panels, definitions, [{"assay": "solid", "diagnosis": "Breast"}])
-
-
-def test_migration_reports_historical_scopes_without_inventing_ownership(repository, capsys):
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_one({"asp_id": "panel-a", "asp_group": "solid"})
-    db.annotation.insert_many(
-        [
-            {"assay": "solid", "diagnosis": "historic"},
-            {"assay": "global", "diagnosis": "base"},
-            {"assay": "unknown", "diagnosis": "other"},
-        ]
-    )
-    original = list(db.annotation.find())
-    assert migrate(db, actor="operator") == (0, 0)
-    assert db.assay_subpanels.count_documents({}) == 0
-    assert "'global'/'base'" not in capsys.readouterr().err
-    assert migrate(db, actor="operator", apply=True) == (0, 0)
-    assert db.assay_subpanels.find_one({"diagnosis_id": "historic"}) is None
-    db.asp_configs.insert_one({"asp_id": "panel-a", "diagnosis_id": "historic"})
-    assert migrate(db, actor="operator", apply=True) == (1, 0)
-    assert migrate(db, actor="operator", apply=True) == (0, 1)
-    assert list(db.annotation.find()) == original
-
-
-def test_existing_registry_and_historical_group_membership_match_annotations(repository):
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_many(
-        [
-            {"asp_id": "panel-a", "asp_group": "old-group", "version": 1},
-            {"asp_id": "panel-a", "asp_group": "solid", "version": 2},
-        ]
-    )
-    db.diagnosis_associations.insert_one(
-        {"asp_id": "panel-a", "diagnosis_id": "historic", "is_current": True, "is_active": False}
-    )
-    db.diagnoses.insert_one(
-        {
-            "diagnosis_id": "historic",
-            "display_name": "Historic",
-            "is_active": True,
-            "is_current": True,
-            "version": 1,
-        }
-    )
-    db.annotation.insert_one({"assay": "old-group", "diagnosis": "historic"})
-    assert migrate(db, actor="operator", apply=True) == (0, 0)
-    assert db.diagnosis_associations.find_one({"diagnosis_id": "historic"})["is_active"] is False
-
-
-def test_migration_does_not_silently_normalize_historical_identifiers():
-    with pytest.raises(ValueError, match="will not rename") as error:
-        plan_diagnoses(
-            [{"asp_id": "panel-a"}],
-            [{"asp_id": "panel-a", "diagnosis_id": "Breast"}],
-            [],
-            [],
-            actor="operator",
-        )
-    assert "asp_id='panel-a', diagnosis_id='Breast'" in str(error.value)
-    assert "canonical form would be 'breast'" in str(error.value)
-
-
-def test_migration_reports_all_invalid_scope_keys_before_writing(repository):
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_one({"asp_id": "panel-a"})
-    db.asp_configs.insert_many(
-        [
-            {"asp_id": "panel-a", "diagnosis_id": "Upper"},
-            {"asp_id": "panel-a", "diagnosis_id": "bad/id"},
-        ]
-    )
-    with pytest.raises(ValueError) as error:
-        migrate(db, actor="operator", apply=True)
-    assert "diagnosis_id='Upper'" in str(error.value)
-    assert "diagnosis_id='bad/id'" in str(error.value)
-    assert "unsupported identifier format" in str(error.value)
-    assert db.assay_subpanels.count_documents({}) == 0
-
-
 def test_isgl_aliases_are_labels_not_scope_identifiers():
     doc = InsilicoGenelistsDoc(
         isgl_id="breast-panel",
@@ -483,51 +334,6 @@ def test_isgl_aliases_are_labels_not_scope_identifiers():
         )
 
 
-def test_diagnosis_normalization_preserves_separators_and_rejects_collisions():
-    docs, changes = normalize_diagnosis_associations(
-        [{"diagnosis": ["H-LGP", "Hem_Snabb", "breast cancer", "BC"]}]
-    )
-    assert docs[0]["diagnosis"] == ["h-lgp", "hem_snabb", "breast-cancer", "bc"]
-    assert changes[0]["diagnosis"][0] == "H-LGP"
-    with pytest.raises(ValueError, match="collisions"):
-        normalize_diagnosis_associations([{"diagnosis": ["BC", "bc"]}])
-    with pytest.raises(ValueError):
-        normalize_diagnosis_associations([{"diagnosis": ["bad/id"]}])
-
-
-def test_explicit_isgl_normalization_is_dry_run_first_and_idempotent(repository, monkeypatch):
-    monkeypatch.setattr(
-        "scripts.upgrade_from_v3.migrate_assay_subpanels.run_transaction",
-        lambda _client, callback: callback(None),
-    )
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_one({"asp_id": "panel-a", "asp_group": "solid"})
-    db.insilico_genelists.insert_one(
-        {"isgl_id": "test", "is_active": True, "asp_ids": ["panel-a"], "diagnosis": ["BC"]}
-    )
-    db.annotation.insert_one({"assay": "solid", "diagnosis": "bc"})
-    original = list(db.annotation.find())
-    assert migrate(db, actor="operator", normalize_isgl_diagnosis=True) == (1, 0)
-    assert db.insilico_genelists.find_one()["diagnosis"] == ["BC"]
-    assert migrate(db, actor="operator", normalize_isgl_diagnosis=True, apply=True) == (1, 0)
-    assert db.insilico_genelists.find_one()["diagnosis"] == ["bc"]
-    assert migrate(db, actor="operator", normalize_isgl_diagnosis=True, apply=True) == (0, 1)
-    assert list(db.annotation.find()) == original
-
-
-def test_noncanonical_annotations_block_isgl_normalization(repository):
-    db = repository.get_collection().database
-    db.assay_specific_panels.insert_one({"asp_id": "panel-a", "asp_group": "solid"})
-    db.insilico_genelists.insert_one(
-        {"is_active": True, "asp_ids": ["panel-a"], "diagnosis": ["BC"]}
-    )
-    db.annotation.insert_one({"assay": "solid", "diagnosis": "BC"})
-    with pytest.raises(ValueError, match="Noncanonical annotation"):
-        migrate(db, actor="operator", normalize_isgl_diagnosis=True, apply=True)
-    assert db.insilico_genelists.find_one()["diagnosis"] == ["BC"]
-    assert db.assay_subpanels.count_documents({}) == 0
-
-
 def test_isgl_alias_search_does_not_make_alias_a_lookup_key():
     collection = mongomock.MongoClient().test.insilico_genelists
     collection.insert_one(
@@ -544,53 +350,6 @@ def test_isgl_alias_search_does_not_make_alias_a_lookup_key():
     assert count == 1
     assert rows[0]["isgl_id"] == "panel-a"
     assert repository.get_isgl("alternate-name") is None
-
-
-def test_legacy_registry_consolidates_without_rewriting_source(repository):
-    db = repository.get_collection().database
-    for assay, active in [("panel-a", True), ("panel-b", False)]:
-        db.assay_specific_panels.insert_one({"asp_id": assay, "asp_group": "hematology"})
-        db.assay_subpanels.insert_one(
-            {
-                "asp_id": assay,
-                "subpanel_id": "myeloid",
-                "display_name": "Myeloid",
-                "description": "Shared scope",
-                "is_active": active,
-                "is_current": True,
-                "version": 3,
-                "updated_by": "original",
-                "updated_on": datetime.now(timezone.utc),
-            }
-        )
-    original = list(db.assay_subpanels.find())
-    assert migrate(db, actor="operator") == (2, 0)
-    assert db.diagnoses.count_documents({}) == 0
-    assert migrate(db, actor="operator", apply=True) == (2, 0)
-    assert db.diagnoses.count_documents({"is_current": True}) == 1
-    assert db.diagnosis_associations.count_documents({"is_current": True}) == 2
-    assert repository.list_for_assay("panel-b", active_only=True) == []
-    assert migrate(db, actor="operator", apply=True) == (0, 2)
-    assert list(db.assay_subpanels.find()) == original
-
-
-def test_legacy_metadata_conflict_stops_before_writes(repository):
-    db = repository.get_collection().database
-    for assay in ["panel-a", "panel-b"]:
-        db.assay_specific_panels.insert_one({"asp_id": assay})
-        db.assay_subpanels.insert_one(
-            {
-                "asp_id": assay,
-                "subpanel_id": "shared",
-                "display_name": assay,
-                "is_active": True,
-                "is_current": True,
-            }
-        )
-    with pytest.raises(ValueError, match="Conflicting shared metadata"):
-        migrate(db, actor="operator", apply=True)
-    assert db.diagnoses.count_documents({}) == 0
-    assert db.diagnosis_associations.count_documents({}) == 0
 
 
 def test_create_shared_definition_with_multiple_assays(service, repository):

@@ -46,6 +46,10 @@ RESOURCE_EXTRA_FIELDS: dict[str, dict[str, dict[str, Any]]] = {
 
 RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
     "asp": {
+        "name": {
+            "label": "Short name",
+            "help": "Optional compact assay name available as a dynamic report value. Display name remains the full name.",
+        },
         "asp_id": {
             "label": "Assay ID",
             "display_type": "input",
@@ -889,6 +893,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
             [
                 "asp_id",
                 "display_name",
+                "name",
                 "asp_group",
                 "asp_family",
                 "asp_category",

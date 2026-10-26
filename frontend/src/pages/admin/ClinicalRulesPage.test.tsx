@@ -220,6 +220,28 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByRole("textbox", { name: "Rule-set name" })).toHaveValue("Existing solid rules")
   })
 
+  it("adds named sections, enables the analysis and reorders without losing rules", async () => {
+    const user = userEvent.setup()
+    mocks.get.mockImplementation((path: string) => {
+      if (path === "/admin/clinical-rule-sets/facts") return Promise.resolve({ data: { items: [] } })
+      if (path === "/admin/clinical-rule-sets/authoring-options") return Promise.resolve({ data: { assays: [] } })
+      if (path === "/admin/clinical-rule-sets/versions/rule-version-1") return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], page: 1, per_page: 30, total: 1 } })
+    })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await user.selectOptions(await screen.findByLabelText("Section starter"), "intro")
+    expect(screen.getByLabelText("Section")).toHaveValue("General introduction")
+    expect(screen.getByLabelText("Show section heading")).not.toBeChecked()
+    expect(screen.getByLabelText("Include this rule in generated report text")).not.toBeChecked()
+    await user.selectOptions(screen.getByLabelText("Section starter"), "cnv")
+    expect(screen.getByLabelText("Analysis")).toHaveValue("CNV")
+    const identifier = (screen.getByLabelText("Section identifier") as HTMLInputElement).value
+    await user.click(screen.getByRole("button", { name: "Move section up" }))
+    expect(screen.getByLabelText("Section identifier")).toHaveValue(identifier)
+    expect(screen.getByLabelText("Clinical rule name")).toHaveValue("CNV text")
+  })
+
   it("generates editable section and clinical rule identifiers", async () => {
     const user = userEvent.setup()
     mocks.get.mockImplementation((path: string) => {

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import {
   BookOpenCheck,
   CirclePlus,
@@ -14,12 +15,31 @@ import type {
 
 
 export function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; facts: FactDefinition[]; onChange: (nodes: OutputNode[]) => void }) {
+  const [search, setSearch] = useState("")
+  const insertFact = (fact: FactDefinition) => {
+    const base = { path: fact.path, missing: "error" as const }
+    const node: OutputNode = fact.kind === "string_list"
+      ? { ...base, type: "list", formatter: "text", conjunction: "and" }
+      : ["integer", "number"].includes(fact.kind)
+        ? { ...base, type: "number", precision: fact.kind === "integer" ? 0 : 2, unit: "" }
+        : { ...base, type: "fact", formatter: "text" }
+    onChange([...nodes, node])
+  }
   const replace = (index: number, node: OutputNode) => onChange(nodes.map((item, itemIndex) => itemIndex === index ? node : item))
   const scalarFacts = facts.filter((fact) => !["string_list", "object_list"].includes(fact.kind))
   const listFacts = facts.filter((fact) => fact.kind === "string_list")
   const numberFacts = facts.filter((fact) => ["integer", "number"].includes(fact.kind))
   return (
     <div className="space-y-2">
+      <details className="rounded-lg border bg-background/70 p-3">
+        <summary className="cursor-pointer font-medium">Insert dynamic value — assay, diagnosis, gene lists or findings</summary>
+        <p className="my-2 text-sm text-muted-foreground">Choose a value to insert at the end, then move it between text parts. Gene counts come from selected lists, not the number of findings. Spaces and punctuation belong in your text parts.</p>
+        <Input aria-label="Search report values" placeholder="Search name, count, diagnosis, VAF…" value={search} onChange={event => setSearch(event.target.value)} />
+        <div className="mt-2 max-h-64 space-y-3 overflow-auto">{[...new Set(facts.map(fact => fact.group))].map(group => {
+          const matches = facts.filter(fact => fact.group === group && fact.kind !== "object_list" && `${fact.label} ${fact.path}`.toLowerCase().includes(search.toLowerCase()))
+          return matches.length ? <section key={group}><h4 className="type-label mb-1">{group}</h4><div className="flex flex-wrap gap-1">{matches.map(fact => <Button key={fact.path} type="button" variant="outline" size="sm" title={fact.path} onClick={() => insertFact(fact)}><Plus />{fact.label}</Button>)}</div></section> : null
+        })}</div>
+      </details>
       {nodes.map((node, index) => (
         <div key={index} className="flex items-start gap-2 rounded-lg border border-border/70 bg-background/70 p-2">
           <div className="min-w-0 flex-1">
@@ -31,7 +51,7 @@ export function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; 
             {node.type === "renderer" && <select className="paper-inset w-full rounded-lg p-2 text-sm" value={node.name} onChange={(event) => replace(index, { type: "renderer", name: event.target.value as typeof node.name })}><option value="dna_report_intro">DNA analysis introduction</option><option value="tier_summary">Tiered variant summary</option><option value="fusion_summary">Fusion summary</option></select>}
             {node.type === "paragraph_break" && <p className="py-2 text-xs font-medium text-muted-foreground">Paragraph break</p>}
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" title="Remove output part" disabled={nodes.length === 1} onClick={() => onChange(nodes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></Button>
+          <div className="flex flex-col gap-1"><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} up`} disabled={index === 0} onClick={() => { const next = [...nodes]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; onChange(next) }}>↑</Button><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} down`} disabled={index === nodes.length - 1} onClick={() => { const next = [...nodes]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; onChange(next) }}>↓</Button><Button type="button" variant="ghost" size="icon-sm" title="Remove output part" disabled={nodes.length === 1} onClick={() => onChange(nodes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></Button></div>
         </div>
       ))}
       <div className="flex flex-wrap gap-2">

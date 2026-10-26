@@ -2,6 +2,51 @@
 
 ## v4.0.0
 
+- Use the shared variant identity function for `simple_id_hash` validation as
+  well as generation across ingest, migration, annotation, blacklist and reporting.
+- Persist the canonical `simple_id_hash` in blacklist records and validate it
+  against the variant identity.
+- Store blacklist alleles once with separate genomic coordinates, biological group
+  lists and per-assay normal-sample measurements. Provide an offline export converter.
+- Version the core Python SDK and HTTP client as `1.0.0`, independently of the
+  `4.0.0` application release.
+- Allow assay activation and report generation without published reporting rules.
+  Show a UI warning when the automatic summary is unavailable; validate existing
+  published rules before use.
+- Add reporting section starters and a searchable dynamic-value picker for assay
+  names, panel gene counts, selected gene-list names/counts and finding evidence.
+  Introductions and closing text can omit headings; output parts can be reordered.
+  Assay definitions accept an optional short name for report wording.
+- Replace superseded v2/v3 script-directory converters with the fresh
+  `migrations_scripts` workflow and a dependency-ordered execution runbook.
+  Remove migration-specific tests; retain clinical reporting regression tests.
+
+- Enrich v2/v3 sample preparation with read-only Bjorn/CDM case and control
+  evidence. Exclude failed runs, retain multiple runs only when CDM confirms them,
+  and otherwise select the latest nonfailed run. Preserve reference evidence in
+  private migration output and support multiple run names in the sample contract.
+
+- Add a read-only v2/v3 assay exporter with automatic 500-sample batches, discovery
+  of sample-owned collections, per-collection resume checkpoints, file checksums and
+  disk-based record deduplication.
+
+- Add fresh offline v2/v3 variant converters with preserved finding history, shared
+  VEP transcript unions including selected consequences, slim variant records and
+  explicit sample ownership, confirmed VEP 103 source-release checks and
+  transcript-selection controls.
+
+- Classify mixed coverage documents by shape, preserve normal coverage and migrate
+  D4 exclusions separately; select related data strictly by migrated sample ObjectIds.
+
+- Add fresh v2/v3 non-variant related-data converters with sample-owner checks,
+  finding-comment extraction, explicit coverage mapping and preserved report findings.
+
+- Retain unsplit v2 tumwgs samples under diagnosis `legacy` and preserve incomplete
+  embedded RNA QC without filling missing measurements during sample conversion.
+
+- Add fresh v2/v3 sample converters under `migrations_scripts`, with read-only
+  structure inspection, preserved embedded history and BSON import-file preparation.
+
 - Return timezone-aware editor lease expiry timestamps so browsers outside UTC
   do not treat their own newly acquired lock as expired.
 

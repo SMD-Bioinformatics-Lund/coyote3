@@ -198,6 +198,12 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
             </Button>
         </div>
       </header>
+      {typeof data?.report?.context?.reporting_warning === "string" && (
+        <p role="alert" className="rounded-md border border-warning p-3 type-body text-foreground">
+          <AlertTriangle className="mr-2 inline size-4 text-warning" />
+          {data.report.context.reporting_warning}
+        </p>
+      )}
 
       {isLoading ? (
         <Card><CardContent><AppLoader label="Loading report preview" /></CardContent></Card>
