@@ -106,6 +106,11 @@ def main() -> int:
     lines.append("")
     lines.append("This is the canonical collection-key reference used by ingestion validation.")
     lines.append("")
+    lines.append(
+        "For field-to-field joins, incoming references and migration ordering, see the "
+        "[collection dependency diagrams](collection-dependencies/README.md)."
+    )
+    lines.append("")
     lines.extend(
         [
             "## Operational collections",

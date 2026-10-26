@@ -256,6 +256,15 @@ nav:
           - "ClinPGx integration": reference/knowledgebases/clinpgx-integration.md
           - "VEP reference library": reference/knowledgebases/vep-reference.md
       - Storage and operational files:
+          - Collection dependencies:
+              - "Relationship guide and migration planning": reference/collection-dependencies/README.md
+              - "Find any collection": reference/collection-dependencies/inventory.md
+              - "Assays, diagnoses and gene lists": reference/collection-dependencies/configuration.md
+              - "Drafts, publications and revisions": reference/collection-dependencies/workflows.md
+              - "Samples, findings and reports": reference/collection-dependencies/clinical.md
+              - "Identity, permissions and audit": reference/collection-dependencies/identity.md
+              - "Knowledgebase evidence": reference/collection-dependencies/knowledgebase.md
+              - "Operational state and BAM records": reference/collection-dependencies/operations.md
           - "MongoDB collection contracts": reference/mongodb-collections.md
           - "Operational files and artifacts": reference/operational-files.md
   - Test and validate Coyote3:

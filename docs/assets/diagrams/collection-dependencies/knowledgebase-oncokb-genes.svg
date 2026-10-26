@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="318" viewBox="0 0 1200 318" role="img" aria-labelledby="title description">
+<title id="title">knowledgebase.oncokb_genes field dependencies</title>
+<desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
+<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
+<rect width="1200" height="318" fill="white"/>
+<text x="20" y="32" style="font-size:23px;font-weight:600">knowledgebase.oncokb_genes</text>
+<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">knowledgebase.oncokb_genes</text>
+<text x="34" y="135" font-weight="400">name</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">knowledgebase.hgnc_genes</text>
+<text x="674" y="135" font-weight="400">hgnc_symbol</text>
+<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="179" class="kind">vocabulary cross-reference · many ↔ many</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="248" font-weight="400">collections[].name</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">knowledgebase.oncokb_genes</text>
+<text x="674" y="248" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="292" class="kind">optional release manifest · one release → many products</text>
+</svg>

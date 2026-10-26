@@ -8,6 +8,12 @@ raw MongoDB documents.
 
 ## DB contracts
 
+The [collection dependency reference](../reference/collection-dependencies/README.md)
+maps stored fields to their target collection keys and distinguishes live references
+from historical snapshots and provider lookups. Use its
+[collection index](../reference/collection-dependencies/inventory.md) alongside the
+[field contracts](../reference/mongodb-collections.md) when planning a migration.
+
 `src/coyote3/contracts/schemas/` defines model validation for Mongo collection
 documents, grouped by domain:
 

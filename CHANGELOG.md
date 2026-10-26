@@ -2,6 +2,12 @@
 
 ## v4.0.0
 
+- Return timezone-aware editor lease expiry timestamps so browsers outside UTC
+  do not treat their own newly acquired lock as expired.
+
+- Document database-qualified collection dependencies with field-to-field diagrams,
+  incoming references, snapshot semantics and migration planning guidance.
+
 - Wait for an editor's previous lease release before acquiring a replacement session,
   preventing self-contention when the editor restarts.
 

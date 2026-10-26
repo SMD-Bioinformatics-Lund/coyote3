@@ -4,6 +4,11 @@ Select the procedure matching the existing deployment. These operations change s
 
 ## Guides
 
+Before selecting collections, review the
+[field-level dependency diagrams and migration ordering](../../reference/collection-dependencies/README.md).
+The reference distinguishes string and BSON identifiers, exact configuration revisions,
+shared VEP records, report snapshots and historical identities that must be preserved.
+
 | Guide | Use it to |
 | --- | --- |
 | [Migrate from Coyote v2](../../migration_from_v2/README.md) | Review the v2 source scope, inventory requirements and staged clinical-data conversion procedure. |

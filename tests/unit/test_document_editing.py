@@ -14,14 +14,26 @@ from coyote3.application.operations.runtime import ApplicationRuntime
 from coyote3.domain.exceptions import AppError
 
 
-@pytest.fixture
-def editing():
+@pytest.fixture(params=[False, True], ids=["default-mongo-datetimes", "aware-mongo-datetimes"])
+def editing(request):
     """Use a fixed clock without a TTL index so expiry is enforced by queries."""
     now = [datetime(2030, 1, 1, tzinfo=UTC)]
     repository = MongoEditLeaseRepository(
-        SimpleNamespace(coyote_db=mongomock.MongoClient(tz_aware=True).test)
+        SimpleNamespace(coyote_db=mongomock.MongoClient(tz_aware=request.param).test)
     )
     return DocumentEditing(repository, clock=lambda: now[0]), now
+
+
+def test_lease_expiry_serializes_as_explicit_utc(editing):
+    """Acquisition, conflict and renewal must not send browser-local expiry timestamps."""
+    service, now = editing
+    session = uuid4()
+    acquired = service.acquire("draft", "one", owner="alice", editor_id=session)
+    conflict = service.acquire("draft", "one", owner="bob", editor_id=uuid4())
+    renewed = service.renew("draft", "one", owner="alice", editor_id=session)
+    for status in (acquired, conflict, renewed):
+        assert status.expires_at == now[0] + service.lifetime
+        assert status.model_dump(mode="json")["expires_at"].endswith("Z")
 
 
 def test_competing_users_and_tabs_cannot_share_lease(editing):

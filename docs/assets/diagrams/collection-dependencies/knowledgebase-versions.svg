@@ -1,0 +1,321 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="4499" viewBox="0 0 1200 4499" role="img" aria-labelledby="title description">
+<title id="title">knowledgebase.versions field dependencies</title>
+<desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
+<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
+<rect width="1200" height="4499" fill="white"/>
+<text x="20" y="32" style="font-size:23px;font-weight:600">knowledgebase.versions</text>
+<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">primary.notifications</text>
+<text x="34" y="135" font-weight="400">resource.id</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">knowledgebase.versions</text>
+<text x="674" y="135" font-weight="400">_id</text>
+<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="179" class="kind">conditional provenance · many → one</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">primary.notification_activity_progress</text>
+<text x="34" y="248" font-weight="400">{source/lane}.id</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">knowledgebase.versions</text>
+<text x="674" y="248" font-weight="400">_id</text>
+<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="292" class="kind">delivery cursor · many → one</text>
+<rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="342" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="361" font-weight="400">collections[].name</text>
+<rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="342" font-weight="600">knowledgebase.hgnc_genes</text>
+<text x="674" y="361" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="405" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="455" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="474" font-weight="400">collections[].name</text>
+<rect x="660" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="455" font-weight="600">knowledgebase.vep_metadata</text>
+<text x="674" y="474" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="518" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="568" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="587" font-weight="400">collections[].name</text>
+<rect x="660" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="568" font-weight="600">knowledgebase.vep_diagrams</text>
+<text x="674" y="587" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="631" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="681" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="700" font-weight="400">collections[].name</text>
+<rect x="660" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="681" font-weight="600">knowledgebase.civic_variants</text>
+<text x="674" y="700" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 691.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="744" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="794" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="813" font-weight="400">collections[].name</text>
+<rect x="660" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="794" font-weight="600">knowledgebase.civic_genes</text>
+<text x="674" y="813" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="857" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="883" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="907" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="926" font-weight="400">collections[].name</text>
+<rect x="660" y="883" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="907" font-weight="600">knowledgebase.onkokb</text>
+<text x="674" y="926" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 917.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="970" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="996" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1020" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1039" font-weight="400">collections[].name</text>
+<rect x="660" y="996" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1020" font-weight="600">knowledgebase.oncokb_actionable</text>
+<text x="674" y="1039" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1030.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1083" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1109" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1133" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1152" font-weight="400">collections[].name</text>
+<rect x="660" y="1109" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1133" font-weight="600">knowledgebase.oncokb_genes</text>
+<text x="674" y="1152" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1143.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1196" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1222" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1246" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1265" font-weight="400">collections[].name</text>
+<rect x="660" y="1222" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1246" font-weight="600">knowledgebase.oncokb_public</text>
+<text x="674" y="1265" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1256.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1309" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1335" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1359" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1378" font-weight="400">collections[].name</text>
+<rect x="660" y="1335" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1359" font-weight="600">knowledgebase.oncokb_genes_public</text>
+<text x="674" y="1378" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1369.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1422" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1448" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1472" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1491" font-weight="400">collections[].name</text>
+<rect x="660" y="1448" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1472" font-weight="600">knowledgebase.oncokb_cancer_genes_public</text>
+<text x="674" y="1491" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1482.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1535" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1561" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1585" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1604" font-weight="400">collections[].name</text>
+<rect x="660" y="1561" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1585" font-weight="600">knowledgebase.clinpgx_genes_public</text>
+<text x="674" y="1604" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1595.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1648" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1674" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1698" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1717" font-weight="400">collections[].name</text>
+<rect x="660" y="1674" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1698" font-weight="600">knowledgebase.brcaexchange</text>
+<text x="674" y="1717" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1708.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1761" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1787" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1811" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1830" font-weight="400">collections[].name</text>
+<rect x="660" y="1787" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1811" font-weight="600">knowledgebase.iarc_tp53</text>
+<text x="674" y="1830" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1821.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1874" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="1900" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1924" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="1943" font-weight="400">collections[].name</text>
+<rect x="660" y="1900" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1924" font-weight="600">knowledgebase.cosmic</text>
+<text x="674" y="1943" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 1934.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1987" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2013" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2037" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2056" font-weight="400">collections[].name</text>
+<rect x="660" y="2013" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2037" font-weight="600">knowledgebase.cosmic_noncoding_variants</text>
+<text x="674" y="2056" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2047.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2100" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2126" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2150" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2169" font-weight="400">collections[].name</text>
+<rect x="660" y="2126" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2150" font-weight="600">knowledgebase.cosmic_targeted_variants</text>
+<text x="674" y="2169" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2160.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2213" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2239" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2263" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2282" font-weight="400">collections[].name</text>
+<rect x="660" y="2239" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2263" font-weight="600">knowledgebase.cosmic_breakpoints</text>
+<text x="674" y="2282" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2273.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2326" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2352" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2376" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2395" font-weight="400">collections[].name</text>
+<rect x="660" y="2352" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2376" font-weight="600">knowledgebase.cosmic_structural_variants</text>
+<text x="674" y="2395" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2386.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2439" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2465" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2489" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2508" font-weight="400">collections[].name</text>
+<rect x="660" y="2465" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2489" font-weight="600">knowledgebase.cosmic_copy_number</text>
+<text x="674" y="2508" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2499.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2552" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2578" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2602" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2621" font-weight="400">collections[].name</text>
+<rect x="660" y="2578" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2602" font-weight="600">knowledgebase.cosmic_fusions</text>
+<text x="674" y="2621" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2612.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2665" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2691" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2715" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2734" font-weight="400">collections[].name</text>
+<rect x="660" y="2691" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2715" font-weight="600">knowledgebase.cosmic_gene_expression</text>
+<text x="674" y="2734" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2725.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2778" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2804" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2828" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2847" font-weight="400">collections[].name</text>
+<rect x="660" y="2804" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2828" font-weight="600">knowledgebase.cosmic_methylation</text>
+<text x="674" y="2847" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2838.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2891" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="2917" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2941" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="2960" font-weight="400">collections[].name</text>
+<rect x="660" y="2917" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2941" font-weight="600">knowledgebase.cosmic_classifications</text>
+<text x="674" y="2960" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 2951.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3004" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3030" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3054" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3073" font-weight="400">collections[].name</text>
+<rect x="660" y="3030" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3054" font-weight="600">knowledgebase.cosmic_classification_papers</text>
+<text x="674" y="3073" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3064.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3117" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3143" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3167" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3186" font-weight="400">collections[].name</text>
+<rect x="660" y="3143" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3167" font-weight="600">knowledgebase.cosmic_cancer_gene_census</text>
+<text x="674" y="3186" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3177.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3230" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3256" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3280" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3299" font-weight="400">collections[].name</text>
+<rect x="660" y="3256" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3280" font-weight="600">knowledgebase.cosmic_cgc_hallmarks</text>
+<text x="674" y="3299" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3290.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3343" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3369" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3393" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3412" font-weight="400">collections[].name</text>
+<rect x="660" y="3369" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3393" font-weight="600">knowledgebase.cosmic_genes</text>
+<text x="674" y="3412" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3403.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3456" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3482" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3506" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3525" font-weight="400">collections[].name</text>
+<rect x="660" y="3482" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3506" font-weight="600">knowledgebase.cosmic_transcripts</text>
+<text x="674" y="3525" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3516.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3569" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3595" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3619" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3638" font-weight="400">collections[].name</text>
+<rect x="660" y="3595" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3619" font-weight="600">knowledgebase.cosmic_census_gene_mutations</text>
+<text x="674" y="3638" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3629.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3682" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3708" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3732" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3751" font-weight="400">collections[].name</text>
+<rect x="660" y="3708" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3732" font-weight="600">knowledgebase.cosmic_resistance_mutations</text>
+<text x="674" y="3751" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3742.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3795" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3821" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3845" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3864" font-weight="400">collections[].name</text>
+<rect x="660" y="3821" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3845" font-weight="600">knowledgebase.cosmic_mutation_census</text>
+<text x="674" y="3864" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3855.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="3908" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="3934" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="3958" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="3977" font-weight="400">collections[].name</text>
+<rect x="660" y="3934" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="3958" font-weight="600">knowledgebase.cosmic_signature_sbs</text>
+<text x="674" y="3977" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 3968.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="4021" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="4047" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="4071" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="4090" font-weight="400">collections[].name</text>
+<rect x="660" y="4047" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="4071" font-weight="600">knowledgebase.cosmic_signature_dbs</text>
+<text x="674" y="4090" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 4081.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="4134" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="4160" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="4184" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="4203" font-weight="400">collections[].name</text>
+<rect x="660" y="4160" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="4184" font-weight="600">knowledgebase.cosmic_signature_sv</text>
+<text x="674" y="4203" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 4194.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="4247" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="4273" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="4297" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="4316" font-weight="400">collections[].name</text>
+<rect x="660" y="4273" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="4297" font-weight="600">knowledgebase.cosmic_actionability</text>
+<text x="674" y="4316" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 4307.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="4360" class="kind">optional release manifest · one release → many products</text>
+<rect x="20" y="4386" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="4410" font-weight="600">knowledgebase.versions</text>
+<text x="34" y="4429" font-weight="400">collections[].name</text>
+<rect x="660" y="4386" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="4410" font-weight="600">knowledgebase.hpaexpr</text>
+<text x="674" y="4429" font-weight="400">collection namespace (not a row key)</text>
+<path d="M540 4420.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="4473" class="kind">optional release manifest · one release → many products</text>
+</svg>

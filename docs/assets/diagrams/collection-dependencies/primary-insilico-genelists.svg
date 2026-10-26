@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2032" viewBox="0 0 1200 2032" role="img" aria-labelledby="title description">
+<title id="title">primary.insilico_genelists field dependencies</title>
+<desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
+<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
+<rect width="1200" height="2032" fill="white"/>
+<text x="20" y="32" style="font-size:23px;font-weight:600">primary.insilico_genelists</text>
+<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">primary.insilico_genelists</text>
+<text x="34" y="135" font-weight="400">supersedes_id</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="135" font-weight="400">_id</text>
+<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="179" class="kind">optional reference · many → one</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">primary.insilico_genelists</text>
+<text x="34" y="248" font-weight="400">asp_ids[]</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">primary.assay_specific_panels</text>
+<text x="674" y="248" font-weight="400">asp_id</text>
+<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="292" class="kind">business key · many ↔ many</text>
+<rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="342" font-weight="600">primary.insilico_genelists</text>
+<text x="34" y="361" font-weight="400">asp_groups[]</text>
+<rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="342" font-weight="600">primary.assay_groups</text>
+<text x="674" y="361" font-weight="400">group_id</text>
+<path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="405" class="kind">business key · many ↔ many</text>
+<rect x="20" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="455" font-weight="600">primary.insilico_genelists</text>
+<text x="34" y="474" font-weight="400">diagnosis[]</text>
+<rect x="660" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="455" font-weight="600">primary.diagnoses</text>
+<text x="674" y="474" font-weight="400">diagnosis_id</text>
+<path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="518" class="kind">conditional reference · many ↔ many</text>
+<rect x="20" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="568" font-weight="600">primary.insilico_genelists</text>
+<text x="34" y="587" font-weight="400">genes[]</text>
+<rect x="660" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="568" font-weight="600">knowledgebase.hgnc_genes</text>
+<text x="674" y="587" font-weight="400">hgnc_symbol</text>
+<path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="631" class="kind">vocabulary lookup · many ↔ many</text>
+<rect x="20" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="681" font-weight="600">primary.asp_configs</text>
+<text x="34" y="700" font-weight="400">gene_list_release.content.{isgl_id}</text>
+<rect x="660" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="681" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="700" font-weight="400">isgl_id + version</text>
+<path d="M540 691.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="744" class="kind">snapshot · one → many</text>
+<rect x="20" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="794" font-weight="600">primary.assay_setups</text>
+<text x="34" y="813" font-weight="400">content.existing_gene_list_ids[]</text>
+<rect x="660" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="794" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="813" font-weight="400">isgl_id</text>
+<path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="857" class="kind">staged reference · one → many</text>
+<rect x="20" y="883" width="520" height="87" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="907" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="926" font-weight="400">modalities.{modality}.categories.{key}.gene_lists[].isgl</text>
+<text x="34" y="945" font-weight="400">_id</text>
+<rect x="660" y="883" width="520" height="87" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="907" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="926" font-weight="400">isgl_id</text>
+<path d="M540 926.5 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="989" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="1015" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1039" font-weight="600">primary.samples</text>
+<text x="34" y="1058" font-weight="400">filters.{intent}.snv.snvlists[]</text>
+<rect x="660" y="1015" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1039" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1058" font-weight="400">isgl_id</text>
+<path d="M540 1049.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1102" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1128" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1152" font-weight="600">primary.samples</text>
+<text x="34" y="1171" font-weight="400">filters.{intent}.cnv.cnvlists[]</text>
+<rect x="660" y="1128" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1152" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1171" font-weight="400">isgl_id</text>
+<path d="M540 1162.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1215" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1241" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1265" font-weight="600">primary.samples</text>
+<text x="34" y="1284" font-weight="400">filters.{intent}.fusion.fusionlists[]</text>
+<rect x="660" y="1241" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1265" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1284" font-weight="400">isgl_id</text>
+<path d="M540 1275.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1328" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1354" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1378" font-weight="600">primary.samples</text>
+<text x="34" y="1397" font-weight="400">filters.{intent}.translocation.fusionlists[]</text>
+<rect x="660" y="1354" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1378" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1397" font-weight="400">isgl_id</text>
+<path d="M540 1388.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1441" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1467" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1491" font-weight="600">primary.asp_configs</text>
+<text x="34" y="1510" font-weight="400">filters.{intent}.snv.snvlists[]</text>
+<rect x="660" y="1467" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1491" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1510" font-weight="400">isgl_id</text>
+<path d="M540 1501.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1554" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1580" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1604" font-weight="600">primary.asp_configs</text>
+<text x="34" y="1623" font-weight="400">filters.{intent}.cnv.cnvlists[]</text>
+<rect x="660" y="1580" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1604" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1623" font-weight="400">isgl_id</text>
+<path d="M540 1614.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1667" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1693" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1717" font-weight="600">primary.asp_configs</text>
+<text x="34" y="1736" font-weight="400">filters.{intent}.fusion.fusionlists[]</text>
+<rect x="660" y="1693" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1717" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1736" font-weight="400">isgl_id</text>
+<path d="M540 1727.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1780" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1806" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1830" font-weight="600">primary.asp_configs</text>
+<text x="34" y="1849" font-weight="400">filters.{intent}.translocation.fusionlists[]</text>
+<rect x="660" y="1806" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1830" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1849" font-weight="400">isgl_id</text>
+<path d="M540 1840.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1893" class="kind">selection · many ↔ many</text>
+<rect x="20" y="1919" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1943" font-weight="600">primary.edit_leases</text>
+<text x="34" y="1962" font-weight="400">_id (kind=genelists)</text>
+<rect x="660" y="1919" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1943" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="1962" font-weight="400">isgl_id</text>
+<path d="M540 1953.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2006" class="kind">encoded operational key · 0..1 per resource kind/key</text>
+</svg>

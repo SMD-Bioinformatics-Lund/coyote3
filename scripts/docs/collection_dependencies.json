@@ -1,0 +1,1784 @@
+{
+  "groups": {
+    "configuration": {
+      "title": "Assays, diagnoses and gene lists",
+      "collections": [
+        "assay_groups",
+        "assay_specific_panels",
+        "diagnoses",
+        "diagnosis_associations",
+        "asp_configs",
+        "insilico_genelists",
+        "blacklist",
+        "d4_coverage_blacklist"
+      ],
+      "sources": [
+        "src/coyote3/contracts/schemas/assay.py",
+        "api/infra/mongo/repositories/assay_diagnoses.py",
+        "src/coyote3/application/common/release_resources.py"
+      ]
+    },
+    "workflows": {
+      "title": "Drafts, publications and revision history",
+      "collections": [
+        "assay_setups",
+        "assay_setup_revisions",
+        "configuration_profiles",
+        "configuration_promotions",
+        "clinical_rule_sets",
+        "clinical_rule_revisions",
+        "query_rule_sets",
+        "query_rule_revisions",
+        "public_assay_catalog",
+        "public_assay_catalog_versions",
+        "public_assay_catalog_revisions"
+      ],
+      "sources": [
+        "src/coyote3/contracts/schemas/assay_setup.py",
+        "src/coyote3/contracts/schemas/clinical_rules.py",
+        "src/coyote3/contracts/schemas/query_rules.py",
+        "src/coyote3/contracts/schemas/public_catalog.py",
+        "src/coyote3/contracts/configuration_profiles.py"
+      ]
+    },
+    "clinical": {
+      "title": "Samples, findings, annotations and reports",
+      "collections": [
+        "samples",
+        "sample_comments",
+        "finding_comments",
+        "reports",
+        "reported_variants",
+        "variants",
+        "anno_vep",
+        "annotation",
+        "cnvs",
+        "translocations",
+        "biomarkers",
+        "pgx",
+        "d4_coverage",
+        "fusions",
+        "rna_expression",
+        "rna_classification",
+        "rna_qc"
+      ],
+      "sources": [
+        "src/coyote3/contracts/schemas/samples.py",
+        "src/coyote3/contracts/schemas/dna.py",
+        "src/coyote3/contracts/schemas/rna.py",
+        "src/coyote3/contracts/schemas/variant_annotations.py",
+        "api/infra/mongo/repositories/sample_deletion.py"
+      ]
+    },
+    "identity": {
+      "title": "Identity, permissions and audit",
+      "collections": [],
+      "sources": [
+        "src/coyote3/contracts/schemas/governance.py",
+        "api/infra/security/sessions.py",
+        "api/infra/mongo/repositories/audit_integrity.py"
+      ]
+    },
+    "knowledgebase": {
+      "title": "Knowledgebase and reference evidence",
+      "collections": [],
+      "sources": [
+        "src/coyote3/contracts/schemas/reference.py",
+        "api/config/collections.toml",
+        "api/infra/knowledgebase/variant_lookups.py"
+      ]
+    },
+    "operations": {
+      "title": "Operational state and BAM records",
+      "collections": [],
+      "sources": [
+        "api/config/operational_collections.py",
+        "api/infra/mongo/repositories/ingest_jobs.py",
+        "api/infra/mongo/repositories/bam_records.py"
+      ]
+    }
+  },
+  "notes": {
+    "primary.asp_configs": "The operational identity is assay + diagnosis + environment, with retained document versions. query_policy_release, clinical_rule_release and clinical_rule_base are historical capture fields: current schema comments and writes explicitly exclude them from new runtime captures. Preserve historical data without making these fields a prerequisite for new configurations.",
+    "primary.blacklist": "pos matches variants.simple_id, not variants._id. The migration bundle contract declares assay_group; scripts/migration_common/apply_bundle.py deliberately persists it as assay because the repository queries and indexes (assay,pos). This is an explicit serialization boundary, not two interchangeable stored fields. Coverage exclusions use d4_coverage_blacklist instead.",
+    "primary.annotation": "No SAMPLE_ID, sample_oid or variant_oid foreign key exists here. Nomenclature p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Preserve namespace, assay scope, author, timestamps and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.",
+    "primary.anno_vep": "Shared transcript vault in PRIMARY, not the knowledgebase database. Unique index: (simple_id_hash, vep_version). Not owned by one sample; never delete it just because one sample is removed.",
+    "primary.samples": "case_id, control_id, case.id and control.id describe sample material/case-control identifiers; they are not self-references to samples._id. The primary samples collection and BAM-service samples collection are different namespaces.",
+    "primary.clinical_rule_sets": "rule_set_id is the stable rule identity, content_version the clinical release, revision the save counter, and _id one content-version document. None are interchangeable. The published document is immutable; reference dependencies are resolution by full scope, not merely matching the display name.",
+    "primary.query_rule_sets": "scope_key/query_id identify a policy scope; version and revision are distinct. Application-provided base conditions live in software, not in a hidden MongoDB base-query collection. Authored rules add to those base conditions.",
+    "primary.public_assay_catalog": "published_offerings and resource_revisions are retained publication projections. They do not turn every public read into a live lookup of the newest assay or gene list.",
+    "primary.assay_setups": "Draft content can precede operational resources. Keep original _id, revision and content_editors, created_by/at and updated_by/at. Editing leases live in edit_leases, not in this collection. Published setup revisions are retained.",
+    "knowledgebase.onkokb": "Physical binding oncokb_collection → onkokb is intentional in the current mapping. This collection has repository-defined Gene/Alteration records, without a COLLECTION_MODEL_ADAPTERS entry. Do not silently rename it to oncokb during migration.",
+    "knowledgebase.oncokb_public": "query_hash is the cache identity for a normalized public API query, not variants.simple_id_hash. Retain query, response, reference_genome and data_version. Public API evidence is not equivalent to the licensed actionable dataset.",
+    "knowledgebase.hpaexpr": "tid is a transcript accession. The rna_expression document is sample-owned; HPA rows are shared external reference values, not owned by that sample.",
+    "primary.ingest_jobs": "source_payload contains the accepted submission, and result is a workflow receipt. SAMPLE_ID references belong to the resulting clinical documents, not an inferred job._id foreign key. Reconcile in-flight jobs and staging directories before replaying an import.",
+    "primary.edit_leases": "Resource identity is encoded in _id as length-prefixed resource kind + canonical identifier. Owner + editor_id controls renewal/release. It is operational, 90-second state: do not migrate live leases as clinical history.",
+    "identity.audit_events": "Retained traceability records and hash chains are not editable migration bookkeeping. resource.type/resource.id are polymorphic historical provenance; the referenced clinical object can have been deleted. Do not enforce a universal foreign-key constraint on these fields.",
+    "identity.operational_audit_events": "Operational retention differs from permanent traceability history. These events do not participate in the traceability hash chain.",
+    "primary.app_controls": "Singleton _id=default. Module/task/retention settings are software configuration keys, not references to one collection per setting.",
+    "bam.samples": "External BAM-service database. Its id is the case/control material identifier and bam_path is a filesystem resource. No primary samples._id equality is implied."
+  },
+  "edges": [
+    {
+      "source": "primary.assay_groups",
+      "field": "parent_group_id",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "optional reference",
+      "cardinality": "many → one",
+      "notes": "Optional parent; preserve the hierarchy, detect cycles and missing parents.",
+      "evidence": "src/coyote3/contracts/schemas/assay_groups.py"
+    },
+    {
+      "source": "primary.assay_specific_panels",
+      "field": "asp_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Resolve the registered biological group; this is not the sequencing family.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Resolve the assay identity; retained assay versions can share this business key.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.diagnosis_associations",
+      "field": "asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Resolve the assay identity; retained assay versions can share this business key.",
+      "evidence": "api/infra/mongo/repositories/assay_diagnoses.py"
+    },
+    {
+      "source": "primary.diagnosis_associations",
+      "field": "diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Named diagnosis definition; retain version/is_current state. Base is implicit, not a diagnosis document.",
+      "evidence": "api/infra/mongo/repositories/assay_diagnoses.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "conditional reference",
+      "cardinality": "many → one",
+      "notes": "Named scope only; base has no registry row. Also validate an active association for this asp_id.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "asp_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Must agree with the assay's group.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "asp_id + diagnosis_id",
+      "target": "primary.diagnosis_associations",
+      "target_field": "asp_id + diagnosis_id",
+      "kind": "composite lookup",
+      "cardinality": "many → one",
+      "notes": "Named scopes require an enabled current association; base is the explicit exception.",
+      "evidence": "api/infra/mongo/repositories/assay_diagnoses.py"
+    },
+    {
+      "source": "primary.assay_specific_panels",
+      "field": "supersedes_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "_id",
+      "kind": "optional reference",
+      "cardinality": "many → one",
+      "notes": "Previous retained document revision; preserve BSON identity rather than replacing it with the business identifier.",
+      "evidence": "api/infra/mongo/repositories/revision_rotation.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "supersedes_id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "optional reference",
+      "cardinality": "many → one",
+      "notes": "Previous retained document revision; preserve BSON identity rather than replacing it with the business identifier.",
+      "evidence": "api/infra/mongo/repositories/revision_rotation.py"
+    },
+    {
+      "source": "primary.insilico_genelists",
+      "field": "supersedes_id",
+      "target": "primary.insilico_genelists",
+      "target_field": "_id",
+      "kind": "optional reference",
+      "cardinality": "many → one",
+      "notes": "Previous retained document revision; preserve BSON identity rather than replacing it with the business identifier.",
+      "evidence": "api/infra/mongo/repositories/revision_rotation.py"
+    },
+    {
+      "source": "primary.insilico_genelists",
+      "field": "asp_ids[]",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "business key",
+      "cardinality": "many ↔ many",
+      "notes": "Zero or more assay associations. An unassociated list may be staged before the assay exists.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.insilico_genelists",
+      "field": "asp_groups[]",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "business key",
+      "cardinality": "many ↔ many",
+      "notes": "Allowed biological scopes; cross-check selected assays belong to these groups.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.insilico_genelists",
+      "field": "diagnosis[]",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "conditional reference",
+      "cardinality": "many ↔ many",
+      "notes": "Named diagnosis tags; base is implicit. These tags do not create assay-diagnosis associations.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.insilico_genelists",
+      "field": "genes[]",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary lookup",
+      "cardinality": "many ↔ many",
+      "notes": "Gene symbols, not HGNC ObjectIds. Preserve release context; resolve aliases deliberately, not through blanket renaming.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.assay_specific_panels",
+      "field": "covered_genes[] + germline_genes[]",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary lookup",
+      "cardinality": "many ↔ many",
+      "notes": "Gene symbols, not HGNC ObjectIds. Preserve release context; resolve aliases deliberately, not through blanket renaming.",
+      "evidence": "src/coyote3/contracts/schemas/assay.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "assay_resource_release.content",
+      "target": "primary.assay_specific_panels",
+      "target_field": "_id + asp_id + version",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Embedded exact assay content and content_hash; do not refresh this capture from today's active assay.",
+      "evidence": "src/coyote3/application/common/release_resources.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "gene_list_release.content.{isgl_id}",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id + version",
+      "kind": "snapshot",
+      "cardinality": "one → many",
+      "notes": "Embedded list documents keyed by business identity, with a content_hash for the whole capture.",
+      "evidence": "src/coyote3/application/common/release_resources.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "profile_sources[].document_id",
+      "target": "primary.configuration_profiles",
+      "target_field": "_id",
+      "kind": "snapshot provenance",
+      "cardinality": "one → many",
+      "notes": "String document identity, plus profile_id/version/content_hash/content. Preserve the selected revision and captured content.",
+      "evidence": "src/coyote3/application/resources/configuration_profiles.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "promotion.source_id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "provenance",
+      "cardinality": "many → one",
+      "notes": "String ObjectId of the source configuration release; source_hash/evidence accompany it. This is not the promotion proposal's ObjectId.",
+      "evidence": "src/coyote3/application/resources/configuration_promotions.py"
+    },
+    {
+      "source": "primary.blacklist",
+      "field": "assay",
+      "repository_field": true,
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "optional scope",
+      "cardinality": "many → one",
+      "notes": "Persisted scope is assay. Validated migration bundles call it assay_group and translate it before writing. Preserve pos and in_normal_perc with this scope.",
+      "evidence": "scripts/migration_common/apply_bundle.py"
+    },
+    {
+      "source": "primary.d4_coverage_blacklist",
+      "field": "group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Coverage exclusion scope. Also preserve gene, region and coordinate identity.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.d4_coverage_blacklist",
+      "field": "gene",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary lookup",
+      "cardinality": "many → one",
+      "notes": "Region exclusions refer to a symbol; region/coord must still identify the original genomic interval.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Sample assay context. Do not replace with display_name.",
+      "evidence": "src/coyote3/contracts/schemas/samples.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "conditional reference",
+      "cardinality": "many → one",
+      "notes": "Named diagnosis only; base is an implicit scope. Preserve aspc_resolution.resolved_diagnosis_id separately when configuration falls back to base.",
+      "evidence": "src/coyote3/contracts/schemas/samples.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "current_aspc_id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "exact revision",
+      "cardinality": "many → one",
+      "notes": "Applied configuration document identity. Do not replace with the newest revision or with aspc_id.",
+      "evidence": "src/coyote3/contracts/schemas/samples.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "current_aspc_name",
+      "target": "primary.asp_configs",
+      "target_field": "display_name (or aspc_id)",
+      "kind": "display snapshot",
+      "cardinality": "many → one",
+      "notes": "Not a join key: ingestion stores display_name, falling back to aspc_id. Use current_aspc_id for exact configuration resolution.",
+      "evidence": "src/coyote3/application/ingest/service.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "latest_report_id",
+      "target": "primary.reports",
+      "target_field": "_id",
+      "kind": "optional reference",
+      "cardinality": "many → one",
+      "notes": "BSON ObjectId of latest saved report; absent before reporting. Backfill only after reports are restored.",
+      "evidence": "api/infra/mongo/repositories/reports.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.cnvs",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.translocations",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.fusions",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.biomarkers",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.pgx",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.d4_coverage",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.rna_expression",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.rna_classification",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.rna_qc",
+      "field": "SAMPLE_ID",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "0..1 per ingest payload",
+      "notes": "SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map.",
+      "evidence": "src/coyote3/contracts/schemas/registry.py"
+    },
+    {
+      "source": "primary.sample_comments",
+      "field": "sample_oid",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "BSON ObjectId",
+      "cardinality": "many → one",
+      "notes": "Stored owner reference; sample_name is display/search provenance, not the identity join.",
+      "evidence": "api/infra/mongo/repositories/sample_comments.py"
+    },
+    {
+      "source": "primary.finding_comments",
+      "field": "sample_oid",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "BSON ObjectId",
+      "cardinality": "many → one",
+      "notes": "Stored owner reference; sample_name is display/search provenance, not the identity join.",
+      "evidence": "api/infra/mongo/repositories/finding_comments.py"
+    },
+    {
+      "source": "primary.reports",
+      "field": "sample_oid",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "BSON ObjectId",
+      "cardinality": "many → one",
+      "notes": "Stored owner reference; sample_name is display/search provenance, not the identity join.",
+      "evidence": "api/infra/mongo/repositories/reports.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "sample_oid",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "BSON ObjectId",
+      "cardinality": "many → one",
+      "notes": "Stored owner reference; sample_name is display/search provenance, not the identity join.",
+      "evidence": "api/infra/mongo/repositories/reported_variants.py"
+    },
+    {
+      "source": "primary.finding_comments",
+      "field": "finding_oid",
+      "target": "primary.variants",
+      "target_field": "_id",
+      "kind": "polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Only when finding_type=small_variant; verify the finding's SAMPLE_ID also equals str(sample_oid).",
+      "evidence": "api/infra/mongo/repositories/finding_comment_owner.py"
+    },
+    {
+      "source": "primary.finding_comments",
+      "field": "finding_oid",
+      "target": "primary.cnvs",
+      "target_field": "_id",
+      "kind": "polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Only when finding_type=cnv; verify the finding's SAMPLE_ID also equals str(sample_oid).",
+      "evidence": "api/infra/mongo/repositories/finding_comment_owner.py"
+    },
+    {
+      "source": "primary.finding_comments",
+      "field": "finding_oid",
+      "target": "primary.fusions",
+      "target_field": "_id",
+      "kind": "polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Only when finding_type=fusion; verify the finding's SAMPLE_ID also equals str(sample_oid).",
+      "evidence": "api/infra/mongo/repositories/finding_comment_owner.py"
+    },
+    {
+      "source": "primary.finding_comments",
+      "field": "finding_oid",
+      "target": "primary.translocations",
+      "target_field": "_id",
+      "kind": "polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Only when finding_type=translocation; verify the finding's SAMPLE_ID also equals str(sample_oid).",
+      "evidence": "api/infra/mongo/repositories/finding_comment_owner.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "report_oid",
+      "target": "primary.reports",
+      "target_field": "_id",
+      "kind": "BSON ObjectId",
+      "cardinality": "many → one",
+      "notes": "Exact report owner, accompanied by report_id and report_num. Never rebuild saved findings by querying current annotations.",
+      "evidence": "api/infra/mongo/repositories/reported_variants.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "report_id",
+      "target": "primary.reports",
+      "target_field": "report_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Human/report export identity; retain together with report_oid and sample_oid.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "var_oid",
+      "target": "primary.variants",
+      "target_field": "_id",
+      "kind": "optional polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "var_oid",
+      "target": "primary.cnvs",
+      "target_field": "_id",
+      "kind": "optional polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "var_oid",
+      "target": "primary.translocations",
+      "target_field": "_id",
+      "kind": "optional polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "var_oid",
+      "target": "primary.fusions",
+      "target_field": "_id",
+      "kind": "optional polymorphic reference",
+      "cardinality": "many → one",
+      "notes": "Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "annotation_oid",
+      "target": "primary.annotation",
+      "target_field": "_id",
+      "kind": "optional provenance",
+      "cardinality": "many → one",
+      "notes": "Selected classification or annotation text source. Retain the saved wording/tier even when a source changes.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "annotation_text_oid",
+      "target": "primary.annotation",
+      "target_field": "_id",
+      "kind": "optional provenance",
+      "cardinality": "many → one",
+      "notes": "Selected classification or annotation text source. Retain the saved wording/tier even when a source changes.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reported_variants",
+      "field": "sample_comment_oid",
+      "target": "primary.sample_comments",
+      "target_field": "_id",
+      "kind": "optional provenance",
+      "cardinality": "many → one",
+      "notes": "Source sample comment for this saved report item.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.reports",
+      "field": "aspc._id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "snapshot provenance",
+      "cardinality": "many → one",
+      "notes": "Report's applied configuration receipt, not today's sample configuration.",
+      "evidence": "api/infra/mongo/repositories/reports.py"
+    },
+    {
+      "source": "primary.reports",
+      "field": "resolution_snapshot",
+      "target": "primary.clinical_rule_sets",
+      "target_field": "_id + rule_set_id + content_version",
+      "kind": "snapshot",
+      "cardinality": "one → many",
+      "notes": "Nested captured rule resolution and evidence; hashes and content remain tied to the saved report. This object is not a scalar foreign key.",
+      "evidence": "api/infra/mongo/repositories/reports.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "simple_id_hash + sample database_versions.vep",
+      "target": "primary.anno_vep",
+      "target_field": "simple_id_hash + vep_version",
+      "kind": "composite lookup",
+      "cardinality": "many → one",
+      "notes": "Use the owning sample's VEP release. Validate simple_id as well; never merge transcripts across releases.",
+      "evidence": "api/infra/mongo/repositories/anno_vep.py"
+    },
+    {
+      "source": "primary.anno_vep",
+      "field": "vep_version",
+      "target": "knowledgebase.vep_metadata",
+      "target_field": "vep_id",
+      "kind": "release lookup",
+      "cardinality": "many → one",
+      "notes": "Canonical VEP version used to interpret consequence codes and transcript provenance.",
+      "evidence": "src/coyote3/contracts/schemas/variant_annotations.py"
+    },
+    {
+      "source": "primary.anno_vep",
+      "field": "CSQ[].HGNC_ID",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_id",
+      "kind": "vocabulary lookup",
+      "cardinality": "many ↔ many",
+      "notes": "Optional transcript-level HGNC identity. SYMBOL is a display/matching symbol, not an ObjectId.",
+      "evidence": "src/coyote3/contracts/schemas/variant_annotations.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "selected_csq_feature",
+      "target": "primary.anno_vep",
+      "target_field": "CSQ[].Feature",
+      "kind": "conditional lookup",
+      "cardinality": "many → one",
+      "notes": "Select within the already resolved variant/version vault record; a transcript name alone is not a unique vault key.",
+      "evidence": "src/coyote3/contracts/schemas/dna.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "scope",
+      "cardinality": "many → one",
+      "notes": "Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "asp_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "scope",
+      "cardinality": "many → one",
+      "notes": "Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "scope",
+      "cardinality": "many → one",
+      "notes": "Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "genomic + genomic_hash",
+      "target": "primary.variants",
+      "target_field": "simple_id + simple_id_hash",
+      "kind": "clinical identity match",
+      "cardinality": "many ↔ many",
+      "notes": "Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "hgvsc",
+      "target": "primary.variants",
+      "target_field": "HGVSc",
+      "kind": "clinical identity match",
+      "cardinality": "many ↔ many",
+      "notes": "Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "hgvsp",
+      "target": "primary.variants",
+      "target_field": "HGVSp",
+      "kind": "clinical identity match",
+      "cardinality": "many ↔ many",
+      "notes": "Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "transcript",
+      "target": "primary.anno_vep",
+      "target_field": "CSQ[].Feature",
+      "kind": "enrichment lookup",
+      "cardinality": "many ↔ many",
+      "notes": "Resolve the correct genomic identity and VEP release first, then the matching transcript. Annotation does not store anno_vep._id.",
+      "evidence": "src/coyote3/domain/annotation_identity.py"
+    },
+    {
+      "source": "primary.blacklist",
+      "field": "pos",
+      "target": "primary.variants",
+      "target_field": "simple_id",
+      "kind": "identity match",
+      "cardinality": "many ↔ many",
+      "notes": "Position identity shared across sample findings; apply the blacklist's scope predicate.",
+      "evidence": "api/infra/mongo/repositories/blacklist.py"
+    },
+    {
+      "source": "primary.assay_setups",
+      "field": "asp_id + content.panel.asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "staged identity",
+      "cardinality": "many → one",
+      "notes": "A reserved draft can exist before the operational assay. Publication creates the assay; this is not a required pre-existing parent.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setups",
+      "field": "content.panel.asp_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Registered group prerequisite, even before activation.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setups",
+      "field": "content.scopes[]",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "conditional reference",
+      "cardinality": "one → many",
+      "notes": "Selected named scopes become diagnosis_associations at publication; base is implicit.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setups",
+      "field": "content.existing_gene_list_ids[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "staged reference",
+      "cardinality": "one → many",
+      "notes": "Existing lists are linked during publication. content.gene_lists[] instead contains new staged documents, not foreign keys.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setups",
+      "field": "content.configurations[]",
+      "target": "primary.asp_configs",
+      "target_field": "asp_id + diagnosis_id + environment",
+      "kind": "staged documents",
+      "cardinality": "one → many",
+      "notes": "Embedded proposed configurations become operational revisions only after publication validation.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setup_revisions",
+      "field": "setup_id",
+      "target": "primary.assay_setups",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "Exact saved setup; (setup_id, revision) identifies the immutable snapshot.",
+      "evidence": "api/infra/mongo/repositories/assay_setup.py"
+    },
+    {
+      "source": "primary.assay_setup_revisions",
+      "field": "document",
+      "target": "primary.assay_setups",
+      "target_field": "_id + revision",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Full historical document, including content and actors. Do not overwrite document with the latest setup.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.configuration_profiles",
+      "field": "bindings[].asp_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "optional scope",
+      "cardinality": "many ↔ many",
+      "notes": "Binding dimensions select applicability. Null means no restriction; base diagnosis is represented by no named diagnosis binding.",
+      "evidence": "src/coyote3/contracts/configuration_profiles.py"
+    },
+    {
+      "source": "primary.configuration_profiles",
+      "field": "bindings[].asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "optional scope",
+      "cardinality": "many ↔ many",
+      "notes": "Binding dimensions select applicability. Null means no restriction; base diagnosis is represented by no named diagnosis binding.",
+      "evidence": "src/coyote3/contracts/configuration_profiles.py"
+    },
+    {
+      "source": "primary.configuration_profiles",
+      "field": "bindings[].diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "optional scope",
+      "cardinality": "many ↔ many",
+      "notes": "Binding dimensions select applicability. Null means no restriction; base diagnosis is represented by no named diagnosis binding.",
+      "evidence": "src/coyote3/contracts/configuration_profiles.py"
+    },
+    {
+      "source": "primary.configuration_promotions",
+      "field": "source_id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "Exact source release; verify source_hash before approval.",
+      "evidence": "src/coyote3/application/resources/configuration_promotions.py"
+    },
+    {
+      "source": "primary.configuration_promotions",
+      "field": "target_id",
+      "target": "primary.asp_configs",
+      "target_field": "_id",
+      "kind": "string ObjectId",
+      "cardinality": "many → one",
+      "notes": "Populated after approval with the installed target release; null while pending.",
+      "evidence": "src/coyote3/application/resources/configuration_promotions.py"
+    },
+    {
+      "source": "primary.configuration_promotions",
+      "field": "candidate",
+      "target": "primary.asp_configs",
+      "target_field": "aspc_id + version",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Review candidate content and content_hash; not a separate live configuration until approved.",
+      "evidence": "src/coyote3/contracts/configuration_profiles.py"
+    },
+    {
+      "source": "primary.clinical_rule_sets",
+      "field": "scope.asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "scope lookup",
+      "cardinality": "many → one",
+      "notes": "Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null.",
+      "evidence": "src/coyote3/contracts/schemas/clinical_rules.py"
+    },
+    {
+      "source": "primary.clinical_rule_sets",
+      "field": "scope.diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "scope lookup",
+      "cardinality": "many → one",
+      "notes": "Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null.",
+      "evidence": "src/coyote3/contracts/schemas/clinical_rules.py"
+    },
+    {
+      "source": "primary.query_rule_sets",
+      "field": "scope.asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "scope lookup",
+      "cardinality": "many → one",
+      "notes": "Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null.",
+      "evidence": "src/coyote3/contracts/schemas/query_rules.py"
+    },
+    {
+      "source": "primary.query_rule_sets",
+      "field": "scope.assay_group",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "scope lookup",
+      "cardinality": "many → one",
+      "notes": "Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null.",
+      "evidence": "src/coyote3/contracts/schemas/query_rules.py"
+    },
+    {
+      "source": "primary.query_rule_sets",
+      "field": "scope.diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "scope lookup",
+      "cardinality": "many → one",
+      "notes": "Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null.",
+      "evidence": "src/coyote3/contracts/schemas/query_rules.py"
+    },
+    {
+      "source": "primary.clinical_rule_sets",
+      "field": "scope.asp_id",
+      "target": "primary.assay_setups",
+      "target_field": "asp_id",
+      "kind": "authoring lookup",
+      "cardinality": "many → one",
+      "notes": "Saved unpublished assay setups also supply authoring scopes; a rule can be prepared before operational assay activation.",
+      "evidence": "src/coyote3/application/resources/assay_setup.py"
+    },
+    {
+      "source": "primary.clinical_rule_revisions",
+      "field": "rule_set_oid",
+      "target": "primary.clinical_rule_sets",
+      "target_field": "_id",
+      "kind": "string identity",
+      "cardinality": "many → one",
+      "notes": "Exact content-version document; also retain rule_set_id, content_version, revision and previous_revision_hash/revision_hash.",
+      "evidence": "api/infra/mongo/repositories/clinical_rule_sets.py"
+    },
+    {
+      "source": "primary.query_rule_revisions",
+      "field": "rule_oid",
+      "target": "primary.query_rule_sets",
+      "target_field": "_id",
+      "kind": "string identity",
+      "cardinality": "many → one",
+      "notes": "Exact policy version; scope_key/version/revision and chained hashes provide revision provenance.",
+      "evidence": "api/infra/mongo/repositories/query_rule_revisions.py"
+    },
+    {
+      "source": "primary.clinical_rule_revisions",
+      "field": "document",
+      "target": "primary.clinical_rule_sets",
+      "target_field": "_id + revision",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Full historical content. Preserve snapshot identity and integrity fields; never replace it with current content.",
+      "evidence": "src/coyote3/contracts/schemas/clinical_rules.py"
+    },
+    {
+      "source": "primary.query_rule_revisions",
+      "field": "document",
+      "target": "primary.query_rule_sets",
+      "target_field": "_id + revision",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Full historical content. Preserve snapshot identity and integrity fields; never replace it with current content.",
+      "evidence": "src/coyote3/contracts/schemas/query_rules.py"
+    },
+    {
+      "source": "primary.public_assay_catalog_revisions",
+      "field": "document",
+      "target": "primary.public_assay_catalog_versions",
+      "target_field": "_id + revision",
+      "kind": "snapshot",
+      "cardinality": "many → one",
+      "notes": "Full historical content. Preserve snapshot identity and integrity fields; never replace it with current content.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog_revisions",
+      "field": "version_id",
+      "target": "primary.public_assay_catalog_versions",
+      "target_field": "_id",
+      "kind": "string identity",
+      "cardinality": "many → one",
+      "notes": "Exact draft/content-version parent; revision is the mutation counter within that version.",
+      "evidence": "api/infra/mongo/repositories/public_assay_catalog_versions.py"
+    },
+    {
+      "source": "primary.public_assay_catalog_versions",
+      "field": "catalog",
+      "target": "primary.public_assay_catalog",
+      "target_field": "catalog_id",
+      "kind": "publication snapshot",
+      "cardinality": "many → one",
+      "notes": "Staged full catalog; publication installs the reviewed content as the current public projection. base_version is an optimistic concurrency precondition, not an ObjectId.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "modalities.{modality}.categories.{key}.asp_id",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "optional binding",
+      "cardinality": "many ↔ many",
+      "notes": "Entry bindings, including inherited category values, resolve resources during publication; folder keys and parent_key are within-document navigation, not collection references.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "modalities.{modality}.categories.{key}.aspc_id",
+      "target": "primary.asp_configs",
+      "target_field": "aspc_id",
+      "kind": "optional binding",
+      "cardinality": "many ↔ many",
+      "notes": "Entry bindings, including inherited category values, resolve resources during publication; folder keys and parent_key are within-document navigation, not collection references.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "modalities.{modality}.categories.{key}.aspc_ids.{environment}",
+      "target": "primary.asp_configs",
+      "target_field": "aspc_id",
+      "kind": "optional binding",
+      "cardinality": "many ↔ many",
+      "notes": "Entry bindings, including inherited category values, resolve resources during publication; folder keys and parent_key are within-document navigation, not collection references.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "modalities.{modality}.categories.{key}.diagnosis_id",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "optional binding",
+      "cardinality": "many ↔ many",
+      "notes": "Entry bindings, including inherited category values, resolve resources during publication; folder keys and parent_key are within-document navigation, not collection references.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "modalities.{modality}.categories.{key}.gene_lists[].isgl_id",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "optional binding",
+      "cardinality": "many ↔ many",
+      "notes": "Entry bindings, including inherited category values, resolve resources during publication; folder keys and parent_key are within-document navigation, not collection references.",
+      "evidence": "src/coyote3/contracts/schemas/public_catalog.py"
+    },
+    {
+      "source": "primary.public_assay_catalog",
+      "field": "resource_revisions.{offering_id}.configuration_id",
+      "target": "primary.asp_configs",
+      "target_field": "aspc_id + version",
+      "kind": "snapshot provenance",
+      "cardinality": "one → many",
+      "notes": "configuration_id is the aspc_id business key; configuration_revision supplies its version. This is not an ObjectId. Publication also captures assay_id/revision, group revision, diagnosis revision and gene-list versions.",
+      "evidence": "src/coyote3/application/public/offering_snapshots.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "filters.{intent}.snv.snvlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "filters.{intent}.cnv.cnvlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "filters.{intent}.fusion.fusionlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "filters.{intent}.translocation.fusionlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "filters.{intent}.snv.snvlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "filters.{intent}.cnv.cnvlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "filters.{intent}.fusion.fusionlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.asp_configs",
+      "field": "filters.{intent}.translocation.fusionlists[]",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "selection",
+      "cardinality": "many ↔ many",
+      "notes": "Only supported analysis/intent sections apply. Runtime list content comes from the applied ASPC's gene_list_release; this is not permission to substitute the newest live list.",
+      "evidence": "src/coyote3/domain/filter_profiles.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "database_versions.vep",
+      "target": "knowledgebase.vep_metadata",
+      "target_field": "vep_id",
+      "kind": "release lookup",
+      "cardinality": "many → one",
+      "notes": "Normalize equivalent numeric release labels with vep_metadata_release; preserve nonzero minor versions.",
+      "evidence": "src/coyote3/config/database_versions.py"
+    },
+    {
+      "source": "knowledgebase.vep_metadata",
+      "field": "consequence_diagram.sha256",
+      "target": "knowledgebase.vep_diagrams",
+      "target_field": "_id",
+      "kind": "content address",
+      "cardinality": "many → one",
+      "notes": "SHA-256 string identity of stored diagram bytes; retain mime type and matching digest.",
+      "evidence": "src/coyote3/contracts/schemas/variant_annotations.py"
+    },
+    {
+      "source": "knowledgebase.hgnc_genes",
+      "field": "ensembl_mane_select + refseq_mane_select + ensembl_mane_plus_clinical + refseq_mane_plus_clinical",
+      "target": "primary.anno_vep",
+      "target_field": "CSQ[].Feature",
+      "kind": "transcript vocabulary",
+      "cardinality": "many ↔ many",
+      "notes": "Transcript accessions guide selection/enrichment. Matching depends on accession versions and the selected VEP record, not a global transcript ObjectId.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.civic_variants",
+      "field": "entrez_id",
+      "target": "knowledgebase.civic_genes",
+      "target_field": "entrez_id",
+      "kind": "provider identity",
+      "cardinality": "many → one",
+      "notes": "Shared Entrez gene identity. CIViC gene_id and variant_id belong to different provider namespaces.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "CHROM + POS + ALT",
+      "target": "knowledgebase.civic_variants",
+      "target_field": "chromosome + start + variant_bases",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "One CIViC lookup branch; alternatives use selected transcript SYMBOL/HGVSc or gene/variant description. Reference-build compatibility still needs validation.",
+      "evidence": "api/infra/knowledgebase/civic.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "CHROM + POS + REF + ALT",
+      "target": "knowledgebase.brcaexchange",
+      "target_field": "chr + pos + ref + alt OR chr38 + pos38 + ref38 + alt38",
+      "kind": "assembly-specific lookup",
+      "cardinality": "many → one",
+      "notes": "The sample genome build chooses the 37 or 38 key set; unsupported build returns no match.",
+      "evidence": "api/infra/knowledgebase/brcaexchange.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "cosmic_ids[] + CHROM + POS + REF + ALT",
+      "target": "knowledgebase.cosmic",
+      "target_field": "id OR chr + start + ref + alt",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "Use product/build availability checks and exact allele predicates. CosmicDoc's minimal schema omits ref/alt used by the richer repository records; inspect imported product shape.",
+      "evidence": "api/infra/knowledgebase/cosmic.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "cosmic_ids[] + CHROM + POS + REF + ALT",
+      "target": "knowledgebase.cosmic_noncoding_variants",
+      "target_field": "id OR chr + start + ref + alt",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "Use product/build availability checks and exact allele predicates. CosmicDoc's minimal schema omits ref/alt used by the richer repository records; inspect imported product shape.",
+      "evidence": "api/infra/knowledgebase/cosmic.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "cosmic_ids[] + CHROM + POS + REF + ALT",
+      "target": "knowledgebase.cosmic_targeted_variants",
+      "target_field": "id OR chr + start + ref + alt",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "Use product/build availability checks and exact allele predicates. CosmicDoc's minimal schema omits ref/alt used by the richer repository records; inspect imported product shape.",
+      "evidence": "api/infra/knowledgebase/cosmic.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "HGVSc",
+      "target": "knowledgebase.iarc_tp53",
+      "target_field": "var",
+      "kind": "evidence lookup",
+      "cardinality": "many → one",
+      "notes": "TP53-specific lookup normalizes transcript/cDNA notation; not an exact ObjectId join.",
+      "evidence": "api/infra/knowledgebase/iarc_tp53.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "HGVSp + genes[]",
+      "target": "knowledgebase.onkokb",
+      "target_field": "Alteration + Gene",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "Stored physical name is onkokb. Lookup uses the hydrated selected transcript symbol and translated protein alteration.",
+      "evidence": "api/infra/knowledgebase/oncokb.py"
+    },
+    {
+      "source": "primary.variants",
+      "field": "HGVSp + genes[]",
+      "target": "knowledgebase.oncokb_actionable",
+      "target_field": "Alteration + Gene",
+      "kind": "evidence lookup",
+      "cardinality": "one → many",
+      "notes": "Repository queries Gene, while the typed import contract names Hugo Symbol / Entrez Gene ID. Confirm import shape before relying on this lookup; include Oncogenic Mutations fallback semantics.",
+      "evidence": "api/infra/knowledgebase/oncokb.py"
+    },
+    {
+      "source": "knowledgebase.civic_genes",
+      "field": "name",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.oncokb_genes",
+      "field": "name",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.oncokb_genes_public",
+      "field": "gene",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.oncokb_cancer_genes_public",
+      "field": "gene",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.clinpgx_genes_public",
+      "field": "hgnc_id",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_id",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "knowledgebase.oncokb_public",
+      "field": "gene",
+      "target": "knowledgebase.hgnc_genes",
+      "target_field": "hgnc_symbol",
+      "kind": "vocabulary cross-reference",
+      "cardinality": "many ↔ many",
+      "notes": "Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature.",
+      "evidence": "src/coyote3/contracts/schemas/reference.py"
+    },
+    {
+      "source": "identity.users",
+      "field": "roles[]",
+      "target": "identity.roles",
+      "target_field": "role_id",
+      "kind": "business key",
+      "cardinality": "many ↔ many",
+      "notes": "Runtime resolves current role definitions; these are role IDs, not role ObjectIds.",
+      "evidence": "src/coyote3/contracts/schemas/governance.py"
+    },
+    {
+      "source": "identity.roles",
+      "field": "permissions[]",
+      "target": "identity.permissions",
+      "target_field": "permission_id",
+      "kind": "business key",
+      "cardinality": "many ↔ many",
+      "notes": "Permission catalog IDs; names/labels are presentation only.",
+      "evidence": "src/coyote3/contracts/schemas/governance.py"
+    },
+    {
+      "source": "identity.users",
+      "field": "asp_ids[]",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "access scope",
+      "cardinality": "many ↔ many",
+      "notes": "Cross-database string scope assignments; wildcard semantics are authorization rules, not missing registry rows.",
+      "evidence": "src/coyote3/application/common/access.py"
+    },
+    {
+      "source": "identity.users",
+      "field": "asp_groups[]",
+      "target": "primary.assay_groups",
+      "target_field": "group_id",
+      "kind": "access scope",
+      "cardinality": "many ↔ many",
+      "notes": "Cross-database string scope assignments; wildcard semantics are authorization rules, not missing registry rows.",
+      "evidence": "src/coyote3/application/common/access.py"
+    },
+    {
+      "source": "identity.api_sessions",
+      "field": "user_id",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "business key",
+      "cardinality": "many → one",
+      "notes": "Despite the field name, this stores username, not users._id. Sessions are ephemeral; normally reauthenticate after migration.",
+      "evidence": "api/infra/security/sessions.py"
+    },
+    {
+      "source": "identity.audit_events",
+      "field": "actor.username",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "historical actor",
+      "cardinality": "many → one",
+      "notes": "Actor snapshot may be system or a historical/deleted account; do not rewrite past audit events to satisfy a present-day lookup.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "identity.operational_audit_events",
+      "field": "actor.username",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "historical actor",
+      "cardinality": "many → one",
+      "notes": "Actor snapshot may be system or a historical/deleted account; do not rewrite past audit events to satisfy a present-day lookup.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "identity.audit_chain_heads",
+      "field": "event_id",
+      "target": "identity.audit_events",
+      "target_field": "_id",
+      "kind": "integrity reference",
+      "cardinality": "many → one",
+      "notes": "Exact event at chain tip; collection/environment determine chain identity. Preserve sequence, entry_hash and all historical chain links.",
+      "evidence": "api/infra/mongo/repositories/audit_integrity.py"
+    },
+    {
+      "source": "identity.audit_events",
+      "field": "integrity.previous_hash",
+      "target": "identity.audit_events",
+      "target_field": "integrity.entry_hash",
+      "kind": "hash chain",
+      "cardinality": "many → one",
+      "notes": "Within the same integrity.chain_id, previous sequence. Genesis is a sentinel, not an event.",
+      "evidence": "api/infra/mongo/repositories/audit_integrity.py"
+    },
+    {
+      "source": "primary.audit_outbox",
+      "field": "event._id",
+      "target": "identity.audit_events",
+      "target_field": "_id",
+      "kind": "delivery identity",
+      "cardinality": "many → one",
+      "notes": "Destination follows event retention/routing. Preserve the stable event ID for replay deduplication; the outbox row is removed after delivery.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "primary.audit_outbox",
+      "field": "event._id",
+      "target": "identity.operational_audit_events",
+      "target_field": "_id",
+      "kind": "delivery identity",
+      "cardinality": "many → one",
+      "notes": "Destination follows event retention/routing. Preserve the stable event ID for replay deduplication; the outbox row is removed after delivery.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "identity.audit_outbox",
+      "field": "event._id",
+      "target": "identity.audit_events",
+      "target_field": "_id",
+      "kind": "delivery identity",
+      "cardinality": "many → one",
+      "notes": "Destination follows event retention/routing. Preserve the stable event ID for replay deduplication; the outbox row is removed after delivery.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "identity.audit_outbox",
+      "field": "event._id",
+      "target": "identity.operational_audit_events",
+      "target_field": "_id",
+      "kind": "delivery identity",
+      "cardinality": "many → one",
+      "notes": "Destination follows event retention/routing. Preserve the stable event ID for replay deduplication; the outbox row is removed after delivery.",
+      "evidence": "api/infra/mongo/repositories/audit_outbox.py"
+    },
+    {
+      "source": "primary.notifications",
+      "field": "recipients[] + read_by[] + dismissed_by[] + email_deliveries[].username",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "recipient identity",
+      "cardinality": "many ↔ many",
+      "notes": "Persist recipient-specific read/dismissal/delivery state. Do not recreate old notifications on redeploy or change recipients during migration.",
+      "evidence": "src/coyote3/application/notifications/service.py"
+    },
+    {
+      "source": "primary.notifications",
+      "field": "_id",
+      "target": "identity.audit_events",
+      "target_field": "_id",
+      "kind": "derived activity identity",
+      "cardinality": "many → one",
+      "notes": "For activity-derived notifications, source event identities support idempotent delivery. Manual broadcasts have no corresponding source event.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.notifications",
+      "field": "_id",
+      "target": "identity.operational_audit_events",
+      "target_field": "_id",
+      "kind": "derived activity identity",
+      "cardinality": "many → one",
+      "notes": "For activity-derived notifications, source event identities support idempotent delivery. Manual broadcasts have no corresponding source event.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.notifications",
+      "field": "resource.id",
+      "target": "knowledgebase.versions",
+      "target_field": "_id",
+      "kind": "conditional provenance",
+      "cardinality": "many → one",
+      "notes": "Only knowledgebase update notifications; the notification's own _id is derived, not a direct release ObjectId.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.notification_activity_progress",
+      "field": "{source/lane}.id",
+      "target": "identity.audit_events",
+      "target_field": "_id",
+      "kind": "delivery cursor",
+      "cardinality": "many → one",
+      "notes": "Dynamic cursor lane also stores timestamp. Preserve or intentionally reset with notification deduplication state; this is not a business document reference.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.notification_activity_progress",
+      "field": "{source/lane}.id",
+      "target": "identity.operational_audit_events",
+      "target_field": "_id",
+      "kind": "delivery cursor",
+      "cardinality": "many → one",
+      "notes": "Dynamic cursor lane also stores timestamp. Preserve or intentionally reset with notification deduplication state; this is not a business document reference.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.notification_activity_progress",
+      "field": "{source/lane}.id",
+      "target": "knowledgebase.versions",
+      "target_field": "_id",
+      "kind": "delivery cursor",
+      "cardinality": "many → one",
+      "notes": "Dynamic cursor lane also stores timestamp. Preserve or intentionally reset with notification deduplication state; this is not a business document reference.",
+      "evidence": "api/infra/mongo/repositories/notification_activity.py"
+    },
+    {
+      "source": "primary.report_artifact_erasure",
+      "field": "sample_id",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "historical string identity",
+      "cardinality": "many → one",
+      "notes": "Work is intentionally processed after sample/report deletion, so the parent can be absent. Preserve pending filesystem cleanup until reconciled.",
+      "evidence": "api/infra/mongo/repositories/report_artifact_erasure.py"
+    },
+    {
+      "source": "primary.report_artifact_erasure",
+      "field": "source_path",
+      "target": "primary.reports",
+      "target_field": "filepath / pdf_filepath / artifacts[].staging_path",
+      "kind": "artifact provenance",
+      "cardinality": "many ↔ many",
+      "notes": "Captured path, not a live foreign key after deletion; root/device/inode safeguards must still agree on recovery.",
+      "evidence": "api/infra/mongo/repositories/report_artifact_erasure.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "owner",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "ephemeral owner",
+      "cardinality": "many → one",
+      "notes": "Owner is authenticated on each operation. editor_id is a per-form UUID, not an api_sessions token.",
+      "evidence": "src/coyote3/application/editing.py"
+    },
+    {
+      "source": "primary.samples",
+      "field": "case.id / case_id + control.id / control_id",
+      "target": "bam.samples",
+      "target_field": "id",
+      "kind": "optional external lookup",
+      "cardinality": "one → many",
+      "notes": "Use authorized case/control identifiers, never the primary sample ObjectId. Returns BAM paths; configured ASP folders can supply alignments without BAM service.",
+      "evidence": "src/coyote3/application/operations/samples.py"
+    },
+    {
+      "source": "primary.ingest_jobs",
+      "field": "submitted_by",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "historical actor",
+      "cardinality": "many → one",
+      "notes": "Actor provenance for durable ingestion; source_payload/result/error are workflow records, not arbitrary live foreign keys.",
+      "evidence": "src/coyote3/contracts/schemas/ingest_jobs.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=sample-filters)",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=samples)",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=diagnoses)",
+      "target": "primary.diagnoses",
+      "target_field": "diagnosis_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=controls)",
+      "target": "primary.app_controls",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=users)",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=roles)",
+      "target": "identity.roles",
+      "target_field": "role_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=permissions)",
+      "target": "identity.permissions",
+      "target_field": "permission_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=asp)",
+      "target": "primary.assay_specific_panels",
+      "target_field": "asp_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=aspc)",
+      "target": "primary.asp_configs",
+      "target_field": "aspc_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=genelists)",
+      "target": "primary.insilico_genelists",
+      "target_field": "isgl_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=assay-setups)",
+      "target": "primary.assay_setups",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=clinical-rules)",
+      "target": "primary.clinical_rule_sets",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=query-rules)",
+      "target": "primary.query_rule_sets",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    },
+    {
+      "source": "primary.edit_leases",
+      "field": "_id (kind=assay-catalog)",
+      "target": "primary.public_assay_catalog_versions",
+      "target_field": "_id",
+      "kind": "encoded operational key",
+      "cardinality": "0..1 per resource kind/key",
+      "notes": "Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed. The resource registry calls this editor kind assay-catalog.",
+      "evidence": "src/coyote3/application/operations/application.py"
+    }
+  ]
+}

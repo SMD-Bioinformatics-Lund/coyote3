@@ -20,9 +20,7 @@ from coyote3.domain.exceptions import AppError
 
 def test_http_lease_checks_current_user_permissions_and_uuid():
     service = DocumentEditing(
-        MongoEditLeaseRepository(
-            SimpleNamespace(coyote_db=mongomock.MongoClient(tz_aware=True).test)
-        )
+        MongoEditLeaseRepository(SimpleNamespace(coyote_db=mongomock.MongoClient().test))
     )
     users = {
         name: SimpleNamespace(username=name, permissions={"edit"}, is_superuser=False)
@@ -81,8 +79,13 @@ def test_http_lease_checks_current_user_permissions_and_uuid():
         acquired = client.post(f"{endpoint}/acquire", headers=alice, json={"editor_id": first})
         assert acquired.status_code == 200
         assert acquired.json()["owned"] is True
+        assert acquired.json()["expires_at"].endswith("Z")
+        renewed = client.post(f"{endpoint}/renew", headers=alice, json={"editor_id": first})
+        assert renewed.status_code == 200
+        assert renewed.json()["expires_at"].endswith("Z")
         denied = client.post(f"{endpoint}/acquire", headers=bob, json={"editor_id": second})
         assert denied.json()["owned"] is False
+        assert denied.json()["expires_at"].endswith("Z")
         assert denied.json()["owner"] == "alice"
         assert "editor_id" not in denied.json()
         assert (

@@ -10,6 +10,10 @@ optional; it is not a parent of the sample. Arrows show dependencies or evidence
 contributions, not foreign-key constraints. For the complete storage inventory,
 see the [database resource map](mongodb-topology.md).
 
+For exact stored keys, use the [collection dependency reference](../reference/collection-dependencies/README.md).
+It includes a diagram for each collection, incoming and outgoing field mappings,
+identifier types, conditional lookups, snapshot semantics and migration considerations.
+
 ## Relationship Legend
 
 Solid arrows identify required lookups, dependencies, or data contributions.

@@ -36,6 +36,9 @@ session; if the browser closes unexpectedly or cannot reach the API, expiry make
 the document available again. Expiry checks use server time and do not depend on
 MongoDB's background TTL cleanup.
 
+The API returns lease expiry timestamps with an explicit UTC offset. Browser
+timezone settings do not change the expiry instant.
+
 Saving alone keeps the editing session open. Leave the editor or select another
 document when finished. Another tab under the same login remains a separate editor;
 seeing your own username means a different session holds the lease. If that session

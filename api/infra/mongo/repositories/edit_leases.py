@@ -18,9 +18,18 @@ class MongoEditLeaseRepository(BaseRepository):
 
         Args:
             adapter: Configured MongoDB adapter with the primary database handle.
+
+        Notes:
+            Decode BSON dates with timezone information so HTTP expiry timestamps
+            remain absolute instants when parsed by browsers outside UTC.
         """
         super().__init__(adapter)
-        self.set_collection(adapter.coyote_db[OPERATIONAL_COLLECTIONS.edit_leases])
+        collection = adapter.coyote_db[OPERATIONAL_COLLECTIONS.edit_leases]
+        self.set_collection(
+            collection.with_options(
+                codec_options=collection.codec_options.with_options(tz_aware=True)
+            )
+        )
 
     def ensure_indexes(self) -> None:
         """Schedule expired lease cleanup; correctness never depends on TTL timing."""

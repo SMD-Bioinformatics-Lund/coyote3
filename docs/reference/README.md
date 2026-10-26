@@ -16,6 +16,7 @@ covered in the [clinical user guide](../user-guide/README.md),
 | How are clinical report statements produced? | [Reporting rules](clinical-reporting-rules.md); [saved snapshots](report-snapshots.md) explain retained report context. |
 | Where do annotations and reference evidence come from? | [Knowledgebase sources](knowledgebases/README.md). |
 | What does a stored document contain? | [MongoDB collection contracts](mongodb-collections.md); use [API workflows](../api/routes-and-workflows.md) for supported access. |
+| Which keys connect collections, and what must migrate together? | [Collection dependency diagrams and migration planning](collection-dependencies/README.md), with a [complete collection index](collection-dependencies/inventory.md). |
 
 For a step-by-step clinical task, return to the [user guide](../user-guide/README.md).
 For creating or changing an assay, use [administration](../administration/README.md).
@@ -40,6 +41,7 @@ For creating or changing an assay, use [administration](../administration/README
 | [Clinical Reporting Rules](clinical-reporting-rules.md) | Look up clinical rule syntax, selection, validation, and governance. |
 | [Reporting workflow and finding snapshots](report-snapshots.md) | Understand report identity, finding snapshots, and saved reporting context. |
 | [MongoDB collection contracts](mongodb-collections.md) | Look up generated collection fields and validation contracts. |
+| [Collection dependencies](collection-dependencies/README.md) | Trace source fields to target keys, reverse references, snapshots and migration ordering. |
 | [Knowledgebase reference](knowledgebases/README.md) | Understand evidence sources, integrations, and VEP reference data. |
 | [Operational files and artifacts](operational-files.md) | Identify installed catalogs, imports, backups and generated outputs. |
 

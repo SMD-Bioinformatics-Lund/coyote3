@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
+test.use({ timezoneId: "Europe/Stockholm" })
+
 test("a second editor is read-only until the first editor leaves", async ({ page, browser }) => {
   // HTTP intranet origins expose getRandomValues but not randomUUID.
   const httpCrypto = () => Object.defineProperty(window.crypto, "randomUUID", { value: undefined, configurable: true })

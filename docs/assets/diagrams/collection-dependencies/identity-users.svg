@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="902" viewBox="0 0 1200 902" role="img" aria-labelledby="title description">
+<title id="title">identity.users field dependencies</title>
+<desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
+<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
+<rect width="1200" height="902" fill="white"/>
+<text x="20" y="32" style="font-size:23px;font-weight:600">identity.users</text>
+<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">identity.users</text>
+<text x="34" y="135" font-weight="400">roles[]</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">identity.roles</text>
+<text x="674" y="135" font-weight="400">role_id</text>
+<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="179" class="kind">business key · many ↔ many</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">identity.users</text>
+<text x="34" y="248" font-weight="400">asp_ids[]</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">primary.assay_specific_panels</text>
+<text x="674" y="248" font-weight="400">asp_id</text>
+<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="292" class="kind">access scope · many ↔ many</text>
+<rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="342" font-weight="600">identity.users</text>
+<text x="34" y="361" font-weight="400">asp_groups[]</text>
+<rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="342" font-weight="600">primary.assay_groups</text>
+<text x="674" y="361" font-weight="400">group_id</text>
+<path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="405" class="kind">access scope · many ↔ many</text>
+<rect x="20" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="455" font-weight="600">identity.api_sessions</text>
+<text x="34" y="474" font-weight="400">user_id</text>
+<rect x="660" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="455" font-weight="600">identity.users</text>
+<text x="674" y="474" font-weight="400">username</text>
+<path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="518" class="kind">business key · many → one</text>
+<rect x="20" y="544" width="520" height="87" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="568" font-weight="600">primary.notifications</text>
+<text x="34" y="587" font-weight="400">recipients[] + read_by[] + dismissed_by[] +</text>
+<text x="34" y="606" font-weight="400">email_deliveries[].username</text>
+<rect x="660" y="544" width="520" height="87" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="568" font-weight="600">identity.users</text>
+<text x="674" y="587" font-weight="400">username</text>
+<path d="M540 587.5 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="650" class="kind">recipient identity · many ↔ many</text>
+<rect x="20" y="676" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="700" font-weight="600">primary.edit_leases</text>
+<text x="34" y="719" font-weight="400">owner</text>
+<rect x="660" y="676" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="700" font-weight="600">identity.users</text>
+<text x="674" y="719" font-weight="400">username</text>
+<path d="M540 710.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="763" class="kind">ephemeral owner · many → one</text>
+<rect x="20" y="789" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="813" font-weight="600">primary.edit_leases</text>
+<text x="34" y="832" font-weight="400">_id (kind=users)</text>
+<rect x="660" y="789" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="813" font-weight="600">identity.users</text>
+<text x="674" y="832" font-weight="400">username</text>
+<path d="M540 823.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="876" class="kind">encoded operational key · 0..1 per resource kind/key</text>
+</svg>

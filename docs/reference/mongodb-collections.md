@@ -8,6 +8,8 @@
 
 This is the canonical collection-key reference used by ingestion validation.
 
+For field-to-field joins, incoming references and migration ordering, see the [collection dependency diagrams](collection-dependencies/README.md).
+
 ## Operational collections
 
 These internal queues are not public collection-ingest targets. Names are owned by

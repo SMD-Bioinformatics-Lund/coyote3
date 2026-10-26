@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="921" viewBox="0 0 1200 921" role="img" aria-labelledby="title description">
+<title id="title">primary.public_assay_catalog field dependencies</title>
+<desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
+<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
+<rect width="1200" height="921" fill="white"/>
+<text x="20" y="32" style="font-size:23px;font-weight:600">primary.public_assay_catalog</text>
+<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">primary.public_assay_catalog_versions</text>
+<text x="34" y="135" font-weight="400">catalog</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">primary.public_assay_catalog</text>
+<text x="674" y="135" font-weight="400">catalog_id</text>
+<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="179" class="kind">publication snapshot · many → one</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="248" font-weight="400">modalities.{modality}.categories.{key}.asp_id</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">primary.assay_specific_panels</text>
+<text x="674" y="248" font-weight="400">asp_id</text>
+<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="292" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="342" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="361" font-weight="400">modalities.{modality}.categories.{key}.aspc_id</text>
+<rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="342" font-weight="600">primary.asp_configs</text>
+<text x="674" y="361" font-weight="400">aspc_id</text>
+<path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="405" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="431" width="520" height="87" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="455" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="474" font-weight="400">modalities.{modality}.categories.{key}.aspc_ids.{environ</text>
+<text x="34" y="493" font-weight="400">ment}</text>
+<rect x="660" y="431" width="520" height="87" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="455" font-weight="600">primary.asp_configs</text>
+<text x="674" y="474" font-weight="400">aspc_id</text>
+<path d="M540 474.5 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="537" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="563" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="587" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="606" font-weight="400">modalities.{modality}.categories.{key}.diagnosis_id</text>
+<rect x="660" y="563" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="587" font-weight="600">primary.diagnoses</text>
+<text x="674" y="606" font-weight="400">diagnosis_id</text>
+<path d="M540 597.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="650" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="676" width="520" height="87" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="700" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="719" font-weight="400">modalities.{modality}.categories.{key}.gene_lists[].isgl</text>
+<text x="34" y="738" font-weight="400">_id</text>
+<rect x="660" y="676" width="520" height="87" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="700" font-weight="600">primary.insilico_genelists</text>
+<text x="674" y="719" font-weight="400">isgl_id</text>
+<path d="M540 719.5 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="782" class="kind">optional binding · many ↔ many</text>
+<rect x="20" y="808" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="832" font-weight="600">primary.public_assay_catalog</text>
+<text x="34" y="851" font-weight="400">resource_revisions.{offering_id}.configuration_id</text>
+<rect x="660" y="808" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="832" font-weight="600">primary.asp_configs</text>
+<text x="674" y="851" font-weight="400">aspc_id + version</text>
+<path d="M540 842.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="895" class="kind">snapshot provenance · one → many</text>
+</svg>
