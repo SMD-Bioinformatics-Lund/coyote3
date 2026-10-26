@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Wait for an editor's previous lease release before acquiring a replacement session,
+  preventing self-contention when the editor restarts.
+
 - Fix document editors crashing on HTTP deployments without `crypto.randomUUID`;
   clarify saved assay setup revision labels and theme colours in the selector.
 

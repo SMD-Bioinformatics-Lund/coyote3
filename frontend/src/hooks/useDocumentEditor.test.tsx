@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
 import { useDocumentEditor, withDocumentEditor } from "./useDocumentEditor"
+import { StrictMode } from "react"
 
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }))
 const response = (owned = true) => ({ status: 200, data: {
@@ -34,7 +35,7 @@ it("blocks saves until ownership and a fresh document have both loaded", async (
   const acquire = vi.mocked(api.post).mock.calls[0]
   expect(result.current.options().headers).toEqual({ "X-Edit-Session": (acquire[1] as { editor_id: string }).editor_id })
   unmount()
-  expect(api.post).toHaveBeenCalledWith("/editing/genelists/shared/release", acquire[1], { keepalive: true })
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/editing/genelists/shared/release", acquire[1], { keepalive: true }))
 })
 
 it("gives separate forms different sessions and keeps the losing editor read-only", async () => {
@@ -81,4 +82,35 @@ it("does not acquire locks for read-only or unsaved documents", () => {
   const { result } = renderHook(() => useDocumentEditor("draft", "", false))
   expect(result.current.options()).toEqual({})
   expect(api.post).not.toHaveBeenCalled()
+})
+
+it("does not compete with its own pending acquisition when an editor restarts", async () => {
+  let finishAcquire!: () => void
+  let acquisition: Promise<void> | undefined
+  let owner: string | null = null
+  vi.mocked(api.post).mockImplementation(async (path, body) => {
+    const session = (body as { editor_id: string }).editor_id
+    if (path.endsWith("/release")) {
+      await acquisition
+      if (owner === session) owner = null
+      return response(false)
+    }
+    if (!owner) {
+      owner = session
+      if (!finishAcquire) {
+        acquisition = new Promise<void>((resolve) => { finishAcquire = resolve })
+        await acquisition
+      }
+    }
+    return response(owner === session)
+  })
+  const { result, rerender } = renderHook(({ enabled }) => useDocumentEditor("draft", "one", enabled), {
+    initialProps: { enabled: true }, wrapper: StrictMode,
+  })
+  await waitFor(() => expect(finishAcquire).toBeDefined())
+  rerender({ enabled: false })
+  rerender({ enabled: true })
+  await act(async () => finishAcquire())
+  await waitFor(() => expect(result.current.owned).toBe(true))
+  expect(result.current.options().headers).toEqual({ "X-Edit-Session": owner })
 })

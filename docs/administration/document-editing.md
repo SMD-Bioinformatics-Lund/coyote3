@@ -36,6 +36,11 @@ session; if the browser closes unexpectedly or cannot reach the API, expiry make
 the document available again. Expiry checks use server time and do not depend on
 MongoDB's background TTL cleanup.
 
+Saving alone keeps the editing session open. Leave the editor or select another
+document when finished. Another tab under the same login remains a separate editor;
+seeing your own username means a different session holds the lease. If that session
+has disconnected, reload after its 90-second expiry to open a fresh editor.
+
 The server checks current permission and ownership when saving. An expired lease
 cannot be renewed or used to save. The form becomes read-only and offers **Reload
 document**. Copy any unsaved text before reloading, then compare it with the current

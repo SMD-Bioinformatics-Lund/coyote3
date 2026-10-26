@@ -31,6 +31,7 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
   const key = `${kind}/${identity}`
   const [state, setState] = useState<State | null>(null)
   const current = useRef<State | null>(null)
+  const cleanup = useRef<Promise<void>>(Promise.resolve())
   const prepareRef = useRef(prepare)
   prepareRef.current = prepare
   useEffect(() => {
@@ -63,7 +64,10 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
       }
     }
     update(null)
-    void api.post<Lease>(`${endpoint}/acquire`, { editor_id: session }).then(async ({ data }) => {
+    // A restarted effect must wait for its old acquisition and release to settle.
+    const acquiring = cleanup.current.then(async () => {
+      if (disposed) return
+      const { data } = await api.post<Lease>(`${endpoint}/acquire`, { editor_id: session })
       if (disposed) { if (data.owned) await release(); return }
       if (data.owned) {
         try { await prepareRef.current?.() } catch (error) { await release(); throw error }
@@ -79,7 +83,7 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
       clearTimeout(timer)
       window.removeEventListener("pagehide", leavePage)
       current.current = null
-      void release()
+      cleanup.current = acquiring.then(release).then(() => undefined)
     }
   }, [enabled, identity, key, kind])
   const active = state?.key === key ? state : null
