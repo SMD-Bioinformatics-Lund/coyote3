@@ -6,7 +6,7 @@ and does not build, start or recreate services.
 
 ## First installation
 
-MongoDB endpoints, database users and the application network must be configured
+MongoDB endpoints and the application network must be configured
 before installation. Follow [first installation](first-installation.md) for provisioning.
 
 ```bash
@@ -24,8 +24,10 @@ sequence; it cannot be combined with `--steps`. `--skip-build` uses existing ima
 Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
 installs application catalogs, bundled HGNC/VEP references, connected DNA/RNA demo
 configuration and both synthetic starter samples in their configured databases.
-Account identities are prompted when omitted; temporary passwords are hidden and
-confirmed. Both accounts must change their password on first API or browser use.
+The fixed logins are `coyote3.sysadmin` and `coyote3.superuser`. Independent temporary
+passwords are generated and printed once after account creation. Both accounts must
+change their password on first API or browser use. Existing accounts are preserved.
+MongoDB connections without authentication produce a warning and do not block installation.
 
 Production Redis TLS is optional. When selected, prepare the
 [certificates](../operations/redis-tls.md) and repeat
@@ -72,10 +74,11 @@ flags for fresh installation and the separate maintenance command for later work
 | `indexes` | Plan, apply and verify application, identity and BAM indexes. Conflicts stop execution. |
 | `start` | Verify initial accounts and required indexes, start services and wait for health. |
 | `health` | Check API/browser routes through the rendered local proxy address. |
-| `--sys-admin-username NAME --sys-admin-email EMAIL` | Optional initial administrator identity hints. |
-| `--username NAME --email EMAIL` | Optional initial emergency-superuser identity hints. |
+| `--sys-admin-email EMAIL` | Optional contact address for the fixed `coyote3.sysadmin` login. |
+| `--email EMAIL` | Optional contact address for the fixed `coyote3.superuser` login. |
 | `--with-knowledgebase-indexes` | Separately plan, apply and verify knowledgebase indexes. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional restricted URI file for fresh knowledgebase installation and selected knowledgebase indexes. It must target the configured endpoint/database; runtime credentials remain unchanged. |
+| `--identity-maintenance-uri-file FILE` | Explicitly upgrade the restricted identity runtime role using a maintenance connection before validation. It does not enable MongoDB authorization or create runtime passwords. |
 
 Selecting startup also checks Redis cache, broker and result-backend connections
 before bootstrap or indexes. Secrets remain in the private environment file.
@@ -87,6 +90,14 @@ before image builds or container operations. Provision missing infrastructure us
 [first installation](first-installation.md#6-create-the-application-network).
 The installer does not change firewall rules, forwarding settings or Docker daemon
 configuration, and does not restart the Docker daemon.
+
+For a configuration-only host preflight, use `center_preflight.sh` with the same
+environment file and ordered Compose files. It needs a supported host interpreter
+with the application installed. It validates the resolved mounts, center files
+(including optional report presentation) and directory mode bits. It does not
+check network connectivity, MongoDB credentials, installation state, Redis or
+indexes. Only `--prepare-directories` creates storage. The installer's `validate`
+stage runs its application checks in the API image instead and needs no host SDK.
 
 The local health-check URL uses the proxy's rendered published port and
 `SCRIPT_NAME`. The separately displayed public URL uses `PUBLIC_BASE_URL`.
@@ -114,6 +125,13 @@ without granting routine API connections write privileges.
 
 Use an existing `admin`, `sys_admin` or `superuser` account with the running API.
 Module selection is mandatory; `--force` never implicitly selects every module.
+Authentication defaults to `--provider local`, matching initial bootstrap accounts.
+Select `--provider ldap` for an LDAP account; an email-shaped login does not select
+the provider automatically.
+Host invocations require the application and independent Python client installed
+in the selected interpreter; follow [developer environment setup](../getting-started/developer-environment.md).
+Alternatively run the command in the built API image, as shown below; no host
+virtual environment is needed for that path.
 
 ```bash
 .venv/bin/python scripts/deployment/manage_data.py \

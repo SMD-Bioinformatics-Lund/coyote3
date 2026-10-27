@@ -11,7 +11,7 @@ reporting.
 > Runtime endpoints and secrets are environment configuration. Collection
 > names are API configuration in `api/config/collections.toml`.
 > Public organization, service-hour, and contact-card text is center content
-> in `config/examples/center/contact.toml`. Repository links and the product description
+> in the deployment's external `contact.toml` (copied initially from the bundled example). Repository links and the product description
 > are application metadata in `api/config/application_metadata.py`.
 > Public assay-catalog narrative text is center content in the primary-database
 > `public_assay_catalog` collection. Manage it through the administrative
@@ -31,7 +31,7 @@ login, authorization, assay resolution, sample review, and reporting.
 | Permissions (`IDENTITY_DB`) | `permissions` | Permission vocabulary using `resource:action[:scope]` naming. Routes check these through the authorization service. |
 | Assay panels (ASP) | `assay_specific_panels` | Physical assay definitions: `asp_id`, category, family, group, platform, read mode, expected file keys, covered genes, and germline genes. |
 | Assay configurations (ASPC) | `asp_configs` | Operational rulebooks for `asp_id + diagnosis_id + environment`: analysis types, filters, report sections, and default review behavior. |
-| Clinical report rules | `clinical_rule_sets` | Governed versioned report wording. Reporting resolves an active published release by ASP, diagnosis, analyte, and language, with same-assay Base fallback. |
+| Optional clinical report rules | `clinical_rule_sets` | Governed versioned report wording. Reporting resolves an active published release by ASP, diagnosis, analyte, and language, with same-assay Base fallback. Missing rules omit automatic narrative with a warning. |
 | Clinical rule revisions | `clinical_rule_revisions` | Append-only, hash-chained full snapshots for every persisted rule-set revision. Required for exact authoring and workflow history. |
 | Public assay catalog | `public_assay_catalog` | Center-owned public titles, descriptions, turnaround statements, input labels, modality order, and ASP/ASPC/ISGL presentation references. It does not define clinical assay behavior. |
 | Catalog governance | `public_assay_catalog_versions`, `public_assay_catalog_revisions` | Drafts, independent approvals, immutable releases, and full revision snapshots. Publication requires MongoDB replica-set transactions. |
@@ -59,13 +59,16 @@ the following order:
 
 Register the active assay group, then save an assay setup draft. That draft supplies
 the assay identity for rule authoring before the ASP becomes operational. Prepare
-named scopes, any selected ISGLs, published reporting rules and one ASPC for every
+named scopes, any selected ISGLs and one ASPC for every
 selected scope/environment. ISGLs and rules have no required order relative to
 each other. Setup approval activates the related operational records together.
 
-ISGLs are optional unless selected by filters. Setup activation requires compatible
-published rules for every configuration; individual active reporting ASPCs require
-them when report sections are selected. Runtime sample resolution can use a named
+ISGLs are optional unless selected by filters. Reporting rules may be authored
+before or after the assay setup, including against a planned assay ID. A registered
+compatible scope is required before rule submission. Setup activation and ASPC
+creation do not require a published rule set. Without compatible published rules,
+reports remain available without an automatic summary and the UI shows a warning.
+Runtime sample resolution can use a named
 ASPC or fall back to Base in the same environment, with a recorded warning. Without
 either active configuration, ingest is rejected.
 
@@ -197,9 +200,9 @@ operational truth for active assay behavior and gene content. Administrators can
 export the full catalog or a modality as JSON, then import validated JSON into a
 different center deployment.
 
-The public contact page uses `config/examples/center/contact.toml`. A center can
-maintain a dedicated deployment revision of the `center/` directory for each
-laboratory section.
+The public contact page loads the deployment's selected `contact.toml` from its
+external center directory. `config/examples/center/contact.toml` is the bundled
+example, not the center's persistent file. See [center configuration](center-configuration.md).
 
 > **Tip: Multi-section deployment**
 >

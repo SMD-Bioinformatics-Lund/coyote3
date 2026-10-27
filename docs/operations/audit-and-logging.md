@@ -439,20 +439,22 @@ is not included in command arguments or persistent service settings. The upgrade
 must succeed before normal state validation proceeds. Already-hardened deployments
 can continue using the original installer command without the additional option.
 
-Installation checks in every environment reject unauthenticated identity connections
-and effective privileges that can mutate retained audit history. Adding a custom
-role while retaining broad `readWrite` access does not remove the broad grant.
-The installer detects an obviously anonymous identity URI before building images,
-including development and test deployments.
+Installation checks warn and continue when a MongoDB connection is unauthenticated
+or its authorization probe shows that audit protection is not enforced. This permits
+operation without database authentication; application login and role permissions
+remain enforced. These deployments do not provide database-level protection against
+audit mutation. Authenticated runtime grants that explicitly permit audit mutation
+or role administration still fail validation. Adding a custom role while retaining
+broad `readWrite` access does not remove the broad grant.
 An empty `IDENTITY_MONGO_URI` inherits `COYOTE3_MONGO_URI`; an explicitly anonymous
-identity URI does not inherit credentials from the shared URI. Configure an
-authenticated runtime connection and provision MongoDB authorization and its
-restricted role before retrying installation. `authSource` selects where an
+identity URI does not inherit credentials from the shared URI. To enable database-level
+protection, configure an authenticated runtime connection and provision MongoDB
+authorization and its restricted role. `authSource` selects where an
 existing MongoDB user authenticates; it does not create that user or enable server
 authorization. The identity maintenance option upgrades existing role assignments;
 it does not create runtime credentials or enable MongoDB authentication.
-The check also explains an impossible update in query-planner mode and requires
-an authorization denial. Explain does not modify documents; this detects a server
+The check also explains an impossible update in query-planner mode and expects
+an authorization denial; a successful probe produces a warning. Explain does not modify documents; this detects a server
 that accepts credentials while authorization enforcement is disabled.
 External MongoDB deployments must provision the corresponding role and indexes;
 the normal installer cannot grant itself database administration privileges.

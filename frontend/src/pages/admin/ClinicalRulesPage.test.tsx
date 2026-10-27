@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -130,11 +130,85 @@ describe("ClinicalRulesPage", () => {
     await user.click(await screen.findByRole("button", { name: "New rule set" }))
     const assay = screen.getByLabelText("Assay")
     expect(assay).toHaveRole("combobox")
-    expect(screen.getByRole("option", { name: "Solid GMSv3 (solid_gmsv3)" })).toBeVisible()
+    expect(screen.getByText("Solid GMSv3")).toHaveAttribute("value", "solid_gmsv3")
 
-    await user.selectOptions(assay, "rna_fusion")
+    fireEvent.change(assay, { target: { value: "rna_fusion" } })
     expect(screen.getByLabelText("Analyte")).toHaveValue("rna")
-    expect(screen.getByLabelText("Analyte")).toHaveAttribute("readonly")
+    expect(screen.getByLabelText("Analyte")).toBeDisabled()
+  })
+
+  it("imports a planned assay draft without requiring an installed assay option", async () => {
+    const user = userEvent.setup()
+    const source = { ...existingDraft, rule_set_id: "planned_hema__base__sv", scope: { ...existingDraft.scope, asp_id: "planned_hema" } }
+    mocks.post.mockResolvedValue({ data: source })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: "New rule set" }))
+    await user.click(screen.getByRole("button", { name: "Import JSON" }))
+    await user.upload(screen.getByLabelText("Canonical rule-set JSON"), new File([JSON.stringify(source)], "planned.json", { type: "application/json" }))
+    await waitFor(() => expect(screen.getByLabelText("Assay")).toHaveValue("planned_hema"))
+    expect(screen.getByLabelText("Analyte")).toBeEnabled()
+    expect(screen.getByText(/This assay is not registered yet/)).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Create draft" }))
+    expect(mocks.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/imports", expect.objectContaining({ scope: source.scope, document: source }), {})
+  })
+
+  it("links the existing draft through a revision-qualified scope edit", async () => {
+    const user = userEvent.setup()
+    const fallback = mocks.get.getMockImplementation()!
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      if (path === "/admin/clinical-rule-sets?q=") return Promise.resolve({ data: { items: [existingDraft] } })
+      return fallback(path)
+    })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await waitFor(() => expect(screen.getByLabelText("Rule-set name")).toBeEnabled())
+    await user.click(screen.getByText(/Assay association:/))
+    const assay = screen.getByLabelText("Link to assay")
+    expect(within(assay).queryByRole("option", { name: /RNA Fusion/ })).not.toBeInTheDocument()
+    await user.selectOptions(assay, "solid_gmsv3")
+    await user.click(screen.getByRole("button", { name: "Link assay" }))
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
+      "/admin/clinical-rule-sets/drafts/rule-version-1", expect.objectContaining({ revision: 1, scope: existingDraft.scope }), editSessionOptions,
+    ))
+  })
+
+  it("pauses a failed autosave instead of submitting the same edit repeatedly", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    mocks.patch.mockRejectedValue(new Error("Validation failed"))
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await waitFor(() => expect(screen.getByLabelText("Rule-set name")).toBeEnabled())
+    vi.useFakeTimers()
+    try {
+      fireEvent.change(screen.getByLabelText("Rule-set name"), { target: { value: "Changed draft" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+      expect(mocks.patch).toHaveBeenCalledTimes(1)
+      expect(screen.getByText(/Autosave paused/)).toBeVisible()
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+      expect(mocks.patch).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole("button", { name: "Retry save" })).toBeEnabled()
+    } finally { vi.useRealTimers() }
+  })
+
+  it("offers JSON import beside export for an existing rule set", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    expect(await screen.findByRole("button", { name: "Export JSON" })).toBeVisible()
+    await userEvent.click(screen.getByRole("button", { name: "Import JSON" }))
+    expect(screen.getByRole("region", { name: "Create clinical rule set" })).toBeVisible()
+    expect(screen.getByText("Canonical rule-set JSON")).toBeVisible()
   })
 
   it("saves automatic annotation wording with the governed draft", async () => {
@@ -159,7 +233,7 @@ describe("ClinicalRulesPage", () => {
     renderPage()
 
     await user.click(await screen.findByRole("button", { name: "New rule set" }))
-    await user.selectOptions(screen.getByLabelText("Assay"), "rna_fusion")
+    fireEvent.change(screen.getByLabelText("Assay"), { target: { value: "rna_fusion" } })
     expect(screen.getByLabelText("Rule-set name")).toHaveValue("RNA Fusion clinical report rules")
 
     await user.selectOptions(screen.getByLabelText("Diagnosis"), "solid")
@@ -262,6 +336,8 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Section")).toHaveValue("Report section 1")
     expect(screen.getByLabelText("Section identifier")).toHaveValue("report_section_1")
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Report section 1 rule 1")
+    await user.click(screen.getByText("Section settings", { exact: true }))
+    await user.click(screen.getByText("Rule details and identifier", { exact: true }))
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("report_section_1_rule_1")
     expect(screen.getByLabelText("Match behavior")).toHaveValue("at_most_one")
     await user.selectOptions(screen.getByLabelText("Match behavior"), "first_match")
@@ -336,12 +412,12 @@ describe("ClinicalRulesPage", () => {
     renderPage()
 
     await user.click(await screen.findByRole("button", { name: "New rule set" }))
-    await user.selectOptions(screen.getByLabelText("Assay"), "solid_gmsv3")
+    fireEvent.change(screen.getByLabelText("Assay"), { target: { value: "solid_gmsv3" } })
     await user.click(screen.getByRole("button", { name: "Create draft" }))
 
     expect(await screen.findByLabelText("Clinical rule name")).toHaveValue("Report section 1 rule 1")
     expect(screen.getByRole("button", { name: "Add condition" })).toBeVisible()
-    expect(screen.getByText("Report text")).toBeVisible()
+    expect(screen.getByText("2. Report text")).toBeVisible()
     expect(screen.getByLabelText("Include this rule in generated report text")).not.toBeChecked()
   })
 

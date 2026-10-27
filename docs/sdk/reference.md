@@ -5493,7 +5493,7 @@ Draft creation inputs for a new scope or a copied source version.
 ### `ClinicalRuleDraftUpdate`
 
 ```python
-ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, test_cases: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
+ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, test_cases: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
 ```
 
 ```text

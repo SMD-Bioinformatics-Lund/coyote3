@@ -69,10 +69,10 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 | 3 | Active assay group | Registered group and permitted operator | Saving the assay draft and making new assay operations available. |
 | 4 | ASP or saved assay setup draft | Active parent group | Assay identity, family, file policy and scopes. A saved setup draft can support rule authoring without an operational ASP. |
 | 5 | Named diagnosis scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
-| 6 | ISGLs and published clinical rules | Eligible assay/group/scope for lists; saved assay identity and independent publication for rules | These can be prepared in either order. Lists are optional unless selected; setup requires compatible published rules for each configuration. |
-| 7 | ASPCs and setup activation | One valid ASPC per selected scope/environment, eligible selected lists, compatible rules and independent setup review | Operational assay use. Individual active reporting ASPCs also validate published rule compatibility. |
+| 6 | ISGLs and optional clinical rules | Eligible assay/group/scope for lists; rule drafts may use a planned assay ID, with a compatible registered scope before submission | These can be prepared in either order. Lists are optional unless selected; reporting rules can be added after setup. |
+| 7 | ASPCs and setup activation | One valid ASPC per selected scope/environment, eligible selected lists and independent setup review | Operational assay use. Missing report rules warn and omit automatic narrative; they do not block activation. |
 | 8 | Sample | Available assay/group, resolvable active ASPC and required files | Findings and clinical review. A missing named ASPC can resolve to Base in the same environment with a warning. |
-| 9 | Saved report | Ready sample, prepared findings, report permission and a compatible published rule release | Historical report review and reported-finding cohort searches. |
+| 9 | Saved report | Ready sample, prepared findings and report permission; compatible published rules when automatic narrative is required | Historical report review and reported-finding cohort searches. Missing narrative does not remove result tables. |
 
 Knowledgebase releases are independent of this creation chain. They can be installed before
 or after clinical configuration and enrich supported pages only when configured. VEP metadata
@@ -167,8 +167,9 @@ saved reports preserve their confirmed configuration and finding snapshots.
 
 An ASPC requires an existing or staged assay definition and a validated
 assay/diagnosis/environment scope. Group, category, and platform derive from the
-assay. Activation validates the required published clinical rules and selected
-gene lists. See the configuration-update diagram above and the
+assay. Activation validates selected gene lists and configuration contracts.
+Reporting-rule publications are optional; missing rules warn and omit automatic
+summary text. See the configuration-update diagram above and the
 [assay setup procedure](../administration/assay-setup.md).
 
 ### 6.3 ISGL creation and update

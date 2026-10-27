@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import userEvent from "@testing-library/user-event"
+import { useState } from "react"
 import type { Condition, FactDefinition } from "./clinical-rules-types"
 import { ConditionBuilder, PredicateEditor } from "./RuleConditionBuilder"
 
@@ -15,6 +16,25 @@ const geneFact: FactDefinition = {
 }
 
 describe("clinical rule condition editor", () => {
+  it("keeps commas while typing a numeric range and emits a numeric list", async () => {
+    const changed = vi.fn()
+    const fact: FactDefinition = { ...geneFact, path: "finding.case_vaf_percent", kind: "number", value_format: "number", operators: ["between", "exists"] }
+    function Controlled() {
+      const [value, setValue] = useState<Extract<Condition, { type: "predicate" }>>({ type: "predicate", fact: fact.path, operator: "between", value: [] })
+      return <PredicateEditor facts={[fact]} controlledValues={{}} value={value} onChange={next => { if (next.type === "predicate") { setValue(next); changed(next) } }} />
+    }
+    render(<Controlled />)
+    await userEvent.type(screen.getByLabelText("Condition value"), "5, 10")
+    expect(screen.getByLabelText("Condition value")).toHaveValue("5, 10")
+    expect(changed).toHaveBeenLastCalledWith({ type: "predicate", fact: fact.path, operator: "between", value: [5, 10] })
+  })
+  it("switches list availability conditions to a real boolean immediately", () => {
+    const fact: FactDefinition = { ...geneFact, path: "gene_lists.snv.ids", kind: "string_list", operators: ["contains", "exists"] }
+    const onChange = vi.fn()
+    render(<PredicateEditor facts={[fact]} controlledValues={{}} value={{ type: "predicate", fact: fact.path, operator: "contains", value: "selected_list" }} onChange={onChange} />)
+    fireEvent.change(screen.getByLabelText("Condition operator"), { target: { value: "exists" } })
+    expect(onChange).toHaveBeenLastCalledWith({ type: "predicate", fact: fact.path, operator: "exists", value: true })
+  })
   it("keeps a contains operand scalar when no configured flag choices exist", () => {
     const onChange = vi.fn()
     const fact: FactDefinition = {
@@ -98,5 +118,16 @@ describe("clinical rule condition editor", () => {
     fireEvent.click(screen.getAllByTitle("Remove condition")[0])
     expect(onChange).toHaveBeenCalledWith({ type: "any", children: [second] })
     expect(first.value).toBe("TP53")
+  })
+
+  it("initializes an item-specific condition and a real count when changing collection controls", () => {
+    const change = vi.fn()
+    const value: Condition = { type: "collection_match", collection: "findings", quantifier: "any", where: { type: "predicate", fact: "item.kind", operator: "eq", value: "snv" } }
+    const item: FactDefinition = { path: "item.selected_for", label: "Gene list selected analyses", group: "Current gene list", kind: "string_list", operators: ["contains"], scopes: ["each_item"] }
+    render(<ConditionBuilder value={value} facts={[geneFact]} allFacts={[geneFact, item]} onChange={change} />)
+    fireEvent.change(screen.getByLabelText("Collection"), { target: { value: "applied_gene_lists" } })
+    expect(change).toHaveBeenLastCalledWith(expect.objectContaining({ collection: "applied_gene_lists", where: { type: "predicate", fact: "item.selected_for", operator: "contains", value: "" } }))
+    fireEvent.change(screen.getByLabelText("Match"), { target: { value: "count" } })
+    expect(change).toHaveBeenLastCalledWith(expect.objectContaining({ quantifier: "count", count: { operator: "gte", value: 1 } }))
   })
 })

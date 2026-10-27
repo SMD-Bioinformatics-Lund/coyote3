@@ -77,6 +77,94 @@ def test_metadata_edit_preserves_schema_version():
     assert updated["schema_version"] == 1
 
 
+def test_missing_assay_allows_new_and_imported_drafts_but_not_submission():
+    """A planned assay can be authored before registration without entering review."""
+    repository = Repository()
+    service = ClinicalRuleAuthoringService(
+        repository, assay_panel_repository=SimpleNamespace(get_asp=lambda _identity: None)
+    )
+    source = _document(status="draft")
+    created = service.create_draft(
+        ClinicalRuleDraftCreate(scope=source.scope, name="Planned assay rules"), actor="author"
+    )
+    assert created["status"] == "draft"
+    imported = service.import_draft(
+        ClinicalRuleImportRequest(
+            document=source.model_dump(mode="python", by_alias=True),
+            scope=source.scope,
+            name="Imported planned assay",
+        ),
+        actor="author",
+    )
+    assert imported["scope"]["asp_id"] == "assay_1"
+    edited = service.update_draft(
+        "id", ClinicalRuleDraftUpdate(revision=1, name="Edited before registration"), actor="author"
+    )
+    assert edited["name"] == "Edited before registration"
+    with pytest.raises(AppError, match="active assay panel"):
+        service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+
+
+def test_link_draft_updates_identity_and_version_without_changing_document_id_or_content():
+    """Reassociation preserves authored rules, ownership and the audited document identity."""
+    document = _document(status="draft")
+    repository = Repository(document)
+    service = governed_service(repository)
+    result = service.update_draft(
+        "id",
+        ClinicalRuleDraftUpdate(
+            revision=1,
+            scope={
+                "asp_id": "registered_assay",
+                "diagnosis_id": "base",
+                "analyte": "dna",
+                "language": "sv",
+            },
+        ),
+        actor="author",
+    )
+    assert result["_id"] == document.id_
+    assert result["created_by"] == document.created_by
+    assert result["rule_set_id"] == "registered_assay__base__sv"
+    assert result["content_version"] == 2
+    assert result["revision"] == 2
+    assert result["blocks"] == document.model_dump(mode="python")["blocks"]
+    assert result["test_cases"] == document.model_dump(mode="python")["test_cases"]
+    with pytest.raises(AppError, match="changed while"):
+        service.update_draft(
+            "id", ClinicalRuleDraftUpdate(revision=1, scope=document.scope), actor="author"
+        )
+
+
+@pytest.mark.parametrize("state", ["submitted", "approved", "published"])
+def test_reassociation_rejects_non_drafts(state):
+    """Reviewed and released scope identities cannot be changed through draft updates."""
+    service = governed_service(Repository(_document(status=state, active=state == "published")))
+    with pytest.raises(AppError, match="Only a draft"):
+        service.update_draft(
+            "id", ClinicalRuleDraftUpdate(revision=1, scope=_document().scope), actor="author"
+        )
+
+
+@pytest.mark.parametrize("failure", ["missing", "inactive", "analyte", "diagnosis"])
+def test_link_draft_requires_a_registered_compatible_assay_and_diagnosis(failure):
+    """Deferred creation does not relax explicit linking checks."""
+    service = governed_service(Repository(_document(status="draft")))
+    panel = {
+        "asp_id": "assay_1",
+        "asp_category": "rna" if failure == "analyte" else "dna",
+        "is_active": failure != "inactive",
+    }
+    service.assay_panel_repository.get_asp = lambda _identity: (
+        None if failure == "missing" else panel
+    )
+    scope = _document().scope.model_dump()
+    if failure == "diagnosis":
+        scope["diagnosis_id"] = "unassociated"
+    with pytest.raises(AppError):
+        service.update_draft("id", ClinicalRuleDraftUpdate(revision=1, scope=scope), actor="author")
+
+
 def test_conflict_group_edit_preserves_schema_version():
     document = _document(status="draft", active=False)
     blocks = document.model_dump(mode="python")["blocks"]
@@ -246,9 +334,18 @@ def governed_service(repository):
         user_repository=UserRepository(),
         role_repository=RoleRepository(),
         assay_panel_repository=SimpleNamespace(
-            get_all_asps=lambda **_: [{"asp_id": "assay_1", "asp_group": "demo"}],
+            get_all_asps=lambda **_: [
+                {"asp_id": "assay_1", "asp_group": "demo", "asp_category": "dna"}
+            ],
+            get_asp=lambda identity: {
+                "asp_id": identity,
+                "asp_group": "demo",
+                "asp_category": "dna",
+                "is_active": True,
+            },
             group_options=lambda: ["demo"],
         ),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *_a, **_k: []),
     )
 
 

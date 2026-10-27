@@ -25,6 +25,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleTransition,
 )
 from coyote3.domain.common.errors import api_error
+from coyote3.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
 
 
 def _now() -> datetime:
@@ -126,9 +127,22 @@ class ClinicalRuleAuthoringService:
         self.notification_service = notification_service
 
     def authoring_options(self) -> dict[str, Any]:
-        """Return active and setup-draft assay scopes available for new rule sets."""
+        """Return authoring scopes and optional sentence wording for explicit draft insertion."""
+        sentence_terminology = {
+            "sv": {
+                "tier_summary": {
+                    **deepcopy(STANDARD_TIER_SUMMARY_PHRASES),
+                    "single_gene_always_read_context": True,
+                }
+            }
+        }
         if self.assay_panel_repository is None:
-            return {"assays": [], "condition_values": {}, **self.reviewer_options()}
+            return {
+                "assays": [],
+                "condition_values": {},
+                "sentence_terminology": sentence_terminology,
+                **self.reviewer_options(),
+            }
         assays = []
         for panel in self._authoring_panels():
             analyte = str(panel.get("asp_category") or "").lower()
@@ -158,6 +172,7 @@ class ClinicalRuleAuthoringService:
             {str(panel.get("asp_group") or "").strip() for panel in self._authoring_panels()} - {""}
         )
         return {
+            "sentence_terminology": sentence_terminology,
             "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
             "condition_values": {
                 "sample.asp_id": [item["asp_id"] for item in assays],
@@ -199,11 +214,15 @@ class ClinicalRuleAuthoringService:
             if row["diagnosis_id"] != DIAGNOSIS_BASE_ID
         ]
 
-    def _validate_new_scope(self, payload: ClinicalRuleDraftCreate) -> None:
-        """Check a draft scope against an active assay or reserved setup draft.
+    def _validate_new_scope(
+        self, payload: ClinicalRuleDraftCreate, *, allow_unregistered: bool = False
+    ) -> None:
+        """Check assay compatibility, optionally accepting a planned assay for authoring.
 
         Args:
             payload: Draft request; an absent scope skips validation here.
+            allow_unregistered: Permit a missing assay while authoring a draft;
+                existing inactive or incompatible assays are still rejected.
 
         Raises:
             AppError: With status 409 for an unavailable assay/setup or analyte mismatch.
@@ -215,6 +234,8 @@ class ClinicalRuleAuthoringService:
             panel = next(
                 (p for p in self._authoring_panels() if p["asp_id"] == payload.scope.asp_id), None
             )
+        if panel is None and allow_unregistered:
+            return
         if not panel or panel.get("is_active") is False:
             raise api_error(409, "Clinical rule sets require an active assay panel")
         analyte = str(panel.get("asp_category") or "").lower()
@@ -448,7 +469,8 @@ class ClinicalRuleAuthoringService:
             document.pop("_id", None)
             target_scope = payload.scope or source.scope
             self._validate_new_scope(
-                ClinicalRuleDraftCreate(scope=target_scope, name=payload.name or source.name)
+                ClinicalRuleDraftCreate(scope=target_scope, name=payload.name or source.name),
+                allow_unregistered=True,
             )
             target_rule_set_id = (
                 f"{target_scope.asp_id}__{target_scope.diagnosis_id}__{target_scope.language}"
@@ -487,7 +509,7 @@ class ClinicalRuleAuthoringService:
         else:
             if payload.scope is None or not payload.name:
                 raise api_error(400, "A new rule set requires scope and name")
-            self._validate_new_scope(payload)
+            self._validate_new_scope(payload, allow_unregistered=True)
             rule_set_id = (
                 f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
             )
@@ -541,7 +563,7 @@ class ClinicalRuleAuthoringService:
         )
         # Imported content is validated directly; it need not be persisted as a source version.
         now = _now()
-        self._validate_new_scope(create)
+        self._validate_new_scope(create, allow_unregistered=True)
         target_rule_set_id = (
             f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
         )
@@ -606,11 +628,28 @@ class ClinicalRuleAuthoringService:
             AppError: With status 404 for a missing version or 409 when the
                 repository refuses the conditional draft update.
             ValidationError: The proposed document fails canonical validation.
+
+        Notes:
+            A scope edit requires an available compatible assay and diagnosis.
+            Changing the logical scope allocates its next content version while
+            retaining the document ID and revision chain. Authored conditions
+            and embedded case facts are preserved for explicit review.
         """
         changes = payload.model_dump(exclude={"revision"}, exclude_none=True, mode="python")
         changes.update({"updated_at": _now(), "updated_by": actor, "content_hash": None})
-        candidate = self._document(document_id).model_dump(mode="python", by_alias=True)
+        current = self._document(document_id)
+        candidate = current.model_dump(mode="python", by_alias=True)
         reject_system_managed_change(candidate, resource="reporting rule")
+        if payload.scope is not None:
+            if current.status != ClinicalRuleStatus.DRAFT:
+                raise api_error(409, "Only a draft can change its assay association")
+            self._validate_new_scope(ClinicalRuleDraftCreate(scope=payload.scope))
+            target_id = (
+                f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
+            )
+            changes["rule_set_id"] = target_id
+            if target_id != current.rule_set_id:
+                changes["content_version"] = self.repository.next_content_version(target_id)
         candidate.update({**deepcopy(changes), "revision": payload.revision + 1})
         ClinicalRuleSetDoc.model_validate(candidate)
         updated = self.repository.update_draft(
@@ -767,6 +806,7 @@ class ClinicalRuleAuthoringService:
             by the validated revision so a concurrent edit cannot enter review.
         """
         document = self._document(document_id)
+        self._validate_new_scope(ClinicalRuleDraftCreate(scope=document.scope))
         validation = validate_rule_set(document, require_tests=True)
         reject_system_managed_change(document.model_dump(), resource="clinical rule set")
         if not validation.valid:

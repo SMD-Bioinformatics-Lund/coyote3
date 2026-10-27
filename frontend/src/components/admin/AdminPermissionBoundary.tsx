@@ -6,22 +6,24 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 export function AdminPermissionBoundary({
   permission,
   children,
+  area = "Admin",
 }: {
   permission: string
   children: ReactNode
+  area?: "Admin" | "Clinical"
 }) {
   const accessQuery = useCurrentUserAccess()
 
   if (accessQuery.isLoading) {
-    return <AppLoader label="Loading administration" />
+    return <AppLoader label={area === "Admin" ? "Loading administration" : "Loading access"} />
   }
 
   if (!hasPermission(accessQuery.data, permission)) {
     return (
       <PageShell
-        eyebrow="Admin"
+        eyebrow={area}
         title="Access not assigned"
-        description="Your roles do not grant access to this administrative workflow."
+        description={`Your roles do not grant access to this ${area === "Admin" ? "administrative" : "clinical"} workflow.`}
       >
         <section className="surface-panel p-4 text-sm text-muted-foreground">
           Required permission: <code className="font-semibold text-foreground">{permission}</code>

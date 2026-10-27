@@ -103,18 +103,29 @@ or screenshots.
 
 Run each controlled manifest through the deployed API:
 
+This is a write operation. The helper uses `increment=true`; rerunning can create
+another sample instead of updating an existing one. It does not rename the local
+manifest. Use a disposable validation deployment or an explicitly approved test
+sample. The password is prompted when omitted. A ZIP must preserve the relative
+paths referenced by its manifest; without a ZIP those paths must be readable
+inside the API container. ZIP contents are checked by the server; they need not
+also exist as loose files on the host running the check. The optional local `--skip-file-check` does not bypass
+server-side validation.
+
 ```bash
 bash scripts/deployment/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
-  --password "$COYOTE3_VALIDATION_PASSWORD" \
-  --yaml-file /validation-data/dna/sample.coyote3.yaml
+  --provider local \
+  --yaml-file /validation-data/dna/sample.coyote3.yaml \
+  --data-archive /validation-data/dna/inputs.zip
 
 bash scripts/deployment/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \
   --username "$COYOTE3_VALIDATION_USER" \
-  --password "$COYOTE3_VALIDATION_PASSWORD" \
-  --yaml-file /validation-data/rna/sample.coyote3.yaml
+  --provider local \
+  --yaml-file /validation-data/rna/sample.coyote3.yaml \
+  --data-archive /validation-data/rna/inputs.zip
 ```
 
 Then run the real-browser suite:

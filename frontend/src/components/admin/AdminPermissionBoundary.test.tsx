@@ -38,4 +38,21 @@ describe("AdminPermissionBoundary", () => {
     render(<AdminPermissionBoundary permission="user:view">Secret</AdminPermissionBoundary>)
     expect(screen.getByText("Secret")).toBeVisible()
   })
+
+  it("does not mount a clinical page when its permission is missing", () => {
+    const loadClinicalData = vi.fn()
+    function ClinicalPage() {
+      loadClinicalData()
+      return <div>Clinical results</div>
+    }
+    useCurrentUserAccess.mockReturnValue({ isLoading: false, data: { roles: ["sys_admin"] } })
+    hasPermission.mockReturnValue(false)
+    render(
+      <AdminPermissionBoundary area="Clinical" permission="sample:view">
+        <ClinicalPage />
+      </AdminPermissionBoundary>,
+    )
+    expect(screen.getByText("Your roles do not grant access to this clinical workflow.")).toBeVisible()
+    expect(loadClinicalData).not.toHaveBeenCalled()
+  })
 })

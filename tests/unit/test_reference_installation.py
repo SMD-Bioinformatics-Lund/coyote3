@@ -98,6 +98,19 @@ def test_client_uses_existing_login_and_revokes_its_session(api_transport):
     assert requests[2].url.path.endswith("/auth/sessions/current")
 
 
+@pytest.mark.parametrize("provider", ["local", "ldap"])
+def test_maintenance_provider_is_explicit_even_for_email_logins(api_transport, provider):
+    """A local account named with an email must not be redirected to LDAP."""
+    requests, _ = api_transport
+    manage_data.manage_data(
+        api_url="https://synthetic.invalid",
+        modules=["application"],
+        username="synthetic@example.invalid",
+        provider=provider,
+    )
+    assert json.loads(requests[0].content)["provider"] == provider
+
+
 def test_temporary_password_is_changed_and_reauthenticated_before_data(api_transport, monkeypatch):
     requests, responses = api_transport
     responses["temporary"] = True

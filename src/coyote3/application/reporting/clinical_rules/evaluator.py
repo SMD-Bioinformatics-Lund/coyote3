@@ -396,6 +396,30 @@ def render_rule(rule: ClinicalRule, *, scope: dict[str, Any], terminology: dict[
     )
 
 
+def _append_presented_text(texts: list[str], rule: ClinicalRule, text: str) -> None:
+    """Append matched wording using the rule's explicit paragraph or list placement.
+
+    Args:
+        texts: Ordered rendered paragraphs for this output section, modified in place.
+        rule: Matching rule whose presentation controls placement.
+        text: Nonblank evaluated wording, with authored spacing preserved.
+    """
+    if rule.presentation == "continue" and texts:
+        separator = "" if texts[-1][-1:].isspace() or text[:1].isspace() else " "
+        texts[-1] += separator + text
+    elif rule.presentation == "line" and texts:
+        texts[-1] += "  \n" + text
+    elif rule.presentation in {"bullet", "numbered"}:
+        marker = "- " if rule.presentation == "bullet" else "1. "
+        item = marker + text.replace("\n", "\n   ")
+        if texts and texts[-1].startswith(marker):
+            texts[-1] += "\n" + item
+        else:
+            texts.append(item)
+    else:
+        texts.append(text)
+
+
 def _collection_items(context: PreparedReportContext, collection: str) -> list[dict[str, Any]]:
     """Extract mapping elements from a prepared-context collection.
 
@@ -545,14 +569,21 @@ class ClinicalRuleEvaluator:
                         f"Clinical rule block '{block.block_id}' matched '{matched_rules[0]}' "
                         "but produced blank text"
                     )
-                for _rule, text in matches:
+                for matched_rule, text in matches:
                     existing = section_headings.get(block.section)
                     if existing is not None and existing != block.show_heading:
                         raise ValueError(
                             f"Clinical rule section '{block.section}' mixes heading modes"
                         )
                     section_headings[block.section] = block.show_heading
-                    sections.setdefault(block.section, []).append(text)
+                    if (
+                        block.section in REPORT_METADATA_SECTIONS
+                        and matched_rule.presentation != "paragraph"
+                    ):
+                        raise ValueError("Report metadata requires paragraph presentation")
+                    _append_presented_text(
+                        sections.setdefault(block.section, []), matched_rule, text
+                    )
 
         for section in REPORT_METADATA_SECTIONS:
             if len(sections.get(section, [])) > 1:

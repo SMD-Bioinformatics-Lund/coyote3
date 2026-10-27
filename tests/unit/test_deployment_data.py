@@ -231,6 +231,33 @@ def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_
     demo.install_starter.assert_called_once_with("system")
 
 
+def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
+    fresh_installation, monkeypatch, capsys
+):
+    """Only successful first creation displays plaintext; MongoDB stores password hashes."""
+    from werkzeug.security import check_password_hash
+
+    databases, args, _, _ = fresh_installation
+    args.password = args.sys_admin_password = None
+    passwords = ["Synthetic-Superuser-123", "Synthetic-Sysadmin-456"]
+    generate = Mock(side_effect=passwords)
+    monkeypatch.setattr(bootstrap_database.secrets, "token_urlsafe", generate)
+    assert bootstrap_database.main() == 0
+    output = capsys.readouterr().out
+    users = databases["identity"].users
+    for username, password in zip(
+        ["coyote3.superuser", "coyote3.sysadmin"], passwords, strict=True
+    ):
+        user = users.find_one({"username": username})
+        assert user["must_change_password"] is True
+        assert check_password_hash(user["password"], password)
+        assert output.count(password) == 1
+    generate.reset_mock()
+    assert bootstrap_database.main() == 0
+    assert not any(password in capsys.readouterr().out for password in passwords)
+    generate.assert_not_called()
+
+
 def test_existing_accounts_prevent_unauthenticated_additions_even_to_empty_modules(
     fresh_installation, monkeypatch
 ):
@@ -242,7 +269,9 @@ def test_existing_accounts_prevent_unauthenticated_additions_even_to_empty_modul
     loader.reset_mock()
     demo.reset_mock()
     monkeypatch.setattr(
-        bootstrap_database.getpass, "getpass", Mock(side_effect=AssertionError("unexpected prompt"))
+        bootstrap_database.secrets,
+        "token_urlsafe",
+        Mock(side_effect=AssertionError("unexpected reset")),
     )
     assert bootstrap_database.main() == 0
     assert list(databases["identity"].users.find()) == users

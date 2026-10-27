@@ -16,6 +16,30 @@ from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
 
 
+def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkeypatch):
+    """Fresh CLI installation requires no account prompts or configured default password."""
+    from scripts.bootstrap import bootstrap_database
+
+    monkeypatch.setattr("sys.argv", ["bootstrap", "--db", "synthetic", "--identity-db", "identity"])
+    args = bootstrap_database.parse_args()
+    assert args.username == "coyote3.superuser"
+    assert args.sys_admin_username == "coyote3.sysadmin"
+    credentials = bootstrap_database._prepare_initial_credentials(args)
+    assert len(credentials) == 2
+    assert args.password != args.sys_admin_password
+    assert min(len(args.password), len(args.sys_admin_password)) >= 16
+    for username, email, password, role in (
+        (args.username, args.email, args.password, "superuser"),
+        (args.sys_admin_username, args.sys_admin_email, args.sys_admin_password, "sys_admin"),
+    ):
+        document = _make_bootstrap_user(
+            argparse.Namespace(username=username, email=email, password=password, role_id=role),
+            actor="system",
+        )
+        assert document["username"] == username
+        assert document["must_change_password"] is True
+
+
 def test_role_bundles_separate_clinical_and_system_responsibilities():
     path = Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson")
     roles = {row["role_id"]: row for row in map(json.loads, path.read_text().splitlines())}

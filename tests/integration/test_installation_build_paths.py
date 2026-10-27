@@ -51,3 +51,34 @@ def test_compose_selects_source_or_verified_artifact_build(retained_artifact, tm
         assert build["target"] == "coyote3_source_api"
         assert "sdk_artifact" not in build.get("additional_contexts", {})
     assert not absent_directory.exists()
+
+
+def test_development_does_not_hide_built_docs_with_an_empty_host_site():
+    """Container-only local installs must serve docs without a host MkDocs build."""
+    if not shutil.which("docker"):
+        pytest.skip("Docker Compose CLI is not installed")
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            str(ROOT / "deploy/env/example.env"),
+            "-f",
+            str(ROOT / "deploy/compose/docker-compose.yml"),
+            "-f",
+            str(ROOT / "deploy/compose/docker-compose.dev.yml"),
+            "config",
+            "--format",
+            "json",
+        ],
+        env={**os.environ, "COYOTE3_IMAGE_TAG": "synthetic-dev"},
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    docs = json.loads(result.stdout)["services"]["docs"]
+    assert docs["build"]["dockerfile"] == "docker/Dockerfile.docs"
+    assert not any(
+        volume["target"] == "/usr/share/nginx/html" for volume in docs.get("volumes", [])
+    )

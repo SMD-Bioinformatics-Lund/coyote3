@@ -113,7 +113,19 @@ The bundled roles separate clinical governance from account and system operation
 Prefer named accounts and permission bundles over shared administrator credentials.
 Keep authoring and approval grants separate where a workflow requires an independent
 reviewer. A single responsible owner need not mean a single account capable of recovery.
-Bootstrap creates one named system administrator and one emergency superuser.
+Bootstrap creates `coyote3.sysadmin` and `coyote3.superuser` with generated temporary
+passwords and a required first-login password change. The `sys_admin` role does not
+include `sample:view`, `gene.annotation:view` or `report:view`; it therefore cannot
+read samples, finding cohorts or saved reports. Its navigation omits those workflows
+and does not poll sample counts. A sample-count request denied during a session
+stops automatic retries, polling and focus/reconnect refreshes; it does not keep
+posting the same access error. Reload after restoring access to request counts again.
+The superuser bypasses normal permission and scope
+checks but remains subject to installed-record protection and password-change rules.
+Use a named routine account with the relevant clinical roles and assay/environment
+assignments for clinical work; the protected bootstrap accounts cannot be edited
+through general user administration.
+
 Additional named administrators can be assigned roles; there is no singleton role
 constraint. Assign clinical roles separately when an operator also performs clinical work.
 

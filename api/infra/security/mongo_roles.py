@@ -1,5 +1,6 @@
 """Collection-scoped MongoDB runtime privileges and protected audit provisioning."""
 
+import logging
 from typing import Any
 
 from pymongo.errors import OperationFailure
@@ -10,6 +11,7 @@ from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.infra.security.indexes import security_index_contracts
 
 IDENTITY_ROLE = "coyote3_runtime_identity"
+logger = logging.getLogger(__name__)
 
 
 def runtime_roles(config: dict[str, Any]) -> list[dict[str, str]]:
@@ -41,14 +43,14 @@ def runtime_roles(config: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def verify_runtime_audit_permissions(client: Any, database: str) -> None:
-    """Reject unauthenticated or destructive runtime access to retained audit history.
+    """Warn for unprotected MongoDB and reject destructive authenticated audit grants.
 
     Args:
-        client: Identity connection authenticated as the runtime application user.
+        client: Identity connection, optionally authenticated as the runtime user.
         database: Configured identity namespace.
 
     Raises:
-        ValueError: Authentication is disabled or effective privileges allow audit mutation.
+        ValueError: Authenticated runtime privileges allow audit mutation or role administration.
         PyMongoError: MongoDB cannot return effective session privileges.
 
     Notes:
@@ -57,12 +59,11 @@ def verify_runtime_audit_permissions(client: Any, database: str) -> None:
     """
     info = client.admin.command("connectionStatus", showPrivileges=True)["authInfo"]
     if not info.get("authenticatedUsers"):
-        raise ValueError(
-            "Identity runtime connection must authenticate to MongoDB. Configure "
-            "IDENTITY_MONGO_URI (or its COYOTE3_MONGO_URI fallback) with runtime "
-            "authentication, enable MongoDB authorization, and provision the restricted "
-            "identity role. See docs/operations/audit-and-logging.md."
+        logger.warning(
+            "Identity MongoDB connection is unauthenticated; continuing without database-level "
+            "audit protection. Application login and role permissions still apply."
         )
+        return
     audit = load_collection_section("identity")["audit_events_collection"]
     destructive = {
         "anyAction",
@@ -114,7 +115,7 @@ def verify_runtime_audit_permissions(client: Any, database: str) -> None:
         if error.code == 13:
             return
         raise
-    raise ValueError("MongoDB authorization is not enforcing retained audit protection")
+    logger.warning("MongoDB authorization is not enforcing retained audit protection; continuing.")
 
 
 def identity_role(database: str) -> dict[str, Any]:

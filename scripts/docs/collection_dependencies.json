@@ -1006,7 +1006,7 @@
       "target_field": "asp_id",
       "kind": "authoring lookup",
       "cardinality": "many → one",
-      "notes": "Saved unpublished assay setups also supply authoring scopes; a rule can be prepared before operational assay activation.",
+      "notes": "A draft may use a planned assay ID before a setup or operational assay exists. Saved unpublished setups also supply compatible scopes. An available compatible assay/diagnosis is required before rule submission; draft reassociation preserves its document ID and revision chain.",
       "evidence": "src/coyote3/application/resources/assay_setup.py"
     },
     {

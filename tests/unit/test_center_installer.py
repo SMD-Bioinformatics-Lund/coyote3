@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("environment", ["production", "stage", "dev", "test"])
-def test_identity_runtime_authentication_is_required_in_every_environment(monkeypatch, environment):
-    """Environment labels cannot bypass retained-audit database permission enforcement."""
+def test_identity_audit_gate_is_checked_in_every_environment(monkeypatch, environment):
+    """Warn-only anonymous operation does not bypass authenticated audit grant checks."""
     from scripts.deployment import installation_checks
 
     monkeypatch.setenv("ENV_NAME", environment)
@@ -233,11 +233,11 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         "--compose-file",
         str(compose),
         "--sys-admin-username",
-        "synthetic.admin",
+        "coyote3.sysadmin",
         "--sys-admin-email",
         "admin@example.test",
         "--username",
-        "synthetic.emergency",
+        "coyote3.superuser",
         "--email",
         "emergency@example.test",
     ]
@@ -245,31 +245,29 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
 
 
 @pytest.mark.parametrize(
-    "environment,shared_uri,identity_uri,fails",
+    "environment,shared_uri,identity_uri",
     [
-        ("production", "mongodb://synthetic.invalid", "", True),
+        ("production", "mongodb://synthetic.invalid", ""),
         (
             "stage",
             "mongodb://synthetic:private-value@synthetic.invalid",
             "mongodb://identity.invalid",
-            True,
         ),
         (
             "production",
             "mongodb://synthetic.invalid",
             "mongodb://runtime:private-value@identity.invalid",
-            False,
         ),
-        ("production", "mongodb://runtime:private-value@synthetic.invalid", "", False),
-        ("production", "mongodb://synthetic.invalid/?authMechanism=MONGODB-X509", "", False),
-        ("dev", "mongodb://synthetic.invalid", "", True),
-        ("test", "mongodb://synthetic.invalid", "", True),
+        ("production", "mongodb://runtime:private-value@synthetic.invalid", ""),
+        ("production", "mongodb://synthetic.invalid/?authMechanism=MONGODB-X509", ""),
+        ("dev", "mongodb://synthetic.invalid", ""),
+        ("test", "mongodb://synthetic.invalid", ""),
     ],
 )
-def test_anonymous_identity_is_reported_before_build_or_database_operations(
-    fake_installation, environment, shared_uri, identity_uri, fails
+def test_anonymous_identity_does_not_block_installation(
+    fake_installation, environment, shared_uri, identity_uri
 ):
-    """Require authenticated deployment settings without exposing URIs or denying external auth."""
+    """Both anonymous and authenticated connections reach the read-only endpoint checks."""
     command, env, log = fake_installation
     path = Path(env["INSTALL_TEST_CONFIG"])
     config = json.loads(path.read_text())
@@ -280,15 +278,9 @@ def test_anonymous_identity_is_reported_before_build_or_database_operations(
     result = subprocess.run(
         command, env={**env, "INSTALL_TEST_STATE": "existing"}, text=True, capture_output=True
     )
-    assert result.returncode == (1 if fails else 0), result.stderr
+    assert result.returncode == 0, result.stderr
     assert "private-value" not in result.stdout + result.stderr
-    if fails:
-        assert "Identity MongoDB connection is anonymous" in result.stderr
-        assert "IDENTITY_MONGO_URI" in result.stderr
-        calls = log.read_text()
-        assert " build" not in calls
-        assert "network inspect" not in calls
-        assert "installation_checks state" not in calls
+    assert "installation_checks state" in log.read_text()
 
 
 @pytest.mark.parametrize("failure", [False, True])

@@ -23,6 +23,13 @@ describe("typed API client", () => {
     setCsrfToken(null)
   })
 
+  it("allows an inline preview to handle HTTP errors without posting a global notification", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response(JSON.stringify({ detail: "Draft is incomplete" }), 422, "Unprocessable Entity"))
+    await expect(api.post("/preview", {}, { errorNotice: "inline" })).rejects.toMatchObject({ status: 422, notificationShown: false, handledInline: true })
+    expect(notifyMock).not.toHaveBeenCalled()
+    expect(vi.mocked(fetch).mock.calls[0][1]).not.toHaveProperty("errorNotice")
+  })
+
   it("sends typed JSON requests and parses success and empty responses", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(response('{"payload":{"id":1}}'))
@@ -159,10 +166,27 @@ describe("typed API client", () => {
   it("redirects an expired authenticated session without creating a duplicate notification", async () => {
     vi.mocked(fetch).mockResolvedValue(response("{}", 401, "Unauthorized"))
 
-    await expect(api.get("/samples")).rejects.toThrow("Unauthorized")
+    await expect(api.get("/samples")).rejects.toMatchObject({
+      message: "Unauthorized", status: 401, notificationShown: true,
+    })
     expect(window.location.href).toBe("/login")
     expect(notifyMock).not.toHaveBeenCalled()
   })
+
+  it.each(["/samples", "/change-password"])(
+    "uses the required password-change page without notifying or reloading it from %s",
+    async (pathname) => {
+      const redirect = vi.fn()
+      vi.stubGlobal("window", { location: { pathname, set href(value: string) { redirect(value) } } })
+      vi.mocked(fetch).mockResolvedValue(response(
+        JSON.stringify({ category: "password_change_required" }), 403, "Forbidden",
+      ))
+      await expect(api.get("/samples")).rejects.toMatchObject({ status: 403 })
+      if (pathname === "/change-password") expect(redirect).not.toHaveBeenCalled()
+      else expect(redirect).toHaveBeenCalledWith("/change-password")
+      expect(notifyMock).not.toHaveBeenCalled()
+    },
+  )
 
   it("marks API errors so downstream handlers do not notify twice", () => {
     expect(new ApiClientError("failed", 400, "/records")).toMatchObject({

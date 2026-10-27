@@ -17,7 +17,7 @@ export function notifyWarning(title: string, message?: string, source?: string, 
 }
 
 export function notifyActionError(title: string, error: unknown, source?: string, resource?: NotificationResource) {
-  if (error instanceof ApiClientError && error.notificationShown) return
+  if (error instanceof ApiClientError && (error.notificationShown || error.handledInline)) return
   notify({
     tone: "error",
     title,

@@ -573,9 +573,9 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
     env_file.write_text(
         "\n".join(
             (
-                "SECRET_KEY=secret-value",
-                "INTERNAL_API_TOKEN=internal-token",
-                "PASSWORD_TOKEN_SALT=password-salt",
+                "SECRET_KEY=synthetic-secret-value",
+                "INTERNAL_API_TOKEN=synthetic-internal-token",
+                "PASSWORD_TOKEN_SALT=synthetic-password-salt",
                 "REDIS_PASSWORD=" + "a" * 64,
                 "COYOTE3_MONGO_URI=mongodb://mongo:27017/coyote3",
                 "AUTHENTICATION_PROVIDERS=local,ldap",

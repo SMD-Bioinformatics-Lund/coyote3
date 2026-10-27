@@ -84,7 +84,7 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error, query) => {
-      if ((error as { notificationShown?: boolean })?.notificationShown) return
+      if ((error as { notificationShown?: boolean })?.notificationShown || (error as { handledInline?: boolean })?.handledInline) return
       notify({
         tone: "error",
         title: "Unable to load data",
@@ -95,7 +95,7 @@ const queryClient = new QueryClient({
   }),
   mutationCache: new MutationCache({
     onError: (error) => {
-      if ((error as { notificationShown?: boolean })?.notificationShown) return
+      if ((error as { notificationShown?: boolean })?.notificationShown || (error as { handledInline?: boolean })?.handledInline) return
       notify({
         tone: "error",
         title: "Action failed",
@@ -125,6 +125,14 @@ function withModule(element: ReactNode, moduleKey: ApplicationModuleKey) {
   )
 }
 
+function withClinicalPermission(element: ReactNode, permission: string) {
+  return withRouteLoader(
+    <AdminPermissionBoundary area="Clinical" permission={permission}>
+      {element}
+    </AdminPermissionBoundary>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -136,18 +144,18 @@ export default function App() {
           <Route path="/reset-password" element={withRouteLoader(<ResetPassword />)} />
           <Route element={<TablePreferencesProvider><Layout /></TablePreferencesProvider>}>
             <Route path="/" element={withRouteLoader(<Dashboard />)} />
-            <Route path="/samples" element={withRouteLoader(<Samples />)} />
-            <Route path="/samples/:id" element={withRouteLoader(<SampleDetail />)} />
-            <Route path="/samples/:id/variant/:varId" element={withModule(<VariantDetail />, "dna_analysis")} />
-            <Route path="/samples/:id/cnv/:varId" element={withModule(<CNVDetail />, "dna_analysis")} />
-            <Route path="/samples/:id/fusion/:varId" element={withModule(<FusionDetail />, "rna_analysis")} />
-            <Route path="/samples/:id/translocation/:varId" element={withModule(<TranslocationDetail />, "dna_analysis")} />
-            <Route path="/samples/:id/reports/:reportId" element={withModule(<SavedReportPage />, "reports")} />
-            <Route path="/variants" element={withModule(<TieredVariantSearch />, "variant_search")} />
-            <Route path="/variants/search" element={withModule(<TieredVariantSearch />, "variant_search")} />
-            <Route path="/variants/gene-cohort" element={withModule(<GeneCohortExplorer />, "variant_search")} />
-            <Route path="/variants/reported/:variantId/:tier" element={withModule(<TieredVariantContext />, "variant_search")} />
-            <Route path="/reports" element={withModule(<ReportsPage />, "reports")} />
+            <Route path="/samples" element={withClinicalPermission(<Samples />, "sample:view")} />
+            <Route path="/samples/:id" element={withClinicalPermission(<SampleDetail />, "sample:view")} />
+            <Route path="/samples/:id/variant/:varId" element={withClinicalPermission(withModule(<VariantDetail />, "dna_analysis"), "sample:view")} />
+            <Route path="/samples/:id/cnv/:varId" element={withClinicalPermission(withModule(<CNVDetail />, "dna_analysis"), "sample:view")} />
+            <Route path="/samples/:id/fusion/:varId" element={withClinicalPermission(withModule(<FusionDetail />, "rna_analysis"), "sample:view")} />
+            <Route path="/samples/:id/translocation/:varId" element={withClinicalPermission(withModule(<TranslocationDetail />, "dna_analysis"), "sample:view")} />
+            <Route path="/samples/:id/reports/:reportId" element={withClinicalPermission(withModule(<SavedReportPage />, "reports"), "report:view")} />
+            <Route path="/variants" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
+            <Route path="/variants/search" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
+            <Route path="/variants/gene-cohort" element={withClinicalPermission(withModule(<GeneCohortExplorer />, "variant_search"), "gene.annotation:view")} />
+            <Route path="/variants/reported/:variantId/:tier" element={withClinicalPermission(withModule(<TieredVariantContext />, "variant_search"), "gene.annotation:view")} />
+            <Route path="/reports" element={withClinicalPermission(withModule(<ReportsPage />, "reports"), "report:view")} />
             <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
             <Route path="/about" element={withRouteLoader(<AboutPage />)} />
             <Route path="/about/vep" element={withRouteLoader(<VepReferencePage />)} />

@@ -1,247 +1,100 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 usage() {
   cat <<'USAGE'
-Validate a center deployment setup before starting application services.
-Add --prepare-directories to create missing application data and log directories.
+Validate resolved deployment settings and center files without starting services.
+Requires host Python 3.12+ with the application installed. The normal installer
+instead validates application configuration inside its API image.
 
-Usage:
-  scripts/deployment/center_preflight.sh --env-file <path> --compose-file <base> [--compose-file <overlay>] [--seed-file <path>] [--yaml-file <path>] [--reference-seed-data <path>]...
+Usage: bash scripts/deployment/center_preflight.sh --env-file FILE
+       --compose-file BASE [--compose-file OVERLAY] [--prepare-directories]
+       [--seed-file FILE] [--yaml-file FILE] [--reference-seed-data DIRECTORY]...
 
-Example:
-  scripts/deployment/center_preflight.sh \
-    --env-file .coyote3_stage_env \
-    --compose-file deploy/compose/docker-compose.yml \
-    --compose-file deploy/compose/docker-compose.stage.yml
+Only --prepare-directories creates missing application storage. This command does
+not connect to MongoDB/Redis, create networks, or install application data.
 USAGE
 }
 
-ENV_FILE=""
-COMPOSE_FILES=()
-SEED_FILE=""
-YAML_FILE=""
-REFERENCE_SEED_DATA=()
-PREPARE_DIRECTORIES=()
-
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENV_FILE="" SEED_FILE="" YAML_FILE=""
+COMPOSE_ARGS=() REFERENCE_SEED_DATA=() PREPARE_DIRECTORIES=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --prepare-directories) PREPARE_DIRECTORIES=(--prepare-directories); shift ;;
-    --env-file) ENV_FILE="$2"; shift 2 ;;
-    --compose-file) COMPOSE_FILES+=("$2"); shift 2 ;;
-    --seed-file) SEED_FILE="$2"; shift 2 ;;
-    --yaml-file) YAML_FILE="$2"; shift 2 ;;
-    --reference-seed-data) REFERENCE_SEED_DATA+=("$2"); shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
+    --env-file|--compose-file|--seed-file|--yaml-file|--reference-seed-data)
+      [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo "Missing value for $1" >&2; exit 2; }
+      case "$1" in
+        --env-file) ENV_FILE="$(realpath "$2")" ;;
+        --compose-file) COMPOSE_ARGS+=(-f "$(realpath "$2")") ;;
+        --seed-file) SEED_FILE="$(realpath "$2")" ;;
+        --yaml-file) YAML_FILE="$(realpath "$2")" ;;
+        --reference-seed-data) REFERENCE_SEED_DATA+=("$(realpath "$2")") ;;
+      esac
+      shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
 done
-
-if [[ -z "$ENV_FILE" || ${#COMPOSE_FILES[@]} -eq 0 ]]; then
-  echo "ERROR: --env-file and --compose-file are required" >&2
-  usage
-  exit 2
-fi
-
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "ERROR: env file not found: $ENV_FILE" >&2
-  exit 2
-fi
-
-COMPOSE_ARGS=()
-for compose_file in "${COMPOSE_FILES[@]}"; do
-  if [[ ! -f "$compose_file" ]]; then
-    echo "ERROR: compose file not found: $compose_file" >&2
-    exit 2
-  fi
-  COMPOSE_ARGS+=("-f" "$compose_file")
-done
-
-if ! command -v docker >/dev/null 2>&1; then
-  echo "ERROR: docker is not installed" >&2
-  exit 2
-fi
-
-if ! docker compose version >/dev/null 2>&1; then
-  echo "ERROR: docker compose plugin is not available" >&2
-  exit 2
-fi
-
-COYOTE3_VERSION="$(python3 api/version.py)"
-export COYOTE3_VERSION
-
-echo "[check] validating secrets in env file"
+[[ -f "$ENV_FILE" && ${#COMPOSE_ARGS[@]} -gt 0 ]] || { usage; exit 2; }
+cd "$ROOT_DIR"
+source scripts/deployment/python_runtime.sh
+select_deployment_python "$ROOT_DIR"
+export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+docker compose version >/dev/null
 bash scripts/deployment/validate_env_secrets.sh --env-file "$ENV_FILE"
+rendered="$(mktemp)"
+trap 'rm -f "$rendered"' EXIT
+bash scripts/deployment/compose-with-version.sh "${PREPARE_DIRECTORIES[@]}" \
+  --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config --format json > "$rendered"
 
-echo "[check] validating compose render"
-bash scripts/deployment/compose-with-version.sh \
-  "${PREPARE_DIRECTORIES[@]}" --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" config --quiet
-
-echo "[check] mandatory keys"
-for key in COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB SECRET_KEY INTERNAL_API_TOKEN PASSWORD_TOKEN_SALT COYOTE3_APP_NETWORK; do
-  if ! grep -qE "^${key}=" "$ENV_FILE"; then
-    echo "ERROR: missing key in env file: $key" >&2
-    exit 1
-  fi
-done
-
-echo "[check] mongo URI consistency"
-PYTHON_BIN="${PYTHON_BIN:-}"
-if [[ -z "$PYTHON_BIN" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python3)"
-  elif command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python)"
-  else
-    echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
-    exit 2
-  fi
-fi
-
-echo "[check] python version"
-echo "Using Python: $PYTHON_BIN"
-"$PYTHON_BIN" --version
-echo "Env file: $ENV_FILE"
-if ! "$PYTHON_BIN" --version >/dev/null 2>&1; then
-  echo "ERROR: Python interpreter is not runnable: $PYTHON_BIN" >&2
-  exit 2
-fi
-
-"$PYTHON_BIN" -c '
-import sys
-
-env_file = sys.argv[1]
-data = {}
-with open(env_file, "r", encoding="utf-8") as fh:
-    for raw in fh:
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        data[k.strip()] = v.strip().strip("'"'"'\"")
-
-from api.config.mongo import mongo_endpoints
-mongo_endpoints(data)
-
+"$PYTHON_BIN" - "$rendered" <<'PY'
+import json
 import os
+import sys
 from pathlib import Path
-center_dir = data.get("COYOTE3_CENTER_CONFIG_HOST_DIR")
-if center_dir:
-    if not Path(center_dir).is_absolute():
-        raise SystemExit("COYOTE3_CENTER_CONFIG_HOST_DIR must be an absolute host path")
-    os.environ["COYOTE3_CENTER_CONFIG_DIR"] = center_dir
-from coyote3.config.clinical_vocabulary import load_clinical_vocabulary
-from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.contact import load_contact_config
-from api.config.paths import CONTACT_CONFIG_PATH
-load_clinical_vocabulary()
-load_filter_flag_metadata()
-load_contact_config(CONTACT_CONFIG_PATH, organization_name=data.get("ORGANIZATION_NAME", ""),
-                    public_base_url=data.get("PUBLIC_BASE_URL", ""), script_name=data.get("SCRIPT_NAME", ""))
 
-' "$ENV_FILE"
+config = json.loads(Path(sys.argv[1]).read_text())
+api = config["services"]["api"]
+settings = api["environment"]
+os.environ.update({key: str(value) for key, value in settings.items() if value is not None})
+mounts = {item["target"]: Path(item["source"]) for item in api.get("volumes", [])
+          if item.get("type") == "bind"}
+if "/app/center-config" not in mounts:
+    raise SystemExit("API requires a center configuration bind mount")
+os.environ["COYOTE3_CENTER_CONFIG_DIR"] = str(mounts["/app/center-config"])
+from api.config.mongo import mongo_endpoints
+from scripts.deployment.installation_checks import validate_configuration
+from scripts.deployment.prepare_host_directories import check_directory_access
 
-echo "[check] endpoint ports"
-if grep -qE '^COYOTE3_PORT=' "$ENV_FILE"; then
-  val="$(grep -E '^COYOTE3_PORT=' "$ENV_FILE" | tail -n1 | cut -d'=' -f2- | tr -d "'\"")"
-  if [[ -n "$val" && ! "$val" =~ ^[0-9]+$ ]]; then
-    echo "ERROR: COYOTE3_PORT must be numeric, got: ${val}" >&2
-    exit 1
-  fi
-fi
-
-echo "[check] runtime mount ownership and permissions"
-"$PYTHON_BIN" -c '
-import os
-import stat
-import sys
-
-env_file = sys.argv[1]
-data = {}
-with open(env_file, "r", encoding="utf-8") as fh:
-    for raw in fh:
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        data[key.strip()] = value.strip().strip("\"\047")
-
-uid = int(data.get("COYOTE3_UID", "10001"))
-gid = int(data.get("COYOTE3_GID", "10001"))
-
-def has_access(path, *, write):
-    current = os.path.abspath(path)
-    if not os.path.isdir(current):
-        raise SystemExit(f"ERROR: configured host directory does not exist: {current}")
-    target = os.stat(current)
-    if target.st_uid == uid:
-        required = stat.S_IXUSR | (stat.S_IWUSR if write else stat.S_IRUSR)
-    elif target.st_gid == gid:
-        required = stat.S_IXGRP | (stat.S_IWGRP if write else stat.S_IRGRP)
-    else:
-        required = stat.S_IXOTH | (stat.S_IWOTH if write else stat.S_IROTH)
-    if (target.st_mode & required) != required:
-        operation = "write and traverse" if write else "read and traverse"
-        raise SystemExit(
-            f"ERROR: container uid:gid {uid}:{gid} cannot {operation} {current}; "
-            "set ownership or mode before deployment"
-        )
-
-    parent = current
-    while parent != "/":
-        parent = os.path.dirname(parent)
-        parent_stat = os.stat(parent)
-        if parent_stat.st_uid == uid:
-            executable = bool(parent_stat.st_mode & stat.S_IXUSR)
-        elif parent_stat.st_gid == gid:
-            executable = bool(parent_stat.st_mode & stat.S_IXGRP)
-        else:
-            executable = bool(parent_stat.st_mode & stat.S_IXOTH)
-        if not executable:
-            raise SystemExit(
-                f"ERROR: container uid:gid {uid}:{gid} cannot traverse parent directory {parent}"
-            )
-
-for key in ("COYOTE3_DATA_HOST_ROOT", "COYOTE3_LOGS_HOST_ROOT"):
-    value = data.get(key, "")
-    if not value:
-        raise SystemExit(f"ERROR: missing host path in env file: {key}")
-    has_access(value, write=True)
-' "$ENV_FILE"
+mongo_endpoints(settings)
+validate_configuration()
+args = api.get("build", {}).get("args", {})
+identity = api.get("user") or f"{args.get('COYOTE3_UID', 10001)}:{args.get('COYOTE3_GID', 10001)}"
+if len(str(identity).split(":")) != 2 or not all(part.isdigit() for part in str(identity).split(":")):
+    raise SystemExit("API container identity must use numeric UID:GID")
+uid, gid = map(int, str(identity).split(":"))
+for target in ("/data", "/app/logs"):
+    if target not in mounts:
+        raise SystemExit(f"API requires {target} as a bind mount")
+    if any(item.get("target") == target and item.get("read_only")
+           for item in api.get("volumes", [])):
+        raise SystemExit(f"API requires {target} to be writable, but its mount is read-only")
+    check_directory_access(mounts[target], uid, gid, mount_root=mounts[target])
+print("[ok] Resolved MongoDB selections, mounted center files and storage permissions")
+PY
 
 if [[ -n "$SEED_FILE" ]]; then
-  if [[ ! -e "$SEED_FILE" ]]; then
-    echo "ERROR: seed source not found: $SEED_FILE" >&2
-    exit 2
-  fi
-  echo "[check] seed dependency and assay consistency"
-  PYTHON_BIN="${PYTHON_BIN:-}"
-  if [[ -z "$PYTHON_BIN" ]]; then
-    if command -v python3 >/dev/null 2>&1; then
-      PYTHON_BIN="$(command -v python3)"
-    elif command -v python >/dev/null 2>&1; then
-      PYTHON_BIN="$(command -v python)"
-    else
-      echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
-      exit 2
-    fi
-  fi
-  cmd=("$PYTHON_BIN" scripts/bootstrap/validate_assay_consistency.py --seed-file "$SEED_FILE")
-  for reference_dir in "${REFERENCE_SEED_DATA[@]}"; do
-    if [[ ! -d "$reference_dir" ]]; then
-      echo "ERROR: reference seed data source not found: $reference_dir" >&2
-      exit 2
-    fi
-    cmd+=(--reference-seed-data "$reference_dir")
+  [[ -e "$SEED_FILE" ]] || { echo "Seed source does not exist" >&2; exit 2; }
+  seed_command=("$PYTHON_BIN" scripts/bootstrap/validate_assay_consistency.py --seed-file "$SEED_FILE")
+  for reference in "${REFERENCE_SEED_DATA[@]}"; do
+    [[ -d "$reference" ]] || { echo "Reference source must be a directory" >&2; exit 2; }
+    seed_command+=(--reference-seed-data "$reference")
   done
-  if [[ -n "$YAML_FILE" ]]; then
-    if [[ ! -f "$YAML_FILE" ]]; then
-      echo "ERROR: yaml file not found: $YAML_FILE" >&2
-      exit 2
-    fi
-    cmd+=(--yaml "$YAML_FILE")
-  fi
-  "${cmd[@]}"
+  [[ -z "$YAML_FILE" ]] || seed_command+=(--yaml "$YAML_FILE")
+  "${seed_command[@]}"
+elif [[ -n "$YAML_FILE" ]]; then
+  "$PYTHON_BIN" scripts/ingest/validate_ingest_spec.py --yaml "$YAML_FILE"
 fi
-
-echo "[ok] preflight passed"
+echo "[ok] preflight passed (no database or service connectivity check)"

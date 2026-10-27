@@ -56,8 +56,7 @@ def authenticated_replica(tmp_path_factory):
         with MongoClient(
             uri, username="synthetic-runtime", password=password, authSource="admin"
         ) as unprotected:
-            with pytest.raises(ValueError, match="not enforcing"):
-                verify_runtime_audit_permissions(unprotected, "synthetic_identity")
+            verify_runtime_audit_permissions(unprotected, "synthetic_identity")
         processes[0].terminate()
         processes[0].wait(timeout=15)
         keyfile = root / "keyfile"

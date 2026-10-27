@@ -150,6 +150,7 @@ Run these commands from the repository root:
 npm run docs:lint
 .venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
+.venv/bin/python scripts/docs/check_operational_examples.py
 ```
 
 For a generated-reference change, also run its generator and the relevant

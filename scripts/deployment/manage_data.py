@@ -22,7 +22,12 @@ from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # 
 
 
 def manage_data(
-    *, api_url: str, modules: list[DeploymentDataModule], force: bool = False, username: str = ""
+    *,
+    api_url: str,
+    modules: list[DeploymentDataModule],
+    force: bool = False,
+    username: str = "",
+    provider: str = AUTH_PROVIDER_LOCAL,
 ) -> dict[str, str]:
     """Authenticate, complete first-login password setup, and maintain selected bundled modules.
 
@@ -31,6 +36,8 @@ def manage_data(
         modules: Explicit identity, application, knowledgebase or demo selections.
         force: Request repair of selected installation-owned records.
         username: Optional login hint; otherwise prompted interactively.
+        provider: Explicit local or ldap authentication provider; defaults to local
+            for the initial accounts. An email-shaped username does not imply LDAP.
 
     Returns:
         Per-catalog installation, repair or preservation statuses.
@@ -41,12 +48,13 @@ def manage_data(
         ValueError: Module selection is invalid or password confirmation does not match.
     """
     payload = DeploymentDataRequest(modules=modules, force=force)
+    if provider not in {AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_LDAP}:
+        raise ValueError("Choose the local or ldap authentication provider.")
     if not sys.stdin.isatty():
         raise PermissionError("Run interactively to sign in to the API.")
     base = api_url.rstrip("/")
     login = username.strip() or input("Administrator username: ").strip()
     password = getpass.getpass("Administrator password: ")
-    provider = AUTH_PROVIDER_LDAP if "@" in login else AUTH_PROVIDER_LOCAL
     with CoyoteClient(base, timeout=600.0) as client:
         user = client.login(username=login, password=password, provider=provider)
         try:
@@ -94,10 +102,17 @@ def main() -> int:
     )
     parser.add_argument("--force", action="store_true", help="Repair selected bundled modules")
     parser.add_argument("--username", default="", help="Optional API login username")
+    parser.add_argument(
+        "--provider", choices=(AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_LDAP), default=AUTH_PROVIDER_LOCAL
+    )
     args = parser.parse_args()
     try:
         results = manage_data(
-            api_url=args.api_url, modules=args.modules, force=args.force, username=args.username
+            api_url=args.api_url,
+            modules=args.modules,
+            force=args.force,
+            username=args.username,
+            provider=args.provider,
         )
     except (httpx.HTTPError, PermissionError, ValueError, EOFError, KeyboardInterrupt) as error:
         if isinstance(error, httpx.HTTPStatusError):

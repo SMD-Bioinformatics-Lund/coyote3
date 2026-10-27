@@ -54,6 +54,9 @@ You do not need to read every reference before starting.
 | [Assay Setup](assay-setup.md) | Prepare and review an assay's configuration resources. |
 | [Finding query rules](query-rules.md) | Manage inherited finding-selection policies for groups, assays and diagnoses. |
 | [Clinical reporting rules](../reference/clinical-reporting-rules.md) | Author, test, review and publish the rules that produce clinical report content. |
+| [Build report wording](report-rule-authoring.md) | Learn the editor's sections, dynamic values and condition controls. |
+| [Hematology Base reporting walkthrough](hematology-base-reporting.md) | Build a complete assay-specific draft from introductions through advanced conditions and publication. |
+| [Solid Base and diagnosis reporting examples](solid-reporting-examples.md) | Configure positive/negative SNV text, a breast subpanel publication, source selection and scope tests. |
 | [Report presentation settings](../configuration/report-presentation-file.md) | Configure supported empty-section wording without changing clinical rules. |
 | [Assay analysis and reporting availability](assay-analysis-availability.md) | Understand how assay files and configuration enable analyses and reporting. |
 | [Clinical resource fields](clinical-resource-fields.md) | Look up ASP, ASPC and ISGL field requirements and defaults. |

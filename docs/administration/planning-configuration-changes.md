@@ -12,7 +12,7 @@ validation and approval requirements still apply.
 | Intended change | Resource or workflow | Check before saving |
 | --- | --- | --- |
 | Physical assay design or required input files | ASP; use [assay setup](assay-setup.md) for a new assay. | Modality, assay family, coverage, and ingest file policy. |
-| Enable analyses, change default filters, or configure reporting | ASPC for the assay/diagnosis/environment. | Available input data, supported intents, selected lists, and compatible published rules. |
+| Enable analyses, change default filters, or configure reporting | ASPC for the assay/diagnosis/environment. | Available input data, supported intents and selected lists. Compatible published rules supply automatic narrative; their absence warns rather than blocking setup. |
 | Change reusable gene membership | ISGL. | Assay/group eligibility, list types, diagnosis scopes, and whether the list is public. |
 | Register a named clinical scope | Shared diagnosis definition and its assay associations. | Which assays need the scope, and which ASPCs must be configured separately. |
 | Disable availability for one assay/diagnosis pair | That assay's diagnosis association. | Shared definition status and the effect on new selections. |

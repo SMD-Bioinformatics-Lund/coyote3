@@ -397,9 +397,7 @@ bash scripts/deployment/compose-with-version.sh \
     --identity-mongo-uri "$(grep '^IDENTITY_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote3_validation \
     --identity-db coyote3_identity_validation \
-    --sys-admin-username "center.operator" \
     --sys-admin-email "operator@example.org" \
-    --username coyote3.admin \
     --email admin@validation.invalid \
     --password "$VALIDATION_ADMIN_PASSWORD" \
     --role-id superuser
@@ -459,7 +457,7 @@ bash scripts/deployment/compose-with-version.sh \
   -p "$VALIDATION_APP_PROJECT" --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml run --rm --no-deps -it api \
   python scripts/deployment/manage_data.py \
-    --api-url http://api:8001 --modules application --force --username center.operator
+    --api-url http://api:8001 --modules application --force --username coyote3.sysadmin
 ```
 
 Enter the initial administrator password, then complete the new-password and
@@ -553,7 +551,7 @@ Open the application in a browser:
 http://localhost:6816/coyote3_validation/
 ```
 
-Sign in as `coyote3.admin` with the generated password. Complete any required
+Sign in as `coyote3.superuser` with the generated password. Complete any required
 first-login password change, then record the following results.
 
 ### Sample and analysis checks
@@ -593,21 +591,23 @@ fallback.
 
 ## 10. Run API-level verification
 
-The center check exercises authentication, manifest validation, file
-collection, and the upload intake endpoint. Run it against a fresh disposable
+The center check exercises authentication, manifest validation and the upload
+intake endpoint. Pass an optional `--data-archive inputs.zip` when the referenced
+files are not already mounted and readable inside the API. Individual
+`data_files` multipart fields are not accepted. Run it against a fresh disposable
 database or use a second unique sample manifest; it must not overwrite the
 watch-ingested sample:
 
 ```bash
 PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_check.sh \
     --api-base-url "$VALIDATION_PUBLIC_URL" \
-    --username coyote3.admin \
+    --username coyote3.superuser \
     --password "$VALIDATION_ADMIN_PASSWORD" \
     --provider local \
     --yaml-file tests/fixtures/ingest/generic_case_control.yaml
 ```
 
-The disposable bootstrap creates `coyote3.admin` as a local account, so this
+The disposable bootstrap creates `coyote3.superuser` as a local account, so this
 check uses the `local` authentication provider explicitly. Use
 `--provider ldap` only when validating a configured LDAP account in a
 deployment where LDAP connectivity is part of the test scope.

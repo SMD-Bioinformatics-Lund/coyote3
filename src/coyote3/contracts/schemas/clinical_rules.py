@@ -244,6 +244,9 @@ class ClinicalRule(_StrictModel):
     name: str
     order: int = Field(ge=0)
     enabled: bool = True
+    presentation: Literal["paragraph", "continue", "line", "bullet", "numbered"] = Field(
+        default="paragraph", exclude_if=lambda value: value == "paragraph"
+    )
     condition: ClinicalCondition | None = None
     output: list[ClinicalOutputNode] = Field(min_length=1)
     references: list[str] = Field(default_factory=list)
@@ -606,6 +609,7 @@ class ClinicalRuleDraftUpdate(_StrictModel):
     """Revision-qualified draft edits with optional authored content fields."""
 
     revision: int = Field(ge=1)
+    scope: ClinicalRuleScope | None = None
     name: str | None = Field(default=None, min_length=1, max_length=160)
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] | None = None
     terminology: dict[str, Any] | None = None
@@ -704,6 +708,7 @@ class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
     condition_values: dict[str, list[str]] = Field(default_factory=dict)
     clinical_reviewers: list[dict[str, str]] = Field(default_factory=list)
     publishers: list[dict[str, str]] = Field(default_factory=list)
+    sentence_terminology: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
 class ClinicalRuleTestSample(_StrictModel):

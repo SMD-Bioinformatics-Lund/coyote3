@@ -128,7 +128,7 @@ in it.
 | --- | --- | --- | --- |
 | Permission policy | Every permission understood by the shipped API and UI. | Assign through center-owned roles. | Edit, activation changes, and delete. |
 | Role | Standard clinical, operational, and administrative role baselines. | Assign to authorized accounts; create a separate center-owned role for custom grants. | Edit, activation changes, and delete. |
-| Initial administrators | One named `sys_admin` and one emergency `superuser`, supplied during bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
+| Initial administrators | Fixed `coyote3.sysadmin` and `coyote3.superuser` logins, with independently generated temporary passwords printed once during fresh bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
 | Demo ASP, ASPC, and ISGL | Synthetic starter configuration included by default on first installation; disable with `--skip-demo`. | Edit and deactivate for disposable validation. | Delete. |
 
 Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do

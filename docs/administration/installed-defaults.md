@@ -162,9 +162,10 @@ and expected database records used by ingest and offline validation.
 ## Default roles and initial accounts
 
 Role definitions are installed without creating an account for every role.
-The operator supplies a named account assigned `sys_admin` and a separate account
-assigned `superuser`. Both require a password change on first sign-in. There are
-no bundled usernames or passwords. Routine clinical and governance users require
+Bootstrap creates `coyote3.sysadmin` assigned `sys_admin` and `coyote3.superuser`
+assigned `superuser`. Independent temporary passwords are generated and printed once
+after successful account creation; there are no fixed passwords. Both require a
+password change on first sign-in. Routine clinical and governance users require
 explicit role and assay/environment scope assignments.
 
 | Responsibility | Installed roles | Intended use |

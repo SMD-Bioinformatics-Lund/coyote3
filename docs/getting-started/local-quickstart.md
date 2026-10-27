@@ -7,7 +7,7 @@ use the [developer environment](developer-environment.md).
 
 ## 1. Prepare tools and the checkout
 
-Install Docker Engine/Compose v2, Git, Bash, curl and OpenSSL using the
+Install Docker Engine/Compose v2, Python 3.12 or later, Git, Bash, curl and OpenSSL using the
 [prerequisite links](../deployment/first-installation.md#1-check-prerequisites).
 Check access to the existing Docker daemon before continuing.
 
@@ -24,7 +24,7 @@ when resuming a local installation.
 ## 2. Configure infrastructure and storage
 
 Edit `.coyote3_dev_env`: replace every applicable placeholder secret, select four
-distinct database names and configure each URI to a writable replica set with its
+database names with separate namespaces and configure each URI to a writable replica set with its
 intended grants. MongoDB authentication and the restricted identity role are
 required in development as well as production. Compose pins MongoDB 7.0.41 when the optional database services
 are used. Database infrastructure has its own lifecycle; follow
@@ -36,9 +36,14 @@ For the URLs below, set:
 ENV_NAME=development
 COYOTE3_PORT=6801
 SCRIPT_NAME=/coyote3_dev
-PUBLIC_BASE_URL=http://localhost:6801/coyote3_dev
+PUBLIC_BASE_URL=http://localhost:6801
 COYOTE3_APP_NETWORK=coyote3-dev-app-net
 ```
+
+`PUBLIC_BASE_URL` is the origin only. `SCRIPT_NAME` adds the path prefix once.
+Do not append `/coyote3_dev` to both settings. Use a Compose version that supports
+the development overlay's `!reset` tags; `docker compose config` must parse both
+files before installation.
 
 Choose data/log roots writable by the container identity. Prepare the external
 center directory with its three reviewed files following
@@ -65,7 +70,8 @@ bash scripts/deployment/install_center.sh \
 
 The installer builds images, validates mounted configuration and database/Redis
 connectivity, installs a fresh baseline and starts the stack. It creates a distinct
-superuser and system administrator with hidden temporary-password prompts, then
+`coyote3.superuser` and `coyote3.sysadmin` with separate generated temporary passwords
+displayed once in the terminal, then
 installs application catalogs, bundled references and `DEMO_STARTER_DNA` /
 `DEMO_STARTER_RNA` by default. Creations use `system` provenance.
 
@@ -73,6 +79,9 @@ Use `--skip-demo` or `--skip-knowledgebase` when appropriate. Existing initializ
 deployments preserve their data. A partial baseline stops for investigation rather
 than being dropped. See [module defaults and authenticated repairs](../deployment/installation-operations.md).
 A host `.venv` is not needed for this container-based bootstrap.
+Host Python 3.12 or later is still required by the deployment wrappers. The docs
+service uses the documentation built into its image; no host `site/` directory or
+host MkDocs installation is required for this procedure.
 
 ## 4. Open and verify
 

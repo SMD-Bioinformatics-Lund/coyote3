@@ -100,8 +100,9 @@ An explicit directory must contain all three files; missing files fail startup
 instead of falling back to bundled examples. `collections.toml` is always loaded
 from the application package, even if the external directory contains a file with
 that name. When no external directory is selected, development uses the bundled
-examples. Host directory traversal and file-read permissions must permit the
-configured container UID/GID; do not put credentials in these public configuration files.
+examples. The mounted directory and its files must be readable by the configured
+container UID/GID. Host ancestors above a bind source need access for the Docker
+daemon, not for the container UID. Do not put credentials in these public files.
 
 On application upgrade, retain the environment setting and center release. Run
 preflight with the new application version before deployment. If validation requires

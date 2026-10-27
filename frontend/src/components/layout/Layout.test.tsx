@@ -1,5 +1,5 @@
-import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { focusManager, onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -34,7 +34,7 @@ const currentUser = {
   role: "manager",
   roles: ["manager"],
   access_level: 50,
-  permissions: ["assay.config:view"],
+  permissions: ["assay.config:view", "sample:view", "gene.annotation:view", "report:view"],
 }
 
 function renderLayout(initialEntry = "/samples") {
@@ -111,6 +111,49 @@ describe("Layout", () => {
     expect(screen.getByTitle("Workspace: Samples")).toBeVisible()
     expect(screen.getByTitle("Administration: Admin Settings")).toBeVisible()
     expect(screen.getByText("Route content")).toBeVisible()
+  })
+
+  it("does not poll clinical resources or offer clinical navigation to a system administrator", async () => {
+    mockPrivateQueries()
+    const get = vi.mocked(api.get).getMockImplementation()!
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/auth/whoami") {
+        return { data: { ...currentUser, roles: ["sys_admin"], permissions: ["user:list"] } } as never
+      }
+      return get(url)
+    })
+    renderLayout("/admin")
+    expect(await screen.findByTitle("Administration: Admin Settings")).toBeVisible()
+    expect(screen.queryByTitle("Workspace: Samples")).not.toBeInTheDocument()
+    expect(screen.queryByTitle("Workspace: Reports")).not.toBeInTheDocument()
+    expect(screen.queryByTitle("Workspace: Variant Search")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /dna/i })).not.toBeInTheDocument()
+    expect(vi.mocked(api.get).mock.calls.some(([url]) => String(url).startsWith("/samples/"))).toBe(false)
+  })
+
+  it("stops sample-count polling, focus and reconnect requests after access is denied", async () => {
+    mockPrivateQueries()
+    const get = vi.mocked(api.get).getMockImplementation()!
+    const counts = vi.fn().mockRejectedValue(Object.assign(new Error("Access revoked"), { status: 403 }))
+    vi.mocked(api.get).mockImplementation((url: string) => (
+      url.startsWith("/samples/navigation-counts?") ? counts() : get(url)
+    ))
+    renderLayout("/admin")
+    await waitFor(() => expect(counts).toHaveBeenCalledOnce())
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(45_000)
+        focusManager.setFocused(false)
+        focusManager.setFocused(true)
+        onlineManager.setOnline(false)
+        onlineManager.setOnline(true)
+        await vi.advanceTimersByTimeAsync(5000)
+      })
+      expect(counts).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("opens the assay menu, displays counts, and applies a sample filter", async () => {

@@ -72,6 +72,7 @@ bash scripts/quality/check_shell_quality.sh
 
 echo "[check] docs internal links"
 "$PYTHON_BIN" scripts/docs/check_markdown_links.py
+"$PYTHON_BIN" scripts/docs/check_operational_examples.py
 
 echo "[check] regenerate collection contracts doc"
 preexisting_doc_changes=0

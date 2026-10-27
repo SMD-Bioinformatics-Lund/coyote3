@@ -570,6 +570,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /admin/clinical-rule-sets/versions/:documentId",
       "GET /admin/clinical-rule-sets/versions/:documentId/export",
       "GET /admin/clinical-rule-sets/versions/:documentId/revisions",
+      "GET /admin/clinical-rule-sets/versions/:documentId/test-samples",
+      "POST /admin/clinical-rule-sets/versions/:documentId/test-samples/:sampleId/preview",
       "POST /admin/clinical-rule-sets/drafts",
       "POST /admin/clinical-rule-sets/imports",
       "PATCH /admin/clinical-rule-sets/drafts/:documentId",

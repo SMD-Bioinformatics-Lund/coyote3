@@ -12,12 +12,15 @@ from bson import ObjectId
 from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
+from coyote3.application.reporting.clinical_rules.renderers import render_tier_summary
 from coyote3.application.reporting.clinical_rules.service import (
     ClinicalRuleService,
     rendered_summary,
 )
 from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
 from coyote3.contracts.schemas.clinical_rules import (
+    ClinicalRule,
+    ClinicalRuleBlock,
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -28,6 +31,57 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleTransition,
 )
 from coyote3.domain.exceptions import AppError
+
+
+@pytest.mark.parametrize(
+    "presentation,expected",
+    [
+        ("paragraph", ["First.", "Second.", "Third."]),
+        ("continue", ["First. Second. Third."]),
+        ("line", ["First.  \nSecond.  \nThird."]),
+        ("bullet", ["- First.\n- Second.\n- Third."]),
+        ("numbered", ["1. First.\n1. Second.\n1. Third."]),
+    ],
+)
+def test_matched_rules_respect_explicit_paragraph_and_list_placement(presentation, expected):
+    """Presentation changes layout after matching without changing condition decisions."""
+    document = _document()
+    document.blocks = [
+        ClinicalRuleBlock(
+            block_id="layout",
+            name="Layout",
+            section="Summary",
+            section_order=1,
+            block_order=1,
+            show_heading=False,
+            match_strategy="all_matches",
+            rules=[
+                ClinicalRule(
+                    rule_id=f"sentence_{index}",
+                    name=f"Sentence {index}",
+                    order=index,
+                    presentation=presentation,
+                    output=[{"type": "text", "value": text}],
+                )
+                for index, text in enumerate(["First.", "Second.", "Third."])
+            ],
+        )
+    ]
+    document.content_hash = content_hash(document)
+    result = ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses={"SNV"})
+    assert result.sections["Summary"] == expected
+    assert len([item for item in result.trace if item.matched]) == 3
+
+
+def test_default_presentation_preserves_existing_publication_hashes():
+    """Adding the default layout field does not invalidate older released content."""
+    document = _document()
+    before = content_hash(document)
+    for block in document.blocks:
+        for rule in block.rules:
+            rule.presentation = "paragraph"
+            assert "presentation" not in rule.model_dump()
+    assert content_hash(document) == before
 
 
 def test_annotation_terminology_is_scoped_published_and_integrity_checked():
@@ -678,18 +732,65 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
     assert options["condition_values"]["sample.diagnosis_id"] == ["base"]
     assert options["clinical_reviewers"] == []
     assert options["publishers"] == []
+    assert (
+        options["sentence_terminology"]["sv"]["tier_summary"]["single_gene_always_read_context"]
+        is True
+    )
     assert ClinicalRuleAuthoringService(object()).authoring_options() == {
         "assays": [],
         "condition_values": {},
         "clinical_reviewers": [],
         "publishers": [],
+        "sentence_terminology": options["sentence_terminology"],
     }
+
+
+def test_optional_swedish_sentence_wording_matches_grouped_default_branch_output():
+    """Explicit insertion reproduces grouped prose without modifying shared defaults."""
+    from coyote3.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
+
+    options = ClinicalRuleAuthoringService(object()).authoring_options()
+    terms = options["sentence_terminology"]["sv"]
+    groups = [
+        {
+            "tier": 1,
+            "finding_count": 1,
+            "genes": [{"gene": "BCOR", "vaf_percentages": ["2%"]}],
+        },
+        {
+            "tier": 2,
+            "finding_count": 2,
+            "genes": [
+                {"gene": "SUZ12", "vaf_percentages": ["18%"]},
+                {"gene": "CUX1", "vaf_percentages": ["4%"]},
+            ],
+        },
+        {
+            "tier": 3,
+            "finding_count": 1,
+            "genes": [{"gene": "ROBO2", "vaf_percentages": ["16%"]}],
+        },
+    ]
+    assert render_tier_summary(groups, terms).strip() == (
+        "Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) "
+        "i BCOR (i 2% av läsningarna). Vidare ses två mutationer av potentiell "
+        "klinisk signifikans (Tier II): en i SUZ12 (18%) och en i CUX1 (4%). "
+        "Slutligen ses en mutation av oklar klinisk signifikans (Tier III) "
+        "i ROBO2 (i 16% av läsningarna)."
+    )
+    terms["tier_summary"]["first_prefix"] = "Changed draft wording"
+    assert STANDARD_TIER_SUMMARY_PHRASES["first_prefix"] == "Vid analysen finner man "
+    assert (
+        ClinicalRuleAuthoringService(object()).authoring_options()["sentence_terminology"]["sv"][
+            "tier_summary"
+        ]["first_prefix"]
+        == "Vid analysen finner man "
+    )
 
 
 @pytest.mark.parametrize(
     ("panel", "message"),
     [
-        (None, "require an active assay panel"),
         ({"asp_id": "assay_1", "asp_category": "dna", "is_active": False}, "active assay"),
         ({"asp_id": "assay_1", "asp_category": "rna", "is_active": True}, "analyte"),
     ],

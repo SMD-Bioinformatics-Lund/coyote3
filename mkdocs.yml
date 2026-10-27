@@ -112,6 +112,8 @@ nav:
           - "Supported analyses": administration/supported-capabilities.md
           - "Enable analysis and reporting": administration/assay-analysis-availability.md
           - "Build report wording and conditions": administration/report-rule-authoring.md
+          - "Hematology Base: worked example": administration/hematology-base-reporting.md
+          - "Solid Base and diagnosis: worked examples": administration/solid-reporting-examples.md
       - Configure finding selection:
           - "Application base queries and UI rules": administration/query-rules.md
           - "Installed group rules and demo defaults": administration/installed-defaults.md

@@ -62,6 +62,7 @@ export type ClinicalRule = {
   name: string
   order: number
   enabled: boolean
+  presentation?: "paragraph" | "continue" | "line" | "bullet" | "numbered"
   condition?: Condition | null
   output: OutputNode[]
   references: string[]

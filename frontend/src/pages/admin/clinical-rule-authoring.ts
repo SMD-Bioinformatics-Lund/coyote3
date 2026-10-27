@@ -107,6 +107,7 @@ export const newRuleBlock = (blocks: RuleBlock[]): RuleBlock => {
 
 export const SECTION_STARTERS = [
   ["intro", "General introduction", ""],
+  ["snv_summary", "SNV summary: findings / no findings", "SNV"],
   ["snv", "Variant text", "SNV"],
   ["cnv", "CNV text", "CNV"],
   ["translocation", "DNA fusion text", "TRANSLOCATION"],
@@ -130,9 +131,11 @@ export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleS
   const add = (name: string, output: OutputNode[], condition: ClinicalRule["condition"] = null) => {
     const rule = newRule(block, used)
     rule.name = name
+    rule.rule_id = nextIdentifier(`${block.block_id}_${name}`, used)
     rule.enabled = false
     rule.output = output
     rule.condition = condition
+    if (key === "intro" && block.rules.length) rule.presentation = "continue"
     block.rules.push(rule)
     used.push(rule.rule_id)
   }
@@ -146,9 +149,16 @@ export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleS
     block.match_strategy = "all_matches"
     const analysis = scope.analyte === "rna" ? "fusion" : "snv"
     add("Assay and panel scope", [text(sv ? "Analysen omfattar " : "The analysis covers "), number("asp.covered_genes_count"), text(sv ? " gener i " : " genes in "), fact("asp.display_name"), text(". ")])
-    add("Paired control wording", [text(sv ? "Ange granskad text om kontrollmaterial. " : "Enter reviewed wording about the control material. ")], predicate("sample.paired", "eq", true))
+    add("Paired control wording", [text(sv ? "Analysen har utförts med ett parat kontrollprov. " : "The analysis was performed with a paired control sample. ")], predicate("sample.paired", "eq", true))
+    add("Unpaired control wording", [text(sv ? "Analysen har utförts utan parat kontrollprov. " : "The analysis was performed without a paired control sample. ")], predicate("sample.paired", "eq", false))
     add("Selected gene lists", [text(sv ? "Analysen omfattar genlistan: " : "Selected gene lists: "), list(`gene_lists.${analysis}.names`), text(sv ? " som innefattar " : " covering "), number(`gene_lists.${analysis}.gene_count`), text(sv ? " gener. " : " genes. ")], predicate(`gene_lists.${analysis}.gene_count`, "gt", 0))
     add("Selected germline genes", [text(sv ? "För " : "For "), list(`gene_lists.${analysis}.germline_genes`), text(sv ? " undersöks även konstitutionella mutationer." : " constitutional variants are also investigated.")], { type: "all", children: [predicate("sample.paired", "eq", true)!, { type: "not", child: { type: "predicate", fact: `gene_lists.${analysis}.germline_genes`, operator: "is_empty" } }] })
+  } else if (key === "snv_summary") {
+    block.section = block.name = sv ? "Kliniskt relevanta SNVs och små INDELs" : "SNV summary"
+    block.evaluation = { mode: "once", collection: null }
+    block.match_strategy = "exactly_one"
+    add("Reportable SNVs present", [{ type: "renderer", name: "tier_summary" }], predicate("aggregates.has_tiered_snvs", "eq", true))
+    add("No reportable tiered SNVs", [text(sv ? "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats." : "Enter reviewed wording for no reportable tiered SNVs.")], predicate("aggregates.has_tiered_snvs", "eq", false))
   } else if (key === "closing") {
     block.match_strategy = "all_matches"
     add("Closing wording", [text(sv ? "Ange granskad avslutande text." : "Enter reviewed closing text.")])

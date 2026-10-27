@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -30,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--username", help="Username or email for password mode")
     parser.add_argument("--password", help="Password for password mode")
+    parser.add_argument("--password-env", help="Environment variable containing the password")
     parser.add_argument(
         "--provider",
         choices=("local", "ldap"),
@@ -65,6 +67,10 @@ def main(argv: list[str]) -> int:
     from coyote3_client import CoyoteClient
 
     args = build_parser().parse_args(argv)
+    if args.password_env:
+        if args.password:
+            raise SystemExit("Choose --password or --password-env, not both")
+        args.password = os.environ.get(args.password_env)
     if args.mode == "password":
         if not args.username or not args.password or not args.provider:
             raise SystemExit("--username, --password, and --provider are required in password mode")

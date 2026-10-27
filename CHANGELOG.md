@@ -2,6 +2,16 @@
 
 ## v4.0.0
 
+- Correct center installation, storage checks, ingest ZIP uploads and deployment
+  documentation. Allow unauthenticated MongoDB with warnings and deployment secrets
+  of at least 16 characters. Fresh bootstrap creates fixed administrator logins
+  with independently generated temporary passwords and required first-login changes.
+- Gate clinical navigation and routes by permission, stop sample-count polling
+  after access denial, and direct required password changes to the correct page.
+- Fix boolean condition operands and repeated failed autosaves in report-rule
+  authoring. Add inline sentence placeholders, visible JSON import, paired and
+  unpaired starters, complete sample-backed previews and explicit paragraph/list
+  placement for conditional wording.
 - Use the shared variant identity function for `simple_id_hash` validation as
   well as generation across ingest, migration, annotation, blacklist and reporting.
 - Persist the canonical `simple_id_hash` in blacklist records and validate it

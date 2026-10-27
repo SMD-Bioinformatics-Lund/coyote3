@@ -10,8 +10,9 @@ from scripts.ingest.api_login import main
 
 @pytest.mark.parametrize("print_token", [False, True])
 @pytest.mark.parametrize("mode", ["password", "token"])
+@pytest.mark.parametrize("password_env", [False, True])
 def test_cli_uses_validated_sessions_and_exports_only_when_requested(
-    monkeypatch, capsys, print_token, mode
+    monkeypatch, capsys, print_token, mode, password_env
 ):
     calls = []
 
@@ -34,6 +35,16 @@ def test_cli_uses_validated_sessions_and_exports_only_when_requested(
         if mode == "password"
         else ["--token", "synthetic-token"]
     )
+    if mode == "password" and password_env:
+        monkeypatch.setenv("SYNTHETIC_LOGIN_PASSWORD", "synthetic-password")
+        credentials = [
+            "--username",
+            "synthetic",
+            "--password-env",
+            "SYNTHETIC_LOGIN_PASSWORD",
+            "--provider",
+            "local",
+        ]
     args = ["--base-url", "https://synthetic.invalid/prefix", "--mode", mode, *credentials]
     assert main(args + (["--print-token"] if print_token else [])) == 0
     payload = json.loads(capsys.readouterr().out)

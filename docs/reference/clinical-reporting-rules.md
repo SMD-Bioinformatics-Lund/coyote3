@@ -1,6 +1,11 @@
 # Clinical Reporting Rules
 
 For a step-by-step UI guide, see [build report wording from assay and sample data](../administration/report-rule-authoring.md).
+For a complete worked assay with default-branch condition comparisons, use the
+[hematology Base walkthrough](../administration/hematology-base-reporting.md).
+The [solid Base and diagnosis examples](../administration/solid-reporting-examples.md)
+apply the same pattern to a named subpanel and explain which complete publication
+is selected at runtime.
 It covers named section starters, dynamic assay/list names, distinct panel and
 selected-list gene counts, conditions and heading-free introduction/closing text.
 
@@ -279,6 +284,21 @@ A block controls where and how a group of rules is evaluated.
 
 Rules within a block have a stable `rule_id`, display name, order, optional condition,
 typed output sequence, rationale, and references. Rules with no condition always match.
+
+Each rule may also declare `presentation`: `paragraph` (the default), `continue`,
+`line`, `bullet`, or `numbered`. Placement is applied after matching within the
+same section: continuation joins the previous matched paragraph, line inserts a
+Markdown hard break, and consecutive list items share a list. A skipped rule
+produces no separator. Metadata destinations require paragraph presentation.
+The default is omitted from canonical serialization so adding this optional
+field does not change the content hashes of existing publications.
+
+The visual editor's **Report sentence** accepts inline placeholders such as
+`{{asp.display_name}}`, converting them to the same typed output nodes used by
+JSON imports. These are registered fact substitutions, not executable templates.
+The **Complete report summary** panel combines all enabled wording; selecting an
+authorized sample evaluates actual conditions and values through the existing
+read-only testing service after edits save.
 `first_match` provides ordered fallback behavior. `exactly_one` and `at_most_one` make
 ambiguous rule sets fail visibly instead of silently combining unintended wording.
 
@@ -597,9 +617,18 @@ stale revision so the newer content must be reloaded and reconciled. The editor 
 modify submitted, approved, published, or retired content.
 
 New sections and rules receive readable, collision-free names and identifiers based on their
-section and order. These are starting values, not locked values: authors can edit the rule-set
+section and purpose for named starters, with numeric suffixes for collisions. These are starting values, not locked values: authors can edit the rule-set
 name, section name and identifier, and clinical rule name and identifier while the document is
 a draft. Validation still requires identifiers to be non-empty and unique across the rule set.
+
+A draft can be created or imported against a planned assay ID before that assay
+exists. Its content remains editable. Submission checks the available assay or
+saved setup, matching DNA/RNA analyte and registered diagnosis association. The
+draft's **Assay association** controls can link it to an available compatible
+scope using the normal edit lease and revision-qualified PATCH. A changed logical
+scope receives its next content version while retaining the document ID and
+revision archive. Conditions and embedded test facts are preserved for review,
+not rewritten automatically. Reassociation is rejected outside draft status.
 
 On wide screens, the rule-set list, report-section list, rule builder, and live text preview are
 separated by keyboard-accessible draggable dividers. The browser retains adjusted widths. The

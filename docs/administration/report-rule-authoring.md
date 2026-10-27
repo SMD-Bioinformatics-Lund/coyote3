@@ -1,5 +1,13 @@
 # Build report wording from assay and sample data
 
+For a complete worked assay, follow [create hematology Base reporting rules](hematology-base-reporting.md).
+It walks from draft creation and a simple introduction through positive/negative
+findings, nested collection conditions, biomarker boundaries, review and publication,
+with a comparison to the default-branch composer.
+For the same SNV pattern in a solid assay, including a named breast subpanel and
+the distinction between exact scope and Base fallback, follow
+[solid Base and diagnosis reporting examples](solid-reporting-examples.md).
+
 Open **Administration → Reporting Rule Sets** and create or open a draft scoped
 to an assay, diagnosis and language. A diagnosis of `base` means the base scope;
 it does not stand for every named diagnosis. Published versions retain their
@@ -10,7 +18,51 @@ published, reports remain available without an automatically generated summary;
 assay setup and report preview show a warning. Published rules must pass validation
 before they can supply report wording.
 
+## Author before the assay is registered
+
+Enter a planned lowercase **Assay** ID when creating a draft, or keep the intended
+ID from an imported JSON file. A missing assay does not block draft creation,
+import, or content edits. Existing inactive assays and incompatible analytes are
+still rejected. Choose DNA or RNA yourself when the assay is not registered yet.
+
+Once the assay is available, open **Assay association** in the draft and select
+**Link to assay**, **Link to diagnosis**, then **Link assay**. Only assays with the
+same DNA/RNA analyte are offered. The server validates the active assay or saved
+setup scope and its diagnosis association. Registering the originally planned ID
+also makes that scope available without needing to change the ID.
+
+Linking edits the same draft, retaining its document ID, creator and revision
+history. A changed scope receives the next content version in the target scope.
+Review embedded case facts, assay-ID conditions and diagnosis-specific wording
+after reassociation; they are not rewritten automatically. Scope changes use the
+same edit lease and revision checks as other edits. Submitted and released
+versions cannot be reassociated. Submission requires an available compatible
+assay/diagnosis scope; a draft for an unregistered assay cannot enter review or
+supply report wording.
+
 ## Start with named sections
+
+The normal path is **choose when → write the sentence → include and preview**.
+Circular question-mark buttons explain each choice; hover, focus, or click to
+read a hint, and press Escape to close it. Use **Section settings** only when you
+need a different destination, analysis, evaluation mode, matching policy,
+identifier or conflict group. These settings remain available for advanced rules.
+
+Under **Start with a common scenario**, select paired/unpaired control, reportable
+SNVs present/absent, at least one selected SNV list, or outside accreditation.
+Selecting a scenario replaces the condition and preserves the sentence. Its
+plain-language explanation remains visible; open **Refine condition** to adjust
+the generated checks. Custom conditions remain expanded. In collection checks,
+only items satisfying the inner condition are counted. Changing the collection
+starts a new item condition; a specific count starts at **At least 1**.
+
+Choose **SNV summary: findings / no findings** to create a once-per-report SNV
+section with complementary true/false tiered-SNV conditions and **Exactly one**
+matching. The positive rule contains grouped sentences; the negative rule has
+editable wording. Missing Swedish terminology is copied into the draft for
+review without overwriting configured wording. Other languages require reviewed
+terminology in that language. Review and enable both alternatives, then preview
+positive and negative cases before publication.
 
 Use **Start a section** to add General introduction, Variant text, CNV text,
 DNA/RNA fusion text, HRD/MSI/TMB text or Closing text. Available analyses depend
@@ -25,13 +77,34 @@ section. Header suffix and clinical question remain separate output destinations
 Use **Move section up/down** to arrange introduction, analysis text and closing
 wording in report order; moving a section preserves its identifiers and rules.
 
+The rule-set ID stays `assay__diagnosis__language`, for example
+`hema_gmsv1__base__sv`; content versions and revisions are separate fields.
+New starter-rule IDs include their section context and purpose, for example
+`hema_gmsv1_base_snv_summary_reportable_snvs_present`. Duplicate starters receive
+unique suffixes. Display-name edits do not regenerate IDs, and existing IDs are
+preserved. Open **Rule details and identifier** to inspect or deliberately edit
+a rule ID; update embedded-case expectations when changing it. Clinical rationale
+is available in its own reviewer-details panel.
+
 ## Compose the introduction without fixed names or counts
 
-Under **Report text**, expand **Insert dynamic value**. Search by name, count,
-diagnosis, VAF or another value. Select a value to append it, then use the move
-buttons to place it between text parts. Text parts contain the surrounding
-wording, spaces and punctuation. Values are resolved from prepared report data,
-not by evaluating arbitrary expressions or querying the database from the rule.
+Under **Report text**, write the complete sentence in **Report sentence**. Expand
+**Insert value at cursor**, search by name, count, diagnosis or VAF, and choose a
+value. The editor inserts a placeholder such as `{{asp.display_name}}` at the
+cursor. You can also type known placeholders directly. Unknown or incomplete
+placeholders are marked locally and pause saving until corrected.
+
+For example:
+
+```text
+Sekvensanalysen omfattar exoner i {{asp.covered_genes_count}} gener som inkluderas i {{asp.display_name}} sekvenseringspanel.
+```
+
+Placeholders retain the existing typed value, number and list contracts; they do
+not execute expressions or query the database. **Advanced output parts and
+formatting** exposes precision, list conjunctions, missing-value behavior,
+structured renderers and the individual parts when needed. Editing a sentence
+preserves those settings for its existing placeholders.
 
 For the Swedish introduction, compose:
 
@@ -69,6 +142,10 @@ evaluation; **Omit if missing** must be an intentional authoring choice.
 
 ## Conditions and analysis-specific text
 
+The introduction starter includes separate paired and unpaired control sentences,
+both disabled until reviewed. Their conditions are complementary; replace the
+generic wording if the assay requires a more specific statement about material.
+
 **Common condition** supplies paired/unpaired, no SNV/CNV findings and
 non-accredited assay starting points. **Add condition** opens the full editor:
 
@@ -95,12 +172,25 @@ choosing a count condition.
 
 ## Preview and validate
 
-The live preview displays bracketed value labels; it is a composition preview,
-not a sample evaluation. **Test rules** resolves values and conditions against an
-authorized sample. Include paired/unpaired, empty/positive findings, overlapping
+**Complete report summary** combines enabled rules in section and rule order.
+Without a selected sample it shows bracketed values and labels conditional
+alternatives; this composition view does not evaluate conditions. Users with
+`clinical_rules:test` can choose an authorized **Preview sample** to evaluate all
+conditions and resolve actual values on the server. The preview refreshes after
+valid edits save. Invalid edits and failed autosaves pause it; preview errors
+appear inline instead of generating repeated notifications. **Test rules** provides
+the separate sample-testing and trace workspace. Include paired/unpaired, empty/positive findings, overlapping
 gene lists, missing names and relevant diagnosis scopes in clinical acceptance.
 Then validate, assign the independent clinical reviewer and submit. Section
 starters do not install approved clinical thresholds or publish a rule set.
+
+For a once-per-report SNV rule, **Use grouped SNV sentences** replaces that rule's
+output with grouped tier/gene/VAF prose and adds missing Swedish terminology
+for review. It preserves existing shared terminology and does not add a table.
+Configured findings tables remain controlled by the report configuration.
+For an existing summary without wording, **Add Swedish sentence wording** repairs
+the missing terminology without replacing the rule's output. Other languages
+require wording supplied for that language.
 
 When a rule uses a **Structured summary**, expand **Edit … wording** below its
 output to edit the configured sentence fragments, tier labels, number settings
@@ -109,6 +199,43 @@ without configured terminology is not ready to use: copy a reviewed rule-set
 template with its terminology, or compose explicit text and dynamic values.
 Avoid adding both a complete literal introduction and a structured introduction
 unless the combined text is intentional.
+
+## Choose where each conditional sentence appears
+
+Each rule has a **Text placement** selector. It applies only if that rule matches:
+
+| Choice | Result within the same output section |
+| --- | --- |
+| New paragraph | Start a separate paragraph; this is the default for existing rules |
+| Continue previous sentence | Append to the previous matched wording, inserting a separating space when needed |
+| New line | Add a Markdown hard line break after the previous matched wording |
+| Bullet point | Add a bullet; consecutive bullet rules share a list |
+| Numbered list item | Add a numbered item; consecutive numbered rules share a list |
+
+Introduction starters continue the first sentence for the following independent
+control/list sentences. If no preceding rule matches, continuation or line layout
+starts the section normally. A rule that does not match contributes no separator
+or empty list item. Section headings remain controlled separately by **Show section
+heading**. Header suffix and clinical-question outputs retain paragraph placement.
+Changing placement changes the rendered section text. Update the embedded cases'
+expected sections and complete the normal review before publishing that change.
+
+## Import an exported rule set
+
+Use **Import JSON** beside **Export JSON**, or choose **New rule set → Import JSON**.
+Upload the canonical JSON export, review the inferred scope/name, and create the
+draft. Import creates a new governed draft; it does not overwrite or publish the
+source version. The API checks permission, schema and content. Existing embedded
+cases and structured terminology are retained through this supported workflow.
+
+## Correct an autosave error
+
+Availability predicates such as **is available** require a Yes/No value even for
+numeric or list facts. The editor changes the value type when the operator changes.
+Incomplete conditions remain local until valid. If a save fails, autosave pauses
+for that edit instead of retrying continuously. Correct the highlighted input or
+use **Retry save** after resolving the reported problem. Keep unsaved wording
+before leaving the editor.
 
 ## Relationship to the previous report composer
 

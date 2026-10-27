@@ -8,8 +8,8 @@ never starts Compose services, calls the Coyote3 API, or queues ingest work.
 from __future__ import annotations
 
 import argparse
-import getpass
 import os
+import secrets
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +30,8 @@ from coyote3.contracts.schemas.registry import normalize_collection_document  # 
 
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
 DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
+SUPERUSER_USERNAME = "coyote3.superuser"
+SYSADMIN_USERNAME = "coyote3.sysadmin"
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,14 +53,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
     parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--identity-db", required=True, help="Identity database name")
-    parser.add_argument("--username", help="First local superuser login name")
-    parser.add_argument("--email", help="First local superuser email address")
-    parser.add_argument("--password", help="Temporary superuser password; omit for a hidden prompt")
-    parser.add_argument("--role-id", default="superuser", choices=["superuser"])
-    parser.add_argument("--sys-admin-username", help="Named initial system administrator")
-    parser.add_argument("--sys-admin-email", help="System administrator email")
+    parser.add_argument("--username", default=SUPERUSER_USERNAME, choices=[SUPERUSER_USERNAME])
     parser.add_argument(
-        "--sys-admin-password", help="Temporary system-admin password; omit for a hidden prompt"
+        "--email", default="superuser@coyote3.invalid", help="Superuser contact email"
+    )
+    parser.add_argument("--password", help="Temporary superuser password; omit to generate one")
+    parser.add_argument("--role-id", default="superuser", choices=["superuser"])
+    parser.add_argument(
+        "--sys-admin-username", default=SYSADMIN_USERNAME, choices=[SYSADMIN_USERNAME]
+    )
+    parser.add_argument(
+        "--sys-admin-email", default="sysadmin@coyote3.invalid", help="Admin contact email"
+    )
+    parser.add_argument(
+        "--sys-admin-password", help="Temporary system-admin password; omit to generate one"
     )
     parser.add_argument(
         "--rbac-dir", default=str(DEFAULT_RBAC_DIR), help="Bundled RBAC seed directory"
@@ -103,6 +111,55 @@ def _deployment_is_initialized(db, collection_names: tuple[str, ...]) -> bool:
 def _superuser_exists(db, users_collection: str) -> bool:
     """Return whether the target database already has a superuser."""
     return db[users_collection].count_documents({"roles": "superuser"}, limit=1) > 0
+
+
+def _prepare_initial_credentials(args: argparse.Namespace) -> list[tuple[str, str]]:
+    """Set fixed initial logins and generate independent temporary passwords when omitted.
+
+    Args:
+        args: Mutable bootstrap options, including optional passwords and contact emails.
+
+    Returns:
+        Login/password pairs generated in this invocation, to display only after
+        account insertion succeeds. Supplied passwords are never included.
+
+    Raises:
+        SystemExit: Contact emails or temporary passwords collide, or a password is too short.
+    """
+    args.username = SUPERUSER_USERNAME
+    args.sys_admin_username = SYSADMIN_USERNAME
+    if args.email.strip().lower() == args.sys_admin_email.strip().lower():
+        raise SystemExit("Use distinct email addresses for the two bootstrap accounts")
+    generated = []
+    for field, username in (
+        ("password", SUPERUSER_USERNAME),
+        ("sys_admin_password", SYSADMIN_USERNAME),
+    ):
+        if not getattr(args, field):
+            password = secrets.token_urlsafe(18)
+            setattr(args, field, password)
+            generated.append((username, password))
+        if len(getattr(args, field)) < 12:
+            raise SystemExit("Temporary passwords must contain at least 12 characters")
+    if args.password == args.sys_admin_password:
+        raise SystemExit("Use different temporary passwords for the two bootstrap accounts")
+    return generated
+
+
+def _print_initial_credentials(credentials: list[tuple[str, str]]) -> None:
+    """Display newly generated credentials once, after successful account creation.
+
+    Args:
+        credentials: Generated login/password pairs, empty when passwords were supplied.
+    """
+    if not credentials:
+        return
+    print("\nInitial local accounts — temporary passwords")
+    print("-" * 72)
+    for username, password in credentials:
+        print(f"  {username:<24} {password}")
+    print("-" * 72)
+    print("Change each password at first sign-in. Store this output privately.\n", flush=True)
 
 
 def _resolve_directory(value: str, *, label: str) -> Path:
@@ -328,31 +385,7 @@ def main() -> int:
         if getattr(args, "skip_users", False):
             print("[skipped] Initial users and deployment data were disabled.")
             return 0
-        for field, prompt in (
-            ("sys_admin_username", "Named administrator username: "),
-            ("sys_admin_email", "Named administrator email: "),
-            ("username", "Emergency superuser username: "),
-            ("email", "Emergency superuser email: "),
-        ):
-            if not getattr(args, field):
-                setattr(args, field, input(prompt).strip())
-        if args.username.strip().lower() == args.sys_admin_username.strip().lower():
-            raise SystemExit("Superuser and system administrator logins must be different")
-        if args.email.strip().lower() == args.sys_admin_email.strip().lower():
-            raise SystemExit("Use distinct email addresses for the two bootstrap accounts")
-        for field, label in (
-            ("password", "Superuser"),
-            ("sys_admin_password", "System administrator"),
-        ):
-            if not getattr(args, field):
-                password = getpass.getpass(f"{label} temporary password: ")
-                if password != getpass.getpass(f"Confirm {label.lower()} temporary password: "):
-                    raise SystemExit("Password confirmation does not match")
-                setattr(args, field, password)
-            if len(getattr(args, field)) < 12:
-                raise SystemExit("Temporary passwords must contain at least 12 characters")
-        if args.password == args.sys_admin_password:
-            raise SystemExit("Use different temporary passwords for the two bootstrap accounts")
+        generated_credentials = _prepare_initial_credentials(args)
         _fail_if_placeholder_values(args)
         seed = build_seed_documents(
             rbac_dir=_resolve_directory(args.rbac_dir, label="RBAC seed"),
@@ -390,6 +423,7 @@ def main() -> int:
         )
         print(f"[{governance}] governance: permissions, roles, superuser and system administrator")
         if governance == "loaded":
+            _print_initial_credentials(generated_credentials)
             audit_environment = {
                 "IDENTITY_DB": args.identity_db,
                 "IDENTITY_MONGO_URI": config["IDENTITY_MONGO_URI"],

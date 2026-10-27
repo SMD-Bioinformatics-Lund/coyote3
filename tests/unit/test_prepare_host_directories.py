@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.deployment.prepare_host_directories import prepare
+from scripts.deployment.prepare_host_directories import check_directory_access, prepare
 
 
 def configuration(tmp_path):
@@ -70,6 +70,23 @@ def test_preparation_rejects_inaccessible_existing_storage_without_chmod(tmp_pat
     with pytest.raises(PermissionError, match="Existing permissions were not changed"):
         prepare(config)
     assert data.stat().st_mode & 0o777 == 0o700
+
+
+def test_bind_mount_access_does_not_require_container_access_to_host_parents(tmp_path):
+    """A private host parent is outside the bind mount and must remain private."""
+    tmp_path.chmod(0o700)
+    source = tmp_path / "mount"
+    source.mkdir(mode=0o777)
+    source.chmod(0o777)
+    check_directory_access(source, 123456, 123456, mount_root=source)
+    assert tmp_path.stat().st_mode & 0o777 == 0o700
+    private = source / "private"
+    private.mkdir(mode=0o700)
+    nested = private / "nested"
+    nested.mkdir(mode=0o777)
+    nested.chmod(0o777)
+    with pytest.raises(PermissionError, match="Existing permissions were not changed"):
+        check_directory_access(nested, 123456, 123456, mount_root=source)
 
 
 def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):

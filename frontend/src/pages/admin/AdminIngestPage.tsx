@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell"
+import { FileUpload } from "@/components/ui/file-upload"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -75,27 +76,29 @@ export function AdminIngestPage() {
             <h2 className="text-lg font-bold">Sample Bundle Upload</h2>
           </div>
           <div className="space-y-3">
-            <label className="block space-y-1">
+            <div className="space-y-2">
               <span className="text-xs font-semibold uppercase text-muted-foreground">YAML manifest</span>
-              <input
-                type="file"
+              <FileUpload
+                label="YAML manifest"
+                hint="Sample-bundle manifest (.yaml or .yml)"
                 accept=".yaml,.yml"
+                disabled={uploadMutation.isPending}
                 onChange={(event) => setYamlFile(event.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
-            </label>
-            <label className="block space-y-1">
+            </div>
+            <div className="space-y-2">
               <span className="text-xs font-semibold uppercase text-muted-foreground">Referenced data archive</span>
-              <input
-                type="file"
+              <FileUpload
+                label="Referenced data archive"
+                hint="Optional referenced data files (.zip)"
                 accept=".zip,application/zip"
+                disabled={uploadMutation.isPending}
                 onChange={(event) => setDataArchive(event.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
               <span className="block text-xs text-muted-foreground">
                 Optional when the manifest paths are already readable. Otherwise upload one ZIP containing every declared data file.
               </span>
-            </label>
+            </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="flex items-center gap-2 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold">
                 <input type="checkbox" checked={updateExisting} onChange={(event) => setUpdateExisting(event.target.checked)} />

@@ -24,6 +24,12 @@ files. Application URIs select where clients connect; server credentials and
 replica-set/keyfile settings provision a database service. Changing a database
 server's initialization variables does not rotate credentials in existing storage.
 
+The development overlay uses Compose `!reset` tags, so an older Compose v2 plugin
+may still be too old to parse it. Validate the complete file list with `config`
+before startup and upgrade the plugin if it rejects those tags. Development docs
+come from the built documentation image; the overlay does not mount a potentially
+empty host `site/` directory over it. Rebuild `docs` after documentation changes.
+
 ## YAML structure
 
 | Key | Meaning | Behavior when omitted |

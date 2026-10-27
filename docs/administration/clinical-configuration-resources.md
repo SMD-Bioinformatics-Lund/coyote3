@@ -16,7 +16,7 @@ and configuration boundaries.
 | Assay / ASP | Assay design, group, DNA/RNA category, family, physical covered genes, sequencing settings and file policy | Active group; saved setup draft during preparation, operational ASP after activation | Ingest validation, analysis eligibility, configurations and sample identity. |
 | Shared diagnosis definition | Reusable named clinical scope | Stable identifier and active definition | Assay setup, associations, configuration and reporting scope selectors. |
 | Assay–diagnosis association | Availability of one named scope for one assay | Shared definition and assay; staged by setup until activation | Named-scope selection for that assay. Both definition and association must be active for new configuration. |
-| Assay configuration / ASPC | Analysis/intents, filter defaults and report settings for an assay, scope and environment | ASP, valid scope, eligible selected lists and compatible reporting rules where required | Initial sample filters, enabled analyses, report configuration and revision traceability. |
+| Assay configuration / ASPC | Analysis/intents, filter defaults and report settings for an assay, scope and environment | ASP, valid scope and eligible selected lists; reporting rules are optional | Initial sample filters, enabled analyses, report configuration and revision traceability. |
 | Gene list / ISGL | Analysis-specific in-silico gene selection | Valid list type, genes and eligible assay/group bindings; applicable diagnosis scopes | Optional filter defaults and sample review choices. |
 | Clinical reporting rule set | Tested, reviewed report logic and wording for an assay/scope/analyte/language | Registered assay or eligible saved setup draft, valid scope and independent publication workflow | Report evaluation and compatibility of reporting configurations. |
 | Assay setup | Draft workspace, readiness checks and independent approval | Active parent group and authorized author/reviewer | Stages related ASP, ISGL, association and ASPC records; commits them together at activation. |
@@ -94,8 +94,11 @@ Draft and unapproved content does not satisfy a published-release lookup.
 In the setup workflow, readiness checks published reporting rules for the selected
 scopes. Individual ASPC creation and editing are independent of rule publication.
 Each report preview resolves the current published rules and validates their
-compatibility with the configured report sections. Missing, ambiguous or invalid
-rules block that report; they do not require rewriting the ASPC.
+compatibility with the configured report sections. Missing rules produce a warning
+and omit automatic summary text; the report remains available. Ambiguous, invalid,
+or incompatible selected publications still fail validation rather than silently
+falling back or inventing wording. None of these outcomes requires copying rule
+content into the ASPC.
 
 ## Access and historical records
 

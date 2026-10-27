@@ -2001,6 +2001,10 @@ export type ClinicalRuleInput = {
      */
     output: Array<ClinicalTextOutput | ClinicalFactOutput | ClinicalListOutput | ClinicalNumberOutput | ClinicalMessageOutput | ClinicalRendererOutput | ClinicalParagraphBreakOutput>;
     /**
+     * Presentation
+     */
+    presentation?: 'paragraph' | 'continue' | 'line' | 'bullet' | 'numbered';
+    /**
      * Rationale
      */
     rationale?: string | null;
@@ -2050,6 +2054,10 @@ export type ClinicalRuleOutput = {
      * Output
      */
     output: Array<ClinicalTextOutput | ClinicalFactOutput | ClinicalListOutput | ClinicalNumberOutput | ClinicalMessageOutput | ClinicalRendererOutput | ClinicalParagraphBreakOutput>;
+    /**
+     * Presentation
+     */
+    presentation?: 'paragraph' | 'continue' | 'line' | 'bullet' | 'numbered';
     /**
      * Rationale
      */
@@ -2182,6 +2190,14 @@ export type ClinicalRuleAuthoringOptionsPayload = {
     publishers?: Array<{
         [key: string]: string;
     }>;
+    /**
+     * Sentence Terminology
+     */
+    sentence_terminology?: {
+        [key: string]: {
+            [key: string]: unknown;
+        };
+    };
 };
 
 /**
@@ -2443,6 +2459,7 @@ export type ClinicalRuleDraftUpdate = {
      * Revision
      */
     revision: number;
+    scope?: ClinicalRuleScope | null;
     /**
      * Terminology
      */

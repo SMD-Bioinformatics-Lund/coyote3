@@ -6,6 +6,8 @@ cd "$ROOT_DIR"
 
 if [[ -n "${PYTHON_BIN:-}" ]]; then
   PYTHON_CMD="$PYTHON_BIN"
+elif [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+  PYTHON_CMD="$ROOT_DIR/.venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
   PYTHON_CMD="$(command -v python3)"
 elif command -v python >/dev/null 2>&1; then

@@ -45,16 +45,21 @@ records acceptance and handoff; it is not a second installation procedure.
 
 ## Required Baseline Collections
 
-Before first sample ingest, ensure these are seeded:
+Before first sample ingest, ensure identity/RBAC, the assay and its applicable
+configuration are available. Reference requirements depend on the input workflow:
 
 1. `permissions`
 2. `roles`
-3. `hgnc_genes`
-4. `vep_metadata`
+3. `hgnc_genes` for gene-reference lookup and validation workflows
+4. `vep_metadata` for the releases used by VEP-annotated input
 5. `assay_specific_panels`
-6. `clinical_rule_sets`
-7. `asp_configs`
-8. `insilico_genelists` when the center uses in-silico gene-list filtering
+6. `asp_configs`
+7. `insilico_genelists` when the center uses in-silico gene-list filtering
+
+Published `clinical_rule_sets` are optional for ingest and assay activation. They
+are needed for automatic report narrative; without a compatible publication, the
+report is available without that summary and the UI warns. Indexes and revision
+collections are managed independently of whether rules have been authored.
 
 The explicit database bootstrap installs the application-owned RBAC catalog,
 creates a named system administrator and an emergency superuser. It
@@ -81,9 +86,10 @@ See [installation operations](installation-operations.md).
 ## Database bootstrap method
 
 - Run `scripts/bootstrap/bootstrap_database.py` before application services are started.
-- Pass the emergency account using `--username` and `--email`, and the named system
-  administrator using `--sys-admin-username` and `--sys-admin-email`.
-- Omit `--password` and `--sys-admin-password` for hidden, confirmed password prompts.
+- The initial logins are fixed to `coyote3.superuser` and `coyote3.sysadmin`.
+  Optionally set their contacts using `--email` and `--sys-admin-email`.
+- Omit `--password` and `--sys-admin-password` to generate independent temporary
+  passwords, displayed once after account creation.
   Both accounts must replace their temporary password at first sign-in.
 - Bootstrap assigns `superuser` and `sys_admin` respectively. The clinical
   administrator role is `admin` and is assigned separately.
@@ -100,11 +106,8 @@ Standard command shape:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE3_DB" \
   --identity-db "$IDENTITY_DB" \
-  --sys-admin-username "center.operator" \
   --sys-admin-email "operator@example.org" \
-  --username "admin.coyote3" \
-  --email "admin@your-center.org" \
-  --password "<ADMIN_PASSWORD>"
+  --email "admin@your-center.org"
 ```
 
 Configure `COYOTE3_MONGO_URI` for the independently operated database before this

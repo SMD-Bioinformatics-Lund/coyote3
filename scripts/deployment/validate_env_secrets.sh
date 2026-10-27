@@ -68,8 +68,12 @@ for key in "${required[@]}"; do
     echo "[error] placeholder detected for $key"
     errors=1
   fi
-  if [[ "$key" == "REDIS_PASSWORD" && ! "$value" =~ ^[a-fA-F0-9]{64,}$ ]]; then
-    echo "[error] REDIS_PASSWORD must contain at least 64 hexadecimal characters"
+  if [[ "$key" != *MONGO_URI && ${#value} -lt 16 ]]; then
+    echo "[error] $key must contain at least 16 characters"
+    errors=1
+  fi
+  if [[ "$key" == "REDIS_PASSWORD" && ! "$value" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "[error] REDIS_PASSWORD must use URL-safe letters, digits, underscores or hyphens"
     errors=1
   fi
 done

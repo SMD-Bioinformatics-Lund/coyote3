@@ -6,6 +6,7 @@ import type { ApiOperations } from "@/lib/generated/operations.gen"
 
 export class ApiClientError extends Error {
   notificationShown = true
+  handledInline = false
   status?: number
   endpoint?: string
   code?: string
@@ -26,6 +27,7 @@ export type ApiResponse<T> = {
 }
 
 type ApiBody = BodyInit | Record<string, unknown> | unknown[] | null | undefined
+export type ApiRequestOptions = RequestInit & { errorNotice?: "toast" | "inline" }
 
 let csrfToken: string | null = null
 
@@ -62,7 +64,8 @@ function encodeBody(body: ApiBody): BodyInit | undefined {
   return JSON.stringify(body)
 }
 
-async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function request<T = any>(endpoint: string, requestOptions: ApiRequestOptions = {}): Promise<ApiResponse<T>> {
+  const { errorNotice = "toast", ...options } = requestOptions
   const url = apiPath(endpoint)
   const isFormData = options.body instanceof FormData
   const method = (options.method ?? "GET").toUpperCase()
@@ -78,8 +81,10 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   } catch (error) {
     if (recordValue(error).name === "AbortError" || options.signal?.aborted) throw error
     const message = "Could not reach Coyote3. Check your connection and whether the operation completed before retrying."
-    notify({ tone: "error", title: "Connection interrupted", message, source: `${method} ${endpoint}` })
+    if (errorNotice === "toast") notify({ tone: "error", title: "Connection interrupted", message, source: `${method} ${endpoint}` })
     const failure = new ApiClientError(message, 0, endpoint)
+    failure.notificationShown = errorNotice === "toast"
+    failure.handledInline = errorNotice === "inline"
     failure.code = "network_error"
     throw failure
   }
@@ -88,7 +93,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   if (response.status === 401 && window.location.pathname !== appPath("/login")) {
     setCsrfToken(null)
     window.location.href = appPath("/login")
-    throw new Error("Unauthorized")
+    throw new ApiClientError("Unauthorized", 401, endpoint)
   }
 
   // Handle empty responses
@@ -97,7 +102,9 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
 
   if (!response.ok) {
     if (response.status === 403 && (data?.category || data?.detail?.category) === "password_change_required") {
-      if (window.location.pathname !== appPath("/profile")) window.location.href = appPath("/profile")
+      if (window.location.pathname !== appPath("/change-password")) {
+        window.location.href = appPath("/change-password")
+      }
       throw new ApiClientError("Change your temporary password before continuing.", 403, endpoint)
     }
     const requestId = response.headers.get("X-Request-ID") || stringValue(data?.request_id)
@@ -107,13 +114,15 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
       retryAfter ? `Retry after: ${retryAfter}${/^\d+$/.test(retryAfter) ? " seconds" : ""}.` : "",
       requestId ? `Reference: ${requestId}` : "",
     ].filter(Boolean).join(" ")
-    notify({
+    if (errorNotice === "toast") notify({
       tone: response.status >= 500 ? "error" : "warning",
       title: response.status >= 500 ? "System action failed" : "Request could not be completed",
       message: errorMessage,
       source: `${options.method ?? "GET"} ${endpoint}`,
     })
     const failure = new ApiClientError(errorMessage, response.status, endpoint)
+    failure.notificationShown = errorNotice === "toast"
+    failure.handledInline = errorNotice === "inline"
     failure.code = stringValue(data?.code)
     failure.requestId = requestId
     failure.retryAfter = retryAfter
@@ -193,15 +202,15 @@ function safeJson(text: string) {
 
 export const api = {
   contract: contractRequest,
-  get: <T = any>(url: string, options?: RequestInit) =>
+  get: <T = any>(url: string, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "GET" }),
-  post: <T = any>(url: string, body?: ApiBody, options?: RequestInit) =>
+  post: <T = any>(url: string, body?: ApiBody, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "POST", body: encodeBody(body) }),
-  patch: <T = any>(url: string, body?: ApiBody, options?: RequestInit) =>
+  patch: <T = any>(url: string, body?: ApiBody, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "PATCH", body: encodeBody(body) }),
-  put: <T = any>(url: string, body?: ApiBody, options?: RequestInit) =>
+  put: <T = any>(url: string, body?: ApiBody, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "PUT", body: encodeBody(body) }),
-  delete: <T = any>(url: string, options?: RequestInit) =>
+  delete: <T = any>(url: string, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "DELETE" }),
 }
 

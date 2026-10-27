@@ -266,9 +266,9 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `BAM_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | BAM-service database used for sample BAM lookups. |
 | `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | `Coyote3` | Used on login, public, contact, and support pages. |
 | `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | `UTC` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
-| `SECRET_KEY` | Yes | High-entropy secret | None; a nonempty value is required | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
-| `INTERNAL_API_TOKEN` | Yes | High-entropy token | None; a nonempty value is required | Authenticates trusted service-to-service internal API calls through the internal-token header. |
-| `PASSWORD_TOKEN_SALT` | Yes | High-entropy salt | None; a nonempty value is required | Separates invite and password-reset token signing from other application signing operations. |
+| `SECRET_KEY` | Yes | Random secret; deployment validation requires at least 16 characters | None | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
+| `INTERNAL_API_TOKEN` | Yes | Random token; deployment validation requires at least 16 characters | None | Authenticates trusted service-to-service internal API calls through the internal-token header. |
+| `PASSWORD_TOKEN_SALT` | Yes | Random salt; deployment validation requires at least 16 characters | None | Separates invite and password-reset token signing from other application signing operations. |
 | `COYOTE3_PORT` | No; selected Compose profile | Host port | `5815` | One exposed nginx entrypoint for UI, API, public pages, and docs. |
 | `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Empty string | Public URL mount prefix used by browser routing and generated links. |
 | `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | None; a nonempty value is required | Origin used for links generated outside an active browser request, such as password reset email links. |
@@ -320,7 +320,7 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `CACHE_REQUIRED` | No | `1` or `0` | `1` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | `1.0` | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | `1.0` | Redis socket timeout. |
-| `REDIS_PASSWORD` | Required by Compose | Unique URL-safe secret; generate with `openssl rand -hex 32` | None; a nonempty value is required | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
+| `REDIS_PASSWORD` | Required by Compose | At least 16 URL-safe characters: letters, digits, underscores or hyphens; `openssl rand -hex 8` meets the minimum | None | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
 | `COYOTE3_REDIS_TLS_DIR` | Only with the production Redis TLS overlay | Absolute directory containing `ca.crt`, `server.crt`, `server.key` | None | Host certificate source for `docker-compose.redis-tls.yml`; see [certificate setup](../operations/redis-tls.md). Exclude from development/staging. |
 | `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds | `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
 | `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds | `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |

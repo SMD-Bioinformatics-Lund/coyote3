@@ -14,7 +14,7 @@ import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 import { BrandWordmark } from "@/components/layout/BrandWordmark"
-import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, type CurrentUserAccess } from "@/lib/access-control"
+import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, hasPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
 import { useTheme } from "next-themes"
@@ -25,6 +25,10 @@ type PublicContactPayload = {
   support?: Record<string, string>
   codebase?: Record<string, string>
   links?: Array<Record<string, string>>
+}
+
+function navigationAccessDenied(error: Error | null): boolean {
+  return Boolean(error && "status" in error && (error.status === 401 || error.status === 403))
 }
 
 export function Layout() {
@@ -76,17 +80,21 @@ export function Layout() {
   }, [user?.must_change_password, location.pathname, navigate])
 
   const navigationProfileScope = searchParams.get("profile_scope") === "all" ? "all" : DEFAULT_ENVIRONMENT
+  const canViewSamples = hasPermission(user, "sample:view")
+  const canViewFindings = hasPermission(user, "gene.annotation:view")
+  const canViewReports = hasPermission(user, "report:view")
   const { data: navigationCounts } = useQuery({
     queryKey: ['sample-navigation-counts', navigationProfileScope],
     queryFn: () => api.get<SampleNavigationCountsPayload>(
       `/samples/navigation-counts?profile_scope=${encodeURIComponent(navigationProfileScope)}`,
     ).then(res => res.data),
-    enabled: !isPublicRoute && Boolean(user) && !user?.must_change_password,
+    enabled: !isPublicRoute && canViewSamples && !user?.must_change_password,
     staleTime: 10 * 1000,
-    refetchInterval: 15 * 1000,
+    retry: (failureCount, error) => !navigationAccessDenied(error) && failureCount < 1,
+    refetchInterval: (query) => navigationAccessDenied(query.state.error) ? false : 15 * 1000,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: "always",
-    refetchOnReconnect: "always",
+    refetchOnWindowFocus: (query) => navigationAccessDenied(query.state.error) ? false : "always",
+    refetchOnReconnect: (query) => navigationAccessDenied(query.state.error) ? false : "always",
   })
 
   const { data: contactData } = useQuery({
@@ -172,10 +180,10 @@ export function Layout() {
         label: "Workspace",
         items: [
           { name: "Home", href: "/", icon: LayoutDashboard },
-          { name: "Samples", href: "/samples", icon: Dna },
-          ...(moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: Search }] : []),
-          ...(moduleIsEnabled(modules, "variant_search") ? [{ name: "Gene Cohorts", href: "/variants/gene-cohort", icon: BarChart3 }] : []),
-          ...(moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: FileText }] : []),
+          ...(canViewSamples ? [{ name: "Samples", href: "/samples", icon: Dna }] : []),
+          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: Search }] : []),
+          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Gene Cohorts", href: "/variants/gene-cohort", icon: BarChart3 }] : []),
+          ...(canViewReports && moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: FileText }] : []),
         ],
       },
       {
@@ -198,7 +206,7 @@ export function Layout() {
       })
     }
     return sections
-  }, [canAccessAdministration, modules, publicOnlyMode])
+  }, [canAccessAdministration, canViewSamples, canViewFindings, canViewReports, modules, publicOnlyMode])
 
   const activeCategory = searchParams.get("panel_type") || searchParams.get("category") || ""
   const activePanelTech = searchParams.get("panel_tech") || ""
@@ -322,7 +330,7 @@ export function Layout() {
             </div>
           </Link>
 
-          {!publicOnlyMode && (
+          {!publicOnlyMode && canViewSamples && (
           <div className="relative flex h-full min-w-0 items-center" ref={assayMenuRef}>
             <div className="flex h-full items-center gap-1.5 py-2 text-xs font-bold text-chrome-muted-foreground">
               {assayCategories.map(category => (

@@ -1,5 +1,6 @@
 import { AppLoader } from "@/components/layout/AppLoader"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
+import { Button } from "@/components/ui/button"
 import { downloadJson } from "@/lib/json-download"
 import {
   submitPayload
@@ -36,14 +37,14 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
             aria-label="Import configuration JSON"
             onChange={handleImportFile}
           />
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => importInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
           >
             <Upload className="h-4 w-4" />
             Import JSON
-          </button>
+          </Button>
         </>
       )}
       {supportsConfigurationTransfer && mode !== "create" && doc && (

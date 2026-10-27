@@ -142,3 +142,30 @@ def test_preflight_rejects_effective_destructive_audit_grants(resource):
     )
     with pytest.raises(ValueError, match="alter retained audit history"):
         verify_runtime_audit_permissions(client, "identity")
+
+
+def test_unauthenticated_identity_warns_and_proceeds_without_mutating_data(caplog):
+    """A center may run without MongoDB authentication while application RBAC remains active."""
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    client.admin.command.return_value = {"authInfo": {"authenticatedUsers": []}}
+    verify_runtime_audit_permissions(client, "identity")
+    assert "unauthenticated" in caplog.text
+    assert "continuing" in caplog.text
+    client.__getitem__.assert_not_called()
+
+
+def test_disabled_mongodb_authorization_warns_instead_of_blocking(caplog):
+    """Credentials on a server without enforced authorization do not protect audit history."""
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    client.admin.command.return_value = {
+        "authInfo": {
+            "authenticatedUsers": [{"user": "synthetic"}],
+            "authenticatedUserPrivileges": [],
+        }
+    }
+    verify_runtime_audit_permissions(client, "identity")
+    assert "not enforcing retained audit protection" in caplog.text

@@ -160,6 +160,10 @@ def validate_rule_set(
                     "or at_most_one"
                 )
         enabled_rules = [rule for rule in block.rules if rule.enabled]
+        if block.section in REPORT_METADATA_SECTIONS and any(
+            rule.presentation != "paragraph" for rule in block.rules
+        ):
+            errors.append(f"Section '{block.section}' requires paragraph presentation")
         if block.match_strategy in {"first_match", "all_matches"} and len(enabled_rules) > 1:
             warnings.append(
                 f"Block '{block.block_id}' allows overlapping conditions: "

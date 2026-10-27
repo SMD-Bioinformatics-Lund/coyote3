@@ -10,13 +10,53 @@ import sys
 from pathlib import Path
 
 
-def ensure_directory(path: Path, uid: int, gid: int) -> None:
+def check_directory_access(path: Path, uid: int, gid: int, *, mount_root: Path) -> None:
+    """Check container access inside a bind mount without inspecting host-only parents.
+
+    Args:
+        path: Existing directory exposed inside the container.
+        uid: Container user ID; zero bypasses discretionary mode checks.
+        gid: Container primary group ID.
+        mount_root: Host source of the bind mount containing the directory.
+
+    Raises:
+        ValueError: The directory is outside its declared mount.
+        OSError: A directory is absent, is a file, or lacks required mode bits.
+
+    Notes:
+        Host ancestors above the bind source are not traversed by container
+        processes. No directories or permissions are changed by this check.
+    """
+    if not path.is_relative_to(mount_root):
+        raise ValueError("Storage directory must be inside its bind mount")
+    directories = [path]
+    current = path
+    while current != mount_root:
+        current = current.parent
+        directories.append(current)
+    for directory in directories:
+        info = directory.stat()
+        if not stat.S_ISDIR(info.st_mode):
+            raise NotADirectoryError(str(directory))
+        shift = 6 if info.st_uid == uid else 3 if info.st_gid == gid else 0
+        required = 7 if directory == path else 1
+        if uid != 0 and ((info.st_mode >> shift) & required) != required:
+            raise PermissionError(
+                f"Container {uid}:{gid} cannot access {directory}; prepare the path with "
+                "the configured UID/GID using an authorized host administrator. "
+                "Existing permissions were not changed."
+            )
+
+
+def ensure_directory(path: Path, uid: int, gid: int, *, mount_root: Path | None = None) -> None:
     """Create missing directories and verify access for the container identity.
 
     Args:
         path: Absolute application-owned storage directory.
         uid: Numeric container user ID.
         gid: Numeric container primary group ID.
+        mount_root: Bind source whose container-visible ancestors must be checked;
+            defaults to the requested directory itself.
 
     Raises:
         OSError: Creation, ownership assignment, or container access fails.
@@ -38,18 +78,7 @@ def ensure_directory(path: Path, uid: int, gid: int) -> None:
         if os.geteuid() == 0:
             os.chown(directory, uid, gid)
         print(f"[prepared] {directory}")
-    for directory in (path, *path.parents):
-        info = directory.stat()
-        if not stat.S_ISDIR(info.st_mode):
-            raise NotADirectoryError(str(directory))
-        shift = 6 if info.st_uid == uid else 3 if info.st_gid == gid else 0
-        required = 7 if directory == path else 1
-        if uid != 0 and ((info.st_mode >> shift) & required) != required:
-            raise PermissionError(
-                f"Container {uid}:{gid} cannot access {directory}; prepare the path with "
-                "the configured UID/GID using an authorized host administrator. "
-                "Existing permissions were not changed."
-            )
+    check_directory_access(path, uid, gid, mount_root=mount_root or path)
 
 
 def prepare(config: dict) -> None:
@@ -103,7 +132,8 @@ def prepare(config: dict) -> None:
         runtime / "ingest_staging",
         runtime / "copied_sample_files" / "yaml",
     ):
-        ensure_directory(directory, uid, gid)
+        root = data if directory.is_relative_to(data) else mounts["/app/logs"]
+        ensure_directory(directory, uid, gid, mount_root=root)
 
 
 def main() -> None:

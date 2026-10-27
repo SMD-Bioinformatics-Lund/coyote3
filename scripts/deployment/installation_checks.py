@@ -1,13 +1,15 @@
 """Read-only installation gates used by the deployment shell orchestrator."""
 
 import argparse
+import logging
 import os
 from contextlib import ExitStack
 
+from pydantic import ValidationError
 from pymongo import MongoClient
 
 from api.config.collections import load_collection_section
-from api.config.mongo import MongoEndpoint, mongo_endpoints
+from api.config.mongo import MONGO_SERVICES, MongoEndpoint, mongo_endpoints
 from api.infra.security.mongo_roles import verify_runtime_audit_permissions
 
 
@@ -65,11 +67,13 @@ def validate_configuration() -> None:
     """Validate mounted center definitions without connecting to any database."""
     from api.config.contact import load_contact_config
     from api.config.paths import CONTACT_CONFIG_PATH
+    from api.config.report_presentation import load_report_presentation
     from coyote3.config.clinical_vocabulary import load_clinical_vocabulary
     from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 
     load_clinical_vocabulary()
     load_filter_flag_metadata()
+    load_report_presentation()
     load_contact_config(
         CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name=""
     )
@@ -100,9 +104,20 @@ def check_endpoints() -> str:
                 databases[service] = client[endpoint.database]
                 # Verify database read access as well as server reachability.
                 databases[service].list_collection_names()
+                if service != "identity":
+                    status = client.admin.command("connectionStatus")
+                    if not status.get("authInfo", {}).get("authenticatedUsers"):
+                        logging.getLogger(__name__).warning(
+                            "%s MongoDB connection is unauthenticated; continuing. "
+                            "Application login and role permissions still apply.",
+                            service,
+                        )
             except Exception as error:
+                uri_key, database_key = MONGO_SERVICES[service]
                 raise ValueError(
-                    f"{service} endpoint check failed ({type(error).__name__})"
+                    f"{service} endpoint check failed ({type(error).__name__}). "
+                    f"Review {uri_key} and {database_key}: container reachability, "
+                    "replica-set discovery, authSource/credentials, and database read grants."
                 ) from None
         verify_runtime_audit_permissions(
             databases["identity"].client, endpoints["identity"].database
@@ -218,6 +233,13 @@ def main() -> int:
     except Exception as error:
         # Driver errors may contain credentials or operational addresses.
         print(f"Installation {args.operation} check failed ({type(error).__name__}).")
+        if args.operation == "configuration":
+            if isinstance(error, ValidationError):
+                for issue in error.errors(include_input=False, include_url=False):
+                    field = ".".join(map(str, issue["loc"])) or "configuration"
+                    print(f"{field}: {issue['msg']}")
+            elif isinstance(error, (ValueError, RuntimeError, OSError)):
+                print(str(error))
         if isinstance(error, ValueError) and args.operation in {
             "state",
             "maintenance",

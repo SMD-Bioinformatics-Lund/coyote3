@@ -4,17 +4,22 @@ This document describes the standard local development setup for Coyote3.
 
 ## Virtual Environment
 
-Use the project's virtual environment for Python commands.
+Use the project's virtual environment for Python commands. Full API development
+uses Python 3.14.7, matching the API images; the shared SDK and deployment helpers
+support Python 3.12 or later. Install the selected interpreter before creating the
+environment; do not rely on an older distribution's `python3` default.
 
 ```bash
 # Create the local environment
-python3 -m venv .venv
+python3.14 --version
+python3.14 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 python -m pip install --no-deps -e .
+python -m pip install --no-deps -e clients/python
 python -m pip install -r requirements-docs.txt
 ```
 
@@ -35,12 +40,35 @@ python -m mkdocs build --strict
 
 ## Running the services directly
 
-If you want to debug outside Docker, you can run the main services directly:
+Pip installation does not provision MongoDB, Redis, users, indexes or center
+configuration. Complete the infrastructure/baseline steps in
+[first installation](../deployment/first-installation.md) first. Use host-reachable
+MongoDB URIs; `mongo-app` and `redis` Compose DNS names normally resolve only
+inside the Docker network.
+
+Prepare a private host runtime environment file with the settings from the
+[environment reference](../deployment/configuration-reference.md). Host processes
+need `COYOTE3_CENTER_CONFIG_DIR` set to the host center directory, plus explicit
+host-reachable `CACHE_REDIS_URL`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`.
+The application Compose file wires those URLs internally; copying its environment
+template alone does not expose Redis to a host process. Do not point at production
+databases for local development. Load only a trusted file:
+
+```bash
+set -a
+. /protected/coyote3-host-development.env
+set +a
+```
+
+Run the API and frontend in separate terminals, with the environment active in
+the API terminal:
 
 ```bash
 # API
 PYTHONPATH=. python -m uvicorn api.app.main:app --reload --reload-dir api --reload-dir src --port 8001
+```
 
+```bash
 # Web UI
 npm --prefix frontend ci
 npm --prefix frontend run dev

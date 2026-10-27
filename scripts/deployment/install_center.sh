@@ -5,20 +5,21 @@ umask 077
 usage() {
   cat <<'USAGE'
 Build, validate, bootstrap fresh databases, ensure indexes, and start Coyote3.
-MongoDB, its users and the external bridge network must already be provisioned.
+MongoDB and the external bridge network must already be provisioned.
+MongoDB authentication is optional; unauthenticated connections produce a warning.
 Existing installations skip application bootstrap. Host networking is never created or repaired.
 
 Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
        --compose-file FILE [--compose-file OVERLAY] [--skip-build]
-       [--sys-admin-username NAME --sys-admin-email EMAIL]
-       [--username EMERGENCY_USER --email EMAIL]
+       [--sys-admin-email EMAIL] [--email EMAIL]
        [--skip-users] [--skip-application] [--skip-knowledgebase] [--skip-demo]
        [--knowledgebase-maintenance-uri-file FILE]
        [--identity-maintenance-uri-file FILE]
        [--steps network,directories,build,validate,bootstrap,indexes,start,health]
        [--setup-center] [--with-knowledgebase-indexes]
 
-Missing initial account details and passwords are prompted only for fresh targets.
+Fresh targets create coyote3.sysadmin and coyote3.superuser with generated temporary
+passwords displayed once. Existing accounts and passwords are preserved.
 Fresh installation includes accounts, application catalogs, bundled knowledgebases and both demos.
 Existing deployments preserve all data; later additions/repairs use deployment/manage_data.py.
 --setup-center selects all stages; cannot combine with --steps.
@@ -114,24 +115,22 @@ fi
 "$PYTHON_BIN" - "$scratch_dir/compose.json" > "$scratch_dir/settings" <<'PY'
 import json
 import sys
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 with open(sys.argv[1]) as stream:
     config = json.load(stream)
 if config["networks"]["app"].get("external") is not True:
     raise SystemExit("Application network must be external and provisioned before installation")
 env = config["services"]["api"]["environment"]
-identity_uri = env.get("IDENTITY_MONGO_URI") or env.get("COYOTE3_MONGO_URI") or ""
-identity = urlsplit(identity_uri)
-if not (identity.username or parse_qs(identity.query).get("authMechanism")):
-    raise SystemExit(
-        "Identity MongoDB connection is anonymous. Set IDENTITY_MONGO_URI (or its "
-        "COYOTE3_MONGO_URI fallback) to an authenticated runtime connection before "
-        "building. MongoDB authorization and the restricted identity role must also "
-        "be provisioned. See docs/operations/audit-and-logging.md. "
-        "The identity maintenance option upgrades existing user roles; it does not "
-        "enable MongoDB authentication or create runtime credentials."
-    )
 prefix = (env.get("SCRIPT_NAME") or "").rstrip("/")
+public = urlsplit(env.get("PUBLIC_BASE_URL") or "")
+if (public.scheme not in {"http", "https"} or not public.hostname
+        or public.path not in {"", "/"} or public.query or public.fragment
+        or public.username or public.password):
+    raise SystemExit(
+        "PUBLIC_BASE_URL must be an http(s) origin without a path, query, or credentials. "
+        "Put the application prefix in SCRIPT_NAME only; for example "
+        "PUBLIC_BASE_URL=https://host and SCRIPT_NAME=/coyote3."
+    )
 ports = [port for port in config["services"]["proxy"].get("ports", [])
          if int(port["target"]) == 8088 and port.get("protocol", "tcp") == "tcp"]
 if not ports or not ports[0].get("published"):
@@ -220,7 +219,7 @@ if selected bootstrap && [[ "$state" == fresh ]]; then
   [[ "$skip_application" == 0 ]] || bootstrap_args+=(--skip-application)
   [[ "$kb_seeds" == 1 ]] || bootstrap_args+=(--skip-knowledgebase)
   [[ "$with_demo" == 1 ]] || bootstrap_args+=(--skip-demo)
-  maintenance_compose run --rm --no-deps -it "${maintenance_env_args[@]}" api \
+  maintenance_compose run --rm --no-deps -T "${maintenance_env_args[@]}" api \
     python3 scripts/bootstrap/bootstrap_database.py --require-empty-target \
     --db "${settings[1]}" --identity-db "${settings[2]}" \
     "${bootstrap_args[@]}"

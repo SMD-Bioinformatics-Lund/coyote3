@@ -11,11 +11,13 @@ the UI. Start at **step 9** to check service status and the browser URL.
 
 ## 1. Check prerequisites
 
-The identity database must use authenticated, collection-scoped runtime permissions.
+MongoDB authentication is optional; installation warns and continues for
+unauthenticated connections. Application login and role permissions remain required.
+Database-level audit protection requires authenticated, collection-scoped runtime permissions.
 Fresh bundled MongoDB instances receive the protected audit indexes and custom role
 from the initializer. Existing and externally managed instances require the
 [runtime role upgrade](../operations/audit-and-logging.md#runtime-database-privileges)
-before installation validation in any environment. Use a separate maintenance
+when database-level audit protection is enabled. Use a separate maintenance
 principal for that upgrade; the installer does not elevate runtime credentials.
 Add `--identity-maintenance-uri-file /protected/identity-maintenance-uri` to the
 normal installer command to apply the upgrade within the same invocation.
@@ -27,8 +29,9 @@ Have the following available before proceeding:
 - Host Python 3.12 or later for the deployment wrapper, plus Bash and `curl`.
 - An existing MongoDB deployment, or permission to provision one using **step 6**.
   Application and identity writes require a writable replica-set primary.
-- Distinct application, identity, knowledgebase and BAM database names and the
-  required database credentials. Preserve an existing knowledgebase when installing
+- Explicit application, identity, knowledgebase and BAM database names and the
+  required database credentials. Names must be distinct when they use the same
+  endpoint; independent endpoints can use the same logical name. Preserve an existing knowledgebase when installing
   a new application database.
 - Permission to create the configured host storage paths, or a host administrator
   who can prepare them with the configured container UID/GID.
@@ -146,15 +149,32 @@ Set or confirm these values in the selected environment file:
 | Settings | Required decision |
 | --- | --- |
 | `ENV_NAME` | Use `production` for the production image and runtime profile. |
-| Four MongoDB URI settings | Set `COYOTE3_MONGO_URI`, `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` to endpoints reachable from containers. |
-| Four database names | Set distinct `COYOTE3_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`. |
-| Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values. |
+| Four MongoDB URI settings | Set `COYOTE3_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE3_MONGO_URI`. Identity authentication is required either way. |
+| Four database names | Set `COYOTE3_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`; the selected namespaces must not overlap on the same endpoint. |
+| Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values of at least 16 characters. Redis accepts letters, digits, underscores and hyphens. |
 | `COYOTE3_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
 | `COYOTE3_DATA_HOST_ROOT`, `COYOTE3_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
 | `COYOTE3_UID`, `COYOTE3_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
 | `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. |
 | `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE` | Center identity and timezone. |
 | Authentication and email | Select the intended authentication providers and configure SMTP before relying on email delivery. |
+
+The application template is a **development** example. Renaming it to
+`production.env` does not change its contents. For a new production target, review
+the database names and cookie name explicitly, for example:
+
+```dotenv
+ENV_NAME='production'
+COYOTE3_DB='coyote3_prod'
+IDENTITY_DB='coyote3_identity_prod'
+KNOWLEDGEBASE_DB='coyote3_knowledgebases'
+BAM_DB='bam_prod'
+API_SESSION_COOKIE_NAME='coyote3_prod_api_session'
+```
+
+Use the center's actual reviewed names, not these examples, when databases already
+exist. MongoDB users' grants must match those names. If provisioning the supplied
+MongoDB stack, copy the same names into its separate server environment file.
 
 For direct access through the included proxy on this local machine:
 
@@ -203,6 +223,7 @@ Review each file before building or initializing the database:
 | [`contact.toml`](../configuration/contact-file.md) | Center name, department, support contacts and hours. |
 | [`clinical_vocabulary.toml`](../administration/clinical-vocabulary.md) | Fusion evidence terms and optional DNA caller metadata. Transcript selection belongs to the application; annotation wording is configured in reporting rules. |
 | [`filter_flag_metadata.yaml`](../configuration/filter-flag-metadata-file.md) | Labels and explanations for actual pipeline flags. Caller-specific overrides may remain empty. |
+| Optional [`report_presentation.toml`](../configuration/report-presentation-file.md) | Copy only if customizing empty-analysis messages. The installer validates it when present; omitted keys use application defaults. |
 
 The container UID/GID must be able to read all three files. Configuration is mounted
 read-only. ASP, ASPC, gene lists and reporting rules are database resources added
@@ -308,8 +329,24 @@ sudo install -d -o "$COYOTE3_UID" -g "$COYOTE3_GID" -m 0750 "$COYOTE3_DATA_HOST_
 sudo install -d -o "$COYOTE3_UID" -g "$COYOTE3_GID" -m 0750 "$COYOTE3_LOGS_HOST_ROOT"
 ```
 
-Then rerun storage preparation with an account able to create subdirectories for
-the container identity. The wrapper does not invoke sudo automatically.
+If the deploying account cannot create or assign directories for that UID/GID,
+have a host administrator prepare the complete tree using the same resolved
+Compose definition. The helper needs only the supported host interpreter, not
+the installed API or SDK:
+
+```bash
+source scripts/deployment/python_runtime.sh
+select_deployment_python "$PWD"
+coyote_compose config --format json | \
+  sudo -- "$PYTHON_BIN" scripts/deployment/prepare_host_directories.py
+coyote_compose --prepare-directories config --quiet
+```
+
+This streams resolved settings directly to the helper; do not print or save them
+in shared logs. Existing ownership and modes are not changed. Container access is
+checked inside each bind mount, not through private host parents above its source.
+The Docker daemon must still be able to mount the host source. The wrapper does
+not invoke sudo automatically.
 Deployments with a host virtual environment can run `center_preflight.sh` for
 additional checks. The installer validates configuration inside the API container
 and does not require a host virtual environment.
@@ -402,10 +439,13 @@ Fresh reference installation uses the configured knowledgebase connection or the
 maintenance URI from **step 6**, targeting the same endpoint and logical database.
 Existing deployments skip initial data operations completely.
 
-On fresh targets, enter the named administrator and emergency superuser details.
-Bootstrap prompts privately for two different temporary passwords, each at least
-12 characters, and requires distinct usernames and email addresses. Existing targets
-do not request new account credentials.
+Fresh targets create the fixed local logins `coyote3.sysadmin` (`sys_admin`) and
+`coyote3.superuser` (`superuser`). Bootstrap generates separate temporary passwords
+and displays them once in a terminal table after account creation. Both accounts
+require a password change at first sign-in. Existing accounts are not renamed or
+reset, and their passwords are never redisplayed. Contact emails default to
+`sysadmin@coyote3.invalid` and `superuser@coyote3.invalid`; set real distinct contact
+addresses with the email options. Protect installer output containing the passwords.
 
 For later additions or forced repairs, run `scripts/deployment/manage_data.py` with
 explicit modules and an existing administrator's API login. It completes a required
@@ -418,9 +458,10 @@ password change and signs in again before adding data. The service checks the
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
 | `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs, bundled references and demos. Preserves existing deployments. Cannot combine with `--steps`. |
-| `--sys-admin-username NAME`, `--sys-admin-email EMAIL` | Optional initial named-administrator details; prompted on a fresh target when omitted. |
-| `--username NAME`, `--email EMAIL` | Optional initial emergency-superuser details; prompted on a fresh target when omitted. |
+| `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote3.sysadmin`. |
+| `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote3.superuser`. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
+| `--identity-maintenance-uri-file FILE` | Explicit restricted runtime-role upgrade before validation, using a separate maintenance connection. It does not enable MongoDB authorization or create passwords. |
 | `--skip-demo` | Disable the otherwise included connected DNA/RNA starter configuration and samples. |
 | `--skip-knowledgebase` | Disable bundled reference installation. |
 | `--skip-application` | Disable application catalogs; requires `--skip-demo`. |
@@ -441,23 +482,18 @@ on exit. The script never runs database drop, restore or reset operations.
 
 ### Installed application definitions and baseline
 
-For a first installation with both demo workflows, use:
-
-```bash
-bash scripts/deployment/install_center.sh \
-  --env-file "$COYOTE_ENV_FILE" \
-  --project "$COYOTE_PROJECT" \
-  "${COYOTE_INSTALL_ARGS[@]}" \
-  --setup-center
-```
+The single installer invocation above includes both demo workflows by default.
+Do not run it a second time for this subsection. Select `--skip-demo` in that
+invocation when a new center should start without synthetic demonstrations.
 
 See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
 for the complete group inventory, exact query-rule conditions, optional demo assays,
 diagnoses, gene lists, report rules and default role responsibilities.
 
-The image packages `clinical_capabilities.toml`, `clinical_query_defaults.toml`,
-`clinical_query_seed.toml` and `collections.toml` under `src/coyote3/config/`. These are
-application-owned; do not copy them into the editable center directory.
+The image packages `clinical_capabilities.toml` and `clinical_query_defaults.toml`
+under `src/coyote3/config/`, collection mappings at `api/config/collections.toml`,
+and installation criteria at `api/bootstrap/catalogs/reference/clinical_query_seed.toml`.
+These are application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
 emergency `superuser`, assay groups, query-rule publications, bundled HGNC/VEP data

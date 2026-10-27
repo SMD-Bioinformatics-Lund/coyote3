@@ -3,6 +3,29 @@
 Use the symptom below to identify the failing component and its recovery procedure.
 Keep the deployment's actual environment file and complete Compose overlay list in each command.
 
+## First-installation failures
+
+Use [first installation](../deployment/first-installation.md) as the ordered
+procedure and [installation operations](../deployment/installation-operations.md)
+for exact stage and skip-flag behavior. Do not mix a previous checkout's scripts
+with new images or rerun bootstrap to repair a UI problem.
+
+| Error or symptom | Check and next step |
+| --- | --- |
+| `No module named tomllib` in a deployment command | Select Python 3.12+ with `PYTHON_BIN`. The shared selector is used by the installer, Compose wrapper, preflight and center check. Installing a similarly named package does not upgrade Python. |
+| `MongoDB connection is unauthenticated; continuing` | This is a warning. Installation continues, with application login and role permissions still enforced. Database-level audit protection needs server authorization and the restricted runtime role; URI changes alone do not enable it. |
+| `Partial or unrecognized installation` | Inspect the selected application/identity database pair and the failed stage. A previous bootstrap may have created governance before failing later. Preserve data; existing complete governance uses authenticated module maintenance. Do not drop or initialize databases to retry. |
+| `Container UID:GID cannot access ...` | Check the mounted source and paths inside the bind mount. Have a host administrator run the documented directory helper when ownership needs provisioning. Private host parents above the bind source need not be readable by the container UID. |
+| `PUBLIC_BASE_URL must be an http(s) origin` | Keep the scheme/host/port in `PUBLIC_BASE_URL`; put the path in `SCRIPT_NAME` only. The prefix must not be added twice. |
+| Compose rejects `!reset` | Upgrade to a Compose plugin that supports the selected modern overlays. The first installer requires `docker compose`; older-container definitions are a separate file set. |
+| `/docs-site/` is empty in development | Use the current development overlay, which retains the built docs image. Remove a private override mounting an empty host `site/` over it, or deliberately provide a built site. Rebuild/recreate `docs` after documentation changes. |
+| The center check succeeds at HTTP level but ingestion fails | Require the terminal `status: ok` acknowledgement. The current helper exits nonzero for `status: failed` even with HTTP 200. Upload a ZIP using `--data-archive`; individual `data_files` fields are not supported. |
+
+Preflight validates local resolved settings and files; it does not prove MongoDB,
+Redis or public-ingress connectivity. Installer validation uses temporary API
+containers. Acceptance checks additionally need an authorized, explicitly selected
+validation target and representative data.
+
 ## Authentication Failures During Index Inspection or Maintenance
 
 **Signature:**

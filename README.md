@@ -76,7 +76,7 @@ The application connects four areas of laboratory work:
 ### From assay setup to a saved report
 
 1. Register an assay group and prepare an assay setup with its scopes and configurations.
-2. Publish compatible clinical rules and obtain independent setup approval.
+2. Obtain independent setup approval. Publish compatible clinical rules when automatic report narrative is needed; missing rules warn rather than blocking setup.
 3. Activate the assay resources, then ingest a sample bundle through the supported workflow.
 4. Review the available DNA or RNA analyses using the recorded configuration and sample filters.
 5. Curate findings and inspect the report preview, including reporting warnings.

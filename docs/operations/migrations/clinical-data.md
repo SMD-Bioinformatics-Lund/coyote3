@@ -19,10 +19,14 @@ reviewed references use the [HGNC procedure](../hgnc-gene-installation.md) and
 with a different release.
 
 Create assay groups, diagnosis definitions, assays, assay–diagnosis associations,
-gene lists, published report/query rules and configuration revisions using
+gene lists, query rules and configuration revisions using
 [assay setup](../../administration/assay-setup.md). Select the exact destination
 `current_aspc_id` for every sample review. Identifiers use lowercase; original
 sample ObjectIds and specimen identifiers retain their identity.
+
+Clinical reporting rule sets are optional. Publish reviewed narrative rules when
+available; missing rules allow reports without generated summary text and produce
+a UI warning. Existing historical report snapshots retain their original content.
 
 Configure read-only Bjorn/CDM enrichment using
 [the case/control configuration reference](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/migrations_scripts/case-control.md).
@@ -156,7 +160,7 @@ bundle and file checksum: exporter resume is not an import checkpoint.
 
 | Import order | Collection/files |
 | --- | --- |
-| 1 | Installed references, assay resources, published configurations and rules |
+| 1 | Installed references, assay resources, published configurations and any applicable published rules |
 | 2 | Only the **last cumulative** `anno_vep.jsonl`, once |
 | 3 | All nonoverlapping `samples.jsonl` bundles, retaining original ObjectIds |
 | 4 | Per-bundle `variants`, CNVs, translocations, fusions, biomarkers, coverage and RNA data |
