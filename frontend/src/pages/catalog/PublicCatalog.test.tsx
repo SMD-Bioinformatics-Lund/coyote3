@@ -74,17 +74,32 @@ describe("PublicCatalogMatrix", () => {
     vi.mocked(api.get).mockResolvedValue({ data: matrixPayload } as never)
   })
 
+  it("identifies three assay columns independently when the same gene list is selected", async () => {
+    const columns = ["HEM", "WGS", "MYELOID"].map(assay => ({ ...matrixPayload.columns[0],
+      cat: `published-${assay}`, assay, diagnosis: "CLL", isgl_label: "CLL variants",
+    }))
+    vi.mocked(api.get).mockResolvedValue({ data: { ...matrixPayload, columns } } as never)
+    renderPage(<PublicCatalogMatrix />)
+    await screen.findByLabelText("Gene list")
+    fireEvent.change(screen.getByLabelText("Gene list"), { target: { value: "CLL variants" } })
+    for (const assay of ["HEM", "WGS", "MYELOID"]) {
+      const header = screen.getByRole("columnheader", { name: `${assay} · CLL · SNV · CLL variants` })
+      expect(header).toHaveTextContent(assay)
+    }
+    expect(screen.getByText("3 visible catalog column(s)")).toBeVisible()
+  })
+
   it("renders grouped headers, coverage cells, and gene links", async () => {
     renderPage(<PublicCatalogMatrix />)
 
     expect(await screen.findByText("Assay Catalog - Gene Coverage Matrix")).toBeVisible()
     expect(screen.getByRole("columnheader", { name: "DNA" })).toBeVisible()
     expect(screen.getByRole("columnheader", { name: "hematology" })).toBeVisible()
-    const analysis = screen.getByRole("combobox", { name: "Analysis" })
+    const analysis = screen.getByRole("combobox", { name: "Gene list type" })
     expect(analysis).toHaveValue("SNV")
     expect(within(analysis).queryByRole("option", { name: "All" })).not.toBeInTheDocument()
-    expect(screen.getByRole("columnheader", { name: "SNV Myeloid genes" })).toHaveTextContent(/^Myeloid genes$/)
-    expect(screen.queryByRole("columnheader", { name: "CNV Colon genes" })).not.toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: "hema_gmsv1 · base · SNV · Myeloid genes" })).toHaveTextContent("hema_gmsv1")
+    expect(screen.queryByRole("columnheader", { name: /CNV · Colon genes/ })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/public/gene/TP53/info")
     expect(screen.getByText("Showing 2 of 125 gene(s) across 1 visible catalog column(s)")).toBeVisible()
   })
@@ -149,17 +164,17 @@ describe("PublicCatalogMatrix", () => {
     renderPage(<PublicCatalogMatrix />)
     await screen.findByText("1 visible catalog column(s)")
     const calls = vi.mocked(api.get).mock.calls.length
-    fireEvent.change(screen.getByLabelText("Analysis"), { target: { value: "CNV" } })
+    fireEvent.change(screen.getByLabelText("Gene list type"), { target: { value: "CNV" } })
     expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
-    expect(screen.getByRole("columnheader", { name: "CNV Colon genes" })).toBeVisible()
-    expect(screen.queryByRole("columnheader", { name: "SNV Myeloid genes" })).not.toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: "solid_gmsv3 · colon · CNV · Colon genes" })).toBeVisible()
+    expect(screen.queryByRole("columnheader", { name: /SNV · Myeloid genes/ })).not.toBeInTheDocument()
     expect(vi.mocked(api.get).mock.calls).toHaveLength(calls)
   })
 
   it("searches a gene on the server and resets pagination", async () => {
     renderPage(<PublicCatalogMatrix />)
     await screen.findByText("1 visible catalog column(s)")
-    fireEvent.change(screen.getByLabelText("Analysis"), { target: { value: "CNV" } })
+    fireEvent.change(screen.getByLabelText("Gene list type"), { target: { value: "CNV" } })
 
     fireEvent.change(screen.getByLabelText("Gene search"), { target: { value: " TP53 " } })
     fireEvent.submit(screen.getByRole("button", { name: "Search" }).closest("form")!)
@@ -170,7 +185,7 @@ describe("PublicCatalogMatrix", () => {
       )
     })
     expect((await screen.findAllByText(/1 visible catalog column\(s\) for "TP53"/))[0]).toBeVisible()
-    expect(screen.getByLabelText("Analysis")).toHaveValue("CNV")
+    expect(screen.getByLabelText("Gene list type")).toHaveValue("CNV")
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }))
     await waitFor(() => {
@@ -205,7 +220,7 @@ describe("PublicCatalogMatrix", () => {
       columns: [{ ...matrixPayload.columns[0], mod: "rna", analysis: "FUSION" }],
     } } as never)
     renderPage(<PublicCatalogMatrix />)
-    expect(await screen.findByLabelText("Analysis")).toHaveValue("FUSION")
+    expect(await screen.findByLabelText("Gene list type")).toHaveValue("FUSION")
     expect(screen.getByText("1 visible catalog column(s)")).toBeVisible()
   })
 })

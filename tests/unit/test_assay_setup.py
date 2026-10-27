@@ -150,6 +150,19 @@ def test_review_compilation_retains_resource_hashes_across_actors(setup_service)
     assert author_bundle["panel"]["created_on"] == reviewer_bundle["panel"]["created_on"]
 
 
+def test_setup_listing_includes_names_without_configuration_payloads(setup_service):
+    """Picker summaries expose readable names while retaining private configuration isolation."""
+    service, _db = setup_service
+    source = content()
+    source.panel.name = "Short assay"
+    service.save(source, actor="author")
+    summary = service.list_payload()["items"][0]
+    assert summary["content"]["panel"]["name"] == "Short assay"
+    assert summary["content"]["panel"]["display_name"] == source.panel.display_name
+    assert set(summary["content"]) == {"panel"}
+    assert "configurations" not in summary["content"]
+
+
 def content(**overrides):
     """Return a valid synthetic base-only setup and required report settings."""
     return AssaySetupContent.model_validate(

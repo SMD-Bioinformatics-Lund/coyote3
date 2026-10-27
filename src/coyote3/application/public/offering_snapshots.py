@@ -143,7 +143,11 @@ def build_offering_snapshot(
                 modality=panel["asp_category"],
                 family=panel["asp_family"],
                 assay_id=panel["asp_id"],
-                assay_label=panel["display_name"],
+                assay_label=(
+                    str(panel.get("name") or "").strip()
+                    or str(panel.get("display_name") or "").strip()
+                    or panel["asp_id"]
+                ),
                 description=entry.get("description") or "",
                 analysis=analyses,
                 price=entry.get("price"),

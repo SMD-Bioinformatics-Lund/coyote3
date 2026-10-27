@@ -157,7 +157,7 @@ export function FormControl({
   const label = fieldLabel(name, field)
   const newIdentifier = mode === "create" && !readOnly && !field.options && (!field.display_type || field.display_type === "input") && ["asp_id", "isgl_id"].includes(name)
   const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(String(value))
-  const commonClass = "w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+  const commonClass = "form-control w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
 
   if (field.display_type === "user-settings") {
     return (
@@ -279,9 +279,10 @@ export function FormControl({
     )
   }
 
+  const outlined = ["input", "text", "textarea", "select", "password", "email", "number"].includes(field.display_type || "input") && field.data_type !== "json" && !field.groups
   return (
-    <label className={cn("block space-y-1", compact ? "text-xs" : "text-sm")}>
-      <span className="flex items-center gap-1 font-bold uppercase tracking-wide text-muted-foreground">
+    <label className={cn("block", outlined ? "relative pt-2" : "space-y-1", compact ? "text-xs" : "text-sm")}>
+      <span className={cn("flex items-center gap-1 font-medium", outlined ? "absolute left-3 top-0 z-10 bg-[var(--field-surface)] px-1 type-meta text-muted-foreground" : "text-foreground")}>
         {label}
         {field.required && !readOnly && <span className="text-destructive">*</span>}
       </span>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
 import { RecordProvenance } from "./RecordProvenance"
 import { provenanceLabel } from "./record-provenance"
+import { readFormPath, writeFormPath } from "./form-paths"
 
 export function valueLabel(value: unknown) {
   if (Array.isArray(value)) return value.join(", ")
@@ -155,6 +156,17 @@ export function formStateFromSpec(form: FormSpec | undefined, doc: any) {
   const state: Record<string, any> = {}
   Object.entries(form?.fields || {}).forEach(([key, field]) => {
     state[key] = doc?.[key] !== undefined ? doc[key] : defaultForField(field)
+    if (field.display_type === "reporting-structured" && state[key] !== null) {
+      let reporting = structuredClone(state[key] || {})
+      for (const group of field.groups || []) {
+        for (const nested of group.fields) {
+          if (readFormPath(reporting, nested.key) === undefined && nested.default !== undefined) {
+            reporting = writeFormPath(reporting, nested.key, structuredClone(nested.default))
+          }
+        }
+      }
+      state[key] = reporting
+    }
   })
   return state
 }

@@ -21,6 +21,7 @@ export function AdminManagedForm({
   isSaving,
   error,
   saveLabel = "Save",
+  bottomActions = spec.key === "aspc",
 }: {
   mode: AdminFormMode
   spec: AdminResourceSpec
@@ -32,6 +33,7 @@ export function AdminManagedForm({
   isSaving: boolean
   error: string
   saveLabel?: string
+  bottomActions?: boolean
 }) {
   const sections = form.sections && Object.keys(form.sections).length ? form.sections : { general: Object.keys(form.fields || {}) }
   const updateField = (name: string, next: any) => {
@@ -140,6 +142,12 @@ export function AdminManagedForm({
           )
         })}
       </div>
+      {bottomActions && mode !== "view" && <footer className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="button" onClick={onSave} disabled={isSaving}>
+          {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saveLabel}
+        </Button>
+      </footer>}
     </section>
   )
 }

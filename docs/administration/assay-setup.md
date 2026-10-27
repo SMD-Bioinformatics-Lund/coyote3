@@ -101,7 +101,8 @@ to use their individual administration pages.
 
 Setup drafts are separate from active assay data. Saving a step does not make
 the assay available to ingest, sample analysis, or the public catalog. Reopen a
-draft from **Saved setups** to continue its configuration.
+draft from **Saved setups** to continue its configuration. The selector shows the
+assay's short name (or full display name), assay ID, workflow status and revision.
 
 ## Step-by-step: add a new assay
 
@@ -225,6 +226,11 @@ editing do not require a rule publication.
 ### 6. Complete one ASPC for each selected combination
 
 In **Configurations**, save one configuration for each scope/environment pair.
+The coverage table includes each saved configuration's name and Edit/View action;
+missing combinations have an Add action that preselects that scope and environment.
+The table shows 10 combinations per page. Saving an ASPC is available at both the
+top and bottom of its editor. Displayed reporting defaults are included when saving,
+including when only the report method is changed.
 Review enabled analyses and intents, thresholds, consequence selections,
 analysis-specific ISGL defaults, report sections, language and report settings.
 Only analyses supported by the ASP's declared files and family are available.

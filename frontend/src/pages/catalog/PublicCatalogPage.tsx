@@ -6,13 +6,14 @@ import { api } from "@/lib/api"
 import type { Catalog } from "@/pages/admin/catalog-types"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ArrowLeft, ArrowRight, Clock3, Dna, FlaskConical, Layers } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { BadgeList, HtmlText } from "./catalog-presentation"
 import { familyLabels as families, matchOffering, offeringPrice, type Discovery, type Offering } from "./offering-types"
 
-const control = "rounded-lg border border-input bg-background px-3 py-2 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const control = "form-control rounded-lg px-3 py-2 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 type GeneRow = { gene: string; analysis: string; list: string; revision: number }
 const columns: ColumnDef<GeneRow>[] = [
   { accessorKey: "gene", header: "Gene" }, { accessorKey: "analysis", header: "Analysis" },
@@ -21,7 +22,7 @@ const columns: ColumnDef<GeneRow>[] = [
 
 function Details({ offering: item }: { offering: Offering }) {
   const rows = item.gene_scopes.flatMap((scope) => scope.genes.map((gene) => ({ gene, analysis: scope.analysis, list: scope.label, revision: scope.revision })))
-  return <article className="surface-panel space-y-6 p-5">
+  return <article data-modality={item.modality} className="surface-panel catalog-service-card space-y-6 p-5">
     <header className="space-y-3 border-b border-border pb-4">
       <p className="type-supporting text-muted-foreground">{item.group_label} · {item.diagnosis_label}</p>
       <h2 className="type-section-title">{item.title}</h2><p>{families[item.family] || item.family} · {item.assay_label}</p>
@@ -93,10 +94,21 @@ export function PublicCatalog({ previewDocument, onMatrix }: { previewDocument?:
           </div>
         </section>
         <p role="status" className="type-supporting">{visible.length} available tests · publication {data?.version}</p>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visible.map((item) => <article key={item.offering_id} className="surface-panel flex flex-col gap-3 p-5">
-          <p className="type-supporting text-muted-foreground">{item.group_label} · {item.diagnosis_label}</p><h2 className="type-section-title">{item.title}</h2><p>{families[item.family] || item.family}</p><BadgeList values={item.analysis} /><p className="type-section-title">{offeringPrice(item)}</p>{item.turnaround && <p>Turnaround: {item.turnaround}</p>}<HtmlText html={item.description} />
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{visible.map((item) => <article key={item.offering_id} data-modality={item.modality} className="surface-panel catalog-service-card flex min-w-0 flex-col gap-4 p-5">
+          <header className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2"><Badge className="catalog-modality-badge">{item.modality === "dna" ? <Dna /> : <FlaskConical />}{item.modality.toUpperCase()}</Badge><span className="type-body-sm text-muted-foreground">{item.group_label} · {item.diagnosis_label}</span></div>
+            <h2 className="type-title break-words font-semibold">{item.title}</h2>
+            <p className="type-body-sm font-medium text-muted-foreground">{item.assay_label || item.assay_id}</p>
+          </header>
+          <div className="space-y-2"><p className="type-body font-medium">{families[item.family] || item.family}</p><BadgeList values={item.analysis} tone={item.modality === "rna" ? "secondary" : "primary"} /></div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 border-y border-border/60 py-3 type-body-sm">
+            {item.turnaround && <p className="flex items-center gap-2"><Clock3 className="size-4 text-muted-foreground" /><span>Turnaround: <strong className="font-semibold">{item.turnaround}</strong></span></p>}
+            {item.gene_scopes.length > 0 && <p className="flex items-center gap-2"><Layers className="size-4 text-muted-foreground" /><span>Published genes: <strong className="font-semibold">{new Set(item.gene_scopes.flatMap(scope => scope.genes)).size}</strong></span></p>}
+          </div>
+          <HtmlText html={item.description} />
+          <p className={item.price ? "type-title font-semibold" : "type-body-sm text-muted-foreground"}>{offeringPrice(item)}</p>
           {query.trim() && <p className="type-supporting text-muted-foreground">Matched: {matchOffering(item, query).join(", ")}</p>}
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-3"><button className={`${control} inline-flex items-center gap-2`} onClick={() => select(item.offering_id)}>View details<ArrowRight className="size-4" /></button><label className="flex gap-2 type-supporting"><input type="checkbox" checked={compare.includes(item.offering_id)} disabled={!compare.includes(item.offering_id) && compare.length >= 3} onChange={(e) => setCompare(e.target.checked ? [...compare, item.offering_id] : compare.filter((id) => id !== item.offering_id))} />Compare {item.title}</label></div>
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1"><Button variant="outline" className="catalog-details-button" onClick={() => select(item.offering_id)}>View details<ArrowRight className="size-4" /></Button><label className="flex items-center gap-2 type-body-sm"><input type="checkbox" aria-label={`Compare ${item.title}`} checked={compare.includes(item.offering_id)} disabled={!compare.includes(item.offering_id) && compare.length >= 3} onChange={(e) => setCompare(e.target.checked ? [...compare, item.offering_id] : compare.filter((id) => id !== item.offering_id))} />Compare</label></div>
         </article>)}</div>
         {compared.length > 1 && <section className="surface-panel space-y-3 overflow-x-auto p-4"><h2 className="type-section-title">Compare published services</h2><table className="w-full text-left type-body-sm"><thead><tr><th className="p-3">Property</th>{compared.map((item) => <th className="p-3" key={item.offering_id}>{item.title}</th>)}</tr></thead><tbody>{["Method", "Analysis", "Gene scope", "Reports", "Price", "Limitations"].map((label) => <tr className="border-t border-border" key={label}><th className="p-3">{label}</th>{compared.map((item) => <td className="p-3" key={item.offering_id}>{label === "Method" ? families[item.family] || item.family : label === "Analysis" ? item.analysis.join(", ") : label === "Gene scope" ? item.gene_scopes.map((scope) => `${scope.analysis}: ${scope.genes.length} genes`).join("; ") : label === "Reports" ? item.report_deliverables.join(", ") : label === "Price" ? offeringPrice(item) : <HtmlText html={item.limitations} />}</td>)}</tr>)}</tbody></table></section>}
       </div>}

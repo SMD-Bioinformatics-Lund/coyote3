@@ -18,6 +18,26 @@ from coyote3.contracts.public import PublicAssayCatalogAdminPayload
 from coyote3.domain.exceptions import AppError as ApiError
 
 
+@pytest.mark.parametrize(
+    ("short_name", "display_name", "expected"),
+    [
+        ("SG3", "Full assay name", "SG3"),
+        (None, "Full assay name", "Full assay name"),
+        ("  ", "", "assay"),
+    ],
+)
+def test_published_assay_labels_prefer_short_name_then_display_name_then_id(
+    service, short_name, display_name, expected
+):
+    """Catalog and matrix use the reviewed assay label without altering gene-list identity."""
+    panels = service.assay_panel_repository.get_all_asps()
+    panels[0].update(name=short_name, display_name=display_name)
+    service.assay_panel_repository.get_all_asps = lambda **kwargs: panels
+    publication = service.preview_offerings(content(), actor="author")
+    assert publication["offerings"][0]["assay_label"] == expected
+    assert publication_matrix(publication)["columns"][0]["assay"] == expected
+
+
 def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(service):
     """Publication exposes effective genes and price without operational configuration."""
     source = content()

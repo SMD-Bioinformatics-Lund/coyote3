@@ -170,6 +170,18 @@ The **Matrix** action compares the selected preview's effective scopes by modali
 group, assay, diagnosis, analysis and list. No list means no inferred coverage column.
 Public matrix search and pagination operate on the current publication.
 
+Matrix columns identify the associated assay, with the diagnosis and gene list
+shown underneath. Selecting one shared list can therefore show several assay
+columns with different coverage; these are separate published offerings, not
+duplicate list columns. Assay labels prefer `name` (short name), then `display_name`,
+then `asp_id`. These labels are captured in the reviewed publication; changing an
+assay name requires a new catalog publication before public labels change.
+
+Public service cards use the application's DNA/RNA accents and explicit modality
+badges. Each card emphasizes the test name, method, turnaround, published gene
+count and pricing information. Modality is written as text as well as indicated
+by color.
+
 See the [collection contract](../reference/mongodb-collections.md#public_assay_catalog)
 for stored fields and defaults.
 

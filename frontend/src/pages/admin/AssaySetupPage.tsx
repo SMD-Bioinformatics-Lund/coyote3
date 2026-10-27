@@ -1,6 +1,7 @@
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
+import { Select } from "@/components/ui/select"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
@@ -17,11 +18,13 @@ import { formStateFromSpec, submitPayload } from "./resource-list"
 import { specs, type FormSpec } from "./resource-specs"
 import { SetupNavigation } from "./assay-setup/SetupNavigation"
 import { SetupEmptyState } from "./assay-setup/SetupEmptyState"
+import { SetupConfigurationsTable } from "./assay-setup/SetupConfigurationsTable"
 import { AssayGeneLists } from "./AssayGeneLists"
 
 type Document = Record<string, unknown>
 type Content = { panel: Document; scopes: string[]; environments: string[]; gene_lists: Document[]; existing_gene_list_ids?: string[]; configurations: Document[] }
 type Setup = { _id: string; asp_id: string; status: "draft" | "submitted" | "published"; revision: number; content: Content; content_editors: string[]; created_by: string; updated_by: string; review_reason: string }
+type SetupSummary = Pick<Setup, "_id" | "asp_id" | "status" | "revision"> & { content?: { panel?: Document } }
 type Context = {
   setup?: Setup
   panel_form: FormSpec
@@ -45,7 +48,7 @@ function ResourceEditor({ kind, form, source, readonly, pending, onSave, onCance
   const [values, setValues] = useState(() => formStateFromSpec(form, source))
   const [error, setError] = useState("")
   const stagedForm = { ...form, fields: { ...form.fields, is_active: { ...form.fields.is_active, hidden_mode: ["create", "view"] } } }
-  return <AdminManagedForm saveLabel={saveLabel} mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
+  return <AdminManagedForm bottomActions={kind === "aspc"} saveLabel={saveLabel} mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
     try { onSave(submitPayload(form, values, "create")) } catch (err) { setError(err instanceof Error ? err.message : "Check the form values") }
   }} />
 }
@@ -76,12 +79,13 @@ export function AssaySetupPage() {
   const isNew = selected === "new"
   const [step, setStep] = useState(0)
   const [editing, setEditing] = useState<number | null>(null)
+  const [configurationSeed, setConfigurationSeed] = useState<Document>({})
   const [reason, setReason] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
   const client = useQueryClient()
   const canView = hasPermission(user, "assay.panel:view") && hasPermission(user, "assay.panel:list")
   const canWrite = writePermissions.every((permission) => hasPermission(user, permission))
-  const list = useQuery({ queryKey: ["assay-setups"], enabled: canView, queryFn: () => api.get<{ items: Setup[] }>("/admin/assay-setups").then((r) => r.data.items) })
+  const list = useQuery({ queryKey: ["assay-setups"], enabled: canView, queryFn: () => api.get<{ items: SetupSummary[] }>("/admin/assay-setups").then((r) => r.data.items) })
   const context = useQuery({ queryKey: ["assay-setup-context", selected], enabled: canView && Boolean(selected) && (!isNew || canWrite), queryFn: () => api.get<Context>(`/admin/assay-setups/${isNew ? "context" : `${encodeURIComponent(selected)}/context`}`).then((r) => r.data) })
   const setup = context.data?.setup
   const content = setup?.content
@@ -133,13 +137,13 @@ export function AssaySetupPage() {
     <DocumentEditorNotice editor={documentEditor} />
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
       <section className="surface-panel flex flex-wrap items-end gap-3 p-4">
-        <label className="type-label min-w-0 flex-1">Saved setups
-          <select aria-label="Saved setups" className="paper-inset mt-1 w-full rounded-md p-2 text-foreground [&>option]:bg-background [&>option]:text-foreground" value={selected} disabled={mutation.isPending} onChange={(event) => choose(event.target.value)}>
-            <option value="">Select a setup</option>
-            {isNew && <option value="new">New assay</option>}
-            {(list.data || []).map((item) => <option key={item._id} value={item._id}>{`${item.asp_id} · ${item.status} · Revision ${item.revision}`}</option>)}
-          </select>
-        </label>
+        <div className="min-w-0 flex-1 space-y-1"><p className="type-label">Saved setups</p>
+          <Select label="Saved setups" value={selected} disabled={mutation.isPending} onValueChange={choose} options={[
+            { value: "", label: "Select a setup" },
+            ...(isNew ? [{ value: "new", label: "New assay" }] : []),
+            ...(list.data || []).map(item => ({ value: item._id, label: `${item.content?.panel?.name || item.content?.panel?.display_name || item.asp_id} · ${item.asp_id} · ${item.status} · Revision ${item.revision}` })),
+          ]} />
+        </div>
         {setup && <span className="inline-flex shrink-0 items-center rounded-md border border-primary/20 bg-primary/5 px-3 py-2 type-body font-medium text-primary">{setup.status} · Revision {setup.revision}</span>}
       </section>
       {(list.error || context.error) && <p role="alert" className="text-destructive">Unable to load assay setup.</p>}
@@ -153,15 +157,12 @@ export function AssaySetupPage() {
         {step === 1 && content && <ScopeEditor key={`${selected}-${setup?.revision}`} content={content} context={context.data} readonly={readonly} pending={mutation.isPending} onSave={(next) => save(next, 2)} onRefresh={() => void context.refetch()} />}
         {step === 2 && content && <AssayGeneLists aspId={String(content.panel.asp_id)} aspGroup={String(content.panel.asp_group)} readonly={readonly} pending={mutation.isPending} selected={content.existing_gene_list_ids || []} onChange={(ids) => save({ ...content, existing_gene_list_ids: ids })} />}
         {(step === 2 || step === 4) && content && <section aria-label={step === 2 ? "Gene list workspace" : "Configuration workspace"} className="surface-panel min-w-0 space-y-5 p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2">{step === 2 ? <ListTree className="size-5 text-primary" /> : <Settings2 className="size-5 text-primary" />}{step === 2 ? "Staged gene lists" : "Scope configurations"}<span className="type-meta text-muted-foreground">({records.length})</span></h2>{!readonly && <Button variant="outline" disabled={!form || mutation.isPending} onClick={() => setEditing(records.length)}><Plus />{step === 2 ? "Add gene list" : "Add configuration"}</Button>}</div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2">{step === 2 ? <ListTree className="size-5 text-primary" /> : <Settings2 className="size-5 text-primary" />}{step === 2 ? "Staged gene lists" : "Scope configurations"}<span className="type-meta text-muted-foreground">({records.length})</span></h2>{!readonly && <Button variant="outline" disabled={!form || mutation.isPending} onClick={() => { setConfigurationSeed({}); setEditing(records.length) }}><Plus />{step === 2 ? "Add gene list" : "Add configuration"}</Button>}</div>
           {!form && !readonly && <p role="status" className="type-body text-muted-foreground">{step === 2 ? "Gene list" : "Configuration"} form unavailable. <Button variant="link" onClick={() => void context.refetch()}>Retry</Button></p>}
-          {step === 4 && content.environments.length > 0 && <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full text-left type-body"><caption className="sr-only">Configuration coverage by scope and environment</caption><thead className="bg-muted/60 type-label"><tr><th scope="col" className="p-3">Scope</th><th scope="col" className="p-3">Environment</th><th scope="col" className="p-3">Status</th></tr></thead><tbody className="divide-y divide-border">{content.scopes.flatMap((scope) => content.environments.map((env) => {
-            const configured = records.some((r) => (r.diagnosis_id || "base") === scope && r.environment === env)
-            return <tr key={`${scope}-${env}`}><th scope="row" className="p-3 font-medium">{scope}</th><td className="p-3">{env}</td><td className="p-3"><span className={cn("inline-flex items-center gap-2 rounded-md px-2 py-1 type-meta", configured ? "bg-pass/10 text-pass" : "bg-warning/10 text-foreground")}>{configured ? <Check className="size-3 shrink-0" /> : <CircleAlert className="size-3 shrink-0 text-warning" />}{configured ? "Configured" : "Missing"}</span></td></tr>
-          }))}</tbody></table></div>}
-          <ul className="divide-y divide-border">{records.map((record, index) => <li key={index} className="flex flex-wrap items-center justify-between gap-2 py-3"><span className="min-w-0 break-words type-body">{String(record.displayname || record.display_name || record.name || record.isgl_id || `Configuration ${index + 1}`)}{step === 4 && ` · ${record.diagnosis_id || "base"} / ${record.environment || ""}`}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={!form} onClick={() => setEditing(index)}><Edit />{readonly ? "View" : "Edit"}</Button>{!readonly && <Button variant="ghost" size="icon" aria-label={`Remove ${step === 2 ? "gene list" : "configuration"} ${index + 1}`} disabled={mutation.isPending} onClick={() => save({ ...content, [field]: records.filter((_, i) => i !== index) })}><Trash2 /></Button>}</div></li>)}</ul>
+          {step === 4 && <SetupConfigurationsTable scopes={content.scopes} environments={content.environments} records={records} readonly={readonly} pending={mutation.isPending} formAvailable={Boolean(form)} onEdit={setEditing} onCreate={(scope, environment) => { setConfigurationSeed({ diagnosis_id: scope, environment }); setEditing(records.length) }} onRemove={index => save({ ...content, configurations: records.filter((_, i) => i !== index) })} />}
+          {step === 2 && <ul className="divide-y divide-border">{records.map((record, index) => <li key={index} className="flex flex-wrap items-center justify-between gap-2 py-3"><span className="min-w-0 break-words type-body">{String(record.displayname || record.display_name || record.name || record.isgl_id)}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={!form} onClick={() => setEditing(index)}><Edit />{readonly ? "View" : "Edit"}</Button>{!readonly && <Button variant="ghost" size="icon" aria-label={`Remove gene list ${index + 1}`} disabled={mutation.isPending} onClick={() => save({ ...content, gene_lists: records.filter((_, i) => i !== index) })}><Trash2 /></Button>}</div></li>)}</ul>}
           {!records.length && editing == null && <SetupEmptyState icon={step === 2 ? ListTree : Settings2} title={step === 2 ? "No staged gene lists" : "No configurations saved"} description={step === 2 ? "Gene lists are optional unless required by the selected filters." : "Each selected scope and environment requires a configuration before review."} />}
-          {editing != null && form && <ResourceEditor key={`${selected}-${setup?.revision}-${step}-${editing}`} kind={kind} form={form} source={records[editing] || (step === 2 ? { asp_ids: [setup?.asp_id], asp_groups: [content.panel.asp_group], diagnosis: ["base"] } : { asp_id: setup?.asp_id, asp_group: content.panel.asp_group, asp_category: content.panel.asp_category, display_name: content.panel.display_name, platform: content.panel.platform, diagnosis_id: "base", environment: content.environments[0] })} readonly={readonly} pending={mutation.isPending} onCancel={() => setEditing(null)} onSave={(record) => { const next = [...records]; next[editing] = record; save({ ...content, [field]: next }) }} />}
+          {editing != null && form && <ResourceEditor key={`${selected}-${setup?.revision}-${step}-${editing}-${configurationSeed.diagnosis_id}-${configurationSeed.environment}`} kind={kind} form={form} source={records[editing] || (step === 2 ? { asp_ids: [setup?.asp_id], asp_groups: [content.panel.asp_group], diagnosis: ["base"] } : { asp_id: setup?.asp_id, asp_group: content.panel.asp_group, asp_category: content.panel.asp_category, display_name: content.panel.display_name, platform: content.panel.platform, diagnosis_id: "base", environment: content.environments[0], ...configurationSeed })} readonly={readonly} pending={mutation.isPending} onCancel={() => setEditing(null)} onSave={(record) => { const next = [...records]; next[editing] = record; save({ ...content, [field]: next }) }} />}
         </section>}
         {step === 3 && content && <section aria-label="Reporting rule workspace" className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2"><FileCheck className="size-5 text-primary" />Published reporting rules</h2><div className="flex flex-wrap items-center gap-2"><Link className="inline-flex items-center gap-2 text-primary underline" to="/admin/clinical-rules" target="_blank" rel="noopener noreferrer">Open rule builder</Link><Button variant="outline" size="icon" aria-label="Refresh reporting rules" title="Refresh reporting rules" onClick={() => void context.refetch()}><RefreshCw /></Button></div></div>
           <ul className="divide-y divide-border">{(context.data.rules || []).map((rule) => <li key={rule._id} className="flex flex-wrap items-center gap-2 py-3"><Check className="size-4 text-pass" /><span className="type-body">{rule.scope.diagnosis_id} · {rule.name} · v{rule.content_version}</span></li>)}</ul>

@@ -31,8 +31,22 @@ class AssaySetupRepository(BaseRepository):
         )
 
     def list(self) -> list[dict]:
-        """Return setup summaries without embedded clinical configuration content."""
-        return list(self.get_collection().find({}, {"content": 0}).sort("updated_at", -1))
+        """Return workspace identity, assay names and provenance without clinical configuration."""
+        projection = {
+            key: 1
+            for key in (
+                "asp_id",
+                "status",
+                "revision",
+                "created_by",
+                "created_at",
+                "updated_by",
+                "updated_at",
+                "content.panel.name",
+                "content.panel.display_name",
+            )
+        }
+        return list(self.get_collection().find({}, projection).sort("updated_at", -1))
 
     def get(self, identifier: str) -> dict | None:
         """Return a workspace, or None for an invalid or missing ObjectId."""

@@ -103,12 +103,12 @@ export function AssayMatrixTable({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <label className="grid min-w-40 gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
-          Analysis
+          Gene list type
           <select
             value={filters.analysis || ""}
             onChange={(event) => updateFilter("analysis", event.target.value)}
             disabled={!filterOptions.analysis?.length}
-            className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal normal-case tracking-normal text-foreground"
+            className="form-control h-8 rounded-lg px-2 text-xs font-normal normal-case tracking-normal text-foreground"
           >
             {!filterOptions.analysis?.length && <option value="">No analyses available</option>}
             {(filterOptions.analysis || []).map((analysis) => (
@@ -122,7 +122,7 @@ export function AssayMatrixTable({
             <input
               value={geneSearch}
               onChange={(event) => onGeneSearchChange(event.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-normal normal-case tracking-normal text-foreground"
+              className="form-control h-8 rounded-lg px-2.5 text-xs font-normal normal-case tracking-normal text-foreground"
               placeholder="TP53"
             />
           </label>
@@ -150,7 +150,7 @@ export function AssayMatrixTable({
             <select
               value={filters[key] || ""}
               onChange={(event) => updateFilter(key, event.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-normal normal-case tracking-normal text-foreground"
+              className="form-control h-8 rounded-lg px-2 text-xs font-normal normal-case tracking-normal text-foreground"
             >
               <option value="">All</option>
               {(filterOptions[key] || []).map((option) => (
@@ -165,7 +165,7 @@ export function AssayMatrixTable({
         {/* Explicit column totals avoid Firefox's max-content overflow with spanning headers. */}
         <table
           className="catalog-matrix type-table-cell min-w-full table-fixed border-separate border-spacing-0 text-left type-numeric"
-          style={{ width: `calc(${annotations.visible ? 18 : 11}rem + ${columns.reduce((width, col) => width + matrixColumnWidth(col.isgl_label || col.isgl_key), 0)}px)` }}
+          style={{ width: `calc(${annotations.visible ? 18 : 11}rem + ${columns.reduce((width, col) => width + matrixColumnWidth(col.assay || col.isgl_label || col.isgl_key), 0)}px)` }}
         >
           <colgroup>
             <col className="w-44" />
@@ -173,7 +173,7 @@ export function AssayMatrixTable({
             {columns.map((col) => (
               <col
                 key={col.key}
-                style={{ width: matrixColumnWidth(col.isgl_label || col.isgl_key) }}
+                style={{ width: matrixColumnWidth(col.assay || col.isgl_label || col.isgl_key) }}
               />
             ))}
           </colgroup>
@@ -223,12 +223,13 @@ export function AssayMatrixTable({
                   <th
                     key={col.key}
                     className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
-                    title={col.isgl_key}
-                    aria-label={`${col.analysis || "Unassigned"} ${col.isgl_label || col.isgl_key}`}
+                    title={`${col.assay} · ${col.diagnosis} · ${col.isgl_key}`}
+                    aria-label={`${col.assay} · ${col.diagnosis} · ${col.analysis || "Unassigned"} · ${col.isgl_label || col.isgl_key}`}
                     style={matrixBoundaryStyle(boundary)}
                   >
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
-                      <span className="block">{col.isgl_label || col.isgl_key}</span>
+                      <span className="block font-semibold normal-case">{col.assay}</span>
+                      <span className="mt-1 block type-meta normal-case text-muted-foreground">{labelText(col.diagnosis)} · {col.isgl_label || col.isgl_key}</span>
                     </span>
                   </th>
                 )

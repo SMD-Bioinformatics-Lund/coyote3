@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
 import { api } from "@/lib/api"
 import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 import { AssaySetupPage } from "./AssaySetupPage"
@@ -33,7 +34,10 @@ it("allows an independent reviewer to approve the loaded revision", async () => 
 })
 it("labels saved setups with the assay, status and revision", async () => {
   mount()
-  expect(await screen.findByRole("option", { name: "assay_1 · submitted · Revision 3" })).toHaveValue("setup-1")
+  const picker = await screen.findByRole("combobox", { name: "Saved setups" })
+  await waitFor(() => expect(picker).toHaveTextContent("Synthetic assay · assay_1 · submitted · Revision 3"))
+  fireEvent.click(picker)
+  expect(await screen.findByRole("option", { name: /Synthetic assay · assay_1 · submitted · Revision 3/ })).toBeVisible()
 })
 it("does not offer self-approval to a content editor", async () => {
   access.username = "author"
@@ -55,8 +59,13 @@ it("clears review notes when reopening a setup", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   fireEvent.change(screen.getByLabelText("Review notes"), { target: { value: "Unsubmitted notes" } })
-  fireEvent.change(screen.getByLabelText("Saved setups"), { target: { value: "" } })
-  fireEvent.change(screen.getByLabelText("Saved setups"), { target: { value: "setup-1" } })
+  const user = userEvent.setup()
+  await user.click(screen.getByRole("combobox", { name: "Saved setups" }))
+  await user.click(await screen.findByRole("option", { name: "Select a setup" }))
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Saved setups" })).toHaveTextContent("Select a setup"))
+  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
+  await user.click(screen.getByRole("combobox", { name: "Saved setups" }))
+  await user.click(await screen.findByRole("option", { name: /Synthetic assay · assay_1/ }))
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   expect(screen.getByLabelText("Review notes")).toHaveValue("")
 })

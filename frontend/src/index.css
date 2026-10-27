@@ -86,6 +86,24 @@
 }
 
 @layer utilities {
+  .surface-panel.catalog-service-card[data-modality] {
+    --catalog-modality: var(--color-dna);
+    border-top: 4px solid var(--catalog-modality);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--catalog-modality) 10%, var(--card)), var(--card) 55%);
+    box-shadow: var(--shadow-md);
+  }
+  .surface-panel.catalog-service-card[data-modality="rna"] {
+    --catalog-modality: var(--color-rna);
+  }
+  .catalog-modality-badge {
+    border-color: color-mix(in srgb, var(--catalog-modality) 55%, var(--border));
+    background: color-mix(in srgb, var(--catalog-modality) 18%, var(--field-surface));
+    color: var(--foreground);
+  }
+  .catalog-details-button {
+    border-color: color-mix(in srgb, var(--catalog-modality) 60%, var(--border));
+    background: color-mix(in srgb, var(--catalog-modality) 9%, var(--field-surface));
+  }
   .paper-surface {
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
@@ -108,6 +126,34 @@
     border: 1px solid color-mix(in srgb, var(--paper-edge) 86%, transparent);
     background: var(--paper-inset);
     box-shadow: var(--inset-shadow);
+  }
+  .form-control,
+  .paper-inset:is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    border: 1px solid color-mix(in srgb, var(--foreground) 32%, var(--border));
+    background: var(--field-surface);
+    color: var(--foreground);
+    box-shadow: inset 0 1px 3px var(--paper-shadow);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .form-control:focus-visible {
+    border-color: var(--ring);
+    outline: 2px solid color-mix(in srgb, var(--ring) 30%, transparent);
+    outline-offset: 2px;
+  }
+  .form-control[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--field-surface));
+    color: var(--primary);
+  }
+  .form-control:disabled,
+  .form-control[readonly] {
+    background: var(--paper-inset);
+    color: var(--muted-foreground);
+    box-shadow: none;
+  }
+  select option {
+    background: var(--field-surface);
+    color: var(--foreground);
   }
   .segmented-control {
     position: relative;
