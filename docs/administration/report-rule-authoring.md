@@ -173,8 +173,14 @@ choosing a count condition.
 ## Preview and validate
 
 **Complete report summary** combines enabled rules in section and rule order.
-Without a selected sample it shows bracketed values and labels conditional
-alternatives; this composition view does not evaluate conditions. Users with
+Without a selected sample, **Report structure** shows an ordered card for each
+enabled sentence, with its rule name, conditional status and placement (continue,
+new paragraph, new line or list item). Conditional sentences stay separate rather
+than being joined into one misleading paragraph. **When this sentence applies**
+expands the condition; **Show conditional wording** hides or reveals conditional
+text while retaining its place in the outline. Each section states its match
+behavior and whether its heading appears in the actual report. Brackets represent
+unresolved dynamic values; this structure view does not evaluate conditions. Users with
 `clinical_rules:test` can choose an authorized **Preview sample** to evaluate all
 conditions and resolve actual values on the server. The preview refreshes after
 valid edits save. Invalid edits and failed autosaves pause it; preview errors

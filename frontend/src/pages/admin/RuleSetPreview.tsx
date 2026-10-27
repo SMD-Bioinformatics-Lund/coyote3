@@ -4,33 +4,11 @@ import { api } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import type { ClinicalRuleSet, FactDefinition } from "./clinical-rules-types"
-import { outputPreview } from "./rule-output-preview"
+import { RuleCompositionPreview } from "./RuleCompositionPreview"
 import { RuleHelp } from "./RuleHelp"
 
 type Sample = { id: string; name: string; diagnosis_id: string }
 type Preview = { summary: string; evaluation: { trace: { matched: boolean }[] } }
-
-function composition(ruleSet: ClinicalRuleSet, facts: FactDefinition[]) {
-  return [...ruleSet.blocks].sort((a, b) => a.section_order - b.section_order || a.block_order - b.block_order).map(block => {
-    if (!block.rules.some(rule => rule.enabled)) return ""
-    const paragraphs: string[] = []
-    for (const rule of [...block.rules].sort((a, b) => a.order - b.order)) {
-      if (!rule.enabled) continue
-      const wording = outputPreview(rule.output, facts)
-      const label = rule.condition ? `[Conditional: ${rule.name}] ` : ""
-      const text = label + wording
-      const last = paragraphs.length - 1
-      if (rule.presentation === "continue" && last >= 0) paragraphs[last] += `${/\s$/.test(paragraphs[last]) || /^\s/.test(text) ? "" : " "}${text}`
-      else if (rule.presentation === "line" && last >= 0) paragraphs[last] += `  \n${text}`
-      else if (rule.presentation === "bullet" || rule.presentation === "numbered") {
-        const marker = rule.presentation === "bullet" ? "- " : "1. "
-        if (last >= 0 && paragraphs[last].startsWith(marker)) paragraphs[last] += `\n${marker}${text}`
-        else paragraphs.push(marker + text)
-      } else paragraphs.push(text)
-    }
-    return (block.show_heading ? [`## ${block.section}`, ...paragraphs] : paragraphs).join("\n\n")
-  }).filter(Boolean).join("\n\n")
-}
 
 export function RuleSetPreview({ draft, facts, saved, canTest }: {
   draft: ClinicalRuleSet; facts: FactDefinition[]; saved: boolean; canTest: boolean
@@ -65,6 +43,6 @@ export function RuleSetPreview({ draft, facts, saved, canTest }: {
         : result.isFetching ? <p role="status" className="type-body-sm">Evaluating the complete rule set…</p>
           : result.error ? <p role="alert" className="type-body-sm text-destructive">{result.error instanceof Error ? result.error.message : "Unable to evaluate this rule set."}</p>
             : result.data && <><div className="paper-inset rounded-lg p-3"><MarkdownText text={result.data.summary || "No narrative rules matched this sample."} /></div><p className="type-meta text-muted-foreground">Actual sample values · saved revision {draft.revision} · {result.data.evaluation.trace.filter(item => item.matched).length} rules matched. No report is saved.</p></>}
-    </> : <><p className="type-body-sm text-muted-foreground">All enabled wording in report order. Conditional alternatives are labelled and are not evaluated until a sample is selected. Brackets represent dynamic values.</p><div className="paper-inset rounded-lg p-3"><MarkdownText text={composition(draft, facts) || "Enable reviewed rules to see their combined wording here."} /></div></>}
+    </> : <RuleCompositionPreview draft={draft} facts={facts} />}
   </section>
 }

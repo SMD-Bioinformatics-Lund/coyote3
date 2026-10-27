@@ -35,6 +35,46 @@ const ruleSet = {
   updated_by: "admin",
 }
 
+test("composition preview separates conditional wording in a narrow report pane", async ({ page }) => {
+  const document = {
+    ...structuredClone(ruleSet),
+    blocks: [{ ...ruleSet.blocks[0], match_strategy: "all_matches", show_heading: false, rules: [
+      { ...ruleSet.blocks[0].rules[0], name: "General introduction", output: [{ type: "text", value: "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering." }] },
+      ...[true, false].map((paired, index) => ({
+        ...ruleSet.blocks[0].rules[0], rule_id: `control_${index}`, order: 20 + index,
+        name: paired ? "Paired control wording" : "Unpaired control wording", presentation: "continue",
+        condition: { type: "predicate", fact: "sample.paired", operator: "eq", value: paired },
+        output: [{ type: "text", value: paired ? "Hudbiopsi har använts som kontrollmaterial." : "Analysen avser somatiska mutationer utan parat kontrollprov." }],
+      })),
+    ] }],
+  }
+  await installApiFixtures(page, (path) => {
+    if (path === "/api/v1/auth/whoami") return { json: { username: "admin", roles: ["admin"], permissions: ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:test"] } }
+    if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [document], page: 1, total: 1 } }
+    if (path === "/api/v1/admin/clinical-rule-sets/versions/rule-version-1") return { json: document }
+    if (path.endsWith("/test-samples")) return { json: { items: [] } }
+    if (path.endsWith("/facts")) return { json: { items: [{ path: "sample.paired", label: "Paired control available", group: "Sample", kind: "boolean", operators: ["eq"], scopes: ["once"] }] } }
+    if (path.endsWith("/authoring-options")) return { json: { assays: [{ asp_id: "assay_1", display_name: "Assay 1", analyte: "dna" }] } }
+  })
+  await page.setViewportSize({ width: 1440, height: 1050 })
+  await page.goto("/admin/clinical-rules")
+  await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+  const preview = page.getByRole("region", { name: "Complete rule-set preview" })
+  await expect(preview.getByRole("article")).toHaveCount(3)
+  const paired = preview.getByRole("article", { name: "Paired control wording", exact: true })
+  await expect(paired.getByText("Hudbiopsi har använts som kontrollmaterial.")).toBeVisible()
+  await paired.getByText("When this sentence applies").click()
+  await expect(paired.getByText("Paired control available is Yes")).toBeVisible()
+  await page.screenshot({ path: "test-results/clinical-rule-composition-preview.png", fullPage: true })
+  await preview.getByLabel("Show conditional wording").uncheck()
+  await expect(paired.getByText("Hudbiopsi har använts som kontrollmaterial.")).toHaveCount(0)
+  await expect(preview.getByRole("article")).toHaveCount(3)
+  await preview.getByLabel("Show conditional wording").check()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(paired.getByText("Hudbiopsi har använts som kontrollmaterial.")).toBeVisible()
+  await expect(preview).toHaveJSProperty("scrollWidth", await preview.evaluate(element => element.clientWidth))
+})
+
 test("clinical rule panes fill the workspace and reflow into selectable rails", async ({ page }) => {
   let savedRuleSet = structuredClone(ruleSet)
   await installApiFixtures(page, (path, _url, route) => {
