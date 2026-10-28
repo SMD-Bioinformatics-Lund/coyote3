@@ -8,7 +8,8 @@ import {
 } from "@/components/detail/DetailEvidenceCards"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { SearchInput } from "@/components/ui/search-input"
-import { AnalysisIntentBadges, CopyNumberBadge, TierBadge } from "@/lib/variant-ui"
+import { AnalysisIntentBadges, CopyNumberBadge } from "@/lib/variant-ui"
+import { CosmicCensusTierBadge } from "@/components/knowledgebase/CosmicCensusTierBadge"
 import { isPresent } from "@/lib/detail-formatters"
 import {
   cbioportalOncoprintUrl,
@@ -260,7 +261,7 @@ function evidenceValues(value: unknown) {
 
 function EvidenceValues({
   value,
-  tone = "neutral",
+  tone = "info",
 }: {
   value: unknown
   tone?: "neutral" | "success" | "warning" | "danger" | "info"
@@ -472,7 +473,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
               empty="No Cancer Gene Census records match this search."
               columns={[
                 { key: "gene", header: "Gene", render: (row: any) => row.gene_symbol || "-" },
-                { key: "tier", header: "Tier", render: (row: any) => <TierBadge tier={row.tier} /> },
+                { key: "tier", header: "CGC tier", render: (row: any) => <CosmicCensusTierBadge tier={row.tier} /> },
                 { key: "role", header: "Role", render: (row: any) => row.role_in_cancer || "-" },
                 { key: "origin", header: "Origin", render: (row: any) => <AnalysisIntentBadges somatic={row.somatic} germline={row.germline} /> },
                 { key: "types", header: "Mutation types", render: (row: any) => row.mutation_types || "-" },

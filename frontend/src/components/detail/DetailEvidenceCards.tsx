@@ -177,15 +177,15 @@ export function EvidenceBadge({
   tone?: "neutral" | "success" | "warning" | "danger" | "info"
 }) {
   const toneClass = {
-    neutral: "bg-muted text-muted-foreground",
-    success: "bg-pass/12 text-pass",
-    warning: "bg-warn/14 text-warn",
-    danger: "bg-fail/12 text-fail",
-    info: "bg-primary/10 text-primary",
+    neutral: "border-muted-foreground/50 bg-muted text-muted-foreground",
+    success: "border-pass/50 bg-pass/12 text-pass",
+    warning: "border-warn/50 bg-warn/14 text-warn",
+    danger: "border-fail/50 bg-fail/12 text-fail",
+    info: "border-primary/50 bg-primary/10 text-primary",
   }[tone]
 
   return (
-    <span className={cn("inline-flex max-w-full whitespace-normal break-words rounded-md px-2 py-0.5 type-meta font-semibold uppercase tracking-wide", toneClass)}>
+    <span className={cn("inline-flex min-w-0 max-w-full whitespace-normal rounded-md border px-2 py-0.5 type-meta font-semibold uppercase tracking-wide [overflow-wrap:anywhere]", toneClass)}>
       {children}
     </span>
   )

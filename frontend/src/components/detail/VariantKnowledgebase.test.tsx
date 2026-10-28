@@ -9,6 +9,21 @@ import {
 } from "./VariantKnowledgebase"
 
 describe("variant knowledgebase presentation", () => {
+  it("uses COSMIC gene evidence tiers rather than clinical variant tiers", async () => {
+    const user = userEvent.setup()
+    render(<CosmicKnowledgeBlock evidence={{
+      gene_census: [{ gene_symbol: "ABL1", tier: 1 }, { gene_symbol: "BCR", tier: 2 }],
+    }} />)
+    const first = screen.getByRole("link", { name: "CGC Tier 1" })
+    expect(first).toHaveAttribute("href", "https://cancer.sanger.ac.uk/census")
+    await user.hover(first)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Strong functional and mutation evidence")
+    expect(screen.getByRole("tooltip")).toHaveTextContent("not the Coyote clinical classification")
+    await user.unhover(first)
+    await user.hover(screen.getByRole("link", { name: "CGC Tier 2" }))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("less complete")
+    expect(first).not.toHaveClass("bg-tier1")
+  })
   it("renders COSMIC evidence without source sample fields", () => {
     render(
       <CosmicKnowledgeBlock
@@ -86,10 +101,10 @@ describe("variant knowledgebase presentation", () => {
       </KnowledgebaseExplorer>,
     )
 
-    expect(screen.getByText("AML")).toHaveClass("bg-muted", "text-muted-foreground")
+    expect(screen.getByText("AML")).toHaveClass("border", "border-primary/50", "text-primary")
     expect(screen.getByText("MDS")).toBeInTheDocument()
-    expect(screen.getByText("Drug A")).toHaveClass("bg-muted", "text-muted-foreground")
-    expect(screen.getByText("In trials")).toHaveClass("bg-muted", "text-muted-foreground")
+    expect(screen.getByText("Drug A")).toHaveClass("border", "border-primary/50", "text-primary")
+    expect(screen.getByText("In trials")).toHaveClass("border", "border-primary/50", "text-primary")
     await user.type(screen.getByRole("textbox", { name: "Search all knowledgebase evidence" }), "DNMT3A")
 
     expect(screen.getByText("DNMT3A · p.Arg2Gly")).toBeInTheDocument()

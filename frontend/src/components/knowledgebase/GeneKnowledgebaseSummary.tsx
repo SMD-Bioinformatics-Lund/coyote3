@@ -2,7 +2,8 @@ import { icon } from "@/lib/assets"
 
 import { TableBadge } from "@/components/ui/table-badge"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
-import { AnalysisIntentBadges, TierBadge } from "@/lib/variant-ui"
+import { AnalysisIntentBadges } from "@/lib/variant-ui"
+import { CosmicCensusTierBadge } from "@/components/knowledgebase/CosmicCensusTierBadge"
 
 type CosmicGeneCensusRecord = {
   cosmic_gene_id?: string
@@ -152,7 +153,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
                 <div key={record.cosmic_gene_id || index} className="rounded-md border border-border bg-background/60 p-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {record.role_in_cancer ? <span className="type-body-sm text-foreground">{record.role_in_cancer}</span> : null}
-                    {record.tier ? <TierBadge tier={record.tier} /> : null}
+                    {record.tier ? <CosmicCensusTierBadge tier={record.tier} /> : null}
                     <AnalysisIntentBadges somatic={record.somatic} germline={record.germline} showEmpty={false} />
                   </div>
                 </div>
