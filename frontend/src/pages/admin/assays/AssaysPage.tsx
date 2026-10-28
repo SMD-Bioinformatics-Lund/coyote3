@@ -7,6 +7,7 @@ import {
 import { useAdminList } from "@/components/admin/useAdminList";
 import { DataTable } from "@/components/data-table/DataTable";
 import { PageShell } from "@/components/layout/PageShell";
+import { TableBadge } from "@/components/ui/table-badge";
 import type { ColumnDef } from "@tanstack/react-table";
 import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom";
@@ -24,6 +25,18 @@ export function AssaysPage() {
       accessorKey: "covered_genes_count",
       cell: ({ row }) => <span className="tabular-nums">{row.original.covered_genes_count as number}</span>,
       meta: { exportValue: (row: Record<string, unknown>) => row.covered_genes_count },
+    } : field === "accredited" ? {
+      id: field,
+      header: "Accredited",
+      accessorFn: (row) => row.accredited === true ? "Yes" : row.accredited === false ? "No" : "-",
+      cell: ({ getValue }) => (
+        <TableBadge className={getValue() === "Yes"
+          ? "rounded-full border-pass/60 bg-pass/15 font-semibold text-pass"
+          : "rounded-full border-muted-foreground/60 bg-muted font-semibold text-muted-foreground"}>
+          {getValue<string>()}
+        </TableBadge>
+      ),
+      meta: { exportValue: (row: Record<string, unknown>) => adminExportValue(field, row) },
     } : ({
       id: field,
       header: adminColumnTitle(field),

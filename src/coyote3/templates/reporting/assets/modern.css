@@ -1,27 +1,29 @@
 @page {
-  size: A4; margin: 65mm 16mm 18mm;
+  size: A4; margin: 65mm 16mm 22mm;
   @top-right { content: none; }
   @top-left {
     content: element(report-page-header); width: 100%; vertical-align: bottom;
   }
   @bottom-left {
     content: element(report-page-footer); color: #70717b;
-    width: 75%;
+    width: 75%; vertical-align: top;
     font: 8pt "Source Sans 3", sans-serif;
-    border-top: 1px solid #e5e5e9; padding-top: 3mm;
+    border-top: 1px solid #e5e5e9; padding-top: 3mm; padding-bottom: 5mm;
   }
   @bottom-right {
     content: element(report-page-number-footer); color: #70717b;
-    width: 25%; text-align: right;
+    width: 25%; text-align: right; vertical-align: top;
     font: 8pt "Source Sans 3", sans-serif;
-    border-top: 1px solid #e5e5e9; padding-top: 3mm;
+    border-top: 1px solid #e5e5e9; padding-top: 3mm; padding-bottom: 5mm;
   }
 }
 .report-page-header, .report-page-footer, .report-page-number-footer { display: none; }
-.report-template-version { display: block; font-size: 6.5pt; line-height: 1.2; }
-.report-page-number { display: block; margin-top: 2px; font-size: 8pt; line-height: 1.2; }
+.report-page-footer { width: 100%; text-align: left; }
+.report-page-number-footer { width: 100%; text-align: right; }
+.report-template-version { display: block; color: #81818a; font-size: 6pt; line-height: 1.15; }
+.report-page-number { display: block; color: #666772; margin-top: 0.6mm; font-size: 7.5pt; line-height: 1.2; }
 .report-page-number::after { content: "Sida " counter(page) " av " counter(pages); }
-.report-accreditation-logo { max-width: 32mm; max-height: 9mm; object-fit: contain; }
+.report-accreditation-logo { display: block; height: 28mm; width: auto; max-width: 32mm; object-fit: contain; }
 html { background: #f2f1f4; color-scheme: light; }
 body {
   margin: 0; color: #2f3038; font: 10pt/1.35 "Source Sans 3", sans-serif;
@@ -86,7 +88,8 @@ body .page {
   margin: 0; color: #70717b; font-size: 10pt; string-set: report-sample content();
 }
 .report-metadata {
-  margin: 0 0 12px; padding: 0; border-top: 1px solid #cbbbd5;
+  margin: 0 0 12px; padding: 0 0 3mm;
+  border-top: 1px solid #cbbbd5; border-bottom: 1px solid #cbbbd5;
 }
 .report-metadata-heading {
   margin: 0; padding: 5px 7px; background: #faf9fb;
@@ -159,13 +162,16 @@ body .results_summary {
   background: #fff9e8; color: #332f24; font-size: 10pt; line-height: 1.4;
 }
 body .results_summary table {
-  margin: 6px 0; background: white; font-size: inherit; break-inside: auto;
+  width: 100%; table-layout: fixed; border-collapse: collapse;
+  margin: 3px 0; background: white; color: #2f3038;
+  font-size: 8pt; line-height: 1.2; break-inside: auto;
 }
 body .results_summary th, body .results_summary td {
-  padding: 4px 7px; border: 1px solid #d8d8df; text-align: left;
+  padding: 2px 4px; border: 1px solid #a9abb3; text-align: left;
+  white-space: normal; overflow-wrap: anywhere; font-weight: 400;
 }
-body .results_summary th { background: #faf9fb; color: #44364e; font-weight: 600; }
-body .results_summary td { background: white; }
+body .results_summary th, body .results_summary td { background: white; color: #2f3038; }
+body .results_summary:has(table) { padding: 0; border: 0; background: transparent; }
 body .results_summary h2, body .results_summary h3, body .results_summary h4 {
   margin: 8px 0 4px; color: #44364e; font-weight: 600; line-height: 1.25;
   break-after: avoid;
@@ -210,7 +216,8 @@ body table.genetable td { padding: 3px; border-color: #e5e5e9; font-size: 7.5pt;
 body img { max-width: 100%; height: auto; }
 body a { color: #654577; text-decoration: underline; }
 body strong, body b { font-weight: 600; }
-body .report-tier-one td { font-weight: 600; }
+body table.variant_table[data-analysis="snv"] td { font-weight: 400; }
+body table.variant_table[data-analysis="snv"] .report-tier-one td:last-child { font-weight: 600; }
 body table.report-biomarker-detail { width: 100%; margin: 5px 0 8px; border-collapse: collapse; break-inside: avoid; font-size: 9pt; }
 body table.report-biomarker-detail :is(th, td) { padding: 3px 6px; border: 1px solid #e5e5e9; text-align: left; }
 body table.report-biomarker-detail thead th { color: #493e53; background: #faf8fb; font-weight: 600; }

@@ -63,6 +63,18 @@ def test_plan_install_and_collision_preserve_existing_configuration(installer):
             row["created_by"] == row["updated_by"] == "system" for row in database[name].find()
         )
     assert service.plan().configuration_installed
+    assert (
+        database.assay_specific_panels.find_one({"asp_id": "demo-hematology-training"})[
+            "accredited"
+        ]
+        is True
+    )
+    demo_configurations = list(database.asp_configs.find({"asp_id": "demo-hematology-training"}))
+    assert demo_configurations
+    assert all(
+        row["assay_resource_release"]["content"]["accredited"] is True
+        for row in demo_configurations
+    )
     assert {r["environment"] for r in database.asp_configs.find()} == {"testing", "production"}
     assert {r["status"] for r in database.clinical_rule_sets.find()} == {"published"}
     assert all(r["active"] for r in database.clinical_rule_sets.find())

@@ -94,7 +94,58 @@ def test_markdown_conclusion_preserves_formatting_and_renders_bordered_table(ana
                 assert box.border_right_width > 0
                 assert box.border_bottom_width > 0
                 assert box.border_left_width > 0
+                assert box.style["font_size"] == pytest.approx(8 * 96 / 72)
+                assert box.style["font_weight"] == 400
+                assert box.padding_top == 2
     assert len(cells) == 4
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_summary_table_fills_printable_width_and_wraps_long_cell_text(analyte):
+    """A plain conclusion table retains long content within the report margins."""
+    inputs = empty_context(analyte)
+    long_value = "SYNTHETIC_SEQUENCE_" * 25
+    inputs["latest_sample_comment_text"] = (
+        f"| Label | Value |\n| --- | --- |\n| Synthetic | {long_value} |\n"
+    )
+    html = HTML(
+        string=render_report_html(
+            template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+            template_context=inputs,
+            snapshot_rows=[],
+            analyte=analyte,
+            preview=True,
+            layout="modern",
+        )
+    )
+    summary = html.etree_element.find('.//div[@class="results_summary"]')
+    cell_elements = set(summary.findall(".//th") + summary.findall(".//td"))
+    document = html.render()
+    cells = []
+    for page in document.pages:
+        left = page._page_box.content_box_x()
+        right = left + page._page_box.width
+        for box in page._page_box.descendants():
+            if isinstance(box, TableCellBox) and box.element in cell_elements:
+                cells.append(box)
+                for text in box.descendants():
+                    if isinstance(text, TextBox):
+                        assert text.position_x >= left - 1
+                        assert text.position_x + text.width <= right + 1
+        on_page = [
+            box
+            for box in page._page_box.descendants()
+            if isinstance(box, TableCellBox) and box.element in cell_elements
+        ]
+        if on_page:
+            assert min(box.position_x for box in on_page) == pytest.approx(left, abs=1)
+            assert max(box.position_x + box.border_width() for box in on_page) == pytest.approx(
+                right, abs=1
+            )
+    rendered = "".join(
+        text.text for box in cells for text in box.descendants() if isinstance(text, TextBox)
+    )
+    assert long_value in rendered
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
@@ -139,7 +190,7 @@ def test_disabled_sections_do_not_emit_empty_messages():
     assert not HTML(string=output).etree_element.findall('.//p[@class="report-empty-result"]')
 
 
-def test_manual_assessments_are_separate_from_measured_details_and_tier_one_is_semibold():
+def test_manual_assessments_are_separate_and_only_tier_one_classification_is_semibold():
     """Report summaries show authored values, while detailed evidence retains the scores."""
     inputs = empty_context()
     inputs["report_sections"] = ["SNV", "TMB", "MSI"]
@@ -185,14 +236,17 @@ def test_manual_assessments_are_separate_from_measured_details_and_tier_one_is_s
     assert rows[0].get("class") == "report-tier-one"
     assert rows[1].get("class") is None
     document = html.render()
-    summary_cells = set(rows[0].findall("td"))
+    summary_cells = set(cell for row in rows for cell in row.findall("td"))
+    emphasized_cell = rows[0].findall("td")[-1]
     rendered_cells = [
         box
         for page in document.pages
         for box in page._page_box.descendants()
         if isinstance(box, TableCellBox) and box.element in summary_cells
     ]
-    assert rendered_cells and all(box.style["font_weight"] == 600 for box in rendered_cells)
+    assert len(rendered_cells) == 8
+    for box in rendered_cells:
+        assert box.style["font_weight"] == (600 if box.element is emphasized_cell else 400)
 
 
 def test_populated_dna_sections_retain_every_finding_table():

@@ -27,6 +27,7 @@ export const columns = [
   "asp_family",
   "platform",
   "covered_genes_count",
+  "accredited",
   "is_active",
   "version",
   "updated_on",

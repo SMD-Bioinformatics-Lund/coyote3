@@ -186,7 +186,9 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
         layout="modern",
     )
     # Isolate the rendered summary table so detail sections do not repeat finding names.
-    table = re.search(r'<table class="variant_table">.*?</table>', html, re.S).group()
+    table = re.search(
+        r'<table class="variant_table" data-analysis="snv">.*?</table>', html, re.S
+    ).group()
     document = HTML(
         string=html.partition("<body>")[0]
         + '<body><div class="page">'

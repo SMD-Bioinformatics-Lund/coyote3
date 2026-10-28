@@ -61,6 +61,7 @@ describe("Assays page", () => {
             asp_category: "dna",
             asp_group: "demo",
             covered_genes_count: 3,
+            accredited: true,
             is_active: true,
             system_managed: true,
           },
@@ -70,6 +71,7 @@ describe("Assays page", () => {
             asp_category: "rna",
             asp_group: "demo",
             covered_genes_count: 0,
+            accredited: false,
             is_active: true,
             system_managed: false,
           },
@@ -83,6 +85,9 @@ describe("Assays page", () => {
     expect(await screen.findByText("demo_dna")).toBeVisible();
     expect(screen.getByRole("columnheader", { name: /^Assay\s*(?:↕|↑|↓)?$/i })).toBeVisible();
     expect(screen.getByRole("columnheader", { name: /Actions/ })).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: /Accredited/ })).toBeVisible();
+    expect(within(screen.getByText("demo_dna").closest("tr")!).getByRole("cell", { name: "Yes" })).toBeVisible();
+    expect(within(screen.getByText("demo_rna").closest("tr")!).getByRole("cell", { name: "No" })).toBeVisible();
     expect(screen.queryByTitle("Invite user")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Assay category"), { target: { value: "rna" } });
     expect(screen.queryByText("demo_dna")).not.toBeInTheDocument();

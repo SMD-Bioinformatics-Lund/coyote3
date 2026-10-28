@@ -2,6 +2,7 @@
 
 import re
 from base64 import b64encode
+from pathlib import Path
 
 import pytest
 from weasyprint import HTML
@@ -50,8 +51,8 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
     from tests.unit.reporting.test_report_presentation import empty_context
 
     monkeypatch.setattr(branding, "CENTER_CONFIG_DIR", tmp_path)
-    (tmp_path / "accreditation.svg").write_text(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20"><rect width="90" height="20" fill="#555"/></svg>'
+    (tmp_path / "accreditation.svg").write_bytes(
+        Path("config/examples/center/logos/swedac-iso-15189-example.svg").read_bytes()
     )
     inputs = empty_context()
     inputs["assay_config"]["assay_resource_release"] = {"content": {"accredited": accredited}}
@@ -75,6 +76,9 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
             and box.element.get("class") == "report-accreditation-logo"
         ]
         assert len(logos) == int(accredited is True)
+        assert page._page_box.margin_bottom == pytest.approx(
+            (38 if accredited is True else 22) * 96 / 25.4
+        )
         text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
         assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
         assert f"Sida {index} av {len(document.pages)}" in text
@@ -90,6 +94,17 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         assert version.position_y >= page._page_box.content_box_y() + page._page_box.height
         assert version.position_y + version.height <= page_number.position_y
         assert page_number.position_y + page_number.height <= page.height
+        content_right = page._page_box.content_box_x() + page._page_box.width
+        assert version.position_x + version.width == pytest.approx(content_right, abs=1)
+        assert page_number.position_x + page_number.width == pytest.approx(content_right, abs=1)
+        assert page.height - (page_number.position_y + page_number.height) >= 8 * 96 / 25.4
+        for logo in logos:
+            assert logo.height == pytest.approx(28 * 96 / 25.4)
+            assert logo.width == pytest.approx(24 * 96 / 25.4)
+            assert logo.position_y >= page._page_box.content_box_y() + page._page_box.height
+            assert page.height - (logo.position_y + logo.height) >= 5 * 96 / 25.4
+            assert logo.position_x == pytest.approx(page._page_box.content_box_x(), abs=1)
+            assert logo.position_x + logo.width < version.position_x
         header = next(
             box
             for box in boxes

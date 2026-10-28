@@ -1,4 +1,4 @@
-<table class="variant_table">
+<table class="variant_table" data-analysis="snv">
   <thead><tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr></thead>
   <tbody>{% for var in variants %}
     <tr{% if var.class == 1 %} class="report-tier-one"{% endif %}>

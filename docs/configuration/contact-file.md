@@ -120,12 +120,13 @@ The [example SVG](../assets/examples/reporting/swedac-iso-15189-example.svg) has
 compact 24 mm by 28 mm canvas and uses Swedac's published vector paths in black.
 These dimensions are a layout choice, not a prescribed minimum. The information
 lines sit directly below the circular mark; `XXXX` remains a placeholder.
-The asset is documentation artwork and is not configured as a report logo.
+The example center configuration selects a copy under `logos/`. Replace this
+placeholder artwork with the center's issued symbol for clinical reports.
 
 ![Swedac ISO 15189 layout example with placeholder accreditation number](../assets/examples/reporting/swedac-iso-15189-example.svg)
 
-The current modern report footer limits configured artwork to 32 mm wide and
-9 mm high. A full circular symbol with three text lines will become too small
-within that height. Before enabling the center's original, allocate footer space
-for its complete proportions and check its text at 100% print scale; the SVG's
-intrinsic dimensions alone do not override the report's CSS limits.
+The modern report footer provides a 28 mm high image area, limited to 32 mm wide,
+and preserves the artwork's proportions. The example renders at 24 mm by 28 mm.
+Reports displaying an accreditation logo reserve a 38 mm bottom margin; other
+reports retain a 22 mm margin. Check the center's complete symbol and its wording
+at 100% print scale when selecting the artwork.

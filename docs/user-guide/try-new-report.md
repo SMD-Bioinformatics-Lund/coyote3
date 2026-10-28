@@ -25,7 +25,10 @@ logo for an assay whose applied ASP snapshot has `accredited = true`.
 See [center branding](../configuration/contact-file.md).
 
 **Slutsats** begins on a new PDF page. Its saved comment supports sanitized
-Markdown, including tables and lists. Tier 1 SNVs use semibold summary rows.
+Markdown, including tables and lists. Summary tables use the available report width,
+with plain borders, compact text and padding, and wrapping inside cells. Conclusions
+containing tables omit the shaded outer box. Only the classification cell for a Tier 1 SNV
+uses semibold text; the other summary cells use normal weight.
 Detailed finding tables retain their compact layout and stay together when they
 fit on a page; longer content can continue onto another page.
 
