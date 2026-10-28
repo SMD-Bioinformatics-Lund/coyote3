@@ -107,7 +107,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
 
   return (
     <PageShell
-      className="material-page"
+      className="material-page catalog-page"
       eyebrow="Public"
       title="Assay Catalog Matrix"
       description="Gene coverage matrix across public assay catalog modalities and gene lists."

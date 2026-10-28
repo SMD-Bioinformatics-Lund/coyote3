@@ -97,6 +97,69 @@ def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(ser
     assert reader.assay_catalog_gene_symbols_payload("diagnosis") == {"gene_symbols": ["GENE1"]}
 
 
+def test_published_matrix_resolves_markers_only_for_visible_published_genes(service):
+    """Annotation membership is batched per page without changing reviewed gene coverage."""
+    publication = service.preview_offerings(content(), actor="author")
+    publication["offerings"][0]["gene_scopes"][0]["genes"] = ["GENE1", "GENE2"]
+    reader = PublicCatalogService(
+        assay_panel_repository=None,
+        hgnc_repository=None,
+        gene_list_repository=None,
+        sample_repository=None,
+        vep_metadata_repository=None,
+    )
+    reader.published_offerings = lambda: publication
+    oncokb = Mock(return_value={"GENE2": {"gene": "GENE2", "private_field": "hidden"}})
+    cosmic = Mock(return_value={"GENE2": {"gene": "GENE2"}})
+    civic = Mock(return_value={"GENE2": {"gene": "GENE2"}})
+    clinpgx = Mock(return_value={"GENE2": {"pharmgkb_accession_id": "PA2"}})
+    reader.oncokb_public_cache_repository = SimpleNamespace(get_gene_records=oncokb)
+    reader.cosmic_repository = SimpleNamespace(get_cancer_gene_census_records=cosmic)
+    reader.civic_repository = SimpleNamespace(get_gene_records=civic)
+    reader.clinpgx_public_repository = SimpleNamespace(get_gene_records=clinpgx)
+
+    matrix = reader.published_matrix(page=2, per_page=1)
+
+    assert matrix["genes"] == ["GENE2"]
+    assert matrix["gene_markers"] == {
+        "GENE2": {
+            "oncokb": True,
+            "cosmic_cgc": True,
+            "civic": True,
+            "clinpgx": True,
+            "clinpgx_accession": "PA2",
+        }
+    }
+    assert matrix["matrix"] == publication_matrix(publication, page=2, per_page=1)["matrix"]
+    for lookup in (oncokb, cosmic, civic, clinpgx):
+        lookup.assert_called_once_with(["GENE2"])
+        lookup.reset_mock()
+    assert reader.published_matrix(gene="NOT_PUBLISHED")["gene_markers"] == {}
+    for lookup in (oncokb, cosmic, civic, clinpgx):
+        lookup.assert_not_called()
+
+
+def test_published_matrix_without_knowledgebases_returns_no_positive_markers(service):
+    """Missing optional knowledgebases do not create source membership or hide coverage."""
+    reader = PublicCatalogService(
+        assay_panel_repository=None,
+        hgnc_repository=None,
+        gene_list_repository=None,
+        sample_repository=None,
+        vep_metadata_repository=None,
+    )
+    reader.published_offerings = lambda: service.preview_offerings(content(), actor="author")
+    matrix = reader.published_matrix()
+    assert matrix["genes"] == ["GENE1"]
+    assert matrix["gene_markers"]["GENE1"] == {
+        "oncokb": False,
+        "cosmic_cgc": False,
+        "civic": False,
+        "clinpgx": False,
+        "clinpgx_accession": None,
+    }
+
+
 def test_source_revision_change_after_review_requires_new_review(service):
     """A reviewed release cannot publish against silently changed source revisions."""
     doc = approved(service)

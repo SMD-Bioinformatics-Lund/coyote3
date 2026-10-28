@@ -15,13 +15,18 @@ export function contiguousSpans<T>(
   keyFn: (item: T) => string,
   labelFn: (item: T) => string = keyFn,
 ) {
-  const spans: Array<{ key: string; label: string; span: number }> = []
+  const spans: Array<{ key: string; groupKey: string; label: string; span: number }> = []
+  const occurrences = new Map<string, number>()
   for (const item of items) {
     const key = keyFn(item)
     const label = labelFn(item)
     const last = spans[spans.length - 1]
-    if (last?.key === key) last.span += 1
-    else spans.push({ key, label, span: 1 })
+    if (last?.groupKey === key) last.span += 1
+    else {
+      const occurrence = occurrences.get(key) || 0
+      occurrences.set(key, occurrence + 1)
+      spans.push({ key: JSON.stringify([key, occurrence]), groupKey: key, label, span: 1 })
+    }
   }
   return spans
 }

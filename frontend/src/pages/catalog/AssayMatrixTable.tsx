@@ -37,7 +37,7 @@ export function AssayMatrixTable({
   matrix: Record<string, any>
   geneMarkers: Record<string, any>
   headerSpans: {
-    mod: Array<{ key: string; label: string; span: number }>
+    mod: Array<{ key: string; groupKey: string; label: string; span: number }>
     assayGroup: Array<{ key: string; label: string; span: number }>
     assay: Array<{ key: string; label: string; span: number }>
   }
@@ -60,7 +60,7 @@ export function AssayMatrixTable({
   const annotations = useAnnotationVisibility("matrix")
 
   return (
-    <div className="surface-panel dashboard-panel dashboard-panel--blue border-border/50 p-3">
+    <div className="surface-panel dashboard-panel catalog-matrix-panel p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
@@ -192,8 +192,8 @@ export function AssayMatrixTable({
                 <th
                   key={span.key}
                   colSpan={span.span}
-                  data-tone={index % 2 === 0 ? "brand" : "warm"}
-                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase text-primary last:border-r-0"
+                  data-tone={["rna", "wts"].includes(span.groupKey.toLowerCase()) ? "warm" : "brand"}
+                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase last:border-r-0"
                   title={span.label}
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
@@ -224,7 +224,7 @@ export function AssayMatrixTable({
                   colSpan={span.span}
                   scope="colgroup"
                   title={span.label}
-                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center font-semibold normal-case last:border-r-0"
+                  className="matrix-head-assay border-b border-r border-border px-3 py-2 text-center font-semibold normal-case last:border-r-0"
                 >
                   <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                     {span.label}

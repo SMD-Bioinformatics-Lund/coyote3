@@ -173,6 +173,33 @@ describe("PublicCatalogMatrix", () => {
     expect(vi.mocked(api.get).mock.calls).toHaveLength(calls)
   })
 
+  it("removes all previous assay headers when changing analyses with repeated assay groups", async () => {
+    const dna = ["A", "B", "A", "B"].map((assay, index) => ({
+      ...matrixPayload.columns[0], assay: `DNA ${assay}`, assay_id: assay,
+      cat: `panel::hematology::${assay}::diagnosis-${index}`, diagnosis: `Diagnosis ${index}`,
+    }))
+    const rna = ["C", "D"].map(assay => ({
+      ...matrixPayload.columns[0], mod: "rna", modality_label: "RNA", analysis: "FUSION",
+      assay: `RNA ${assay}`, assay_id: assay, cat: `rna::hematology::${assay}::base`,
+    }))
+    vi.mocked(api.get).mockResolvedValue({ data: { ...matrixPayload, columns: [...dna, ...rna] } } as never)
+    renderPage(<PublicCatalogMatrix />)
+    await screen.findByText("4 visible catalog column(s)")
+    const headers = () => within(screen.getByRole("row", { name: "Assays" })).getAllByRole("columnheader")
+    expect(headers()).toHaveLength(4)
+    const calls = vi.mocked(api.get).mock.calls.length
+    fireEvent.change(screen.getByLabelText("Gene list type"), { target: { value: "FUSION" } })
+    expect(headers().map(header => header.textContent)).toEqual(["RNA C", "RNA D"])
+    expect(screen.getByRole("columnheader", { name: "RNA" })).toHaveAttribute("colspan", "2")
+    expect(screen.queryByRole("columnheader", { name: "DNA" })).not.toBeInTheDocument()
+    for (const row of document.querySelectorAll(".catalog-matrix tbody tr")) {
+      expect(row.querySelectorAll("td")).toHaveLength(2)
+    }
+    fireEvent.change(screen.getByLabelText("Gene list type"), { target: { value: "SNV" } })
+    expect(headers().map(header => header.textContent)).toEqual(["DNA A", "DNA B", "DNA A", "DNA B"])
+    expect(vi.mocked(api.get).mock.calls).toHaveLength(calls)
+  })
+
   it("searches a gene on the server and resets pagination", async () => {
     renderPage(<PublicCatalogMatrix />)
     await screen.findByText("1 visible catalog column(s)")

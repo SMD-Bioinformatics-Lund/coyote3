@@ -51,11 +51,14 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
             gene: Optional case-insensitive gene substring.
 
         Returns:
-            Published scopes with presence cells and pagination metadata.
+            Published scopes with presence cells, current knowledgebase membership
+            for the visible genes, and pagination metadata.
         """
-        return publication_matrix(
+        matrix = publication_matrix(
             self.published_offerings(), page=page, per_page=per_page, gene=gene
         )
+        matrix["gene_markers"] = self.knowledgebase_gene_markers(matrix["genes"])
+        return matrix
 
     def published_offerings(self) -> dict:
         """Return only reviewed publication snapshots without consulting live resources."""

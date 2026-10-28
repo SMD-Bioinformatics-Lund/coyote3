@@ -106,7 +106,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByRole("region", { name: "Catalog preview" })).toBeVisible()
     await expect(page.getByLabel("Catalog heading")).toHaveCount(0)
     const preview = page.getByRole("region", { name: "Catalog preview" })
-    await expect(preview.getByRole("button", { name: "By Diagnosis" })).toBeVisible()
+    await expect(preview.getByRole("navigation", { name: "Test categories" })).toBeVisible()
     await preview.getByRole("button", { name: "View details" }).click()
     await expect(preview.getByText("TP53", { exact: true })).toBeVisible()
     await expect(preview.getByText("7-10 days", { exact: true })).toBeVisible()
@@ -127,6 +127,6 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.screenshot({ path: `/tmp/catalog-matrix-${viewport.width}.png`, fullPage: true })
     await preview.getByRole("button", { name: "Catalog", exact: true }).click()
     await preview.getByRole("button", { name: "Back to available tests" }).click()
-    await expect(preview.getByRole("button", { name: "By Diagnosis" })).toBeVisible()
+    await expect(preview.getByRole("navigation", { name: "Test categories" })).toBeVisible()
   })
 }

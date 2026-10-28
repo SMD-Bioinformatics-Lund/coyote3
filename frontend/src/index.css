@@ -128,6 +128,7 @@
   }
   .catalog-page > .surface-panel.responsive-card-padding,
   .catalog-page .catalog-sidebar,
+  .surface-panel.catalog-matrix-panel,
   .catalog-page .surface-panel.catalog-toolbar {
     border-color: color-mix(in srgb, var(--primary) 25%, var(--paper-edge));
     background: linear-gradient(145deg,
@@ -1620,20 +1621,22 @@
     background: var(--matrix-list-surface);
   }
   .catalog-matrix .matrix-head-mod {
-    background: color-mix(in srgb, var(--primary) 14%, var(--card));
-    color: var(--primary);
-    border-top: 3px solid color-mix(in srgb, var(--primary) 65%, var(--border));
+    background: var(--brand-gradient);
+    color: var(--primary-foreground);
+    border-top: 3px solid color-mix(in srgb, var(--brand-start) 65%, var(--brand-end));
   }
   .catalog-matrix .matrix-head-mod[data-tone="warm"] {
-    background: color-mix(in srgb, var(--brand-end) 14%, var(--card));
-    color: var(--foreground);
-    border-top-color: color-mix(in srgb, var(--brand-end) 65%, var(--border));
+    background: linear-gradient(135deg, var(--brand-end), var(--brand-start));
+    border-top-color: color-mix(in srgb, var(--brand-end) 65%, var(--brand-start));
   }
   .catalog-matrix .matrix-head-group {
-    background: color-mix(in srgb, var(--status-info-soft) 65%, var(--card));
+    background: color-mix(in srgb, var(--foreground) 6%, var(--paper-raised));
+  }
+  .catalog-matrix .matrix-head-assay {
+    background: color-mix(in srgb, var(--primary) 8%, var(--paper-raised));
   }
   .catalog-matrix .matrix-head-list {
-    background: color-mix(in srgb, var(--primary) 5%, var(--card));
+    background: color-mix(in srgb, var(--primary) 4%, var(--paper-raised));
   }
   .matrix-analysis-label {
     border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
