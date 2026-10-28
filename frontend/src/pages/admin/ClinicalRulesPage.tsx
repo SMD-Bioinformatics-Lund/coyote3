@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { FileUpload } from "@/components/ui/file-upload"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { shortResourceName } from "@/lib/resource-names"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { cn } from "@/lib/utils"
@@ -24,7 +26,6 @@ import {
   PanelLeftOpen,
   Plus,
   Save,
-  Search,
   Send,
   ShieldCheck,
   Trash2,
@@ -49,10 +50,10 @@ import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
 import { conditionError } from "./rule-condition-values"
 import { outputPreview } from "./rule-output-preview"
 import { RuleSetPreview } from "./RuleSetPreview"
-import { storedWidth } from "./rule-workspace-storage"
+import { useRuleWorkspaceLayout } from "@/hooks/useRuleWorkspaceLayout"
 import { RuleEditor } from "./RuleEditor"
 import { RuleHelp } from "./RuleHelp"
-import { ResizeDivider } from "./RuleWorkspaceDivider"
+import { ResizeDivider } from "@/components/admin/RuleWorkspaceDivider"
 
 export function ClinicalRulesPage() {
   const queryClient = useQueryClient()
@@ -77,11 +78,12 @@ export function ClinicalRulesPage() {
   const [importError, setImportError] = useState("")
   const [reviewerAssignee, setReviewerAssignee] = useState("")
   const [publisherAssignee, setPublisherAssignee] = useState("")
-  const [ruleListCollapsed, setRuleListCollapsed] = useState(false)
-  const [sectionsCollapsed, setSectionsCollapsed] = useState(false)
-  const [ruleListWidth, setRuleListWidth] = useState(() => storedWidth("clinical-rules-width:Resize rule-set list", 272))
-  const [sectionsWidth, setSectionsWidth] = useState(() => storedWidth("clinical-rules-width:Resize report sections", 208))
-  const [previewWidth, setPreviewWidth] = useState(() => storedWidth("clinical-rules-width:Resize text preview", 380))
+  const {
+    listCollapsed: ruleListCollapsed, setListCollapsed: setRuleListCollapsed,
+    listWidth: ruleListWidth, setListWidth: setRuleListWidth,
+    sectionsCollapsed, setSectionsCollapsed, sectionsWidth, setSectionsWidth,
+    previewWidth, setPreviewWidth,
+  } = useRuleWorkspaceLayout("clinical")
   const [historyOpen, setHistoryOpen] = useState(false)
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null)
   const [deleteDraftOpen, setDeleteDraftOpen] = useState(false)
@@ -256,7 +258,7 @@ export function ClinicalRulesPage() {
             {(["blank", "template", "import"] as CreationMode[]).map((mode) => <Button key={mode} type="button" size="sm" variant={creationMode === mode ? "default" : "outline"} onClick={() => setCreationMode(mode)}>{mode === "blank" ? "Build in UI" : mode === "template" ? "Use template" : "Import JSON"}</Button>)}
           </div>
           <div className="grid gap-3 md:grid-cols-5">
-            <label className="type-label">Assay<Input aria-label="Assay" list="clinical-rule-assays" className="mt-1" placeholder="Choose or enter planned assay ID" value={newScope.asp_id} onChange={(event) => { const assay = optionsQuery.data?.assays.find((item) => item.asp_id === event.target.value); setNewScope((current) => ({ ...current, asp_id: event.target.value, analyte: assay?.analyte || current.analyte, diagnosis_id: "base", name: newNameEdited ? current.name : generatedRuleSetName(assay, "base") })) }} /><datalist id="clinical-rule-assays">{(optionsQuery.data?.assays || []).map((assay) => <option key={assay.asp_id} value={assay.asp_id}>{assay.display_name}</option>)}</datalist></label>
+            <label className="type-label">Assay<Input aria-label="Assay" list="clinical-rule-assays" className="mt-1" placeholder="Choose or enter planned assay ID" value={newScope.asp_id} onChange={(event) => { const assay = optionsQuery.data?.assays.find((item) => item.asp_id === event.target.value); setNewScope((current) => ({ ...current, asp_id: event.target.value, analyte: assay?.analyte || current.analyte, diagnosis_id: "base", name: newNameEdited ? current.name : generatedRuleSetName(assay, "base") })) }} /><datalist id="clinical-rule-assays">{(optionsQuery.data?.assays || []).map((assay) => <option key={assay.asp_id} value={assay.asp_id}>{shortResourceName(assay, assay.asp_id)}</option>)}</datalist></label>
             <label className="type-label">Diagnosis<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={newScope.diagnosis_id} onChange={(event) => { const diagnosisId = event.target.value; const assay = optionsQuery.data?.assays.find((item) => item.asp_id === newScope.asp_id); setNewScope((current) => ({ ...current, diagnosis_id: diagnosisId, name: newNameEdited ? current.name : generatedRuleSetName(assay, diagnosisId) })) }}><option value="base">Base (base)</option>{(optionsQuery.data?.assays.find((item) => item.asp_id === newScope.asp_id)?.diagnoses || []).filter(scope => scope.diagnosis_id !== "base").map((scope) => <option key={scope.diagnosis_id} value={scope.diagnosis_id}>{scope.display_name} ({scope.diagnosis_id})</option>)}{newScope.diagnosis_id !== "base" && !optionsQuery.data?.assays.find(item => item.asp_id === newScope.asp_id)?.diagnoses?.some(item => item.diagnosis_id === newScope.diagnosis_id) && <option value={newScope.diagnosis_id}>{newScope.diagnosis_id} (planned)</option>}</select></label>
             <label className="type-label">Analyte<select className="paper-inset mt-1 w-full rounded-lg p-2 type-body" disabled={!!optionsQuery.data?.assays.some(item => item.asp_id === newScope.asp_id)} value={newScope.analyte} onChange={event => setNewScope({ ...newScope, analyte: event.target.value as "dna" | "rna" })}><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
             <label className="type-label">Language<Input className="mt-1" value={newScope.language} onChange={(event) => setNewScope({ ...newScope, language: event.target.value })} /></label>
@@ -272,7 +274,7 @@ export function ClinicalRulesPage() {
         <aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0">
           {ruleListCollapsed ? <button type="button" className="clinical-rules-rail" aria-label="Expand rule-set list" onClick={() => setRuleListCollapsed(false)}><PanelLeftOpen /><span>Rule sets</span></button> : <>
           <div className="space-y-2 border-b border-border p-3">
-            <div className="flex items-center gap-1"><div className="relative min-w-0 flex-1"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Search clinical rules" className="pl-8" placeholder="Search rules" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Button size="icon-sm" variant="ghost" title="Collapse rule-set list" aria-label="Collapse rule-set list" onClick={() => setRuleListCollapsed(true)}><PanelLeftClose /></Button></div>
+            <div className="flex items-center gap-1"><SearchInput aria-label="Search clinical rules" placeholder="Search rules" value={search} onChange={(event) => setSearch(event.target.value)} /><Button size="icon-sm" variant="ghost" title="Collapse rule-set list" aria-label="Collapse rule-set list" onClick={() => setRuleListCollapsed(true)}><PanelLeftClose /></Button></div>
             <select className="paper-inset w-full rounded-lg p-2 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All workflow states</option>{Object.entries(CLINICAL_RULE_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           </div>
           <nav className="min-h-0 flex-1 overflow-y-auto p-2" aria-label="Clinical rule sets">
@@ -288,7 +290,7 @@ export function ClinicalRulesPage() {
                 <summary className="cursor-pointer type-body-sm font-medium">Assay association: {draft.scope.asp_id} · {draft.scope.diagnosis_id}{!optionsQuery.data?.assays.some(item => item.asp_id === draft.scope.asp_id) ? " (not registered yet)" : ""}</summary>
                 <p className="my-2 type-body-sm text-muted-foreground">Keep authoring while the assay is being prepared. Register the planned assay ID or link this draft to an available assay below before review. Linking preserves this document and its revision history. Review embedded cases and any conditions containing assay IDs after changing the scope.</p>
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="type-label">Link to assay<select aria-label="Link to assay" className="paper-inset mt-1 block rounded-lg p-2 type-body" value={linkAssay} onChange={event => { setLinkAssay(event.target.value); setLinkDiagnosis("base") }}><option value="">Select assay</option>{(optionsQuery.data?.assays || []).filter(item => item.analyte === draft.scope.analyte).map(item => <option key={item.asp_id} value={item.asp_id}>{item.display_name} ({item.asp_id})</option>)}</select></label>
+                  <label className="type-label">Link to assay<select aria-label="Link to assay" className="paper-inset mt-1 block rounded-lg p-2 type-body" value={linkAssay} onChange={event => { setLinkAssay(event.target.value); setLinkDiagnosis("base") }}><option value="">Select assay</option>{(optionsQuery.data?.assays || []).filter(item => item.analyte === draft.scope.analyte).map(item => <option key={item.asp_id} value={item.asp_id} title={item.display_name}>{shortResourceName(item, item.asp_id)}</option>)}</select></label>
                   <label className="type-label">Link to diagnosis<select aria-label="Link to diagnosis" className="paper-inset mt-1 block rounded-lg p-2 type-body" value={linkDiagnosis} onChange={event => setLinkDiagnosis(event.target.value)}><option value="base">Base</option>{(optionsQuery.data?.assays.find(item => item.asp_id === linkAssay)?.diagnoses || []).filter(item => item.diagnosis_id !== "base").map(item => <option key={item.diagnosis_id} value={item.diagnosis_id}>{item.display_name}</option>)}</select></label>
                   <Button variant="outline" size="sm" disabled={!workflowReady || !linkAssay} onClick={() => saveDraft({ document: draft, generation: editGeneration.current, scope: { ...draft.scope, asp_id: linkAssay, diagnosis_id: linkDiagnosis } })}>Link assay</Button>
                 </div>
@@ -319,7 +321,7 @@ export function ClinicalRulesPage() {
                     if (starter.analysis) document.analysis_declarations[starter.analysis] = { narrative: "enabled" }
                     setSelectedBlock(document.blocks.length - 1); setSelectedRule(0)
                   })
-                }}><option value="">Choose a section…</option>{SECTION_STARTERS.filter(([, , analysis]) => !analysis || (ANALYSES[draft.scope.analyte] as readonly string[]).includes(analysis)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><p className="mt-2 text-xs text-muted-foreground">Starters add editable rules, initially disabled. Review wording and enable each rule. Introduction and closing text have no heading by default.</p><Button className="mt-2 w-full" variant="outline" size="sm" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add section</Button></>}
+                }}><option value="">Choose a section…</option>{SECTION_STARTERS.filter(([, , analysis]) => !analysis || (ANALYSES[draft.scope.analyte] as readonly string[]).includes(analysis)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><p className="mt-2 text-xs text-muted-foreground">Starters add editable rules, initially disabled. Review wording and enable each rule. Introduction and closing text have no heading by default.</p><Button className="clinical-rule-action mt-2 w-full" data-action="section" variant="outline" size="sm" onClick={() => mutateDraft((document) => document.blocks.push(newRuleBlock(document.blocks)))}><Plus /> Add section</Button></>}
                 </>}
               </aside>
               {!sectionsCollapsed && <ResizeDivider label="Resize report sections" width={sectionsWidth} setWidth={setSectionsWidth} min={160} max={360} />}
@@ -362,7 +364,7 @@ export function ClinicalRulesPage() {
                     })} /></label>
                   </div></details>}
                   {editableDraft && block.evaluation.mode === "each_item" && <label className="type-label block max-w-xs">Collection<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.evaluation.collection || "findings"} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].evaluation.collection = event.target.value as NonNullable<RuleBlock["evaluation"]["collection"]> })}><option value="findings">Findings</option><option value="hrd">HRD</option><option value="msi">MSI</option><option value="tmb">TMB</option><option value="applied_gene_lists">Applied gene lists</option><option value="tier_summaries">Tier summaries</option></select></label>}
-                  {editableDraft && <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={metadataOutput} checked={block.show_heading} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].show_heading = event.target.checked })} /> Show section heading</label>}
+                  {editableDraft && <label className="clinical-rule-action flex w-fit max-w-full items-center gap-2 rounded-lg px-2.5 py-1 text-sm" data-action="heading" data-active={block.show_heading} data-disabled={metadataOutput}><input type="checkbox" className="accent-warn" disabled={metadataOutput} checked={block.show_heading} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].show_heading = event.target.checked })} /> Show section heading</label>}
                   <div className="flex flex-wrap items-center gap-2" aria-label="Section rules">
                     {block.rules.map((item, index) => (
                       <Badge key={item.rule_id} variant={selectedRule === index ? "default" : "outline"} className={cn("max-w-full gap-0 whitespace-normal px-1 shadow-sm", selectedRule !== index && "bg-background")}>
@@ -370,7 +372,7 @@ export function ClinicalRulesPage() {
                         {editableDraft && block.rules.length > 1 && <Button className="shrink-0 rounded-full" type="button" variant="ghost" size="icon-sm" title="Remove rule" onClick={() => mutateDraft((document) => { document.blocks[selectedBlock].rules.splice(index, 1); setSelectedRule(Math.max(0, Math.min(selectedRule, document.blocks[selectedBlock].rules.length - 1))) })}><Trash2 /></Button>}
                       </Badge>
                     ))}
-                    {editableDraft && <Button className="shrink-0 rounded-full" variant="outline" size="sm" onClick={() => mutateDraft((document) => { const currentBlock = document.blocks[selectedBlock]; const allRuleIds = document.blocks.flatMap((item) => item.rules.map((itemRule) => itemRule.rule_id)); currentBlock.rules.push(newRule(currentBlock, allRuleIds)); setSelectedRule(currentBlock.rules.length - 1) })}><Plus /> Add rule</Button>}
+                    {editableDraft && <Button className="clinical-rule-action shrink-0 rounded-full" data-action="rule" variant="outline" size="sm" onClick={() => mutateDraft((document) => { const currentBlock = document.blocks[selectedBlock]; const allRuleIds = document.blocks.flatMap((item) => item.rules.map((itemRule) => itemRule.rule_id)); currentBlock.rules.push(newRule(currentBlock, allRuleIds)); setSelectedRule(currentBlock.rules.length - 1) })}><Plus /> Add rule</Button>}
                   </div>
                 </div>}
                 {rule && block ? <fieldset disabled={!editableDraft}><RuleEditor rule={rule} block={block} facts={facts} controlledValues={controlledValues} terminology={draft.terminology} sentenceTerminology={optionsQuery.data?.sentence_terminology?.[draft.scope.language]} useTierSentences={() => {

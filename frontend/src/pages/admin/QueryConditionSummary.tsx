@@ -18,7 +18,7 @@ export function QueryConditionSummary({ condition }: { condition: QueryCondition
       <div className="min-w-0"><dt className="type-label text-muted-foreground">{reference ? "Sample filter reference" : "Value"}</dt><dd className="mt-1 break-words type-supporting">{reference && isFilterReference(condition.value) ? `sample.filters → ${condition.value.key}` : values.length ? values.map((value, index) => <span key={index} className="mr-1 inline-block rounded border border-border px-1.5 py-0.5 font-mono">{typeof value === "string" ? JSON.stringify(value) : JSON.stringify(value) ?? "undefined"}</span>) : "Empty list"}</dd></div>
     </dl>
   }
-  const title = condition.type === "not" ? "NOT — invert condition" : condition.type === "elem_match" ? `Match one ${condition.field} element` : condition.type === "all" ? "AND — match all" : condition.type === "any" ? "OR — match any" : "NOR — match none"
+  const title = condition.type === "not" ? "NOT - invert condition" : condition.type === "elem_match" ? `Match one ${condition.field} element` : condition.type === "all" ? "AND - match all" : condition.type === "any" ? "OR - match any" : "NOR - match none"
   const children = condition.type === "not" ? [condition.child] : condition.type === "elem_match" ? [condition.condition] : condition.children
   return <section className="min-w-0 space-y-2 rounded-lg border border-border bg-muted/20 p-3" aria-label={title}>
     <h4 className="type-label">{title}</h4>

@@ -35,7 +35,7 @@ export function RuleSetPreview({ draft, facts, saved, canTest }: {
     {canTest ? <div className="space-y-2">
       <Input aria-label="Find preview sample" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a sample for actual values…" />
       <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={matchDiagnosis} onChange={event => { setMatchDiagnosis(event.target.checked); setSampleId("") }} /> Match rule-set diagnosis only</label>
-      <label className="type-label block">Preview sample<select className="paper-inset mt-1 w-full rounded-lg p-2 type-body" value={sampleId} onChange={event => setSampleId(event.target.value)}><option value="">Composition only — choose a sample for actual results</option>{(samples.data || []).map(sample => <option key={sample.id} value={sample.id}>{sample.name} · {sample.diagnosis_id}</option>)}</select></label>
+      <label className="type-label block">Preview sample<select className="paper-inset mt-1 w-full rounded-lg p-2 type-body" value={sampleId} onChange={event => setSampleId(event.target.value)}><option value="">Composition only - choose a sample for actual results</option>{(samples.data || []).map(sample => <option key={sample.id} value={sample.id}>{sample.name} · {sample.diagnosis_id}</option>)}</select></label>
       {samples.error && <p role="alert" className="type-body-sm text-destructive">Unable to load authorized preview samples.</p>}
     </div> : <p className="type-body-sm text-muted-foreground">Sample evaluation requires the clinical rule testing permission.</p>}
     {sampleId && canTest ? <>

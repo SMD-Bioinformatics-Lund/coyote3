@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { notifyActionError } from "@/lib/notifications"
 
 type Scope = { assay_group: string | null; asp_id: string | null; diagnosis_id: string | null; analysis: string; intent: string; modality?: string | null; family?: string | null; environment?: string | null }
@@ -37,7 +37,7 @@ export function QueryRuleSampleTestPanel({ scope, content, readOnly = false }: {
     <div className="grid gap-4 xl:grid-cols-2">
     <section className="min-w-0 space-y-3 rounded-lg border bg-background p-4" aria-label="Sample selection">
     <h3 className="type-section-title">1. Select a sample</h3>
-    <form className="flex flex-wrap gap-2" onSubmit={event => { event.preventDefault(); if (!samples.isPending && scope.assay_group !== "") samples.mutate(1) }}><Input className="min-w-0 flex-1" aria-label="Search query-rule test samples" placeholder="Sample name or identifier" value={search} onChange={event => setSearch(event.target.value)} /><Button type="submit" variant="outline" disabled={samples.isPending || scope.assay_group === ""}>Find samples</Button></form>
+    <form className="flex flex-wrap gap-2" onSubmit={event => { event.preventDefault(); if (!samples.isPending && scope.assay_group !== "") samples.mutate(1) }}><SearchInput className="flex-1" aria-label="Search query-rule test samples" placeholder="Sample name or identifier" value={search} onChange={event => setSearch(event.target.value)} /><Button type="submit" variant="outline" disabled={samples.isPending || scope.assay_group === ""}>Find samples</Button></form>
     {!page && <p className="type-supporting text-muted-foreground">Search for ready samples within this rule’s scope, then select Test to compare finding selection.</p>}
     {page && <>
       <p className="type-supporting">{page.total} samples · page {page.page}</p>

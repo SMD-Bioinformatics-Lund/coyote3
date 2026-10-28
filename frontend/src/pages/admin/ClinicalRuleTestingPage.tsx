@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { Beaker, ChevronDown, ChevronUp, CircleCheck, CircleX, Search } from "lucide-react"
+import { Beaker, ChevronDown, ChevronUp, CircleCheck, CircleX } from "lucide-react"
 
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { cn } from "@/lib/utils"
@@ -145,7 +145,7 @@ export function ClinicalRuleTestingPage() {
         <div className="grid gap-3 lg:grid-cols-[minmax(18rem,1.4fr)_auto_minmax(16rem,1fr)_auto] lg:items-end">
           <label className="type-label">Rule set<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={ruleId} onChange={(event) => { setRuleId(event.target.value); setSampleId(""); resetPreview() }}><option value="">Select rule set</option>{(rulesQuery.data?.items || []).filter((rule) => rule.status !== "retired").map((rule) => <option key={rule._id} value={rule._id}>{rule.name} · v{rule.content_version} · {rule.status}</option>)}</select></label>
           <SegmentedControl ariaLabel="Sample matching scope" value={scope} onValueChange={(value) => { setScope(value); setSampleId(""); resetPreview() }} items={[{ value: "diagnosis", label: "Assay + diagnosis" }, { value: "assay", label: "Assay only" }]} />
-          <label className="type-label">Search samples<div className="relative mt-1"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="pl-8" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Sample or case identifier" /></div></label>
+          <label className="type-label">Search samples<SearchInput className="mt-1" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Sample or case identifier" /></label>
           <Button disabled={!ruleId || !sampleId || previewMutation.isPending} onClick={() => previewMutation.mutate(false)}><Beaker /> {previewMutation.isPending && !traceOpen ? "Testing" : "Test rule set"}</Button>
         </div>
         {selectedRule && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><ClinicalRuleStatusBadge status={selectedRule.status} /><span>Testing {selectedRule.scope.asp_id} · {selectedRule.scope.diagnosis_id} · {selectedRule.scope.analyte.toUpperCase()}</span></div>}
@@ -162,7 +162,7 @@ export function ClinicalRuleTestingPage() {
           </div>
         </section>
         <section className="surface-panel min-h-80 p-4">
-          <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Generated report summary</h2>{previewMutation.data && <Badge variant="outline" className="badge-success">Read-only preview</Badge>}</div>
+          <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Generated report summary</h2>{previewMutation.data && <Badge variant="outline" className="badge-read-only-preview">Read-only preview</Badge>}</div>
           {previewMutation.error && <p role="alert" className="mt-4 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{previewMutation.error instanceof Error ? previewMutation.error.message : "Unable to generate the rule-set preview."}</p>}
           {previewMutation.data ? <>
             <div className="mt-4 space-y-3">{Object.entries(previewMutation.data.evaluation.sections).map(([section, texts], sectionIndex) => <section key={section} className={cn("rounded-lg border p-4", clinicalRuleSectionTone(sectionIndex).surface)}><h3 className="mb-2 font-semibold">{section}</h3>{texts.map((text, index) => <MarkdownText key={index} text={text} />)}</section>)}{!Object.keys(previewMutation.data.evaluation.sections).length && <MarkdownText className="rounded-lg border border-border bg-background p-4" text={previewMutation.data.summary} />}</div>

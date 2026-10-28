@@ -69,7 +69,7 @@ export function ConditionBuilder({
               onRemove={value.children.length > 1 ? () => onChange({ ...value, children: value.children.filter((_, childIndex) => childIndex !== index) }) : undefined}
             />
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><Plus /> Add condition</Button>
+          <Button type="button" className="clinical-rule-action" data-action="condition" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><Plus /> Add condition</Button>
         </div>
       )}
       {value.type === "not" && <ConditionBuilder value={value.child} facts={facts} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(child) => onChange({ ...value, child })} />}

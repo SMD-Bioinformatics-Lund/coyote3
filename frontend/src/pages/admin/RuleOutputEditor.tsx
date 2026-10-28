@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
 import {
   BookOpenCheck,
@@ -32,9 +33,9 @@ export function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; 
   return (
     <div className="space-y-2">
       <details className="rounded-lg border bg-background/70 p-3">
-        <summary className="cursor-pointer font-medium">Insert dynamic value — assay, diagnosis, gene lists or findings</summary>
+        <summary className="cursor-pointer font-medium">Insert dynamic value - assay, diagnosis, gene lists or findings</summary>
         <p className="my-2 text-sm text-muted-foreground">Choose a value to insert at the end, then move it between text parts. Gene counts come from selected lists, not the number of findings. Spaces and punctuation belong in your text parts.</p>
-        <Input aria-label="Search report values" placeholder="Search name, count, diagnosis, VAF…" value={search} onChange={event => setSearch(event.target.value)} />
+        <SearchInput aria-label="Search report values" placeholder="Search name, count, diagnosis, VAF…" value={search} onChange={event => setSearch(event.target.value)} />
         <div className="mt-2 max-h-64 space-y-3 overflow-auto">{[...new Set(facts.map(fact => fact.group))].map(group => {
           const matches = facts.filter(fact => fact.group === group && fact.kind !== "object_list" && `${fact.label} ${fact.path}`.toLowerCase().includes(search.toLowerCase()))
           return matches.length ? <section key={group}><h4 className="type-label mb-1">{group}</h4><div className="flex flex-wrap gap-1">{matches.map(fact => <Button key={fact.path} type="button" variant="outline" size="sm" title={fact.path} onClick={() => insertFact(fact)}><Plus />{fact.label}</Button>)}</div></section> : null

@@ -1,10 +1,11 @@
 import { useRef, useState, type CSSProperties } from "react"
-import { Beaker, PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react"
+import { Beaker, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
@@ -15,13 +16,14 @@ import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
 import { QueryConditionSummary } from "./QueryConditionSummary"
+import { QueryPolicyFlow, type PolicyResolution } from "./QueryPolicyFlow"
 import { RecordProvenance } from "./RecordProvenance"
 import { newQueryPredicate } from "./query-condition-types"
 import type { QueryCondition, QueryConditionCatalog } from "./query-condition-types"
 import { QueryConditionTestPanel } from "./QueryConditionTestPanel"
 import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
-import { ResizeDivider } from "./RuleWorkspaceDivider"
-import { storedWidth } from "./rule-workspace-storage"
+import { ResizeDivider } from "@/components/admin/RuleWorkspaceDivider"
+import { useRuleWorkspaceLayout } from "@/hooks/useRuleWorkspaceLayout"
 
 type Analysis = "snv" | "cnv" | "translocation" | "fusion"
 type Exception = { id: string; mode: string; condition?: QueryCondition; [key: string]: unknown }
@@ -30,7 +32,7 @@ type Content = { evidence_mode: string | null; exceptions: Exception[] | null; e
 type Draft = { name: string; reason: string; scope: Scope; content: Content }
 export type Rule = Draft & { _id: string; version: number; revision: number; status: "draft" | "approved" | "published" | "retired"; created_by: string; approved_by?: string; system_installed?: boolean }
 type Options = { groups: { id: string; name: string }[]; assays: { id: string; group: string; category: string; family?: string; diagnoses: string[] }[]; families?: { id: string; modality: string }[]; environments?: string[]; conditions?: QueryConditionCatalog }
-type Resolution = { evidence_mode: string | null; exceptions: Exception[]; lineage: { source: string; version: number | null; fields?: string[]; application?: string }[]; compiled_conditions?: { id: string; mode: string; predicate: unknown }[] }
+type Resolution = PolicyResolution
 const initial = (): Draft => ({ name: "", reason: "", scope: { assay_group: "", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic", modality: null, family: null, environment: null }, content: { evidence_mode: null, exceptions: null } })
 const fields: Record<Analysis, string[]> = {
   snv: ["genes", "consequence_terms", "filter_values", "chromosomes", "position_min", "position_max", "simple_ids", "info_fields_present", "alt_regex"],
@@ -61,21 +63,17 @@ function InfoEqualityEditor({ value, onChange }: { value: Record<string, string 
   </fieldset>
 }
 
-function PolicySummary({ title, value }: { title: string; value?: Resolution & { requires_sample_context?: boolean } }) {
+function PolicySummary({ title, value, analysis, compact = false }: { title: string; value?: Resolution; analysis: Analysis; compact?: boolean }) {
   return <section className="surface-panel rounded-lg border p-4 space-y-3">
     <h2 className="type-section-title">{title}</h2>
     {!value ? <p className="text-muted-foreground">Choose a scope and preview its policy.</p> : <>
-      <ol className="space-y-1">{value.lineage.map((row, index) => <li key={index}>{row.source}{row.version !== null ? ` · version ${row.version}` : ""}{row.fields?.length ? ` · ${row.fields.map(label).join(", ")}` : ""}</li>)}</ol>
-      {value.evidence_mode && <p>Evidence mode: <strong>{label(value.evidence_mode)}</strong></p>}
-      {value.lineage.some(row => row.application === "somatic_snv_exceptions") && <p className="type-supporting text-muted-foreground">Includes published germline exceptions in the somatic SNV workflow. The somatic evidence mode remains active.</p>}
-      <p className="type-supporting text-muted-foreground">Complete effective exception list below. Sample identity, access boundaries and the analysis’s base query still apply. Test with a sample to include its resolved filters.</p>
-      {value.requires_sample_context && <p className="type-supporting text-muted-foreground">This policy references sample.filters. Test with a sample to resolve its values; no stored values are copied into the policy.</p>}
-      {!value.exceptions.length ? <p>No additional exceptions.</p> : value.exceptions.map(rule => <div key={rule.id} className="rounded border p-3">
-        <strong>{rule.id}</strong> · {label(rule.mode)}
-        {rule.condition && <QueryConditionSummary condition={rule.condition} />}
-        <dl>{Object.entries(rule).filter(([key]) => !["id", "mode", "condition"].includes(key)).map(([key, item]) => <div key={key}><dt className="font-medium">{label(key)}</dt><dd className="break-words">{Array.isArray(item) ? item.join(", ") : typeof item === "object" ? JSON.stringify(item) : String(item)}</dd></div>)}</dl>
-      </div>)}
-      <p className="type-supporting text-muted-foreground">For the complete MongoDB query, select a sample below. Its identity, saved filters, gene lists and assay configuration are required to build the final predicate.</p>
+      {compact ? <>
+        {value.evidence_mode && <p className="type-supporting">Evidence: {label(value.evidence_mode)}</p>}
+        {value.exceptions.map(rule => <details key={rule.id}><summary className="cursor-pointer type-label">{rule.id} · {label(rule.mode)}</summary>
+          {rule.condition ? <QueryConditionSummary condition={rule.condition} /> : <pre className="overflow-auto type-supporting">{JSON.stringify(rule, null, 2)}</pre>}
+        </details>)}
+        <p className="type-supporting text-muted-foreground">Use Preview effective policy to inspect the complete flow and source settings.</p>
+      </> : <QueryPolicyFlow value={value} analysis={analysis} />}
     </>}
   </section>
 }
@@ -89,11 +87,11 @@ export function QueryRulesPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [groupFilter, setGroupFilter] = useState("")
-  const [listCollapsed, setListCollapsed] = useState(false)
-  const [listWidth, setListWidth] = useState(() => Math.min(440, Math.max(210, storedWidth("clinical-rules-width:Resize query-rule list", 300))))
-  const [previewWidth, setPreviewWidth] = useState(() => Math.min(600, Math.max(280, storedWidth("clinical-rules-width:Resize query preview", 340))))
+  const { listCollapsed, setListCollapsed, listWidth, setListWidth, previewWidth, setPreviewWidth }
+    = useRuleWorkspaceLayout("query")
   const [baseline, setBaseline] = useState<Resolution>()
   const [preview, setPreview] = useState<Resolution>()
+  const [previewTab, setPreviewTab] = useState<"draft" | "published">("draft")
   const parent = useQuery({ queryKey: ["query-rule-parent", draft.scope], enabled: draft.scope.assay_group !== "", queryFn: () => api.post<Resolution>("/admin/query-rule-sets/preview", { scope: draft.scope, content: { evidence_mode: null, exceptions: null } }).then(r => r.data) })
   const [dirty, setDirty] = useState(false)
   const previewGeneration = useRef(0)
@@ -175,7 +173,7 @@ export function QueryRulesPage() {
         {listCollapsed ? <button type="button" className="clinical-rules-rail" aria-label="Expand query-rule list" onClick={() => setListCollapsed(false)}><PanelLeftOpen /><span>Rule sets</span></button> : <>
           <div className="space-y-2 border-b border-border p-3">
             <div className="flex items-center gap-1">
-              <div className="relative min-w-0 flex-1"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Search query rules" className="pl-8" placeholder="Search rules" value={search} onChange={event => setSearch(event.target.value)} /></div>
+              <SearchInput aria-label="Search query rules" placeholder="Search rules" value={search} onChange={event => setSearch(event.target.value)} />
               <Button size="icon-sm" variant="ghost" aria-label="Collapse query-rule list" title="Collapse query-rule list" onClick={() => setListCollapsed(true)}><PanelLeftClose /></Button>
             </div>
             <label className="block type-meta text-muted-foreground">Workflow state<select aria-label="Filter query rules by workflow state" className="paper-inset mt-1 w-full rounded-lg p-2 type-body-sm text-foreground" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All workflow states</option>{["draft", "approved", "published", "retired"].map(status => <option key={status} value={status}>{label(status)}</option>)}</select></label>
@@ -216,7 +214,7 @@ export function QueryRulesPage() {
           <dl hidden={activeSection !== "scope"} className="grid gap-3 rounded-lg border bg-background p-4 sm:grid-cols-2">
             {Object.entries({ "Query ID": queryId(draft.scope), Analysis: draft.scope.analysis.toUpperCase(), Intent: label(draft.scope.intent), "Assay group": draft.scope.assay_group ?? "All groups", Family: draft.scope.family ?? "All families", Environment: draft.scope.environment ?? "Shared across environments", Assay: draft.scope.asp_id ?? "All assays", Diagnosis: draft.scope.diagnosis_id ?? "All diagnoses", ...(draft.content.evidence_mode ? { "Evidence mode": label(draft.content.evidence_mode) } : {}), Exceptions: draft.content.exceptions === null ? "Inherit parent" : draft.content.exception_mode === "extend" ? "Inherit and add" : "Replace parent list" }).map(([key, value]) => <div key={key} className="min-w-0"><dt className="type-label text-muted-foreground">{key}</dt><dd className="mt-1 break-words type-supporting">{value}</dd></div>)}
           </dl>
-          {(draft.content.exceptions === null || draft.content.exception_mode === "extend") && <PolicySummary title="Inherited policy" value={parent.data} />}
+          {(draft.content.exceptions === null || draft.content.exception_mode === "extend") && <PolicySummary title="Inherited policy" value={parent.data} analysis={draft.scope.analysis} compact />}
           {draft.content.exceptions?.map(rule => <section hidden={activeSection !== "conditions"} key={rule.id} className="space-y-3 rounded-lg border bg-background p-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold break-words">{rule.id}</h3><Badge variant="outline">{label(rule.mode)}</Badge></div>
             {rule.condition && <QueryConditionSummary condition={rule.condition} />}
@@ -239,13 +237,13 @@ export function QueryRulesPage() {
           {draft.scope.analysis === "snv" && <p className="type-supporting text-muted-foreground">Transitional SNV workflow: published germline exceptions also apply to somatic SNV selection. Test either intent’s rules against the sample’s somatic SNV results. A germline rule’s evidence mode does not replace somatic evidence settings.</p>}
           <p className="type-supporting text-muted-foreground">Policies apply in order: center, group, family, diagnosis, diagnosis and family, assay, diagnosis and assay. At each level, the selected environment overrides shared settings. Diagnosis policies can span several assays in the group.</p>
           {draft.scope.assay_group && !assays.length && !options.isLoading && <p role="status" className="type-supporting text-muted-foreground">No active assays match this group and analysis. A group-wide policy can still be defined.</p>}
-          {draft.scope.analysis === "snv" && <p className="type-supporting text-muted-foreground">{draft.content.evidence_mode === "paired" ? "Paired: require case evidence and check control evidence when present, plus population-frequency limits and eligible consequences. Records without a control remain eligible. This does not create or pair samples." : draft.content.evidence_mode === "case_only" ? "Case only: accept a genotype meeting case thresholds, without requiring a case role label or checking control evidence. Population-frequency limits and eligible consequences still apply." : draft.content.evidence_mode === "exception_only" ? "Exception only: omit the ordinary evidence branch. Only matching admission exceptions can admit findings; without them no findings are admitted." : "Inherit parent: use the nearest published ancestor’s evidence setting—assay, group, default—then the application default. Preview effective policy shows the selected sources."}</p>}
+          {draft.scope.analysis === "snv" && <p className="type-supporting text-muted-foreground">{draft.content.evidence_mode === "paired" ? "Paired: require case evidence and check control evidence when present, plus population-frequency limits and eligible consequences. Records without a control remain eligible. This does not create or pair samples." : draft.content.evidence_mode === "case_only" ? "Case only: accept a genotype meeting case thresholds, without requiring a case role label or checking control evidence. Population-frequency limits and eligible consequences still apply." : draft.content.evidence_mode === "exception_only" ? "Exception only: omit the ordinary evidence branch. Only matching admission exceptions can admit findings; without them no findings are admitted." : "Inherit parent: use the nearest published ancestor’s evidence setting-assay, group, default-then the application default. Preview effective policy shows the selected sources."}</p>}
           </div>
           <section hidden={activeSection !== "conditions"} className="space-y-3 rounded-lg border p-4" aria-label="Conditions">
           <h3 className="type-section-title">Conditions</h3>
           <label className="flex flex-col gap-1">Exception list<select className={control} value={draft.content.exceptions === null ? "inherit" : draft.content.exception_mode ?? "replace"} onChange={e => changeExceptionMode(e.target.value)}><option value="inherit">Inherit parent exceptions</option><option value="extend">Inherit and add exceptions</option><option value="replace">Replace inherited exceptions</option></select></label>
           <p className="text-muted-foreground">Inherited rules are read-only. Additions use unique identifiers and run alongside parent rules; exclusions take precedence. To redefine a parent rule, choose Replace inherited exceptions and define the complete local list.</p>
-          {(draft.content.exceptions === null || draft.content.exception_mode === "extend") && <PolicySummary title="Parent rules · read-only" value={parent.data} />}
+          {(draft.content.exceptions === null || draft.content.exception_mode === "extend") && <PolicySummary title="Parent rules · read-only" value={parent.data} analysis={draft.scope.analysis} compact />}
           {parent.isError && <p role="alert">Unable to load parent rules. Retry the policy preview before saving.</p>}
           {!options.data?.conditions && <p role="status">{options.isLoading ? "Loading condition fields…" : "Condition fields are unavailable. Refresh to load the editor."}</p>}
           {draft.content.exceptions !== null && <>
@@ -280,10 +278,13 @@ export function QueryRulesPage() {
       <ResizeDivider label="Resize query preview" width={previewWidth} setWidth={setPreviewWidth} min={280} max={600} direction={-1} />
       <aside className="min-h-0 min-w-0 space-y-4 overflow-y-auto border-t border-border p-4 xl:border-t-0" aria-label="Query policy preview">
         <h2 className="type-section-title">Effective query policy</h2>
-        <p className="type-body-sm text-muted-foreground">Compare the published policy with the selected version, including inherited conditions. Open Test rules to inspect complete MongoDB queries and finding counts for a saved version.</p>
+        <p className="type-body-sm text-muted-foreground">Follow application defaults through inherited and overridden rules to the final selection flow. Preview updates include your unsaved edits.</p>
         <Button variant="outline" disabled={draft.scope.assay_group === "" || inspect.isPending} onClick={() => inspect.mutate()}>Preview effective policy</Button>
-        <PolicySummary title="Currently published" value={baseline} />
-        <PolicySummary title={editable ? "Draft result" : "Selected version"} value={preview} />
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Policy comparison">
+          <Button size="sm" variant={previewTab === "draft" ? "default" : "outline"} aria-pressed={previewTab === "draft"} onClick={() => setPreviewTab("draft")}>{editable ? "Draft result" : "Selected version"}</Button>
+          <Button size="sm" variant={previewTab === "published" ? "default" : "outline"} aria-pressed={previewTab === "published"} onClick={() => setPreviewTab("published")}>Currently published</Button>
+        </div>
+        <PolicySummary title={previewTab === "published" ? "Currently published" : editable ? "Draft result" : "Selected version"} value={previewTab === "published" ? baseline : preview} analysis={draft.scope.analysis} />
         {selected && <details onToggle={event => setHistoryOpen(event.currentTarget.open)}><summary className="cursor-pointer type-label">Revision history</summary>{history.isLoading ? <p>Loading revisions…</p> : history.isError ? <p role="alert">Unable to verify revision history.</p> : history.data?.map(row => <details key={row.revision} className="rounded border p-3"><summary className="cursor-pointer">Revision {row.revision} · {row.action} · {row.actor} · {row.occurred_at}</summary><pre className="overflow-auto text-sm">{JSON.stringify(row.document, null, 2)}</pre></details>)}</details>}
       </aside>
     </div>

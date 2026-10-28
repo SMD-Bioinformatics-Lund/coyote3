@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { Copy, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SearchInput } from "@/components/ui/search-input"
 import { Input } from "@/components/ui/input"
 import { clinicalConditionTone } from "./clinical-rules-visuals"
 import { cn } from "@/lib/utils"
@@ -95,7 +96,7 @@ export function QueryConditionBuilder({ value, fields, catalog, onChange, depth 
   return <div className="min-w-0 overflow-hidden rounded-lg border bg-background">
     <div className={cn("flex flex-wrap items-end gap-3 border-b p-3", clinicalConditionTone(value.type === "nor" ? "not" : value.type === "elem_match" ? "collection_match" : value.type))}>
     <label className="block min-w-0 flex-1 type-label">{caption ?? "Condition logic"}<select aria-label="Condition logic" className={control} value={value.type} onChange={event => changeType(event.target.value as QueryCondition["type"])}>
-      <option value="predicate">Field condition</option><option value="all" disabled={atLimit}>AND — match all</option><option value="any" disabled={atLimit}>OR — match any</option><option value="nor" disabled={atLimit}>NOR — match none</option><option value="not" disabled={atLimit}>NOT — invert condition</option><option value="elem_match" disabled={atLimit || !arrays.length}>Match the same array element</option>
+      <option value="predicate">Field condition</option><option value="all" disabled={atLimit}>AND - match all</option><option value="any" disabled={atLimit}>OR - match any</option><option value="nor" disabled={atLimit}>NOR - match none</option><option value="not" disabled={atLimit}>NOT - invert condition</option><option value="elem_match" disabled={atLimit || !arrays.length}>Match the same array element</option>
     </select></label>
     {actions}
     </div>
@@ -103,7 +104,7 @@ export function QueryConditionBuilder({ value, fields, catalog, onChange, depth 
     {value.type === "predicate" && (() => {
       const field = available.find(item => item.path === value.field)
       return <div className="grid items-start gap-4 md:grid-cols-2">
-        <div className="min-w-0 space-y-2"><label className="type-label">Field<select aria-label="Condition field" className={control} value={value.field} onChange={event => onChange(newQueryPredicate(available.filter(item => item.path === event.target.value)))}>{available.filter(item => item.path === value.field || `${item.path} ${item.label}`.toLowerCase().includes(fieldSearch.toLowerCase())).map(item => <option key={item.path} value={item.path}>{item.label} ({item.kind.replaceAll("_", " ")})</option>)}</select></label><details><summary className="cursor-pointer type-supporting text-muted-foreground">Search stored field names</summary><Input aria-label="Search condition fields" placeholder="Search stored field names" value={fieldSearch} onChange={event => setFieldSearch(event.target.value)} /></details></div>
+        <div className="min-w-0 space-y-2"><label className="type-label">Field<select aria-label="Condition field" className={control} value={value.field} onChange={event => onChange(newQueryPredicate(available.filter(item => item.path === event.target.value)))}>{available.filter(item => item.path === value.field || `${item.path} ${item.label}`.toLowerCase().includes(fieldSearch.toLowerCase())).map(item => <option key={item.path} value={item.path}>{item.label} ({item.kind.replaceAll("_", " ")})</option>)}</select></label><details><summary className="cursor-pointer type-supporting text-muted-foreground">Search stored field names</summary><SearchInput aria-label="Search condition fields" placeholder="Search stored field names" value={fieldSearch} onChange={event => setFieldSearch(event.target.value)} /></details></div>
         <label className="type-label">Operator<select aria-label="Condition operator" className={control} value={value.operator} onChange={event => {
           const operator = event.target.value
           const next = operator === "exists" ? true : operator === "type" ? "string" : operator === "size" ? 0 : operator === "mod" ? [2, 0] : operator.startsWith("bits") ? [0] : ["in", "nin", "all"].includes(operator) ? [] : operator === "regex" ? "" : field?.kind === "boolean" ? true : ["integer", "number"].includes(field?.kind ?? "") ? 0 : ""
