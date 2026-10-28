@@ -320,6 +320,7 @@ class QueryRuleService:
         override: QueryRuleContent | None = None,
         *,
         publication: dict | None = None,
+        explain: bool = False,
     ) -> QueryRuleResolution:
         """Resolve explicit fields through group, assay and diagnosis published policies.
 
@@ -327,6 +328,8 @@ class QueryRuleService:
             scope: Exact request scope, including analysis and intent.
             override: Optional unsaved leaf policy for authoring preview only.
             publication: Candidate ancestor publication for descendant validation only.
+            explain: Include each layer's original content for a read-only policy flow.
+                Runtime resolutions omit this authoring metadata.
 
         Returns:
             Effective evidence mode, exceptions and ordered source-version lineage.
@@ -363,6 +366,16 @@ class QueryRuleService:
         lineage = [
             {"source": "default", "version": None, "fields": ["evidence_mode", "exceptions"]}
         ]
+        if explain:
+            lineage[0]["content"] = {
+                "evidence_mode": mode,
+                "exceptions": deepcopy(exceptions),
+                "exception_mode": "replace",
+            }
+            if scope.analysis == "snv":
+                lineage[0]["population_frequency_fields"] = list(
+                    baseline.population_frequency_fields
+                )
         seen = set()
 
         def compose(content, inherited):
@@ -398,6 +411,19 @@ class QueryRuleService:
         ):
             doc = QueryRuleDoc.model_validate(row)
             if override is not None and doc.scope_key == scope.key():
+                if explain:
+                    lineage.append(
+                        {
+                            "source": doc.scope_key,
+                            "version": doc.version,
+                            "revision": doc.revision,
+                            "fields": [],
+                            "superseded_by_preview": True,
+                            "name": doc.name,
+                            "scope": doc.scope.model_dump(mode="json"),
+                            "content": doc.content.model_dump(mode="json"),
+                        }
+                    )
                 continue
             if doc.scope.precedence() in seen:
                 raise api_error(409, "Ambiguous published query policy")
@@ -418,6 +444,10 @@ class QueryRuleService:
                     "exception_mode": doc.content.exception_mode,
                 }
             )
+            if explain:
+                lineage[-1]["content"] = doc.content.model_dump(mode="json")
+                lineage[-1]["name"] = doc.name
+                lineage[-1]["scope"] = doc.scope.model_dump(mode="json")
         if override is not None:
             if override.evidence_mode is not None:
                 mode = override.evidence_mode
@@ -426,13 +456,15 @@ class QueryRuleService:
             lineage.append(
                 {"source": "preview", "version": None, "exception_mode": override.exception_mode}
             )
+            if explain:
+                lineage[-1]["content"] = override.model_dump(mode="json")
         # Transitional combined SNV workflow: retain the somatic evidence branch,
         # while evaluating the independently resolved germline exceptions alongside it.
         if scope.analysis == "snv" and scope.intent == "somatic":
             germline_scope = QueryRuleScope.model_validate(
                 {**scope.model_dump(), "intent": "germline"}
             )
-            germline = self.resolve(germline_scope)
+            germline = self.resolve(germline_scope, explain=explain)
             exceptions = [
                 *exceptions,
                 *[{**item, "id": "germline__" + item["id"]} for item in germline.exceptions],

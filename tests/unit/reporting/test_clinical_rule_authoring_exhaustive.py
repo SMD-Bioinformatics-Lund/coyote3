@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -144,6 +145,29 @@ def test_reassociation_rejects_non_drafts(state):
         service.update_draft(
             "id", ClinicalRuleDraftUpdate(revision=1, scope=_document().scope), actor="author"
         )
+
+
+def test_reconfirming_draft_scope_keeps_its_content_version():
+    """Saving the current association must not allocate a new content lineage."""
+    document = _document(status="draft")
+    repository = Repository(document)
+    repository.next_content_version = Mock(side_effect=AssertionError("Unexpected new lineage"))
+    updated = governed_service(repository).update_draft(
+        "id", ClinicalRuleDraftUpdate(revision=1, scope=document.scope), actor="author"
+    )
+    assert updated["content_version"] == document.content_version
+    assert updated["revision"] == 2
+
+
+def test_review_start_rejects_a_version_removed_during_transition():
+    """A disappearance between validation and transition must not create a review event."""
+    repository = Repository(_document(status="submitted"))
+    repository.document["review"] = {"clinical_reviewer": "reviewer"}
+    repository.get = Mock(side_effect=[deepcopy(repository.document), None])
+    with pytest.raises(AppError) as failure:
+        governed_service(repository).start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    assert failure.value.status_code == 404
+    assert repository.document["status"] == "submitted"
 
 
 @pytest.mark.parametrize("failure", ["missing", "inactive", "analyte", "diagnosis"])

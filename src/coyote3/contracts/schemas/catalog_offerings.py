@@ -46,6 +46,7 @@ class CatalogOfferingDoc(_StrictDocBase):
     family: str
     assay_id: str
     assay_label: str
+    assay_display_name: str = ""
     description: str = ""
     analysis: list[str]
     price: CatalogPriceDoc | None = None

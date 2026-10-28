@@ -693,9 +693,10 @@ class ClinicalRuleFactsPayload(_StrictModel):
 
 
 class ClinicalRuleAssayOption(_StrictModel):
-    """Assay identity, label, and analyte offered to rule authors."""
+    """Assay identity, short and full labels, and analyte offered to rule authors."""
 
     asp_id: str
+    name: str
     display_name: str
     analyte: Literal["dna", "rna"]
     diagnoses: list[dict[str, str]] = Field(default_factory=list)

@@ -19,6 +19,8 @@ def test_gene_list_form_places_diagnosis_after_its_scope_prerequisites():
     form = build_managed_form(MANAGED_RESOURCE_SPECS["isgl"])
     assert "diagnosis" not in form["sections"]["list identity"]
     assert form["sections"]["clinical scope"] == ["asp_groups", "asp_ids", "diagnosis"]
+    assert "tables, dropdowns, filters" in form["fields"]["name"]["help"]
+    assert "cards and detail headings" in form["fields"]["displayname"]["help"]
 
 
 def test_gene_list_ownership_is_not_an_editable_installation_choice():

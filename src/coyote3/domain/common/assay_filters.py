@@ -240,6 +240,7 @@ def create_assay_group_map(
         assay_group_map[group].append(
             {
                 "asp_id": assay.get("asp_id"),
+                "name": assay.get("name"),
                 "display_name": assay.get("display_name"),
                 "asp_category": assay.get("asp_category"),
             }

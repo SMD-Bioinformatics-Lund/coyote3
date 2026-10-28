@@ -528,7 +528,8 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     supported_analyses: list[str] | None = None
     display_name: str
     name: str | None = Field(
-        default=None, description="Optional short assay name for report wording."
+        default=None,
+        description="Optional short assay name for tables, selectors, filters, badges and report values.",
     )
     description: str | None = None
     igv: AspIgvDoc | None = None

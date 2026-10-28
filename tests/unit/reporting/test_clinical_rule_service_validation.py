@@ -146,11 +146,13 @@ def test_rendered_summary_handles_none_empty_heading_and_unheaded_sections() -> 
     ).evaluate(aspc=_configuration(_document(status="published", active=True)), context=_context())
     evaluation.sections["Empty"] = []
     evaluation.sections["Plain"] = ["No heading"]
+    evaluation.sections["clinical_question"] = ["Metadata belongs in the report header"]
     evaluation.section_headings["Plain"] = False
     text = rendered_summary(evaluation)
     assert "## Findings" in text
     assert "No heading" in text
     assert "## Plain" not in text
+    assert "Metadata belongs" not in text
 
 
 @pytest.mark.parametrize("snapshot", [None, [], "release-id"])

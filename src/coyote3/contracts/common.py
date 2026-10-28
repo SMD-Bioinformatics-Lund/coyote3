@@ -67,6 +67,7 @@ class GeneCohortAssay(GeneCohortBreakdown):
 
     asp_id: str
     display_name: str
+    name: str | None = None
     asp_group: str | None = None
 
 

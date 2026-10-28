@@ -26,6 +26,7 @@ from coyote3.contracts.schemas.clinical_rules import (
 )
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
+from coyote3.domain.common.resource_names import short_resource_name
 
 
 def _now() -> datetime:
@@ -155,6 +156,7 @@ class ClinicalRuleAuthoringService:
                 {
                     "asp_id": asp_id,
                     "display_name": str(panel.get("display_name") or asp_id),
+                    "name": short_resource_name(panel, asp_id),
                     "analyte": analyte,
                     "diagnoses": [
                         {

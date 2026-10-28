@@ -201,6 +201,21 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         if field_name in fields:
             fields[field_name].update(deepcopy(override))
 
+    display_name_fields = {"display_name", "displayname"} & fields.keys()
+    if "name" in fields and display_name_fields:
+        fields["name"]["help"] = (
+            "Short name used in tables, dropdowns, filters and compact badges. "
+            "Use Display name for the full name shown on cards and detail headings."
+        )
+    for field_name in display_name_fields:
+        fields[field_name]["help"] = "Full name shown on cards and detail headings. " + (
+            "Tables, dropdowns and filters prefer Name; this full name is the fallback "
+            "when no short name is set."
+            if "name" in fields
+            else "This resource has no separate short name, so its display name is "
+            "also used in tables and dropdowns."
+        )
+
     identity_field = {
         "asp": "asp_id",
         "isgl": "isgl_id",

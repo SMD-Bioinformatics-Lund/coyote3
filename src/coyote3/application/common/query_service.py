@@ -888,6 +888,7 @@ class CommonQueryService:
                 {
                     "asp_id": asp_id,
                     "display_name": asp.get("display_name") or asp_id,
+                    "name": asp.get("name"),
                     "asp_group": asp.get("asp_group"),
                     "profiled_samples": len(assay_samples),
                     "finding_samples": finding_count,

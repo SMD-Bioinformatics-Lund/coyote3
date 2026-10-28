@@ -190,7 +190,7 @@ class UserManagementService:
                         str(group).lower(): [
                             {
                                 "value": panel["asp_id"],
-                                "label": f"{panel['asp_id']} — {panel.get('display_name') or panel['asp_id']}",
+                                "label": f"{panel['asp_id']} - {panel.get('display_name') or panel['asp_id']}",
                             }
                             for panel in panels
                             if panel.get("asp_id")

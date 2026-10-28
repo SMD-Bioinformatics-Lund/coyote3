@@ -718,12 +718,14 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
         {
             "asp_id": "dna_a",
             "display_name": "DNA A",
+            "name": "DNA A",
             "analyte": "dna",
             "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
         },
         {
             "asp_id": "rna_b",
             "display_name": "RNA B",
+            "name": "RNA B",
             "analyte": "rna",
             "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
         },

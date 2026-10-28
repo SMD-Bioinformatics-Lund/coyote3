@@ -237,6 +237,7 @@ class ASPRepository(BaseRepository):
             query["$or"] = [
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
                 {"display_name": {"$regex": pattern, "$options": "i"}},
+                {"name": {"$regex": pattern, "$options": "i"}},
                 {"asp_group": {"$regex": pattern, "$options": "i"}},
                 {"asp_family": {"$regex": pattern, "$options": "i"}},
                 {"asp_category": {"$regex": pattern, "$options": "i"}},
@@ -489,6 +490,7 @@ class ASPRepository(BaseRepository):
             query["asp_id"] = {"$in": asp_ids}
         projection = {
             "asp_id": 1,
+            "name": 1,
             "display_name": 1,
             "asp_group": 1,
             "asp_category": 1,

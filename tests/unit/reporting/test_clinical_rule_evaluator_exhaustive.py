@@ -642,3 +642,73 @@ def test_evaluator_rejects_mixed_heading_modes_at_runtime() -> None:
     document.blocks[1].section = "First"
     with pytest.raises(ValueError, match="mixes heading modes"):
         ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses={"SNV"})
+
+
+@pytest.mark.parametrize("presentation", ["bullet", "continue"])
+def test_metadata_rejects_list_and_sentence_continuation_presentation(presentation):
+    """Report metadata must remain one paragraph in validation and runtime evaluation."""
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+
+    rule = {**_rule("question", "Synthetic question"), "presentation": presentation}
+    document = _document(
+        [_block(section="clinical_question", analysis=None, heading=False, rules=[rule])]
+    )
+    assert any("requires paragraph" in error for error in validate_rule_set(document).errors)
+    with pytest.raises(ValueError, match="requires paragraph"):
+        ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses={"SNV"})
+
+
+def test_metadata_rejects_per_finding_scope_and_multiple_outputs():
+    """A question is report-wide and cannot silently choose between competing outputs."""
+    from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+
+    per_finding = _document(
+        [_block(section="clinical_question", mode="each_finding", heading=True)]
+    )
+    assert any("must evaluate once" in error for error in validate_rule_set(per_finding).errors)
+    document = _document(
+        [
+            _block(
+                section="clinical_question",
+                analysis=None,
+                heading=False,
+                rules=[
+                    _rule("first", "First question"),
+                    {**_rule("second", "Second question"), "order": 20},
+                ],
+            )
+        ]
+    )
+    assert any(
+        "allows overlapping conditions" in warning
+        for warning in validate_rule_set(document).warnings
+    )
+    with pytest.raises(ValueError, match="permits at most one output"):
+        ClinicalRuleEvaluator().evaluate(_context(), document, reporting_analyses={"SNV"})
+
+
+@pytest.mark.parametrize("fallback", [True, False])
+def test_strict_alternatives_warn_about_a_fallback_or_identical_conditions(fallback):
+    """Strict alternatives expose overlap before an ambiguous clinical case is evaluated."""
+    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
+
+    condition = {"type": "predicate", "fact": "sample.paired", "operator": "eq", "value": False}
+    document = _document(
+        [
+            _block(
+                strategy="at_most_one",
+                rules=[
+                    _rule("first", "First", condition=condition),
+                    {
+                        **_rule("second", "Second", condition=None if fallback else condition),
+                        "order": 20,
+                    },
+                ],
+            )
+        ]
+    )
+    assert any(
+        "potentially overlapping" in warning for warning in validate_rule_set(document).warnings
+    )

@@ -827,6 +827,9 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "retired_reason": {"readonly": True, "hidden_mode": ["create"]},
     },
     "role": {
+        "name": {
+            "help": "Stable role identifier used in assignments and references. Label is its readable name."
+        },
         "color": {
             "display_type": "color",
             "placeholder": "#4f46e5",

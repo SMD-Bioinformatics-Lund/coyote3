@@ -21,6 +21,7 @@ from coyote3.config.constants import DIAGNOSIS_BASE_ID
 from coyote3.contracts.authoring.resources import managed_resource_spec
 from coyote3.domain.common.assay_filters import create_assay_group_map
 from coyote3.domain.common.errors import api_error
+from coyote3.domain.common.resource_names import short_resource_name
 
 
 class IsglService:
@@ -121,7 +122,7 @@ class IsglService:
             option_map[str(group).lower()] = [
                 {
                     "value": panel.get("asp_id"),
-                    "label": panel.get("display_name") or panel.get("asp_id"),
+                    "label": short_resource_name(panel, str(panel["asp_id"])),
                     "category": str(group),
                 }
                 for panel in panels

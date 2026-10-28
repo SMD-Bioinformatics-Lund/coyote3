@@ -28,6 +28,7 @@ from coyote3.contracts.schemas.public_catalog import (
 from coyote3.contracts.schemas.registry import normalize_collection_document
 from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
 from coyote3.domain.common.errors import api_error
+from coyote3.domain.common.resource_names import short_resource_name
 
 
 class PublicAssayCatalogManagementService:
@@ -148,7 +149,7 @@ class PublicAssayCatalogManagementService:
                 [
                     {
                         "asp_id": item.get("asp_id"),
-                        "label": item.get("display_name") or item.get("asp_id"),
+                        "label": short_resource_name(item, str(item["asp_id"])),
                         "category": item.get("asp_category"),
                         "family": item.get("asp_family"),
                         "group": item.get("asp_group"),

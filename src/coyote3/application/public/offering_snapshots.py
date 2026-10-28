@@ -6,6 +6,7 @@ from typing import Any
 from coyote3.contracts.schemas.catalog_offerings import CatalogOfferingDoc
 from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
 from coyote3.domain.common.errors import api_error
+from coyote3.domain.common.resource_names import full_resource_name, short_resource_name
 
 LIST_KEYS = {
     "SNV": "snvlists",
@@ -143,11 +144,8 @@ def build_offering_snapshot(
                 modality=panel["asp_category"],
                 family=panel["asp_family"],
                 assay_id=panel["asp_id"],
-                assay_label=(
-                    str(panel.get("name") or "").strip()
-                    or str(panel.get("display_name") or "").strip()
-                    or panel["asp_id"]
-                ),
+                assay_label=short_resource_name(panel, panel["asp_id"]),
+                assay_display_name=full_resource_name(panel, panel["asp_id"]),
                 description=entry.get("description") or "",
                 analysis=analyses,
                 price=entry.get("price"),

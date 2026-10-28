@@ -245,6 +245,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
     panel = {
         "asp_id": "hema_gmsv1",
         "display_name": "Hematology GMSv1",
+        "name": "HEM v1",
         "asp_group": "hematology",
         "asp_category": "dna",
         "asp_family": "panel-dna",
@@ -271,7 +272,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
     payload = service.create_context_payload(category="DNA", actor_username="actor")
     form = payload["form"]
 
-    assert form["fields"]["asp_id"]["options"] == ["hema_gmsv1"]
+    assert form["fields"]["asp_id"]["options"] == [{"value": "hema_gmsv1", "label": "HEM v1"}]
     assert form["fields"]["analysis_types"]["options_by_field"]["values"]["hema_gmsv1"]
     assert form["fields"]["diagnosis_id"]["options_by_field"]["values"]["hema_gmsv1"] == [
         {"value": "base", "label": "Base"},
@@ -283,9 +284,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         "environment": "testing",
     }
     edit_form = service.context_payload(assay_id="configuration")["form"]
-    assert edit_form["fields"]["asp_id"]["options"] == [
-        {"value": "hema_gmsv1", "label": "Hematology GMSv1"}
-    ]
+    assert edit_form["fields"]["asp_id"]["options"] == [{"value": "hema_gmsv1", "label": "HEM v1"}]
     for field in ("asp_id", "diagnosis_id", "environment"):
         assert edit_form["fields"][field]["readonly_mode"] == ["edit"]
 

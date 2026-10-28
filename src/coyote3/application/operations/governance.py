@@ -207,7 +207,7 @@ class QueryRules:
             """Preserve scope validation before resolving candidate policy content."""
             service = self._service()
             service.validate_scope(request.scope)
-            return deepcopy(service.resolve(request.scope, request.content))
+            return deepcopy(service.resolve(request.scope, request.content, explain=True))
 
         return self._runtime.execute("query_rules.preview", ("query_rules:view",), read)
 

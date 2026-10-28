@@ -350,11 +350,11 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 return samples
             elif samples and reload:
                 app_obj.logger.debug(
-                    "[SAMPLES CACHE HIT] %s — but reloading from DB since reload is set to True.",
+                    "[SAMPLES CACHE HIT] %s - but reloading from DB since reload is set to True.",
                     cache_key,
                 )
             else:
-                app_obj.logger.debug("[SAMPLES CACHE MISS] %s — fetching from DB.", cache_key)
+                app_obj.logger.debug("[SAMPLES CACHE MISS] %s - fetching from DB.", cache_key)
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(

@@ -154,6 +154,57 @@ def test_default_and_field_inheritance(service):
     assert sibling.exceptions == [exception]
 
 
+def test_policy_explanation_keeps_replaced_content_without_changing_runtime(service):
+    """Show original source rules while keeping runtime resolutions unchanged."""
+    parent_rule = {"id": "parent", "mode": "exclude", "genes": ["TP53"]}
+    release(service, evidence_mode="case_only", exceptions=[parent_rule])
+    release(service, scope(asp_id="panel"), exceptions=[])
+    target = scope(asp_id="panel", diagnosis_id="myeloid")
+    override = QueryRuleContent(evidence_mode="paired", exceptions=None)
+    runtime = service.resolve(target, override)
+    explained = service.resolve(target, override, explain=True)
+    assert explained.evidence_mode == runtime.evidence_mode == "paired"
+    assert explained.exceptions == runtime.exceptions == []
+    assert all("content" not in layer for layer in runtime.lineage)
+    layers = explained.lineage
+    assert layers[0]["content"]["evidence_mode"] == "paired"
+    assert "gnomad_frequency" in layers[0]["population_frequency_fields"]
+    assert layers[1]["content"]["evidence_mode"] == "case_only"
+    assert layers[1]["content"]["exceptions"] == [parent_rule]
+    assert layers[2]["content"]["exceptions"] == []
+    assert layers[3]["source"] == "preview"
+    assert layers[3]["content"]["exceptions"] is None
+    layers[1]["content"]["exceptions"].clear()
+    assert service.resolve(scope()).exceptions == [parent_rule]
+
+
+def test_policy_explanation_preserves_extensions_and_separate_germline_branch(service):
+    """Retain additive rules and original germline IDs in explanation layers."""
+    first = {"id": "first", "mode": "exclude", "genes": ["TP53"]}
+    second = {"id": "second", "mode": "admit", "genes": ["CEBPA"]}
+    release(service, exceptions=[first])
+    release(service, scope(asp_id="panel"), exceptions=[second], exception_mode="extend")
+    release(service, scope(intent="germline"), exceptions=[second])
+    result = service.resolve(scope(asp_id="panel"), explain=True)
+    assert [rule["id"] for rule in result.exceptions] == ["first", "second", "germline__second"]
+    assert result.lineage[2]["content"]["exception_mode"] == "extend"
+    germline = [row for row in result.lineage if row.get("application") == "somatic_snv_exceptions"]
+    assert germline[-1]["content"]["exceptions"][0]["id"] == "second"
+
+
+def test_policy_explanation_shows_published_leaf_replaced_by_inheritance(service):
+    """Keep the old leaf visible even when the new version inherits its ancestors."""
+    release(service, evidence_mode="case_only")
+    target = scope(asp_id="panel")
+    release(service, target, evidence_mode="exception_only", exceptions=[])
+    result = service.resolve(target, QueryRuleContent(), explain=True)
+    assert result.evidence_mode == "case_only"
+    leaf = result.lineage[2]
+    assert leaf["superseded_by_preview"] is True
+    assert leaf["content"]["evidence_mode"] == "exception_only"
+    assert result.lineage[-1]["content"]["evidence_mode"] is None
+
+
 def test_somatic_snv_composes_germline_exceptions_without_replacing_evidence(service):
     release(service, evidence_mode="case_only", exceptions=[])
     parent = {"id": "marker", "mode": "admit", "filter_values": ["GERMLINE"]}

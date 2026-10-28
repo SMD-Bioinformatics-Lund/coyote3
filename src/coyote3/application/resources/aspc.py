@@ -37,6 +37,7 @@ from coyote3.config.loaders.filter_flags import filter_flag_options
 from coyote3.contracts.authoring.resources import aspc_spec_for_category
 from coyote3.domain.common.assay_capabilities import supported_assay_analyses
 from coyote3.domain.common.errors import api_error
+from coyote3.domain.common.resource_names import short_resource_name
 from coyote3.domain.common.sample_filters import normalize_sample_filters
 from coyote3.domain.filtering.capabilities import (
     filter_section_for_analysis,
@@ -428,7 +429,14 @@ class AspcService:
                     panel,
                     category=form_category,
                 )
-        form["fields"]["asp_id"]["options"] = valid_assay_ids
+        form["fields"]["asp_id"]["options"] = [
+            {
+                "value": str(panel["asp_id"]),
+                "label": short_resource_name(panel, str(panel["asp_id"])),
+            }
+            for panel in assay_panels
+            if panel.get("asp_id") in valid_assay_ids
+        ]
         form["fields"]["analysis_types"]["options_by_field"] = {
             "field": "asp_id",
             "values": analysis_options_by_asp,
@@ -465,7 +473,7 @@ class AspcService:
         form["fields"]["asp_id"]["options"] = [
             {
                 "value": str(assay_config["asp_id"]),
-                "label": str((panel or {}).get("display_name") or assay_config["asp_id"]),
+                "label": short_resource_name(panel or {}, str(assay_config["asp_id"])),
             }
         ]
         for field in ("asp_id", "diagnosis_id", "environment"):

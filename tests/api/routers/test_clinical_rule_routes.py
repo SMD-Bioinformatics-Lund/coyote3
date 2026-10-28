@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
 from api.interfaces.http.v1.admin import clinical_rules as rules
 from coyote3.application.operations import ApplicationRuntime, ClinicalRules
+from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
@@ -58,7 +62,14 @@ def test_list_rule_sets_passes_filters_and_pagination(monkeypatch) -> None:
 
 def test_authoring_options_are_loaded_from_the_service() -> None:
     expected = {
-        "assays": [{"asp_id": "hema_gmsv1", "display_name": "Hematology", "analyte": "dna"}]
+        "assays": [
+            {
+                "asp_id": "hema_gmsv1",
+                "name": "Hematology",
+                "display_name": "Hematology",
+                "analyte": "dna",
+            }
+        ]
     }
 
     assert (
@@ -68,6 +79,46 @@ def test_authoring_options_are_loaded_from_the_service() -> None:
         )
         == expected
     )
+
+
+def test_authoring_options_http_response_preserves_assay_short_name() -> None:
+    """Real authoring-service choices serialize through the endpoint's strict response model."""
+    service = ClinicalRuleAuthoringService(
+        object(),
+        assay_panel_repository=SimpleNamespace(
+            get_all_asps=lambda **kwargs: [
+                {
+                    "asp_id": "synthetic_assay",
+                    "name": "Synthetic assay",
+                    "display_name": "Synthetic assay - extended description",
+                    "asp_category": "dna",
+                }
+            ],
+        ),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *args, **kwargs: []),
+    )
+    app = FastAPI()
+    app.include_router(rules.router)
+    route = next(
+        route for route in rules.router.routes if route.path.endswith("/authoring-options")
+    )
+    for dependency in route.dependant.dependencies:
+        if dependency.name == "_user":
+            app.dependency_overrides[dependency.call] = fx.api_user
+        elif dependency.name == "service":
+            app.dependency_overrides[dependency.call] = lambda: _operations(fx.api_user(), service)
+    with TestClient(app) as client:
+        response = client.get("/api/v1/admin/clinical-rule-sets/authoring-options")
+    assert response.status_code == 200
+    assert response.json()["assays"] == [
+        {
+            "asp_id": "synthetic_assay",
+            "name": "Synthetic assay",
+            "display_name": "Synthetic assay - extended description",
+            "analyte": "dna",
+            "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
+        }
+    ]
 
 
 def test_revision_routes_return_immutable_history(monkeypatch) -> None:

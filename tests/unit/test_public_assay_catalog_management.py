@@ -35,7 +35,13 @@ def test_published_assay_labels_prefer_short_name_then_display_name_then_id(
     service.assay_panel_repository.get_all_asps = lambda **kwargs: panels
     publication = service.preview_offerings(content(), actor="author")
     assert publication["offerings"][0]["assay_label"] == expected
+    assert publication["offerings"][0]["assay_display_name"] == (
+        display_name.strip() or (short_name or "").strip() or panels[0]["asp_id"]
+    )
     assert publication_matrix(publication)["columns"][0]["assay"] == expected
+    column = publication_matrix(publication)["columns"][0]
+    assert column["assay_id"] == panels[0]["asp_id"]
+    assert column["diagnosis_id"] == publication["offerings"][0]["diagnosis_id"]
 
 
 def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(service):

@@ -1432,7 +1432,7 @@ export type AssaySpecificPanelsDoc = {
     /**
      * Name
      *
-     * Optional short assay name for report wording.
+     * Optional short assay name for tables, selectors, filters, badges and report values.
      */
     name?: string | null;
     /**
@@ -1685,6 +1685,10 @@ export type CatalogOfferingDoc = {
      * Analysis
      */
     analysis: Array<string>;
+    /**
+     * Assay Display Name
+     */
+    assay_display_name?: string;
     /**
      * Assay Id
      */
@@ -2139,7 +2143,7 @@ export type ClinicalRuleAnyOutput = {
 /**
  * ClinicalRuleAssayOption
  *
- * Assay identity, label, and analyte offered to rule authors.
+ * Assay identity, short and full labels, and analyte offered to rule authors.
  */
 export type ClinicalRuleAssayOption = {
     /**
@@ -2160,6 +2164,10 @@ export type ClinicalRuleAssayOption = {
      * Display Name
      */
     display_name: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -5171,6 +5179,10 @@ export type GeneCohortAssay = {
      * Finding Samples
      */
     finding_samples: number;
+    /**
+     * Name
+     */
+    name?: string | null;
     /**
      * Prevalence Percent
      */

@@ -22,6 +22,7 @@ export type FactDefinition = {
 
 export type ClinicalRuleAssayOption = {
   asp_id: string
+  name?: string
   display_name: string
   analyte: "dna" | "rna"
   diagnoses?: { diagnosis_id: string; display_name: string }[]
