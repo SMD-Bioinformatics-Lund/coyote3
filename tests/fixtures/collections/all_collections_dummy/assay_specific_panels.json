@@ -15,6 +15,7 @@
       "TMB"
     ],
     "display_name": "Hema GMS v1",
+    "name": null,
     "description": "Demo DNA assay panel for first-run validation",
     "igv": null,
     "expected_files": [
@@ -78,6 +79,7 @@
       "QC"
     ],
     "display_name": "Demo RNA WTS",
+    "name": null,
     "description": "Demo RNA WTS assay panel for first-run validation",
     "igv": null,
     "expected_files": [

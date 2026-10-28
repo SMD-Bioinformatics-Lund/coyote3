@@ -20,6 +20,7 @@
           "PGX"
         ],
         "display_name": "Synthetic draft assay",
+        "name": null,
         "description": null,
         "igv": null,
         "expected_files": [

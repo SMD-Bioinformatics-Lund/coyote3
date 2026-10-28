@@ -73,7 +73,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -162,7 +162,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -251,7 +251,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -340,7 +340,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -429,7 +429,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -477,7 +477,7 @@
         "FUSION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -529,7 +529,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -622,7 +622,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -711,7 +711,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -763,7 +763,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -856,7 +856,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -906,7 +906,7 @@
         "FUSION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -999,7 +999,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1049,7 +1049,7 @@
         "FUSION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1142,7 +1142,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1235,7 +1235,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1328,7 +1328,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1421,7 +1421,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1514,7 +1514,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1607,7 +1607,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1700,7 +1700,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1793,7 +1793,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1886,7 +1886,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -1979,7 +1979,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2072,7 +2072,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2122,7 +2122,7 @@
         "FUSION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2172,7 +2172,7 @@
         "FUSION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2226,7 +2226,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2280,7 +2280,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2373,7 +2373,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2466,7 +2466,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2559,7 +2559,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2652,7 +2652,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2706,7 +2706,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2760,7 +2760,7 @@
         "CLASSIFICATION",
         "QC"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2853,7 +2853,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -2946,7 +2946,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -3039,7 +3039,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",
@@ -3132,7 +3132,7 @@
         "MSI",
         "TMB"
       ],
-      "report_header": "SYNTHETIC — NOT FOR CLINICAL USE",
+      "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
       "report_description": "Workflow verification",
       "language": "en",

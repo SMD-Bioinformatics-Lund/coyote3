@@ -16,7 +16,7 @@
     "sample_oid": "4878e6d12fc826101d3917f6",
     "sample_name": "DEMO_MYELOID",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {
@@ -44,7 +44,7 @@
     "sample_oid": "a7b64d012ad9bb1b21076104",
     "sample_name": "DEMO_MYELOID_MISSING",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {
@@ -72,7 +72,7 @@
     "sample_oid": "119ffba3832c12b4165f46dd",
     "sample_name": "DEMO_FUSION",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {
@@ -100,7 +100,7 @@
     "sample_oid": "5208ff7c3d173fcd722aac03",
     "sample_name": "DEMO_WTS",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {
@@ -128,7 +128,7 @@
     "sample_oid": "2bc12c9832e8356c4d92a49d",
     "sample_name": "DEMO_GROUP_DNA",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {
@@ -156,7 +156,7 @@
     "sample_oid": "1fa75a28b581f1e6a53cce3d",
     "sample_name": "DEMO_GROUP_RNA",
     "author": "demo.reviewer",
-    "text": "Synthetic sample comment — hidden example",
+    "text": "Synthetic sample comment - hidden example",
     "hidden": true,
     "hidden_by": "demo.reviewer",
     "time_created": {

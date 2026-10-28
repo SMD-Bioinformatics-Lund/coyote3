@@ -297,7 +297,7 @@ def review_examples(db):
                         sample_oid=sid,
                         sample_name=name,
                         author="demo.reviewer",
-                        text="Synthetic sample comment" + (" — hidden example" if hidden else ""),
+                        text="Synthetic sample comment" + (" - hidden example" if hidden else ""),
                         hidden=hidden,
                         hidden_by="demo.reviewer" if hidden else None,
                         time_created=now,

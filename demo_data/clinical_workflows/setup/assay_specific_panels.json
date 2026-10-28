@@ -5,6 +5,7 @@
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "demo-hematology_gmsv1 (synthetic)",
+    "name": "Demo HEM v1",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -42,6 +43,7 @@
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "demo-myeloid_gmsv1 (synthetic)",
+    "name": "Demo Myeloid v1",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -79,6 +81,7 @@
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "demo-solid_gmsv3 (synthetic)",
+    "name": "Demo Solid v3",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -116,6 +119,7 @@
     "asp_family": "wgs",
     "asp_category": "dna",
     "display_name": "demo-tumwgs-hema (synthetic)",
+    "name": "Demo HEM WGS",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -153,6 +157,7 @@
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "demo-lymphoid_gmsv5 (synthetic)",
+    "name": "Demo Lymphoid v5",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -190,6 +195,7 @@
     "asp_family": "panel-rna",
     "asp_category": "rna",
     "display_name": "demo-gms_rnafusionv5 (synthetic)",
+    "name": "Demo Fusion v5",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -222,6 +228,7 @@
     "asp_family": "wts",
     "asp_category": "rna",
     "display_name": "demo-wts-hema (synthetic)",
+    "name": "Demo HEM WTS",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -256,6 +263,7 @@
     "asp_family": "wgs",
     "asp_category": "dna",
     "display_name": "demo-tumwgs-solid (synthetic)",
+    "name": "Demo Solid WGS",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -293,6 +301,7 @@
     "asp_family": "wts",
     "asp_category": "rna",
     "display_name": "demo-wts-solid (synthetic)",
+    "name": "Demo Solid WTS",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -327,6 +336,7 @@
     "asp_family": "panel-dna",
     "asp_category": "dna",
     "display_name": "demo-hematology-training (synthetic)",
+    "name": "Demo HEM training",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
@@ -364,6 +374,7 @@
     "asp_family": "panel-rna",
     "asp_category": "rna",
     "display_name": "demo-rna-training (synthetic)",
+    "name": "Demo RNA training",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
     "covered_genes": [
       "TP53",
