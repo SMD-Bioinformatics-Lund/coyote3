@@ -83,6 +83,28 @@ Coyote3 software project rather than the deploying organization.
 
 ## Swedac accreditation artwork
 
+For Docker deployments, `organization.accreditation_logo` may initially contain
+an absolute path to an SVG, PNG, or JPEG on the Docker host:
+
+```toml
+[organization]
+accreditation_logo = "/srv/branding/swedac.svg"
+```
+
+Before `up`, `create`, `start`, or `run`, `scripts/deployment/compose-with-version.sh`
+copies that file into `logos/` inside the mounted center configuration directory.
+It rewrites the host's `contact.toml` to a relative path such as
+`logos/accreditation-<sha256>.svg`, which the container resolves under
+`/app/center-config`. Existing manifest checksums are updated for the contact file
+and copied logo. The host user running the wrapper needs write access to the center
+directory; the container mount remains read-only. The original image is unchanged.
+Empty and relative settings are left unchanged on subsequent runs. To replace the
+image, set the absolute host path again before recreating the containers.
+
+This preparation runs on the host, before container creation. A direct Docker build
+or direct `docker compose` command does not perform it; use the wrapper. Missing
+source files or unsupported file extensions stop preparation.
+
 For issued reports, obtain the center's complete accreditation symbol from
 [Swedac Mina sidor](https://minasidor.swedac.se/). Swedac supplies each accredited
 organization's symbol with its number and standard. Store that original inside

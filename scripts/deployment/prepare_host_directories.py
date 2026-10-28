@@ -3,11 +3,96 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import stat
 import sys
+import tempfile
+import tomllib
 from pathlib import Path
+
+
+def prepare_accreditation_logo(directory: Path) -> None:
+    """Copy an absolute host logo into the mounted center and rewrite its setting.
+
+    Args:
+        directory: Existing host directory mounted as the container's center configuration.
+
+    Raises:
+        OSError: The source cannot be read or the center directory cannot be written.
+        ValueError: The logo type, destination, or contact setting is invalid.
+
+    Notes:
+        Relative paths and empty settings remain unchanged. Content-addressed copies
+        preserve existing assets. The contact file is replaced atomically only after
+        the logo is copied; the original source image is never modified.
+    """
+    contact = directory / "contact.toml"
+    text = contact.read_text()
+    document = tomllib.loads(text)
+    value = document.get("organization", {}).get("accreditation_logo", "")
+    if not isinstance(value, str) or not Path(value).is_absolute():
+        return
+    source = Path(value)
+    suffix = source.suffix.lower()
+    if suffix not in {".svg", ".png", ".jpg", ".jpeg"}:
+        raise ValueError("Accreditation logo must be SVG, PNG, or JPEG")
+    content = source.read_bytes()
+    digest = hashlib.sha256(content).hexdigest()
+    relative = f"logos/accreditation-{digest}{suffix}"
+    # Keep surrounding contact settings and comments intact; validate the entire
+    # rewritten document before publishing to catch unsupported TOML layouts.
+    section = re.search(r"(?m)^\[organization\][ \t]*(?:#[^\n]*)?$", text)
+    if section is None:
+        raise ValueError("Absolute accreditation_logo requires an [organization] table")
+    end = re.search(r"(?m)^\s*\[", text[section.end() :])
+    stop = section.end() + end.start() if end else len(text)
+    block = text[section.end() : stop]
+    updated, count = re.subn(
+        r"""(?m)^(\s*accreditation_logo\s*=\s*)(?:"[^"\n]*"|'[^'\n]*')([ \t]*(?:#[^\n]*)?)$""",
+        lambda match: match[1] + json.dumps(relative) + match[2],
+        block,
+    )
+    replacement = text[: section.end()] + updated + text[stop:]
+    document["organization"]["accreditation_logo"] = relative
+    if count != 1 or tomllib.loads(replacement) != document:
+        raise ValueError("Use a single-line accreditation_logo string in [organization]")
+    manifest_path = directory / "manifest.json"
+    manifest = None
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text())
+        if not isinstance(manifest, dict) or not isinstance(manifest.get("sha256"), dict):
+            raise ValueError("Center manifest must contain a sha256 mapping")
+        manifest["sha256"]["contact.toml"] = hashlib.sha256(replacement.encode()).hexdigest()
+        manifest["sha256"][relative] = digest
+    logos = directory / "logos"
+    if logos.is_symlink():
+        raise ValueError("Center logos directory must not be a symbolic link")
+    logos.mkdir(mode=0o755, exist_ok=True)
+    target = directory / relative
+    if target.is_symlink():
+        raise ValueError("Accreditation logo destination must not be a symbolic link")
+    if target.exists():
+        if target.read_bytes() != content:
+            raise ValueError("Existing accreditation logo copy has unexpected contents")
+    else:
+        with target.open("xb") as stream:
+            stream.write(content)
+        target.chmod(0o644)
+    with tempfile.NamedTemporaryFile(mode="w", dir=directory, delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            stream.write(replacement)
+            stream.flush()
+            temporary.chmod(stat.S_IMODE(contact.stat().st_mode))
+            temporary.replace(contact)
+        finally:
+            temporary.unlink(missing_ok=True)
+    if manifest is not None:
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    print("[prepared] Center accreditation logo and container-relative contact setting")
 
 
 def check_directory_access(path: Path, uid: int, gid: int, *, mount_root: Path) -> None:
@@ -92,6 +177,7 @@ def prepare(config: dict) -> None:
         OSError: A required directory cannot be prepared or accessed.
 
     Notes:
+        Imports an absolute accreditation logo into an existing center mount.
         Does not create center configuration, pipeline input, MongoDB, or Docker
         volume directories. No database or Docker daemon operations are performed.
     """
@@ -134,14 +220,22 @@ def prepare(config: dict) -> None:
     ):
         root = data if directory.is_relative_to(data) else mounts["/app/logs"]
         ensure_directory(directory, uid, gid, mount_root=root)
+    centers = {
+        Path(volume["source"])
+        for service in config.get("services", {}).values()
+        for volume in service.get("volumes", [])
+        if volume.get("type") == "bind" and volume.get("target") == "/app/center-config"
+    }
+    for center in sorted(centers):
+        prepare_accreditation_logo(center)
 
 
 def main() -> None:
-    """Read resolved Compose JSON from stdin and prepare application storage."""
+    """Read resolved Compose JSON and prepare storage and center accreditation artwork."""
     try:
         prepare(json.load(sys.stdin))
     except (OSError, ValueError) as exc:
-        raise SystemExit(f"ERROR: storage preparation failed: {exc}") from None
+        raise SystemExit(f"ERROR: host preparation failed: {exc}") from None
 
 
 if __name__ == "__main__":

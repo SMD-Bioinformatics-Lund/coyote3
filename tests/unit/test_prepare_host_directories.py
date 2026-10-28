@@ -1,13 +1,84 @@
 """Check host storage preparation without Docker or database access."""
 
+import hashlib
 import json
 import os
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
 
-from scripts.deployment.prepare_host_directories import check_directory_access, prepare
+from scripts.deployment.prepare_host_directories import (
+    check_directory_access,
+    prepare,
+    prepare_accreditation_logo,
+)
+
+
+def test_preparation_imports_host_logo_into_read_only_center_mount(tmp_path):
+    """Container creation imports the image, preserves contact text, and is repeatable."""
+    source = tmp_path / "host artwork" / "logo.svg"
+    source.parent.mkdir()
+    content = b'<svg xmlns="http://www.w3.org/2000/svg" width="24mm" height="28mm"/>'
+    source.write_bytes(content)
+    center = tmp_path / "center"
+    center.mkdir()
+    contact = center / "contact.toml"
+    contact.write_text(
+        '# Center identity\n[organization]\nname = "Synthetic"\n'
+        f'accreditation_logo = "{source}" # Accreditation\n\n[links]\nhelp = ""\n'
+    )
+    manifest_path = center / "manifest.json"
+    manifest_path.write_text(json.dumps({"sha256": {}, "source": "synthetic"}))
+    config = configuration(tmp_path)
+    config["services"]["api"]["volumes"].append(
+        {"type": "bind", "source": str(center), "target": "/app/center-config", "read_only": True}
+    )
+    prepare(config)
+    updated = contact.read_text()
+    relative = tomllib.loads(updated)["organization"]["accreditation_logo"]
+    assert relative.startswith("logos/accreditation-")
+    assert (center / relative).read_bytes() == content
+    assert source.read_bytes() == content
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["source"] == "synthetic"
+    assert manifest["sha256"][relative] == hashlib.sha256(content).hexdigest()
+    assert manifest["sha256"]["contact.toml"] == hashlib.sha256(contact.read_bytes()).hexdigest()
+    assert "# Center identity" in updated and "# Accreditation" in updated
+    assert tomllib.loads(updated)["links"] == {"help": ""}
+    prepare(config)
+    assert contact.read_text() == updated
+    assert len(list((center / "logos").iterdir())) == 1
+
+
+@pytest.mark.parametrize("value", ["", "logos/local.svg"])
+def test_relative_accreditation_setting_is_unchanged(tmp_path, value):
+    """Existing container-relative configuration requires no host writes."""
+    contact = tmp_path / "contact.toml"
+    original = f'[organization]\naccreditation_logo = "{value}"\n'
+    contact.write_text(original)
+    prepare_accreditation_logo(tmp_path)
+    assert contact.read_text() == original
+    assert not (tmp_path / "logos").exists()
+
+
+@pytest.mark.parametrize("failure", ["missing", "unsupported", "symlink"])
+def test_invalid_accreditation_import_preserves_contact(tmp_path, failure):
+    """Failed imports never replace the configured path or write through directory symlinks."""
+    source = tmp_path / ("logo.txt" if failure == "unsupported" else "logo.svg")
+    if failure != "missing":
+        source.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+    contact = tmp_path / "contact.toml"
+    original = f'[organization]\naccreditation_logo = "{source}"\n'
+    contact.write_text(original)
+    if failure == "symlink":
+        other = tmp_path / "outside"
+        other.mkdir()
+        (tmp_path / "logos").symlink_to(other, target_is_directory=True)
+    with pytest.raises((OSError, ValueError)):
+        prepare_accreditation_logo(tmp_path)
+    assert contact.read_text() == original
 
 
 def configuration(tmp_path):
