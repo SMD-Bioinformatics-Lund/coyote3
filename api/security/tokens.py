@@ -18,4 +18,4 @@ def token_hash(token: str) -> str:
 
 def constant_time_equal(left: str, right: str) -> bool:
     """Compare two token strings without early-exit timing behavior."""
-    return secrets.compare_digest(str(left), str(right))
+    return secrets.compare_digest(str(left).encode("utf-8"), str(right).encode("utf-8"))

@@ -27,7 +27,12 @@ export type ApiResponse<T> = {
 }
 
 type ApiBody = BodyInit | Record<string, unknown> | unknown[] | null | undefined
-export type ApiRequestOptions = RequestInit & { errorNotice?: "toast" | "inline" }
+export type ApiRequestOptions = RequestInit & {
+  responseType?: "json" | "blob"
+  errorNotice?: "toast" | "inline"
+  /** Optional identity checks on public pages handle anonymous responses locally. */
+  redirectOnUnauthorized?: boolean
+}
 
 let csrfToken: string | null = null
 
@@ -65,7 +70,7 @@ function encodeBody(body: ApiBody): BodyInit | undefined {
 }
 
 async function request<T = any>(endpoint: string, requestOptions: ApiRequestOptions = {}): Promise<ApiResponse<T>> {
-  const { errorNotice = "toast", ...options } = requestOptions
+  const { errorNotice = "toast", redirectOnUnauthorized = true, responseType = "json", ...options } = requestOptions
   const url = apiPath(endpoint)
   const isFormData = options.body instanceof FormData
   const method = (options.method ?? "GET").toUpperCase()
@@ -90,10 +95,16 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
   }
 
   // Global 401 interceptor
-  if (response.status === 401 && window.location.pathname !== appPath("/login")) {
+  if (response.status === 401) {
     setCsrfToken(null)
-    window.location.href = appPath("/login")
-    throw new ApiClientError("Unauthorized", 401, endpoint)
+    if (redirectOnUnauthorized && window.location.pathname !== appPath("/login")) {
+      window.location.href = appPath("/login")
+      throw new ApiClientError("Unauthorized", 401, endpoint)
+    }
+  }
+
+  if (response.ok && responseType === "blob") {
+    return { data: await response.blob() as T, status: response.status }
   }
 
   // Handle empty responses
@@ -201,6 +212,8 @@ function safeJson(text: string) {
 }
 
 export const api = {
+  getBlob: (endpoint: string, options?: ApiRequestOptions) =>
+    request<Blob>(endpoint, { ...options, method: "GET", responseType: "blob" }),
   contract: contractRequest,
   get: <T = any>(url: string, options?: ApiRequestOptions) =>
     request<T>(url, { ...options, method: "GET" }),

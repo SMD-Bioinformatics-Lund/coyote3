@@ -12,6 +12,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from api.app.container import util
 from api.app.deps.repositories import get_user_repository
 from api.app.runtime_state import app as runtime_app
+from api.config.contact import normalize_url_prefix
 from api.config.security import get_api_secret_key
 from api.infra.notifications.email import send_email, smtp_configured
 from api.infra.observability.auth_metrics import emit_auth_metric
@@ -152,11 +153,11 @@ def _build_set_password_url(token: str) -> str:
 
     Returns:
         URL under PUBLIC_BASE_URL and SCRIPT_NAME, or a relative reset-password
-        path when no public base URL is configured.
+        path under SCRIPT_NAME when no public base URL is configured.
     """
     public_base = str(runtime_app.config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
-    script_name = str(runtime_app.config.get("SCRIPT_NAME") or "").strip().rstrip("/")
-    base = f"{public_base}{script_name}" if public_base else ""
+    script_name = normalize_url_prefix(str(runtime_app.config.get("SCRIPT_NAME") or ""))
+    base = f"{public_base}{script_name}"
     path = f"/reset-password?token={token}"
     return f"{base}{path}" if base else path
 

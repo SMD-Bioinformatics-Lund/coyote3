@@ -71,10 +71,18 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
     """A fresh operator shell can validate production Compose through the wrapper."""
     binary = tmp_path / "docker"
     binary.write_text(
-        "#!/usr/bin/env python3\nimport os,sys\n"
+        "#!/usr/bin/env python3\nimport os,sys,json,shlex\n"
         "if 'config' in sys.argv:\n"
         " assert os.environ.get('COYOTE3_IMAGE_TAG'), 'Missing image tag'\n"
         " assert os.environ.get('LOG_LEVEL') == 'INFO'\n"
+        " source=sys.argv[sys.argv.index('--env-file')+1]\n"
+        " settings=dict(shlex.split(line)[0].split('=',1) for line in open(source) if line.strip())\n"
+        " api={'environment':settings,'user':settings['COYOTE3_UID']+':'+settings['COYOTE3_GID']}\n"
+        f" center={str(ROOT / 'config/examples/center')!r}\n"
+        " api['volumes']=[{'type':'bind','target':target,'source':path} for target,path in "
+        "[('/app/center-config',center),('/data',settings['COYOTE3_DATA_HOST_ROOT']),"
+        "('/app/logs',settings['COYOTE3_LOGS_HOST_ROOT'])]]\n"
+        " print(json.dumps({'services':{'api':api}}))\n"
     )
     binary.chmod(0o755)
     values = {

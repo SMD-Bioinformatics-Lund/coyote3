@@ -138,6 +138,20 @@ def test_different_credentials_do_not_allow_namespace_collision():
         )
 
 
+@pytest.mark.parametrize("host", ["mongo", "[::1]", "mongo-a,mongo-b"])
+def test_default_port_aliases_do_not_allow_namespace_collision(host):
+    """Omitting MongoDB's default port must not bypass logical database separation."""
+    explicit = ",".join(f"{item}:27017" for item in host.split(","))
+    with pytest.raises(RuntimeError, match="must be different"):
+        mongo_endpoints(
+            config(
+                IDENTITY_DB="app_dev",
+                COYOTE3_MONGO_URI=f"mongodb://{host}/?replicaSet=rs",
+                IDENTITY_MONGO_URI=f"mongodb://{explicit}/?replicaSet=rs",
+            )
+        )
+
+
 def test_reused_client_is_pinged_and_closed_only_once():
     client = Mock()
     factory = Mock(return_value=client)

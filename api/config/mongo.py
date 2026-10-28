@@ -30,9 +30,13 @@ class MongoEndpoint:
     def namespace(self) -> tuple[tuple[str, ...], str, str]:
         """Compare deployment namespaces independently of user/authentication paths."""
         parsed = urlsplit(self.uri)
-        hosts = tuple(sorted(parsed.netloc.rsplit("@", 1)[-1].lower().split(",")))
+        hosts = parsed.netloc.rsplit("@", 1)[-1].lower().split(",")
+        if parsed.scheme == "mongodb":
+            hosts = [
+                host + ":27017" if ":" not in host or host.endswith("]") else host for host in hosts
+            ]
         replica_set = parse_qs(parsed.query).get("replicaSet", [""])[0]
-        return hosts, replica_set, self.database
+        return tuple(sorted(hosts)), replica_set, self.database
 
 
 def configured_mongo_uri(config: Mapping[str, Any], service: str) -> str:

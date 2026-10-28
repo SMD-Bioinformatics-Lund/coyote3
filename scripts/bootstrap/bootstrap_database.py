@@ -154,7 +154,7 @@ def _print_initial_credentials(credentials: list[tuple[str, str]]) -> None:
     """
     if not credentials:
         return
-    print("\nInitial local accounts — temporary passwords")
+    print("\nInitial local accounts - temporary passwords")
     print("-" * 72)
     for username, password in credentials:
         print(f"  {username:<24} {password}")

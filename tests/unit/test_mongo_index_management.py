@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
+from bson.codec_options import CodecOptions
 
 from api.config.collections import load_collection_mapping
 from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
@@ -20,6 +21,12 @@ class FakeCollection:
         self.name = name
         self.indexes = indexes
         self.dropped: list[str] = []
+        self.codec_options = CodecOptions()
+
+    def with_options(self, *, codec_options):
+        """Support read-only codec selection without permitting index writes."""
+        self.codec_options = codec_options
+        return self
 
     def list_indexes(self):
         return list(self.indexes)

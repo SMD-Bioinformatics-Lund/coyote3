@@ -72,7 +72,7 @@ def test_token_configuration_and_url_helpers(password_runtime, monkeypatch):
     assert password_flows._password_token_ttl_seconds() == 3600
     password_runtime["PASSWORD_TOKEN_TTL_SECONDS"] = 120
     password_runtime["PUBLIC_BASE_URL"] = ""
-    assert password_flows._build_set_password_url("abc") == "/reset-password?token=abc"
+    assert password_flows._build_set_password_url("abc") == "/coyote3/reset-password?token=abc"
 
     token = password_flows._issue_token(user_id="local.user", purpose="invite")
     assert password_flows._decode_password_token(token)["uid"] == "local.user"

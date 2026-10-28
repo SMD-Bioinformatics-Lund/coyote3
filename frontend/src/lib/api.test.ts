@@ -16,6 +16,17 @@ function response(body: string, status = 200, statusText = "OK") {
 }
 
 describe("typed API client", () => {
+  it("loads binary reports and keeps structured errors with reference IDs", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("%PDF-1.7\n%%EOF", { headers: { "Content-Type": "application/pdf" } }))
+    const result = await api.getBlob("/reports/preview/pdf")
+    expect(await result.data.text()).toBe("%PDF-1.7\n%%EOF")
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('{"message":"Preview unavailable"}', {
+      status: 422, headers: { "X-Request-ID": "synthetic-reference" },
+    }))
+    await expect(api.getBlob("/reports/preview/pdf", { errorNotice: "inline" })).rejects.toMatchObject({
+      status: 422, requestId: "synthetic-reference", handledInline: true,
+    })
+  })
   beforeEach(() => {
     notifyMock.mockReset()
     vi.stubGlobal("window", { location: { pathname: "/samples", href: "/samples" } })
@@ -103,6 +114,30 @@ describe("typed API client", () => {
     expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).has("X-CSRF-Token")).toBe(false)
     expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).get("X-CSRF-Token")).toBe("csrf-token")
     expect(sessionStorage.length).toBe(0)
+  })
+
+  it("captures CSRF from an optional public-page identity check before saving UI settings", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response('{"username":"synthetic","csrf_token":"public-session-csrf"}'))
+      .mockResolvedValueOnce(response("{}"))
+    await api.get("/auth/whoami", { redirectOnUnauthorized: false, errorNotice: "inline" })
+    await api.patch("/users/me/ui-settings", { theme: "dark" })
+    expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).get("X-CSRF-Token"))
+      .toBe("public-session-csrf")
+    expect(vi.mocked(fetch).mock.calls[0][1]).not.toHaveProperty("redirectOnUnauthorized")
+  })
+
+  it("leaves an anonymous public page in place and clears stale CSRF state", async () => {
+    setCsrfToken("stale-session-csrf")
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response("{}", 401, "Unauthorized"))
+      .mockResolvedValueOnce(response("{}"))
+    await expect(api.get("/auth/whoami", { redirectOnUnauthorized: false, errorNotice: "inline" }))
+      .rejects.toMatchObject({ status: 401, notificationShown: false })
+    expect(window.location.href).toBe("/samples")
+    expect(notifyMock).not.toHaveBeenCalled()
+    await api.patch("/users/me/ui-settings", { theme: "light" })
+    expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).has("X-CSRF-Token")).toBe(false)
   })
 
   it.each([

@@ -135,3 +135,15 @@ def test_csrf_requirement_is_method_specific_for_public_auth_routes():
     assert access.requires_csrf_validation("POST", "/api/v1/auth/sessions") is False
     assert access.requires_csrf_validation("GET", "/api/v1/auth/sessions/current") is False
     assert access.requires_csrf_validation("DELETE", "/api/v1/auth/sessions/current") is True
+
+
+def test_csrf_rejects_non_ascii_header_without_raising(monkeypatch: pytest.MonkeyPatch):
+    """Malformed browser credentials must be rejected rather than produce HTTP 500."""
+    repository = SimpleNamespace(get=lambda _token: SimpleNamespace(csrf_token="expected"))
+    monkeypatch.setattr(access, "get_api_session_repository", lambda: repository)
+    monkeypatch.setattr(access, "get_api_session_cookie_name", lambda: "session_cookie")
+    request = _request(
+        method="PATCH",
+        headers=[(b"cookie", b"session_cookie=session"), (b"x-csrf-token", b"invalid-\xff")],
+    )
+    assert access.validate_request_csrf(request) is False

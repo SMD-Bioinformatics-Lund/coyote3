@@ -37,6 +37,7 @@ from api.security.audit_events import emit_access_event
 from api.security.auth_service import _load_user_access_context
 from api.security.models import UserModel
 from api.security.policy import build_access_policy
+from api.security.tokens import constant_time_equal
 from coyote3.application.common.access import enforce_access, sample_scope_allowed
 from coyote3.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
 from coyote3.config.policy import get_runtime_environment
@@ -489,7 +490,7 @@ def validate_request_csrf(request: Request) -> bool:
         return False
     session = _get_cached_api_session(request, token)
     supplied = str(request.headers.get("X-CSRF-Token") or "")
-    return bool(session and supplied and secrets.compare_digest(session.csrf_token, supplied))
+    return bool(session and supplied and constant_time_equal(session.csrf_token, supplied))
 
 
 def get_request_api_session(request: Request) -> ApiSession:

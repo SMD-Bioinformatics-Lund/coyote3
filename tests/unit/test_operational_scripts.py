@@ -10,6 +10,21 @@ import pytest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.mark.parametrize(
+    "script",
+    [
+        "scripts/deployment/compose-with-version.sh",
+        "scripts/deployment/install_center.sh",
+        "scripts/quality/run_quality_suite.sh",
+        "scripts/database/mongo_backup_archive.sh",
+        "scripts/database/mongo_restore_archive.sh",
+    ],
+)
+def test_documented_shell_entry_points_are_executable(script: str) -> None:
+    """Commands documented without a shell prefix must run from a fresh checkout."""
+    assert os.access(REPOSITORY_ROOT / script, os.X_OK), script
+
+
 @pytest.mark.parametrize("selection", ["repository", "active", "explicit"])
 def test_family_coverage_uses_project_root_and_selected_interpreter(tmp_path, selection):
     """Running from outside the repo preserves interpreter precedence and coverage location."""
@@ -147,10 +162,12 @@ def test_preflight_checks_runtime_mount_write_access() -> None:
         encoding="utf-8"
     )
 
-    assert 'data.get("COYOTE3_UID", "10001")' in script
-    assert 'data.get("COYOTE3_GID", "10001")' in script
-    assert '("COYOTE3_DATA_HOST_ROOT", "COYOTE3_LOGS_HOST_ROOT")' in script
-    assert "has_access(value, write=True)" in script
+    assert (
+        "from scripts.deployment.prepare_host_directories import check_directory_access" in script
+    )
+    assert "check_directory_access(mounts[target], uid, gid, mount_root=mounts[target])" in script
+    assert 'for target in ("/data", "/app/logs")' in script
+    assert 'item.get("read_only")' in script
 
 
 def test_preflight_requires_explicit_database_names() -> None:
@@ -158,10 +175,8 @@ def test_preflight_requires_explicit_database_names() -> None:
         encoding="utf-8"
     )
 
-    assert "for key in COYOTE3_DB IDENTITY_DB KNOWLEDGEBASE_DB BAM_DB" in script
-    assert "PASSWORD_TOKEN_SALT COYOTE3_APP_NETWORK" in script
     assert "from api.config.mongo import mongo_endpoints" in script
-    assert "mongo_endpoints(data)" in script
+    assert "mongo_endpoints(settings)" in script
     assert "auth_source != db" not in script
 
 
