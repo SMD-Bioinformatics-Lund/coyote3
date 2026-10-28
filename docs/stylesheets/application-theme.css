@@ -109,8 +109,10 @@ body { color: var(--docs-text); }
 .docs-brand-caption { display: block; font-size: 12px; font-weight: 400; opacity: 0.8; }
 .wy-side-nav-search > a.docs-brand:hover { background: transparent; }
 .wy-menu-vertical header, .wy-menu-vertical p.caption { color: var(--docs-primary); }
-.wy-menu-vertical a, .wy-menu-vertical a:visited { color: var(--docs-sidebar-text); }
-.wy-menu-vertical a:hover, .wy-menu-vertical a:focus-visible {
+.wy-menu-vertical a, .wy-menu-vertical a:visited,
+.wy-menu-vertical li ul li a { color: var(--docs-sidebar-text); }
+.wy-menu-vertical a:hover, .wy-menu-vertical a:focus-visible,
+.wy-menu-vertical li ul li a:hover, .wy-menu-vertical li ul li a:focus-visible {
   background: var(--docs-sidebar-active);
   color: var(--docs-primary);
 }

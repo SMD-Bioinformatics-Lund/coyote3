@@ -61,6 +61,28 @@ for (const theme of ["light", "dark"]) {
       await expect(page.locator(".rst-footer-buttons")).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
       await page.screenshot({ path: testInfo.outputPath("report-reading.png") })
+      await page.goto("/docs-site/deployment/configuration-reference/")
+      if (width === 390) await menu.click()
+      for (const name of ["Environments and secrets", "Compose files and storage mounts"]) {
+        const link = page.getByRole("navigation").getByRole("link", { name, exact: true })
+        await expect(link).toBeVisible()
+        const contrast = await link.evaluate(element => {
+          const luminance = (color: string) => {
+            const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(value => {
+              const channel = Number(value) / 255
+              return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4
+            })
+            return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722
+          }
+          const foreground = luminance(getComputedStyle(element).color)
+          const background = luminance(getComputedStyle(document.querySelector(".wy-nav-side")!).backgroundColor)
+          return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05)
+        })
+        expect(contrast, `${name}: sidebar text contrast`).toBeGreaterThanOrEqual(4.5)
+        await link.focus()
+        await expect(link).toBeFocused()
+      }
+      await page.screenshot({ path: testInfo.outputPath("configuration-navigation.png") })
       for (const filename of ["clinical-review-flow", "runtime-topology", "assay-configuration-relationships", "report-generation-flow", "resource-setup-order", "application-architecture", "sample-readiness-checks", "query-policy-flow"]) {
         await page.goto(`/docs-site/assets/diagrams/${filename}.svg`)
         const overflow = await page.locator("svg > g > text").evaluateAll(elements => elements.flatMap(element => {
