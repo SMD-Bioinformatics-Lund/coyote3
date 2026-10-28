@@ -92,6 +92,7 @@ def test_starter_links_all_resources_and_ingests_first_sample(installer):
     )
     assert payload["name"] == "DEMO_STARTER_DNA"
     assert payload["asp_id"] == "demo-hematology-training"
+    assert db.assay_specific_panels.find_one({"asp_id": payload["asp_id"]})["accredited"] is True
     assert payload["diagnosis_id"] == "myeloid"
     assert db.asp_configs.find_one({"asp_id": payload["asp_id"]})["environment"] == "testing"
     assert (

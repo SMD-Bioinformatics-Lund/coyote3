@@ -338,6 +338,7 @@
     "display_name": "demo-hematology-training (synthetic)",
     "name": "Demo HEM training",
     "description": "Synthetic sequencing coverage for demonstration; not a validated clinical panel.",
+    "accredited": true,
     "covered_genes": [
       "TP53",
       "FLT3",

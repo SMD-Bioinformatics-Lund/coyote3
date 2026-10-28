@@ -655,7 +655,7 @@
     "germline_genes": [
       "CEBPA"
     ],
-    "accredited": false,
+    "accredited": true,
     "kit_name": null,
     "kit_type": null,
     "kit_version": null,

@@ -96,6 +96,10 @@ The installation includes 11 assays, six shared diagnoses, 15 explicit diagnosis
 links, eight reusable lists and 39 configurations. Testing configurations serve
 the samples; 15 production configurations support synthetic catalog offerings.
 
+`demo-hematology-training` has `accredited = true` to demonstrate accreditation
+branding. This is synthetic example configuration and does not represent actual
+laboratory accreditation.
+
 The catalog presents biological group → diagnosis → modality and sequencing
 family → assay. Its 15 offerings capture the linked resources and effective gene
 scopes. MPN can therefore be compared across panel and WGS offerings. Turnaround

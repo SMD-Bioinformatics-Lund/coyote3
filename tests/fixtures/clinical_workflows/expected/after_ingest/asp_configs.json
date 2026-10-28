@@ -4023,7 +4023,7 @@
         "germline_genes": [
           "CEBPA"
         ],
-        "accredited": false,
+        "accredited": true,
         "kit_name": null,
         "kit_type": null,
         "kit_version": null,
@@ -4049,7 +4049,7 @@
         "retired_reason": null,
         "_id": "67f8ff1cfb10920db538e5ce"
       },
-      "content_hash": "8f28646893eebfcf33287f5bcf5397b532b5f109180ce1080dac882541d337e1"
+      "content_hash": "c9b0aed395431e8af143748d257bbc80a4ab8a38865ed46fa2208aca7f276a2e"
     },
     "gene_list_release": {
       "content": {
@@ -4833,7 +4833,7 @@
         "germline_genes": [
           "CEBPA"
         ],
-        "accredited": false,
+        "accredited": true,
         "kit_name": null,
         "kit_type": null,
         "kit_version": null,
@@ -4859,7 +4859,7 @@
         "retired_reason": null,
         "_id": "67f8ff1cfb10920db538e5ce"
       },
-      "content_hash": "8f28646893eebfcf33287f5bcf5397b532b5f109180ce1080dac882541d337e1"
+      "content_hash": "c9b0aed395431e8af143748d257bbc80a4ab8a38865ed46fa2208aca7f276a2e"
     },
     "gene_list_release": {
       "content": {
