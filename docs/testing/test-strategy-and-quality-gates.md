@@ -343,8 +343,7 @@ not repeat backend, frontend, or documentation suites. Repositories upgrading
 from an earlier configuration should remove the retired
 `CHANGELOG Reminder / changelog` check from branch protection.
 
-The `bootstrap-and-ingest-check` workflow runs weekly, on manual dispatch, and
-when a pull request is labeled `full-stack-validation`. It builds a complete
+The `bootstrap-and-ingest-check` workflow runs only on manual dispatch. It builds a complete
 stage stack with a disposable MongoDB profile, validates the
 `SCRIPT_NAME` reverse-proxy path, creates the initial account, imports baseline
 collections, ingests the approved synthetic bundle, and verifies the ready

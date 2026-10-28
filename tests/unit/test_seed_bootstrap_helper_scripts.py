@@ -716,6 +716,9 @@ def test_manual_composed_workflow_uses_current_proxy_and_independent_mongodb_sta
     )
 
     assert "workflow_dispatch:" in workflow
+    assert "  schedule:" not in workflow
+    assert "  pull_request:" not in workflow
+    assert "  push:" not in workflow
     assert "docker-compose.mongo.yml" in workflow
     assert "Start disposable MongoDB replica set" in workflow
     assert "MONGO_REPLICA_SET_NAME=coyote3-rs" in workflow
