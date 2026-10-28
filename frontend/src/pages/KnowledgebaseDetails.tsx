@@ -11,8 +11,8 @@ import {
 } from "@/components/knowledgebase/KnowledgebaseStatus"
 import { api } from "@/lib/api"
 
-const CancerGeneCensusChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.CancerGeneCensusChart })))
-const KnowledgebaseStatisticsCharts = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.KnowledgebaseStatisticsCharts })))
+const CancerGeneCensusChart = lazy(() => import("@/components/knowledgebase/CancerGeneCensusChart").then((module) => ({ default: module.CancerGeneCensusChart })))
+const KnowledgebaseStatisticsCharts = lazy(() => import("@/components/knowledgebase/KnowledgebaseStatisticsCharts").then((module) => ({ default: module.KnowledgebaseStatisticsCharts })))
 
 function ChartFallback() {
   return <AppLoader label="Loading Cancer Gene Census chart" />
@@ -37,6 +37,7 @@ export function KnowledgebaseDetails() {
 
   return (
     <PageShell
+      className="material-page"
       eyebrow="Reference intelligence"
       title="Knowledgebase Details"
       description="Installed reference sources, release provenance, indexed content, and aggregate knowledgebase coverage."

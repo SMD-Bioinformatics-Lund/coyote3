@@ -40,9 +40,10 @@ describe("knowledgebase online summary", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText("COSMIC")).toHaveLength(1)
+    expect(screen.getAllByRole("img", { name: "COSMIC logo" })).toHaveLength(1)
+    expect(screen.queryByText("COSMIC")).not.toBeInTheDocument()
     expect(screen.getAllByText("104")).toHaveLength(1)
-    expect(screen.getByText("OncoKB")).toBeVisible()
+    expect(screen.getByRole("img", { name: "OncoKB logo" })).toBeVisible()
     expect(screen.getByRole("link", { name: /details/i })).toHaveAttribute("href", "/knowledgebases")
   })
 })

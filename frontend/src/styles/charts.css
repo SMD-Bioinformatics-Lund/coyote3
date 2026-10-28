@@ -1,4 +1,18 @@
 /* Recharts ships inline light-mode defaults. Override only presentation, never data colors. */
+.panel-capability-track,
+.panel-capability-progress,
+.recharts-pie-sector .recharts-sector {
+  filter: var(--chart-ring-depth);
+}
+
+@media (forced-colors: active) {
+  .panel-capability-track,
+  .panel-capability-progress,
+  .recharts-pie-sector .recharts-sector {
+    filter: none;
+  }
+}
+
 .recharts-wrapper .recharts-default-tooltip {
   background-color: var(--popover) !important;
   color: var(--popover-foreground) !important;

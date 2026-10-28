@@ -67,6 +67,7 @@ const SVG_STYLE_PROPERTIES = [
   "color",
   "fill",
   "fill-opacity",
+  "filter",
   "font-family",
   "font-size",
   "font-style",

@@ -80,6 +80,18 @@ describe("chart export utilities", () => {
     expect(prepared?.serialized).toContain('rx="2"')
   })
 
+  it("keeps resolved ring depth in standalone SVG exports", () => {
+    const container = document.createElement("div")
+    container.innerHTML = '<svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="50" style="fill: none; stroke: green; filter: drop-shadow(0px 2px 2px rgb(0, 0, 0));" /></svg>'
+    document.body.append(container)
+    try {
+      const result = serializeChartSvg(container)
+      expect(result?.serialized).toContain("drop-shadow(0px 2px 2px rgb(0, 0, 0))")
+    } finally {
+      container.remove()
+    }
+  })
+
   it("exports a chart as a scaled PNG using the configured page background", async () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined)
     vi.stubGlobal("Image", LoadableImage)

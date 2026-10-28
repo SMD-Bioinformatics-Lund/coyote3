@@ -22,8 +22,8 @@ describe("GeneKnowledgebaseSummary", () => {
       />,
     )
 
-    expect(screen.getByText("COSMIC")).toBeVisible()
-    expect(screen.getByText("CIViC")).toBeVisible()
+    expect(screen.getByRole("img", { name: "COSMIC logo" })).toBeVisible()
+    expect(screen.getByRole("img", { name: "CIViC logo" })).toBeVisible()
     expect(screen.queryByText("IARC TP53")).not.toBeInTheDocument()
     expect(screen.getByText("TSG")).toBeVisible()
     expect(screen.getAllByText("1")).toHaveLength(2)

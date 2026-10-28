@@ -46,10 +46,12 @@ vi.mock("@tanstack/react-query", () => ({
   }),
 }))
 
-vi.mock("@/components/dashboard/DashboardCharts", () => ({
+vi.mock("@/components/knowledgebase/CancerGeneCensusChart", () => ({
   CancerGeneCensusChart: ({ data }: { data: typeof censusPayload }) => (
     <div>Census chart for {data.total_genes} genes</div>
   ),
+}))
+vi.mock("@/components/knowledgebase/KnowledgebaseStatisticsCharts", () => ({
   KnowledgebaseStatisticsCharts: () => <div>Knowledgebase source charts</div>,
 }))
 
@@ -59,8 +61,10 @@ describe("Knowledgebase Details page", () => {
 
     expect(screen.getByRole("heading", { name: "Knowledgebase Details" })).toBeVisible()
     expect(screen.getByText("Knowledgebases online")).toBeVisible()
-    expect(screen.getAllByText("COSMIC")).toHaveLength(2)
-    expect(screen.getAllByText("CIViC")).toHaveLength(2)
+    expect(screen.getAllByRole("img", { name: "COSMIC logo" })).toHaveLength(2)
+    expect(screen.getAllByRole("img", { name: "CIViC logo" })).toHaveLength(2)
+    expect(screen.queryByText("COSMIC")).not.toBeInTheDocument()
+    expect(screen.queryByText("CIViC")).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /details/i })).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Cancer Gene Census" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "Reference coverage" })).toBeVisible()

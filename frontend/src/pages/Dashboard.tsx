@@ -2,6 +2,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
+import { valueBadgeClass } from "@/lib/badge-colors"
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, RefreshCw } from "lucide-react"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -17,11 +18,11 @@ import { cn } from "@/lib/utils"
 import { KnowledgebaseOnline } from "@/components/knowledgebase/KnowledgebaseOnline"
 
 const chartColors = ["var(--color-tier1)", "var(--color-tier2)", "var(--color-tier3)", "var(--color-tier4)", "var(--color-dna)", "var(--color-rna)", "var(--color-panel)"]
-const TierDistributionChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TierDistributionChart })))
-const GeneCoverageChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.GeneCoverageChart })))
-const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
-const SampleCompositionCharts = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.SampleCompositionCharts })))
-const TopTieredGenesChart = lazy(() => import("@/components/dashboard/DashboardCharts").then((module) => ({ default: module.TopTieredGenesChart })))
+const TierDistributionChart = lazy(() => import("@/components/dashboard/TierDistributionChart").then((module) => ({ default: module.TierDistributionChart })))
+const GeneCoverageChart = lazy(() => import("@/components/dashboard/GeneCoverageChart").then((module) => ({ default: module.GeneCoverageChart })))
+const PanelAnalysisCapabilityChart = lazy(() => import("@/components/dashboard/PanelAnalysisCapabilityChart").then((module) => ({ default: module.PanelAnalysisCapabilityChart })))
+const SampleCompositionCharts = lazy(() => import("@/components/dashboard/SampleCompositionCharts").then((module) => ({ default: module.SampleCompositionCharts })))
+const TopTieredGenesChart = lazy(() => import("@/components/dashboard/TopTieredGenesChart").then((module) => ({ default: module.TopTieredGenesChart })))
 
 const dashboardMetrics = [
   { key: "samples", path: "/dashboard/metrics/samples" },
@@ -216,7 +217,7 @@ export function Dashboard() {
       eyebrow="Operations"
       title="Dashboard"
       description="Throughput, quality, tiering, assay scope, and resource health."
-      className="gap-3"
+      className="material-page gap-3"
       actions={
         <>
           {(metricMetadata.some((meta) => meta?.stale) || refreshPending) && (
@@ -253,19 +254,19 @@ export function Dashboard() {
 
       <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr]">
-          <div className="dashboard-snapshot-card p-3">
+          <div className="dashboard-snapshot-card p-4">
             {isUnavailable("samples") ? <MetricUnavailable label="Sample progress" /> : <>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="type-label text-muted-foreground">Analysis progress</p>
-                <p className="mt-1 text-xl font-semibold leading-tight text-foreground">
+                <p className="mt-1 type-metric-value text-foreground">
                   {fmt(data?.analysed_samples)} <span className="text-sm font-medium text-muted-foreground">of {fmt(data?.total_samples)} analysed</span>
                 </p>
               </div>
               <CheckCircle2 className="mt-0.5 h-5 w-5 text-pass" />
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-pass" style={{ width: `${Math.min(100, Number(data?.total_samples) > 0 ? (Number(data?.analysed_samples || 0) / Number(data?.total_samples)) * 100 : 0)}%` }} />
+            <div className="progress-pipe mt-3 h-2 overflow-hidden rounded-full">
+              <div className="progress-pipe-fill h-full rounded-full bg-pass" style={{ width: `${Math.min(100, Number(data?.total_samples) > 0 ? (Number(data?.analysed_samples || 0) / Number(data?.total_samples)) * 100 : 0)}%` }} />
             </div>
             <div className="type-meta mt-2 flex items-center justify-between text-muted-foreground">
               <span>{percent(userScope.analysed_rate_percent ?? quality.analysed_rate_percent)} complete in your visible scope</span>
@@ -273,17 +274,17 @@ export function Dashboard() {
             </div>
             </>}
           </div>
-          <div className="dashboard-snapshot-card p-3">
+          <div className="dashboard-snapshot-card p-4">
             {isUnavailable("samples") ? <MetricUnavailable label="Visible sample count" /> : <>
             <p className="type-label text-muted-foreground">My visible samples</p>
-            <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(userScope.total_samples ?? data?.total_samples)}</p>
+            <p className="mt-1 type-metric-value text-foreground">{fmt(userScope.total_samples ?? data?.total_samples)}</p>
             <p className="type-meta mt-2 text-muted-foreground">Available through your roles, assays, and environments.</p>
             </>}
           </div>
-          <div className="dashboard-snapshot-card p-3">
+          <div className="dashboard-snapshot-card p-4">
             {isUnavailable("findings") ? <MetricUnavailable label="Finding inventory" /> : <>
             <p className="type-label text-muted-foreground">Finding inventory</p>
-            <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{fmt(findingTotal)}</p>
+            <p className="mt-1 type-metric-value text-foreground">{fmt(findingTotal)}</p>
             <p className="type-meta mt-2 text-muted-foreground">Small variant, CNV, fusion, and translocation records.</p>
             </>}
           </div>
@@ -307,8 +308,11 @@ export function Dashboard() {
                     <h3 className="type-label">{assay}</h3>
                     <span className="type-badge rounded-full bg-primary/10 px-2 py-0.5 text-primary">{stats.analysed}/{stats.total}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary/80" style={{ width: `${percent}%` }} />
+                  <div className="progress-pipe h-3 overflow-hidden rounded-full"
+                    role="progressbar" aria-label={`${assay} review progress`}
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
+                    aria-valuetext={`${stats.analysed} of ${stats.total} reviewed; ${stats.pending} pending`}>
+                    <div className="progress-pipe-fill h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
                   </div>
                   <p className="type-meta mt-2 text-right text-muted-foreground">Pending {stats.pending}</p>
                 </div>
@@ -324,8 +328,8 @@ export function Dashboard() {
                     <span>{item.name}</span>
                     <span>{fmt(item.value)}</span>
                   </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full" style={{ width: `${Math.min(100, (item.value / Math.max(...profileData.map(p => p.value), 1)) * 100)}%`, background: chartColors[index % chartColors.length] }} />
+                  <div className="progress-pipe mt-2 h-2 overflow-hidden rounded-full">
+                    <div className="progress-pipe-fill h-full rounded-full" style={{ width: `${Math.min(100, (item.value / Math.max(...profileData.map(p => p.value), 1)) * 100)}%`, backgroundColor: chartColors[index % chartColors.length] }} />
                   </div>
                 </div>
               )) : <p className="text-xs text-muted-foreground">No profile data.</p>}
@@ -348,7 +352,7 @@ export function Dashboard() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-semibold text-primary">{sample.name || sample.id}</p>
-                    <span className="type-badge rounded-md bg-dna/10 px-1.5 py-0.5 uppercase text-dna">{sample.asp_category || "dna"}</span>
+                    <span className={`type-badge rounded-md border px-1.5 py-0.5 uppercase ${valueBadgeClass(sample.asp_category || "dna")}`}>{sample.asp_category || "dna"}</span>
                     <span className="type-badge rounded-md bg-muted px-1.5 py-0.5 uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
                   </div>
                   <p className="type-meta mt-0.5 flex min-w-0 items-center gap-1 truncate text-muted-foreground">
@@ -417,8 +421,8 @@ export function Dashboard() {
                         <span className="truncate">{item.name || "unknown"}</span>
                         <span>{fmt(item.value)}</span>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (item.value / Math.max(...variantClassData.map((row) => row.value), 1)) * 100)}%`, background: chartColors[index % chartColors.length] }} />
+                      <div className="progress-pipe h-2 overflow-hidden rounded-full">
+                        <div className="progress-pipe-fill h-full rounded-full" style={{ width: `${Math.min(100, (item.value / Math.max(...variantClassData.map((row) => row.value), 1)) * 100)}%`, backgroundColor: chartColors[index % chartColors.length] }} />
                       </div>
                     </div>
                   )) : <p className="text-xs text-muted-foreground">No class data available.</p>}
@@ -497,7 +501,7 @@ export function Dashboard() {
             {capacityEntries.length ? capacityEntries.map(([key, value], index) => (
               <div key={key} className="dashboard-subcard p-2.5">
                 <p className="type-label font-semibold uppercase tracking-wide text-muted-foreground">{key.replaceAll("_", " ")}</p>
-                <p className="mt-1 text-base font-semibold" style={{ color: chartColors[index % chartColors.length] }}>{fmt(value)}</p>
+                <p className="mt-1 type-metric-value" style={{ color: chartColors[index % chartColors.length] }}>{fmt(value)}</p>
               </div>
             )) : <p className="text-xs text-muted-foreground">No capacity data available.</p>}
           </div>
@@ -543,12 +547,12 @@ export function Dashboard() {
                       <p className="truncate text-xs font-semibold text-foreground">{row.display_name || row.assay_id}</p>
                       <p className="mt-0.5 truncate type-label font-medium uppercase text-muted-foreground">{row.asp_group || "unassigned"}</p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 type-meta font-semibold text-primary">{fmt(row.isgl_total)}</span>
+                    <span className="material-badge rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 type-meta font-semibold text-primary shadow-[var(--material-badge-shadow)]">{fmt(row.isgl_total)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-md bg-pass/10 px-1.5 py-0.5 type-label font-medium text-pass">{fmt(row.public_count)} public</span>
-                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 type-label font-medium text-primary">{fmt(row.private_count)} private</span>
-                    <span className="rounded-md bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn">{fmt(row.adhoc_count)} ad-hoc</span>
+                    <span className="material-badge rounded-md border border-pass/25 bg-pass/10 px-1.5 py-0.5 type-label font-medium text-pass shadow-[var(--material-badge-shadow)]">{fmt(row.public_count)} public</span>
+                    <span className="material-badge rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 type-label font-medium text-primary shadow-[var(--material-badge-shadow)]">{fmt(row.private_count)} private</span>
+                    <span className="material-badge rounded-md border border-warn/25 bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn shadow-[var(--material-badge-shadow)]">{fmt(row.adhoc_count)} ad-hoc</span>
                   </div>
                 </div>
               )) : <p className="text-xs text-muted-foreground">No assay-to-gene-list associations configured.</p>}

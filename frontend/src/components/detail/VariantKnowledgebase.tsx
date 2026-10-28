@@ -1,13 +1,13 @@
 /* eslint-disable react/only-export-components -- this module intentionally colocates knowledgebase renderers with their pure presentation helpers. */
 
 import { Children, createContext, type ReactNode, useContext, useState } from "react"
-import { AlertTriangle, Database, ExternalLink, Search, Target } from "lucide-react"
+import { AlertTriangle, ExternalLink, Target } from "lucide-react"
 import {
   DetailDataTable,
   EvidenceBadge,
 } from "@/components/detail/DetailEvidenceCards"
 import { ExpandableText } from "@/components/detail/ExpandableText"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { AnalysisIntentBadges, CopyNumberBadge, TierBadge } from "@/lib/variant-ui"
 import { isPresent } from "@/lib/detail-formatters"
 import {
@@ -20,8 +20,7 @@ import {
   oncokbGeneUrl,
   pubmedArticleUrl,
 } from "@/lib/external-links"
-import { appPath } from "@/lib/runtime-paths"
-import { databaseLogo } from "@/lib/database-logos"
+import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 
 export type KnowledgebaseSource =
   | "brca-exchange"
@@ -32,15 +31,6 @@ export type KnowledgebaseSource =
   | "iarc-tp53"
   | "oncokb"
 
-const knowledgebasePresentation: Record<KnowledgebaseSource, { fallbackLabel: string }> = {
-  "brca-exchange": { fallbackLabel: "BRCA Exchange" },
-  civic: { fallbackLabel: "CIViC" },
-  clinpgx: { fallbackLabel: "ClinPGx" },
-  cosmic: { fallbackLabel: "COSMIC" },
-  hpa: { fallbackLabel: "Human Protein Atlas" },
-  "iarc-tp53": { fallbackLabel: "IARC TP53" },
-  oncokb: { fallbackLabel: "OncoKB" },
-}
 
 const KnowledgebaseSearchContext = createContext("")
 
@@ -54,16 +44,12 @@ export function KnowledgebaseExplorer({ children }: { children: ReactNode }) {
   return (
     <KnowledgebaseSearchContext.Provider value={search}>
       <div className="space-y-3">
-        <label className="relative block w-full sm:max-w-lg">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
+          <SearchInput
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search all knowledgebase evidence"
             aria-label="Search all knowledgebase evidence"
-            className="pl-8"
           />
-        </label>
         {children}
       </div>
     </KnowledgebaseSearchContext.Provider>
@@ -184,8 +170,6 @@ export function VariantKnowledgeBlock({
   defaultOpen?: boolean
   children: ReactNode
 }) {
-  const presentation = knowledgebasePresentation[source]
-  const logo = databaseLogo(source)
   const search = useContext(KnowledgebaseSearchContext)
 
   if (!matchesKnowledgebaseSearch({ source, title, data: searchData }, search)) return null
@@ -198,18 +182,7 @@ export function VariantKnowledgeBlock({
     >
       <summary className="knowledgebase-block-header flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
         <span className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className={`knowledgebase-logo-frame flex h-9 ${logo ? "w-20" : "w-7"} shrink-0 items-center justify-center`}>
-            {logo ? (
-              <img
-                src={appPath(logo.src)}
-                alt={logo.alt}
-                className="max-h-8 max-w-full object-contain"
-              />
-            ) : (
-              <Database className="size-4" aria-label={presentation.fallbackLabel} />
-            )}
-          </span>
-          <span className="type-card-title text-foreground">{title}</span>
+          <DatabaseBrand source={source} label={title} className="type-card-title text-foreground" logoClassName="h-8 w-20" />
           {badges}
         </span>
         <span className="rounded-md bg-muted px-2 py-0.5 type-label font-semibold uppercase text-muted-foreground group-open:hidden">Expand</span>

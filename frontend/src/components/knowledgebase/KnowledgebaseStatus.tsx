@@ -1,10 +1,9 @@
-import { CheckCircle2, Cloud, Database } from "lucide-react"
+import { CheckCircle2, Cloud } from "lucide-react"
 
 import { TimeDisplay } from "@/components/ui/time-display"
-import { databaseLogo } from "@/lib/database-logos"
+import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { shortCount } from "@/lib/detail-formatters"
 import { knowledgebaseSourceDetails, type KnowledgebaseStatusPayload } from "@/lib/knowledgebase-status"
-import { appPath } from "@/lib/runtime-paths"
 
 export type { KnowledgebaseStatusPayload } from "@/lib/knowledgebase-status"
 
@@ -28,7 +27,7 @@ export function KnowledgebaseStatus({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
+    <div className="paper-surface overflow-hidden rounded-md">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-border bg-success/5 px-3 py-2">
         <div className="flex items-baseline gap-1.5">
           <span className="type-card-title text-primary">
@@ -56,13 +55,10 @@ export function KnowledgebaseStatus({
           <tbody>
             {releases.map((release) => {
               const details = knowledgebaseSourceDetails(release.source)
-              const logo = databaseLogo(release.source)
               return (
                 <tr key={release.source} className="border-t border-border/70 hover:bg-muted/35">
-                  <td className="px-3 py-2"><div className="flex min-w-0 items-center gap-2">
-                    {logo ? <img src={appPath(logo.src)} alt={logo.alt} className="h-5 w-14 object-contain" /> : <Database className="size-4 text-muted-foreground" />}
-                    <span className="type-body-sm truncate text-foreground">{details.family}</span>
-                  </div></td>
+                  <td className="px-3 py-2"><DatabaseBrand source={release.source} label={details.family}
+                    className="type-body-sm text-foreground" logoClassName="h-5 w-14" /></td>
                   <td className="px-3 py-2 capitalize text-muted-foreground">{details.product}</td>
                   <td className="px-3 py-2 font-medium">{release.release}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{shortCount(release.records)}</td>

@@ -1,6 +1,7 @@
 import { Activity, Database, Dna, Sparkles } from "lucide-react"
 
 import { TableBadge } from "@/components/ui/table-badge"
+import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { AnalysisIntentBadges, TierBadge } from "@/lib/variant-ui"
 
 type CosmicGeneCensusRecord = {
@@ -122,10 +123,8 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
           {availableSources.map((source: string) => (
             <div key={source} className="content-item min-w-0 p-2.5">
               <div className="flex items-center gap-2">
-                <Database className="size-4 shrink-0 text-primary" />
-                <span className="type-body-sm min-w-0 truncate text-foreground">
-                  {sourceLabels[source] || source}
-                </span>
+                <DatabaseBrand source={source} label={sourceLabels[source] || source}
+                  className="type-body-sm text-foreground" />
               </div>
               {sourceFacts(source, sources[source]).length > 0 && (
                 <dl className="mt-2 flex flex-wrap gap-1">
@@ -161,7 +160,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
               {mutationTypes.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {mutationTypes.map((mutationType) => (
-                    <TableBadge key={mutationType} className="badge-neutral">{mutationType}</TableBadge>
+                    <TableBadge key={mutationType} className="badge-gene-annotation">{mutationType}</TableBadge>
                   ))}
                 </div>
               )}
@@ -180,7 +179,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
             </div>
             <div className="flex flex-wrap gap-1.5">
               {hallmarkLabels.map((label) => (
-                <TableBadge key={label} className="badge-neutral">{label}</TableBadge>
+                <TableBadge key={label} className="badge-gene-annotation">{label}</TableBadge>
               ))}
               {!hallmarkLabels.length && <span className="type-body-sm text-muted-foreground">No hallmark records.</span>}
             </div>

@@ -14,6 +14,7 @@ import {
 } from "recharts";
 
 import { ChartPanel } from "@/components/plots/ChartPanel";
+import { shortResourceName } from "@/lib/resource-names";
 
 type Breakdown = {
   profiled_samples: number;
@@ -23,6 +24,7 @@ type Breakdown = {
 
 type AssayBreakdown = Breakdown & {
   asp_id: string;
+  name?: string | null;
   display_name: string;
   asp_group?: string;
 };
@@ -115,7 +117,7 @@ export function GeneCohortCharts({
   const reportScope = includeHistory ? "historical_reports" : "latest_reports";
   const filenamePrefix = `${gene.toLowerCase()}_${reportScope}`;
   const assayData = assays.map((row) => ({
-    assay: row.display_name,
+    assay: shortResourceName(row, row.asp_id),
     assay_id: row.asp_id,
     assay_group: row.asp_group || "",
     prevalence_percent: row.prevalence_percent,

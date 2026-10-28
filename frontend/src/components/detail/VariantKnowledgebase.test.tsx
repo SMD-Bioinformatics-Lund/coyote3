@@ -22,7 +22,7 @@ describe("variant knowledgebase presentation", () => {
       />,
     )
 
-    expect(screen.getAllByText("COSMIC")).not.toHaveLength(0)
+    expect(screen.getByRole("img", { name: "COSMIC logo" })).toBeVisible()
     expect(screen.getByRole("link", { name: "COSV123" })).toBeInTheDocument()
     expect(screen.getByText("DNMT3A · p.Arg1Trp")).toBeInTheDocument()
     expect(screen.getByText("Exact variant")).toBeInTheDocument()

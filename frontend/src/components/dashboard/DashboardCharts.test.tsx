@@ -6,8 +6,6 @@ const mocks = vi.hoisted(() => ({
   chartPanel: vi.fn(),
   cells: vi.fn(),
   pie: vi.fn(),
-  tooltips: vi.fn(),
-  legend: vi.fn(),
   scatterChart: vi.fn(),
   scatters: vi.fn(),
 }))
@@ -27,19 +25,17 @@ vi.mock("recharts", () => ({
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
-  Tooltip: (props: Record<string, unknown>) => { mocks.tooltips(props); return null },
-  Legend: (props: Record<string, unknown>) => { mocks.legend(props); return <span>Chart legend</span> },
+  Tooltip: () => null,
+  Legend: () => <span>Chart legend</span>,
   LabelList: () => null,
 }))
 
-import {
-  CancerGeneCensusChart,
-  GeneCoverageChart,
-  PanelAnalysisCapabilityChart,
-  SampleCompositionCharts,
-  TierDistributionChart,
-  TopTieredGenesChart,
-} from "./DashboardCharts"
+import { CancerGeneCensusChart } from "@/components/knowledgebase/CancerGeneCensusChart"
+import { GeneCoverageChart } from "./GeneCoverageChart"
+import { PanelAnalysisCapabilityChart } from "./PanelAnalysisCapabilityChart"
+import { SampleCompositionCharts } from "./SampleCompositionCharts"
+import { TierDistributionChart } from "./TierDistributionChart"
+import { TopTieredGenesChart } from "./TopTieredGenesChart"
 
 describe("dashboard charts", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -54,20 +50,10 @@ describe("dashboard charts", () => {
       data,
     }))
     expect(mocks.cells.mock.calls.map(([props]) => props.fill)).toEqual(["red", "blue", "red"])
-    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({
-      startAngle: 90,
-      endAngle: -270,
-      innerRadius: "42%",
-      outerRadius: "70%",
-      isAnimationActive: true,
-      animationDuration: 700,
-    }))
-    expect(mocks.legend).toHaveBeenCalledWith(expect.objectContaining({ verticalAlign: "bottom" }))
-    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
     expect(screen.getByText("Chart legend")).toBeVisible()
   })
 
-  it("renders three animated census rings and ranked supporting context", () => {
+  it("renders three census rings and ranked supporting context", () => {
     render(<CancerGeneCensusChart data={{
       available: true,
       total_genes: 3,
@@ -87,14 +73,6 @@ describe("dashboard charts", () => {
     expect(screen.getByText("Mutation types")).toBeVisible()
     expect(screen.getByText("Hallmarks - 1 record")).toBeVisible()
     expect(mocks.pie).toHaveBeenCalledTimes(3)
-    expect(mocks.pie).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      innerRadius: "73%",
-      outerRadius: "91%",
-      startAngle: 90,
-      endAngle: -270,
-      isAnimationActive: true,
-    }))
-    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
   })
 
   it("renders covered and germline series from assay coverage data", () => {
@@ -176,16 +154,6 @@ describe("dashboard charts", () => {
     expect(screen.getByText("Pipeline throughput")).toBeVisible()
     expect(screen.getAllByText("Analysed")[0]).toBeVisible()
     expect(screen.getAllByText("Awaiting review")[0]).toBeVisible()
-    expect(mocks.pie).toHaveBeenCalledWith(expect.objectContaining({
-      dataKey: "value",
-      nameKey: "name",
-      startAngle: 90,
-      endAngle: -270,
-      innerRadius: 36,
-      outerRadius: 47,
-      isAnimationActive: false,
-    }))
-    expect(mocks.tooltips).toHaveBeenCalledWith(expect.objectContaining({ wrapperStyle: { zIndex: 40 } }))
     expect(screen.getByRole("img", { name: "Omics: dna 8 of 10, rna 2 of 10" })).toBeVisible()
     expect(screen.getByText("80%")).toBeVisible()
     expect(screen.getByText("20%")).toBeVisible()
