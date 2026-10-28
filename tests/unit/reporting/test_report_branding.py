@@ -1,5 +1,6 @@
 """Modern report logos are embedded, center-configurable and safe for offline rendering."""
 
+import re
 from base64 import b64encode
 
 import pytest
@@ -8,7 +9,7 @@ from weasyprint.formatting_structure.boxes import ReplacedBox, TextBox
 
 from api.presentation.reports import branding
 from coyote3.application.reporting.pdf_resources import ReportResourceFetcher, validate_report_svg
-from coyote3.application.reporting.report_renderer import render_pdf_bytes
+from coyote3.application.reporting.report_renderer import render_pdf_bytes, render_report_html
 
 
 def test_bundled_branding_contains_both_embedded_vector_logos():
@@ -70,7 +71,7 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
         },
     )
     assert html.count('src="data:image/svg+xml;base64,') == 2
-    assert 'class="report-metadata"' in html and "<dl>" in html
+    assert 'class="report-metadata"' in html and '<table class="report-patient-table"' in html
     assert ("SYNTHETIC_CASE" if analyte == "dna" else "SYNTHETIC_REPORT") in html
     assert "SYNTHETIC CENTER" in html
     assert "Synthetic reviewer" in html
@@ -121,6 +122,78 @@ def test_legacy_rendering_does_not_require_modern_branding():
     )
     assert "SYNTHETIC_REPORT" in html
     assert 'src="data:image/svg+xml' not in html
+
+
+def test_center_contact_details_are_optional_and_escaped_in_modern_header():
+    """Only configured center address and telephone appear alongside the identity."""
+    config = {
+        "CONTACT": {
+            "organization": {
+                "address": "Synthetic Road 1\n12345 Example <center>",
+                "phone": "+46 00 123456",
+            }
+        }
+    }
+    html = branding.render_branded_report_html(
+        config=config,
+        template_name="dna_report.html",
+        analyte="dna",
+        preview=True,
+        layout="modern",
+        template_context={
+            "sample": {"name": "SYNTHETIC_CONTACT"},
+            "assay_config": {"reporting": {"report_header": "Synthetic report"}},
+            "report_sections": [],
+            "report_sections_data": {},
+            "genes_covered_in_panel": {},
+        },
+        snapshot_rows=[],
+    )
+    assert "12345 Example &lt;center&gt;" in html
+    assert "+46 00 123456" in html
+    assert 'class="report-center-phone"' in html
+    assert render_pdf_bytes(html).startswith(b"%PDF-")
+    absent = branding.load_report_branding({})
+    assert "center_address" not in absent and "center_phone" not in absent
+
+
+def test_modern_pdf_embeds_regular_semibold_and_italic_without_system_font_fallback():
+    """PDF text uses the packaged font for Swedish text, labels and authored emphasis."""
+    html = render_report_html(
+        template_name="dna_report.html",
+        analyte="dna",
+        preview=True,
+        layout="modern",
+        snapshot_rows=[],
+        template_context={
+            "sample": {"name": "SYNTHETIC_TYPOGRAPHY"},
+            "assay_config": {"reporting": {"report_header": "Syntetisk analysrapport"}},
+            "report_sections": [],
+            "report_sections_data": {},
+            "genes_covered_in_panel": {},
+            "latest_sample_comment_text": "Åäö **Syntetiskt fynd** och *syntetisk tolkning*.",
+        },
+    )
+    fonts = re.findall(r"data:font/woff2;base64,[A-Za-z0-9+/=]+", html)
+    assert len(fonts) == 3
+    for url in fonts:
+        resource = ReportResourceFetcher()(url)
+        try:
+            assert resource.read().startswith(b"wOF2")
+        finally:
+            resource.close()
+    document = HTML(string=html, url_fetcher=ReportResourceFetcher()).render()
+    assert document.write_pdf().startswith(b"%PDF-")
+    assert {font.family for font in document.fonts.values()} == {"Source Sans 3"}
+    assert {font.weight for font in document.fonts.values()} == {400, 600}
+    assert any(font.style for font in document.fonts.values())
+
+
+@pytest.mark.parametrize("content", [b"not a font", b"<script>unsafe</script>"])
+def test_report_font_resource_rejects_content_without_woff2_signature(content):
+    """The font allowlist does not admit another embedded resource type."""
+    with pytest.raises(ValueError, match="must be WOFF2"):
+        ReportResourceFetcher()("data:font/woff2;base64," + b64encode(content).decode())
 
 
 @pytest.mark.parametrize(

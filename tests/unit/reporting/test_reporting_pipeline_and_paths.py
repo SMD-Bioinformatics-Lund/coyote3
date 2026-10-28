@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -10,11 +11,17 @@ import pytest
 from coyote3.application.reporting import persistence as pipeline
 from coyote3.application.reporting import report_paths
 from coyote3.domain.exceptions import AppError
+from coyote3.domain.reporting import report_paths as domain_report_paths
 from coyote3.domain.reporting.errors import ReportCommitUncertain
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
-    monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
+    """Create paired report filenames with a timestamp and no random suffix."""
+    monkeypatch.setattr(
+        domain_report_paths,
+        "utc_now",
+        lambda: datetime(2026, 3, 3, 10, 11, 12, tzinfo=timezone.utc),
+    )
     sample = {
         "case_id": "seed_case",
         "control_id": "seed_control",

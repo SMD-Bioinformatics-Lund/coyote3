@@ -1,0 +1,7 @@
+# Independent presentation releases for the modern DNA and RNA report templates.
+# Increment both versions when releasing changes to shared presentation assets.
+[dna]
+version = "1.0.0"
+
+[rna]
+version = "1.0.0"

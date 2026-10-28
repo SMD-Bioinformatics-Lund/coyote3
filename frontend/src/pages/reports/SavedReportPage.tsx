@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Link, useParams } from "react-router-dom"
@@ -46,39 +46,22 @@ function findingGenes(finding: ReportFinding) {
 
 export function SavedReportPage() {
   const { id = "", reportId = "" } = useParams()
-  const [html, setHtml] = useState("")
-  const [htmlError, setHtmlError] = useState("")
-  const [htmlLoading, setHtmlLoading] = useState(true)
+  const reportPath = `/samples/${encodeURIComponent(id)}/reports/${encodeURIComponent(reportId)}`
 
   const contextQuery = useQuery({
     queryKey: ["saved-report-context", id, reportId],
-    queryFn: () => api.get<SavedReportContext>(`/samples/${id}/reports/${reportId}/context`).then((response) => response.data),
+    queryFn: ({ signal }) => api.get<SavedReportContext>(`${reportPath}/context`, { signal }).then((response) => response.data),
     enabled: Boolean(id && reportId),
   })
 
-  useEffect(() => {
-    let cancelled = false
-    setHtmlLoading(true)
-    setHtmlError("")
-    fetch(apiPath(`/samples/${id}/reports/${reportId}/html`))
-      .then(async (response) => {
-        const text = await response.text()
-        if (!response.ok) throw new Error(text || `Report request failed (${response.status})`)
-        return text
-      })
-      .then((text) => {
-        if (!cancelled) setHtml(text)
-      })
-      .catch((error) => {
-        if (!cancelled) setHtmlError(error instanceof Error ? error.message : "Unable to load report")
-      })
-      .finally(() => {
-        if (!cancelled) setHtmlLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [id, reportId])
+  const htmlQuery = useQuery({
+    queryKey: ["saved-report-html", id, reportId],
+    queryFn: async ({ signal }) => {
+      const response = await api.getBlob(`${reportPath}/html`, { signal, headers: { Accept: "text/html" } })
+      return response.data.text()
+    },
+    enabled: Boolean(id && reportId),
+  })
 
   const columns = useMemo<ColumnDef<ReportFinding, any>[]>(() => [
     {
@@ -103,8 +86,9 @@ export function SavedReportPage() {
     },
   ], [])
 
-  const loading = htmlLoading || contextQuery.isLoading
-  const error = htmlError || (contextQuery.error instanceof Error ? contextQuery.error.message : contextQuery.error ? "Unable to load report findings" : "")
+  const loading = htmlQuery.isLoading || contextQuery.isLoading
+  const failure = htmlQuery.error || contextQuery.error
+  const error = failure instanceof Error ? failure.message : failure ? "Unable to load saved report" : ""
   const context = contextQuery.data
 
   return (
@@ -115,7 +99,7 @@ export function SavedReportPage() {
       actions={
         <>
           <a
-            href={apiPath(`/samples/${id}/reports/${reportId}/download`)}
+            href={apiPath(`${reportPath}/download`)}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
           >
             <Download className="h-4 w-4" />
@@ -159,7 +143,7 @@ export function SavedReportPage() {
           )}
           <section className="surface-panel p-3">
             <h2 className="mb-3 border-b border-border pb-3 text-base font-semibold">Rendered report</h2>
-            <ReportHtmlFrame title={`${id} saved report`} html={html} className="rounded-xl shadow-sm" />
+            <ReportHtmlFrame title={`${id} saved report`} html={htmlQuery.data ?? ""} className="rounded-xl shadow-sm" />
           </section>
         </div>
       )}

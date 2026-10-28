@@ -50,7 +50,9 @@ def require_current_preview(expected: str, template: str, context: dict) -> None
         context: Prepared inputs that will be rendered and saved without re-resolution.
 
     Raises:
-        AppError: HTTP 409 when clinical inputs or rules changed after preview.
+        AppError: HTTP 409 for a malformed fingerprint or when inputs changed after preview.
     """
-    if not compare_digest(expected, preview_fingerprint(template, context)):
+    if not expected.isascii() or not compare_digest(
+        expected, preview_fingerprint(template, context)
+    ):
         raise api_error(409, "Report inputs changed. Refresh and review the preview before saving.")

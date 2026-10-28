@@ -8,7 +8,7 @@ vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 vi.mock("@/lib/browser-download", () => ({ downloadBlob: vi.fn(), downloadText: vi.fn() }))
 const revoke = vi.fn()
 const trial = { html: "<html><style>body{color:black}</style><body>Synthetic findings</body></html>",
-  pdf_base64: btoa("%PDF-synthetic"), filename: "synthetic_trial", snapshot_count: 3 }
+  pdf_base64: btoa("%PDF-synthetic\n%%EOF"), filename: "synthetic_trial", snapshot_count: 3 }
 
 beforeEach(() => {
   vi.resetAllMocks()

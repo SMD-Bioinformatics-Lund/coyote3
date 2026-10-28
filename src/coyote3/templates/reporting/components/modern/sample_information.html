@@ -1,8 +1,21 @@
+{% set metadata = namespace(rows=[], pending=[]) %}
 {% macro field(label, value, wide=false) -%}
-  <div class="report-metadata-field{% if wide %} report-metadata-wide{% endif %}"><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+  {%- if wide %}
+    {%- if metadata.pending %}
+      {%- set _ = metadata.rows.append(metadata.pending) %}
+      {%- set metadata.pending = [] %}
+    {%- endif %}
+    {%- set _ = metadata.rows.append([(label, value, true)]) %}
+  {%- else %}
+    {%- set _ = metadata.pending.append((label, value, false)) %}
+    {%- if metadata.pending|length == 2 %}
+      {%- set _ = metadata.rows.append(metadata.pending) %}
+      {%- set metadata.pending = [] %}
+    {%- endif %}
+  {%- endif %}
 {%- endmacro %}
 <section class="report-metadata" aria-label="Provinformation">
-  <dl>
+  <h2 class="report-metadata-heading">Provinformation</h2>
     {{ field('Patientnamn', '<PATIENT_NAME>') }}
     {{ field('Personnummer', '<PERSONAL_IDENTITY_NUMBER>') }}
     {{ field('Prov-ID', sample.case_id if report_analyte == 'dna' else sample.name) }}
@@ -22,5 +35,18 @@
     {% else %}
       {{ field('Rapport-ID', sample.name ~ '.' ~ (sample.report_num + 1 if sample.report_num is defined else 1), true) }}
     {% endif %}
-  </dl>
+  {% if metadata.pending %}{% set _ = metadata.rows.append(metadata.pending) %}{% endif %}
+  <table class="report-patient-table" aria-label="Patient- och provuppgifter">
+    <colgroup><col class="metadata-label"><col><col class="metadata-label"><col></colgroup>
+    <tbody>
+      {% for row in metadata.rows %}
+      <tr>
+        {% for label, value, wide in row %}
+        <th scope="row">{{ label }}</th>
+        <td{% if wide or row|length == 1 %} colspan="3"{% endif %}>{{ value }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>

@@ -112,7 +112,16 @@ for (const view of [
       expect(documentBox!.width).toBeLessThanOrEqual(reportWidthLimit + 1)
       const paper = await page.getByTitle("Report preview", { exact: true }).boundingBox()
       expect(Math.abs(paper!.x - documentBox!.x - 1)).toBeLessThan(1)
-      expect(Math.abs(documentBox!.width - paper!.width - 2)).toBeLessThan(1)
+      const pageWidth = await page.evaluate(() => {
+        const reference = document.createElement("div")
+        reference.style.width = "210mm"
+        document.body.append(reference)
+        const width = reference.getBoundingClientRect().width
+        reference.remove()
+        return width
+      })
+      expect(Math.abs(paper!.width - Math.max(documentBox!.width - 2, pageWidth)))
+        .toBeLessThan(1)
     } else {
       expect(review!.y).toBeGreaterThanOrEqual(documentBox!.y + documentBox!.height - 1)
       if (view.width < 600) {

@@ -41,17 +41,17 @@ def validate_report_svg(content: bytes) -> None:
 
 
 class ReportResourceFetcher(URLFetcher):
-    """Allow embedded plots and self-contained SVG logos, never network or file reads."""
+    """Allow embedded images and fonts, never network or file reads."""
 
     def __init__(self):
         """Restrict the parent fetcher to data URLs and disable redirects."""
         super().__init__(allowed_protocols={"data"}, allow_redirects=False)
 
     def fetch(self, url: str, headers: dict | None = None):
-        """Validate an embedded image and reject unsafe SVG content before rendering.
+        """Validate an embedded resource and reject unsafe SVG content before rendering.
 
         Args:
-            url: Base64 PNG, JPEG or self-contained SVG data URL.
+            url: Base64 PNG, JPEG, self-contained SVG or WOFF2 font data URL.
             headers: Optional headers passed to the restricted parent fetcher.
 
         Returns:
@@ -61,13 +61,23 @@ class ReportResourceFetcher(URLFetcher):
             ValueError: The type, size, base64 encoding or SVG content is invalid.
         """
         if not url.startswith(
-            ("data:image/png;base64,", "data:image/jpeg;base64,", "data:image/svg+xml;base64,")
+            (
+                "data:image/png;base64,",
+                "data:image/jpeg;base64,",
+                "data:image/svg+xml;base64,",
+                "data:font/woff2;base64,",
+            )
         ):
             raise ValueError(
-                "Report resources must be embedded PNG, JPEG or self-contained SVG images"
+                "Report resources must be embedded PNG, JPEG or self-contained SVG images, "
+                "or WOFF2 fonts"
             )
         if len(url) > 20 * 1024 * 1024:
-            raise ValueError("Embedded report image exceeds the size limit")
+            raise ValueError("Embedded report resource exceeds the size limit")
+        if url.startswith("data:font/woff2;base64,"):
+            content = base64.b64decode(url.partition(",")[2], validate=True)
+            if not content.startswith(b"wOF2"):
+                raise ValueError("Embedded report font must be WOFF2")
         if url.startswith("data:image/svg+xml;base64,"):
             validate_report_svg(base64.b64decode(url.partition(",")[2], validate=True))
         return super().fetch(url, headers)

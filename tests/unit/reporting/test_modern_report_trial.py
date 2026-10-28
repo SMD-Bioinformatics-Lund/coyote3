@@ -17,14 +17,20 @@ class BodyText(HTMLParser):
         self.body = False
         self.notice = False
         self.brand = False
+        self.label = False
         self.text = []
 
     def handle_starttag(self, tag, attrs):
         """Track body entry and the additional temporary-preview notice."""
         if tag == "body":
             self.body = True
-        if tag == "header" and dict(attrs).get("class") == "report-brand-header":
+        if tag == "header" and dict(attrs).get("class") in {
+            "report-brand-header",
+            "report-document-heading",
+        }:
             self.brand = True
+        if tag == "h2" and dict(attrs).get("class") == "report-metadata-heading":
+            self.label = True
         if tag == "p" and dict(attrs).get("class") == "trial-notice":
             self.notice = True
 
@@ -36,10 +42,12 @@ class BodyText(HTMLParser):
             self.notice = False
         if tag == "header":
             self.brand = False
+        if tag == "h2":
+            self.label = False
 
     def handle_data(self, data):
         """Retain nonblank body text without changing its clinical wording."""
-        if self.body and not self.notice and not self.brand and data.strip():
+        if self.body and not self.notice and not self.brand and not self.label and data.strip():
             self.text.append(data.strip())
 
 

@@ -2,9 +2,12 @@
 
 from copy import deepcopy
 from pathlib import Path
+from tomllib import TOMLDecodeError
 
 import pytest
+from pydantic import ValidationError
 
+from coyote3.application.reporting import report_service
 from coyote3.application.reporting.report_renderer import (
     render_pdf_bytes,
     render_report_html,
@@ -25,6 +28,84 @@ def context():
         "fusions": [],
         "genes_covered_in_panel": {},
     }
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_template_version_participates_in_its_analyte_identity_only(monkeypatch, analyte):
+    """Releasing one analyte changes only its versioned identity and rendered footer."""
+    names = {"dna": "dna_report.html", "rna": "report_fusion.html"}
+    hashes = {name: template_content_hash(name) for name in report_service.REPORT_TEMPLATES}
+    versions = {"dna": "1.0.0", "rna": "1.0.0"}
+    versions[analyte] = "1.0.1"
+    source = "\n".join(f'[{key}]\nversion = "{value}"' for key, value in versions.items())
+    original_source = report_service._expanded_source
+    monkeypatch.setattr(
+        report_service,
+        "_expanded_source",
+        lambda name: source if name == "modern/manifest.toml" else original_source(name),
+    )
+    for modality, name in names.items():
+        assert report_service.modern_template_version(modality) == versions[modality]
+        assert template_content_hash(name) == hashes[name]
+        assert (template_content_hash(f"modern/{name}") != hashes[f"modern/{name}"]) == (
+            modality == analyte
+        )
+        html = render_report_html(
+            template_name=name,
+            template_context=context(),
+            snapshot_rows=[],
+            analyte=modality,
+            preview=True,
+            layout="modern",
+        )
+        assert (
+            f'data-footer-label="Coyote3 · {modality.upper()} report (template v{versions[modality]})"'
+            in html
+        )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "",
+        '[dna]\nversion = "1.0.0"',
+        '[dna]\nversion = "1.0"\n[rna]\nversion = "1.0.0"',
+        '[dna]\nversion = 1\n[rna]\nversion = "1.0.0"',
+        '[dna]\nversion = "01.0.0"\n[rna]\nversion = "1.0.0"',
+        '[dna]\nversion = "1.0.0"\nunknown = true\n[rna]\nversion = "1.0.0"',
+        "not valid TOML",
+    ],
+)
+def test_template_manifest_rejects_invalid_metadata_without_a_default(monkeypatch, source):
+    """A missing or invalid version cannot silently label a report with a fallback release."""
+    monkeypatch.setattr(report_service, "_expanded_source", lambda name: source)
+    with pytest.raises((ValidationError, TOMLDecodeError)):
+        report_service.modern_template_version("dna")
+
+
+def test_template_version_rejects_unsupported_analyte():
+    """An unsupported modality cannot silently receive another report's template version."""
+    with pytest.raises(ValueError, match="DNA or RNA"):
+        report_service.modern_template_version("protein")
+
+
+@pytest.mark.parametrize(
+    "analyte,name", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
+)
+def test_footer_template_version_is_independent_of_patient_report_number(analyte, name):
+    """Repeated patient reports use the same installed presentation version in the footer."""
+    inputs = context()
+    for number in (0, 8):
+        inputs["sample"]["report_num"] = number
+        html = render_report_html(
+            template_name=name,
+            template_context=inputs,
+            snapshot_rows=[],
+            analyte=analyte,
+            preview=True,
+            layout="modern",
+        )
+        assert f'data-footer-label="Coyote3 · {analyte.upper()} report (template v1.0.0)"' in html
 
 
 @pytest.mark.parametrize(
@@ -91,7 +172,10 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
         preview=False,
     )
     assert "TRY NEW REPORT · TEMPORARY PREVIEW" not in issued
-    assert '@bottom-left { content: "Coyote3"; }' in issued
+    assert "@bottom-left { content: string(report-footer); }" in issued
+    assert (
+        'data-footer-label="Coyote3 · ' + analyte.upper() + ' report (template v1.0.0)"' in issued
+    )
     inputs["assay_config"]["template_release"]["content_hash"] = "invalid"
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(

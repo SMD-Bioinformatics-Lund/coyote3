@@ -1,11 +1,23 @@
 {% extends legacy_template %}
+{# Shared clinical blocks emit one header row; explicit sections repeat it in paginated PDFs. #}
+{% macro result_table(content) -%}
+  {{ content|replace('<tr>', '<thead><tr>'|safe, 1)|replace('</tr>', '</tr></thead><tbody>'|safe, 1)|replace('</table>', '</tbody></table>'|safe, 1) }}
+{%- endmacro %}
 {% block format_head %}{% include "components/header.html" %}{% endblock %}
 {% block format_notice %}{% include "components/modern/brand_header.html" %}{% if save != 1 %}{% include "components/footer.html" %}{% endif %}{% endblock %}
-{% block snv_table %}{% if variants %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.SNV }}</p>{% endif %}{% endblock %}
-{% block germline_snv_table %}{% if germline_variants %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.GERMLINE_SNV }}</p>{% endif %}{% endblock %}
-{% block cnv_table %}{% if cnvs %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.CNV }}</p>{% endif %}{% endblock %}
-{% block translocation_table %}{% if translocs %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.TRANSLOCATION }}</p>{% endif %}{% endblock %}
-{% block biomarker_table %}{% if biomarkers %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages[analysis] }}</p>{% endif %}{% endblock %}
-{% block pgx_table %}{% if (report_sections_data.pgx if report_analyte == 'dna' else pgx) %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.PGX }}</p>{% endif %}{% endblock %}
-{% block fusion_table %}{% if fusions %}{{ super() }}{% else %}<p class="report-empty-result">{{ empty_result_messages.FUSION }}</p>{% endif %}{% endblock %}
+{% block body %}<main class="report-content">
+  <header class="report-document-heading" data-footer-label="Coyote3 · {{ report_analyte|upper }} report (v{{ report_template_version }})">
+    <p class="report-document-label">{{ report_analyte|upper }} · Analysrapport</p>
+    <h1>{{ assay_config.reporting.report_header if report_analyte == 'dna' else report_header }}</h1>
+    <p class="report-sample-reference">{{ sample.name }}</p>
+  </header>
+  {{ super() }}
+</main>{% endblock %}
+{% block snv_table %}{% if variants %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.SNV }}</p>{% endif %}{% endblock %}
+{% block germline_snv_table %}{% if germline_variants %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.GERMLINE_SNV }}</p>{% endif %}{% endblock %}
+{% block cnv_table %}{% if cnvs %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.CNV }}</p>{% endif %}{% endblock %}
+{% block translocation_table %}{% if translocs %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.TRANSLOCATION }}</p>{% endif %}{% endblock %}
+{% block biomarker_table %}{% if biomarkers %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages[analysis] }}</p>{% endif %}{% endblock %}
+{% block pgx_table %}{% if (report_sections_data.pgx if report_analyte == 'dna' else pgx) %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.PGX }}</p>{% endif %}{% endblock %}
+{% block fusion_table %}{% if fusions %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.FUSION }}</p>{% endif %}{% endblock %}
 {% block fusion_details %}{% if fusions %}{{ super() }}{% endif %}{% endblock %}

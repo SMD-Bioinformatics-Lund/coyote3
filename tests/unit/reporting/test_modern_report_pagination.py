@@ -1,11 +1,12 @@
 """Modern A4 reports retain long clinical text and images within printable page bounds."""
 
 import base64
+import re
 from io import BytesIO
 
 import pytest
 from PIL import Image
-from weasyprint import HTML
+from weasyprint import CSS, HTML
 from weasyprint.formatting_structure.boxes import ReplacedBox, TextBox
 
 from coyote3.application.reporting.report_renderer import render_report_html
@@ -103,3 +104,123 @@ def test_modern_report_content_fits_a4_and_keeps_long_annotation_tail(analyte, i
     assert "SYNTHETIC_NOTE_000" in rendered_text
     assert "SYNTHETIC_NOTE_089" in rendered_text
     assert "SYNTHETIC_DESCRIPTION_END" in rendered_text
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_screen_and_pdf_share_content_width_and_patient_field_wrapping(analyte):
+    """A4 HTML and PDF retain the same usable width, metadata wrapping and table layout."""
+    html = render_report_html(
+        template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+        template_context=pagination_context(analyte, None),
+        snapshot_rows=[],
+        analyte=analyte,
+        preview=True,
+        layout="modern",
+        organization_name="Section For Molecular Diagnostics (SMD)",
+    )
+    # A wide, tall viewport lets the screen stylesheet lay out a continuous paper sheet.
+    screen = HTML(string=html, media_type="screen").render(
+        stylesheets=[CSS(string="@page { size: 250mm 2000mm; margin: 0; }")]
+    )
+    pdf = HTML(string=html).render()
+    for class_name in [
+        "report-content",
+        "report-metadata",
+        "report-patient-table",
+        "variant_table",
+        "report_variant",
+    ]:
+        boxes = []
+        for document in (screen, pdf):
+            boxes.append(
+                next(
+                    box
+                    for page in document.pages
+                    for box in page._page_box.descendants()
+                    if box.element is not None and box.element.get("class") == class_name
+                )
+            )
+        assert boxes[0].width == pytest.approx(boxes[1].width, abs=0.1), class_name
+        if class_name == "report-content":
+            assert boxes[0].width == pytest.approx(178 * 96 / 25.4, abs=0.1)
+        if class_name == "report-metadata":
+            assert boxes[0].height == pytest.approx(boxes[1].height, abs=0.1)
+            lines = [
+                [box.text for box in metadata.descendants() if isinstance(box, TextBox)]
+                for metadata in boxes
+            ]
+            assert lines[0] == lines[1]
+
+
+def test_long_result_table_repeats_column_headings_without_losing_findings():
+    """Each continuation page identifies its columns and retains every finding once."""
+    inputs = pagination_context("dna", None)
+    variant = {
+        **inputs["report_sections_data"]["snvs"][0],
+        "variant": "p.Synthetic",
+        "cdna": "c.Synthetic",
+        "indel_size": 0,
+        "class": 999,
+        "global_annotations": [],
+    }
+    inputs["report_sections_data"]["snvs"] = [
+        {**variant, "symbol": f"SYNTHETIC_{index:03d}"} for index in range(100)
+    ]
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    # Isolate the rendered summary table so detail sections do not repeat finding names.
+    table = re.search(r'<table class="variant_table">.*?</table>', html, re.S).group()
+    document = HTML(
+        string=html.partition("<body>")[0]
+        + '<body><div class="page">'
+        + table
+        + "</div></body></html>"
+    ).render()
+    assert len(document.pages) > 1
+    findings = []
+    for page in document.pages:
+        words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
+        for label in ["Gen", "Mutation", "Variantfrekvens", "Klassificering"]:
+            assert label in words
+        findings.extend(word for word in words if word.startswith("SYNTHETIC_"))
+    assert findings == [f"SYNTHETIC_{index:03d}" for index in range(100)]
+
+
+def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_version():
+    """Compact details move intact; every footer identifies the template, not report count."""
+    inputs = pagination_context("dna", None)
+    variant = {
+        **inputs["report_sections_data"]["snvs"][0],
+        "variant": "p.Synthetic",
+        "cdna": "c.Synthetic",
+        "indel_size": 0,
+        "global_annotations": [],
+    }
+    inputs["sample"]["report_num"] = 3
+    inputs["report_sections_data"]["snvs"] = [
+        {**variant, "symbol": f"DETAIL_{index:03d}"} for index in range(30)
+    ]
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    document = HTML(string=html).render()
+    table_pages = {}
+    for index, page in enumerate(document.pages):
+        words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
+        assert "Coyote3 · DNA report (template v1.0.0)" in words
+        for box in page._page_box.descendants():
+            if box.element is not None and box.element.get("class") == "report_variant":
+                table_pages.setdefault(box.element, set()).add(index)
+    assert len(table_pages) == 30
+    assert all(len(pages) == 1 for pages in table_pages.values())

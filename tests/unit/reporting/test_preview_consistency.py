@@ -54,3 +54,10 @@ def test_template_change_requires_a_new_preview():
         require_current_preview(
             preview_fingerprint("dna_report.html", {}), "report_fusion.html", {}
         )
+
+
+def test_sdk_rejects_non_ascii_fingerprint_as_a_precondition_failure():
+    """SDK callers bypass HTTP pattern validation but still receive a domain rejection."""
+    with pytest.raises(AppError) as failure:
+        require_current_preview("invalid-å", "dna_report.html", {})
+    assert failure.value.status_code == 409

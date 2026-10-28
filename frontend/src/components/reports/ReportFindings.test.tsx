@@ -5,6 +5,37 @@ import { ReportFindings } from "./ReportFindings"
 import { REPORT_SNAPSHOT_SECTIONS } from "./report-snapshot"
 
 describe("ReportFindings", () => {
+  it("keeps repeated findings and full annotations in separate compact table rows", () => {
+    const section = REPORT_SNAPSHOT_SECTIONS.find((entry) => entry.type === "SNV")!
+    const annotation = "Synthetic interpretation with a retained annotation tail."
+    render(<ReportFindings analysisType="SNV" columns={section.columns} rows={[
+      { gene: "FLT3", variant: "p.Lys4Glu", class: 1, text: annotation },
+      { gene: "FLT3", variant: "p.Lys4Glu", class: 1, text: "Second synthetic finding" },
+      { gene: "FLT3", variant: "p.Lys4Glu", class: 1 },
+    ]} />)
+    const table = within(screen.getByRole("table", { name: "Small variants" }))
+    expect(table.getAllByRole("columnheader").map((header) => header.textContent))
+      .toEqual(["Gene", "Variant", "Class", "Text"])
+    expect(table.getAllByRole("row")).toHaveLength(4)
+    expect(table.getAllByText("FLT3")).toHaveLength(3)
+    expect(table.getAllByText("p.Lys4Glu")).toHaveLength(3)
+    expect(table.getByText(annotation)).toBeVisible()
+    expect(table.getByText("Second synthetic finding")).toBeVisible()
+    expect(screen.getByRole("region", { name: "Small variants table" })).toHaveAttribute("tabindex", "0")
+  })
+
+  it("retains structural variant fields and zero-valued measurements in their columns", () => {
+    const section = REPORT_SNAPSHOT_SECTIONS.find((entry) => entry.type === "CNV")!
+    render(<ReportFindings analysisType="CNV" columns={section.columns} rows={[
+      { genes: ["TP53", "SYNTHETIC_GENE"], region: "1:10000-20000", size: 10000,
+        cnv_type: "loss", ratio: 0, callers: ["cnvkit"] },
+    ]} />)
+    const table = within(screen.getByRole("table", { name: "Copy-number variants" }))
+    const cells = within(table.getAllByRole("row")[1]).getAllByRole("cell")
+    expect(cells.map((cell) => cell.textContent))
+      .toEqual(["TP53, SYNTHETIC_GENE", "1:10000-20000", "10000", "loss", "0", "cnvkit"])
+  })
+
   it("shows the recorded HRD score and components, including zero and additional fields", () => {
     const section = REPORT_SNAPSHOT_SECTIONS.find((entry) => entry.type === "HRD")!
     render(<ReportFindings analysisType="HRD" columns={section.columns} rows={[
@@ -41,7 +72,7 @@ describe("ReportFindings", () => {
     rerender(<ReportFindings analysisType="TMB" columns={section.columns} rows={[
       { result: { TMB: { value: null, unit: "mut/Mb" } } },
     ]} />)
-    expect(screen.getByText("—")).toBeVisible()
+    expect(screen.getByText("-")).toBeVisible()
     expect(screen.queryByText("0")).not.toBeInTheDocument()
   })
 
@@ -55,7 +86,7 @@ describe("ReportFindings", () => {
     expect(screen.getByText("Total score")).toBeVisible()
     expect(screen.getByText("7")).toBeVisible()
     expect(screen.getByText("other")).toBeVisible()
-    expect(screen.getByText("—")).toBeVisible()
+    expect(screen.getByText("-")).toBeVisible()
   })
 
   it("keeps single and paired MSI measurement labels distinct", () => {

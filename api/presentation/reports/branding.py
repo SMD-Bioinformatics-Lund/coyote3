@@ -41,9 +41,11 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
     Args:
         config: Host settings. CONTACT.organization.report_logo selects region-skane
             (the bundled default), a path within the center directory, or empty to omit.
+            Optional organization.address and organization.phone supply the public
+            center contact details; blank or non-text values are omitted.
 
     Returns:
-        Embedded logo URLs for the modern report header.
+        Embedded logo URLs and optional center address and telephone for the report header.
 
     Raises:
         ValueError: A custom path escapes the center directory or its logo is unsafe.
@@ -51,6 +53,11 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
     """
     assets = API_CONFIG_DIR / "assets"
     branding = {"coyote_logo": _image_url(assets / "coyote.svg")}
+    organization = (config.get("CONTACT") or {}).get("organization") or {}
+    for field in ("address", "phone"):
+        value = organization.get(field)
+        if isinstance(value, str) and value.strip():
+            branding[f"center_{field}"] = value.strip()
     choice = str(
         ((config.get("CONTACT") or {}).get("organization") or {}).get("report_logo", "region-skane")
     )

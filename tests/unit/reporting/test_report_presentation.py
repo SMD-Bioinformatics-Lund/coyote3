@@ -5,6 +5,7 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 from weasyprint import HTML
+from weasyprint.formatting_structure.boxes import TableCellBox, TableRowBox, TextBox
 
 from api.config import report_presentation
 from api.presentation.reports.branding import render_branded_report_html
@@ -49,6 +50,51 @@ def empty_context(analyte="dna"):
         inputs["report_sections"] = ["FUSION", "PGX"]
         inputs["pgx"] = []
     return inputs
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_markdown_conclusion_preserves_formatting_and_renders_bordered_table(analyte):
+    """Authored Markdown keeps its structure and prints a legible table in the conclusion."""
+    inputs = empty_context(analyte)
+    inputs["latest_sample_comment_text"] = (
+        "## Synthetic conclusion\n\n**Reviewed** with *context*.\n\n"
+        "- First item\n- Second item\n\n"
+        "> Synthetic quotation\n\n"
+        "| Column | Value |\n| --- | --- |\n| item | result |\n"
+    )
+    html = render_report_html(
+        template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte=analyte,
+        preview=True,
+        layout="modern",
+    )
+    for fragment in (
+        "<h2>Synthetic conclusion</h2>",
+        "<strong>Reviewed</strong>",
+        "<em>context</em>",
+        "<ul>",
+        "<li>First item</li>",
+        "<blockquote>",
+        "<th>Column</th>",
+        "<td>result</td>",
+    ):
+        assert fragment in html
+    document = HTML(string=html).render()
+    cells = []
+    for page in document.pages:
+        for box in page._page_box.descendants():
+            if not isinstance(box, TableCellBox):
+                continue
+            text = "".join(child.text for child in box.descendants() if isinstance(child, TextBox))
+            if text in {"Column", "Value", "item", "result"}:
+                cells.append(box)
+                assert box.border_top_width > 0
+                assert box.border_right_width > 0
+                assert box.border_bottom_width > 0
+                assert box.border_left_width > 0
+    assert len(cells) == 4
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
@@ -210,7 +256,7 @@ def test_metadata_is_compact_in_a4_output_without_losing_fields():
         if box.element_tag == "section" and box.element.get("class") == "report-metadata"
     ]
     assert len(metadata) == 1
-    assert metadata[0].height < 250
+    assert metadata[0].height < 200
     metadata_element = HTML(string=output).etree_element.find(
         './/section[@class="report-metadata"]'
     )
@@ -226,3 +272,51 @@ def test_metadata_is_compact_in_a4_output_without_losing_fields():
         "SYNTHETIC_REPORT_ID",
     ]:
         assert value in text
+
+
+def test_short_report_uses_compact_rows_and_keeps_details_with_the_summary():
+    """Compact findings continue after the conclusion without a forced page break."""
+    inputs = context()
+    inputs["report_sections"] = ["SNV"]
+    inputs["report_sections_data"] = {
+        "snvs": [
+            {
+                "symbol": "SYNTHETIC_GENE",
+                "variant": "p.Val1Ala",
+                "cdna": "c.2T>C",
+                "af": 0.42,
+                "indel_size": 0,
+                "class": 1,
+                "class_short_desc": "Tier I",
+                "class_long_desc": "Synthetic interpretation",
+                "global_annotations": [],
+                "annotations_interesting": {},
+            }
+        ]
+    }
+    inputs["latest_sample_comment_text"] = "SYNTHETIC_CONCLUSION"
+    output = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    html = HTML(string=output)
+    document = html.render()
+    first_page_text = " ".join(
+        box.text for box in document.pages[0]._page_box.descendants() if isinstance(box, TextBox)
+    )
+    assert "SYNTHETIC_CONCLUSION" in first_page_text
+    assert "Detekterade mutationer" in first_page_text
+    table = html.etree_element.find('.//table[@class="variant_table"]')
+    rows = set(table.findall(".//tr"))
+    rendered_rows = [
+        box
+        for page in document.pages
+        for box in page._page_box.descendants()
+        if isinstance(box, TableRowBox) and box.element in rows
+    ]
+    assert len(rendered_rows) == 2
+    assert all(row.height < 26 for row in rendered_rows)

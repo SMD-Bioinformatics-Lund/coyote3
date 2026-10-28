@@ -12,6 +12,7 @@ from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_context import prepare_render_context
 from coyote3.application.reporting.report_service import (
     REPORT_TEMPLATES,
+    modern_template_version,
     select_report_template,
     template_content_hash,
 )
@@ -157,6 +158,8 @@ def render_report_html(
 
     Raises:
         AppError: The installed template differs from the approved configuration layout.
+        ValueError: The layout or modern template manifest is invalid.
+        OSError: A required packaged template asset is missing or unreadable.
     """
     _ = snapshot_rows
     context = prepare_render_context(template_context, analyte=analyte, preview=preview)
@@ -180,6 +183,8 @@ def render_report_html(
         raise ValueError("Report layout must be legacy or modern")
     context["legacy_template"] = leaf
     context.update(report_analyte=analyte, branding=branding or {})
+    if selected_layout == "modern":
+        context["report_template_version"] = modern_template_version(analyte)
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )

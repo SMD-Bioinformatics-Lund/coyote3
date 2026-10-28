@@ -1,6 +1,6 @@
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import type { ColumnDef } from "@tanstack/react-table"
-import { isCompactReportBiomarker, type ReportSnapshotRow } from "./report-snapshot"
+import { REPORT_SNAPSHOT_SECTIONS, isCompactReportBiomarker, type ReportSnapshotRow } from "./report-snapshot"
 import { Fragment } from "react"
 
 function measurements(value: unknown): Record<string, unknown> {
@@ -10,7 +10,7 @@ function measurements(value: unknown): Record<string, unknown> {
 
 function measurementText(value: unknown): string {
   return typeof value === "number" || (typeof value === "string" && value !== "")
-    ? String(value) : "—"
+    ? String(value) : "-"
 }
 
 /** Show producer-reported values without deriving scores or interpreting thresholds. */
@@ -53,7 +53,7 @@ function BiomarkerSummary({ type, result }: {
         return <div key={key} role="group" aria-label={`${label} MSI`}>
           <dl className="report-biomarker-score">
             <dt className="type-meta text-muted-foreground">{label}</dt>
-            <dd className="type-page-title type-numeric">{percentage}{percentage !== "—" && "%"}</dd>
+            <dd className="type-page-title type-numeric">{percentage}{percentage !== "-" && "%"}</dd>
           </dl>
           <p className="type-meta text-muted-foreground">
             <span className="block type-numeric text-foreground">{measurementText(msi.som)} / {measurementText(msi.tot)}</span>
@@ -100,40 +100,46 @@ function MeasurementValues({ value, path = [] }: { value: unknown; path?: string
   const label = labels.map((key) => measurementLabels[key] ?? key.replaceAll("_", " ")).join(" / ")
   return <Fragment>
     <dt>{label}</dt>
-    <dd>{value === null || value === undefined || value === "" ? "—" : String(value)}</dd>
+    <dd>{value === null || value === undefined || value === "" ? "-" : String(value)}</dd>
   </Fragment>
 }
 
-/** Present preserved snapshot fields as readable records beside the document. */
+/** Present preserved findings in compact tables and producer-reported biomarker summaries. */
 export function ReportFindings({ rows, columns, analysisType }: {
   rows: ReportSnapshotRow[]
   columns: ColumnDef<ReportSnapshotRow>[]
   analysisType?: string
 }) {
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
-  return <div className="divide-y divide-border/60">
-    {table.getRowModel().rows.map((row) => (
-      analysisType && isCompactReportBiomarker(analysisType)
-        ? <div key={row.id} className="py-3 first:pt-0">
-          <BiomarkerSummary type={analysisType} result={measurements(row.original.result)} />
-        </div>
-        : row.original.result && typeof row.original.result === "object"
-        ? <dl key={row.id} className="report-measurements type-body-sm py-2">
-          <MeasurementValues value={row.original.result} />
-        </dl>
-        :
-      <dl key={row.id} className="space-y-3 py-4 first:pt-2">
-        {row.getVisibleCells().map((cell) => (
-          <div key={cell.id} className="space-y-1">
-            <dt className="type-meta text-muted-foreground">
-              {typeof cell.column.columnDef.header === "string" ? cell.column.columnDef.header : cell.column.id}
-            </dt>
-            <dd className="report-finding-value type-body-sm text-foreground">
+  if (analysisType && isCompactReportBiomarker(analysisType)) {
+    return <div className="divide-y divide-border/60">
+      {table.getRowModel().rows.map((row) => <div key={row.id} className="py-2 first:pt-0">
+        <BiomarkerSummary type={analysisType} result={measurements(row.original.result)} />
+      </div>)}
+    </div>
+  }
+  const label = REPORT_SNAPSHOT_SECTIONS.find((section) => section.type === analysisType)?.label
+    ?? "Included findings"
+  return <div className="report-findings-table-scroll" role="region" aria-label={`${label} table`} tabIndex={0}>
+    <table className="report-findings-table type-body-sm" aria-label={label}>
+      <thead>
+        {table.getHeaderGroups().map((group) => <tr key={group.id}>
+          {group.headers.map((header) => <th key={header.id} scope="col" data-column={header.column.id} className="type-meta">
+            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+          </th>)}
+        </tr>)}
+      </thead>
+      <tbody>
+        {table.getRowModel().rows.map((row) => <tr key={row.id}>
+          {row.original.result && typeof row.original.result === "object"
+            ? <td colSpan={row.getVisibleCells().length}>
+              <dl className="report-measurements type-body-sm"><MeasurementValues value={row.original.result} /></dl>
+            </td>
+            : row.getVisibleCells().map((cell) => <td key={cell.id} className="report-finding-value">
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    ))}
+            </td>)}
+        </tr>)}
+      </tbody>
+    </table>
   </div>
 }

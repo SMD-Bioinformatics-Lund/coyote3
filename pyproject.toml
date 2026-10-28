@@ -137,7 +137,7 @@ select = ["E", "F", "I", "D", "TID"]
 # Production docstring presence is enforced by tests/integration/test_python_docstrings.py.
 # D1xx remain excluded here so test fixtures need not document every helper.
 # D203/D213: conflict with Google style (D211/D212 selected by convention)
-# D400/D401/D415: first-line punctuation — too noisy for existing codebase
+# D400/D401/D415: first-line punctuation - too noisy for existing codebase
 ignore = [
     "E501",
     "D100",
@@ -264,6 +264,8 @@ coyote3 = [
     "config/*.yaml",
     "templates/reporting/**/*.html",
     "templates/reporting/**/*.css",
+    "templates/reporting/**/*.toml",
+    "templates/reporting/assets/*-LICENSE.md",
     "templates/reporting/*.html",
 ]
 
