@@ -5,7 +5,7 @@ export type GeneScope = {
 export type Offering = {
   offering_id: string; title: string; group_id: string; group_label: string
   diagnosis_id: string; diagnosis_label: string; modality: "dna" | "rna"
-  family: string; assay_id: string; assay_label: string; description: string
+  family: string; assay_id: string; assay_label: string; assay_display_name?: string; description: string
   analysis: string[]; price: { amount: string; currency: string; kind: "fixed" | "starting" | "estimated"; conditions: string } | null
   pricing_message: string; turnaround: string; input_material: string[]
   report_deliverables: string[]; methodology: string; limitations: string
@@ -31,7 +31,7 @@ export function matchOffering(offering: Offering, query: string): string[] {
   if (!q) return []
   const fields: [string, string[]][] = [
     ["Diagnosis", [offering.diagnosis_label, offering.diagnosis_id]],
-    ["Test", [offering.title, offering.assay_id, offering.assay_label]],
+    ["Test", [offering.title, offering.assay_id, offering.assay_label, offering.assay_display_name || ""]],
     ["Group", [offering.group_id, offering.group_label]],
     ["Method", [offering.modality, offering.family, familyLabels[offering.family] || offering.family]],
     ["Published gene scope", offering.gene_scopes.flatMap((scope) => scope.genes)],

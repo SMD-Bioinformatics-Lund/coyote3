@@ -85,6 +85,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
     return {
       mod: contiguousSpans(matrixColumns, (col) => col.mod, (col) => col.modalityLabel || col.mod),
       assayGroup: contiguousSpans(matrixColumns, (col) => `${col.mod}::${col.assayGroup}`, (col) => col.assayGroup),
+      assay: contiguousSpans(matrixColumns, (col) => `${col.mod}::${col.assayGroup}::${col.assay_id || col.assay}`, (col) => col.assay),
     }
   }, [matrixColumns])
 
@@ -106,6 +107,7 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
 
   return (
     <PageShell
+      className="material-page"
       eyebrow="Public"
       title="Assay Catalog Matrix"
       description="Gene coverage matrix across public assay catalog modalities and gene lists."

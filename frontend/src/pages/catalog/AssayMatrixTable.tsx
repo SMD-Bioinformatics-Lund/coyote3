@@ -1,5 +1,6 @@
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
+import { SearchInput } from "@/components/ui/search-input"
 import { Check, Search, X } from "lucide-react"
 import { type FormEvent } from "react"
 import { Link } from "react-router-dom"
@@ -38,6 +39,7 @@ export function AssayMatrixTable({
   headerSpans: {
     mod: Array<{ key: string; label: string; span: number }>
     assayGroup: Array<{ key: string; label: string; span: number }>
+    assay: Array<{ key: string; label: string; span: number }>
   }
   page: number
   perPage: number
@@ -68,7 +70,7 @@ export function AssayMatrixTable({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <span className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+          <span className="material-badge rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground">
             {genes.length} genes
           </span>
           {annotations.toggle}
@@ -119,10 +121,9 @@ export function AssayMatrixTable({
         <form onSubmit={onGeneSearchSubmit} className="flex min-w-[18rem] max-w-[34rem] flex-1 flex-wrap items-end gap-2">
           <label className="grid min-w-[14rem] flex-1 gap-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Gene search
-            <input
+            <SearchInput
               value={geneSearch}
               onChange={(event) => onGeneSearchChange(event.target.value)}
-              className="form-control h-8 rounded-lg px-2.5 text-xs font-normal normal-case tracking-normal text-foreground"
               placeholder="TP53"
             />
           </label>
@@ -179,11 +180,11 @@ export function AssayMatrixTable({
           </colgroup>
           <thead className="catalog-matrix-header type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
             <tr>
-              <th rowSpan={3} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
+              <th rowSpan={4} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
                 Gene
               </th>
               {annotations.visible && (
-                <th rowSpan={3} className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle whitespace-normal [overflow-wrap:anywhere]">
+                <th rowSpan={4} className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle whitespace-normal [overflow-wrap:anywhere]">
                   Annotations
                 </th>
               )}
@@ -216,20 +217,35 @@ export function AssayMatrixTable({
                 </th>
               ))}
             </tr>
-            <tr>
+            <tr aria-label="Assays">
+              {headerSpans.assay.map((span) => (
+                <th
+                  key={span.key}
+                  colSpan={span.span}
+                  scope="colgroup"
+                  title={span.label}
+                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center font-semibold normal-case last:border-r-0"
+                >
+                  <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
+                    {span.label}
+                  </span>
+                </th>
+              ))}
+            </tr>
+            <tr aria-label="Diagnoses / subpanels">
               {columns.map((col, index) => {
                 const boundary = matrixBoundaryClass(columns, index)
                 return (
                   <th
                     key={col.key}
+                    scope="col"
                     className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
-                    title={`${col.assay} · ${col.diagnosis} · ${col.isgl_key}`}
+                    title={`${col.assay} · ${col.diagnosis} · ${col.analysis || "Unassigned"} · ${col.isgl_label || col.isgl_key}`}
                     aria-label={`${col.assay} · ${col.diagnosis} · ${col.analysis || "Unassigned"} · ${col.isgl_label || col.isgl_key}`}
                     style={matrixBoundaryStyle(boundary)}
                   >
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
-                      <span className="block font-semibold normal-case">{col.assay}</span>
-                      <span className="mt-1 block type-meta normal-case text-muted-foreground">{labelText(col.diagnosis)} · {col.isgl_label || col.isgl_key}</span>
+                      <span className="block normal-case">{labelText(col.diagnosis)}</span>
                     </span>
                   </th>
                 )
@@ -264,7 +280,7 @@ export function AssayMatrixTable({
                     >
                       {col.no_gene_list ? <span className="type-meta text-muted-foreground" title="No gene list is assigned to this analysis">N/A</span> : present ? (
                         <span className="matrix-coverage-mark" aria-label="Included" title="Included in this gene list">
-                          <Check className="size-3.5" strokeWidth={2.4} aria-hidden="true" />
+                          <Check className="size-3" strokeWidth={2.4} aria-hidden="true" />
                         </span>
                       ) : (
                         <span className="text-muted-foreground/65">-</span>

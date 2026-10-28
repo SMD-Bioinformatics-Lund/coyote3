@@ -8,7 +8,7 @@ import type { Offering } from "./offering-types"
 
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 vi.mock("@/components/data-table/DataTable", () => ({
-  DataTable: ({ data }: { data: { gene: string }[] }) => <div>{data.map((row) => row.gene).join(", ")}</div>,
+  DataTable: ({ data }: { data: { hgnc_symbol: string }[] }) => <div>{data.map((row) => row.hgnc_symbol).join(", ")}</div>,
 }))
 
 const panel: Offering = {
@@ -37,12 +37,16 @@ function show(offerings = [panel, wgs], preview = false) {
 
 describe("Published offering discovery", () => {
   it("uses diagnosis-first by default and preserves both services in assay-first mode", async () => {
-    show()
+    show([{ ...panel, assay_label: "SG3", assay_display_name: "Solid Tumor Panel GMS version 3" }, wgs])
     expect(await screen.findByText("2 available tests · publication 3")).toBeVisible()
     expect(screen.getByRole("button", { name: "By Diagnosis" })).toHaveAttribute("aria-pressed", "true")
     fireEvent.change(screen.getByLabelText("Diagnosis"), { target: { value: "breast" } })
     expect(screen.getAllByRole("article")).toHaveLength(2)
     fireEvent.click(screen.getByRole("button", { name: "By Assay" }))
+    expect(screen.getByRole("option", { name: /^SG3$/ })).toBeVisible()
+    expect(screen.getByText("Solid Tumor Panel GMS version 3")).toBeVisible()
+    expect(screen.getByRole("heading", { name: "Solid Tumor Panel GMS version 3" })).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Breast panel" })).not.toBeInTheDocument()
     expect(screen.getAllByRole("article")).toHaveLength(2)
     fireEvent.change(screen.getByLabelText("Assay", { exact: true }), { target: { value: "solid_GMSv3" } })
     expect(screen.getAllByRole("article")).toHaveLength(1)
@@ -68,7 +72,9 @@ describe("Published offering discovery", () => {
     const table = screen.getByRole("table")
     expect(within(table).getByText(/100/)).toBeVisible()
     expect(within(table).getByText(/400/)).toBeVisible()
-    expect(within(table).getAllByText("SNV, CNV")).toHaveLength(2)
+    const analysisRow = within(table).getByRole("rowheader", { name: "Analysis" }).closest("tr")!
+    expect(within(analysisRow).getAllByText("SNV")).toHaveLength(2)
+    expect(within(analysisRow).getAllByText("CNV")).toHaveLength(2)
     expect(screen.queryByRole("option", { name: "No diagnosis / General testing" })).not.toBeInTheDocument()
   })
 

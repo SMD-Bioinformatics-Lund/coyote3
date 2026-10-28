@@ -84,7 +84,8 @@ describe("PublicCatalogMatrix", () => {
     fireEvent.change(screen.getByLabelText("Gene list"), { target: { value: "CLL variants" } })
     for (const assay of ["HEM", "WGS", "MYELOID"]) {
       const header = screen.getByRole("columnheader", { name: `${assay} · CLL · SNV · CLL variants` })
-      expect(header).toHaveTextContent(assay)
+      expect(header).toHaveTextContent("CLL")
+      expect(within(screen.getByRole("row", { name: "Assays" })).getByRole("columnheader", { name: assay })).toBeVisible()
     }
     expect(screen.getByText("3 visible catalog column(s)")).toBeVisible()
   })
@@ -98,7 +99,8 @@ describe("PublicCatalogMatrix", () => {
     const analysis = screen.getByRole("combobox", { name: "Gene list type" })
     expect(analysis).toHaveValue("SNV")
     expect(within(analysis).queryByRole("option", { name: "All" })).not.toBeInTheDocument()
-    expect(screen.getByRole("columnheader", { name: "hema_gmsv1 · base · SNV · Myeloid genes" })).toHaveTextContent("hema_gmsv1")
+    expect(screen.getByRole("columnheader", { name: "hema_gmsv1 · base · SNV · Myeloid genes" })).toHaveTextContent("Assay-wide")
+    expect(within(screen.getByRole("row", { name: "Assays" })).getByRole("columnheader", { name: "hema_gmsv1" })).toBeVisible()
     expect(screen.queryByRole("columnheader", { name: /CNV · Colon genes/ })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "TP53" })).toHaveAttribute("href", "/public/gene/TP53/info")
     expect(screen.getByText("Showing 2 of 125 gene(s) across 1 visible catalog column(s)")).toBeVisible()

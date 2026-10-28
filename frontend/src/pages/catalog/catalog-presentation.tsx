@@ -1,4 +1,5 @@
 import { sanitizeRichText } from "@/lib/safe-html"
+import { sequencingValueClasses } from "@/lib/badge-colors"
 import { cn } from "@/lib/utils"
 import { type ReactNode } from "react"
 import { asArray, FIRST_CLASS_CATALOG_FIELDS, formatScalar } from "./catalog-values"
@@ -88,7 +89,7 @@ export function BadgeList({
       {list.map((item) => (
         <span
           key={item}
-          className={`${toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 text-xs"} font-semibold`}
+          className={`catalog-value-badge ${sequencingValueClasses[item.toLowerCase()] || toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 text-xs"} font-semibold`}
         >
           {item}
         </span>
