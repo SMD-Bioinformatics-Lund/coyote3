@@ -97,6 +97,13 @@
     </aside>
     {% endif %}
     <section class="endpoint-workspace" aria-label="API endpoints">
+    {% if view == 'reference' %}
+    <div class="reference-resource-control">
+      <label for="reference-resource">API resource</label>
+      <select id="reference-resource" aria-describedby="reference-resource-help"></select>
+      <p id="reference-resource-help">Choose a resource to read its endpoints, schemas and response examples.</p>
+    </div>
+    {% endif %}
     <div id="docs-loading" role="status">Loading API {{ view }}...</div>
     <div id="docs-error" role="alert" hidden>The API documentation could not load. Reload this page or <a href="{{ schema_url }}">open the OpenAPI schema</a>.</div>
     <div id="api-renderer"></div>

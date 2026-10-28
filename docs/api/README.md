@@ -31,6 +31,11 @@ signed-in browser session and retrieves CSRF protection for cookie-based changes
 bearer authorization is held in page memory and is not persisted. Its resource
 search and endpoint counts come from the running OpenAPI schema.
 
+The reference renders one **API resource** at a time. Choose a resource above the
+reference to browse its endpoints; links to an endpoint select its resource
+automatically. Response bodies and nested schemas expand on demand. **OpenAPI JSON**
+always downloads the complete contract, regardless of the selected resource.
+
 | Guide | Use it to |
 | --- | --- |
 | [API Authentication](authentication.md) | Authenticate with sessions, bearer tokens, and supported credentials. |

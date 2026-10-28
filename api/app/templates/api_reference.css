@@ -65,6 +65,7 @@
   --code-ink: oklch(0.925 0.004 255);
   --code-string: oklch(0.65 0.1 302);
   --code-success: #b4d0bb;
+  --code-danger: #e0aeb0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -105,7 +106,7 @@
 * { box-sizing: border-box; letter-spacing: 0; }
 body { margin: 0; background: var(--background); }
 a { color: var(--accent); text-underline-offset: 3px; }
-a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .portal-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 28px; border-bottom: 1px solid var(--chrome-border); background: var(--chrome-top); color: var(--chrome-foreground); }
 .portal-brand, .portal-links, .heading-title { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--chrome-foreground); font-size: 21px; font-weight: 650; text-decoration: none; }
@@ -142,6 +143,11 @@ h1 { margin: 0 8px 0 0; font-size: 26px; font-weight: 650; }
 #api-renderer .redoc-json .token.property { color: var(--code-ink); }
 #api-renderer [role="tab"].tab-success {
   color: var(--code-success);
+  background: var(--code-surface);
+  border: 1px solid currentColor;
+}
+#api-renderer [role="tab"].tab-error {
+  color: var(--code-danger);
   background: var(--code-surface);
   border: 1px solid currentColor;
 }
@@ -335,6 +341,48 @@ body {
 .swagger-ui .dialog-ux .backdrop-ux { background: color-mix(in srgb, var(--background) 65%, transparent); backdrop-filter: blur(6px); }
 .swagger-ui section.models { border-color: var(--border); }
 .swagger-ui .model, .swagger-ui .model-title, .swagger-ui .prop-type { color: var(--ink); }
+#api-renderer .opblock-summary-path,
+#api-renderer .opblock-description-wrapper,
+#api-renderer .opblock-description-wrapper p,
+#api-renderer .opblock-external-docs-wrapper,
+#api-renderer .opblock-external-docs-wrapper p,
+#api-renderer .opblock-title_normal,
+#api-renderer .renderedMarkdown :is(p, li, td, th),
+#api-renderer .parameter__in,
+#api-renderer .parameter__extension,
+#api-renderer .parameter__deprecated,
+#api-renderer .response-control-media-type__title,
+#api-renderer .response-control-media-type__accept-message,
+#api-renderer .response-col_links,
+#api-renderer .model-toggle,
+#api-renderer .prop-format,
+#api-renderer .servers-title,
+#api-renderer .download-contents { color: var(--ink); }
+#api-renderer .renderedMarkdown a { color: var(--accent); }
+#api-renderer .renderedMarkdown :not(pre) > code {
+  color: var(--ink);
+  background: var(--paper-inset);
+}
+.reference-resource-control {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  background: var(--heading-surface);
+}
+.reference-resource-control label { font-weight: 600; }
+.reference-resource-control select {
+  min-width: 0; max-width: 100%; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: 6px;
+  color: var(--ink); background: var(--paper-raised); font: inherit;
+  box-shadow: var(--inset-shadow);
+}
+.reference-resource-control p { flex-basis: 100%; margin: 0; color: var(--ink-muted); font-size: 12px; }
+.reference #api-renderer table { border-collapse: collapse; }
+.reference #api-renderer table :is(th, td) { border-color: var(--border); }
+.reference #api-renderer table tr { background: var(--surface); color: var(--ink); }
+.reference #api-renderer table thead tr { background: var(--paper-raised); }
+.reference #api-renderer table tbody tr:nth-child(even) { background: var(--surface-muted); }
+.reference #api-renderer table :is(th, td) { color: var(--ink); }
+.reference #api-renderer blockquote { color: var(--ink-muted); border-color: var(--border); }
 .reference #api-renderer h5 { color: var(--ink-muted); }
 .reference #api-renderer h5 > span { color: var(--ink); }
 @media (prefers-reduced-transparency: reduce) { .swagger-ui .dialog-ux .backdrop-ux { background: var(--background); backdrop-filter: none; } }

@@ -26,7 +26,72 @@ script.onload = async () => {
     if (!response.ok) throw new Error("Schema unavailable");
     const schema = await response.json();
     if (view === "reference") {
+      const methods = new Set(["get", "post", "put", "patch", "delete", "options", "head", "trace"]);
+      const resources = new Map();
+      const operationResources = new Map();
+      for (const item of Object.values(schema.paths || {})) {
+        for (const [method, operation] of Object.entries(item)) {
+          if (!methods.has(method)) continue;
+          if (operation.operationId) operationResources.set(operation.operationId, operation.tags?.[0] || "default");
+          for (const tag of operation.tags?.length ? operation.tags : ["default"]) {
+            resources.set(tag, (resources.get(tag) || 0) + 1);
+          }
+        }
+      }
+      const select = document.getElementById("reference-resource");
+      const orderedTags = [...new Set([
+        ...(schema["x-tagGroups"] || []).flatMap((group) => group.tags),
+        ...resources.keys(),
+      ])].filter((tag) => resources.has(tag));
+      for (const tag of orderedTags) {
+        const option = document.createElement("option");
+        option.value = tag;
+        option.textContent = `${tag} (${resources.get(tag)} endpoints)`;
+        select.append(option);
+      }
+      // ReDoc's tag anchors replace spaces and punctuation with URL-safe names.
+      const tagId = (tag) => tag.replace(/&/g, "and").replace(/\s+/g, "-");
+      let activeResource;
+      const resourceFromHash = () => {
+        try {
+          const operation = location.hash.match(/(?:^#|\/)operation\/([^/]+)/);
+          if (operation) {
+            const tag = operationResources.get(decodeURIComponent(operation[1]));
+            if (tag) return tag;
+          }
+          const match = location.hash.match(/^#tag\/([^/]+)/);
+          if (match) {
+            const name = decodeURIComponent(match[1]);
+            const tag = orderedTags.find((tag) => tag === name || tagId(tag) === name);
+            if (tag) return tag;
+          }
+        } catch { return orderedTags[0]; }
+        const selected = new URLSearchParams(location.search).get("resource");
+        if (resources.has(selected)) return selected;
+        return activeResource || orderedTags[0];
+      };
       const renderReference = () => {
+        activeResource = resourceFromHash();
+        select.value = activeResource;
+        // ReDoc updates hashes while scrolling; keep resource selection across reloads.
+        const address = new URL(location.href);
+        address.searchParams.set("resource", activeResource);
+        history.replaceState(null, "", address);
+        loading.hidden = false;
+        error.hidden = true;
+        // Render one resource at a time; the downloaded OpenAPI contract stays complete.
+        const paths = {};
+        for (const [path, item] of Object.entries(schema.paths || {})) {
+          const entries = Object.entries(item).filter(([method, operation]) =>
+            !methods.has(method) || (operation.tags?.length ? operation.tags : ["default"]).includes(activeResource));
+          if (entries.some(([method]) => methods.has(method))) paths[path] = Object.fromEntries(entries);
+        }
+        const resourceSchema = {
+          ...schema,
+          paths,
+          tags: (schema.tags || []).filter((tag) => tag.name === activeResource),
+          "x-tagGroups": [{ name: "API resource", tags: [activeResource] }],
+        };
         const tokens = getComputedStyle(document.documentElement);
         // ReDoc's color utilities require RGB; let the browser resolve our OKLCH tokens.
         const canvas = document.createElement("canvas");
@@ -41,14 +106,18 @@ script.onload = async () => {
           const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
           return `rgb(${r}, ${g}, ${b})`;
         };
-        Redoc.init(schema, {
+        Redoc.init(resourceSchema, {
           hideDownloadButton: true,
           disableGoogleFont: true,
           requiredPropsFirst: true,
           pathInMiddlePanel: true,
-          expandResponses: "200,201",
+          expandResponses: "",
+          schemasExpansionLevel: 1,
+          jsonSamplesExpandLevel: 1,
+          generatedSamplesMaxDepth: 3,
           nativeScrollbars: true,
           theme: {
+            breakpoints: { small: "50rem", medium: "90rem", large: "110rem" },
             spacing: { sectionHorizontal: 28, sectionVertical: 24 },
             colors: {
               primary: { main: color("--accent") },
@@ -67,7 +136,7 @@ script.onload = async () => {
             schema: { linesColor: color("--border"), typeNameColor: color("--ink-muted"), typeTitleColor: color("--ink"), requireLabelColor: color("--status-danger-foreground"), nestedBackground: color("--surface-muted") },
             typography: { fontSize: "14px", fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", headings: { fontFamily: "inherit", fontWeight: "600" }, code: { fontSize: "12px", color: color("--ink"), backgroundColor: color("--surface-muted") } },
             sidebar: { width: "240px", backgroundColor: color("--surface-muted"), textColor: color("--ink-muted"), activeTextColor: color("--accent") },
-            rightPanel: { backgroundColor: color("--code-surface"), textColor: color("--code-ink"), servers: { overlay: { backgroundColor: color("--surface-muted"), textColor: color("--ink") }, url: { backgroundColor: color("--paper-raised") } } },
+            rightPanel: { width: "35%", backgroundColor: color("--code-surface"), textColor: color("--code-ink"), servers: { overlay: { backgroundColor: color("--surface-muted"), textColor: color("--ink") }, url: { backgroundColor: color("--paper-raised") } } },
             codeBlock: { backgroundColor: color("--code-surface") },
             fab: { backgroundColor: color("--paper-raised"), color: color("--ink") },
           },
@@ -75,6 +144,19 @@ script.onload = async () => {
       };
       renderReference();
       window.addEventListener("api-theme-change", renderReference);
+      window.addEventListener("hashchange", () => {
+        if (resourceFromHash() !== activeResource) renderReference();
+      });
+      window.addEventListener("popstate", () => {
+        if (resourceFromHash() !== activeResource) renderReference();
+      });
+      select.addEventListener("change", () => {
+        const address = new URL(location.href);
+        address.searchParams.set("resource", select.value);
+        address.hash = `tag/${tagId(select.value)}`;
+        history.pushState(null, "", address);
+        renderReference();
+      });
     } else {
       const navigation = document.getElementById("resource-navigation");
       const counts = new Map();
