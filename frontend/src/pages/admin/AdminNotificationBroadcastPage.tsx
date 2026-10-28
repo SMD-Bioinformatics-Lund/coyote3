@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Megaphone, Search, Send } from "lucide-react"
+import { Megaphone, Send } from "lucide-react"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Label } from "@/components/ui/label"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
@@ -113,7 +114,7 @@ export function AdminNotificationBroadcastPage() {
             {!recipientQuery.isLoading && !(recipientQuery.data?.roles || []).length && <p className="p-3 text-sm text-muted-foreground">No active roles have recipients.</p>}
           </div>}
           {audience === "selected" && <div className="mt-3">
-            <div className="relative"><Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-8" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search users" /></div>
+            <SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search users" />
             <div className="mt-2 max-h-80 space-y-1 overflow-auto rounded-lg border border-border bg-background p-2">
               {filteredRecipients.map((user) => <label key={user.username} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 hover:bg-muted"><input type="checkbox" className="mt-0.5" checked={recipients.includes(user.username)} onChange={(event) => setRecipients((current) => event.target.checked ? [...current, user.username] : current.filter((item) => item !== user.username))} /><span className="min-w-0"><span className="block text-sm font-semibold">{user.name || user.username}</span><span className="block truncate text-xs text-muted-foreground">{user.username}{user.email ? ` · ${user.email}` : ""}</span></span></label>)}
               {!recipientQuery.isLoading && !filteredRecipients.length && <p className="p-3 text-sm text-muted-foreground">No active users match this search.</p>}

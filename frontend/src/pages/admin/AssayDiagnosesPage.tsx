@@ -7,12 +7,13 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
+import { shortResourceName } from "@/lib/resource-names"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { AssayDiagnoses } from "./AssayDiagnoses"
 import { DiagnosisNavigation } from "./DiagnosisNavigation"
 import { AdminHomeLink } from "./AdminHomeLink"
 
-type Assay = { asp_id: string; display_name: string }
+type Assay = { asp_id: string; name?: string | null; display_name: string }
 type AssayResults = { panels: Assay[]; pagination: { total: number } }
 
 export function AssayDiagnosesPage() {
@@ -39,7 +40,7 @@ export function AssayDiagnosesPage() {
         <label className="type-label">Assay<select aria-label="Assay" className="paper-inset mt-1 w-full rounded-md border border-border px-3 py-2" value={selected} onChange={(event) => setParams(event.target.value ? { assay: event.target.value } : {})}>
           <option value="">Select assay</option>
           {selected && !(assays.data?.panels || []).some((assay) => assay.asp_id === selected) && <option value={selected}>{selected}</option>}
-          {(assays.data?.panels || []).map((assay) => <option key={assay.asp_id} value={assay.asp_id}>{assay.display_name || assay.asp_id} ({assay.asp_id})</option>)}
+          {(assays.data?.panels || []).map((assay) => <option key={assay.asp_id} value={assay.asp_id} title={assay.display_name}>{shortResourceName(assay, assay.asp_id)}</option>)}
         </select></label>
         {assays.isLoading && <AppLoader label="Loading assays" />}
         {assays.error && <p role="alert" className="text-destructive">Unable to load assays.</p>}

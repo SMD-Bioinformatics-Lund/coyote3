@@ -148,9 +148,19 @@ describe("sample overview presentation", () => {
       />,
     )
 
-    expect(screen.getByText(/Configuration: hema_gmsv1_base_production v1/)).toBeVisible()
+    const workflow = within(screen.getByRole("region", { name: "Workflow" }))
+    expect(workflow.getByText("Configuration")).toBeVisible()
+    expect(workflow.getByText("hema_gmsv1_base_production v1")).toBeVisible()
     expect(screen.getByText(/Newer assay configuration available: hema_gmsv1_base_production v2/)).toBeVisible()
     expect(screen.getByRole("button", { name: "Review configuration update" })).toBeVisible()
+  })
+
+  it("marks database versions as unrecorded when every value is missing", () => {
+    wrapper(<OverviewTab sampleId="CASE_001" sample={{
+      ...sample, database_versions: { assembly: null, vep: "", annotation: undefined },
+    }} context={context} />)
+    const versions = within(screen.getByRole("region", { name: "Database versions" }))
+    expect(versions.getByText("Not recorded")).toBeVisible()
   })
 
   it("shows only RNA fusion filters for an RNA sample", () => {
@@ -176,7 +186,9 @@ describe("sample overview presentation", () => {
     wrapper(<OverviewTab sampleId="RNA_001" sample={rnaSample} context={{ analysis_sections: ["fusion"] }} />)
 
     expect(screen.getByRole("heading", { name: "Fusion filters" })).toBeVisible()
-    expect(screen.getByText("fusioncatcher, starfusion")).toBeVisible()
+    const fusionFilters = within(screen.getByRole("region", { name: "Fusion filters" }))
+    expect(fusionFilters.getByText("fusioncatcher")).toBeVisible()
+    expect(fusionFilters.getByText("starfusion")).toBeVisible()
     expect(screen.getAllByText("rna_core").length).toBeGreaterThan(0)
     expect(screen.queryByRole("heading", { name: "SNV filters" })).not.toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "CNV filters" })).not.toBeInTheDocument()

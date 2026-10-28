@@ -121,7 +121,7 @@ export function CopyNumberBadge({
   const isGain = normalized.includes("gain") || normalized.includes("amplif") || normalized === "dup"
   const isLoss = normalized.includes("loss") || normalized.includes("delet") || normalized === "del"
   const className = isGain ? "badge-cnv-gain" : isLoss ? "badge-cnv-loss"
-    : normalized === "normal" ? "badge-success" : "badge-neutral"
+    : normalized === "normal" ? "badge-cnv-normal" : "badge-value-unknown"
 
   return (
     <TableBadge className={cn("gap-1 whitespace-normal uppercase", className)}>
@@ -137,7 +137,7 @@ export function AnalysisIntentBadge({ intent }: { intent: unknown }) {
     ? "badge-germline"
     : normalized === "somatic"
       ? "badge-somatic"
-      : "badge-neutral"
+      : "badge-value-unknown"
 
   return <TableBadge className={cn("uppercase", className)}>{normalized || "Unknown"}</TableBadge>
 }
@@ -434,6 +434,7 @@ export function InfoTooltipBadge({
   href,
   ariaLabel,
   className,
+  appearanceClassName,
   contextLabel = "Transcript marker",
 }: {
   children: ReactNode
@@ -443,6 +444,7 @@ export function InfoTooltipBadge({
   href?: string
   ariaLabel?: string
   className?: string
+  appearanceClassName?: string
   contextLabel?: string
 }) {
   return (
@@ -454,6 +456,7 @@ export function InfoTooltipBadge({
       ariaLabel={ariaLabel || label}
       textBadge
       textBadgeSize="clinical"
+      appearanceClassName={appearanceClassName}
       contextLabel={contextLabel}
       className={className}
     >
@@ -620,10 +623,10 @@ export function FilterFlagBadges({ value, metadata, analysis, callers }: {
 
 function impactClass(value: unknown) {
   const impact = String(value || "").toUpperCase()
-  if (impact === "HIGH") return "matte-badge-fail"
-  if (impact === "MODERATE") return "matte-badge-warn"
-  if (impact === "LOW") return "matte-badge-pass"
-  if (impact === "MODIFIER") return "matte-badge-neutral"
+  if (impact === "HIGH") return "badge-impact-high"
+  if (impact === "MODERATE") return "badge-impact-moderate"
+  if (impact === "LOW") return "badge-impact-low"
+  if (impact === "MODIFIER") return "badge-impact-modifier"
   return "border-muted bg-muted text-muted-foreground"
 }
 

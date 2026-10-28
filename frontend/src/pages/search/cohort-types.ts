@@ -11,6 +11,7 @@ export type CohortBreakdown = {
 
 export type AssayCohortRow = CohortBreakdown & {
   asp_id: string;
+  name?: string | null;
   display_name: string;
   asp_group?: string;
 };

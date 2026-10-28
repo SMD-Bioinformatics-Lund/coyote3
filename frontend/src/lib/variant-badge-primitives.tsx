@@ -22,6 +22,7 @@ export function VariantTooltipBadge({
   textBadge = false,
   textBadgeSize = "info",
   className,
+  appearanceClassName,
   contextLabel = "Finding marker",
 }: {
   children: ReactNode
@@ -33,13 +34,14 @@ export function VariantTooltipBadge({
   textBadge?: boolean
   textBadgeSize?: "info" | "clinical"
   className?: string
+  appearanceClassName?: string
   contextLabel?: string
 }) {
   const [position, setPosition] = useState<TooltipPosition | null>(null)
   const badgeClass = cn(
     !textBadge && "h-5 w-5 rounded-full p-0",
     "interaction-transition inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
-    badgeSeverityClass(severity),
+    appearanceClassName || badgeSeverityClass(severity),
     className,
   )
   const handlers = {

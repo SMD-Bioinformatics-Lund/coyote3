@@ -30,18 +30,17 @@ describe("Fusion UI", () => {
       expect(screen.getByText("-")).toBeInTheDocument()
     })
 
-    it("renders in-frame with pass severity", () => {
+    it("renders in-frame with its domain badge style", () => {
       const { container } = render(<FusionEffectBadge effect="in-frame" />)
       expect(screen.getByText("in-frame")).toBeInTheDocument()
-      // Test the pass severity mapped to color-ok
-      expect(container.querySelector('.matte-badge-pass')).toBeInTheDocument()
+      expect(container.querySelector('.badge-fusion-in-frame')).toBeInTheDocument()
       expect(container.querySelector('[data-slot="table-badge"]')).toBeInTheDocument()
     })
 
-    it("renders out-of-frame with fail severity", () => {
+    it("renders out-of-frame with its domain badge style", () => {
       const { container } = render(<FusionEffectBadge effect="out-of-frame" />)
       expect(screen.getByText("out-of-frame")).toBeInTheDocument()
-      expect(container.querySelector('.matte-badge-fail')).toBeInTheDocument()
+      expect(container.querySelector('.badge-fusion-out-of-frame')).toBeInTheDocument()
     })
   })
 
@@ -66,10 +65,10 @@ describe("Fusion UI", () => {
       )
 
       expect(screen.getByText("cancer")).toBeInTheDocument()
-      expect(container.querySelector('.matte-badge-pass')).toBeInTheDocument() // cancer
+      expect(container.querySelector('.badge-fusion-relevant')).toBeInTheDocument()
 
       expect(screen.getByText("artifact")).toBeInTheDocument()
-      expect(container.querySelector('.matte-badge-fail')).toBeInTheDocument() // artifact
+      expect(container.querySelector('.badge-fusion-artifact')).toBeInTheDocument()
 
       expect(screen.getByText("polya")).toBeInTheDocument()
       // polya and unknown both get neutral in different forms, but let's check for polya text

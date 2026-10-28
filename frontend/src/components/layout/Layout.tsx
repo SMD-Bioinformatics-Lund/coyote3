@@ -7,9 +7,9 @@ import { EnvironmentBanner } from "./EnvironmentBanner"
 import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, Grid2X2, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api"
+import { api, ApiClientError } from "@/lib/api"
 import type { SampleNavigationCountsPayload } from "@/lib/generated"
-import { apiPath, appPath } from "@/lib/runtime-paths"
+import { appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
@@ -63,10 +63,15 @@ export function Layout() {
     queryKey: ['whoami'],
     queryFn: async () => {
       if (!isPublicRoute) return api.get('/auth/whoami').then(res => res.data)
-      const response = await fetch(apiPath('/auth/whoami'), { credentials: "same-origin" })
-      if (response.status === 401 || response.status === 403) return null
-      if (!response.ok) return null
-      return response.json()
+      try {
+        const response = await api.get<CurrentUserAccess>('/auth/whoami', {
+          credentials: "same-origin", errorNotice: "inline", redirectOnUnauthorized: false,
+        })
+        return response.data
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status) return null
+        throw error
+      }
     },
   })
 
@@ -127,7 +132,6 @@ export function Layout() {
     }
 
     updateVisibility()
-    scrollContainer.addEventListener("scroll", updateVisibility, { passive: true })
     window.addEventListener("resize", updateVisibility)
     const resizeObserver = new ResizeObserver(updateVisibility)
     resizeObserver.observe(scrollContainer)
@@ -136,7 +140,6 @@ export function Layout() {
     }
 
     return () => {
-      scrollContainer.removeEventListener("scroll", updateVisibility)
       window.removeEventListener("resize", updateVisibility)
       resizeObserver.disconnect()
     }
@@ -309,7 +312,7 @@ export function Layout() {
         <span className="app-canvas-frame" />
         <span className="app-canvas-frame" />
       </div>
-      <header className="z-30 h-16 flex-shrink-0 rounded-none border-x-0 border-t-0 border-b border-[var(--chrome-border)] [background:var(--chrome-top)] text-chrome-foreground shadow-sm">
+      <header className="app-chrome-surface z-30 h-16 flex-shrink-0 rounded-none border-0 text-chrome-foreground">
         <div className="flex h-full w-full items-center justify-between gap-4 px-2">
           <Button
             variant="ghost"
@@ -499,11 +502,11 @@ export function Layout() {
       <div className="z-10 flex min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
-            "hidden md:flex flex-col flex-shrink-0 rounded-none border-y-0 border-l-0 border-r border-[var(--chrome-border)] [background:var(--chrome-side)] text-chrome-foreground shadow-sm transition-[width] duration-150 ease-out",
+            "app-chrome-surface hidden md:flex flex-col flex-shrink-0 rounded-none border-0 text-chrome-foreground transition-[width] duration-150 ease-out",
             isCollapsed ? "w-[52px]" : "w-[180px]"
           )}
         >
-          <nav className="flex-1 overflow-y-auto px-1.5 py-3 overflow-x-hidden scrollbar-none">
+          <nav className="app-scroll-viewport flex-1 overflow-y-auto px-1.5 py-3 overflow-x-hidden scrollbar-none">
             <div className="space-y-3">
               {navigationSections.map((section, sectionIndex) => (
                 <div key={section.label} className="space-y-1">
@@ -576,7 +579,7 @@ export function Layout() {
           </div>
         </aside>
 
-        <main ref={mainScrollRef} className="flex-1 overflow-y-auto">
+        <main ref={mainScrollRef} className="app-scroll-viewport flex-1 overflow-y-auto">
           <div className="flex min-h-full w-full flex-col py-3">
             <Outlet />
           </div>
@@ -591,9 +594,7 @@ export function Layout() {
             onClick={() => {
               mainScrollRef.current?.scrollTo({
                 top: 0,
-                behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                  ? "auto"
-                  : "smooth",
+                behavior: "auto",
               })
             }}
           >

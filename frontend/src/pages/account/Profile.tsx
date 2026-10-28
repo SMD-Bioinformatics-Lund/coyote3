@@ -95,7 +95,7 @@ export function Profile() {
                   {user.job_title && <p className="mt-1 type-body-sm text-muted-foreground">{user.job_title}</p>}
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 type-body-sm">
                     <span className="break-all text-muted-foreground">
-                      <span className="sr-only">Username: </span>@{user.username || user._id || "—"}
+                      <span className="sr-only">Username: </span>@{user.username || user._id || "-"}
                     </span>
                     {user.email && (
                       <a className="link-text inline-flex min-w-0 items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${user.email}`}>
@@ -119,7 +119,7 @@ export function Profile() {
                 </div>
                 <div className="p-4 sm:p-5">
                   <dt className="type-label text-muted-foreground">Access level</dt>
-                  <dd className="mt-2 type-body-sm font-medium tabular-nums text-foreground">{user.access_level ?? "—"}</dd>
+                  <dd className="mt-2 type-body-sm font-medium tabular-nums text-foreground">{user.access_level ?? "-"}</dd>
                 </div>
                 <div className="px-4 pb-5 sm:col-span-3 sm:px-5">
                   <dt className="type-label text-muted-foreground">Assigned roles</dt>
@@ -139,7 +139,7 @@ export function Profile() {
                   ["lastname", "Last name"],
                   ["fullname", "Display name"],
                   ["job_title", "Job title"],
-                ] as const).map(([field, label]) => <label key={field} className="block text-sm font-semibold">{label}<input className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={profileDraft[field]} onChange={(event) => setProfileDraft((current) => ({ ...current, [field]: event.target.value }))} /></label>)}
+                ] as const).map(([field, label]) => <div key={field}><label className="block text-sm font-semibold">{label}<input aria-describedby={field === "fullname" ? "profile-display-name-help" : undefined} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={profileDraft[field]} onChange={(event) => setProfileDraft((current) => ({ ...current, [field]: event.target.value }))} /></label>{field === "fullname" && <p id="profile-display-name-help" className="mt-1 type-meta text-muted-foreground">Full name shown in your profile and account menus. Your username remains your login identifier.</p>}</div>)}
               </div>
               <button type="button" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending} className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Save profile</button>
               <p className="mt-2 text-xs text-muted-foreground">Roles, assay scope, authentication providers, account status, email, username, and passwords are managed through their dedicated administrative or security workflows.</p>

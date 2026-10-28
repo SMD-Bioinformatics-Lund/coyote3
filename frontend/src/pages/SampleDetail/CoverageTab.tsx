@@ -1,13 +1,13 @@
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { shortCount } from "@/lib/detail-formatters"
 import { sampleFilterSection } from "@/lib/sample-shape"
 import { useQuery } from "@tanstack/react-query"
 import { ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle, Search } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { coverageNumber, flattenCoverageTable, metric } from "./coverage-presentation"
 import { CoverageGeneView } from "./CoverageGeneView"
@@ -144,17 +144,13 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
               ? `${filteredGeneSummaries.length} of ${geneNames.length} gene(s) below ${cutoff}X`
               : `${geneNames.length} gene(s) below ${cutoff}X`}
             actions={
-              <div className="relative w-full sm:w-48">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <SearchInput
                   type="search"
                   value={geneSearch}
                   onChange={(event) => setGeneSearch(event.target.value)}
                   placeholder="Search genes..."
                   aria-label="Search low-coverage genes"
-                  className="h-8 pl-8 text-xs"
                 />
-              </div>
             }
           >
             <div className="max-h-[28rem] space-y-1 overflow-y-auto pr-1">

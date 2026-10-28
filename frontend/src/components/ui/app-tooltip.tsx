@@ -58,7 +58,7 @@ export function TooltipSurface({
       id={id}
       role="tooltip"
       className={cn(
-        "pointer-events-none fixed z-[10000] w-max min-w-44 max-w-[min(18rem,calc(100vw-1.5rem))] rounded-lg border bg-popover px-3 py-2 text-left text-xs shadow-xl",
+        "app-tooltip-surface pointer-events-none fixed z-[10000] w-max min-w-44 max-w-[min(18rem,calc(100vw-1.5rem))] rounded-lg border px-3 py-2 text-left text-xs",
         className,
       )}
       style={{ left: adjustedPosition.left, top: adjustedPosition.top }}

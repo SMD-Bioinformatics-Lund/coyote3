@@ -12,19 +12,19 @@ export type ConfiguredValueMetadata = {
 export const GENELIST_TYPE_METADATA: Record<string, ConfiguredValueMetadata> = {
   snv: {
     description: "Curated genes used to scope small-variant review and reporting.",
-    className: "badge-info",
+    className: "badge-snv",
   },
   cnv: {
     description: "Curated genes used to scope copy-number review and reporting.",
-    className: "badge-warning",
+    className: "badge-cnv",
   },
   fusion: {
     description: "Curated genes or partners used to scope fusion review and reporting.",
-    className: "badge-signal",
+    className: "badge-fusion",
   },
   expression: {
     description: "Curated genes used for expression-based analysis and reporting.",
-    className: "badge-signal",
+    className: "badge-expression",
   },
   pgx: {
     description: "Curated pharmacogenomics genes used for PGx analysis and reporting.",
@@ -32,23 +32,23 @@ export const GENELIST_TYPE_METADATA: Record<string, ConfiguredValueMetadata> = {
   },
   adhoc_snv: {
     description: "Temporary, user-applied small-variant gene scope rather than a curated clinical list.",
-    className: "badge-info",
+    className: "badge-adhoc-snv",
   },
   adhoc_cnv: {
     description: "Temporary, user-applied copy-number gene scope rather than a curated clinical list.",
-    className: "badge-warning",
+    className: "badge-adhoc-cnv",
   },
   adhoc_fusion: {
     description: "Temporary, user-applied fusion gene scope rather than a curated clinical list.",
-    className: "badge-signal",
+    className: "badge-adhoc-fusion",
   },
   adhoc_expression: {
     description: "Temporary, user-applied expression gene scope rather than a curated clinical list.",
-    className: "badge-signal",
+    className: "badge-adhoc-expression",
   },
   adhoc_pgx: {
     description: "Temporary, user-applied pharmacogenomics gene scope rather than a curated clinical list.",
-    className: "badge-pgx",
+    className: "badge-adhoc-pgx",
   },
 }
 

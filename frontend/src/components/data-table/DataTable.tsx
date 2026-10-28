@@ -12,7 +12,8 @@ import {
   type Table,
 } from "@tanstack/react-table";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Search, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { SearchX, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
 import { shortCount } from "@/lib/detail-formatters";
 import { cn } from "@/lib/utils";
 import { escapeCsvCell } from "@/lib/csv-export";
@@ -272,11 +273,9 @@ export function DataTable<TData, TValue>({
     >
       {/* Table Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1.5 pb-3 pt-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-wrap sm:items-center sm:gap-2">
           {!hideSearch && (
-            <div className="search-field relative w-56 rounded-xl sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
-              <input
+              <SearchInput
                 aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={displayedSearchValue}
@@ -288,9 +287,7 @@ export function DataTable<TData, TValue>({
                   }
                   setGlobalFilter(value);
                 }}
-                className="w-full rounded-xl border-0 bg-transparent py-1.5 pl-9 pr-3 text-xs outline-none transition-colors placeholder:text-muted-foreground focus:bg-transparent"
               />
-            </div>
           )}
           <TableBadge className="border-border bg-muted/70 font-semibold text-foreground shadow-none">
             {shortCount(returnedCount)} {rowLabel}
@@ -428,9 +425,13 @@ export function DataTable<TData, TValue>({
                 <tr>
                   <td
                     colSpan={columns.length}
-                    className="h-24 text-center text-muted-foreground font-medium"
+                    className="h-36 text-center text-muted-foreground font-medium"
                   >
-                    {emptyMessage}
+                    <div className="flex flex-col items-center gap-2 px-4 py-6">
+                      <span className="rounded-xl border border-border bg-muted/50 p-2.5"><SearchX className="size-5" aria-hidden="true" /></span>
+                      <p className="type-body-sm text-foreground">{emptyMessage}</p>
+                      {displayedSearchValue.trim() && <p className="type-supporting">Try another search or clear the search field.</p>}
+                    </div>
                   </td>
                 </tr>
               )}

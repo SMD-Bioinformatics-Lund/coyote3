@@ -58,7 +58,7 @@ export function RichTextEditor({ label, value, onChange }: {
   }
   return <div className="space-y-1">
     <p id={id} className="type-label">{label}</p>
-    <div className="overflow-hidden rounded-lg border border-input bg-background">
+    <div className="rich-text-field form-control overflow-hidden rounded-lg">
       <div role="group" aria-label={`${label} formatting`} className="flex flex-wrap gap-1 border-b border-border bg-muted/30 p-1">
         {([
           ["bold", "Bold", Bold], ["italic", "Italic", Italic], ["underline", "Underline", Underline],

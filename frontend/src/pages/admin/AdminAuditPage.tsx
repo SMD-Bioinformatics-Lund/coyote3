@@ -2,6 +2,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { fullDateTime, localDate } from "@/lib/detail-formatters"
 import { useQuery } from "@tanstack/react-query"
@@ -12,7 +13,6 @@ import {
   Database,
   Info,
   RefreshCw,
-  Search,
   Siren
 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -297,12 +297,10 @@ export function AdminAuditPage() {
               setAppliedSearch(search.trim())
             }}
           >
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
+            <SearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search event, resource, or tag"
-              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             />
           </form>
           <select

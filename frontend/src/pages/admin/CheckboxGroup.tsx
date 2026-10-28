@@ -85,7 +85,7 @@ export function CheckboxGroup({
   const hasCategories = Object.keys(groupedOptions).length > 1 || options.some((option) => option && typeof option === "object" && option.category)
   if (hasCategories) {
     return (
-      <div className="space-y-3 rounded-xl border border-border bg-background/60 p-3">
+      <div className="form-option-group space-y-3 rounded-xl p-3" aria-disabled={disabled || undefined}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase text-muted-foreground">{visibleSelected.size} selected</span>
           <button
@@ -98,19 +98,19 @@ export function CheckboxGroup({
           </button>
         </div>
         {(Object.entries(groupedOptions) as Array<[string, any[]]>).map(([category, categoryOptions]) => (
-          <section key={category} className="rounded-lg border border-border bg-card/75 p-3">
+          <section key={category} className="form-option-section rounded-lg p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">{category}</h4>
               <span className="rounded-full bg-muted px-2 py-0.5 type-meta font-bold leading-5 text-muted-foreground">
                 {categoryOptions.filter((option) => visibleSelected.has(optionValue(option))).length}/{categoryOptions.length}
               </span>
             </div>
-            <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {categoryOptions.map((option) => {
                 const value = optionValue(option)
                 const label = optionLabel(option) || value
                 return (
-                  <label key={value} className="flex min-w-0 items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-muted/50" title={value}>
+                  <label key={value} className="form-option flex min-w-0 items-center gap-2 px-3 py-2 type-body-sm" title={value}>
                     <input
                       type="checkbox"
                       checked={visibleSelected.has(value)}
@@ -135,14 +135,14 @@ export function CheckboxGroup({
     )
   }
   return (
-    <div className="max-h-56 overflow-auto rounded-lg border border-border bg-background/60 p-2">
-      <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="form-option-group max-h-56 overflow-auto rounded-xl p-3" aria-disabled={disabled || undefined}>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {options.map((option) => {
           const value = optionValue(option)
           const label = optionLabel(option) || value
           const description = optionDescription(option)
           return (
-            <label key={value} className="flex items-start gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted/60">
+            <label key={value} className="form-option flex min-w-0 items-start gap-2 px-3 py-2 type-body-sm">
               <input
                 type="checkbox"
                 className="mt-0.5"

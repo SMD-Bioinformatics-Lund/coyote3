@@ -79,9 +79,11 @@ function MetricBadge({
 function StatusBadge({
   children,
   tone,
+  appearanceClassName,
 }: {
   children: ReactNode
   tone: "info" | "success" | "warning" | "danger" | "neutral"
+  appearanceClassName?: string
 }) {
   const toneClass = {
     info: "badge-info",
@@ -91,7 +93,7 @@ function StatusBadge({
     neutral: "badge-neutral",
   }[tone]
 
-  return <span className={`type-badge ${toneClass}`}>{children}</span>
+  return <span className={`type-badge ${appearanceClassName || toneClass}`}>{children}</span>
 }
 
 function numberValue(value: unknown) {
@@ -204,7 +206,7 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
           </dl>
 
           <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
-            <StatusBadge tone={sample?.paired ? "success" : "warning"}>
+            <StatusBadge tone={sample?.paired ? "success" : "warning"} appearanceClassName={sample?.paired ? "badge-paired" : "badge-unpaired"}>
               {sample?.paired ? "Paired" : "Unpaired"}
             </StatusBadge>
 
@@ -215,10 +217,10 @@ export function SampleDetailHero({ sample, context }: { sample: any; context: an
             )}
 
             {sample?.archived && (
-              <StatusBadge tone="danger">Archived</StatusBadge>
+              <StatusBadge tone="danger" appearanceClassName="badge-archived">Archived</StatusBadge>
             )}
 
-            <StatusBadge tone={sampleReported(sample) ? "info" : "warning"}>
+            <StatusBadge tone={sampleReported(sample) ? "info" : "warning"} appearanceClassName={sampleReported(sample) ? "badge-reported" : "badge-unreported"}>
               {sampleReported(sample) ? "Reported" : "Unreported"}
             </StatusBadge>
           </div>

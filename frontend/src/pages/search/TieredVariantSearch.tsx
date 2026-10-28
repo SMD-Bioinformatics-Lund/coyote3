@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ChevronDown, Search, X } from "lucide-react"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
+import { SearchInput } from "@/components/ui/search-input"
 import { TableBadge } from "@/components/ui/table-badge"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -246,7 +247,7 @@ export function TieredVariantSearch() {
       id: "nomenclature",
       header: "Nomenclature",
       accessorFn: (row) => row.nomenclature || "-",
-      cell: ({ row }) => <TableBadge className="badge-neutral">{nomenclatureLabel(row.getValue("nomenclature"))}</TableBadge>,
+      cell: ({ row }) => <TableBadge className="badge-nomenclature">{nomenclatureLabel(row.getValue("nomenclature"))}</TableBadge>,
     },
     {
       id: "genomic",
@@ -279,7 +280,7 @@ export function TieredVariantSearch() {
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
           {findingScopeValues(row.original, "diagnoses", "diagnosis_id").map((value) => (
-            <TableBadge key={value} className="badge-neutral">{value}</TableBadge>
+            <TableBadge key={value} className="badge-nomenclature">{value}</TableBadge>
           ))}
         </div>
       ),
@@ -315,6 +316,7 @@ export function TieredVariantSearch() {
 
   return (
     <PageShell
+      className="material-page"
       eyebrow="Common"
       title="Tiered Variant Search"
       description="Search tiered SNVs, CNVs, fusions, translocations, and annotation text across reports and assays."
@@ -327,15 +329,11 @@ export function TieredVariantSearch() {
             submitSearch()
           }}
         >
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
+            <SearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search gene, finding, annotation..."
-              className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
             />
-          </div>
           <select
             value={mode}
             onChange={(event) => setMode(event.target.value)}
@@ -451,14 +449,14 @@ export function TieredVariantSearch() {
                       </th>
                       <td className="px-4 py-2.5">
                         <div
-                          className="flex h-3 min-w-48 overflow-hidden rounded-full bg-muted"
+                          className="progress-pipe flex h-3 min-w-48 overflow-hidden rounded-full"
                           aria-label={`${assay}: ${total} tiered findings`}
                         >
                           {[1, 2, 3, 4].map((tier) => (
                             tierCount(stats, tier) > 0 && (
                               <span
                                 key={tier}
-                                className={`${tierBarClasses[tier]} h-full border-r border-card/50 last:border-r-0`}
+                                className={`progress-pipe-segment ${tierBarClasses[tier]} h-full border-r border-card/50 last:border-r-0`}
                                 style={{ width: `${(tierCount(stats, tier) / total) * 100}%` }}
                                 title={`Tier ${tier}: ${tierCount(stats, tier)}`}
                               />

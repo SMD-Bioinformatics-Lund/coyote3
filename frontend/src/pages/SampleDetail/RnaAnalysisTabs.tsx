@@ -199,10 +199,10 @@ function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sa
           <p className="text-xs text-muted-foreground">TPM and z-scores compared with the configured reference cohort.</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Z-score legend">
-          <span className="badge badge-neutral">|Z| &lt; 2 reference</span>
-          <span className="badge badge-warning">|Z| 2-3 moderate</span>
-          <span className="badge badge-success">Z &gt;= 3 increase</span>
-          <span className="badge badge-danger">Z &lt;= -3 decrease</span>
+          <span className="badge badge-expression-reference">|Z| &lt; 2 reference</span>
+          <span className="badge badge-expression-moderate">|Z| 2-3 moderate</span>
+          <span className="badge badge-expression-increase">Z &gt;= 3 increase</span>
+          <span className="badge badge-expression-decrease">Z &lt;= -3 decrease</span>
         </div>
       </div>
       <div className="flex min-h-72 min-w-0 flex-col bg-muted/10 p-3">

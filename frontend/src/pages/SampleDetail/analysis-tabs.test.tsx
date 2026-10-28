@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
+  getBlob: vi.fn(),
   post: vi.fn(),
   dataTable: vi.fn(),
   mutateAsync: vi.fn(),
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   notifySuccess: vi.fn(),
 }))
 
-vi.mock("@/lib/api", () => ({ api: { get: mocks.get, post: mocks.post } }))
+vi.mock("@/lib/api", () => ({ api: { get: mocks.get, getBlob: mocks.getBlob, post: mocks.post } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: mocks.notifySuccess, notifyActionError: vi.fn() }))
 vi.mock("@/lib/access-control", () => ({
   hasPermission: (user: { permissions?: string[] } | undefined, permission: string) =>
@@ -335,7 +336,7 @@ describe("sample analysis table tabs", () => {
       meta: { preview_fingerprint: "a".repeat(64), template_status: { has_html: true } },
       report: { html: "Current report HTML", snapshot_rows: [] },
     } })
-    const fetchPdf = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("%PDF-synthetic", { headers: { "Content-Type": "application/pdf" } }))
+    const fetchPdf = mocks.getBlob.mockResolvedValue({ data: new Blob(["%PDF-synthetic\n%%EOF"], { type: "application/pdf" }), status: 200 })
     const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:current-report")
     const revoke = vi.spyOn(URL, "revokeObjectURL")
     try {
@@ -349,7 +350,7 @@ describe("sample analysis table tabs", () => {
       fireEvent.click(screen.getByRole("tab", { name: "HTML preview" }))
       expect(await screen.findByTestId("report-frame")).toHaveTextContent("Current report HTML")
       await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:current-report"))
-    } finally { fetchPdf.mockRestore(); create.mockRestore(); revoke.mockRestore() }
+    } finally { create.mockRestore(); revoke.mockRestore() }
   })
 
   it("groups included findings by analysis and shows a compact TMB result", async () => {

@@ -19,7 +19,7 @@ const maneLabels: Record<string, string> = {
 
 function TranscriptPartner({ partner }: { partner?: Partner }) {
   return <div className="min-w-44 space-y-1">
-    <span>{partner?.transcript || "—"}</span>
+    <span>{partner?.transcript || "-"}</span>
     <div className="flex flex-wrap gap-1">
       {partner?.mane_flags.map(flag => <EvidenceBadge key={flag} tone="success">
         {maneLabels[flag] || flag}
@@ -37,12 +37,12 @@ export function StructuralTranscriptTable({ rows, selectedKey, canSelect, pendin
   translations: Record<string, { display_name?: string; description?: string }>
 }) {
   return <DetailDataTable rows={rows} empty="No transcript combinations available." columns={[
-    { key: "gene1", header: "Gene 1", render: row => row.partners[0]?.gene || "—" },
+    { key: "gene1", header: "Gene 1", render: row => row.partners[0]?.gene || "-" },
     { key: "transcript1", header: "Transcript 1", render: row => <TranscriptPartner partner={row.partners[0]} /> },
-    { key: "gene2", header: "Gene 2", render: row => row.partners[1]?.gene || "—" },
+    { key: "gene2", header: "Gene 2", render: row => row.partners[1]?.gene || "-" },
     { key: "transcript2", header: "Transcript 2", render: row => <TranscriptPartner partner={row.partners[1]} /> },
-    { key: "cdna", header: "cDNA", render: row => <ExpandableText text={row.annotation.HGVSc || "—"} maxLength={28} className="type-table-value leading-[1.2] text-foreground/80" /> },
-    { key: "protein", header: "Protein", render: row => <ExpandableText text={row.annotation.HGVSp || "—"} maxLength={28} className="type-table-value-emphasis leading-[1.2] text-foreground" /> },
+    { key: "cdna", header: "cDNA", render: row => <ExpandableText text={row.annotation.HGVSc || "-"} maxLength={28} className="type-table-value leading-[1.2] text-foreground/80" /> },
+    { key: "protein", header: "Protein", render: row => <ExpandableText text={row.annotation.HGVSp || "-"} maxLength={28} className="type-table-value-emphasis leading-[1.2] text-foreground" /> },
     { key: "consequence", header: "SnpEff consequence", className: "min-w-80", render: row => <ConsequenceBadges value={row.annotation.Annotation} translations={translations} compact={false} wide /> },
     { key: "selection", header: "Selection", render: row => row.annotation_key === selectedKey
       ? <EvidenceBadge tone="success">Selected</EvidenceBadge>

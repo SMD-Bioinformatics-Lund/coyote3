@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
+import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { withDocumentEditor } from "@/hooks/useDocumentEditor"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
@@ -53,7 +54,7 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
       {onChange ? " Selections are saved in this draft and applied on activation." : " Links update the gene list’s associated assays."}
       {" "}Association makes a list available; select it in the assay configuration to use it for analysis.</p>
     {!canList ? <p role="status">Gene-list list permission is required to browse existing lists.</p> : <>
-      <input aria-label="Search existing gene lists" className="paper-inset w-full rounded-md p-2" value={search}
+      <SearchInput aria-label="Search existing gene lists" value={search}
         onChange={(event) => { setSearch(event.target.value); setPage(1) }} />
       {registry.isLoading && <p role="status">Loading gene lists…</p>}
       {registry.error && <p role="alert">Unable to load gene lists.</p>}
@@ -61,7 +62,7 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
         const linked = onChange ? Boolean(selected?.includes(row.isgl_id)) : row.asp_ids.includes(aspId)
         const protectedList = row.system_installed || row.system_managed
         return <li key={row.isgl_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-          <span><span className="block font-semibold">{row.displayname || row.name}</span><span className="type-meta text-muted-foreground">{row.isgl_id}</span></span>
+          <span title={row.displayname}><span className="block font-semibold">{row.name || row.displayname || row.isgl_id}</span><span className="type-meta text-muted-foreground">{row.isgl_id}</span></span>
           <Button size="sm" variant="outline" disabled={!canEdit || pending || mutation.isPending || !row.is_active || protectedList}
             onClick={() => onChange ? onChange(linked ? (selected || []).filter((id) => id !== row.isgl_id) : [...(selected || []), row.isgl_id]) : mutation.mutate(row)}>
             {protectedList ? "System managed" : !row.is_active ? "Inactive" : linked ? "Unlink" : "Link"}

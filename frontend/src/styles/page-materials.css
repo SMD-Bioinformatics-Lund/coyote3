@@ -1,0 +1,87 @@
+/* Shared content elevation; the page heading and layout backdrop remain quiet. */
+@layer utilities {
+  .page-heading.surface-panel {
+    background: var(--heading-surface);
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--paper-edge));
+    box-shadow: var(--panel-shadow);
+  }
+  .page-heading::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--brand-start) 48%, transparent),
+      color-mix(in srgb, var(--brand-end) 30%, transparent));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .catalog-service-card {
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .catalog-service-card:hover {
+      box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--catalog-family) 25%, transparent);
+    }
+  }
+  :is(.paper-menu, [role="menu"]) :is(button, a):focus-visible,
+  .data-table-viewport th button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) * 0.45);
+  }
+  @media (forced-colors: active) {
+    .page-heading.surface-panel { background: Canvas; border-color: CanvasText; }
+    .page-heading::before { display: none; }
+    .catalog-service-card:hover { box-shadow: none; }
+  }
+  .static-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  }
+  .static-material-page .static-contact-method {
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--static-accent, var(--primary)) 15%, var(--paper-edge));
+    border-radius: calc(var(--radius) * 0.7);
+    background: color-mix(in srgb, var(--static-accent, var(--primary)) 3%, var(--paper-raised));
+    box-shadow: var(--material-badge-shadow);
+  }
+  :is(
+    .glass-card, .chart-panel, .detail-card, .dashboard-subcard,
+    .dashboard-snapshot-card, .content-item, .metric-card, .static-info-card,
+    .static-metric, .knowledgebase-block
+  ):not(.text-destructive) {
+    --material-accent: var(--knowledgebase-accent, var(--panel-accent, var(--static-accent, var(--primary))));
+    --content-card-border: color-mix(in srgb, var(--material-accent) 16%, var(--paper-edge));
+    --inner-card-background: linear-gradient(145deg,
+      color-mix(in srgb, var(--material-accent) 5%, var(--paper-raised)),
+      color-mix(in srgb, var(--material-accent) 2%, var(--paper-raised))) var(--paper-raised);
+    border: 1px solid var(--content-card-border);
+    border-radius: var(--content-card-radius);
+    background: var(--inner-card-background);
+    box-shadow: var(--material-card-shadow);
+  }
+
+  .material-page :is(
+    .type-badge,
+    .catalog-value-badge, .material-badge, .matrix-coverage-mark, .catalog-annotation-tag
+  ):not([aria-hidden="true"], [data-slot="badge"], [data-slot="table-badge"]) {
+    box-shadow: var(--material-badge-shadow);
+  }
+
+  @media (forced-colors: active) {
+    :is(
+      .glass-card, .chart-panel, .detail-card, .dashboard-subcard,
+      .dashboard-snapshot-card, .content-item, .metric-card, .static-info-card,
+      .static-metric, .knowledgebase-block
+    ):not(.text-destructive) {
+      background: Canvas;
+      box-shadow: none;
+    }
+    :is([data-slot="badge"], [data-slot="table-badge"]):not([aria-hidden="true"]),
+    .material-page :is(
+      [data-slot="badge"], [data-slot="table-badge"], .type-badge,
+      .catalog-value-badge, .material-badge, .matrix-coverage-mark, .catalog-annotation-tag
+    ):not([aria-hidden="true"]) {
+      box-shadow: none;
+    }
+  }
+}

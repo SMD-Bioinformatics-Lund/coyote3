@@ -224,14 +224,14 @@ function FusionDescriptionList({
       key: "relevant",
       label: "Relevant evidence",
       description: "Include fusions carrying any selected clinically relevant annotation.",
-      badgeClass: "matte-badge-pass",
+      badgeClass: "badge-fusion-relevant",
       terms: Array.from(new Set(metadata.important || [])),
     },
     {
       key: "exclusion",
       label: "Artifact and exclusion evidence",
       description: "Include fusions carrying any selected context or artifact annotation.",
-      badgeClass: "matte-badge-fail",
+      badgeClass: "badge-fusion-artifact",
       terms: Array.from(new Set([...(metadata.context || []), ...(metadata.not_important || [])])),
     },
   ]

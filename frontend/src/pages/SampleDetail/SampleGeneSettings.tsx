@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, ChevronDown, Save, Search, Trash2, X } from "lucide-react"
+import { Activity, ChevronDown, Dna, Layers, Network, Save, Trash2, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { sampleFilterSection } from "@/lib/sample-shape"
@@ -168,17 +170,21 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
   return (
     <SettingsCard title="Sample Gene Settings" tone="border-t-genelist" className="xl:col-span-2">
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {options.map((option) => (
-            <button
+        <div className="gene-settings-targets" role="group" aria-label="Gene list analysis">
+          {options.map((option) => {
+            const Icon = option.value === "snv" ? Dna : option.value === "cnv" ? Layers : Network
+            return <Button
               key={option.value}
               type="button"
+              variant={target === option.value ? "default" : "ghost"}
+              aria-pressed={target === option.value}
               onClick={() => setTarget(option.value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${target === option.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              className="gene-settings-target"
             >
-              {option.label}
-            </button>
-          ))}
+              <Icon className="size-4" aria-hidden="true" />
+              <span className="type-body font-semibold">{option.label}</span>
+            </Button>
+          })}
         </div>
 
         <div className="content-item p-3">
@@ -233,15 +239,11 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
 
                 <div className="min-h-0 flex-1 space-y-3 overflow-hidden p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative min-w-0 flex-1">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
+                      <SearchInput className="flex-1"
                         value={listSearch}
                         onChange={(event) => setListSearch(event.target.value)}
-                        className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                         placeholder="Search lists..."
                       />
-                    </div>
                     <button
                       type="button"
                       onClick={() => setSelectedIds(items.map((item: any) => String(item.isgl_id)))}

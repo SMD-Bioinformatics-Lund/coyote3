@@ -1,11 +1,11 @@
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, ExternalLink, Search, ZoomIn, ZoomOut } from "lucide-react"
+import { ArrowLeft, ExternalLink, ZoomIn, ZoomOut } from "lucide-react"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { DetailDataTable } from "@/components/detail/DetailEvidenceCards"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
@@ -76,7 +76,7 @@ export default function VepReferencePage() {
         </details>
         <SegmentedControl ariaLabel="VEP reference tables" value={tab} onValueChange={setTab} items={[{ value: "consequences", label: <span className="type-meta normal-case tracking-normal">Consequences</span> }, { value: "classes", label: <span className="type-meta normal-case tracking-normal">Variant classes</span> }, { value: "cache", label: <span className="type-meta normal-case tracking-normal">Cache sources</span> }]} />
         {tab !== "cache" && <div className="flex flex-wrap items-center gap-3">
-          <div className="flex min-w-0 basis-full items-center gap-2 sm:flex-1 sm:basis-64"><Search className="size-4 shrink-0" aria-hidden="true" /><Input aria-label="Search VEP terms" placeholder="Search terms, descriptions or SO accessions" value={search} onChange={event => setSearch(event.target.value)} /></div>
+          <SearchInput aria-label="Search VEP terms" placeholder="Search terms, descriptions or SO accessions" value={search} onChange={event => setSearch(event.target.value)} />
           {tab === "consequences" && <>
             <select aria-label="Consequence group" className="paper-inset max-w-full rounded-md p-2" value={group} onChange={event => setGroup(event.target.value)}><option value="">All groups</option>{Object.keys(data.consequence_groups).map(value => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select>
             <select aria-label="Consequence impact" className="paper-inset rounded-md p-2" value={impact} onChange={event => setImpact(event.target.value)}><option value="">All impacts</option>{[...new Set(Object.values(data.conseq_translations).map(meta => meta.impact).filter(Boolean))].map(value => <option key={value} value={value}>{value}</option>)}</select>

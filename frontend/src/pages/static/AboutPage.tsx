@@ -27,10 +27,14 @@ export function AboutPage() {
   const orgName = organization.name || runtimeConfig.organizationName
   const pipelines = software.pipelines || {}
   const sampleReferenceVersions = references.sample_database_versions || {}
+  const vepMetadataVersions = [...(references.vep_metadata || [])].sort((left, right) =>
+    String(left).localeCompare(String(right), undefined, { numeric: true }),
+  )
   const aboutLinks = buildAboutLinks([...links, ...softwareLinks], codebase)
 
   return (
     <PageShell
+      className="material-page static-material-page"
       eyebrow="About"
       title="Coyote3"
       description={`Application, reference, version, and support information for ${orgName}.`}
@@ -66,7 +70,7 @@ export function AboutPage() {
           title="Clinical interpretation and reporting workspace"
           description={application.description || "Coyote3 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
           tone="primary"
-          bodyClassName="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4"
+          bodyClassName="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <InfoCard tone="primary" icon={GitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined}
             details={[{ label: "Core SDK", value: application.sdk_version || "Not installed" }, { label: "Python client SDK", value: application.client_sdk_version || "Not installed" }]} />
@@ -75,10 +79,10 @@ export function AboutPage() {
             icon={Database}
             label="Primary database"
             value={databases.primary || "-"}
-            hint={[
-              databases.identity ? `Identity: ${databases.identity}` : "",
-              databases.bam_service ? `BAM service: ${databases.bam_service}` : "",
-            ].filter(Boolean).join(" | ") || undefined}
+            details={[
+              ...(databases.identity ? [{ label: "Identity", value: databases.identity }] : []),
+              ...(databases.bam_service ? [{ label: "BAM service", value: databases.bam_service }] : []),
+            ]}
           />
           <InfoCard tone="success" icon={FileText} label="VEP metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
           <InfoCard tone="warning" icon={Building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
@@ -93,7 +97,7 @@ export function AboutPage() {
         >
             <VersionBlock icon={GitBranch} tone="primary" className="xl:col-span-2" title="Analysis pipelines" values={pipelines} empty="No pipeline versions observed in loaded samples." />
             <VersionBlock icon={Database} showDatabaseLogos tone="info" className="xl:col-span-2" title="Sample reference databases" values={sampleReferenceVersions} empty="No sample database versions recorded yet." />
-            <VersionBlock icon={FileText} tone="success" title="VEP metadata versions" values={{ vep_metadata: references.vep_metadata || [] }} empty="No VEP metadata versions recorded yet." />
+            <VersionBlock icon={FileText} tone="success" title="VEP metadata versions" values={{ vep_metadata: vepMetadataVersions }} empty="No VEP metadata versions recorded yet." />
             <VersionBlock icon={ExternalLink} showDatabaseLogos tone="warning" className="xl:col-span-3" title="External knowledgebases" values={databases.knowledgebases || {}} empty="No external knowledgebase endpoints configured." />
         </ContentSection>
 
@@ -115,9 +119,9 @@ export function AboutPage() {
           bodyClassName="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3"
         >
             {aboutLinks.map((link) => (
-              <ResourceLink key={`${link.label}-${link.url}`} link={link} embedded />
+              <ResourceLink key={`${link.label}-${link.url}`} link={link} />
             ))}
-            <Link to="/contact" className="flex min-w-0 items-start gap-2 px-1 py-2 type-body-sm text-link">
+            <Link to="/contact" data-static-tone="primary" className="static-info-card flex min-w-0 items-start gap-2 p-4 type-body-sm text-link">
               <LifeBuoy className="mt-0.5 size-4 shrink-0 text-primary" />
               <span>
                 Contact and support

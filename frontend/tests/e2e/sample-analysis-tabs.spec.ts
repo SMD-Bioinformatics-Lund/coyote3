@@ -63,6 +63,7 @@ async function installApiFixtures(
         json: {
           username: "clinical.user",
           role: "user",
+          permissions: ["sample:view", "snv:view", "cnv:view", "fusion:view", "translocation:view", "coverage:view", "report:view"],
           ui_settings: { analysis_layout: analysisLayout },
         },
       })

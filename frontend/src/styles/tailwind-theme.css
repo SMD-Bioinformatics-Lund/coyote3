@@ -202,6 +202,8 @@
   --color-fusionlist: #8db79d;
   --color-cnvlist: #c9a47a;
   --color-panel: #4d78aa;
+  --color-panel-dna: var(--color-panel);
+  --color-panel-rna: #8b739f;
   --color-wts: #a76676;
   --color-wgs: #3e8276;
   --color-paired: #009e73;
@@ -243,6 +245,14 @@
 
 @utility type-numeric {
   font-variant-numeric: tabular-nums;
+}
+
+@utility type-metric-value {
+  font-size: clamp(1.5rem, 1.3rem + 0.5vw, 2rem);
+  line-height: 1.15;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
 }
 
 @utility type-section-title {
@@ -496,18 +506,29 @@
   --surface-nested: #eef1f5;
   --surface-sheen: linear-gradient(160deg, rgb(255 255 255 / 24%), rgb(255 255 255 / 0%));
   --surface-nested-border: #bdc5d0;
+  --content-card-border: color-mix(in srgb, var(--primary) 16%, var(--paper-edge));
+  --content-card-radius: calc(var(--radius) * 0.8);
   --inner-card-background:
-    linear-gradient(160deg, var(--paper-raised), var(--surface-nested)) padding-box,
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--brand-start) 24%, var(--surface-nested-border)),
-      color-mix(in srgb, var(--brand-end) 18%, var(--surface-nested-border))
-    ) border-box;
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--material-accent, var(--primary)) 5%, var(--paper-raised)),
+      color-mix(in srgb, var(--material-accent, var(--primary)) 2%, var(--paper-raised))) var(--paper-raised);
   --inner-card-shadow:
     inset 0 1px 0 var(--paper-highlight),
     0 1px 3px var(--paper-shadow),
     0 4px 9px var(--paper-shadow-deep);
-  --panel-shadow: inset 0 1px 0 var(--paper-highlight);
+  --material-card-shadow: var(--inner-card-shadow);
+  --material-badge-shadow:
+    0 1px 4px var(--paper-shadow-deep),
+    inset 0 1px 1px var(--paper-highlight),
+    inset 0 -1px 1px var(--paper-shadow);
+  --panel-shadow:
+    inset 0 1px 0 var(--paper-highlight),
+    0 0 2px var(--paper-shadow),
+    0 3px 10px color-mix(in srgb, var(--paper-shadow-deep) 65%, transparent);
+  --heading-surface: linear-gradient(115deg,
+    color-mix(in srgb, var(--brand-start) 4%, var(--paper-raised)),
+    var(--paper-raised) 58%,
+    color-mix(in srgb, var(--brand-end) 3%, var(--paper-raised)));
   --inset-shadow: inset 0 1px 2px var(--paper-shadow);
   --row-hover: #e5e9f0;
   --row-selected: oklch(0.925 0.018 285);
@@ -562,6 +583,13 @@
   --border: #bdc5d0;
   --input: #e7ebf0;
   --field-surface: #fff;
+  --catalog-card-surface: var(--field-surface);
+  --catalog-tint-start: 12%;
+  --catalog-tint-end: 3%;
+  --catalog-control-surface: var(--paper-raised);
+  --catalog-border-tint: 75%;
+  --catalog-edge-tint: 100%;
+  --catalog-shadow-tint: 16%;
   --ring: oklch(0.45 0.105 302);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -607,6 +635,27 @@
   --badge-danger-border: #c89a96;
   --badge-danger-background: #f3e3e1;
   --badge-danger-foreground: #823b3c;
+  --badge-hematology-border: #c89a96;
+  --badge-hematology-background: #f3e3e1;
+  --badge-hematology-foreground: #823b3c;
+  --badge-solid-border: #c7a36a;
+  --badge-solid-background: #f3ead9;
+  --badge-solid-foreground: #805d1e;
+  --badge-tumwgs-border: #c7a36a;
+  --badge-tumwgs-background: #f3ead9;
+  --badge-tumwgs-foreground: #805d1e;
+  --badge-tumwgs-hema-border: #c89a96;
+  --badge-tumwgs-hema-background: #f3e3e1;
+  --badge-tumwgs-hema-foreground: #823b3c;
+  --badge-tumwgs-solid-border: #c7a36a;
+  --badge-tumwgs-solid-background: #f3ead9;
+  --badge-tumwgs-solid-foreground: #805d1e;
+  --badge-myeloid-border: #c89a96;
+  --badge-myeloid-background: #f3e3e1;
+  --badge-myeloid-foreground: #823b3c;
+  --badge-lymphoid-border: #91ae9a;
+  --badge-lymphoid-background: #e4eee6;
+  --badge-lymphoid-foreground: #315f43;
   --badge-signal-border: #b596ae;
   --badge-signal-background: #f0e5ed;
   --badge-signal-foreground: #774766;
@@ -653,6 +702,13 @@
   --chart-tooltip-cursor: rgb(92 79 148 / 9%);
   --chart-grid: oklch(0.85 0.005 255);
   --chart-track: oklch(0.60 0.012 255);
+  --chart-ring-highlight: rgb(255 255 255 / 85%);
+  --chart-ring-shade: rgb(27 38 59 / 34%);
+  --chart-ring-shadow: rgb(27 38 59 / 20%);
+  --chart-ring-depth:
+    drop-shadow(0 -0.8px 0.6px var(--chart-ring-highlight))
+    drop-shadow(0 1px 0.8px var(--chart-ring-shade))
+    drop-shadow(0 2px 2px var(--chart-ring-shadow));
   --login-cloud: #5e93ac;
   --accent-red: #a75c5c;
   --accent-blue: var(--color-tier3);
@@ -682,12 +738,18 @@
   --chrome-control-hover: rgb(255 255 255 / 15%);
   --chrome-active: rgb(255 255 255 / 20%);
   --chrome-active-border: rgb(255 255 255 / 32%);
+  --chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 12%), 0 2px 8px rgb(24 16 35 / 16%);
 }
 
 .dark {
   color-scheme: dark;
-  --app-canvas-gradient: none;
-  --surface-sheen: linear-gradient(160deg, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 0%));
+  --app-canvas-gradient: linear-gradient(125deg,
+    oklch(0.215 0.012 285), oklch(0.205 0.007 265) 58%, oklch(0.215 0.009 325));
+  --surface-sheen: linear-gradient(160deg, rgb(255 255 255 / 4%), rgb(255 255 255 / 0%));
+  --heading-surface: linear-gradient(115deg,
+    color-mix(in srgb, var(--brand-start) 9%, var(--paper-raised)),
+    var(--paper-raised) 58%,
+    color-mix(in srgb, var(--brand-end) 5%, var(--paper-raised)));
   --report-review-surface: var(--paper-raised);
 
   --surface-hover: oklch(0.315 0.006 255);
@@ -740,6 +802,13 @@
   --border: oklch(0.5 0.006 255 / 58%);
   --input: oklch(0.23 0.004 255);
   --field-surface: var(--paper-raised);
+  --catalog-card-surface: var(--paper-raised);
+  --catalog-tint-start: 9%;
+  --catalog-tint-end: 2%;
+  --catalog-control-surface: color-mix(in srgb, var(--paper-raised) 97%, var(--foreground));
+  --catalog-border-tint: 35%;
+  --catalog-edge-tint: 60%;
+  --catalog-shadow-tint: 5%;
   --ring: oklch(0.65 0.1 302);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.8 0 0);
@@ -754,8 +823,8 @@
   --sidebar-accent-foreground: oklch(0.93 0.004 255);
   --sidebar-border: oklch(0.5 0.006 255 / 58%);
   --sidebar-ring: oklch(0.65 0.1 302);
-  --paper-surface: oklch(0.255 0.005 255);
-  --paper-raised: oklch(0.30 0.005 255);
+  --paper-surface: oklch(0.265 0.009 275);
+  --paper-raised: oklch(0.305 0.009 275);
   --paper-inset: oklch(0.23 0.004 255);
   --paper-edge: oklch(0.47 0.006 255 / 70%);
   --paper-layer: oklch(0.29 0.006 255);
@@ -783,6 +852,27 @@
   --badge-danger-border: #7d4d51;
   --badge-danger-background: #3c2629;
   --badge-danger-foreground: #e0aeb0;
+  --badge-hematology-border: #7d4d51;
+  --badge-hematology-background: #3c2629;
+  --badge-hematology-foreground: #e0aeb0;
+  --badge-solid-border: #7c653a;
+  --badge-solid-background: #3d301e;
+  --badge-solid-foreground: #e2c78c;
+  --badge-tumwgs-border: #7c653a;
+  --badge-tumwgs-background: #3d301e;
+  --badge-tumwgs-foreground: #e2c78c;
+  --badge-tumwgs-hema-border: #7d4d51;
+  --badge-tumwgs-hema-background: #3c2629;
+  --badge-tumwgs-hema-foreground: #e0aeb0;
+  --badge-tumwgs-solid-border: #7c653a;
+  --badge-tumwgs-solid-background: #3d301e;
+  --badge-tumwgs-solid-foreground: #e2c78c;
+  --badge-myeloid-border: #7d4d51;
+  --badge-myeloid-background: #3c2629;
+  --badge-myeloid-foreground: #e0aeb0;
+  --badge-lymphoid-border: #4f725a;
+  --badge-lymphoid-background: #24362a;
+  --badge-lymphoid-foreground: #b4d0bb;
   --badge-signal-border: #76566e;
   --badge-signal-background: #382b36;
   --badge-signal-foreground: #d8b6cf;
@@ -828,6 +918,9 @@
   --chart-tooltip-cursor: rgb(171 157 222 / 14%);
   --chart-grid: oklch(0.43 0.006 255);
   --chart-track: oklch(0.58 0.009 255);
+  --chart-ring-highlight: rgb(255 255 255 / 30%);
+  --chart-ring-shade: rgb(0 0 0 / 70%);
+  --chart-ring-shadow: rgb(0 0 0 / 48%);
   --accent-red: #d68e8e;
   --accent-yellow: #d4b16f;
   --accent-indigo: #aaa2d5;
@@ -839,15 +932,18 @@
   --brand-start: oklch(0.63 0.105 302);
   --brand-end: oklch(0.69 0.12 62);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
-  --chrome-top: linear-gradient(105deg, oklch(0.3 0.055 302), oklch(0.31 0.045 35));
-  --chrome-side: linear-gradient(180deg, oklch(0.275 0.05 302), oklch(0.235 0.032 302));
-  --chrome-foreground: oklch(0.94 0.008 75);
-  --chrome-muted-foreground: oklch(0.76 0.016 75);
-  --chrome-border: rgb(255 255 255 / 15%);
-  --chrome-control: rgb(255 255 255 / 7%);
-  --chrome-control-hover: rgb(255 255 255 / 13%);
-  --chrome-active: rgb(255 255 255 / 18%);
-  --chrome-active-border: rgb(255 255 255 / 28%);
+  --chrome-top:
+    linear-gradient(180deg, rgb(255 255 255 / 5%), transparent 55%),
+    linear-gradient(105deg, oklch(0.405 0.105 302), oklch(0.38 0.082 330) 48%, oklch(0.425 0.085 48));
+  --chrome-side: linear-gradient(180deg, oklch(0.35 0.078 302), oklch(0.285 0.052 302));
+  --chrome-foreground: oklch(0.97 0.008 75);
+  --chrome-muted-foreground: oklch(0.87 0.016 75);
+  --chrome-border: rgb(255 255 255 / 22%);
+  --chrome-control: rgb(255 255 255 / 9%);
+  --chrome-control-hover: rgb(255 255 255 / 17%);
+  --chrome-active: rgb(255 255 255 / 22%);
+  --chrome-active-border: rgb(255 255 255 / 38%);
+  --chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 16%), 0 2px 12px rgb(0 0 0 / 32%);
 
   --color-production: #86aaa2;
   --color-development: #8ba6e8;
@@ -873,6 +969,7 @@
   --color-dna: #d79a61;
   --color-rna: #c98992;
   --color-panel: #7fa6ee;
+  --color-panel-rna: #b49ad3;
   --color-wts: #c98992;
   --color-wgs: #6bb7a9;
 }

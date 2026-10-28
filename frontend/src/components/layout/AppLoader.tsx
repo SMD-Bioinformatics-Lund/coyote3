@@ -12,7 +12,7 @@ export function GlobalLoadingIndicator({ label = "Loading" }: { label?: string }
           <span />
           <span />
         </div>
-        <span className="app-loader-label">Loading</span>
+        <span className="app-loader-label">{label}</span>
       </div>
     </div>
   )

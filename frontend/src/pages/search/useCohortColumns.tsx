@@ -2,6 +2,7 @@ import { ExpandableText } from "@/components/detail/ExpandableText";
 import { TableBadge } from "@/components/ui/table-badge";
 import { nomenclatureLabel } from "@/lib/application-constants";
 import { valueBadgeClass } from "@/lib/badge-colors";
+import { shortResourceName } from "@/lib/resource-names";
 import { sampleDetailPath } from "@/lib/sample-routing";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
@@ -14,9 +15,10 @@ export function useCohortColumns() {
   const assayColumns = useMemo<ColumnDef<AssayCohortRow>[]>(
     () => [
       {
-        accessorKey: "display_name",
+        id: "assay",
+        accessorFn: row => shortResourceName(row, row.asp_id),
         header: "Assay",
-        cell: ({ row }) => <span className="font-medium">{row.original.display_name}</span>,
+        cell: ({ row }) => <span className="font-medium" title={row.original.display_name}>{shortResourceName(row.original, row.original.asp_id)}</span>,
       },
       {
         accessorKey: "asp_group",

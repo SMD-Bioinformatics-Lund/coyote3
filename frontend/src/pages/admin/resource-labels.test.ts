@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fieldLabel, titleize } from "./resource-list"
+import { adminColumnTitle, fieldLabel, titleize } from "./resource-list"
 import { specs } from "./resource-specs"
 
 describe("Clinical resource terminology", () => {
@@ -11,9 +11,16 @@ describe("Clinical resource terminology", () => {
     ["asp_family", "Assay family"],
     ["aspc_id", "Configuration ID"],
     ["isgl_id", "Gene list ID"],
+    ["is_active", "Status"],
+    ["definition_is_active", "Shared status"],
   ])("labels %s without changing its technical key", (key, label) => {
     expect(titleize(key)).toBe(label)
     expect(fieldLabel(key)).toBe(label)
+  })
+
+  it("uses status terminology for generated activity columns", () => {
+    expect(adminColumnTitle("is_active")).toBe("Status")
+    expect(adminColumnTitle("definition_is_active")).toBe("Shared status")
   })
 
   it("keeps assay routes and permissions unchanged", () => {

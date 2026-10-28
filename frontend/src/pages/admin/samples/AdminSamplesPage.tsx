@@ -13,7 +13,9 @@ const invalidateKeys = [["samples"], ["sample-navigation-counts"]]
 export function AdminSamplesPage() {
   const state = useAdminList({ spec, filters, serverFilters: true, sampleNotifications: true, invalidateKeys })
   const { data, rows, visibleRows, canCreate } = state
-  const fields = adminFields(preferredColumns, rows)
+  const fields = adminFields(preferredColumns, rows).filter(
+    field => field !== "record_provenance" && field !== "updated_by",
+  )
   const tableColumns: ColumnDef<Record<string, unknown>>[] = [
     ...fields.map((field): ColumnDef<Record<string, unknown>> => ({
       id: field,

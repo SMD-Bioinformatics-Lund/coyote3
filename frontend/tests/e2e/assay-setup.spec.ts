@@ -11,6 +11,8 @@ for (const width of [1440, 1024, 390]) {
       asp_group: { data_type: "str", default: "hematology" },
       asp_family: { data_type: "str", default: "panel-dna" },
       asp_category: { data_type: "str", default: "dna" },
+      expected_files: { label: "Expected files", data_type: "list", display_type: "checkbox-group",
+        options: ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"] },
     } }
     const context = () => ({ panel_form: panelForm, diagnoses: [{ diagnosis_id: "myeloid", display_name: "Myeloid", is_active: true }], environments: ["development", "production"], ...(saved ? { setup: saved, history: [], rules: [], readiness: { ready: false, issues: ["Missing ASPCs: base/development"] } } : {}) })
     await installApiFixtures(page, (path, _url, route) => {
@@ -35,6 +37,9 @@ for (const width of [1440, 1024, 390]) {
     await page.goto("/admin/assay-setups?setup=new")
     await page.getByLabel("Assay identifier", { exact: true }).fill("synthetic-assay")
     await page.getByLabel("Display name", { exact: true }).fill("Synthetic assay")
+    const fileOptions = page.locator(".form-option-group").first()
+    await fileOptions.locator("label.form-option").filter({ hasText: "vcf_files" }).getByRole("checkbox").check()
+    expect(await fileOptions.evaluate(element => getComputedStyle(element).boxShadow)).toContain("inset")
     await page.screenshot({ path: testInfo.outputPath(`setup-form-${width}.png`), fullPage: true })
     await page.getByRole("button", { name: "Save and continue", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeChecked()

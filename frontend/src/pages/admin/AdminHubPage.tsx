@@ -16,14 +16,13 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   UsersRound,
-  Search,
   X,
   RefreshCw,
 } from "lucide-react"
 
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { Button } from "@/components/ui/button"
 import {
   ADMIN_UTILITY_PERMISSIONS,
@@ -210,11 +209,9 @@ export function AdminHubPage() {
         <div className="min-w-0">
           <div className="glass-card space-y-3 bg-card p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative w-full sm:max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <Input className="pl-9 pr-10" aria-label="Search administration" placeholder="Search administration" value={search} onChange={event => setSearch(event.target.value)} />
-                {search && <Button variant="ghost" size="icon" className="absolute right-0 top-0" title="Clear search" aria-label="Clear search" onClick={() => setSearch("")}><X className="size-4" /></Button>}
-              </div>
+              <SearchInput aria-label="Search administration" placeholder="Search administration" value={search} onChange={event => setSearch(event.target.value)}
+                endAdornment={search && <Button variant="ghost" size="icon" title="Clear search" aria-label="Clear search" onClick={() => setSearch("")}><X className="size-4" /></Button>}
+              />
               <span role="status" className="type-meta text-muted-foreground">{matching.reduce((total, section) => total + section.items.length, 0)} destinations</span>
             </div>
           </div>

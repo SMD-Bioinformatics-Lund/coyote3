@@ -24,6 +24,7 @@ export function ContactPage() {
 
   return (
     <PageShell
+      className="material-page static-material-page"
       eyebrow="Contact"
       title="Contact and Support"
       description={`Support channels, service hours, and public resources for ${orgName}.`}
@@ -39,7 +40,7 @@ export function ContactPage() {
           description="Choose the clinical, sample, or platform channel that matches the request."
           aside={<HoursSummary hours={hours} />}
           tone="primary"
-          bodyClassName="flex flex-wrap gap-3 p-3"
+          bodyClassName="static-card-grid gap-4 p-4"
         >
             {contacts.length ? contacts.map((contact, index) => (
               <ContactCard key={`${contact.label}-${index}`} contact={contact} tone={STATIC_TONES[index % STATIC_TONES.length]} />
@@ -53,7 +54,7 @@ export function ContactPage() {
           title="Center and service details"
           description="Deployment ownership, central contacts, location, and related resources."
           tone="info"
-          bodyClassName="flex flex-wrap gap-3 p-3"
+          bodyClassName="static-card-grid gap-4 p-4"
         >
             <OrganizationCard organization={organization} fallbackName={orgName} />
             <SupportCard support={support} />

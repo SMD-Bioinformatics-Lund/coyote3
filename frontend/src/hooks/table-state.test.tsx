@@ -60,6 +60,13 @@ describe("clinical table state", () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
+  it("applies a bookmarked search to the first server request without an unfiltered flash", () => {
+    const { result } = renderHook(() => useClinicalTableState({ prefix: "snv" }), {
+      wrapper: router("/samples/CASE?snv_q=%20TP53%20&snv_page=2"),
+    })
+    expect(result.current.queryKeyState).toEqual([2, 50, "TP53", ""])
+  })
+
   it("debounces trimmed searches and exposes stable server query state", () => {
     const { result } = renderHook(() => useClinicalTableState({ prefix: "snv", searchDebounceMs: 200 }), {
       wrapper: router("/samples/CASE"),

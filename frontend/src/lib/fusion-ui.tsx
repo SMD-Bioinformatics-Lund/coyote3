@@ -23,6 +23,7 @@ export function FusionCallerBadges({ callers }: { callers: unknown }) {
           description={fusionCallerDescriptions[caller] || "Fusion caller reported by the upstream RNA analysis pipeline."}
           severity="info"
           contextLabel="Fusion caller"
+          appearanceClassName="badge-fusion-caller"
         >
           {caller}
         </InfoTooltipBadge>
@@ -50,6 +51,7 @@ export function FusionEffectBadge({ effect }: { effect: unknown }) {
       label={value}
       description={fusionEffectDescription(value)}
       severity={severity}
+      appearanceClassName={normalized === "in-frame" ? "badge-fusion-in-frame" : "badge-fusion-out-of-frame"}
       contextLabel="Caller-reported fusion effect"
       className="h-auto max-w-full whitespace-normal text-left leading-tight"
     >
@@ -123,6 +125,7 @@ export function FusionEvidenceBadges({
             label={value}
             description={badgeMetadata.description}
             severity={badgeMetadata.severity}
+            appearanceClassName={badgeMetadata.severity === "pass" ? "badge-fusion-relevant" : badgeMetadata.severity === "fail" ? "badge-fusion-artifact" : "badge-fusion-context"}
             contextLabel="Fusion evidence"
           >
             {value}

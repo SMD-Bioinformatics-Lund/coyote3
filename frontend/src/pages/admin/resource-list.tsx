@@ -19,6 +19,8 @@ export function valueLabel(value: unknown) {
 export function titleize(value: string) {
   if (value === "record_provenance") return "Created by"
   const resourceLabels: Record<string, string> = {
+    is_active: "Status",
+    definition_is_active: "Shared status",
     asp_id: "Assay ID",
     asp_ids: "Assays",
     asp_category: "Assay category",
@@ -120,6 +122,7 @@ export function rowDisplayName(row: any, spec: AdminResourceSpec) {
     "email",
     "label",
     "display_name",
+    "displayname",
     "role_id",
     "permission_id",
     "asp_id",
@@ -285,7 +288,7 @@ export function parseCellValue(value: string) {
 
 const identityDisplayFields: Record<string, string[]> = {
   permission_id: ["label"], role_id: ["label"], username: ["fullname"],
-  asp_id: ["display_name"], aspc_id: ["display_name"], isgl_id: ["displayname", "name"],
+  asp_id: ["name", "display_name"], aspc_id: ["name", "display_name"], isgl_id: ["name", "displayname"],
 }
 
 export function adminColumnTitle(field: string) {

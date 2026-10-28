@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react"
+import { Check, TriangleAlert, X } from "lucide-react"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 
 export type SampleDataSegment = {
@@ -17,6 +17,10 @@ export function SampleDataStatus({ segments }: { segments: SampleDataSegment[] }
   }))
   const availableCount = rows.filter((row) => row.available).length
   const summary = `${availableCount} of ${rows.length} data types available`
+  const complete = availableCount === rows.length
+  const StatusIcon = complete ? Check : availableCount === 0 ? X : TriangleAlert
+  const statusClass = complete ? "matte-badge-pass"
+    : availableCount === 0 ? "matte-badge-fail" : "matte-badge-warn"
   const description = rows.map((row) =>
     `${row.label}: ${row.available ? "Available" : "Not available"}${row.value === undefined ? "" : ` (${row.value})`}`,
   ).join("; ")
@@ -49,13 +53,8 @@ export function SampleDataStatus({ segments }: { segments: SampleDataSegment[] }
         </dl>
       }>
       <button type="button" aria-label={`${summary}. ${description}`}
-        className="inline-flex h-5 items-stretch overflow-hidden rounded-full border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-        {rows.map((row) => (
-          <span key={row.label} aria-hidden="true"
-            className={`flex w-6 items-center justify-center border-r border-background/80 last:border-r-0 ${row.className}`}>
-            {row.available ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-          </span>
-        ))}
+        className={`inline-flex h-5 w-6 items-center justify-center rounded-full border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${statusClass}`}>
+        <StatusIcon className="h-3 w-3" aria-hidden="true" />
       </button>
     </AppTooltip>
   )

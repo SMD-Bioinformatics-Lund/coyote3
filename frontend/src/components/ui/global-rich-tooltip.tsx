@@ -113,6 +113,9 @@ export function GlobalRichTooltip() {
       setTooltip(null)
       restoreTarget()
     }
+    const onScroll = () => {
+      if (activeTarget.current) close()
+    }
 
     const onPointerOver = (event: PointerEvent) => {
       const target = eligibleTarget(event.target)
@@ -153,7 +156,7 @@ export function GlobalRichTooltip() {
     document.addEventListener("focusin", onFocusIn, true)
     document.addEventListener("focusout", onFocusOut, true)
     document.addEventListener("keydown", onKeyDown, true)
-    window.addEventListener("scroll", close, true)
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true })
     window.addEventListener("resize", close)
     return () => {
       observer.disconnect()
@@ -163,7 +166,7 @@ export function GlobalRichTooltip() {
       document.removeEventListener("focusin", onFocusIn, true)
       document.removeEventListener("focusout", onFocusOut, true)
       document.removeEventListener("keydown", onKeyDown, true)
-      window.removeEventListener("scroll", close, true)
+      window.removeEventListener("scroll", onScroll, true)
       window.removeEventListener("resize", close)
       restoreTarget()
       enhancedTitles.forEach((title, target) => {

@@ -6,11 +6,11 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 })
     const groups = [{ group_id: "solid", display_name: "Solid tumors", description: "Solid tumor assays", system_managed: true, is_active: true, version: 1 }]
     await installApiFixtures(page, (path, _url, route) => {
-      if (path.endsWith("/assay-groups/solid/impact")) return { json: { group: groups[0], assays: ["panel-a"] } }
-      if (path.endsWith("/assay-groups/solid/status")) {
+      if (path.endsWith("/assay-groups/methylation/impact")) return { json: { group: groups[1], assays: ["panel-a"] } }
+      if (path.endsWith("/assay-groups/methylation/status")) {
         expect(route.request().postDataJSON().reason).toBe("Pause new work")
-        groups[0].is_active = route.request().postDataJSON().is_active
-        groups[0].version++
+        groups[1].is_active = route.request().postDataJSON().is_active
+        groups[1].version++
         return { json: {} }
       }
       if (path !== "/api/v1/resources/assay-groups") return
@@ -40,7 +40,8 @@ for (const width of [1440, 390]) {
     await page.screenshot({ path: testInfo.outputPath(`groups-${width}.png`), fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
     expect(groups).toHaveLength(2)
-    await page.getByRole("button", { name: "Deactivate Solid tumors" }).click()
+    await expect(page.getByRole("button", { name: "Deactivate Solid tumors" })).toHaveCount(0)
+    await page.getByRole("button", { name: "Deactivate Methylation" }).click()
     await expect(page.getByText("panel-a", { exact: true })).toBeVisible()
     await page.getByLabel("Reason", { exact: true }).pressSequentially("Pause new work")
     await expect(page.getByLabel("Reason", { exact: true })).toHaveValue("Pause new work")
@@ -50,6 +51,6 @@ for (const width of [1440, 390]) {
     await expect(page.getByLabel("Reason", { exact: true })).toBeFocused()
     await page.screenshot({ path: testInfo.outputPath(`group-status-${width}.png`), fullPage: true })
     await page.getByRole("button", { name: "Deactivate group", exact: true }).click()
-    await expect(page.getByRole("button", { name: "Activate Solid tumors" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Activate Methylation" })).toBeVisible()
   })
 }

@@ -1,11 +1,6 @@
 .account-profile {
   --account-surface: var(--card);
-  --account-control: var(--input);
   --account-edge: var(--paper-edge);
-}
-
-.dark .account-profile {
-  --account-control: var(--background);
 }
 
 .account-profile .account-card {
@@ -26,18 +21,10 @@
   padding: 1rem 0;
 }
 
-.account-profile input,
-.account-profile select,
 .account-profile .segmented-control {
-  background: var(--account-control);
+  background: var(--control-surface);
   border: 1px solid var(--account-edge);
   box-shadow: none;
-}
-
-.account-profile input:focus-visible,
-.account-profile select:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
 }
 
 .account-profile .segmented-control-indicator {

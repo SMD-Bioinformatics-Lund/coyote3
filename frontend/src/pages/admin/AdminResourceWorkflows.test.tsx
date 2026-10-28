@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -98,7 +98,7 @@ function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   const path = mode === "create" ? `/admin/${resource}/create` : `/admin/${resource}/${id}/${mode}`
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[{ pathname: path, state: { copiedDocument } }]}>
         <Routes>
@@ -110,6 +110,7 @@ function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, queryClient }
 }
 
 describe("Managed admin resource workflows", () => {
@@ -602,6 +603,24 @@ describe("Managed admin resource workflows", () => {
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/users/reviewer", {
       form_data: { email: "new@example.org" },
     }, editSessionOptions))
+  })
+
+  it.each(["create", "edit"] as const)("keeps unsaved %s form values during a background refresh", async mode => {
+    const original = { user_doc: { username: "reviewer", email: "old@example.org" },
+      form: { fields: { username: { label: "Username", readonly: true }, email: { label: "Email" } } } }
+    mocks.get.mockResolvedValue({ data: original })
+    const { queryClient } = renderEditor("users", mode, mode === "edit" ? "reviewer" : "")
+    await screen.findByRole("button", { name: "Save" })
+    const email = screen.getByLabelText(/Email/)
+    await waitFor(() => expect(email).toBeEnabled())
+    fireEvent.change(email, { target: { value: "unsaved@example.org" } })
+    mocks.get.mockResolvedValue({ data: { ...original, user_doc: { username: "reviewer", email: "server@example.org" } } })
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-resource-context", "users"] })
+      // Flush React Query's scheduled observer notifications after the completed refetch.
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    expect(email).toHaveValue("unsaved@example.org")
   })
 
   it("imports a configuration JSON file into a create form without saving it", async () => {

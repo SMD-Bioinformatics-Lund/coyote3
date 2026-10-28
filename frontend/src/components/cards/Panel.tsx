@@ -46,7 +46,7 @@ export function MetricCard({
   return (
     <div className={cn("metric-card p-4", className)}>
       <p className="type-label text-muted-foreground">{title}</p>
-      <p className="mt-1 text-xl font-semibold leading-tight text-foreground">{value}</p>
+      <p className="mt-1 type-metric-value text-foreground">{value}</p>
       {sub && <p className="type-meta mt-1 text-muted-foreground">{sub}</p>}
     </div>
   )

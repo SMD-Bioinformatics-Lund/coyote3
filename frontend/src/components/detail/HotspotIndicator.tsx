@@ -66,7 +66,7 @@ export function HotspotIndicator({
       <TableBadge
         tabIndex={0}
         aria-label="Known hotspot"
-        className={cn(clinicalBadgeClassName, "matte-badge-warn gap-1", className)}
+        className={cn(clinicalBadgeClassName, "badge-hotspot gap-1", className)}
       >
         <Flame className="h-3.5 w-3.5" aria-hidden="true" />
         {showLabel ? <span>Hotspot</span> : null}

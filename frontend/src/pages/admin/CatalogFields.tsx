@@ -1,15 +1,17 @@
-import { useState } from "react"
+import { useId, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import type { Presentation } from "./catalog-types"
 
-export function TextField({ label, value, onChange, multiline = false }: {
-  label: string; value?: string | null; onChange: (value: string) => void; multiline?: boolean
+export function TextField({ label, value, onChange, multiline = false, help }: {
+  label: string; value?: string | null; onChange: (value: string) => void; multiline?: boolean; help?: string
 }) {
+  const helpId = useId()
   if (multiline) return <RichTextEditor label={label} value={value || ""} onChange={onChange} />
-  return <label className="grid gap-1 type-label">{label}<Input value={value || ""} onChange={(e) => onChange(e.target.value)} /></label>
+  return <div className="space-y-1"><label className="grid gap-1 type-label">{label}<Input aria-describedby={help ? helpId : undefined} value={value || ""} onChange={(e) => onChange(e.target.value)} /></label>
+    {help && <p id={helpId} className="type-meta text-muted-foreground">{help}</p>}</div>
 }
 
 export function Choices({ label, value = [], presets, custom = false, onChange }: {
@@ -63,7 +65,7 @@ export function PresentationFields({ value, presets, onChange, showAnalysis = tr
 }) {
   return <div className="space-y-4">
     {showHeading && <><div className="grid gap-3 md:grid-cols-2">
-      <TextField label="Display name" value={value.label || value.title} onChange={(label) => onChange({ ...value, label, title: label })} />
+      <TextField label="Display name" help="Full service title shown on catalog cards and service details. Assay dropdowns and matrix headers use the assay's short name." value={value.label || value.title} onChange={(label) => onChange({ ...value, label, title: label })} />
       <TextField label="Subheading" value={value.subheading} onChange={(subheading) => onChange({ ...value, subheading })} />
     </div>
     <TextField label="Description" multiline value={value.description} onChange={(description) => onChange({ ...value, description })} /></>}

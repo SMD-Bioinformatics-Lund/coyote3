@@ -23,7 +23,7 @@ export function useClinicalTableState({
     ...options,
     defaultPerPage: options.defaultPerPage ?? pageSize,
   })
-  const [debouncedSearchText, setDebouncedSearchText] = useState("")
+  const [debouncedSearchText, setDebouncedSearchText] = useState(() => tableState.searchText.trim())
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

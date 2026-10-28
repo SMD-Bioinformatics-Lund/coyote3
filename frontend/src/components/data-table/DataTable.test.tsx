@@ -54,6 +54,8 @@ describe("DataTable", () => {
     await user.clear(search)
     await user.type(search, "missing")
     expect(screen.getByText("No results found.")).toBeVisible()
+    expect(screen.getByText("Try another search or clear the search field.")).toBeVisible()
+    expect(screen.getByText("Showing 0 of 0 row(s)")).toBeVisible()
   })
 
   it("supports additive multi-column sorting and stores its state", async () => {

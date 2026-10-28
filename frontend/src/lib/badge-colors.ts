@@ -1,55 +1,59 @@
 import { GENELIST_TYPE_METADATA, configuredValueDescription } from "@/lib/configured-values"
 
+export const sequencingValueClasses: Record<string, string> = {
+  dna: "badge-dna",
+  rna: "badge-rna",
+  "panel-dna": "badge-panel-dna",
+  "panel-rna": "badge-panel-rna",
+  wgs: "badge-wgs",
+  wts: "badge-wts",
+}
+
 export const configuredValueClasses: Record<string, string> = {
-  local: "badge-warning",
-  ldap: "badge-info",
-  dna: "badge-info",
-  rna: "badge-signal",
+  ...sequencingValueClasses,
+  local: "badge-auth-local",
+  ldap: "badge-auth-ldap",
   production: "matte-badge-production",
-  development: "badge-info",
-  testing: "badge-neutral",
-  validation: "badge-warning",
+  development: "badge-development",
+  testing: "badge-testing",
+  validation: "badge-validation",
   somatic: "badge-somatic",
   germline: "badge-germline",
-  hematology: "badge-danger",
-  solid: "badge-warning",
+  hematology: "badge-hematology",
+  solid: "badge-solid",
   pgx: "badge-pgx",
-  tumwgs: "badge-warning",
-  "tumwgs-hema": "badge-danger",
-  "tumwgs-solid": "badge-warning",
-  wts: "badge-signal",
-  myeloid: "badge-danger",
-  lymphoid: "badge-success",
-  "panel-dna": "badge-info",
-  "panel-rna": "badge-signal",
-  wgs: "badge-success",
-  illumina: "badge-info",
-  pacbio: "badge-success",
-  nanopore: "badge-neutral",
-  iontorrent: "badge-warning",
+  tumwgs: "badge-tumwgs",
+  "tumwgs-hema": "badge-tumwgs-hema",
+  "tumwgs-solid": "badge-tumwgs-solid",
+  myeloid: "badge-myeloid",
+  lymphoid: "badge-lymphoid",
+  illumina: "badge-illumina",
+  pacbio: "badge-pacbio",
+  nanopore: "badge-nanopore",
+  iontorrent: "badge-iontorrent",
   ...Object.fromEntries(Object.entries(GENELIST_TYPE_METADATA).map(([value, metadata]) => [value, metadata.className])),
-  SNV: "badge-info",
-  CNV: "badge-warning",
-  TRANSLOCATION: "badge-info",
-  HRD: "badge-success",
-  MSI: "badge-success",
-  CNV_PROFILE: "badge-warning",
-  FUSION: "badge-signal",
-  TMB: "badge-warning",
+  SNV: "badge-snv",
+  CNV: "badge-cnv",
+  TRANSLOCATION: "badge-translocation",
+  HRD: "badge-hrd",
+  MSI: "badge-msi",
+  CNV_PROFILE: "badge-cnv-profile",
+  FUSION: "badge-fusion",
+  TMB: "badge-tmb",
   PGX: "badge-pgx",
-  EXPRESSION: "badge-signal",
-  CLASSIFICATION: "badge-success",
-  QC: "badge-neutral",
+  EXPRESSION: "badge-expression",
+  CLASSIFICATION: "badge-classification",
+  QC: "badge-analysis-qc",
 }
 
 export const roleFallbackClasses: Record<string, string> = {
-  superuser: "badge-neutral",
-  admin: "badge-danger",
-  developer: "badge-info",
-  tester: "badge-info",
-  manager: "badge-warning",
-  user: "badge-success",
-  viewer: "badge-neutral",
+  superuser: "badge-role-superuser",
+  admin: "badge-role-admin",
+  developer: "badge-role-developer",
+  tester: "badge-role-tester",
+  manager: "badge-role-manager",
+  user: "badge-role-user",
+  viewer: "badge-role-viewer",
 }
 
 export const namedAccentColors: Record<string, string> = {
@@ -71,8 +75,8 @@ export function accentColor(value: string) {
 export function valueBadgeClass(value: string, kind?: string) {
   const exact = configuredValueClasses[value] || configuredValueClasses[value.toLowerCase()] || configuredValueClasses[value.toUpperCase()]
   if (exact) return exact
-  if (kind === "role") return roleFallbackClasses[value.toLowerCase()] || "badge-info"
-  return "badge-neutral"
+  if (kind === "role") return roleFallbackClasses[value.toLowerCase()] || "badge-role-unknown"
+  return "badge-value-unknown"
 }
 
 export { configuredValueDescription }

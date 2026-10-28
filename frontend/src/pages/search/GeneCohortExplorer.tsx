@@ -6,11 +6,11 @@ import {
 import { AppLoader } from "@/components/layout/AppLoader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { api } from "@/lib/api";
 import { TierBadge } from "@/lib/variant-ui";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Dna, Search, Users } from "lucide-react";
+import { BarChart3, Dna, Users } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { humanSex, percent } from "./cohort-formatters";
@@ -62,22 +62,19 @@ export function GeneCohortExplorer() {
 
   return (
     <PageShell
+      className="material-page"
       eyebrow="Common"
       title="Gene Cohort Explorer"
       description="Review reported SNV, CNV, fusion, and translocation prevalence for one gene across samples visible to your account."
       actions={
         <div className="flex w-full flex-col items-end gap-2 md:w-auto">
           <form onSubmit={submit} className="flex w-full items-center gap-2 md:w-auto">
-            <div className="relative min-w-64 flex-1 md:w-80">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+              <SearchInput
                 aria-label="Gene symbol or HGNC identifier"
                 value={geneInput}
                 onChange={(event) => setGeneInput(event.target.value)}
                 placeholder="Gene symbol or HGNC ID"
-                className="pl-9"
               />
-            </div>
             <Button type="submit">Search</Button>
           </form>
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">

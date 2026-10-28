@@ -3,12 +3,13 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { api } from "@/lib/api"
+import { api, ApiClientError } from "@/lib/api"
 import { Layout } from "./Layout"
 
 const navigate = vi.fn()
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/api")>(),
   api: {
     get: vi.fn(),
     delete: vi.fn(),
@@ -234,9 +235,19 @@ describe("Layout", () => {
     expect(navigate).toHaveBeenCalledWith("/login")
   })
 
+  it("uses the CSRF-aware client for a signed-in user opening a public page", async () => {
+    mockPrivateQueries()
+    renderLayout("/public/catalog")
+    expect(await screen.findByText("Avery")).toBeVisible()
+    expect(api.get).toHaveBeenCalledWith("/auth/whoami", expect.objectContaining({
+      credentials: "same-origin", errorNotice: "inline", redirectOnUnauthorized: false,
+    }))
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it("shows only public navigation and a sign-in action for an anonymous public route", async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 401 } as Response)
     vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/auth/whoami") throw new ApiClientError("Authentication required", 401, url)
       if (url === "/public/modules") return { data: { modules: {} } } as never
       if (url === "/public/contact") return { data: {} } as never
       throw new Error(`Unexpected URL: ${url}`)
@@ -245,6 +256,9 @@ describe("Layout", () => {
     renderLayout("/public/catalog")
 
     expect(await screen.findByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login")
+    expect(api.get).toHaveBeenCalledWith("/auth/whoami", expect.objectContaining({
+      errorNotice: "inline", redirectOnUnauthorized: false,
+    }))
     const toggle = screen.getByRole("button", { name: "Expand sidebar" })
     expect(toggle).toBeVisible()
     expect(screen.getByTitle("Public: Catalog")).toBeVisible()
@@ -276,18 +290,22 @@ describe("Layout", () => {
     await screen.findByText("Route content")
 
     const main = screen.getByRole("main")
+    const readScrollHeight = vi.fn(() => 1200)
     Object.defineProperties(main, {
       clientHeight: { configurable: true, value: 800 },
-      scrollHeight: { configurable: true, value: 1200 },
+      scrollHeight: { configurable: true, get: readScrollHeight },
       scrollTop: { configurable: true, writable: true, value: 0 },
     })
     const scrollTo = vi.fn()
     Object.defineProperty(main, "scrollTo", { configurable: true, value: scrollTo })
 
-    fireEvent.scroll(main)
+    fireEvent.resize(window)
     const backToTop = await screen.findByRole("button", { name: "Back to top" })
+    readScrollHeight.mockClear()
+    for (let index = 0; index < 20; index++) fireEvent.scroll(main)
+    expect(readScrollHeight).not.toHaveBeenCalled()
     fireEvent.click(backToTop)
 
-    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" })
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "auto" })
   })
 })

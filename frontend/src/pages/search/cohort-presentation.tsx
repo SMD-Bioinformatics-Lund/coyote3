@@ -33,10 +33,10 @@ export function PrevalenceBar({ value }: { value: number | null }) {
   const width = Math.max(0, Math.min(100, value || 0));
   return (
     <div
-      className="h-2 overflow-hidden rounded-full bg-muted"
+      className="progress-pipe h-2 overflow-hidden rounded-full"
       aria-label={`Prevalence ${percent(value)}`}
     >
-      <div className="h-full rounded-full bg-primary" style={{ width: `${width}%` }} />
+      <div className="progress-pipe-fill h-full rounded-full bg-primary" style={{ width: `${width}%` }} />
     </div>
   );
 }

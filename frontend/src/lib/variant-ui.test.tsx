@@ -59,7 +59,7 @@ describe("variant UI semantics", () => {
 
     expect(screen.getByText("gain").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-gain")
     expect(screen.getByText("loss").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-loss")
-    expect(screen.getByText("normal").closest("[data-slot='table-badge']")).toHaveClass("badge-success")
+    expect(screen.getByText("normal").closest("[data-slot='table-badge']")).toHaveClass("badge-cnv-normal")
     expect(screen.getByText("somatic")).toHaveClass("badge-somatic")
     expect(screen.getByText("germline")).toHaveClass("badge-germline")
   })

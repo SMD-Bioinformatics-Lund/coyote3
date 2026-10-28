@@ -15,7 +15,7 @@ for (const width of [1440, 390]) {
     await page.goto("/notifications")
     await expect(page.getByText("important", { exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toBeEnabled()
-    await expect(page.getByRole("button", { name: "Close notification for this session" })).toHaveCount(1)
+    await expect(page.getByRole("button", { name: "Remove notification from your inbox", exact: true })).toHaveCount(1)
     await expect(page.getByText("Save your work", { exact: true })).not.toBeVisible()
     await page.screenshot({ path: testInfo.outputPath("tray.png"), fullPage: true })
     await page.getByText("Scheduled maintenance and service availability").click()

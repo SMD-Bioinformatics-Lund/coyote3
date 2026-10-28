@@ -3,6 +3,40 @@ import { installApiFixtures } from "./support/api-fixtures"
 
 test.use({ timezoneId: "Europe/Stockholm" })
 
+test("a signed-in public-page refresh retains CSRF protection for UI settings", async ({ page }, testInfo) => {
+  let token = "synthetic-public-csrf-1"
+  let theme = "light"
+  await installApiFixtures(page, (path, _url, route) => {
+    if (path === "/api/v1/auth/whoami") return { json: {
+      username: "synthetic-viewer", role: "user", roles: ["user"], permissions: [],
+      csrf_token: token, ui_settings: { theme },
+    } }
+    if (path === "/api/v1/users/me/ui-settings") {
+      if (route.request().headers()["x-csrf-token"] !== token) {
+        return { status: 403, json: { error: "CSRF validation failed" } }
+      }
+      theme = route.request().postDataJSON().theme
+      return { json: { status: "ok", ui_settings: { theme } } }
+    }
+    if (path === "/api/v1/public/assay-catalog/offerings") {
+      return { json: { version: 1, header: "Synthetic catalog", offerings: [] } }
+    }
+  })
+  await page.goto("/public/catalog")
+  let saved = page.waitForResponse(response => response.url().endsWith("/users/me/ui-settings"))
+  await page.getByRole("button", { name: "Theme: light. Switch to dark", exact: true }).click()
+  expect((await saved).status()).toBe(200)
+  await expect(page.locator("html")).toHaveClass(/dark/)
+  await page.getByRole("banner").screenshot({ path: testInfo.outputPath("dark-navigation.png") })
+  token = "synthetic-public-csrf-2"
+  await page.reload()
+  saved = page.waitForResponse(response => response.url().endsWith("/users/me/ui-settings"))
+  await page.getByRole("button", { name: "Theme: dark. Switch to auto", exact: true }).click()
+  expect((await saved).status()).toBe(200)
+  expect(page.url()).toContain("/public/catalog")
+  await expect(page.getByText(/CSRF validation failed/)).toHaveCount(0)
+})
+
 for (const theme of ["light", "dark"]) {
   test(`${theme} capability rings remain separated with visible tracks`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1920, height: 1080 })
@@ -19,6 +53,8 @@ for (const theme of ["light", "dark"]) {
     await page.goto("/")
     const tracks = page.locator(".panel-capability-track")
     await expect(tracks).toHaveCount(11)
+    expect(await tracks.first().evaluate(element => getComputedStyle(element).filter)).toContain("drop-shadow")
+    expect(await page.locator(".panel-capability-progress").first().evaluate(element => getComputedStyle(element).filter)).toContain("drop-shadow")
     const metrics = await tracks.evaluateAll((nodes) => {
       const canvas = document.createElement("canvas")
       canvas.width = canvas.height = 1

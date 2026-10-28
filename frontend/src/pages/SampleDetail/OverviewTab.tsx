@@ -11,7 +11,7 @@ import {
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGeneSettings"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, ChartNoAxesCombined, Database, Dna, Layers, Network, UserRound, Workflow } from "lucide-react"
 import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { Link } from "react-router-dom"
 import { displayValue, fileItems, formatFileSize, formatPurityPercentage, overviewFilterGroups, reportItems } from "./overview-data"
@@ -43,6 +43,32 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   const reports = reportItems(sample)
   const filterGroups = overviewFilterGroups(sample, context)
   const resolution = context?.assay_config?.aspc_resolution
+  const databaseVersions = Object.entries(sample?.database_versions || {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+  const metadataGroups = [
+    { title: "Analysis", icon: Dna, fields: [
+      { label: "Type", value: sample?.asp_category || sample?.asp_family ? <>
+        {sample?.asp_category && <StatusPill tone="blue">{String(sample.asp_category).toUpperCase()}</StatusPill>}
+        {sample?.asp_family && <StatusPill tone="blue">{sample.asp_family}</StatusPill>}
+      </> : null },
+      { label: "Sequencing", value: sample?.platform || sample?.read_mode ? <>
+        {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}
+        {sample?.read_mode && <StatusPill tone="green">{sample.read_mode}</StatusPill>}
+      </> : null },
+      { label: "Reference", value: sample?.genome_build ? <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill> : null },
+      { label: "Environment", value: sample?.environment ? <StatusPill tone="yellow">{sample.environment}</StatusPill> : null },
+    ] },
+    { title: "Workflow", icon: Workflow, fields: [
+      { label: "Assay", value: sample?.asp_id ? <StatusPill tone="blue">{sample.asp_id}</StatusPill> : null },
+      { label: "Configuration", value: context?.assay_config?.aspc_id ? <StatusPill tone="blue">{context.assay_config.aspc_id}{context.assay_config.version ? ` v${context.assay_config.version}` : ""}</StatusPill> : null },
+      { label: "Pipeline", value: sample?.pipeline ? <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill> : null },
+      { label: "Reporting", value: sampleReported(sample) ? <StatusPill tone="blue">Reported</StatusPill> : null },
+    ] },
+    { title: "Record history", icon: UserRound, fields: [
+      { label: "Created by", value: sample?.created_by || "Unknown" },
+      { label: "Updated by", value: sample?.updated_by || "Unknown" },
+    ] },
+  ]
 
   return (
     <div className="space-y-3">
@@ -59,32 +85,28 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         </section>
       )}
 
-      <div className="grid gap-3 xl:grid-cols-5">
-        <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="xl:col-span-1">
-          <dl className="mb-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 type-meta">
-            <dt className="text-muted-foreground">Created by</dt><dd className="break-words">{sample?.created_by || "Unknown"}</dd>
-            <dt className="text-muted-foreground">Updated by</dt><dd className="break-words">{sample?.updated_by || "Unknown"}</dd>
-          </dl>
-          <div className="flex flex-wrap gap-2">
-            {sample?.asp_category && <StatusPill tone="blue">{String(sample.asp_category).toUpperCase()}</StatusPill>}
-            {sample?.platform && <StatusPill tone="green">{sample.platform}</StatusPill>}
-            {sample?.read_mode && <StatusPill tone="green">{sample.read_mode}</StatusPill>}
-            {sample?.asp_family && <StatusPill tone="blue">{sample.asp_family}</StatusPill>}
-            {sample?.genome_build && <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill>}
-            {sample?.environment && <StatusPill tone="yellow">{sample.environment}</StatusPill>}
-            {sample?.asp_id && <StatusPill tone="blue">Assay: {sample.asp_id}</StatusPill>}
-            {context?.assay_config?.aspc_id && <StatusPill tone="blue">Configuration: {context.assay_config.aspc_id}{context.assay_config.version ? ` v${context.assay_config.version}` : ""}</StatusPill>}
-            {sample?.pipeline && <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill>}
-            {sampleReported(sample) && <StatusPill tone="blue">Reported</StatusPill>}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Database versions</span>
-            {Object.entries(sample?.database_versions || {}).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => (
-              key === "vep" ? <VepVersionBadge key={key} version={value} /> :
-                <StatusPill key={key}>{key}: {displayValue(value)}</StatusPill>
-            ))}
-            {!Object.keys(sample?.database_versions || {}).length && <span className="text-sm text-muted-foreground">Not recorded</span>}
-          </div>
+      <div className="grid grid-cols-1 items-stretch gap-3 xl:grid-cols-5">
+        <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="sample-meta-card xl:col-span-1">
+          {metadataGroups.filter((group) => group.fields.some((field) => field.value !== null))
+            .map(({ title, icon: Icon, fields }) => <section key={title} className="sample-meta-group" aria-label={title}>
+              <h3 className="sample-meta-group-title type-label"><Icon className="size-3.5" aria-hidden="true" />{title}</h3>
+              <dl className="sample-meta-fields">
+                {fields.filter((field) => field.value !== null).map((field) => <div key={field.label}>
+                  <dt className="type-meta">{field.label}</dt>
+                  <dd className="type-body-sm">{field.value}</dd>
+                </div>)}
+              </dl>
+            </section>)}
+          <section className="sample-meta-group" aria-label="Database versions">
+            <h3 className="sample-meta-group-title type-label"><Database className="size-3.5" aria-hidden="true" />Database versions</h3>
+            {databaseVersions.length ? <dl className="sample-meta-fields">
+              {databaseVersions.map(([key, value]) => <div key={key}>
+                <dt className="type-meta">{key === "vep" ? "VEP" : key}</dt>
+                <dd className="type-body-sm">{key === "vep" ? <VepVersionBadge version={value} /> :
+                  <StatusPill>{displayValue(value)}</StatusPill>}</dd>
+              </div>)}
+            </dl> : <p className="type-meta text-muted-foreground">Not recorded</p>}
+          </section>
           {context?.aspc_update?.available && (
             <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
               <p className="text-xs font-semibold">Newer assay configuration available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
@@ -240,20 +262,34 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         </SettingsCard>
 
         <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-full">
-          <div className="space-y-2">
-            {filterGroups.length ? filterGroups.map((group) => (
-              <section key={group.key} aria-labelledby={`filter-group-${group.key}`} className="content-item grid min-w-0 gap-3 px-3 py-3 lg:grid-cols-[10rem_minmax(0,1fr)]">
-                <h3 id={`filter-group-${group.key}`} className="type-label border-b border-border/60 pb-2 text-foreground lg:border-b-0 lg:pt-1 lg:pr-3 lg:pb-0">{group.label}</h3>
-                <dl className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-x-3 gap-y-2">
+          <div className="configured-filter-grid">
+            {filterGroups.length ? filterGroups.map((group) => {
+              const Icon = group.key === "cnv" ? Layers
+                : group.key === "coverage" ? ChartNoAxesCombined
+                : group.key.includes("snv") ? Dna : Network
+              return <section key={group.key} aria-labelledby={`filter-group-${group.key}`}
+                data-fact-columns={group.rows.filter(([, value]) => !Array.isArray(value)).length > 4 ? 3 : 2}
+                className="content-item configured-filter-card">
+                <header className="configured-filter-heading">
+                  <span className="configured-filter-icon"><Icon className="size-4" aria-hidden="true" /></span>
+                  <h3 id={`filter-group-${group.key}`} className="type-card-title text-foreground">{group.label}</h3>
+                </header>
+                <dl className="configured-filter-fields">
                   {group.rows.map(([label, rowValue]) => (
-                    <div key={label} className={`min-w-0 border-l border-border/60 py-0.5 pl-3 ${Array.isArray(rowValue) && rowValue.length > 2 ? "sm:col-span-2" : ""}`}>
-                      <dt className="type-meta mb-1 text-muted-foreground">{label}</dt>
-                      <dd className="type-body-sm break-words font-semibold text-foreground">{displayValue(rowValue)}</dd>
+                    <div key={label} className={`configured-filter-field ${Array.isArray(rowValue) ? "is-list" : ""}`}>
+                      <dt className="type-meta text-muted-foreground">{label}</dt>
+                      <dd className="type-body-sm text-foreground">
+                        {Array.isArray(rowValue) && rowValue.length > 0
+                          ? <ul className="configured-filter-tokens" aria-label={label}>
+                            {rowValue.map((value, index) => <li key={index} className="configured-filter-token">{String(value ?? "")}</li>)}
+                          </ul>
+                          : <span className="type-numeric font-semibold">{displayValue(rowValue)}</span>}
+                      </dd>
                     </div>
                   ))}
                 </dl>
               </section>
-            )) : <p className="text-sm text-muted-foreground">No configurable filters apply to the enabled analyses for this sample.</p>}
+            }) : <p className="type-body-sm text-muted-foreground">No configurable filters apply to the enabled analyses for this sample.</p>}
           </div>
         </SettingsCard>
       </div>

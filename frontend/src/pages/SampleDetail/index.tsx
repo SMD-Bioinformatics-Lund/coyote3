@@ -3,6 +3,7 @@ import { api } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { ChartNoAxesCombined, FileText, LayoutDashboard, Microscope } from "lucide-react"
 
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -265,7 +266,12 @@ export function SampleDetail() {
             className="sample-workspace-tabs min-w-max"
             value={activeTab}
             onValueChange={selectTab}
-            items={navigationTabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+            items={navigationTabs.map((tab) => {
+              const Icon = tab.id === "overview" ? LayoutDashboard
+                : tab.id === "coverage" ? ChartNoAxesCombined
+                : tab.id === "reports" ? FileText : Microscope
+              return { value: tab.id, label: <><Icon className="size-4" aria-hidden="true" />{tab.label}</> }
+            })}
           />
         </div>
         {activeTab !== "reports" && (
@@ -287,7 +293,7 @@ export function SampleDetail() {
       <div className="flex items-start gap-3">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
-            <div className="rounded-xl overflow-hidden">
+            <div className={activeTab === "overview" ? undefined : "rounded-xl overflow-hidden"}>
               {activeTab !== "reports" && analysisLayout === "classic" && !modernViewTried && (
                 <div className="mb-3">
                   <LayoutDiscoveryBanner onTryModern={() => selectAnalysisLayout("modern")} />

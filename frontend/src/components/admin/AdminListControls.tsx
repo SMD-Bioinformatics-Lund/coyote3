@@ -9,7 +9,8 @@ import {
 import {
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
-import { Edit, Eye, MailPlus, Power, Search, Trash2 } from "lucide-react"
+import { Edit, Eye, MailPlus, Power, Trash2 } from "lucide-react"
+import { SearchInput } from "@/components/ui/search-input"
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 import type { AdminListState } from "./useAdminList"
@@ -18,15 +19,11 @@ export function AdminListToolbar({ state, spec }: { state: AdminListState; spec:
   const { q, setQ, resourceFilters, setResourceFilters, listFilterDefinitions, listFilterOptions, visibleRows, rows } = state
   return (
     <div className="mb-3 flex flex-wrap items-end gap-2">
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <input
+        <SearchInput
           value={q}
           onChange={(event) => setQ(event.target.value)}
           placeholder={`Search ${spec.title.toLowerCase()}...`}
-          className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
         />
-      </div>
       {listFilterDefinitions.map((definition, index) => (
         <label key={definition.field} className="grid min-w-52 gap-1">
           <span className="type-meta font-bold uppercase text-muted-foreground">{definition.label}</span>

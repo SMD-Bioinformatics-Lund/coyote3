@@ -281,9 +281,9 @@ describe("FiltersSidebar", () => {
     expect(screen.getByText("Relevant evidence")).toBeVisible()
     expect(screen.getByText("Artifact and exclusion evidence")).toBeVisible()
     expect(screen.queryByText("Context evidence")).not.toBeInTheDocument()
-    expect(screen.getByText("known")).toHaveClass("matte-badge-pass")
-    expect(screen.getByText("short_distance")).toHaveClass("matte-badge-fail")
-    expect(screen.getByText("matched-normal")).toHaveClass("matte-badge-fail")
+    expect(screen.getByText("known")).toHaveClass("badge-fusion-relevant")
+    expect(screen.getByText("short_distance")).toHaveClass("badge-fusion-artifact")
+    expect(screen.getByText("matched-normal")).toHaveClass("badge-fusion-artifact")
 
     await user.click(screen.getByRole("checkbox", { name: "matched-normal" }))
     await user.click(screen.getByRole("button", { name: "Apply" }))

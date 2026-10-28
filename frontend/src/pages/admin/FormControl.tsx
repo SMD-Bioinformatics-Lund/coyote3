@@ -1,5 +1,6 @@
 import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
 import { accentColor } from "@/lib/badge-colors"
+import { resourceNameHint } from "@/lib/resource-names"
 import { cn } from "@/lib/utils"
 import { AssayIgvFields } from "@/pages/admin/AssayIgvFields"
 import {
@@ -15,7 +16,7 @@ import type { AdminFormMode, FormField } from "@/pages/admin/resource-specs"
 import { CheckboxGroup } from "./CheckboxGroup"
 import { ObjectFieldEditor } from "./ObjectFieldEditor"
 import { readFormPath, writeFormPath } from "./form-paths"
-import { useState, type ComponentProps } from "react"
+import { useId, useState, type ComponentProps } from "react"
 
 /** Keep typed separators visible while passing parsed lists to the form state. */
 function ListTextarea({ value, onChange, ...props }: Omit<ComponentProps<"textarea">, "value" | "onChange"> & {
@@ -148,6 +149,7 @@ export function FormControl({
   formValues?: Record<string, any>
 }) {
   const readOnly = disabled || mode === "view" || field.readonly || Boolean(field.derive_from) || field.readonly_mode?.includes(mode)
+  const helpId = useId()
   if (mode === "create" && field.derive_from) {
     const parts = field.derive_from.map((key) =>
       String(formValues?.[key] || (key === "diagnosis_id" ? "base" : "")).trim().toLowerCase(),
@@ -155,6 +157,7 @@ export function FormControl({
     value = parts.every(Boolean) ? parts.join(name === "aspc_id" ? "::" : "_") : ""
   }
   const label = fieldLabel(name, field)
+  const help = field.help || resourceNameHint(name)
   const newIdentifier = mode === "create" && !readOnly && !field.options && (!field.display_type || field.display_type === "input") && ["asp_id", "isgl_id"].includes(name)
   const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(String(value))
   const commonClass = "form-control w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
@@ -166,7 +169,7 @@ export function FormControl({
           {label}
         </span>
         <UserUiSettingsControls value={value} onChange={onChange} disabled={readOnly} />
-        {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
+        {help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{help}</span>}
       </div>
     )
   }
@@ -273,6 +276,7 @@ export function FormControl({
         placeholder={field.placeholder}
         pattern={newIdentifier ? "[a-z0-9]+(?:[-_][a-z0-9]+)*" : undefined}
         aria-label={newIdentifier ? label : undefined}
+        aria-describedby={help ? helpId : undefined}
         aria-invalid={identifierError || undefined}
         className={cn(commonClass, identifierError && "border-destructive")}
       />
@@ -281,14 +285,16 @@ export function FormControl({
 
   const outlined = ["input", "text", "textarea", "select", "password", "email", "number"].includes(field.display_type || "input") && field.data_type !== "json" && !field.groups
   return (
-    <label className={cn("block", outlined ? "relative pt-2" : "space-y-1", compact ? "text-xs" : "text-sm")}>
-      <span className={cn("flex items-center gap-1 font-medium", outlined ? "absolute left-3 top-0 z-10 bg-[var(--field-surface)] px-1 type-meta text-muted-foreground" : "text-foreground")}>
-        {label}
-        {field.required && !readOnly && <span className="text-destructive">*</span>}
-      </span>
-      {control}
+    <div className={compact ? "text-xs" : "text-sm"}>
+      <label className={cn("block", outlined ? "relative pt-2" : "space-y-1")}>
+        <span className={cn("flex items-center gap-1 font-medium", outlined ? "form-field-label absolute left-3 top-0 z-10 px-1 type-meta text-muted-foreground" : "text-foreground")}>
+          {label}
+          {field.required && !readOnly && <span className="text-destructive">*</span>}
+        </span>
+        {control}
+      </label>
       {newIdentifier && <span className={cn("block text-xs font-normal normal-case tracking-normal", identifierError ? "text-destructive" : "text-muted-foreground")}>Use lowercase identifiers: hyphens between distinct terms and underscores within an assay name, such as tumwgs-hema or hematology_gmsv1.</span>}
-      {field.help && <span className="block text-xs font-normal normal-case tracking-normal text-muted-foreground">{field.help}</span>}
-    </label>
+      {help && <span id={helpId} className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">{help}</span>}
+    </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import type { Category, SourceOptions } from "./catalog-types"
 
 export function CatalogAnalysisLists({ entry, sources, onChange }: {
@@ -27,7 +27,7 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
   return <section aria-label="Gene lists by analysis" className="space-y-3 border-t border-border pt-4">
     <div><h3 className="type-body font-semibold">Gene lists by analysis</h3>
       <p className="type-body-sm text-muted-foreground">Choose one or more lists for each analysis, or explicitly select No gene list.</p></div>
-    <Input aria-label="Search eligible gene lists" placeholder="Search gene lists" value={search} onChange={(event) => setSearch(event.target.value)} />
+    <SearchInput aria-label="Search eligible gene lists" placeholder="Search gene lists" value={search} onChange={(event) => setSearch(event.target.value)} />
     {Boolean(entry.analysis?.length) && genes.some((list) => !list.analysis?.length) && <p role="status" className="type-body-sm text-muted-foreground">Some existing gene lists have no analysis assignment. Assign them below or remove them from Selected gene-list descriptions before submitting.</p>}
     {genes.some((list) => !eligible.some((source) => source.isgl_id === (list.isgl_id || list.key))) && <p role="alert" className="type-body-sm text-destructive">A selected list is no longer eligible for this assay and group. Remove it from Selected gene-list descriptions and review its analysis assignments.</p>}
     {!entry.analysis?.length && <fieldset className="space-y-2 rounded-lg border border-border p-3">

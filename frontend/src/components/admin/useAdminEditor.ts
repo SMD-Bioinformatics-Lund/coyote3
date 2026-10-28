@@ -32,6 +32,9 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [values, setValues] = useState<Record<string, any>>({})
+  const currentValues = useRef(values)
+  currentValues.current = values
+  const loadedValues = useRef<{ key: string; values: Record<string, unknown> } | null>(null)
   const [editorError, setEditorError] = useState("")
   const [pendingImport, setPendingImport] = useState<{
     document: Record<string, any>
@@ -92,6 +95,7 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
 
   useEffect(() => {
     if (!form) return
+    const key = `${spec.key}/${mode}/${id}/${schemaVariant}`
     if (mode === "create" && pendingImport) {
       if (
         pendingImport.schemaVariant
@@ -113,8 +117,14 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
       }
       initialCopyApplied.current = true
     }
-    setValues(formStateFromSpec(form, mode === "edit" || mode === "view" ? doc : null))
-  }, [schemaVariant, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport, spec.idKeys, copyIdentityKey, stageImport])
+    const loaded = loadedValues.current
+    // Preserve unsaved fields and their revision together; saves still check the lease/version.
+    if (mode !== "view" && loaded?.key === key
+      && JSON.stringify(currentValues.current) !== JSON.stringify(loaded.values)) return
+    const nextValues = formStateFromSpec(form, mode === "edit" || mode === "view" ? doc : null)
+    loadedValues.current = { key, values: structuredClone(nextValues) }
+    setValues(nextValues)
+  }, [id, schemaVariant, contextQuery.isFetching, doc, form, hasImportedValues, location.state, mode, pendingImport, spec.key, spec.idKeys, copyIdentityKey, stageImport])
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {

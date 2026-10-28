@@ -88,15 +88,15 @@ export function AssayGroupsPage() {
       {groups.error && <p role="alert" className="text-destructive">Unable to load assay groups.</p>}
       {creating && canCreate && <form className="grid gap-4 border-t border-border py-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (validId && values.display_name.trim()) save.mutate() }}>
         <h2 className="type-section-title md:col-span-2">New assay group</h2>
-        <label className="type-label">Display name<Input required maxLength={200} value={values.display_name} onChange={(event) => {
+        <div><label className="type-label">Display name<Input required maxLength={200} aria-describedby="group-name-help" value={values.display_name} onChange={(event) => {
           const name = event.target.value
           setValues({ ...values, display_name: name, ...(!idEdited ? { group_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100).replace(/^-|-$/g, "") } : {}) })
-        }} /></label>
+        }} /></label><p id="group-name-help" className="mt-1 type-meta text-muted-foreground">Readable group name used in cards, tables and dropdowns. Groups have no separate short-name field.</p></div>
         <label className="type-label">Group identifier<Input required maxLength={100} value={values.group_id} aria-invalid={Boolean(values.group_id) && !validId} aria-describedby="group-id-help" onChange={(event) => { setIdEdited(true); setValues({ ...values, group_id: event.target.value }) }} /><span id="group-id-help" className={values.group_id && !validId ? "text-destructive" : "text-muted-foreground"}>Lowercase letters, numbers, hyphens between distinct terms; underscores within names. Cannot be renamed after creation.</span></label>
         <label className="type-label md:col-span-2">Description<textarea className="paper-inset mt-1 w-full rounded-md border border-border p-3" maxLength={4000} rows={3} value={values.description} onChange={(event) => setValues({ ...values, description: event.target.value })} /></label>
         <label className="type-label">Parent group (optional)
           <select className="paper-inset mt-1 w-full rounded-md border border-border p-2" value={values.parent_group_id} onChange={(event) => setValues({ ...values, parent_group_id: event.target.value })}>
-            <option value="">None — top-level group</option>
+            <option value="">None - top-level group</option>
             {(groups.data ?? []).filter((group) => group.is_active).map((group) => <option key={group.group_id} value={group.group_id}>{group.display_name} ({group.group_id})</option>)}
           </select>
           <span className="type-meta text-muted-foreground">Parent classifications provide fallback evidence and require confirmation for this assay and diagnosis. Access and assay assignments remain explicit.</span>

@@ -18,7 +18,7 @@ export function PageShell({
 }) {
   return (
     <PageFrame className={className}>
-      <div className="responsive-card-padding surface-panel text-left">
+      <div className="page-heading responsive-card-padding surface-panel text-left">
         <div className="responsive-section-gap flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 text-left">
             {eyebrow && (

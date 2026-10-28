@@ -15,7 +15,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["assay.panel:list", "assay.panel:view", "assay.panel:edit"]
   vi.mocked(api.get).mockImplementation(async (url) => ({ status: 200, data: url === "/resources/diagnoses" ? { diagnoses: [row] } : {
-    panels: [{ asp_id: "panel-a", display_name: "Panel A", is_active: true }, { asp_id: "panel-b", display_name: "Panel B", is_active: true }], pagination: { total: 2 },
+    panels: [{ asp_id: "panel-a", name: "Panel A", display_name: "Full panel A name", is_active: true }, { asp_id: "panel-b", name: "Panel B", display_name: "Full panel B name", is_active: true }], pagination: { total: 2 },
   } }))
   vi.mocked(api.post).mockImplementation(async (url) => ({ status: 201, data: url.startsWith("/editing/") ? editLease() : {} }))
   vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} })
@@ -57,4 +57,7 @@ it("hides editing controls for viewers", async () => {
   mount()
   expect(await screen.findByText("Myeloid")).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /Create|Edit/ })).not.toBeInTheDocument()
+  const assay = await screen.findByRole("link", { name: "Panel A" })
+  expect(assay).toHaveAttribute("href", "/admin/assay-diagnoses?assay=panel-a")
+  expect(assay.querySelector('[data-slot="table-badge"]')).toHaveAttribute("title", "Full panel A name · panel-a")
 })

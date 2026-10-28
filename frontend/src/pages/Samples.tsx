@@ -14,7 +14,7 @@ import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/ui/search-input"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { useCurrentUserAccess } from "@/lib/access-control"
@@ -30,7 +30,7 @@ import {
   type SampleListLayout,
 } from "@/lib/user-settings"
 import { useQuery } from "@tanstack/react-query"
-import { Dna, Search as SearchIcon } from "lucide-react"
+import { Dna } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { DEFAULT_LIVE_SORTING, DEFAULT_REPORTED_SORTING, positivePage, resetSamplePagination, type SampleTab } from "./sample-list-presentation"
@@ -237,16 +237,12 @@ export function Samples() {
               }}
               className="relative flex items-center gap-2"
             >
-              <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/75" />
-                <Input
+                <SearchInput
                   type="text"
                   placeholder="Search samples..."
-                  className="w-[220px] rounded-xl pl-9 lg:w-[320px]"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                 />
-              </div>
               <Button type="submit">Search</Button>
             </form>
           </div>
@@ -315,6 +311,7 @@ export function Samples() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
                 <SegmentedControl
                   ariaLabel="Sample state"
+                  className="sample-state-tabs"
                   value={activeTab}
                   onValueChange={setSampleTab}
                   items={[

@@ -23,7 +23,7 @@ export function PublicGenelistPage() {
   const columns = useMemo(() => columnsFor(rows, ["hgnc_symbol", "symbol", "gene"]), [rows])
 
   return (
-    <PageShell eyebrow="Public" title={data?.genelist?.name || genelistId}>
+    <PageShell eyebrow="Public" title={data?.genelist?.displayname || data?.genelist?.name || genelistId}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <section className="surface-panel p-3">
           <DataTable columns={columns} data={rows} filename={`${genelistId}_genes.csv`} />
