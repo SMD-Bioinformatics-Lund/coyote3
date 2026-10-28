@@ -41,12 +41,54 @@ def test_documentation_colors_match_application_light_theme():
         "status-success-foreground",
         "status-danger-soft",
         "status-danger-foreground",
+        "paper-raised",
+        "paper-inset",
+        "paper-edge",
+        "paper-shadow",
+        "paper-shadow-deep",
+        "paper-highlight",
+        "inner-card-background",
+        "inner-card-shadow",
+        "material-badge-shadow",
+        "panel-shadow",
+        "heading-surface",
     )
     for name in names:
         pattern = rf"--{re.escape(name)}:\s*([^;]+);"
         expected = re.search(pattern, application)
         actual = re.search(pattern, documentation)
         assert expected and actual, f"Missing brand token: {name}"
+        assert " ".join(actual[1].split()) == " ".join(expected[1].split()), name
+
+
+def test_documentation_dark_surfaces_match_application_theme():
+    """The standalone portal retains the application's dark surfaces and elevation colors."""
+    application = (
+        Path("frontend/src/styles/tailwind-theme.css").read_text().split("\n.dark {", 1)[1]
+    )
+    documentation = Path("api/app/templates/api_reference.css").read_text().split("\n.dark {", 1)[1]
+    for name in (
+        "background",
+        "foreground",
+        "card",
+        "primary",
+        "border",
+        "brand-start",
+        "brand-end",
+        "paper-raised",
+        "paper-inset",
+        "paper-edge",
+        "paper-shadow",
+        "paper-shadow-deep",
+        "paper-highlight",
+        "status-info-soft",
+        "status-success-soft",
+        "status-warning-soft",
+    ):
+        pattern = rf"--{re.escape(name)}:\s*([^;]+);"
+        expected = re.search(pattern, application)
+        actual = re.search(pattern, documentation)
+        assert expected and actual, name
         assert " ".join(actual[1].split()) == " ".join(expected[1].split()), name
 
 
@@ -96,10 +138,22 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert '<section class="endpoint-workspace" aria-label="API endpoints">' in html
     assert ('id="resource-navigation"' in html) is (path == "/api/v1/docs")
     assert ('id="resource-search"' in html) is (path == "/api/v1/docs")
-    if path == "/api/v1/docs":
-        assert 'id="overview-product"' in html
-        for paragraph in PRODUCT_OVERVIEW:
-            assert str(escape(paragraph)) in html
+    assert 'id="overview-product"' in html
+    assert "OpenAPI " + app.openapi_version in html
+    assert "https://YOUR_HOST/center/api/v1/auth/whoami" in html
+    for text in (
+        "Your first authenticated request",
+        "X-Coyote-Ingest-Token",
+        "X-CSRF-Token",
+        "X-Request-ID",
+        "current revision",
+        "editing lease",
+        "COYOTE3_SESSION_TOKEN",
+    ):
+        assert text in html
+    assert 'href="/center/docs-site/administration/document-editing/"' in html
+    for paragraph in PRODUCT_OVERVIEW:
+        assert str(escape(paragraph)) not in html
 
 
 @pytest.mark.asyncio

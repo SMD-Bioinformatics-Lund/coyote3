@@ -6,8 +6,6 @@ workspace. Each
 administrative action requires the corresponding permission; `audit_log:view`
 is required to review audit records.
 
-![Coyote3 administration workspace](../assets/screenshots/admin.png)
-
 For resource definitions, prerequisites and the effect of missing configuration,
 see [clinical configuration resources](clinical-configuration-resources.md).
 Follow [assay setup](assay-setup.md) when introducing an assay. Deployment-owned
@@ -76,7 +74,6 @@ Manage the identities of clinical and technical staff authorized to access the p
 
 ### Role-based access control
 
-![Role configuration](../assets/screenshots/roles.png)
 Coyote3 uses a granular role system where specific permissions are grouped into manageable roles.
 
 *   **Standard Roles**: Bundled roles provide initial permission sets for common clinical, review, testing, development, and administration responsibilities.
@@ -331,8 +328,6 @@ requests.
 
 ## 4. Ingest and audit
 
-![Administrative ingest workspace](../assets/screenshots/admin_ingest.png)
-
 The **Ingest** workspace queues validated sample bundles and shows the state of
 background ingest jobs. Each job keeps a durable receipt; see
 [ingest job recovery](../operations/ingest-job-recovery.md) for state meanings.
@@ -380,8 +375,6 @@ Each collapsed row shows the title and severity. Expand it to read the body;
 opening a message marks it read without clearing it. Personal messages can be
 cleared individually or together. Broadcasts remain until their sender withdraws
 them or their configured expiry is reached; recipients cannot clear them.
-
-![Notification history](../assets/screenshots/notifications.png)
 
 ## Broadcast Notifications
 

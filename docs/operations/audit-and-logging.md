@@ -3,8 +3,6 @@
 The administrative audit browser exposes actor, resource, outcome, and request
 context without requiring operators to inspect raw database documents.
 
-![Administrative audit event browser](../assets/screenshots/admin_audit_logs.png)
-
 Coyote3 separates operational diagnostics from durable security and workflow audit events.
 
 Runtime logs are JSON Lines written to stdout and, when enabled, rotating files under `/app/logs`.

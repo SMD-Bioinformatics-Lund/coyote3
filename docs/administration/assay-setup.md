@@ -64,7 +64,9 @@ automatically sharing assay associations or configurations.
 Use lowercase ASCII letters and digits for resource keys. Separate distinct terms
 with hyphens (`demo-tumwgs-hema`, `mpn-variants`) and components within an assay name
 with underscores (`demo-hematology_gmsv1`, `demo-solid_gmsv3`). Creation rejects spaces,
-uppercase letters and leading, trailing or repeated separators with HTTP 422.
+unsupported characters and leading, trailing or repeated separators with HTTP 422.
+The collection contracts trim identifiers and normalize letter case to lowercase;
+enter lowercase in the UI, whose creation controls validate that form directly.
 Display names are independent and may use spaces and mixed case.
 
 Configuration keys are generated as `assay::diagnosis::environment`, for example
@@ -77,6 +79,16 @@ Display names may contain spaces, punctuation and clinical capitalization, such
 as **Breast Cancer** or **Hematology GMSv1**. Gene-list aliases provide alternative
 readable names; references still use the stable gene-list identifier. Keep release
 versions in version fields rather than changing the identifier on each publication.
+
+Where a resource has both fields, **Name** is its short label for tables,
+dropdowns, filters and compact badges (for example `HEM v1` or `FL`). **Display
+name** is its full name for cards and detail headings (for example `GMS Hematology
+Panel v1` or `Follicular lymphoma`). Gene lists store the full name as
+`displayname`; assays use `display_name`. A missing short name falls back to the
+full name, then the stable identifier. Renaming a label never changes associations
+or stored reference IDs. Resources with only a display name, including diagnoses,
+use it in both compact and full views. Role `name` is a stable role identifier;
+its separate `label` is the readable role name.
 An established assay name may contain a generation marker, such as `gmsv1`; that
 is distinct from its configuration revision. `base` remains the implicit default
 scope and must not be registered as a separate diagnosis.
@@ -277,7 +289,7 @@ create an ASPC or make sample data public.
 | Dependency | Required order | What can be prepared independently |
 | --- | --- | --- |
 | Assay group and ASP | Register/activate the group before saving the assay setup. | Shared diagnosis definitions can be created without an assay association. |
-| Assay identity and rules | Save the setup's ASP draft before authoring its rule scope. | An operational ASP is not required for rules authored against a saved setup draft. |
+| Assay identity and rules | Author against a saved setup when available, or create an unlinked rule draft and link it later. | An operational ASP is not required to create or import a draft. A compatible available assay/diagnosis is required before submission. |
 | Gene lists and rules | Referenced gene lists must be valid; reporting rules can be added later. | ISGL authoring and rule authoring/publication have no required order relative to each other. Missing reporting rules produce a warning and no automatic summary. |
 | Named scopes and configurations | Register and select the named scope before configuring it. | Base has no definition or association to create. |
 | ASPC and selected ISGL | The referenced list must exist in the draft workspace or be an eligible existing active list. | Unselected lists are optional and do not block setup. |
@@ -299,8 +311,9 @@ operational ASPs. Rule authoring, testing, clinical review and publication retai
 their existing lifecycle and permissions. After publishing rules, return to setup
 and use **Refresh reporting rules**.
 
-Clinical rules are published through their own approval process before setup
-activation. Setup approval does not publish or modify clinical-rule content.
+Clinical rules use their own approval/publication process. They may be published
+before or after setup activation; missing rules produce a warning rather than
+blocking activation. Setup approval does not publish or modify clinical-rule content.
 An ASPC supplies the reporting language. Its exact diagnosis release is selected
 automatically, with assay Base used only when no exact published release exists.
 The analyte and declared analyses must match the configuration. Publishing a new

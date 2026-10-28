@@ -10,6 +10,30 @@ explain the keys behind this order. Preparation order differs from import order:
 the local sample bundle provides the original sample ObjectIds used to select
 findings, even when the shared VEP vault is imported before samples.
 
+## Select the source version
+
+| Existing application | Source database | Converter directory | Export selection |
+| --- | --- | --- | --- |
+| Coyote v2 | `coyote` | `migrations_scripts/v2/` | `SOURCE_VERSION=2` |
+| Coyote v3 | `coyote3` | `migrations_scripts/v3/` | `SOURCE_VERSION=3` |
+
+Both versions use the steps below. The version-specific directories provide
+`migrate_samples.py`, `migrate_variants.py` and `migrate_related.py`. Select one
+supported lowercase assay ID at a time. Preserve original sample ObjectIds and
+prepare related records only for the selected samples. Keep source exports and
+review artifacts private; source reads do not authorize destination imports.
+
+## Source inspection and field mappings
+
+Run sample `inspect --all-samples` and collection-specific `inspect` commands in
+step 3. Inspection records nested keys and BSON types without inferring missing
+values. Check the source-version mappings before accepting prepared output:
+
+- [Observed source structures](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/migrations_scripts/source-structures.md)
+- [Sample scope and field mappings](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/migrations_scripts/README.md)
+- [Related collections and coverage classification](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/migrations_scripts/related-data.md)
+- [Variants and VEP 103 evidence](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/migrations_scripts/variants.md)
+
 ## 1. Prepare destination references and configuration
 
 Install `hgnc_genes` and `vep_metadata`, including VEP **103**, through

@@ -2,9 +2,9 @@
 
 Deployment covers service provisioning, database connections, center configuration,
 bootstrap data, and installation acceptance. New installations require initial
-account setup and resource validation. Legacy databases use separate
-[v3](../migration_from_v3/migration-guide.md) or
-[v2](../migration_from_v2/migration-guide.md) migration procedures.
+account setup and resource validation. Legacy databases use the
+[clinical data migration procedure](../operations/migrations/clinical-data.md#select-the-source-version),
+with converters selected for Coyote v2 or v3.
 
 ## Choose one deployment procedure
 

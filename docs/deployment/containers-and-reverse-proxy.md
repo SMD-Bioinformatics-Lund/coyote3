@@ -47,7 +47,7 @@ commands, select [first installation, upgrade, or redeployment](production-deplo
 > **Important: migrating existing Coyote v3 data**
 >
 > A centre moving an existing Coyote v3 database must follow the dedicated
-> [v3 data migration procedure](../migration_from_v3/migration-guide.md). Do not use the standard
+> [v3 data migration procedure](../operations/migrations/clinical-data.md#select-the-source-version). Do not use the standard
 > deployment sequence as a substitute for that procedure.
 >
 

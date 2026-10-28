@@ -1,6 +1,6 @@
 # COYOTE3 FREE-USE SOURCE-AVAILABLE LICENSE
 
-**Version 1.0 — October 2026**
+**Version 1.0 - October 2026**
 
 **Software:** COYOTE3
 
@@ -301,7 +301,7 @@ Requests for modification, redistribution, sublicensing, or other additional per
 
 **END OF LICENSE**
 
-# COYOTE3 — Risk, Warranty and Liability Provisions
+# COYOTE3 - Risk, Warranty and Liability Provisions
 
 ## 12. Use at Your Own Risk and User Responsibility
 

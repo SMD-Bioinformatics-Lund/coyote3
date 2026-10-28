@@ -49,6 +49,7 @@ npm run docs:test
 
 echo "[quality] Strict documentation build"
 "$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build
+"$PYTHON_BIN" scripts/docs/check_built_site.py /tmp/coyote3-docs-quality-build
 
 if [[ -n "${COMPOSE_FILES:-${COMPOSE_FILE:-}}" ]]; then
   read -r -a compose_files <<< "${COMPOSE_FILES:-${COMPOSE_FILE}}"

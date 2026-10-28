@@ -2,6 +2,17 @@
 
 This document describes the standard local development setup for Coyote3.
 
+Choose the development mode before provisioning services:
+
+| Your change | Start with | Infrastructure |
+| --- | --- | --- |
+| Domain rules, contracts, UI components or documentation | Install the tools below and run focused tests using synthetic fixtures. | No running deployment is required for isolated tests and mocked browser checks. Tests that explicitly require a database remain separate. |
+| End-to-end ingest, worker behavior or saved reports | Use the [local container procedure](local-quickstart.md), then the focused implementation/tests for your change. | A disposable application stack with transaction-capable MongoDB and Redis. |
+| API source debugging against a prepared development stack | Follow **Running the services directly** below. | Existing development infrastructure and host-reachable endpoints. |
+
+You do not need to complete a production installation to make a first fixture-based
+code change. Use the named references only when the change reaches that boundary.
+
 ## Virtual Environment
 
 Use the project's virtual environment for Python commands. Full API development

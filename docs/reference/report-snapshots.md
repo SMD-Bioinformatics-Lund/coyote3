@@ -70,7 +70,10 @@ reported status commit in one transaction. A failed snapshot cannot leave a
 successfully reported sample. Concurrent saves for the same report number return
 one success and a conflict; refresh the preview before retrying the conflict.
 
-Artifact identifiers include a random suffix. HTML/PDF files are staged exclusively
+Report identifiers retain the case/control prefix and end with a UTC timestamp in
+`YYMMDDhhmmss` format, without a random suffix. Existing saved identifiers are unchanged.
+A second save producing the same filename is rejected with a conflict rather than
+overwriting the report. HTML/PDF files are staged exclusively
 with a `.pending` suffix and flushed to storage before the report transaction commits.
 Committed artifact records include their final path, staging path, checksum and `pending`
 state. Publication verifies the checksum, creates the final file without overwriting

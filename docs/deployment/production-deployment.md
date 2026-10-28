@@ -9,8 +9,7 @@ settings rather than provide alternative installation sequences.
 | New application and identity databases | [First installation](first-installation.md) | Explicitly installs the baseline and initial accounts once. |
 | An existing installation needs a new application release or reviewed configuration change | [Upgrade an existing installation](application-upgrades.md) | Preserves data; only release-required maintenance is applied after backup. |
 | The same release and configuration must be started again or its containers replaced | [Restart or redeploy](application-redeployment.md) | Reuses the existing databases, storage, secrets and Redis volume. No bootstrap or migration. |
-| Legacy Coyote v3 data must be converted | [Migration from v3](../migration_from_v3/migration-guide.md) | Uses the separate reviewed end-to-end conversion procedure. |
-| Legacy Coyote v2 data must be converted | [Migration from v2](../migration_from_v2/migration-guide.md) | Uses the separate reviewed end-to-end conversion procedure. |
+| Legacy Coyote v2 or v3 data must be converted | [Clinical data migration](../operations/migrations/clinical-data.md#select-the-source-version) | Selects the source-specific converters before export, preparation and reviewed destination imports. |
 
 A host replacement or disaster recovery is not an ordinary redeployment. It
 requires restored persistent storage, verified database endpoints, preserved

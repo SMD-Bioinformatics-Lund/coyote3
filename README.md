@@ -307,7 +307,7 @@ SDK packages, HTTP compatibility and governed configuration revisions.
 | System relationships | [System Overview](docs/reference/application-overview.md) |
 | Center deployment | [First installation](docs/deployment/first-installation.md) and [deployment checklist](docs/deployment/acceptance-checklist.md) |
 | Environment and secrets | [Environment and Secrets](docs/deployment/environments-and-secrets.md) |
-| Sample manifest and input contracts | [Sample YAML Manifest](docs/reference/sample-manifest.md) and [Sample Input Files](docs/reference/sample-file-formats.md) |
+| Sample manifest and input contracts | [Sample YAML Manifest](docs/reference/sample-manifest.md) and [Sample Input Files](docs/reference/ingest-files/README.md#file-contracts) |
 | API organization and authentication | [API Organization](docs/api/route-groups.md) and [Authentication](docs/api/authentication.md) |
 | Architecture | [Application Architecture](docs/architecture/application-architecture.md) |
 | Development | [Developer Guide](docs/development/developer-guide.md) |

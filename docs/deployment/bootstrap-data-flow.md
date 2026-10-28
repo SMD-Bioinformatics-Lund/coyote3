@@ -167,7 +167,7 @@ Operational defaults:
 Sample manifest reference:
 
 - Use [Sample YAML Guide](../reference/sample-manifest.md) for the required DNA/RNA YAML shape.
-- Use [Sample Input Files](../reference/sample-file-formats.md) for the raw VCF and JSON payload formats consumed by the ingest parsers.
+- Use [Sample Input Files](../reference/ingest-files/README.md#file-contracts) for the raw VCF and JSON payload formats consumed by the ingest parsers.
 - Ensure the DNA pipeline writes the VEP version into each VCF `##VEP=` header
   and seed the matching `vep_metadata.vep_id` value before DNA interpretation
   or reporting. A YAML `database_versions.vep` override is supported only for

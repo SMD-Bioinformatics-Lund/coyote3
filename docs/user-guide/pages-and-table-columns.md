@@ -223,13 +223,12 @@ Date, profile, live/reported, assay, search, rows-per-page, page, and sort selec
 | Profile | Sample profile/environment. | Profile badge such as production/prod |
 | Assay | Assay panel identifier. | Plain text |
 | Diagnosis | ASPC/diagnosis context. | Plain text |
-| Analysis | Committed sample ingest status. Standard worklists contain only samples in the green `ready` state. | Green `ready` badge |
-| Report | Reported state. | `reported` or `unreported` badge |
-| Data | Availability of each recorded or expected data type. | One compact pill with a segment per type: a green check means available; a red × means unavailable. Hover or keyboard focus shows full finding counts, a check for other present data, and × for missing data. Click to keep the details open; press Escape to close them. |
+| Pipeline | Pipeline name and version when recorded. | Plain text |
+| Data | Availability of each recorded or expected data type. | One tick for complete data, a warning for partial availability, or a cross when unavailable. Hover or keyboard focus shows every data type and its count or availability. Click to keep details open; press Escape to close them. |
 | Added | Human relative added time. | Full timestamp in tooltip |
-| Actions | Opens the sample. | Arrow/detail button |
+| Latest reported | Most recent saved report time, on the reported worklist. | Full timestamp in tooltip |
 
-An analysis that is not applicable to a sample is omitted rather than shown as failed. A bundle remains `loading` only while its dependent records are being committed and is excluded from standard worklists. If ingest fails, the staged sample and dependent records are removed; the failure is recorded in ingest operations and audit events. A red data segment identifies an unavailable resource, including a missing expected file. A loaded finding file with zero findings remains available.
+An analysis that is not applicable to a sample is omitted rather than shown as failed. A bundle remains `loading` only while its dependent records are being committed and is excluded from standard worklists. If ingest fails, the staged sample and dependent records are removed; the failure is recorded in ingest operations and audit events. The data tooltip identifies unavailable resources, including missing expected files. A loaded finding file with zero findings remains available.
 
 ## Sample Detail
 
@@ -274,7 +273,7 @@ Route: `/samples/:id` in the Small Variants tab or the corresponding Findings se
 | Column | Data shown | Badges and symbols |
 | --- | --- | --- |
 | Select | Row checkbox for bulk actions. | Checkbox |
-| `S` | Review and knowledgebase status. | False-positive, blacklist, irrelevant, interesting, comment, `OKB`, `Rx`, `PGx` |
+| Info | Review and knowledgebase status. | False-positive, blacklist, irrelevant, interesting, comment, `OKB`, `Rx`, `PGx`, `CGC` |
 | Gene | Source display gene resolved through HGNC when available. | Gene link; info indicator when alias/previous symbol was normalized |
 | HGVS | HGVSc and HGVSp for the selected transcript. | Expandable text |
 | Exon | Selected transcript exon value. | Plain text |
@@ -283,13 +282,13 @@ Route: `/samples/:id` in the Small Variants tab or the corresponding Findings se
 | Indel Size | SVLEN/indel size when present. | `-` when unavailable |
 | Consequence | VEP selected consequence terms. | Impact-colored consequence badges |
 | PopFreq (%) | Public population frequency as percent, displayed with up to six decimal places. | Monospace number; `0` is retained and missing data is `-` |
-| Hotspot | Existing hotspot metadata attached to the variant. | Amber hotspot icon with source and identifier details on hover; `-` when unavailable. When a source contains multiple COSMIC identifiers, only its latest identifier is displayed. |
+| HS | Existing hotspot metadata attached to the variant. | Amber hotspot icon with source and identifier details on hover; `-` when unavailable. When a source contains multiple COSMIC identifiers, only its latest identifier is displayed. |
 | Tier | Current classification tier. | Tier badge; opens reported context when available |
 | Chr:Pos | Chromosome coordinate. | Neutral coordinate link for IGV |
 | Flags | Filter flags from VCF/filter metadata. | PASS/WARN/FAIL/PON/LOD badges |
-| Case (`sample`) | Case VAF and depth. | `VAF% (VD/DP)` |
-| Control (`sample`) | Control VAF and depth. Hidden for unpaired samples. | `VAF% (VD/DP)` |
-| Actions | Opens variant detail. | Detail icon |
+| Case % (sample) | Case VAF percentage and depth; the heading includes the sample identifier when available. | VAF percentage followed by `(VD/DP)` |
+| Control % (sample) | Control VAF percentage and depth. Hidden for unpaired samples. | VAF percentage followed by `(VD/DP)` |
+| Unlabeled detail column | Opens variant detail. | Detail icon |
 
 Bulk actions include assigning or removing tiers, marking or unmarking a review
 state such as false positive, irrelevant, or interesting, adding blacklist
@@ -317,19 +316,19 @@ result before pagination.
 
 The CNV tab lists copy-number events and opens CNV detail pages.
 
-| Column family | Data shown |
+| Column | Data shown |
 | --- | --- |
-| Status | Review flags, comments, and evidence badges where applicable. |
-| Gene/region | Primary gene list and genomic region for the event. |
-| Type/effect | Gain, loss, amplification, deletion, or configured CNV effect. |
-| Region and size | Chromosomal interval and event length. Ratio-based calls are evaluated against the configured CNV size range. Structural breakpoint calls with split-read or paired-read evidence are retained even when they do not carry a ratio or meet the segment-size range. |
-| Copy number | Diploid copy-number estimate calculated as `2 × 2^ratio`, with the source log2 ratio in parentheses. Structural callers without a ratio display `-`; Coyote does not invent a copy-number estimate for them. |
+| Select | Checkbox for permitted bulk actions. |
+| Genes | Primary genes, with a count of other genes in the event. |
+| Region & Size | Chromosomal interval and event length. Ratio-based calls are evaluated against the configured CNV size range. Structural breakpoint calls with split-read or paired-read evidence are retained even when they do not carry a ratio or meet the segment-size range. |
+| Callers | Tools that reported the event. |
+| Filter flags | Caller-aware filter metadata from the finding. |
+| CN | Diploid copy-number estimate calculated as `2 × 2^ratio`, with the source log2 ratio in parentheses. Structural callers without a ratio display `-`; Coyote does not invent a copy-number estimate for them. |
 | Purity | Purity-adjusted copy-number estimate. The column heading includes the case purity used for the calculation when one is available. Gains use `copy number / purity`; losses use `copy number × purity`, preserving the established clinical review convention. |
 | SR (ref/alt) | Caller-supplied split-read evidence. This is the primary table evidence for Manta-style calls that do not contain a copy-number ratio. The value is displayed as stored and is not recalculated by Coyote. |
 | Status | Review state such as false positive, report inclusion, noteworthy, or normal/control call. Each marker has an explanatory tooltip. Whole-genome review retains records marked `NORMAL`; targeted-panel review excludes them from the tumour CNV table. |
 | Artefact | One badge for each caller-supplied `AFRQ_*` field. Hovering shows the frequency and its matching `ACOUNT_*` reference-case count. These values are upstream evidence, not frequencies calculated by Coyote. |
-| Tier | CNV classification tier. |
-| Actions | False-positive, report inclusion/exclusion, noteworthy, and detail-page actions. The labeled **Report** control persists report inclusion immediately and changes to **Exclude** for included CNVs. |
+| Unlabeled detail column | Opens the CNV detail page. Review-state and report-inclusion actions are available through the permitted bulk actions and detail controls. |
 
 The CNV bulk-action menu is limited to CNV review operations: mark or unmark
 false positive, include or exclude from the report, and mark or unmark
@@ -360,15 +359,17 @@ calls remain available on the fusion detail page and may be selected there.
 
 | Column family | Data shown |
 | --- | --- |
-| Status | Review flags, comments, and knowledgebase indicators when available. |
+| Select | Checkbox for permitted bulk actions. |
+| Info | Review flags, comments, and knowledgebase indicators when available. |
 | Gene 1 / Gene 2 | Fusion partners. |
 | Effect | Caller-reported frame context. A normalized value exactly equal to `in-frame` is shown as in-frame; every other non-empty effect is shown as out-of-frame. The tooltip identifies this as caller output rather than a DNA VEP consequence. |
-| Spanning pairs / unique spanning reads | Support counts from the selected call. |
+| SP | Spanning-pair count from the selected call. |
+| Unique SR | Unique spanning-read count from the selected call. |
 | Fusion points | The selected call's two breakpoints. |
 | Description | Comma-delimited caller evidence displayed as bounded badges. Exact terms are categorized by `clinical_vocabulary.toml`: important cancer-reference terms are green, not-important or artifact-associated terms are red, contextual terms are gray, and unknown terms are neutral. These colors support review and are not clinical classifications. |
 | Callers | Lowercase caller badges for all callers represented in the fusion document. Hover help identifies the upstream caller. |
 | Tier | Fusion classification tier. |
-| Actions | An `Interesting` review marker and the detail-page action. The detail page also supports false-positive, irrelevant, and blacklist review states. `Interesting` does not include or exclude a fusion from the report. |
+| Unlabeled detail column | Opens the fusion detail page, which also supports classification and review-state changes. The `Interesting` review state does not include or exclude a fusion from the report. |
 
 The fusion bulk-action menu contains only fusion review operations: assign or
 remove tiers and mark or unmark false positive, irrelevant, interesting, and
@@ -451,14 +452,16 @@ The translocations tab lists structural rearrangements.
 
 | Column family | Data shown |
 | --- | --- |
-| Status | Review flags and comments. |
+| Select | Checkbox for permitted bulk actions. |
+| Info | Review flags and comments. |
 | Gene 1 / Gene 2 | Genes linked to each breakpoint when available. |
 | Positions | Breakpoint positions or BND positions. |
 | Type | Structural variant type. |
 | HGVS | Structural HGVS or notation when available. |
 | Panel | Matching panel/gene-list context. |
 | Tier | Structural variant tier. |
-| Actions | False-positive, report inclusion/exclusion, and detail-page actions. The labeled **Report** control changes to **Exclude** after the translocation is included. |
+| Filter flags | Caller-aware filter metadata from the structural finding. |
+| Unlabeled detail column | Opens the structural finding detail page. False-positive and report-inclusion changes use the permitted bulk actions and detail controls. |
 
 The translocation bulk-action menu contains only structural-event review
 operations: mark or unmark false positive and include or exclude from the
@@ -479,6 +482,18 @@ selections do not change coverage scope.
 | Summary | Coverage thresholds, pass/warning/error counts, and overall coverage state. |
 | Gene table | Gene symbol, HGNC context, exon/probe counts, low-coverage intervals, and threshold status. |
 | Gene detail | Clicking a gene opens gene/probe/exon-level coverage information and links back to HGNC/gene context. |
+
+The region table uses these column headings:
+
+| Column | Data shown |
+| --- | --- |
+| Gene | Gene name; opens its coverage view. |
+| Region | Named target interval. |
+| Chrom | Chromosome. |
+| Start | Interval start coordinate. |
+| End | Interval end coordinate. |
+| Coverage | Recorded coverage with threshold context. |
+| Exon | Exon identifier when supplied. |
 
 ### Reports Tab
 

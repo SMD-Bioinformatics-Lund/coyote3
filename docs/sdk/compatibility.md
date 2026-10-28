@@ -1,7 +1,7 @@
 # Versions and release compatibility
 
-Coyote3 tracks the core/server distribution, complete application deployment and
-independent HTTP client separately.
+Coyote3 tracks application, package and report-template releases separately.
+This page identifies their owners and explains which versions change together.
 
 ## Python client 1.0 authentication
 
@@ -14,25 +14,44 @@ normal output and user metadata exclude this credential.
 
 ## Version identities
 
+There are **five release version numbers**: one application version, two Python
+package versions, and two modern report-template versions.
+
+| Component | Current version | Authoritative source | What it identifies |
+| --- | --- | --- | --- |
+| Application, including the UI | `4.0.0` | `application_version` in `release.toml` | Tested frontend, API, worker and selected SDK combination. The UI has no independent release counter. |
+| Core SDK/server package | `1.0.0` | `[project].version` in `pyproject.toml` | Installable `coyote3` core, bundled API modules and report assets. Changed wheel content requires a new published package version. |
+| Python client SDK | `1.0.0` | `[project].version` in `clients/python/pyproject.toml` | Independent HTTP-only `coyote3-client` package, imported as `coyote3_client`. |
+| Modern DNA report template | `1.0.0` | `[dna].version` in `src/coyote3/templates/reporting/modern/manifest.toml` | DNA presentation release printed in the DNA report footer. |
+| Modern RNA report template | `1.0.0` | `[rna].version` in the same template manifest | RNA presentation release printed in the RNA report footer. |
+
+Matching version numbers do not couple release cycles. DNA and RNA can advance
+independently; changes to shared report HTML, CSS or fonts require both template
+versions to advance. Published artifacts must never be replaced with different
+content under the same version.
+
+`package.json` and `frontend/package.json` mirror the application version through
+`npm run sync:version`; they are not additional version authorities. The
+`sdk_version` in `release.toml` selects an existing core SDK version for the
+application, rather than introducing a sixth release counter. There is no separate
+`APPLICATION_SDK_VERSION` counter.
+
+### Compatibility markers and record revisions
+
+These values serve other purposes and are not additional software/template releases:
+
 | Identifier | Authoritative source | Meaning |
 | --- | --- | --- |
-| SDK/server distribution | `[project].version` in `pyproject.toml` | Installable core and bundled API modules; any changed wheel content requires a new published version. |
-| Python client release | `[project].version` in `clients/python/pyproject.toml` | Independent HTTP-only client distribution. |
-| Application release | `application_version` in `release.toml` | Tested API, frontend, worker and selected SDK combination. |
-| Selected SDK | `sdk_version` in `release.toml` | Exact SDK version adopted by an application release. |
-| HTTP API major | Existing `/api/v1` route contracts; recorded as `http_api_major` | HTTP compatibility generation, separate from software releases. |
-| Center configuration format | `center_configuration_format` in `release.toml` | Supported staged configuration manifest format, currently 1. |
-| Clinical configuration/data revisions | Existing published resources and migration contracts | Governed content and stored-data compatibility, not application release counters. |
+| HTTP API major | `http_api_major` in `release.toml`, matching `/api/v1` | HTTP compatibility generation, currently `1`. It is independent of application `4.0.0` and package `1.0.0`. |
+| Center configuration format | `center_configuration_format` in `release.toml` | Supported staged configuration manifest format, currently `1`. |
+| Template content hash | Packaged template sources and the selected analyte's version | Exact presentation identity checked against the approved template profile; the hash is separate from the readable footer version. |
+| Clinical configuration/data revisions | Published resources and migration contracts | Assay configurations, query policies, reporting rules and stored-data compatibility. |
+| Patient report number | The sample's report history | Identifies successive reports for a sample; it does not set the template version. |
+| Pipeline/reference-data versions | Ingested sample metadata and installed reference releases | Records the analysis pipeline and sources such as VEP used for interpretation. |
 
-The current application release is `4.0.0`, the core SDK is `1.0.0`, and the
-HTTP client is `1.0.0`. Each package owns its version; matching numbers do not
-couple their release cycles. Published artifacts must never be replaced with
-different content under the same version.
-
-There is no separate `APPLICATION_SDK_VERSION` counter. API and frontend share the
-application release while they are released together. The remote client has its
-own version and follows the supported HTTP API generation rather than importing
-or pinning the server's internal Python interface.
+The remote client follows the supported HTTP API generation rather than importing
+or pinning the server's internal Python interface. See
+[HTTP API compatibility](../api/versioning-and-compatibility.md) for that contract.
 
 ## Decide when to release
 
@@ -54,10 +73,17 @@ are immutable. Use Python development or candidate versions such as `1.1.0.dev1`
 and `1.1.0rc1` for unreleased SDK builds. Environment image labels such as `-dev`
 are deployment labels and are not Python package versions.
 
-An API/frontend-only fix can release a new application using the same SDK. An
-SDK-only release need not release the application. When adopting an SDK change,
-select its version and release a new tested application combination. An SDK
-breaking change does not require `/api/v2` if the API preserves its HTTP contract.
+A frontend-only or deployment-only fix can release a new application using the
+same SDK. Changes to API code bundled in the wheel require a new SDK/server package
+version. An SDK-only release need not release the application; when adopting it,
+select its version and release a new tested application combination. An SDK breaking
+change does not require `/api/v2` if the API preserves its HTTP contract.
+
+Report layout changes follow the [template release process](../development/report-templates.md#template-bundle-releases).
+Update the affected DNA/RNA manifest versions when releasing those templates.
+Because the assets ship inside the core/server wheel, publishing changed templates
+also requires a new SDK/server package version. Ordinary uncommitted edits do not
+require version increments before release.
 
 ## Build and record an application release
 

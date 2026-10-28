@@ -18,6 +18,14 @@ The frontend uses Recharts through Coyote3 wrappers in
   line series.
 - Export helpers live in `frontend/src/lib/chart-export.ts`.
 
+Dashboard charts live in separate modules under `components/dashboard/`:
+`SampleCompositionCharts`, `TierDistributionChart`, `GeneCoverageChart`,
+`PanelAnalysisCapabilityChart` and `TopTieredGenesChart`. Knowledgebase charts
+(`CancerGeneCensusChart` and `KnowledgebaseStatisticsCharts`) live under
+`components/knowledgebase/`. Pages lazy-load the chart they use. Shared row types
+and donut presentation settings belong to `components/plots/chart-data.ts` and
+`chart-options.ts`; source-specific calculations stay with the corresponding chart.
+
 ## Export Behavior
 
 Charts can export:

@@ -64,7 +64,7 @@ Open **Administration → Reporting Rule Sets → New rule set → Build in UI**
 | Diagnosis | Base (`base`) |
 | Analyte | DNA; derived from the assay |
 | Language | `sv` |
-| Name | A readable name such as `Hematology Base — Swedish DNA report` |
+| Name | A readable name such as `Hematology Base - Swedish DNA report` |
 
 Choose **Create draft**. The stable scope identity is
 `hema_gmsv1__base__sv`; the server manages content versions and revisions.

@@ -170,17 +170,49 @@ The **Matrix** action compares the selected preview's effective scopes by modali
 group, assay, diagnosis, analysis and list. No list means no inferred coverage column.
 Public matrix search and pagination operate on the current publication.
 
-Matrix columns identify the associated assay, with the diagnosis and gene list
-shown underneath. Selecting one shared list can therefore show several assay
+Matrix headers have separate levels for modality, biological group, assay and
+diagnosis/subpanel. Each assay header spans its adjacent diagnosis columns;
+different assay IDs remain separate even when their labels match. Gene-list names
+and analysis types are available in each diagnosis header's tooltip and accessible
+label. Selecting one shared list can therefore show several assay
 columns with different coverage; these are separate published offerings, not
 duplicate list columns. Assay labels prefer `name` (short name), then `display_name`,
 then `asp_id`. These labels are captured in the reviewed publication; changing an
 assay name requires a new catalog publication before public labels change.
+New publications capture `assay_label` for compact views and `assay_display_name`
+for cards and detail headings. Older publications without a full-name snapshot
+continue to show their reviewed offering title until a new revision is published.
+Diagnosis headers use the configured diagnosis display name (for example `MPN`
+or `CLL`); diagnoses do not have a separate short-name field. The supplied demo
+assays include compact `name` values. Existing installations must set the assay's
+**Name** and publish a reviewed catalog revision to replace older captured labels.
 
-Public service cards use the application's DNA/RNA accents and explicit modality
-badges. Each card emphasizes the test name, method, turnaround, published gene
-count and pricing information. Modality is written as text as well as indicated
+Public service cards use technical-family colors for their borders and light
+gradients, with explicit DNA/RNA modality badges. Each card emphasizes the test
+name, method, turnaround, published gene count and pricing information. Modality
+is written as text as well as indicated
 by color.
+
+Service details separate pricing, turnaround, specimen requirements, methodology,
+limitations and ordering information into cards. Analysis tabs (such as SNV, CNV
+and Fusion) show that analysis's published gene lists and revisions, with one row
+per unique published gene and its list memberships. Search and CSV export apply
+to the selected analysis. HGNC symbols link to the public gene reference page.
+The table adds current HGNC identifiers, names, chromosome, locus and one transcript
+from the public assay reference endpoint where available. Reference annotations
+do not expand or replace the frozen published gene scope; unavailable annotations
+appear as dashes and the published symbols remain visible if the reference request
+fails.
+
+The transcript display prefers RefSeq MANE Plus Clinical (`RS MC+`), Ensembl MANE
+Plus Clinical (`ENS MC+`), RefSeq MANE Select (`RS MANE`), then Ensembl MANE Select
+(`ENS MANE`). If none is recorded, it uses one protein-coding RefSeq accession
+(`NM_` or `XM_`, badge `PC`) from the accession list or transcript metadata.
+Within the same priority, accessions are sorted for a stable choice. No transcript
+is inferred from an Ensembl gene ID, noncoding RefSeq accession, or gene-level
+biotype. A dash means no eligible transcript is available. Badge tooltips show the
+full designation, and CSV exports include the chosen accession and designation.
+This display choice does not change any finding's selected transcript.
 
 See the [collection contract](../reference/mongodb-collections.md#public_assay_catalog)
 for stored fields and defaults.

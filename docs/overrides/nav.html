@@ -1,0 +1,12 @@
+{% if nav_item.is_section %}
+<details class="docs-nav-group"{% if nav_item.active %} open{% endif %}>
+  <summary>{{ nav_item.title }}</summary>
+  <ul>
+  {% for nav_item in nav_item.children %}
+    <li{% if nav_item.active %} class="current"{% endif %}>{% include 'nav.html' %}</li>
+  {% endfor %}
+  </ul>
+</details>
+{% else %}
+<a href="{{ nav_item.url | url }}"{% if nav_item.active %} class="current" aria-current="page"{% endif %}>{{ nav_item.title }}</a>
+{% endif %}

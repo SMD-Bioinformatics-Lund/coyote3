@@ -36,17 +36,17 @@ result set rather than only the rows visible on the current page.
 
 | Column | Information shown |
 | --- | --- |
-| Selection | Selects rows for an allowed bulk action. |
-| Status | Curation and knowledgebase markers such as false positive, irrelevant, or COSMIC Cancer Gene Census (`CGC`). Hover a marker to read its meaning and matched gene context. |
+| Select | Selects rows for an allowed bulk action. |
+| Info | Curation and knowledgebase markers such as false positive, irrelevant, or COSMIC Cancer Gene Census (`CGC`). Hover a marker to read its meaning and matched gene context. |
 | Gene 1 and Gene 2 | The two fusion partners selected from the normalized fusion call. |
 | Effect | The predicted fusion effect, such as in-frame, when supplied by the source data. |
-| Spanning pairs | Read-pair evidence supporting the fusion. |
-| Unique spanning reads | Unique split-read or spanning-read evidence, depending on the caller payload. |
+| SP | Spanning-pair evidence supporting the selected fusion call. |
+| Unique SR | Unique split-read or spanning-read evidence, depending on the caller payload. |
 | Fusion points | The available breakpoint coordinates for both partners. |
 | Tier | The current clinical tier. A dash means that the fusion has not been tiered. |
 | Description | Caller or annotation description associated with the selected fusion call. |
 | Callers | The tools that reported the fusion. |
-| Actions | Permitted curation actions and a link to the fusion detail page. |
+| Unlabeled detail column | Opens the fusion detail page. |
 
 > **Info**
 >

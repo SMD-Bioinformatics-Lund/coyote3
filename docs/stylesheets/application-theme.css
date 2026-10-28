@@ -242,6 +242,64 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   color-scheme: light;
   background: transparent;
 }
+
+/* Task navigation is separate from optional references and the full sidebar index. */
+.docs-reading-tools { position: sticky; top: 0; z-index: 8; }
+.rst-content :is(h1, h2, h3, h4, [id^="docs-reference-"]) { scroll-margin-top: var(--docs-reading-offset, 10rem); }
+.docs-nav-group { margin: 4px 0 8px; }
+.docs-mobile-menu { float: left; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+.wy-menu-vertical .docs-nav-group > summary {
+  padding: 8px 14px;
+  color: var(--docs-sidebar-text);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.wy-menu-vertical .docs-nav-group > summary::marker { color: var(--docs-primary); }
+.wy-menu-vertical .docs-nav-group[open] > summary { color: var(--docs-primary); }
+.wy-menu-vertical .docs-nav-group > summary:hover,
+.wy-menu-vertical .docs-nav-group > summary:focus-visible {
+  color: var(--docs-primary);
+  background: var(--docs-sidebar-active);
+}
+.wy-menu-vertical .docs-nav-group > summary:focus-visible {
+  outline: 2px solid var(--docs-primary);
+  outline-offset: -2px;
+}
+.wy-menu-vertical .docs-nav-group[open] > ul { display: block; }
+.docs-nav-group > ul { margin-left: 10px; border-left: 1px solid var(--docs-border); }
+.docs-reading-path, .docs-return-context, .docs-reading-next {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  border: 1px solid var(--docs-border);
+  border-radius: 10px;
+  background: var(--docs-subtle);
+}
+.docs-return-context[hidden] { display: none; }
+.docs-return-context { border-left: 3px solid var(--docs-primary); }
+.docs-reading-path p { margin: 0 0 8px; }
+.docs-reading-path p span { color: var(--docs-muted); }
+.docs-reading-path summary, .docs-page-contents summary { cursor: pointer; font-weight: 600; }
+.docs-reading-path ol { margin-top: 12px; margin-bottom: 0; }
+.docs-reading-path [aria-current="step"] { font-weight: 700; text-decoration: underline; }
+.docs-page-contents { margin: 0 0 24px; padding: 10px 0; border-bottom: 1px solid var(--docs-border); }
+.docs-page-contents ul { margin-top: 12px; }
+.docs-reading-next { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 32px; }
+.docs-reading-next > * { flex: 1 1 200px; margin: 0; }
+.docs-reading-next a span, .docs-reading-next a strong { display: block; }
+.docs-reading-next a span { margin-bottom: 4px; color: var(--docs-muted); font-size: 13px; }
+.docs-figure { margin: 24px 0; border: 1px solid var(--docs-border); border-radius: 12px; overflow: hidden; }
+.rst-content .docs-figure img { margin: 0; background: #f8fafc; color-scheme: inherit; }
+.docs-figure figcaption, .docs-diagram-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: var(--docs-subtle); }
+.docs-figure figcaption { font-size: 13px; }
+.docs-figure button, .docs-diagram-dialog button { border: 1px solid var(--docs-border); border-radius: 6px; padding: 7px 12px; background: var(--docs-page); color: var(--docs-link); cursor: pointer; }
+.docs-diagram-dialog { width: 96vw; max-width: 1600px; max-height: 94dvh; padding: 0; border: 1px solid var(--docs-border); border-radius: 12px; background: var(--docs-page); color: var(--docs-text); box-shadow: 0 16px 60px #0006; }
+.docs-diagram-dialog::backdrop { background: #101828b3; }
+.docs-diagram-canvas { overflow: auto; max-height: calc(94dvh - 70px); background: #f8fafc; }
+.docs-diagram-canvas img { display: block; width: max(900px, 100%); max-width: none; }
+@media print {
+  .docs-reading-tools, .docs-reading-next, .docs-figure button { display: none; }
+}
 /* Preserve word widths in short columns; let prose take the remaining space. */
 .rst-content table.docutils {
   width: 100%;

@@ -28,6 +28,10 @@ a configured URI. Local connection examples are provided in
 or replica set. Maintenance commands also require a configured or explicit URI.
 
 `*_DB` selects the database independently of any URI path or `authSource`.
+Services cannot select the same database on the same configured endpoint. Host order,
+credential differences, and omitted versus explicit default port `27017` do not
+make two MongoDB namespaces distinct. DNS aliases and SRV resolution still require
+operator review because this configuration check does not perform DNS lookups.
 The URI is passed to PyMongo unchanged: its path can still affect MongoDB's default
 authentication database when `authSource` is absent. Set `authSource` explicitly
 when credentials are stored outside the selected service database.
@@ -81,7 +85,10 @@ BAM_DB=bam_dev
 
 Provision the account with the restricted identity role and service grants, and
 enable MongoDB authorization before using these settings. The same authentication
-requirement applies to development, test, staging, and production installations.
+setup can be used in development, test, staging and production. Authentication is
+not an installer prerequisite: credential-free connections produce a warning and
+can proceed. Database-enforced audit protection requires the restricted runtime
+role; application login and authorization are separate from database authentication.
 See [MongoDB provisioning](../deployment/mongodb-first-setup.md).
 
 These loopback URIs are for host-run processes. Docker clients of a host-installed

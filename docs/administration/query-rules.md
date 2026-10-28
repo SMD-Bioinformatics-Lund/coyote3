@@ -167,6 +167,24 @@ The editor header contains the change reason and permitted lifecycle actions.
 **Scope and inheritance** and **Conditions** separate configuration from condition
 authoring. Revision history is available in the right-hand preview sidebar.
 
+**Preview effective policy** displays the selected scope as a flow. Switch between
+**Draft result** (including unsaved edits) and **Currently published** to compare:
+
+- **Sources and overridden rules** starts with application defaults, then shows each
+  published ancestor and the selected version in precedence order. Replaced evidence
+  settings and exception lists remain inspectable and name their replacement source.
+  Extending a list retains its inherited rules; replacing it with an empty list removes them.
+- **Final selection flow** shows sample boundaries, application evidence gates,
+  admission alternatives, consequence extensions, exclusion rules and post-filters.
+  Only active exceptions appear in this flow. Germline exceptions included in a
+  somatic SNV policy retain their separate source branch.
+
+Sample-dependent thresholds and gene scopes remain symbolic here. Use **Test rules**
+with an authorized sample to inspect the complete executable MongoDB query and counts.
+The policy preview adds original `content` to each `lineage` entry; the application
+default SNV entry also lists `population_frequency_fields`. This explanation metadata
+does not change runtime selection or saved report policy captures.
+
 **Test rules** opens **Query Rule Testing**, also available as an Administration
 card, with `query_rules:test` permission. Select a saved version, then use
 **Test with a sample** to compare findings. Save edits before opening this page;
@@ -204,6 +222,8 @@ Reporting rules remain separate: query rules select findings; reporting rules ev
 clinical facts and generate report text.
 
 ## Scope and inheritance
+
+![Query-policy sources and final selection](../assets/diagrams/query-policy-flow.svg)
 
 Policies resolve in this order:
 
@@ -538,10 +558,10 @@ matching when combining a gene with its annotation criteria.
 
 | Logic | Matching behavior | MongoDB predicate |
 | --- | --- | --- |
-| AND — match all | Every child must match. | `$and` |
-| OR — match any | At least one child must match. | `$or` |
-| NOR — match none | No child may match. | `$nor` |
-| NOT — invert condition | Negate one condition or complete group, including its missing-field behavior. | Single-child `$nor`. |
+| AND - match all | Every child must match. | `$and` |
+| OR - match any | At least one child must match. | `$or` |
+| NOR - match none | No child may match. | `$nor` |
+| NOT - invert condition | Negate one condition or complete group, including its missing-field behavior. | Single-child `$nor`. |
 | Match the same array element | Conditions inside the block must match one element of the selected object array. | `$elemMatch` |
 
 Groups can be collapsed, and children duplicated, removed or reordered. Each group
@@ -712,7 +732,9 @@ Sample identity, access checks, finding identity and the supported query impleme
 remain application-owned. Query rules cannot grant sample access, introduce an analysis
 type or implement a new caller parser. HRD, MSI, TMB, coverage and PGX have no editor
 namespace. The preview resolves policy settings; it does not count findings or certify
-clinical suitability. Saved reports do not contain a query-policy lineage snapshot.
+clinical suitability. New saved reports capture the runtime-resolved query policies
+and source lineage in `resolution_snapshot.query_policy`. Existing historical reports
+retain the evidence recorded when they were saved; publication does not backfill them.
 
 ## Installation and storage
 

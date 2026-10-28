@@ -10,6 +10,7 @@
   const apply = () => {
     document.documentElement.dataset.theme = preference === "system"
       ? (system.matches ? "dark" : "light") : preference;
+    document.documentElement.style.colorScheme = document.documentElement.dataset.theme;
   };
   apply();
   system.addEventListener("change", apply);

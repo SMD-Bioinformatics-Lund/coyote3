@@ -1,8 +1,5 @@
 # Application administration
 
-For creator/updater fields and read-only bundled records, see
-[record attribution](record-attribution.md).
-
 Application administration covers user accounts, roles, assay definitions, gene lists,
 and clinical configuration. Administrative actions are governed by permissions and
 recorded through the application's audit workflows. Service maintenance and incident
@@ -27,6 +24,9 @@ You do not need to read every reference before starting.
 | Resolve a blocked step | [Missing prerequisites and their effects](clinical-configuration-resources.md#missing-prerequisites-and-their-effects). |
 
 ## Other administration tasks
+
+- **Understand creator/updater fields or read-only bundled records:** see
+  [record attribution](record-attribution.md).
 
 - **Edit a document another user may be working on:** read [editing sessions](document-editing.md).
 

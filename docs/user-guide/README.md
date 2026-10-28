@@ -26,8 +26,6 @@ To change an assay's configuration, use [administration](../administration/READM
 | Guide | Use it to |
 | --- | --- |
 | [Application user guide](application-guide.md) | Learn sign-in, navigation, review controls, and reporting. |
-| [Application feature overview](feature-overview.md) | Review interface capabilities by clinical and administrative domain. |
-| [Application pages and workflows](pages-and-workflows.md) | Find application pages and follow DNA, RNA, and administration workflows. |
 | [Clinical review workflow](clinical-review-workflow.md) | Follow a sample from selection through review and reporting. |
 | [Sample management](sample-management.md) | Find samples and understand their overview and readiness. |
 | [Sample readiness and missing results](sample-readiness-and-missing-results.md) | Distinguish visibility, ingest completion, missing analyses, empty queries, and report state. |
@@ -39,6 +37,5 @@ To change an assay's configuration, use [administration](../administration/READM
 | [Operational Dashboard](dashboard.md) | Interpret workload, recent samples, and operational summaries. |
 | [User Action and Operational Impact Reference](actions-and-record-changes.md) | Check which records a user action changes. |
 | [UI Page And Table Reference](pages-and-table-columns.md) | Look up page controls, columns, badges, and tooltips. |
-| [Interface Visual Reference](interface-screenshots.md) | Locate interface pages using sample-neutral screenshots. |
 
 [Documentation home](../README.md)

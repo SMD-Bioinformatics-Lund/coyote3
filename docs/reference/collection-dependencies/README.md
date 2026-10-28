@@ -25,9 +25,9 @@ when this reference is generated.
 | [Operational state and BAM records](operations.md) | Ingest jobs, notifications, cursors, edit leases, artifact cleanup and external BAM identifiers. |
 
 For a specific migration, combine this target-model reference with the
-[v2 procedure](../../migration_from_v2/migration-guide.md) or
-[v3 procedure](../../migration_from_v3/migration-guide.md). Those procedures define
-source-specific transformations and supported commands. Do not infer source schema
+[clinical data migration procedure](../../operations/migrations/clinical-data.md#select-the-source-version).
+It defines source-specific transformations and supported commands for Coyote v2
+and v3. Do not infer source schema
 or conversion rules solely from a target collection name.
 
 ## Read the diagrams correctly

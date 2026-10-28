@@ -5,7 +5,7 @@ sample bundle through the internal ingest APIs and watched-manifest workflow.
 
 For the exact persisted `samples` collection contract, see [Collection Contracts](mongodb-collections.md).
 For endpoint usage, see [Ingestion API](../api/sample-ingestion.md).
-For the raw VCF and JSON file shapes referenced by the YAML, see [Sample Input Files](sample-file-formats.md).
+For the raw VCF and JSON file shapes referenced by the YAML, see [Sample Input Files](ingest-files/README.md#file-contracts).
 
 ## Purpose
 
@@ -377,7 +377,7 @@ Notes:
 - `transloc`, `biomarkers`, and `pgx` are optional expected DNA resources. Missing or unreadable optional files are recorded as unavailable. Readable files must parse and validate before their evidence can support clinical review.
 - The VCF `##VEP=` header supplies the database-version snapshot. This example
   intentionally does not repeat it in YAML.
-- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`, and `pgx` are documented in [Sample Input Files](sample-file-formats.md#dna-raw-input-files).
+- The raw file expectations for `vcf_files`, `cnv`, `cov`, `biomarkers`, `transloc`, and `pgx` are documented in [Sample Input Files](ingest-files/README.md#file-contracts).
 
 ## RNA sample YAML
 
@@ -454,7 +454,7 @@ Notes:
   selected list. With no selected fusion ISGL, the ASP covered genes apply; if
   the resolved scope is empty, no fusions pass the gene-list predicate.
 - A repo-local example is available at `tests/fixtures/ingest/generic_rna_sample.yaml`.
-- The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [Sample Input Files](sample-file-formats.md#rna-raw-input-files).
+- The raw JSON file expectations for `fusion_files`, `expression_path`, `classification_path`, and `qc` are documented in [Sample Input Files](ingest-files/README.md#file-contracts).
 
 ## Database-version extraction and override behavior
 

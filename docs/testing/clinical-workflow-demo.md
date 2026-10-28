@@ -56,12 +56,12 @@ demo assays use a technology or analysis type as their group.
 
 | Group | Shared diagnosis | DNA panel | DNA WGS | RNA assays |
 | --- | --- | --- | --- | --- |
-| Hematology | MPN | `demo-hematology_gmsv1`, `demo-myeloid_gmsv1` | `demo-tumwgs-hema` | — |
+| Hematology | MPN | `demo-hematology_gmsv1`, `demo-myeloid_gmsv1` | `demo-tumwgs-hema` | - |
 | Hematology | CLL | `demo-hematology_gmsv1`, `demo-lymphoid_gmsv5` | `demo-tumwgs-hema` | `demo-gms_rnafusionv5`, `demo-wts-hema` |
 | Solid | Lung | `demo-solid_gmsv3` | `demo-tumwgs-solid` | `demo-wts-solid` |
-| Solid | Breast | `demo-solid_gmsv3` | `demo-tumwgs-solid` | — |
-| Hematology | Myeloid | `demo-hematology-training` | — | — |
-| Hematology | Lymphoid | — | — | `demo-rna-training` |
+| Solid | Breast | `demo-solid_gmsv3` | `demo-tumwgs-solid` | - |
+| Hematology | Myeloid | `demo-hematology-training` | - | - |
+| Hematology | Lymphoid | - | - | `demo-rna-training` |
 
 All associations are explicit records. The combined hematology panel covers a
 synthetic set of genes; its name does not imply MPN or CLL eligibility. Each

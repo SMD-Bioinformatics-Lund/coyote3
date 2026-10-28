@@ -4,6 +4,23 @@ Use these diagrams to trace resource dependencies, service boundaries, and clini
 workflows. Open an SVG to inspect it at full size. Each image has a title and text
 description and renders directly in GitHub and the documentation site.
 
+Start with the question you are answering:
+
+- **Who performs the work, and what is saved?** Use the
+  [clinical review responsibility lanes](../assets/diagrams/clinical-review-flow.svg).
+- **Which services depend on which resources?** Use the
+  [runtime topology](../assets/diagrams/runtime-topology.svg) or
+  [application ownership map](../assets/diagrams/application-architecture.svg).
+- **What is mandatory, and what is optional?** Use the
+  [assay readiness board](../assets/diagrams/resource-setup-order.svg).
+- **Why did a rule replace another rule?** Use the
+  [query-policy provenance and selection map](../assets/diagrams/query-policy-flow.svg).
+- **Which boundary explains missing results?** Use the
+  [readiness diagnostic map](../assets/diagrams/sample-readiness-checks.svg).
+
+Embedded diagrams have an **Expand diagram** control. Large relationship inventories
+are lookup aids; use the focused diagrams above while following a procedure.
+
 ## Resource and service maps
 
 | Diagram | Explains | Detailed reference |

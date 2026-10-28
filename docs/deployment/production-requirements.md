@@ -17,7 +17,10 @@ This is the minimum baseline for a production-grade Coyote3 deployment.
 ## Database
 
 - Production MongoDB deployment with replica-set or sharded-cluster transaction support
-- Auth enabled with least-privilege application identities and separate configured database namespaces
+- Prefer authenticated, least-privilege database identities and separate configured namespaces.
+  Unauthenticated connections generate an installer warning rather than a startup failure;
+  application login and authorization still apply. Database-level audit protection
+  requires authenticated, collection-scoped runtime permissions.
 - Daily backup and restore rehearsal
 - Redis capacity and eviction policy sized for Celery queues, task results, rate limits, and caches
 - API sessions persisted in the identity MongoDB database; Redis is not the session store

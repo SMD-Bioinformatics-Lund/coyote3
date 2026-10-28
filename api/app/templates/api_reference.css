@@ -1,4 +1,29 @@
 :root {
+  --paper-raised: #f5f7fa;
+  --paper-inset: var(--input);
+  --paper-edge: var(--border);
+  --paper-shadow: rgb(30 40 60 / 8%);
+  --paper-shadow-deep: rgb(30 40 60 / 10%);
+  --paper-highlight: rgb(255 255 255 / 65%);
+  --inner-card-background: linear-gradient(145deg,
+      color-mix(in srgb, var(--material-accent, var(--primary)) 5%, var(--paper-raised)),
+      color-mix(in srgb, var(--material-accent, var(--primary)) 2%, var(--paper-raised))) var(--paper-raised);
+  --inner-card-shadow: inset 0 1px 0 var(--paper-highlight),
+    0 1px 3px var(--paper-shadow),
+    0 4px 9px var(--paper-shadow-deep);
+  --material-badge-shadow: 0 1px 4px var(--paper-shadow-deep),
+    inset 0 1px 1px var(--paper-highlight),
+    inset 0 -1px 1px var(--paper-shadow);
+  --panel-shadow: inset 0 1px 0 var(--paper-highlight),
+    0 0 2px var(--paper-shadow),
+    0 3px 10px color-mix(in srgb, var(--paper-shadow-deep) 65%, transparent);
+  --heading-surface: linear-gradient(115deg,
+    color-mix(in srgb, var(--brand-start) 4%, var(--paper-raised)),
+    var(--paper-raised) 58%,
+    color-mix(in srgb, var(--brand-end) 3%, var(--paper-raised)));
+  --inset-shadow: inset 0 1px 2px var(--paper-shadow);
+  --input: #e7ebf0;
+  --radius: clamp(0.65rem, 0.55rem + 0.20vw, 0.90rem);
   color-scheme: light;
   /* Mirrored from the application light theme; parity is checked in tests. */
   --background: #dfe3e8;
@@ -45,6 +70,37 @@
   line-height: 1.5;
   color: var(--ink);
   background: var(--surface);
+}
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.205 0.004 255);
+  --foreground: oklch(0.925 0.004 255);
+  --card: oklch(0.255 0.005 255);
+  --primary: oklch(0.65 0.1 302);
+  --muted-foreground: oklch(0.78 0.006 255);
+  --border: oklch(0.5 0.006 255 / 58%);
+  --brand-start: oklch(0.63 0.105 302);
+  --brand-end: oklch(0.69 0.12 62);
+  --chrome-top: linear-gradient(180deg, rgb(255 255 255 / 5%), transparent 55%),
+    linear-gradient(105deg, oklch(0.405 0.105 302), oklch(0.38 0.082 330) 48%, oklch(0.425 0.085 48));
+  --chrome-foreground: oklch(0.97 0.008 75);
+  --chrome-muted-foreground: oklch(0.87 0.016 75);
+  --chrome-border: rgb(255 255 255 / 22%);
+  --chrome-control-hover: rgb(255 255 255 / 17%);
+  --paper-raised: oklch(0.305 0.009 275);
+  --paper-inset: oklch(0.23 0.004 255);
+  --paper-edge: oklch(0.47 0.006 255 / 70%);
+  --paper-shadow: rgb(0 0 0 / 36%);
+  --paper-shadow-deep: rgb(0 0 0 / 52%);
+  --paper-highlight: rgb(255 255 255 / 7%);
+  --status-warning-soft: #3d301e;
+  --status-warning-foreground: #e2c78c;
+  --status-info-soft: #203541;
+  --status-info-foreground: #a9cbe0;
+  --status-success-soft: #24362a;
+  --status-success-foreground: #b4d0bb;
+  --status-danger-soft: #3c2629;
+  --status-danger-foreground: #e0aeb0;
 }
 * { box-sizing: border-box; letter-spacing: 0; }
 body { margin: 0; background: var(--background); }
@@ -197,11 +253,111 @@ h1 { margin: 0 8px 0 0; font-size: 26px; font-weight: 650; }
 .swagger-ui .opblock-body { overflow-x: auto; }
 .swagger-ui .model-box { background: var(--surface-muted); }
 .reference { overflow: clip; }
+/* The portal mirrors the application's raised cards, inset fields and brand controls. */
+body {
+  background:
+    radial-gradient(ellipse at 0 0, color-mix(in srgb, var(--brand-start) 5%, transparent), transparent 55%),
+    var(--background);
+}
+.portal-header { padding: 12px 24px; border: 0; }
+.portal-links a, #theme-toggle {
+  border: 1px solid var(--chrome-border); border-radius: 8px;
+  background: color-mix(in srgb, var(--chrome-foreground) 7%, transparent);
+  color: var(--chrome-foreground); padding: 7px 11px; font: inherit; cursor: pointer;
+}
+#theme-toggle:hover { background: var(--chrome-control-hover); }
+.portal-heading {
+  margin: 20px 20px 16px; padding: 20px 22px; align-items: center;
+  border: 1px solid var(--border); border-radius: 12px;
+  background: var(--heading-surface); box-shadow: var(--panel-shadow);
+}
+.portal-heading p { margin-bottom: 0; font-size: 13px; }
+.eyebrow { display: block; margin-bottom: 5px; color: var(--accent); font-size: 11px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.badge { border-radius: 6px; background: var(--paper-raised); box-shadow: var(--material-badge-shadow); }
+.access-badge { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 25%, var(--border)); }
+.view-tabs { align-self: auto; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper-inset); box-shadow: var(--inset-shadow); }
+.view-tabs a { padding: 8px 13px; border: 1px solid transparent; border-radius: 7px; font-size: 13px; }
+.view-tabs a[aria-current] { background: var(--brand-gradient); border-color: color-mix(in srgb, var(--brand-start) 70%, var(--border)); color: var(--chrome-foreground); box-shadow: var(--material-badge-shadow); }
+.api-overview { margin: 0 20px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--panel-shadow); }
+.api-overview > summary { padding: 14px 20px; }
+.api-overview > summary > span { margin-left: 12px; color: var(--ink-muted); font-size: 12px; font-weight: 400; }
+.product-introduction { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; max-width: none; padding: 4px 20px 18px; }
+.product-introduction > div { max-width: 36rem; }
+.product-introduction h2 { margin-bottom: 4px; font-size: 17px; }
+.product-introduction p { margin: 0; font-size: 13px; }
+.connection-facts { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+.connection-facts > div { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper-raised); box-shadow: var(--material-badge-shadow); }
+.connection-facts dt { margin-bottom: 2px; color: var(--ink-muted); font-size: 11px; }
+.connection-facts dd { margin: 0; font-size: 12px; font-weight: 600; }
+.overview-content { gap: 14px; padding: 0 20px 16px; }
+.integration-card { padding: 16px; border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border)); border-radius: 10px; background: var(--inner-card-background); box-shadow: var(--inner-card-shadow); }
+.integration-card:nth-child(2) { --material-accent: var(--status-info-foreground); }
+.integration-card:nth-child(3) { --material-accent: var(--status-warning-foreground); }
+.card-kicker { display: block; margin-bottom: 5px; color: var(--accent); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.overview-content h2 { font-size: 15px; }
+.overview-content .card-note { margin: 10px 0; font-size: 12px; }
+.connection-steps { padding-left: 18px; margin: 0 0 12px; font-size: 13px; color: var(--ink-muted); }
+.connection-steps li + li { margin-top: 6px; }
+.overview-content code, .connection-facts code { font-size: 11px; }
+.code-heading { padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px 7px 0 0; background: var(--paper-inset); color: var(--ink-muted); font-size: 11px; }
+.request-example { padding: 12px; margin: 0; border-radius: 0 0 7px 7px; background: var(--code-surface); color: var(--code-ink); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.access-methods { margin: 0 0 10px; }
+.access-methods > div + div { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.access-methods dd { margin: 7px 0 0; color: var(--ink-muted); font-size: 13px; }
+.error-guide { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.error-guide th, .error-guide td { padding: 6px 7px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.error-guide thead { background: var(--accent-soft); }
+.error-guide tbody th { color: var(--accent); font-variant-numeric: tabular-nums; }
+.error-guide td { color: var(--ink-muted); }
+.request-practices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 20px 16px; color: var(--ink-muted); font-size: 12px; }
+.request-practices p { margin: 0; }
+.request-practices strong { color: var(--ink); }
+.session-settings { margin: 0 20px 16px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper-inset); box-shadow: var(--inset-shadow); }
+.session-settings input { color: var(--ink); background: var(--paper-raised); border-radius: 6px; }
+.request-notice { margin: 0 20px 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--heading-surface); font-size: 12px; box-shadow: var(--panel-shadow); }
+.api-workspace { box-shadow: var(--panel-shadow); border-radius: 12px; }
+.resource-sidebar { padding: 18px 14px; }
+#resource-search { background: var(--paper-inset); box-shadow: var(--inset-shadow); }
+#resource-navigation a[aria-current] { box-shadow: var(--material-badge-shadow); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border)); }
+.swagger-ui .scheme-container { background: var(--heading-surface); box-shadow: inset 0 -1px 0 var(--border); }
+.swagger-ui .filter-container .operation-filter-input { background: var(--paper-inset); box-shadow: var(--inset-shadow); }
+#api-renderer .opblock { border-color: color-mix(in srgb, var(--accent) 16%, var(--border)); background: var(--inner-card-background); box-shadow: var(--inner-card-shadow); border-radius: 9px; }
+.swagger-ui .btn { box-shadow: var(--material-badge-shadow); border-radius: 7px; }
+.swagger-ui .btn:not(.authorize):not(.execute) { background: var(--paper-raised); color: var(--ink); border-color: var(--border); }
+.swagger-ui .btn.execute { background: var(--brand-gradient); color: var(--chrome-foreground); }
+.swagger-ui .opblock .opblock-summary-method { box-shadow: var(--material-badge-shadow); border-radius: 6px; }
+.swagger-ui .dialog-ux .modal-ux { border: 1px solid var(--border); border-radius: 12px; background: var(--paper-raised); color: var(--ink); box-shadow: var(--panel-shadow), var(--inner-card-shadow); }
+.swagger-ui .dialog-ux .modal-ux-header { border-color: var(--border); background: var(--heading-surface); }
+.swagger-ui .dialog-ux .modal-ux h3, .swagger-ui .dialog-ux .modal-ux h4,
+.swagger-ui .dialog-ux .modal-ux p, .swagger-ui .dialog-ux .modal-ux label,
+.swagger-ui .dialog-ux .modal-ux .auth-container { color: var(--ink); border-color: var(--border); }
+.swagger-ui .dialog-ux .modal-ux svg { fill: var(--ink-muted); }
+.swagger-ui .dialog-ux .backdrop-ux { background: color-mix(in srgb, var(--background) 65%, transparent); backdrop-filter: blur(6px); }
+.swagger-ui section.models { border-color: var(--border); }
+.swagger-ui .model, .swagger-ui .model-title, .swagger-ui .prop-type { color: var(--ink); }
+.reference #api-renderer h5 { color: var(--ink-muted); }
+.reference #api-renderer h5 > span { color: var(--ink); }
+@media (prefers-reduced-transparency: reduce) { .swagger-ui .dialog-ux .backdrop-ux { background: var(--background); backdrop-filter: none; } }
+@media (forced-colors: active) {
+  .integration-card, .badge, .api-overview, .portal-heading, .api-workspace,
+  #api-renderer .opblock, .swagger-ui .btn { box-shadow: none; background: Canvas; color: CanvasText; border-color: CanvasText; }
+}
 @media (max-width: 1000px) {
+  .product-introduction { align-items: flex-start; }
+  .overview-content { grid-template-columns: 1fr; }
+  .connection-steps { max-width: 48rem; }
   .api-workspace.explorer { grid-template-columns: 220px minmax(0, 1fr); }
   .resource-heading { flex-wrap: wrap; }
 }
 @media (max-width: 700px) {
+  .portal-heading, .api-overview, .request-notice { margin-left: 8px; margin-right: 8px; }
+  .portal-heading { padding: 16px; }
+  .api-overview > summary > span { display: block; margin: 4px 0 0; }
+  .product-introduction { padding: 0 16px 16px; }
+  .connection-facts { gap: 7px; }
+  .connection-facts > div { flex: 1 1 auto; }
+  .request-practices { grid-template-columns: 1fr; padding: 0 16px 16px; }
+  .view-tabs { margin-top: 14px; }
   .overview-content { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 0 16px 16px; }
   .product-introduction { padding: 0 16px 16px; }
   .api-overview > summary, .session-settings { padding-left: 16px; padding-right: 16px; }

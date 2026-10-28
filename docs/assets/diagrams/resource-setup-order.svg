@@ -1,269 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="918" viewBox="0 0 1360 918" role="img" aria-labelledby="figure-title figure-description">
-  <title id="figure-title">What to define first: a new assay to its first sample</title>
-  <desc id="figure-description">Save drafts as needed; only activation makes staged assay resources operational. Gene lists are optional unless selected by configuration. Reporting rules may be added after assay activation; missing rules omit automatic narrative with a warning. Public catalog publication follows its own workflow.</desc>
-  <defs>
-    <style>
-:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
-text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
-.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
-.figure-subtitle{font-size:13px;fill:var(--muted)}
-.entity-title{font-size:14px;font-weight:650}
-.entity-detail{font-size:12.5px;fill:var(--muted)}
-.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
-.figure-note{font-size:12px;fill:var(--muted)}
-.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
-.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
-.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.conditional{stroke-dasharray:5 5}
-.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
-@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
-@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 815" width="1120" height="815" role="img" aria-labelledby="title description">
+<title id="title">Assay readiness: required gates and optional additions</title>
+<desc id="description">Prepare the required scope resources. Optional wording and catalog publication do not block reporting.</desc>
+<defs>
+<style>
+:root{--canvas:#f7f9fd;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.title{font-size:28px;font-weight:700}.subtitle{font-size:17px;fill:var(--muted)}.heading{font-size:19px;font-weight:650}.body{font-size:17px;fill:var(--muted)}.small{font-size:15px;fill:var(--muted)}.edge{fill:none;stroke:var(--blue);stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:6 5}.panel{stroke:var(--edge);stroke-width:1.2}
+@media(prefers-color-scheme:dark){:root{--canvas:#1d2331;--surface:#293244;--ink:#edf1fa;--muted:#c3cede;--edge:#526079;--blue:#94b9ee;--teal:#82d0bf;--purple:#c8aff3;--amber:#e6be82;--blue-soft:#2a3a52;--teal-soft:#263f40;--purple-soft:#3b304d;--amber-soft:#443c30}}
+@media print{:root{--canvas:#fff;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}}
 </style>
-    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
-    </marker>
-    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
-    </marker>
-    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
-    </marker>
-    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
-    </marker>
-    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
-    </marker>
-    <symbol id="icon-database" viewBox="0 0 24 24">
-      <path d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" class="glyph" />
-    </symbol>
-    <symbol id="icon-shield" viewBox="0 0 24 24">
-      <path d="M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6Z" class="glyph" />
-      <path d="m8 12 3 3 5-6" class="glyph" />
-    </symbol>
-    <symbol id="icon-document" viewBox="0 0 24 24">
-      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
-    </symbol>
-    <symbol id="icon-report" viewBox="0 0 24 24">
-      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
-    </symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24">
-      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
-    </symbol>
-    <symbol id="icon-filter" viewBox="0 0 24 24">
-      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
-    </symbol>
-    <symbol id="icon-user" viewBox="0 0 24 24">
-      <path d="M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 22v-3c0-8 18-8 18 0v3" class="glyph" />
-    </symbol>
-    <symbol id="icon-users" viewBox="0 0 24 24">
-      <path d="M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM2 22v-3c0-7 16-7 16 0v3M17 3c6 0 6 8 0 8M19 15c3 1 3 4 3 7" class="glyph" />
-    </symbol>
-    <symbol id="icon-browser" viewBox="0 0 24 24">
-      <path d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" class="glyph" />
-    </symbol>
-    <symbol id="icon-server" viewBox="0 0 24 24">
-      <path d="M3 2h18v6H3ZM3 10h18v6H3ZM3 18h18v4H3ZM6 5h.01M6 13h.01M10 5h8M10 13h8M6 20h.01" class="glyph" />
-    </symbol>
-    <symbol id="icon-branch" viewBox="0 0 24 24">
-      <path d="M6 4v11a4 4 0 0 0 4 4h8M6 9h8a4 4 0 0 0 4-4V3M3 3h6M15 3h6M15 16l3 3-3 3" class="glyph" />
-    </symbol>
-    <symbol id="icon-activity" viewBox="0 0 24 24">
-      <path d="M1 12h5l4-9 4 18 4-9h5" class="glyph" />
-    </symbol>
-    <symbol id="icon-check" viewBox="0 0 24 24">
-      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
-      <path d="m7 12 3 3 7-7" class="glyph" />
-    </symbol>
-    <symbol id="icon-reject" viewBox="0 0 24 24">
-      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0Z" class="glyph" />
-      <path d="m8 8 8 8M16 8l-8 8" class="glyph" />
-    </symbol>
-    <symbol id="icon-alert" viewBox="0 0 24 24">
-      <path d="M12 2 1 22h22ZM12 8v6M12 18h.01" class="glyph" />
-    </symbol>
-    <symbol id="icon-layers" viewBox="0 0 24 24">
-      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
-    </symbol>
-    <symbol id="icon-upload" viewBox="0 0 24 24">
-      <path d="M3 15v7h18v-7M12 17V2M6 8l6-6 6 6" class="glyph" />
-    </symbol>
-    <symbol id="icon-download" viewBox="0 0 24 24">
-      <path d="M3 16v6h18v-6M12 2v15M6 11l6 6 6-6" class="glyph" />
-    </symbol>
-    <symbol id="icon-search" viewBox="0 0 24 24">
-      <path d="M17 9a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM15 15l7 7" class="glyph" />
-    </symbol>
-    <symbol id="icon-dna" viewBox="0 0 24 24">
-      <path d="M6 2c0 10 12 10 12 20M18 2C18 12 6 12 6 22M7 4h10M8 8h8M8 16h8M7 20h10" class="glyph" />
-    </symbol>
-    <symbol id="icon-sample" viewBox="0 0 24 24">
-      <path d="M8 2h8M9 2v7l-5 10c-1 2 0 3 2 3h12c2 0 3-1 2-3L15 9V2M7 15h10M9 18h.01M14 19h.01" class="glyph" />
-    </symbol>
-    <symbol id="icon-microscope" viewBox="0 0 24 24">
-      <path d="m7 2 7 3-3 7-7-3ZM13 9c10 2 7 12-1 12H3M7 21v-4h8M2 14h10M11 3l2-2 4 2-2 3" class="glyph" />
-    </symbol>
-    <symbol id="icon-pen" viewBox="0 0 24 24">
-      <path d="m3 17 13-13 4 4L7 21l-5 1ZM13 7l4 4M3 17l4 4M15 3l2-2 4 4-2 2" class="glyph" />
-    </symbol>
-    <symbol id="icon-key" viewBox="0 0 24 24">
-      <path d="M13 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0ZM12 12l10 10M17 17l3-3M20 20l3-3M6 6h.01" class="glyph" />
-    </symbol>
-    <symbol id="icon-scope" viewBox="0 0 24 24">
-      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM2 12h20M12 2c-6 6-6 14 0 20 6-6 6-14 0-20Z" class="glyph" />
-    </symbol>
-    <symbol id="icon-queue" viewBox="0 0 24 24">
-      <path d="M2 5h16M2 11h13M2 17h10M17 13l6 4-6 4ZM4 3v4M4 9v4M4 15v4" class="glyph" />
-    </symbol>
-    <symbol id="icon-clock" viewBox="0 0 24 24">
-      <path d="M2 12a10 10 0 1 0 20 0 10 10 0 0 0-20 0ZM12 6v6l4 3" class="glyph" />
-    </symbol>
-    <symbol id="icon-mail" viewBox="0 0 24 24">
-      <path d="M2 4h20v16H2ZM2 4l10 9L22 4M2 20l7-8M22 20l-7-8" class="glyph" />
-    </symbol>
-    <symbol id="icon-folder" viewBox="0 0 24 24">
-      <path d="M2 5h7l3 3h10v13H2ZM2 8V3h7l3 3h8v2" class="glyph" />
-    </symbol>
-    <symbol id="icon-graph" viewBox="0 0 24 24">
-      <path d="M3 2v20h19M7 17v-5M12 17V6M17 17V9" class="glyph" />
-    </symbol>
-    <symbol id="icon-link" viewBox="0 0 24 24">
-      <path d="m9 15-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M15 9l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0M8 16l8-8" class="glyph" />
-    </symbol>
-    <symbol id="icon-processor" viewBox="0 0 24 24">
-      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
-    </symbol>
-  </defs>
-  <text x="40" y="34" text-anchor="start" class="figure-title">What to define first: a new assay to its first sample</text>
-  <text x="40" y="68" text-anchor="start" class="figure-subtitle">Follow the numbered path. Save drafts as needed; only activation makes staged assay resources operational. Gene lists are optional unless selected by configuration.</text>
-  <text x="40" y="87" text-anchor="start" class="figure-subtitle">Reporting rules are optional and may follow activation. Public catalog publication has its own workflow.</text>
-  <g class="connections">
-    <path d="M275 173C460 161 460 185 645 173" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
-    <path d="M715 173C900 161 900 185 1085 173" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
-    <path d="M1155 173 L1288 173Q1310 173 1310 195 L1310 370Q1310 392 1288 392 L1129.5 392Q1120 392 1120 401.5 L1120 411" data-source="2" data-target="5" data-optional="false" marker-end="url(#arrow-teal)" class="connection teal" />
-    <path d="M1085 446C900 434 900 458 715 446" data-source="5" data-target="4" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
-    <path d="M645 446C460 434 460 458 275 446" data-source="4" data-target="3" data-optional="true" marker-end="url(#arrow-purple)" class="connection purple conditional" />
-    <path d="M275 446 L408 446Q430 446 430 468 L430 625Q430 647 408 647 L249.5 647Q240 647 240 656.5 L240 666" data-source="3" data-target="6" data-optional="true" marker-end="url(#arrow-purple)" class="connection purple conditional" />
-    <path d="M275 701C460 689 460 713 645 701" data-source="6" data-target="7" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
-    <path d="M715 701C900 689 900 713 1085 701" data-source="7" data-target="8" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
-  </g>
-  <g data-node="0" data-left="80" data-top="139" data-right="400" data-bottom="328" class="entity purple">
-    <title>1 · Accounts and permissions</title>
-    <use href="#icon-key" x="211" y="144" width="58" height="58" aria-hidden="true" />
-    <circle cx="272.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="272.0" y="141.5" text-anchor="middle" class="step-number">1</text>
-    <text x="240" y="229" text-anchor="middle" class="entity-title">Accounts and permissions</text>
-    <text x="240" y="254" text-anchor="middle" class="entity-detail">Bootstrap permission catalog +</text>
-    <text x="240" y="272" text-anchor="middle" class="entity-detail">roles</text>
-    <text x="240" y="290" text-anchor="middle" class="entity-detail">Create / assign authorized users</text>
-    <text x="240" y="308" text-anchor="middle" class="entity-detail">Keep author and reviewer distinct</text>
-  </g>
-  <g data-node="1" data-left="520" data-top="139" data-right="840" data-bottom="310" class="entity blue">
-    <title>2 · Active assay group</title>
-    <use href="#icon-sample" x="651" y="144" width="58" height="58" aria-hidden="true" />
-    <circle cx="712.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="712.0" y="141.5" text-anchor="middle" class="step-number">2</text>
-    <text x="680" y="229" text-anchor="middle" class="entity-title">Active assay group</text>
-    <text x="680" y="254" text-anchor="middle" class="entity-detail">Register a stable group identifier</text>
-    <text x="680" y="272" text-anchor="middle" class="entity-detail">Select it in the new assay setup</text>
-    <text x="680" y="290" text-anchor="middle" class="entity-detail">Group is not the assay family</text>
-  </g>
-  <g data-node="2" data-left="960" data-top="139" data-right="1280" data-bottom="328" class="entity blue">
-    <title>3 · Assay setup draft</title>
-    <use href="#icon-sample" x="1091" y="144" width="58" height="58" aria-hidden="true" />
-    <circle cx="1152.0" cy="138" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="1152.0" y="141.5" text-anchor="middle" class="step-number">3</text>
-    <text x="1120" y="229" text-anchor="middle" class="entity-title">Assay setup draft</text>
-    <text x="1120" y="254" text-anchor="middle" class="entity-detail">Define ASP identity and modality</text>
-    <text x="1120" y="272" text-anchor="middle" class="entity-detail">Physical genes and input file</text>
-    <text x="1120" y="290" text-anchor="middle" class="entity-detail">policy</text>
-    <text x="1120" y="308" text-anchor="middle" class="entity-detail">Draft ASP is not yet ingest-ready</text>
-  </g>
-  <g data-node="3" data-left="80" data-top="412" data-right="400" data-bottom="583" class="entity purple">
-    <title>6 · Optional clinical rules; may be added after assay setup</title>
-    <use href="#icon-settings" x="211" y="417" width="58" height="58" aria-hidden="true" />
-    <circle cx="272.0" cy="411" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="272.0" y="414.5" text-anchor="middle" class="step-number">6</text>
-    <text x="240" y="502" text-anchor="middle" class="entity-title">Optional clinical rules</text>
-    <text x="240" y="527" text-anchor="middle" class="entity-detail">Author, test, review, publish</text>
-    <text x="240" y="545" text-anchor="middle" class="entity-detail">Match assay / scope / language</text>
-    <text x="240" y="563" text-anchor="middle" class="entity-detail">May be added after assay setup</text>
-  </g>
-  <g data-node="4" data-left="520" data-top="412" data-right="840" data-bottom="583" class="entity blue">
-    <title>5 · Optional gene lists</title>
-    <use href="#icon-dna" x="651" y="417" width="58" height="58" aria-hidden="true" />
-    <circle cx="712.0" cy="411" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="712.0" y="414.5" text-anchor="middle" class="step-number">5</text>
-    <text x="680" y="502" text-anchor="middle" class="entity-title">Optional gene lists</text>
-    <text x="680" y="527" text-anchor="middle" class="entity-detail">Stage new compatible ISGLs</text>
-    <text x="680" y="545" text-anchor="middle" class="entity-detail">Or select eligible existing lists</text>
-    <text x="680" y="563" text-anchor="middle" class="entity-detail">Keep analysis types explicit</text>
-  </g>
-  <g data-node="5" data-left="960" data-top="412" data-right="1280" data-bottom="583" class="entity teal">
-    <title>4 · Scopes and environments</title>
-    <use href="#icon-scope" x="1091" y="417" width="58" height="58" aria-hidden="true" />
-    <circle cx="1152.0" cy="411" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="1152.0" y="414.5" text-anchor="middle" class="step-number">4</text>
-    <text x="1120" y="502" text-anchor="middle" class="entity-title">Scopes and environments</text>
-    <text x="1120" y="527" text-anchor="middle" class="entity-detail">Base is always implicit</text>
-    <text x="1120" y="545" text-anchor="middle" class="entity-detail">Select optional named diagnoses</text>
-    <text x="1120" y="563" text-anchor="middle" class="entity-detail">Choose target environments</text>
-  </g>
-  <g data-node="6" data-left="80" data-top="667" data-right="400" data-bottom="856" class="entity purple">
-    <title>7 · Complete ASPCs</title>
-    <use href="#icon-settings" x="211" y="672" width="58" height="58" aria-hidden="true" />
-    <circle cx="272.0" cy="666" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="272.0" y="669.5" text-anchor="middle" class="step-number">7</text>
-    <text x="240" y="757" text-anchor="middle" class="entity-title">Complete ASPCs</text>
-    <text x="240" y="782" text-anchor="middle" class="entity-detail">One per scope + environment</text>
-    <text x="240" y="800" text-anchor="middle" class="entity-detail">Select analyses and filter</text>
-    <text x="240" y="818" text-anchor="middle" class="entity-detail">defaults</text>
-    <text x="240" y="836" text-anchor="middle" class="entity-detail">Missing narrative rules warn</text>
-  </g>
-  <g data-node="7" data-left="520" data-top="667" data-right="840" data-bottom="874" class="entity purple">
-    <title>8 · Review and activate</title>
-    <use href="#icon-microscope" x="651" y="672" width="58" height="58" aria-hidden="true" />
-    <circle cx="712.0" cy="666" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="712.0" y="669.5" text-anchor="middle" class="step-number">8</text>
-    <text x="680" y="757" text-anchor="middle" class="entity-title">Review and activate</text>
-    <text x="680" y="782" text-anchor="middle" class="entity-detail">Submit setup; independent</text>
-    <text x="680" y="800" text-anchor="middle" class="entity-detail">approval</text>
-    <text x="680" y="818" text-anchor="middle" class="entity-detail">Recheck dependencies and versions</text>
-    <text x="680" y="836" text-anchor="middle" class="entity-detail">Commit operational records</text>
-    <text x="680" y="854" text-anchor="middle" class="entity-detail">together</text>
-  </g>
-  <g data-node="8" data-left="960" data-top="667" data-right="1280" data-bottom="838" class="entity purple">
-    <title>9 · Ingest and review</title>
-    <use href="#icon-microscope" x="1091" y="672" width="58" height="58" aria-hidden="true" />
-    <circle cx="1152.0" cy="666" r="8" fill="currentColor" aria-hidden="true" />
-    <text x="1152.0" y="669.5" text-anchor="middle" class="step-number">9</text>
-    <text x="1120" y="757" text-anchor="middle" class="entity-title">Ingest and review</text>
-    <text x="1120" y="782" text-anchor="middle" class="entity-detail">Validate sample bundle and files</text>
-    <text x="1120" y="800" text-anchor="middle" class="entity-detail">Record resolved ASPC and actor</text>
-    <text x="1120" y="818" text-anchor="middle" class="entity-detail">Review findings, then save report</text>
-  </g>
-  <g data-edge="0" class="relationship blue">
-    <text x="460" y="156" text-anchor="middle" class="edge-label">authorize</text>
-  </g>
-  <g data-edge="1" class="relationship blue">
-    <text x="900" y="156" text-anchor="middle" class="edge-label">register</text>
-  </g>
-  <g data-edge="2" class="relationship teal">
-    <text x="1215" y="384" text-anchor="middle" class="edge-label">scope</text>
-  </g>
-  <g data-edge="3" class="relationship blue">
-    <text x="900" y="429" text-anchor="middle" class="edge-label">prepare</text>
-  </g>
-  <g data-edge="4" class="relationship purple">
-    <text x="460" y="429" text-anchor="middle" class="edge-label">publish</text>
-  </g>
-  <g data-edge="5" class="relationship purple">
-    <text x="335" y="639" text-anchor="middle" class="edge-label">configure</text>
-  </g>
-  <g data-edge="6" class="relationship purple">
-    <text x="460" y="684" text-anchor="middle" class="edge-label">submit</text>
-  </g>
-  <g data-edge="7" class="relationship purple">
-    <text x="900" y="684" text-anchor="middle" class="edge-label">activate</text>
-  </g>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="m1 1 8 4-8 4" fill="none" stroke="var(--blue)" stroke-width="1.5"/>
+</marker>
+</defs>
+<rect width="1120" height="815" rx="20" fill="var(--canvas)"/>
+<text x="32" y="48" class="title">Assay readiness: required gates and optional additions</text>
+<text x="32" y="80" class="subtitle">Prepare the required scope resources. Optional wording and catalog publication do not block reporting.</text>
+<text x="32" y="132" class="heading">REQUIRED FOR THE CLINICAL SCOPE</text>
+<text x="588" y="132" class="heading">ADD WHEN NEEDED</text>
+<g>
+<rect class="panel" x="32" y="160" width="500" height="140" rx="14" fill="var(--blue-soft)"/>
+<rect x="32" y="178" width="4" height="104" rx="2" fill="var(--blue)"/>
+<text x="52" y="194" class="heading">People and assay definition</text>
+<text x="52" y="225" class="body">Authorized authors, reviewers and active group.</text>
+<text x="52" y="250" class="body">Assay identity, modality, family and physical coverage.</text>
+<text x="52" y="275" class="body">Reference data required for the enabled analyses.</text>
+</g>
+<g>
+<rect class="panel" x="588" y="160" width="500" height="140" rx="14" fill="var(--teal-soft)"/>
+<rect x="588" y="178" width="4" height="104" rx="2" fill="var(--teal)"/>
+<text x="608" y="194" class="heading">Named diagnoses and gene lists</text>
+<text x="608" y="225" class="body">Base exists without a named diagnosis.</text>
+<text x="608" y="250" class="body">Associate named diagnoses with each eligible assay.</text>
+<text x="608" y="275" class="body">Curated scope is bounded by assay coverage.</text>
+</g>
+<g>
+<rect class="panel" x="32" y="335" width="500" height="150" rx="14" fill="var(--purple-soft)"/>
+<rect x="32" y="353" width="4" height="114" rx="2" fill="var(--purple)"/>
+<text x="52" y="369" class="heading">Scope configurations</text>
+<text x="52" y="400" class="body">One ASPC per selected diagnosis/environment.</text>
+<text x="52" y="425" class="body">Enable analyses; set expected and required files.</text>
+<text x="52" y="450" class="body">Set initial filters, report sections and reportable tiers.</text>
+</g>
+<g>
+<rect class="panel" x="588" y="335" width="500" height="150" rx="14" fill="var(--amber-soft)"/>
+<rect x="588" y="353" width="4" height="114" rx="2" fill="var(--amber)"/>
+<text x="608" y="369" class="heading">Published report wording / catalog</text>
+<text x="608" y="400" class="body">Reporting rules supply optional automatic wording.</text>
+<text x="608" y="425" class="body">No rules: a report remains available with a UI warning.</text>
+<text x="608" y="450" class="body">Catalog offerings have their own publication review.</text>
+</g>
+<g>
+<rect class="panel" x="160" y="550" width="800" height="110" rx="14" fill="var(--purple-soft)"/>
+<rect x="160" y="568" width="4" height="74" rx="2" fill="var(--purple)"/>
+<text x="180" y="584" class="heading">Setup review and activation</text>
+<text x="180" y="615" class="body">Validate required resources; independent review precedes activation.</text>
+<text x="180" y="640" class="body">Correct missing configuration and consistency errors before ingest.</text>
+</g>
+<path class="edge" d="M282 300 V335"/>
+<path class="edge" d="M282 485 V515 H560 V550"/>
+<path class="edge optional" d="M838 300 V320 H560 V410 H532"/>
+<g>
+<rect class="panel" x="160" y="705" width="800" height="75" rx="14" fill="var(--teal-soft)"/>
+<rect x="160" y="723" width="4" height="39" rx="2" fill="var(--teal)"/>
+<text x="180" y="739" class="heading">Ready to exercise ingest, clinical review and reporting</text>
+</g>
+<path class="edge" d="M560 660 V705"/>
 </svg>

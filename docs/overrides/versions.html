@@ -5,11 +5,10 @@
       {% if config.repo_url %}
         <a href="{{ config.repo_url }}">{{ config.repo_name or 'Repository' }}</a>
       {% endif %}
-      {% if page and page.previous_page %}
-        <a href="{{ page.previous_page.url|url }}">&laquo; {% trans %}Previous{% endtrans %}</a>
-      {% endif %}
-      {% if page and page.next_page %}
-        <a href="{{ page.next_page.url|url }}">{% trans %}Next{% endtrans %} &raquo;</a>
+      {% if reading_path and reading_path.next %}
+        <a href="{{ reading_path.next.url | url }}" title="{{ reading_path.next.label | e }}">Continue task &raquo;</a>
+      {% else %}
+        <a href="{{ nav.homepage.url | url }}">Choose a task</a>
       {% endif %}
     </div>
   </div>

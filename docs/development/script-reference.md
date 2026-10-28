@@ -59,10 +59,9 @@ and preserve original sample ObjectIds; they do not use SQLite.
 | `knowledgebase/migrate_reference_database.py` | Manual maintenance | Existing deployments | Backs up and moves HGNC/VEP to the knowledgebase database; removes the superseded diagnosis collection only after checking current replacements |
 | `deployment/center_preflight.sh` | Manual operation | Initial-deployment checklist | Uses the shared Python selector and resolved Compose settings to validate center files, database selections, bind-root access and optional seed/manifest input. No service connectivity check; creates storage only with `--prepare-directories`. Requires the application in the host interpreter. |
 | `deployment/prepare_center_config.py` | Manual operation | Center configuration deployment | Validates and stages three center-owned files from a local directory or a pinned Git commit, records hashes, and refuses to overwrite an existing release |
-| `bootstrap/build_seed_bundle.py` | Internal helper and manual operation | `bootstrap/bootstrap_database.py`; controlled seed preparation | Normalizes center seed sources into deterministic collection documents |
 | `bootstrap/install_assay_groups.py` | Manual operation | Assay-group administration guide | Plans or installs missing group definitions without renaming existing scopes |
 | `bootstrap/install_query_rules.py` | Manual operation | Query-rule installation and upgrade guide | Validates bundled and TOML criteria, reports missing scopes, and inserts them transactionally with `--apply`; preserves every existing scope |
-| `api/bootstrap/query_rule_seed.py` (outside `scripts/`) | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/diagnosis scopes |
+| `api/infra/seed/query_rules.py` (outside `scripts/`) | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/diagnosis scopes |
 | `deployment/center_check.sh` | Manual operation | Deployment acceptance | Validates a local manifest, checks health and performs a synchronous sample ingest with `increment=true`. Uses the canonical uploader's optional `data_archive` ZIP and terminal acknowledgement. Writes sample data; does not audit all baseline resources or rename the local manifest. |
 | `bootstrap/validate_assay_consistency.py` | Automated | preflight, contract integrity, bootstrap, tests | Verifies ASP, ASPC, ISGL, sample, catalog, and reporting-rule references before import |
 | `ingest/validate_ingest_spec.py` | Automated | `deployment/center_check.sh`; deployment checklist | Validates a DNA or RNA manifest through the current `SamplesDoc` contract and optionally checks every configured file path |
@@ -120,6 +119,11 @@ the default creates a review artifact without database access.
 | `maintenance/migrate_notification_retention.py` | Upgrade operation | Email and notifications guide | Removes destructive notification expiry indexes and marks existing administrative broadcasts; writes require `--apply` |
 
 ## Reference and RBAC maintenance
+
+`scripts/docs/check_built_site.py [SITE_DIRECTORY]` checks rendered page destinations,
+section anchors, images, scripts and stylesheet links after a documentation build.
+It uses local files only; it does not check external websites. The quality suite runs
+it against its temporary MkDocs output.
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |

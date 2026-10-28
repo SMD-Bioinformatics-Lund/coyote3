@@ -112,6 +112,39 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 - Use the existing `.dark` theme mechanism, Lucide icons, focus states, reduced-motion
   behavior, and accessible labels. Do not communicate clinical meaning by color alone.
 
+### Protected visual theme
+
+- Treat the current theme as the approved baseline. Preserve its colors, gradients,
+  shadows, surface hierarchy, borders, corner radii, typography and control styling.
+  Change these only when the user's request explicitly calls for the affected visual
+  change. General feature work, refactoring and unrelated fixes must retain the theme.
+- Reuse the authoritative tokens in `frontend/src/styles/tailwind-theme.css`, the
+  component styles in `frontend/src/index.css`, and the surface treatments in
+  `frontend/src/styles/page-materials.css`. Extend existing component styles rather
+  than introducing competing page-specific themes or overriding shared tokens locally.
+- Preserve the purple-to-orange brand gradient and the distinction between page
+  backgrounds, grouping panels, raised content cards and inset controls. Retain the
+  existing light/dark variants and semantic clinical/status colors.
+- Preserve the existing panel, card and badge elevation, including `--panel-shadow`,
+  `--inner-card-shadow`, `--material-card-shadow` and `--material-badge-shadow`.
+  Do not flatten surfaces, remove shadows, or add stronger elevation incidentally.
+  Keep existing forced-colors accessibility overrides.
+- Keep the header and sidebar joined as a continuous L-shaped surface through
+  `.app-chrome-surface`. Preserve their viewport-aligned gradient; do not reintroduce
+  dividing borders, shadows or contrasting backgrounds at their junction.
+- Use the established typography roles consistently for equivalent labels and values.
+  Reuse existing button, badge and segmented-control variants, including their selected,
+  hover, focus and disabled states. Preserve compact spacing and complete corner borders.
+- Keep overview cards and configured-filter cards equal in height within each grid row;
+  retain natural heights when stacked. Do not clip card outlines or shadows with outer
+  rounded wrappers or overflow rules.
+- Report paper has its own embedded styles in `src/coyote3/templates/reporting/assets/`.
+  Preserve embedded Source Sans 3 typography, neutral tables, restrained purple/orange accents,
+  the pale yellow conclusion and shared HTML/PDF geometry when changing report presentation.
+- Fix confirmed visual regressions within this baseline without requesting additional
+  approval. Verify affected light/dark and narrow/wide layouts; check collapsed/expanded
+  navigation or HTML/PDF output when those surfaces change. Report intentional deviations.
+
 ## Architecture rules
 
 - The installable library never imports `api`. Select center configuration explicitly
@@ -214,34 +247,125 @@ from a database name or pass a session across different MongoClient instances.
 
 ## Agent working rules
 
+### Scope and evidence
+
+- Before editing, identify the requested outcome, the current behavior, its owning
+  layer, and the smallest set of files needed. Inspect nearby code, callers,
+  contracts, tests and documentation. Every changed file must have a task-related reason.
+- Make the smallest coherent change that fully solves the task. Do not bundle
+  unrelated cleanup, renaming, formatting, dependency upgrades or redesigns with a fix.
+- Broad requests such as "audit", "improve", or "find bugs" require investigation;
+  they do not automatically authorize rewriting working subsystems. Fix confirmed
+  problems and distinguish evidence from suspected issues and optional improvements.
+- Reproduce a reported bug where practical before changing production code. A long
+  file, unfamiliar pattern, old timestamp, failing fixture or coverage gap alone
+  does not establish that runtime behavior is wrong.
+- Resolve routine implementation choices within the authorized task without repeated
+  confirmation. Clarify only material ambiguity, especially intended clinical behavior,
+  contract changes, or destructive operational actions.
+
+### Additions and abstractions
+
+- Search for an existing service, repository, hook, component, theme token or helper
+  before adding one. Extend the authoritative implementation when that is sufficient.
+- Add files and abstractions only for a concrete responsibility, real duplication,
+  or an established architectural boundary. Do not split code merely to reduce line
+  counts, increase component counts, or make a change look more substantial.
+- Keep React pages responsible for route composition and feature coordination.
+  Extract cohesive UI or asynchronous behavior into focused components or hooks;
+  do not introduce forwarding components, convenience layers or unnecessary props.
+- Do not add speculative features, configuration switches, compatibility paths,
+  dependencies or operational scripts. A new dependency must be necessary for the
+  requested behavior and justified against the tools already present.
+- Never invent dependencies, commands, paths, collection fields or architectural
+  details. Check the repository before documenting or using them.
+
+### Refactoring and protected behavior
+
+- Keep structural refactoring separate from intentional behavior changes. Preserve
+  API calls, query keys, permissions, editing leases, revision checks, cache
+  invalidation, cancellation, loading/error states and accessible interactions.
+- A visual or component change must not alter report wording, finding eligibility,
+  transcript selection, tier matching, annotation identity, saved filters or report
+  snapshots. Use established clinical regression tests to verify these boundaries.
+- Preserve supported behavior and backwards compatibility unless a breaking change
+  is explicitly requested. Do not retain obsolete behavior through hidden fallbacks,
+  duplicate implementations or aliases that hide incomplete migrations.
+- Do not silently modify APIs, schemas, database structures, permissions, configuration
+  defaults or generated artifacts. Trace affected consumers and include migrations,
+  regeneration and documentation when the requested contract change requires them.
+- For styling, use existing components and semantic tokens. Check the impact of a
+  shared style change; do not apply broad global overrides to solve one page's issue.
+
+### Deletions and retirement
+
+- Delete code or assets only after establishing that they are obsolete, redundant,
+  or outside the supported implementation. Search imports, dynamic registries,
+  routes, package resources, scripts, tests, documentation and generators first.
+  Absence from a simple text search is not sufficient proof that something is unused.
+- Before removing a document or implementation, preserve any unique supported
+  behavior or instructions in its maintained owner. Update callers, navigation,
+  section anchors and asset references in the same change.
+- Do not remove supported migration procedures, historical report artifacts,
+  clinical provenance or architecture decisions merely because they are old.
+  Removing repository code does not authorize deleting operational or clinical data.
+- Remove obsolete source files when a replacement is complete; do not leave a second
+  implementation or placeholder forwarding layer. Change generators rather than
+  deleting generated output that the next build will recreate.
+
+### Verification and completion
+
+- Run the narrowest relevant checks while iterating, then the applicable broader
+  checks after the final change. Scale verification to the affected behavior;
+  clinical, security, persistence and concurrency changes need focused regressions.
+- Test observable behavior and failure boundaries. Reuse existing regression tests
+  for code moves; do not add tests that only repeat component structure or implementation.
+- Do not lower coverage gates, disable checks, skip failing tests, weaken assertions
+  or update snapshots solely to obtain a passing result. Update stale fixtures only
+  after checking the authoritative contract. Investigate timeouts and test contention
+  before increasing limits.
+- For UI changes, verify relevant light/dark and narrow/wide layouts, keyboard use,
+  loading, empty and error states. For documentation-site changes, validate source
+  links, the strict build and built-site anchors/assets. Instruction-only edits need
+  Markdown lint and diff review, not application tests. Check executable permissions
+  for documented shell entry points.
+- Review the complete task diff for accidental deletions, generated-file drift,
+  unrelated churn and new dependencies. Report what changed, why, what actually ran,
+  and remaining risks or skipped checks. Do not claim the application is bug-free
+  or a workflow is validated beyond the evidence obtained.
+
+### Workspace and Git discipline
+
+- Inspect Git status and relevant diffs before editing. Treat existing uncommitted
+  changes as user work unless their ownership is established. Do not overwrite,
+  revert, stash or delete them to simplify the task.
+- Never use destructive Git commands or rewrite shared history without explicit
+  authorization for that action and its affected work.
+- Use `apply_patch` for manual text edits. Avoid repository-wide replacements,
+  automatic reformatting and file moves unless necessary for the requested scope;
+  inspect every affected file when a mechanical change is needed.
+- Do not stage, commit, push, merge, deploy or publish without session authorization.
+  Never stage unrelated work. If an authorized workflow requires an index-only or
+  executable-mode change, preserve existing staged content and disclose that change.
+- Set up the tracked pre-commit hook with `git config core.hooksPath .githooks`; do not
+  run `pre-commit install`. Do not otherwise change Git settings to hide or simplify a diff.
+- Do not change agent instructions, architecture baselines, lint rules or quality
+  policies to make an implementation easier. Policy changes must be part of the
+  requested task.
+
+### Documentation and temporary tooling
+
 - Write documentation as a current reference for users and developers. Name the
   actual operation, resource, condition and result. Avoid promotional claims,
   generic introductions, unsupported guarantees, and accounts of how an agent
   changed the implementation. Keep upgrade instructions only where operators need
   them to deploy safely. Do not remove precise technical terms merely because they
   also occur in generated prose.
-
-- Inspect nearby code, tests, contracts, and documentation before editing.
-- Keep `scripts/` limited to documented, reproducible operational or repository workflows
-  and their shared helpers. Put one-off development fixes, artwork generators, and
-  coding-session experiments in ignored `.design/`; never make tracked code, tests,
-  CI, or documentation depend on that scratch tooling. Commit reviewed SVG artwork,
+- Keep `scripts/` limited to documented, reproducible operational or repository
+  workflows and their shared helpers. Put one-off fixes, artwork generators and
+  coding-session experiments in ignored `.design/`; tracked code, tests, CI and
+  documentation must not depend on scratch tooling. Commit reviewed SVG artwork,
   not disposable scripts used to create it.
-- Make the smallest coherent change and leave unrelated code and user changes untouched.
-- Reuse existing services, repositories, hooks, and components; add an abstraction only
-  when it removes real duplication or follows an established pattern.
-- Preserve supported behavior and backwards compatibility unless a breaking change is
-  explicitly requested. Do not preserve obsolete behavior through hidden fallbacks or shims.
-- Do not silently modify APIs, schemas, database structures, clinical rules, permissions,
-  configuration contracts, or generated artifacts. Include migrations and documentation
-  when a requested contract change requires them.
-- Run the narrowest relevant checks while iterating, then the applicable broader checks.
-  State clearly which checks could not be run.
-- Use `apply_patch` for manual edits. Do not overwrite unrelated uncommitted work or use
-  destructive Git commands.
-- Set up the tracked pre-commit hook with `git config core.hooksPath .githooks`; do not run
-  `pre-commit install` against this repository.
-- Never invent dependencies, commands, paths, collection fields, or architectural details.
 
 ## Files and directories to avoid
 

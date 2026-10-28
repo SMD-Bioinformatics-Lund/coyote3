@@ -23,6 +23,12 @@ New documents have no persisted editing target until their first save. Existing
 identifier uniqueness checks still decide whether creation succeeds. An editing
 lease does not reserve a proposed assay identifier before that save.
 
+Background refreshes of the shared resource forms do not replace unsaved values
+in create or edit mode. An untouched form can receive updated values. An edited
+form retains its original revision for the server's save checks; preserving local
+text does not bypass a revision conflict. Leaving the page or explicitly reloading
+still discards local edits, so copy unsaved text before doing either.
+
 Adding a comment, creating an annotation, generating a report snapshot and reading
 knowledgebase evidence are independent operations. They do not hold a sample-wide
 editing lease. Existing permissions, finding ownership checks and report snapshot

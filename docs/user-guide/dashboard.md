@@ -4,8 +4,6 @@ The dashboard summarizes the samples, findings, review workload, and clinical
 configuration visible to the signed-in user. It uses aggregated API responses
 instead of loading complete clinical collections into the browser.
 
-![Coyote3 operational dashboard](../assets/screenshots/dashboard.png)
-
 > **Info**
 >
 > Dashboard counts respect the user's role, assay, and environment scope.

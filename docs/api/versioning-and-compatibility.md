@@ -4,6 +4,11 @@ Coyote3 publishes supported client routes under `/api/v1`. The OpenAPI schema
 is the authoritative list of supported external routes. Hidden health and
 internal integration routes are operational contracts and are not client APIs.
 
+The `v1` prefix is the HTTP compatibility generation. It is separate from the
+application/UI, core SDK, Python client SDK and DNA/RNA report-template releases.
+See [Version identities](../sdk/compatibility.md#version-identities) for all five
+release versions, their current values and the files that own them.
+
 ## Compatibility policy
 
 Within `v1`, releases may add endpoints, optional request fields, response

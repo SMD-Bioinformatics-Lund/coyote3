@@ -52,7 +52,7 @@ Open **Administration → Reporting Rule Sets → New rule set → Build in UI**
 | Diagnosis | Base (`base`) |
 | Analyte | DNA, derived from the assay |
 | Language | `sv` |
-| Name | For example, `Solid Base — Swedish DNA report` |
+| Name | For example, `Solid Base - Swedish DNA report` |
 
 Choose **Create draft**. In **Report analyses**, choose **SNV → Generate text**.
 For every other analysis selected in the configuration's report sections,
@@ -291,7 +291,7 @@ is also possible but needs all intended sections, terminology and cases authored
 | Assay | `solid_gmsv3` |
 | Diagnosis | `breast` |
 | Language | `sv` |
-| Name | For example, `Solid breast — Swedish DNA report` |
+| Name | For example, `Solid breast - Swedish DNA report` |
 | Resulting identity | `solid_gmsv3__breast__sv` |
 
 Review the imported scope and name before creation. Import/copy creates a draft;

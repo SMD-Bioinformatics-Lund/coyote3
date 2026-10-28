@@ -141,12 +141,12 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
             template.render(
                 view=view,
                 version=app.version,
+                openapi_version=app.openapi_version,
                 environment=environment,
                 nonproduction=environment not in {"production", "prod"},
                 prefix=prefix,
                 schema_url=f"{prefix}{app.openapi_url}",
                 logo=logo,
-                product_overview=PRODUCT_OVERVIEW,
             ),
             headers={"Cache-Control": "no-store"},
         )

@@ -33,6 +33,10 @@ creator and updater. Governed reporting rules retain `updated_by` as the content
 editor for independent review checks; review, publication and retirement actors
 are recorded separately in their lifecycle metadata.
 
+The Admin Samples table and its CSV export omit creator/updater columns. **Time Added**
+remains visible, and sample attribution is available in the sample overview. Removing
+a table column does not remove attribution or audit data from stored records.
+
 ## Existing records
 
 Missing historical actors are null and appear as **Unknown**. The current user is

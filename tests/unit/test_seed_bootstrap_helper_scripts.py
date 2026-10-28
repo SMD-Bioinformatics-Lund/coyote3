@@ -9,6 +9,12 @@ from pathlib import Path
 
 import mongomock
 
+from api.infra.seed.bundle import (
+    canonicalize_seed_contract,
+    load_seed,
+    lower_business_keys,
+    stamp_docs,
+)
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
@@ -394,11 +400,10 @@ def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
     )
 
 
-def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
+def test_seed_normalization_preserves_identity_and_stamps_audit_fields(tmp_path):
+    """Normalize source permissions and Extended JSON without losing document identity."""
     source_dir = tmp_path / "source"
-    dest_dir = tmp_path / "dest"
     source_dir.mkdir()
-    dest_dir.mkdir()
 
     seed_docs = [
         {
@@ -409,23 +414,11 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
     ]
     (source_dir / "permissions.json").write_text(json.dumps(seed_docs), encoding="utf-8")
 
-    result = _run_script(
-        [
-            "scripts/bootstrap/build_seed_bundle.py",
-            "--seed-source",
-            str(source_dir),
-            "--dest-dir",
-            str(dest_dir),
-            "--seed-actor",
-            "admin@center.local",
-            "--seed-time",
-            "2026-03-30T00:00:00Z",
-        ]
-    )
-    assert result.returncode == 0, result.stderr
-    assert "[ok] normalized seed bundle:" in result.stdout
-
-    output_docs = json.loads((dest_dir / "permissions.json").read_text(encoding="utf-8"))
+    seed = load_seed(source_dir)
+    canonicalize_seed_contract(seed)
+    lower_business_keys(seed)
+    stamp_docs(seed, "admin@center.local", "2026-03-30T00:00:00Z")
+    output_docs = seed["permissions"]
     assert output_docs[0]["permission_id"] == "report:view"
     assert output_docs[0]["created_on"] == "2026-03-30T00:00:00Z"
     assert output_docs[0]["owner_id"] == "507f1f77bcf86cd799439011"
@@ -433,11 +426,10 @@ def test_build_seed_bundle_normalizes_and_stamps(tmp_path):
     assert output_docs[0]["updated_by"] == "admin@center.local"
 
 
-def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
+def test_seed_normalization_canonicalizes_current_contract_shape(tmp_path):
+    """Preserve configured clinical filters while normalizing seed business keys."""
     source_dir = tmp_path / "source"
-    dest_dir = tmp_path / "dest"
     source_dir.mkdir()
-    dest_dir.mkdir()
 
     (source_dir / "permissions.json").write_text(
         json.dumps([{"permission_name": "SAMPLES:VIEW"}]), encoding="utf-8"
@@ -501,22 +493,11 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
         encoding="utf-8",
     )
 
-    result = _run_script(
-        [
-            "scripts/bootstrap/build_seed_bundle.py",
-            "--seed-source",
-            str(source_dir),
-            "--dest-dir",
-            str(dest_dir),
-            "--seed-actor",
-            "admin@center.local",
-            "--seed-time",
-            "2026-03-30T00:00:00Z",
-        ]
-    )
-    assert result.returncode == 0, result.stderr
-
-    permission = json.loads((dest_dir / "permissions.json").read_text())[0]
+    seed = load_seed(source_dir)
+    canonicalize_seed_contract(seed)
+    lower_business_keys(seed)
+    stamp_docs(seed, "admin@center.local", "2026-03-30T00:00:00Z")
+    permission = seed["permissions"][0]
     assert permission == {
         "permission_id": "samples:view",
         "system_managed": True,
@@ -526,15 +507,15 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
         "updated_on": "2026-03-30T00:00:00Z",
     }
 
-    role = json.loads((dest_dir / "roles.json").read_text())[0]
+    role = seed["roles"][0]
     assert role["role_id"] == "admin"
     assert role["permissions"] == ["samples:view"]
     assert "deny_permissions" not in role
 
-    user = json.loads((dest_dir / "users.json").read_text())[0]
+    user = seed["users"][0]
     assert user["username"] == "seed.user"
 
-    aspc = json.loads((dest_dir / "asp_configs.json").read_text())[0]
+    aspc = seed["asp_configs"][0]
     assert aspc["aspc_id"] == "assay_1_base_testing"
     assert aspc["asp_id"] == "assay_1"
     assert aspc["diagnosis_id"] == "base"
@@ -547,7 +528,7 @@ def test_build_seed_bundle_canonicalizes_current_contract_shape(tmp_path):
     assert "assay_name" not in aspc
     assert "query" not in aspc
 
-    sample = json.loads((dest_dir / "samples.json").read_text())[0]
+    sample = seed["samples"][0]
     assert sample["diagnosis_id"] == "base"
     assert sample["environment"] == "testing"
     assert sample["asp_category"] == "dna"

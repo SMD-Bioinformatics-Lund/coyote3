@@ -3,8 +3,8 @@
 Coyote3 provides clinical reviewers, laboratory staff, managers, and administrators
 with workspaces for sample review, classification, reporting, and resource management.
 Each workspace exposes the data and actions available to the signed-in account.
-This guide owns the clinical task sequence. Use the
-[page map](pages-and-workflows.md) to find a workspace and the
+This guide owns the clinical task sequence. Use [Main navigation](#main-navigation)
+to find a workspace and the
 [table reference](pages-and-table-columns.md) for column and badge definitions.
 Development and deployment procedures are covered in the
 [developer guide](../development/developer-guide.md) and
@@ -135,13 +135,12 @@ matching samples, not only to the current page.
 | Sample | Application sample name and link to the workspace. |
 | Case / control | Pipeline case and optional control identifiers. |
 | Clarity fields | LIMS identifiers supplied by the manifest. |
-| Environment | Production, validation, testing, or development scope. |
-| ASP and diagnosis | Assay and requested in-silico scope. |
-| Analysis | Current sample readiness. |
-| Report | Reported or unreported state. |
-| Counts | Available analysis records. Green badges indicate loaded data; failed or partial data uses an error state. |
+| Profile | Production, validation, testing, or development scope. |
+| Assay and Diagnosis | Assay and requested in-silico scope. |
+| Pipeline | Pipeline name and version when available. |
+| Data | One availability indicator. Hover, focus, or click opens the complete per-analysis count and availability breakdown. |
 | Added | Time since ingest, displayed in the configured local time zone. |
-| Latest report | Most recent saved report date on the reported-samples view. |
+| Latest reported | Most recent saved report date on the reported-samples view. |
 
 The sample export contains visible identity and assay fields, loaded analysis
 counts, biomarker values where available, and blank columns where a supported
@@ -152,6 +151,11 @@ value is absent.
 The sample header identifies the sample, ASP, environment, and readiness. It
 may also show purity, FFPE state, or biomarker summaries. The overview records
 the ASPC ID and version attached to the sample.
+
+Sample links use the sample name in the browser URL; the application resolves its
+internal collection identity after loading the context. Finding detail links retain
+the finding's collection identifier, for example
+`/samples/CASE_DEMO/variant/<variant_oid>`.
 
 ### Analysis layouts
 
@@ -239,6 +243,11 @@ application invalidates the affected cached query and reloads persisted state.
 Rows marked false positive, irrelevant, or blacklisted are visually subdued.
 They remain available in the analysis view when requested but are excluded from
 report output according to the report workflow.
+
+VEP impact and prediction badges describe biological consequence, not the reviewed
+clinical tier. `HIGH` and damaging predictions use the high-severity accent;
+`MODERATE` uses the warning accent, `LOW` uses the low-impact accent, and `MODIFIER`
+is neutral. A neutral impact badge does not establish that a finding is benign.
 
 ## DNA review
 
@@ -405,6 +414,11 @@ released report sections. False-positive and irrelevant findings are excluded.
 The report summary is the latest visible sample comment. If no visible sample
 comment exists, the summary is empty. Preview and save do not create an
 automatic replacement comment.
+
+To use published reporting-rule wording, request its suggestion in the sample
+comment editor, review the text and save the comment before previewing the report.
+The suggestion is a draft until saved. Missing reporting rules produce a warning
+about unavailable automatic summary text; they do not prevent the report itself.
 
 See [reporting and snapshots](../reference/report-snapshots.md)
 and [clinical reporting rules](../reference/clinical-reporting-rules.md) for the

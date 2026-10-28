@@ -2,233 +2,53 @@
 
 ## v4.0.0
 
-- Correct center installation, storage checks, ingest ZIP uploads and deployment
-  documentation. Allow unauthenticated MongoDB with warnings and deployment secrets
-  of at least 16 characters. Fresh bootstrap creates fixed administrator logins
-  with independently generated temporary passwords and required first-login changes.
-- Gate clinical navigation and routes by permission, stop sample-count polling
-  after access denial, and direct required password changes to the correct page.
-- Fix boolean condition operands and repeated failed autosaves in report-rule
-  authoring. Add inline sentence placeholders, visible JSON import, paired and
-  unpaired starters, complete sample-backed previews and explicit paragraph/list
-  placement for conditional wording.
-- Use the shared variant identity function for `simple_id_hash` validation as
-  well as generation across ingest, migration, annotation, blacklist and reporting.
-- Persist the canonical `simple_id_hash` in blacklist records and validate it
-  against the variant identity.
-- Store blacklist alleles once with separate genomic coordinates, biological group
-  lists and per-assay normal-sample measurements. Provide an offline export converter.
-- Version the core Python SDK and HTTP client as `1.0.0`, independently of the
-  `4.0.0` application release.
-- Allow assay activation and report generation without published reporting rules.
-  Show a UI warning when the automatic summary is unavailable; validate existing
-  published rules before use.
-- Add reporting section starters and a searchable dynamic-value picker for assay
-  names, panel gene counts, selected gene-list names/counts and finding evidence.
-  Introductions and closing text can omit headings; output parts can be reordered.
-  Assay definitions accept an optional short name for report wording.
-- Replace superseded v2/v3 script-directory converters with the fresh
-  `migrations_scripts` workflow and a dependency-ordered execution runbook.
-  Remove migration-specific tests; retain clinical reporting regression tests.
-
-- Enrich v2/v3 sample preparation with read-only Bjorn/CDM case and control
-  evidence. Exclude failed runs, retain multiple runs only when CDM confirms them,
-  and otherwise select the latest nonfailed run. Preserve reference evidence in
-  private migration output and support multiple run names in the sample contract.
-
-- Add a read-only v2/v3 assay exporter with automatic 500-sample batches, discovery
-  of sample-owned collections, per-collection resume checkpoints, file checksums and
-  disk-based record deduplication.
-
-- Add fresh offline v2/v3 variant converters with preserved finding history, shared
-  VEP transcript unions including selected consequences, slim variant records and
-  explicit sample ownership, confirmed VEP 103 source-release checks and
-  transcript-selection controls.
-
-- Classify mixed coverage documents by shape, preserve normal coverage and migrate
-  D4 exclusions separately; select related data strictly by migrated sample ObjectIds.
-
-- Add fresh v2/v3 non-variant related-data converters with sample-owner checks,
-  finding-comment extraction, explicit coverage mapping and preserved report findings.
-
-- Retain unsplit v2 tumwgs samples under diagnosis `legacy` and preserve incomplete
-  embedded RNA QC without filling missing measurements during sample conversion.
-
-- Add fresh v2/v3 sample converters under `migrations_scripts`, with read-only
-  structure inspection, preserved embedded history and BSON import-file preparation.
-
-- Return timezone-aware editor lease expiry timestamps so browsers outside UTC
-  do not treat their own newly acquired lock as expired.
-
-- Document database-qualified collection dependencies with field-to-field diagrams,
-  incoming references, snapshot semantics and migration planning guidance.
-
-- Wait for an editor's previous lease release before acquiring a replacement session,
-  preventing self-contention when the editor restarts.
-
-- Fix document editors crashing on HTTP deployments without `crypto.randomUUID`;
-  clarify saved assay setup revision labels and theme colours in the selector.
-
-- Add shared, expiring document-editing sessions for administration, governed drafts
-  and sample filters. Saves require the owning form's session; competing editors
-  remain read-only, and delete/publication actions respect active sessions.
-
-- Add permission-controlled JSON/YAML bulk creation for diagnoses, assay groups,
-  assays, gene lists and assay configurations, with example files, a paste editor
-  with live validation, preview and per-record installation results.
-
-- Show one analysis at a time in the assay catalog matrix, with an analysis selector
-  and gene-list headers without repeated SNV/CNV/fusion badges.
-
-- Persist notification dismissal per recipient across login and redeployment,
-  including broadcasts, without withdrawing messages for other users.
-
-- Added collection-level creator/updater attribution, preserved original creators
-  across edits, and made system-installed configuration read-only in administration
-  workflows. Added an explicit, dry-run-first historical attribution backfill.
-
-- Add a related-data migration stage and collection selectors for CNVs,
-  translocations, biomarkers, v2 fusions, v3 D4 coverage and embedded RNA results.
-  Allow these to migrate after samples without processing unrelated variants or QC.
-
-- Require installed HGNC/VEP metadata before shared VEP preparation. Add per-assay
-  findings, sample and final snapshot migration stages, retain original sample
-  ObjectIds, and split historical tumwgs samples into hema and solid ASPs.
-
-- Select annotation sources explicitly: hematology from v3, all other groups from v2.
-  Block sample conversion when a saved report references an excluded annotation.
-
-- Apply operator-supplied historical annotation assay/ASP and solid-diagnosis mappings
-  during v2/v3 migration, lowercase scope identifiers, and validate installed target scopes.
-
-- Build shared historical `anno_vep` migration bundles from v2/v3 variant evidence,
-  resolve annotations against exact transcripts, and add all-sample batch conversion
-  with embedded RNA results and per-sample reports. Document MongoDB apply commands
-  separately from offline preparation and local lookup indexes.
-
-- Correct offline v2/v3 migration persistence for blacklist assay scopes and reviewed
-  annotation diagnoses. Verify migrated blacklist entries through the runtime repository.
-
-- Align the modern report's center logo to the right edge with the center name below
-  it in HTML and PDF. Preserve clinical content and the existing report format.
-- Consolidate deployment acceptance into one checklist, remove the pending-development
-  maintenance page, and correct source-build versus verified-artifact instructions.
-
-Version 4 replaces the Flask application with FastAPI and React while preserving
-its supported clinical workflows.
-
-### Application and packages
-
-- Remove duplicate Python HTTP login helpers and the unused API authentication
-  re-export. Publish Python client 2.0 with one validated sync/async client flow;
-  move operational CLIs to that flow and preserve explicit token-output controls.
-- Rebuild distribution package trees before wheel creation so deleted modules cannot
-  reappear from stale setuptools output. Verify the installed client independently.
-- Remove obsolete flat fusion presentation adapters; consume the current gene-pair
-  and caller-evidence contracts, including zero read counts.
-- Remove obsolete response-envelope alternatives from finding, public gene-list,
-  knowledgebase, dashboard, audit and contract-catalog pages; align their fixtures
-  and the release workflow checker with the current API contracts.
-
-- Added typed DNA and RNA ingestion, analysis, reporting, administration, public
-  catalog, and cohort-review workflows.
-- Removed the legacy Flask application and its compatibility paths.
-- Apply the COYOTE3 Free-Use Source-Available License 1.0 to the application,
-  identify Ram Nanduri in module/package notices and retain Apache 2.0 for the
-  independent Python client. Preserve the main license's copyright statement.
-- Package core and root-level FastAPI modules together with optional `api` and
-  `all` dependencies and the installed `coyote3-api` entry point. Move HTTP clients
-  into the independent `coyote3-client` distribution with sync/async operations.
-  External client imports change from `coyote3.client` to `coyote3_client`.
-- Keep deployment catalogs, demo installers, contact/about pages, collection names
-  and product assets outside the core namespace. Group domain modules by clinical
-  responsibility and reusable authoring contracts under `contracts/authoring/`.
-  Document clinical record fields separately from physical storage keys and add
-  explicit MongoDB-adapter field bindings.
+Version 4 replaces the Flask application with FastAPI and React, bringing clinical
+review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
-- Compact modern-report metadata and replace empty finding tables with configurable
-  per-analysis text. Keep center wording separate from ASPC revisions and preserve
-  legacy output and populated finding tables. Capture saved modern-report wording
-  in the preview fingerprint so changed messages require another review before save.
+- Unified DNA and RNA review with assay-aware filtering, reference annotations,
+  coverage, biomarkers and consistent finding identities across workflows.
+- Governed query policies and reporting rules with visual authoring, sample-backed
+  previews, independent clinical review and controlled publication.
+- Modern branded HTML/PDF reports with compact patient information, readable
+  findings and formatted summaries. Saved reports retain immutable finding and
+  configuration snapshots; existing issued reports remain unchanged.
+- Consistent light/dark themes and clearer navigation across sample review,
+  reporting, the assay catalog and administration.
 
-- Added versioned data contracts, ASPC-driven filtering, reference annotations,
-  MongoDB-backed clinical reporting rules, and immutable report snapshots.
-- Add Coyote3/center branding and labeled metadata fields to the modern report,
-  with embedded validated SVG logos and print-safe A4 layout. Remove obsolete
-  logo files, use the current vector assets throughout, and support dark-theme lettering.
-- Add in-place PDF preview to the established report tab and show independently
-  installed core SDK and Python HTTP client versions on the About page.
-- Extract legacy and modern report HTML/CSS into packaged Jinja layouts and
-  modality-specific components. Preserve legacy template identities and clinical
-  content; allow registered modern layouts through governed template profiles.
-- Add **Try new report** for DNA/RNA with matching temporary HTML/PDF previews and
-  local downloads. Preserve established clinical content and saved-report behavior;
-  embed styles and bypass report numbering, snapshots and server report-file writes.
-- Resolve query policies and clinical reporting rules from current published scopes,
-  independently of ASPC revisions. Capture rules used by each report and require
-  another preview when publications change before save. Preserve issued reports.
-- Add configured SNV flag exclusions for both intents and tumor WGS groups while
-  retaining the existing `tumwgs` group. Preserve saved report snapshots.
+### Administration and security
 
-### Security and audit
+- Central management of assays, diagnoses, gene lists and configurations, including
+  validated JSON/YAML bulk installation and a public assay catalog.
+- Shared editing sessions and revision checks protect concurrent changes. Creator
+  attribution and read-only system records preserve configuration provenance.
+- Permission-based access across the UI and API, with assay and environment scopes,
+  required first-login password changes and retained clinical audit history.
+  Operational audit records have separate retention controls.
 
-- Added database-backed access control, authentication, auditing, notifications,
-  background processing, and operational controls.
-- Separate expiring operational audit records from retained clinical history;
-  enforce collection-scoped MongoDB runtime permissions and insert-only replay.
-  Existing deployments require the documented one-time identity role upgrade
-  before production installation checks. Add optional hourly checkpoint exports
-  to independently retained archival storage.
-- Enforce finding ownership and current clinical access for report notifications;
-  restrict sample deletion to its explicit permission. Add audit integrity chains,
-  durable outboxes/checkpoints and transaction-owned report-file erasure jobs.
+### Integrations and operations
 
-### Deployment and maintenance
+- Typed HTTP APIs, generated frontend contracts, and an API documentation portal
+  with authentication guidance, request examples and searchable endpoints.
+- Independently versioned core SDK and sync/async Python HTTP client, both starting
+  at `1.0.0`, alongside application `4.0.0`.
+- Offline v2/v3 migration workflows for samples, findings, annotations, blacklist
+  records and related data, with scope validation and preserved clinical history.
+- Container deployment, separate ingestion and maintenance workers, backup/restore
+  tooling, optional Redis TLS, and deployment acceptance and recovery procedures.
+- Expanded clinical regression coverage, synthetic integration/load testing, and
+  task-oriented user, developer and operator documentation.
 
-- Require authenticated, restricted identity connections for installation in every
-  environment. Replace anonymous local MongoDB examples with authenticated settings.
+### Upgrade and compatibility notes
 
-- Reject obviously anonymous production identity connections before image builds
-  and explain runtime credential, server authorization, and role prerequisites.
-
-- Added container deployment, backup and restore tooling, automated tests,
-  and operator and clinical documentation.
-- Build the application wheel inside the normal Docker installation, without
-  requiring host SDK preparation. Keep tested-wheel verification in the optional
-  release Compose overlay and release CI target.
-- Make fresh installation create identity, application catalogs, bundled references
-  and synthetic starter data by default, with module skip flags and preservation of
-  existing data. Later additions/repairs use API authentication, role checks and
-  first-login password change handling.
-- Separate ingestion and maintenance worker queues, bound activity scans and deep
-  sorted-page memory, and add error-mail backoff/quarantine and erasure diagnostics.
-- Add optional production Redis TLS and certificate procedures. Development and
-  staging keep the base Redis transport. Clarify application versus monitor email controls.
-
-### Quality and documentation
-
-- Add optional self-hosted load testing with synthetic fixtures, target checks,
-  authenticated workflows and separate measurement of ingest completion.
-- Generate frontend HTTP types from FastAPI OpenAPI, with source and running-server
-  checks and a verified-build CI gate. Use generated types for sample/navigation
-  and report responses; retain explicit transports for binary downloads/uploads.
-- Use Ruff for Python linting, formatting and import ordering; remove redundant
-  Black, Flake8 and isort tools and unused runtime dependencies. Remove the
-  documentation linter's vulnerable globbing dependencies and run Markdown checks
-  through the repository runner with a patched math renderer.
-- Replace obsolete release-validation commands, require real replica-set CI coverage,
-  and remove retired runtime/Compose compatibility tests while retaining supported
-  migration and clinical safety tests. Keep archived Compose definitions.
-- Separate frontend OpenAPI guidance from collection-contract documentation,
-  correct test and versioning instructions, and organize audit tests by responsibility.
-  Remove placeholder test docstrings while preserving their assertions and fixtures.
-
-For deployment prerequisites, index/retention maintenance, coordinated service
-replacement and rollback limits, follow
-[release maintenance](docs/deployment/release-maintenance.md) before the
-[upgrade procedure](docs/deployment/application-upgrades.md).
+- External Python clients now use the independent `coyote3-client` package and
+  import `coyote3_client` instead of `coyote3.client`.
+- The application uses the COYOTE3 Free-Use Source-Available License 1.0; the
+  independent Python client retains Apache 2.0.
+- Review database permissions, identity-role upgrades, schema/index maintenance
+  and rollback limits in the [upgrade procedure](docs/deployment/application-upgrades.md).
+  Legacy v2/v3 data migration is a separate operation, not a routine upgrade step.
 
 ## v3.1.23
 
@@ -360,7 +180,7 @@ replacement and rollback limits, follow
 - Fixed assay group toggle behavior in ISGL edit page, ensuring correct initial display and proper group–assay syncing.
 - Enhanced Create/Edit User pages with correct RBAC permission precedence, conflict detection, and a unified color-coded highlight system.
 - Added new GitHub bug and support issue templates with auto-assignment to Project 22.
-- Improved markdown rendering for summary comments—headings, line breaks, and formatting now display correctly using the enhanced format_comment filter.
+- Improved markdown rendering for summary comments-headings, line breaks, and formatting now display correctly using the enhanced format_comment filter.
 - Updated report terminology: replaced “variant” with “mutation” in summary text, variant summary table, detailed table headers, and Tier 3 naming.
 
 ## v3.0.9
@@ -376,7 +196,7 @@ replacement and rollback limits, follow
 
 ### HotFix #117
 
-- Fixed handling of long indel in reports: indels longer than 20 characters are no longer truncated in the UI — table cells show the indel length (e.g., "45 bp") instead of a cut-off sequence. For very long indels (>30 characters) the column header is also updated to include the indel length to improve readability.
+- Fixed handling of long indel in reports: indels longer than 20 characters are no longer truncated in the UI - table cells show the indel length (e.g., "45 bp") instead of a cut-off sequence. For very long indels (>30 characters) the column header is also updated to include the indel length to improve readability.
 
 ## v3.0.7
 

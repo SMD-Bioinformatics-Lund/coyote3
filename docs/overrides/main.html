@@ -1,8 +1,15 @@
 {% extends "base.html" %}
+{% block mobile_nav %}
+<button type="button" data-toggle="wy-nav-top" class="docs-mobile-menu" aria-label="Toggle documentation menu" aria-controls="docs-sidebar" aria-expanded="false">
+  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+</button>
+<a href="{{ nav.homepage.url | url }}">Coyote3 documentation</a>
+{% endblock %}
 {% block extrahead %}
 {{ super() }}
 <script src="{{ 'javascripts/reading-theme.js' | url }}"></script>
 <script src="{{ 'javascripts/table-layout.js' | url }}" defer></script>
+<script src="{{ 'javascripts/reading-flow.js' | url }}" defer></script>
 {% endblock %}
 {% block search_button %}
 {{ super() }}
@@ -90,6 +97,18 @@
 {% endfor %}
 {% endblock %}
 {% block content %}
+<div class="docs-reading-tools">
+<div id="docs-return-context" class="docs-return-context" hidden></div>
+{% if reading_path %}
+<nav class="docs-reading-path" aria-label="Reading path">
+  <p><strong>{{ reading_path.title }}</strong> <span>· {{ reading_path.position }} of {{ reading_path.entries | length }}</span></p>
+  <details><summary>Steps in this task</summary><ol>{% for entry in reading_path.entries %}<li><a href="{{ entry.url | url }}"{% if loop.index == reading_path.position %} aria-current="step"{% endif %}>{{ entry.label }}</a></li>{% endfor %}</ol></details>
+</nav>
+{% endif %}
+</div>
+{% if page and page.toc and page.toc.items[0] and page.toc.items[0].children %}
+<details class="docs-page-contents"><summary>On this page</summary><ul>{% for heading in page.toc.items[0].children %}<li><a href="{{ heading.url }}">{{ heading.title }}</a></li>{% endfor %}</ul></details>
+{% endif %}
 {% set environment = config.extra.environment | trim | lower %}
 {% if environment and environment not in ["production", "prod"] %}
 <div class="admonition warning" role="status">
@@ -98,4 +117,10 @@
 </div>
 {% endif %}
 {{ super() }}
+{% if reading_path %}
+<nav class="docs-reading-next" aria-label="Continue this task">
+{% if reading_path.previous %}<a href="{{ reading_path.previous.url | url }}"><span>Previous in this task</span><strong>{{ reading_path.previous.label }}</strong></a>{% endif %}
+{% if reading_path.next %}<a href="{{ reading_path.next.url | url }}"><span>Continue this task</span><strong>{{ reading_path.next.label }} →</strong></a>{% else %}<p>Task path complete. Use the references on this page for field-level details.</p>{% endif %}
+</nav>
+{% endif %}
 {% endblock %}

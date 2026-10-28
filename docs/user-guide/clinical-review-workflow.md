@@ -4,12 +4,17 @@ Clinical review progresses from sample selection through analysis, classificatio
 and report preparation. Page controls and their effects on clinical records are
 documented in the [application user guide](application-guide.md).
 
+**You need:** access to a ready sample and permission for the review/report actions
+you intend to perform. **You finish with:** reviewed findings and a saved report,
+or a recorded reason why review cannot continue. Follow the steps on this page;
+the DNA, RNA and coverage references provide extra detail only when needed.
+
+![Clinical review responsibilities and evidence](../assets/diagrams/clinical-review-flow.svg)
+
 ## 1. Find the sample
 
 Open **Samples**, select the date range and assay scope, then search by sample
 or case identifier. Select the sample name to open its workspace.
-
-![Coyote3 sample list](../assets/screenshots/samples.png)
 
 | Sample state | Meaning |
 | --- | --- |
@@ -82,7 +87,13 @@ them with **Show hidden comments** and restore them when appropriate.
 
 ## 7. Prepare the report
 
-Open **Reports** and review the temporary preview. The report text uses the
+If you use generated reporting-rule wording, request the suggestion in the sample
+comment editor, review it and save the comment. A generated suggestion is a draft;
+requesting it does not save a sample comment or a report. If no published reporting
+rules resolve, the report remains available and the UI warns that an automatic
+summary is unavailable.
+
+Open **Reports** and review the temporary preview. The report conclusion uses the
 latest visible sample comment; no comment produces an empty summary. Reported
 finding rows are built from the current reportable findings and enabled report
 sections.
@@ -92,10 +103,15 @@ Saving a report stores:
 - the rendered report and artifacts;
 - the resolved ASPC and reporting-rule identity;
 - the effective filter snapshot;
+- resolved query-policy provenance and the configuration resolution receipt;
 - typed reported-finding snapshots; and
 - author and creation time.
 
 Review the saved output before treating the sample as complete.
+
+Continue directly to [report preview and save controls](application-guide.md#reports)
+if you need the individual screen actions. You do not need to read the reporting-rule
+syntax reference to save a report.
 
 ## 8. Return to a table
 

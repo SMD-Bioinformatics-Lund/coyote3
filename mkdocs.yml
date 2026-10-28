@@ -2,10 +2,15 @@ site_name: Coyote3 Documentation
 site_description: Coyote3 system, engineering, operations, and user documentation
 docs_dir: docs
 site_dir: site
+exclude_docs: |
+  /overrides/
+  /hooks/
+  /reading-paths.yml
 repo_name: Coyote3
 hooks:
   - docs/hooks/version.py
   - docs/hooks/callouts.py
+  - docs/hooks/reading.py
 
 theme:
   name: readthedocs
@@ -47,14 +52,19 @@ markdown_extensions:
   - tables
   - sane_lists
   - attr_list
+  - md_in_html
+
+validation:
+  links:
+    anchors: warn
 
 nav:
   - Home: README.md
   - Getting started:
-      - "Start here: choose your task": getting-started/README.md
+      - "Choose a task": getting-started/README.md
       - "Try Coyote3 locally": getting-started/local-quickstart.md
       - Installation and updates:
-          - "Start here: install, upgrade or restart": deployment/README.md
+          - "Browse deployment topics": deployment/README.md
           - "Choose a procedure": deployment/production-deployment.md
           - "Production requirements": deployment/production-requirements.md
           - "First installation": deployment/first-installation.md
@@ -68,7 +78,7 @@ nav:
           - "Bootstrap and installed data": deployment/bootstrap-data-flow.md
           - "Required clinical data": deployment/required-data.md
       - Configuration reference:
-          - "Start here: choose a configuration resource": configuration/README.md
+          - "Configuration reference index": configuration/README.md
           - Deployment settings:
               - "Environment file explained": configuration/environment-file.md
               - "Environment variables and defaults": deployment/configuration-reference.md
@@ -82,11 +92,8 @@ nav:
               - "Filter flag metadata file": configuration/filter-flag-metadata-file.md
               - "Collection mapping file": configuration/collection-mapping-file.md
   - Use Coyote3:
-      - "Start here: clinical review": user-guide/README.md
-      - Learn the application:
-          - "Sign in, navigate and use the application": user-guide/application-guide.md
-          - "Features at a glance": user-guide/feature-overview.md
-          - "Find an application page": user-guide/pages-and-workflows.md
+      - "Browse clinical topics": user-guide/README.md
+      - "Sign in, navigate and use the application": user-guide/application-guide.md
       - Review a sample:
           - "Review steps from sample to report": user-guide/clinical-review-workflow.md
           - "Find and open samples": user-guide/sample-management.md
@@ -100,9 +107,8 @@ nav:
           - "Dashboard": user-guide/dashboard.md
           - "What each action changes": user-guide/actions-and-record-changes.md
           - "Pages, table columns and badges": user-guide/pages-and-table-columns.md
-          - "Screenshots": user-guide/interface-screenshots.md
   - Administer Coyote3:
-      - "Start here: administration tasks": administration/README.md
+      - "Browse administration tasks": administration/README.md
       - Set up an assay:
           - "Prerequisites and setup steps": administration/assay-setup.md
           - "Register assay groups": administration/assay-groups.md
@@ -132,7 +138,7 @@ nav:
           - "Permission catalog": administration/permission-catalog.md
           - "Application control settings": administration/application-controls.md
   - API integration:
-      - "Start here: connect an integration": api/README.md
+      - "API integration index": api/README.md
       - "Authenticate to the API": api/authentication.md
       - "API routes and workflows": api/routes-and-workflows.md
       - "API route groups and visibility": api/route-groups.md
@@ -141,7 +147,7 @@ nav:
       - "Collection imports and permissions": api/collection-imports.md
       - "API versioning and compatibility": api/versioning-and-compatibility.md
   - Python SDK:
-      - "Start here: choose core SDK or HTTP client": sdk/README.md
+      - "Choose core SDK or HTTP client": sdk/README.md
       - Getting started: sdk/getting-started.md
       - Package boundaries: sdk/package-boundaries.md
       - Core and server installation: sdk/server-installation.md
@@ -152,7 +158,7 @@ nav:
       - Python reference: sdk/reference.md
       - Versions and compatibility: sdk/compatibility.md
   - Architecture:
-      - "Start here: system design": architecture/README.md
+      - "Architecture reference index": architecture/README.md
       - "Application architecture": architecture/application-architecture.md
       - Architecture and workflow diagrams: architecture/diagram-guide.md
       - "Resource relationships": architecture/resource-relationships.md
@@ -169,7 +175,7 @@ nav:
           - "ADR-0002: Local Password Lifecycle With Email Fallback": architecture/decisions/0002-local-password-lifecycle.md
           - "ADR 0003: synchronous HTTP handlers and MongoDB execution": architecture/decisions/0003-synchronous-http-and-mongodb.md
   - Develop Coyote3:
-      - "Start here: development workflow": development/README.md
+      - "Browse engineering topics": development/README.md
       - Set up and run:
           - "Local development environment": getting-started/developer-environment.md
           - "Code structure and development guide": development/developer-guide.md
@@ -189,7 +195,7 @@ nav:
           - "Dependency security": development/dependency-security.md
           - "Script reference": development/script-reference.md
   - Operate Coyote3:
-      - "Start here: operations tasks": operations/README.md
+      - "Browse operations tasks": operations/README.md
       - Monitor and maintain:
           - "Maintenance checks": operations/maintenance-and-verification.md
           - "Monitoring and alerts": operations/monitoring-and-alerts.md
@@ -209,19 +215,11 @@ nav:
           - "Choose a migration": operations/migrations/README.md
           - "Clinical data: order and commands": operations/migrations/clinical-data.md
           - "Variant blacklist": operations/migrations/variant-blacklist.md
-          - From Coyote v2:
-              - "Scope and prerequisites": migration_from_v2/README.md
-              - "Source schema inventory": migration_from_v2/schema-inventory.md
-              - "Migration procedure": migration_from_v2/migration-guide.md
-          - From Coyote v3:
-              - "Scope and prerequisites": migration_from_v3/README.md
-              - "Source schema inventory": migration_from_v3/schema-inventory.md
-              - "Migration procedure": migration_from_v3/migration-guide.md
           - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
           - "Clinical-rule data maintenance": operations/migrations/clinical-rule-migrations.md
           - "Reference database placement": operations/migrations/knowledgebase-database-migration.md
   - Data and clinical reference:
-      - "Start here: find a reference": reference/README.md
+      - "Data reference index": reference/README.md
       - Understand the data:
           - "System overview": reference/application-overview.md
           - "Clinical terms and resource identities": reference/clinical-concepts.md
@@ -231,7 +229,6 @@ nav:
       - Prepare sample inputs:
           - "File formats and defaults": reference/file-format-conventions.md
           - "Sample YAML manifest": reference/sample-manifest.md
-          - "Sample input file formats": reference/sample-file-formats.md
       - Raw ingest file reference:
           - "Choose an input format": reference/ingest-files/README.md
           - Small variants · VCF: reference/ingest-files/small-variants-vcf.md
@@ -273,7 +270,7 @@ nav:
           - "MongoDB collection contracts": reference/mongodb-collections.md
           - "Operational files and artifacts": reference/operational-files.md
   - Test and validate Coyote3:
-      - "Start here: choose validation checks": testing/README.md
+      - "Choose validation checks": testing/README.md
       - "Test strategy and quality gates": testing/test-strategy-and-quality-gates.md
       - "Validation datasets and test fixtures": testing/test-data-and-fixtures.md
       - "Synthetic clinical workflow exercises": testing/clinical-workflow-demo.md
@@ -282,7 +279,7 @@ nav:
       - "Browser and release validation": testing/browser-and-release-validation.md
       - "Load and capacity testing": testing/load-and-capacity-testing.md
   - Project:
-      - "Start here: contribution and licensing": project/README.md
+      - "Contribution and licensing index": project/README.md
       - Future work: project/future-work.md
       - "Contributing": project/contributing.md
       - "Maintainer guide": project/maintainer-guide.md

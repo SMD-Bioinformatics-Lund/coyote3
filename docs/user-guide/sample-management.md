@@ -4,8 +4,6 @@ The Samples page is the clinical worklist. It shows every sample visible to the
 current user after role, assay, group, environment, date, and search filters are
 applied.
 
-![Coyote3 sample list](../assets/screenshots/samples.png)
-
 ## Find samples
 
 | Control | Behavior |
@@ -28,22 +26,19 @@ the user profile.
 | --- | --- |
 | Sample | Canonical sample name and link to its workspace. |
 | Case ID | Case identifier supplied by the ingest manifest. |
-| Case clarity | Case identifier from the upstream LIMS when provided. |
+| Case Clarity | Case identifier from the upstream LIMS when provided. |
 | Control | Control sample identifier for paired analyses. |
-| Control clarity | Control LIMS identifier when provided. |
-| Environment | Production, validation, testing, or development context. |
-| ASP | Assay panel used to resolve configuration. |
+| Control Clarity | Control LIMS identifier when provided. |
+| Profile | Production, validation, testing, or development context. |
+| Assay | Assay panel used to resolve configuration. |
 | Diagnosis | Requested in-silico diagnosis or `base`. |
 | Pipeline | Pipeline name and version when supplied. |
-| Analysis | Current sample analysis state. |
-| Report | Reported or unreported state. |
-| Counts | Loaded analysis resources and finding counts. Green badges indicate loaded data; failed or partial resources use an error state. |
+| Data | One status indicator: a tick for complete data, warning for partial availability, or cross when unavailable. Hover, focus, or click opens counts and availability for every listed data type. |
 | Added | Time the sample was added, shown in local time. |
-| Latest report | Most recent saved report time on the reported worklist. |
-| Actions | Opens the sample workspace. |
+| Latest reported | Most recent saved report time on the reported worklist. |
 
-Count badges are not sorted as one value because a cell can contain several
-analysis types.
+The Data column is not sortable. Its tooltip retains the separate counts and
+availability states for the sample's analysis types.
 
 ## Open a sample
 

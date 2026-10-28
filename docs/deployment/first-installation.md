@@ -149,7 +149,7 @@ Set or confirm these values in the selected environment file:
 | Settings | Required decision |
 | --- | --- |
 | `ENV_NAME` | Use `production` for the production image and runtime profile. |
-| Four MongoDB URI settings | Set `COYOTE3_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE3_MONGO_URI`. Identity authentication is required either way. |
+| Four MongoDB URI settings | Set `COYOTE3_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE3_MONGO_URI`. Unauthenticated database connections produce a warning and do not block installation. Application authentication remains required. |
 | Four database names | Set `COYOTE3_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`; the selected namespaces must not overlap on the same endpoint. |
 | Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values of at least 16 characters. Redis accepts letters, digits, underscores and hyphens. |
 | `COYOTE3_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
@@ -616,22 +616,24 @@ ISGL means an analysis-specific in-silico gene list.
 | 3 | Create and save the **Assay** step in Assay setup. | Stable ASP ID, group, DNA/RNA category, family, covered genes and expected/required input files are defined. This is a draft, not an ingest-ready ASP. |
 | 4 | Select **Scopes** and target environments. | Base is included automatically. Register/reuse any active named diagnosis definitions, refresh them and select the needed scopes. Their assay associations are created at activation. |
 | 5 | Prepare **Gene lists** if filters will select them. | Each selected ISGL has the correct type, genes and assay/group/scope bindings. Leave this step empty if no list is required. |
-| 6 | Use **Open rule builder** for the saved draft assay; test, review and publish its rules. | A compatible published assay/scope/analyte/language release exists and declares the intended report analyses. Return to setup and refresh rules. |
+| 6 (optional) | Use **Open rule builder** to author, test, review and publish automatic report wording. | If publishing, use a compatible assay/scope/analyte/language release and refresh rules in setup. If omitted, reports remain available without automatic summary text, with a warning. |
 | 7 | Save **Configurations** for every selected scope/environment pair. | Each ASPC has supported analyses, filter defaults, eligible selected lists and compatible report settings. Base plus one named scope in two environments requires four ASPCs. |
 | 8 | Resolve **Review** readiness errors and submit. Have the independent reviewer approve and activate. | Operational ASP, associations, staged ISGLs and ASPCs are committed together. Merely saving/submitting a draft does not enable ingest. |
 | 9 | Verify user access and ingest an approved validation sample. | The intended ASPC resolves; evidence, tabs, gene filters, report preview, saved report and audit records behave as approved. Review any Base-fallback warning. |
 | 10 | Publish public assay catalog content if needed. | The separate catalog approval workflow exposes the offering. It is not required to activate the assay or review its samples. |
 
 **Order is conditional.** Shared diagnosis definitions may be prepared before an
-assay. ISGLs and reporting rules can be prepared in either order after their assay
-and scope dependencies exist; both must be suitable before dependent ASPCs are
-approved. Base needs no diagnosis record. Unselected gene lists and public catalog
-entries do not block setup. A saved setup draft can be selected in the rule builder,
-so an operational ASP need not be created separately first.
+assay. Selected ISGLs must be eligible before their dependent ASPCs are approved.
+Reporting rules can be drafted against a planned assay ID and linked later;
+publication requires an available compatible scope. Rules may be published before
+or after setup activation. Base needs no diagnosis record. Missing report wording,
+unselected gene lists and public catalog entries do not block setup.
 
 **Missing resources have different effects.** A missing active group blocks new
 setup/ingest; a missing selected ISGL blocks configuration validation; a missing
-compatible published rule or selected ASPC combination blocks setup activation.
+selected ASPC combination blocks setup activation. Missing published reporting
+rules produce a warning and omit automatic summary text. An existing incompatible
+or invalid publication still fails compatibility checks.
 During sample resolution, a missing named ASPC may fall back to Base in the same
 environment with a warning; without either ASPC, ingest fails. Required missing
 inputs reject ingest, whereas optional expected inputs produce missing-evidence

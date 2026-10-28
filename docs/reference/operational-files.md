@@ -28,7 +28,7 @@ assigned by bootstrap; rerunning bootstrap does not reset existing history.
 | --- | --- | --- |
 | BRCA Exchange, CIViC, TP53 and COSMIC snapshots | Source-specific headers, product selection and compression; see [knowledgebase import formats](../operations/knowledgebase-updates.md) | Do not fabricate missing columns or merge releases manually. Dry run validates complete input before database publication. |
 | VEP release metadata | Release-specific importer inputs and source provenance; see [VEP update options](../operations/vep-metadata-updates.md) | A new release does not replace every historical release. |
-| Legacy migration exports, review files and backfill text | Version-specific collection inventory and exact columns: [v2](../migration_from_v2/migration-guide.md), [v3](../migration_from_v3/migration-guide.md) | Use migration reports for unavailable values. Never infer run names, read counts or clinical approval. |
+| Legacy migration exports, review files and backfill text | [Source inspection and field mappings](../operations/migrations/clinical-data.md#source-inspection-and-field-mappings) for v2/v3 | Use migration reports for unavailable values. Never infer run names, read counts or clinical approval. |
 | MongoDB backup archives | `mongodump` archive/compression options paired with the matching restore command | No default target is safe; select the intended database endpoint explicitly. Follow [backup and recovery](../operations/backup-and-recovery.md). |
 | Load-generator configuration | Separate environment/JSON settings and synthetic target checks | Follow [load-test configuration](../testing/load-and-capacity-testing.md); application production credentials are not a test fixture. |
 

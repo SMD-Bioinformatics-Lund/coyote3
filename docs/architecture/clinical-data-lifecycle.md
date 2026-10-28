@@ -1,6 +1,6 @@
 # Clinical data lifecycle: ingest, storage, and retrieval
 
-This reference explains how Coyote3 accepts pipeline output, validates it, stores it, and returns it to clinical review and reporting workflows. It complements the [runtime data contracts](data-contracts.md), [sample input files](../reference/sample-file-formats.md), and [clinical data and reporting flow](clinical-data-and-reporting.md).
+This reference explains how Coyote3 accepts pipeline output, validates it, stores it, and returns it to clinical review and reporting workflows. It complements the [runtime data contracts](data-contracts.md), [sample input files](../reference/ingest-files/README.md#file-contracts), and [clinical data and reporting flow](clinical-data-and-reporting.md).
 
 ## Core model
 
@@ -286,4 +286,5 @@ When a sample is not ready or an expected tab is missing:
 5. Confirm the sample omics layer and ASPC analysis_types; DNA endpoints are not called for RNA samples, and RNA-only endpoints are not called for DNA samples.
 6. For transcript issues, check the sample VEP version and matching anno_vep record before examining the selected display transcript.
 
-For field-level collection shapes, see [collection contracts](../reference/mongodb-collections.md). For the manifest format and key definitions, see [sample input files](../reference/sample-file-formats.md).
+For field-level collection shapes, see [collection contracts](../reference/mongodb-collections.md).
+For the manifest format and key definitions, see the [sample manifest](../reference/sample-manifest.md).

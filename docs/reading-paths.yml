@@ -1,0 +1,51 @@
+# Ordered procedures, not the global sidebar's reference inventory.
+paths:
+  - title: Review a sample and save its report
+    pages:
+      - file: user-guide/clinical-review-workflow.md
+        label: Review the sample
+      - file: user-guide/application-guide.md
+        label: Preview and save the report
+        anchor: reports
+  - title: Configure and validate an assay
+    pages:
+      - file: administration/assay-setup.md
+        label: Complete assay setup
+      - file: administration/query-rules.md
+        label: Check finding selection
+      - file: administration/report-rule-authoring.md
+        label: Configure report wording (optional)
+      - file: testing/clinical-workflow-demo.md
+        label: Exercise the configured workflow
+  - title: Install at a new center
+    pages:
+      - file: deployment/production-requirements.md
+        label: Check infrastructure prerequisites
+      - file: deployment/first-installation.md
+        label: Install and bootstrap
+      - file: deployment/acceptance-checklist.md
+        label: Verify the installation
+      - file: deployment/required-data.md
+        label: Verify clinical prerequisites
+  - title: Make an application change
+    pages:
+      - file: getting-started/developer-environment.md
+        label: Prepare the development environment
+      - file: development/developer-guide.md
+        label: Locate the responsible layer
+      - file: development/schema-contracts.md
+        label: Update contracts when needed
+      - file: development/frontend-api-contracts.md
+        label: Regenerate frontend contracts when needed
+      - file: testing/test-strategy-and-quality-gates.md
+        label: Verify the change
+  - title: Connect a pipeline
+    pages:
+      - file: api/authentication.md
+        label: Authenticate and arrange permissions
+      - file: reference/sample-manifest.md
+        label: Prepare the manifest
+      - file: api/sample-ingestion.md
+        label: Submit and track the job
+      - file: operations/ingest-job-recovery.md
+        label: Investigate an uncertain or failed job

@@ -15,6 +15,7 @@ Jinja's package loader resolves files independently of the working directory.
 | `modern/components/dna/`, `modern/components/rna/` | Modern sample-information overrides; the legacy components retain their original markup. |
 | `components/modern/` | Branded report header and labeled sample-details layout. |
 | `modern/report.html` | Modern inheritance and overrides over the same clinical body. |
+| `modern/manifest.toml` | Version of the shared modern DNA/RNA template bundle. |
 | `components/header.html`, `components/footer.html` | Modern head metadata/styles and temporary-preview notice. |
 
 `application/reporting/report_context.py` prepares display defaults from already
@@ -66,26 +67,122 @@ clinical text parity, sanitization, profile selection, authorization and tempora
 report nonpersistence. The report directory is excluded from automatic HTML
 reformatting because whitespace participates in approved source identities.
 
+## Template bundle releases
+
+DNA and RNA template versions are two of Coyote3's five release version numbers.
+For the application/UI, core SDK and Python client SDK versions, see
+[Version identities](../sdk/compatibility.md#version-identities).
+
+Manage the modern reports' independent DNA and RNA versions in
+`src/coyote3/templates/reporting/modern/manifest.toml`, alongside its template files:
+
+```toml
+[dna]
+version = "1.0.0"
+
+[rna]
+version = "1.0.0"
+```
+
+The manifest is packaged with the HTML, CSS and fonts. The renderer selects the
+version for the report's analyte. The loader requires valid `MAJOR.MINOR.PATCH`
+versions for both analytes and rejects missing or invalid metadata instead of
+supplying a default.
+
+For a template release:
+
+1. Update the layout assets and increment the affected analyte's version. Changes
+   to shared HTML, CSS or fonts require both versions to advance. Use a patch
+   release for presentation fixes, a minor release for compatible presentation
+   additions, and a major release for incompatible template changes.
+2. Run the reporting regressions and inspect DNA/RNA HTML and PDFs, including
+   multi-page content. Clinical wording and finding selection still follow their
+   existing governed workflows.
+3. Build the package with the manifest and assets together. Review and publish
+   affected template profiles through the existing approval process before use.
+
+The footer displays the selected analyte's manifest version. Its content hash
+includes that version; changing only the DNA version does not change the RNA hash,
+and vice versa. Changing shared assets still
+changes the hash even when the version was not incremented. Existing issued
+reports retain their original artifacts and do not acquire a later template version.
+
 ## Modern PDF pagination
 
-Modern reports use the Coyote3 purple and warm accent palette. The report header
-contains Coyote3 and center logos; sample details use compact inline label/value pairs with
-full-width question and report-identifier fields. The same clinical values and
-wording remain available in both formats. Presentation overrides are loaded only
-for the modern layout, and their sources participate in its content hash.
+Modern reports use white paper, neutral text and table fills, purple section headings,
+and a thin purple-to-orange masthead rule. Patient-information and finding-table
+headings use a near-white fill with darker text. The masthead contains Coyote3 and
+center logos, with a black Coyote3 wordmark and no product subtitle.
+A separate document heading displays the configured report title and sample name.
+Patient and sample details appear in a compact table with paired labels and values,
+and full-width question and report-identifier fields. Findings use consistent tables;
+the conclusion has a distinct bordered panel. Supporting descriptions and classification references use
+the same typography, with smaller text than the main results.
 
-The modern stylesheet defines A4 paper, 18 mm top, 15 mm side and 20 mm bottom
-margins, plus page counters. Fixed table layouts and wrapping keep long identifiers
+The modern layout embeds Source Sans 3 in regular, semibold and italic weights
+as WOFF2 data URLs in `assets/fonts.css`. Its SIL Open Font License is packaged alongside
+the stylesheet in `assets/SourceSans3-LICENSE.md`. Browser and PDF rendering use the
+same font without network requests or installed system fonts. The fonts come from the
+[Source Sans project](https://github.com/adobe-fonts/source-sans)
+and the static regular, semibold and italic faces are packaged as WOFF2 files.
+The same clinical values, wording
+and section order remain available in both formats. Presentation overrides are
+loaded only for the modern layout, and their sources participate in its content hash.
+
+The modern stylesheet defines A4 paper, 14 mm top, 16 mm side and 18 mm bottom
+margins, plus page counters and the sample reference on continuation pages.
+HTML uses the same 210 mm paper width and physical margins, giving both renderers
+178 mm of content width. The preview scrolls horizontally on narrower screens
+instead of changing table columns, font sizes or label placement. Detailed finding
+tables and CNV images use the same layout rules in screen and print media.
+PDF pagination adds page breaks, continuation references and footers; HTML remains
+a continuous document on the same paper width.
+Patient and specimen information uses a compact table with two label/value pairs
+per row. Clinical questions and report identifiers use full-width value cells.
+Result tables use 4 px vertical cell padding, with smaller gaps between sections.
+Modern summary tables wrap their shared clinical header row in `thead` and finding
+rows in `tbody`, so column headings repeat when a table continues onto another PDF page.
+Detailed finding tables use single neutral rules, with full-height label backgrounds
+for classification and annotation rows.
+The conclusion uses a pale yellow background and an amber rule. The modern layout
+renders its saved comment through the existing sanitized Markdown formatter. Tables
+have bordered cells, left-aligned headings and light header fills. Lists, headings,
+quotes and code retain their structure with compact spacing in both HTML and PDF.
+These styles are scoped to the conclusion and do not change clinical result tables.
+The document flows continuously without the legacy forced page breaks after the conclusion or
+CNV profile. Fixed table layouts and wrapping keep long identifiers
 within the printable width. Section headings stay with the following content.
-Long finding annotations flow across pages rather than remaining in an oversized,
-non-breaking table row. CNV profile images retain their aspect ratio and fit within
+Detail tables that fit on a page stay together; a table moves to the next page
+when there is insufficient space. Longer finding annotations can still flow across
+pages without text loss. The footer identifies the analyte and template version,
+for example `Coyote3 · DNA report (template v1.0.0)`. The version comes from the
+bundle's `modern/manifest.toml` and is independent of the patient report number
+and application release. See [Template bundle releases](#template-bundle-releases)
+for version updates and approval.
+CNV profile images retain their aspect ratio and fit within
 the page without the legacy rotation or fixed-width padding.
 
 The report can contain as many pages as its clinical content requires; text is not
 truncated or scaled down to force a single page. Pagination tests render DNA/RNA,
 long annotations and identifiers, and portrait/landscape CNV images with WeasyPrint.
-They check A4 dimensions, text and image bounds, and retention of the final annotation.
+They check A4 dimensions, screen/PDF geometry, text and image bounds, repeated
+continuation headings, and retention of every summary finding and the final annotation.
 Review a real PDF after changing print styles, including multi-page text and images.
+
+## Browser PDF previews
+
+Current and temporary modern reports use `ReportPdfFrame` for PDF previews. Binary
+requests use the shared API client, including session handling and structured
+errors. The client checks the PDF header and final end-of-file marker before
+opening the viewer, and supplies the PDF MIME type when the response omits it.
+These checks detect error pages and truncated responses; they do not replace PDF parsing.
+
+The viewer owns its object URL and releases it on replacement or unmount. Reloading
+the viewer creates a fresh URL without regenerating or saving the report. A failed
+or stalled iframe offers recovery controls; browsers without embedded PDF support
+show open/download controls directly. Open PDF and Download this PDF use the same
+prepared bytes as the embedded preview. A browser load event cannot prove that its
+native PDF plugin painted every page, so those controls remain available after load.
 
 ## Center branding
 
@@ -103,6 +200,9 @@ inside their mounted center configuration directory, or `""` to omit the mark.
 The selected file must be at most one megabyte. Paths escaping that directory,
 SVG scripts, nested images and external references are rejected.
 The performing organization name comes from the existing organization setting.
+Optional `organization.address` and `organization.phone` in `contact.toml` appear
+below the center name; the telephone has an embedded icon. Omitted or blank values
+produce no contact row. The support escalation number is not used as a report contact.
 Apply center configuration through the normal deployment/restart procedure.
 
 Logos are embedded in the HTML for offline viewing and PDF generation. Report

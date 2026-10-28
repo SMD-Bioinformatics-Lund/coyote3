@@ -25,8 +25,10 @@ when resuming a local installation.
 
 Edit `.coyote3_dev_env`: replace every applicable placeholder secret, select four
 database names with separate namespaces and configure each URI to a writable replica set with its
-intended grants. MongoDB authentication and the restricted identity role are
-required in development as well as production. Compose pins MongoDB 7.0.41 when the optional database services
+intended grants when authentication is enabled. Unauthenticated connections produce
+a warning and do not block the installer. The restricted identity role is needed
+for database-enforced audit protection, which is separate from application login.
+Compose pins MongoDB 7.0.41 when the optional database services
 are used. Database infrastructure has its own lifecycle; follow
 [first-time provisioning](../deployment/mongodb-first-setup.md) for a new server.
 

@@ -51,7 +51,7 @@ does not establish correct measurements or clinical compatibility.
 - [Database contracts](mongodb-collections.md): persisted fields; not raw pipeline schemas.
 - [Reporting rules](clinical-reporting-rules.md): governed clinical logic and publication requirements.
 - [Knowledgebase updates](../operations/knowledgebase-updates.md): source-specific datasets and publication.
-- [Migration from v2](../migration_from_v2/README.md) and [v3](../migration_from_v3/README.md): legacy inputs, inventories and missing-data backfills.
+- [Clinical data migration](../operations/migrations/clinical-data.md#select-the-source-version): v2/v3 inputs, inventories and missing-data backfills.
 
 Before a submission, check the selected assay, file shape, required fields, units,
 identifiers and process-visible paths. Use the workflow's validation or dry-run

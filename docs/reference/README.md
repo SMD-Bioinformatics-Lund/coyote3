@@ -32,7 +32,6 @@ For creating or changing an assay, use [administration](../administration/README
 | [Application domains and services](domain-services.md) | Map application domains to their resources and service responsibilities. |
 | [File formats and defaults](file-format-conventions.md) | Interpret required fields, nulls, examples and format boundaries. |
 | [Sample YAML manifest](sample-manifest.md) | Write and validate a sample YAML manifest. |
-| [Sample input file formats](sample-file-formats.md) | Check the VCF and JSON formats consumed by ingestion. |
 | [Raw ingest file reference](ingest-files/README.md) | Prepare each raw VCF or JSON input using field definitions and complete synthetic examples. |
 | [HRD, MSI, and TMB](measurement-analyses.md) | Configure measurement availability, rules, reports, and exports. |
 | [Assay configuration and query filtering](assay-filtering.md) | Trace assay configuration into analysis availability and query filters. |

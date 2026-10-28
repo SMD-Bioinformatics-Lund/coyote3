@@ -11,9 +11,9 @@ are separate operations; the links below identify the appropriate procedure.
 | Update a running installation | [Upgrade the application or configuration](../deployment/application-upgrades.md) |
 | Restart or replace containers without changing the release | [Restart or redeploy](../deployment/application-redeployment.md) |
 | Understand a file or setting mentioned in a procedure | [Configuration and file formats](../configuration/README.md) |
-| Add the first or another clinical assay | [Administration starting path](../administration/README.md#first-time-configuring-an-assay), then [assay setup](../administration/assay-setup.md) |
+| Add the first or another clinical assay | [Assay setup procedure](../administration/assay-setup.md#step-by-step-add-a-new-assay) |
 | Understand built-in finding selection and UI query rules | [Application base queries](../administration/query-rules.md#application-base-queries-by-analysis) and [policy inheritance](../administration/query-rules.md#scope-and-inheritance) |
-| Begin clinical review | [Application user guide](../user-guide/application-guide.md) |
+| Begin clinical review | [Review one sample from start to report](../user-guide/clinical-review-workflow.md) |
 | Prepare to develop application code | [Developer environment](developer-environment.md) |
 
 ## Choose a reading path
@@ -44,8 +44,10 @@ only when you need field definitions or implementation details.
 
 ## Using the documentation navigation
 
-Open a sidebar section and choose its **Start here** page for a task-based route.
-Use the page's section headings to jump to a specific topic. The **Clinical
+Sidebar group headings expand their links; they do not open another contents page.
+Choose a procedure link to begin. **On this page** opens that page's section list.
+Task pages show their ordered path and a **Continue this task** link at the end.
+The **Clinical
 reference** shortcuts link directly to common review and assay topics.
 Search using the visible application term, such as “assay group”, “query rules”,
 “missing results” or “report preview”. For internal names such as ASP, ASPC and
@@ -63,7 +65,10 @@ and recovery references alongside the three ordered procedures.
 A procedure gives the order, commands or screen actions, expected results and
 conditions that stop progress. A reference explains a named resource or file,
 its fields, valid values, defaults, validation and effect on application behavior.
-Follow the linked reference when a term is unfamiliar; return to the same step afterward.
+Follow a linked reference when you need that detail. The site displays
+**Return to …** above the reference, taking you back to the exact paragraph that
+opened it. Browser Back also remains available. With browser storage disabled,
+use Back; Markdown files viewed outside the site use their ordinary links.
 
 For example, an installation step selects `production.env`. The
 [environment-file reference](../configuration/environment-file.md) explains what

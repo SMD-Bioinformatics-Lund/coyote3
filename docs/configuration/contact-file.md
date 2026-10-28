@@ -1,6 +1,7 @@
 # Contact file: contact.toml
 
-This file controls center-specific content shown on Contact and About pages.
+This file controls center-specific content shown on Contact and About pages,
+and the optional center identity and contact details in modern report headers.
 Repository links and the product description are intentionally not present;
 they are codebase metadata and remain consistent across deployments.
 
@@ -26,6 +27,9 @@ email addresses. Review public content before publishing it.
 | `organization` | Recommended table | Empty metadata, then application identity fields are added | Center metadata. |
 | `organization.name` | Recommended text | Runtime name comes from `ORGANIZATION_NAME` (`Coyote3` by default); the docs hook can use file identity when no override is supplied | Keep the center name aligned with the environment. |
 | `organization.department` | Optional text | Not supplied | Laboratory or department shown with the center identity. |
+| `organization.report_logo` | Optional text | `region-skane` | Modern report logo: bundled mark, a supported image path inside the center directory, or empty to omit. |
+| `organization.address` | Optional text | Not supplied | Postal address printed below the center name in modern reports. Newlines are retained. |
+| `organization.phone` | Optional text | Not supplied | Center contact number printed with a telephone icon in modern reports. This is separate from the support escalation number. |
 | `support` | Recommended table | Empty table, with available generated links added | Public support information. |
 | `support.primary_email` | Recommended text | Not supplied | General support mailbox. |
 | `support.urgent_phone` | Optional text | Not supplied | Approved telephone/escalation route. |
@@ -46,6 +50,8 @@ email addresses. Review public content before publishing it.
 [organization]
 name = "Example Molecular Diagnostics Center"
 department = "Molecular Diagnostics"
+address = "Example Road 1, 12345 Example City"
+phone = "+46 00 123456"
 
 [support]
 primary_email = "support@example.org"

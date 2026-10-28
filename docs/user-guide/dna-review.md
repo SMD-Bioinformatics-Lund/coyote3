@@ -55,20 +55,22 @@ as [future work](../project/future-work.md#shared-findings-with-separate-somatic
 | Column | Meaning |
 | --- | --- |
 | Select | Checkbox used for bulk actions. |
-| `S` | Review and evidence status. This can include false-positive, blacklist, irrelevant, interesting, comment, `OKB`, `Rx`, and `PGx` markers. |
+| Info | Review and evidence status. This can include false-positive, blacklist, irrelevant, interesting, comment, `OKB`, `Rx`, `PGx`, and `CGC` markers. |
 | Gene | The displayed gene symbol from the selected consequence. HGNC normalization can add an info marker when a previous symbol or alias resolved to the approved HGNC record. |
 | HGVS | HGVSc and HGVSp for the selected transcript. Long values are expandable. |
-| Exon/Intron | Selected transcript exon and intron values. |
+| Exon | Selected transcript exon value. |
+| Intron | Selected transcript intron value. |
 | Type | Compact variant class such as `SNV`, `DEL`, `INS`, `INDEL`, or `SUB`. |
+| Indel Size | Indel length when supplied; `-` when unavailable. |
 | Consequence | VEP consequence badges. Hover shows VEP metadata and impact. |
 | PopFreq (%) | Public population frequency as a percentage, displayed with up to six decimal places. A recorded zero is shown as `0`; unavailable values are shown as `-`. |
-| Hotspot | Indicates existing hotspot metadata attached to the variant. Hover shows the available source and identifiers. When several COSMIC identifiers occur for one source, the latest identifier is shown. The same marker appears on the variant detail page. |
+| HS | Hotspot metadata attached to the variant. Hover shows the available source and identifiers. When several COSMIC identifiers occur for one source, the latest identifier is shown. The same marker appears on the variant detail page. |
 | Tier | Current clinical tier. Clicking an assigned tier opens reported-variant context when available. |
 | Chr:Pos | Neutral chromosome coordinate link for IGV. |
 | Flags | Configured filter flag badges from the VCF `FILTER` field. |
-| Case | Case VAF and depth as `VAF% (VD/DP)`. |
-| Control | Control VAF and depth. Hidden for unpaired samples. |
-| Actions | Opens the variant detail page. |
+| Case % (sample) | Case VAF percentage followed by alternate/total read depth `(VD/DP)`. The heading includes the sample identifier when available. |
+| Control % (sample) | Control VAF percentage and depth. Hidden for unpaired samples. |
+| Unlabeled detail column | Opens the variant detail page. |
 
 ### Status And Knowledgebase Markers
 
@@ -119,8 +121,6 @@ explicit confirmation.
 
 ## Variant Detail
 
-![Small-variant detail workspace](../assets/screenshots/sample_variant_detail.png)
-
 The variant detail page arranges decision-making cards around the finding.
 
 | Card/table | Information |
@@ -139,8 +139,6 @@ The variant detail page arranges decision-making cards around the finding.
 | Seen in other samples | Other samples with the same genomic finding, including assay group, case VAF, and the newest tier in that sample's assay scope. |
 
 ## CNVs, Fusions, And Translocations
-
-![CNV review with profile image](../assets/screenshots/sample_cnvs_detail.png)
 
 These tabs use the same review model as small variants: status/evidence badges, core biological identity, supporting evidence, tier, and detail link.
 

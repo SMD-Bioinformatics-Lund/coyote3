@@ -33,7 +33,7 @@ trailing or repeated underscores are rejected for new groups. Existing group
 identifiers are not renamed. Spaces are allowed in display names, not keys.
 
 Select **Parent group (optional)** to record a more specific biological branch, or keep
-**None — top-level group**. Creation validates the complete ancestor chain in the same
+**None - top-level group**. Creation validates the complete ancestor chain in the same
 transaction as the new record. Missing or inactive ancestors and cycles are
 rejected. Parentage does not inherit assay assignments, access rights or filters.
 Variant interpretations from ancestors are available as fallback evidence, ordered

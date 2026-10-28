@@ -1,3 +1,16 @@
+const themeToggle = document.getElementById("theme-toggle");
+const syncThemeControl = () => {
+  const dark = document.documentElement.classList.contains("dark");
+  themeToggle.setAttribute("aria-pressed", String(dark));
+  themeToggle.setAttribute("aria-label", dark ? "Use light theme" : "Use dark theme");
+  themeToggle.textContent = dark ? "Light theme" : "Dark theme";
+};
+syncThemeControl();
+themeToggle.addEventListener("click", () => {
+  document.documentElement.classList.toggle("dark");
+  syncThemeControl();
+  window.dispatchEvent(new Event("api-theme-change"));
+});
 const loading = document.getElementById("docs-loading");
 const error = document.getElementById("docs-error");
 const fail = () => { loading.hidden = true; error.hidden = false; };
@@ -13,32 +26,55 @@ script.onload = async () => {
     if (!response.ok) throw new Error("Schema unavailable");
     const schema = await response.json();
     if (view === "reference") {
-      const tokens = getComputedStyle(document.documentElement);
-      // ReDoc's color utilities require RGB; let the browser resolve our OKLCH tokens.
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 1;
-      const context = canvas.getContext("2d");
-      const color = (name) => {
-        context.fillStyle = tokens.getPropertyValue(name).trim();
-        context.fillRect(0, 0, 1, 1);
-        const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-        return `rgb(${r}, ${g}, ${b})`;
+      const renderReference = () => {
+        const tokens = getComputedStyle(document.documentElement);
+        // ReDoc's color utilities require RGB; let the browser resolve our OKLCH tokens.
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d");
+        const color = (name) => {
+          context.clearRect(0, 0, 1, 1);
+          context.fillStyle = tokens.getPropertyValue("--surface").trim();
+          context.fillRect(0, 0, 1, 1);
+          context.fillStyle = tokens.getPropertyValue(name).trim();
+          context.fillRect(0, 0, 1, 1);
+          const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+          return `rgb(${r}, ${g}, ${b})`;
+        };
+        Redoc.init(schema, {
+          hideDownloadButton: true,
+          disableGoogleFont: true,
+          requiredPropsFirst: true,
+          pathInMiddlePanel: true,
+          expandResponses: "200,201",
+          nativeScrollbars: true,
+          theme: {
+            spacing: { sectionHorizontal: 28, sectionVertical: 24 },
+            colors: {
+              primary: { main: color("--accent") },
+              text: { primary: color("--ink"), secondary: color("--ink-muted") },
+              success: { main: color("--status-success-foreground") },
+              warning: { main: color("--status-warning-foreground") },
+              error: { main: color("--status-danger-foreground") },
+              border: { dark: color("--border"), light: color("--paper-raised") },
+              responses: {
+                success: { color: color("--status-success-foreground"), backgroundColor: color("--status-success-soft"), tabTextColor: color("--status-success-foreground") },
+                error: { color: color("--status-danger-foreground"), backgroundColor: color("--status-danger-soft"), tabTextColor: color("--status-danger-foreground") },
+                redirect: { color: color("--status-warning-foreground"), backgroundColor: color("--status-warning-soft"), tabTextColor: color("--status-warning-foreground") },
+                info: { color: color("--status-info-foreground"), backgroundColor: color("--status-info-soft"), tabTextColor: color("--status-info-foreground") },
+              },
+            },
+            schema: { linesColor: color("--border"), typeNameColor: color("--ink-muted"), typeTitleColor: color("--ink"), requireLabelColor: color("--status-danger-foreground"), nestedBackground: color("--surface-muted") },
+            typography: { fontSize: "14px", fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", headings: { fontFamily: "inherit", fontWeight: "600" }, code: { fontSize: "12px", color: color("--ink"), backgroundColor: color("--surface-muted") } },
+            sidebar: { width: "240px", backgroundColor: color("--surface-muted"), textColor: color("--ink-muted"), activeTextColor: color("--accent") },
+            rightPanel: { backgroundColor: color("--code-surface"), textColor: color("--code-ink"), servers: { overlay: { backgroundColor: color("--surface-muted"), textColor: color("--ink") }, url: { backgroundColor: color("--paper-raised") } } },
+            codeBlock: { backgroundColor: color("--code-surface") },
+            fab: { backgroundColor: color("--paper-raised"), color: color("--ink") },
+          },
+        }, document.getElementById("api-renderer"), (err) => err ? fail() : loaded());
       };
-      Redoc.init(schema, {
-        hideDownloadButton: true,
-        disableGoogleFont: true,
-        requiredPropsFirst: true,
-        pathInMiddlePanel: true,
-        expandResponses: "200,201",
-        nativeScrollbars: true,
-        theme: {
-          spacing: { sectionHorizontal: 28, sectionVertical: 24 },
-          colors: { primary: { main: color("--accent") }, text: { primary: color("--ink"), secondary: color("--ink-muted") } },
-          typography: { fontSize: "14px", fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", headings: { fontFamily: "inherit", fontWeight: "600" }, code: { fontSize: "12px", color: color("--ink"), backgroundColor: color("--surface-muted") } },
-          sidebar: { width: "240px", backgroundColor: color("--surface-muted"), textColor: color("--ink-muted"), activeTextColor: color("--accent") },
-          rightPanel: { backgroundColor: color("--code-surface"), textColor: color("--code-ink") },
-        },
-      }, document.getElementById("api-renderer"), (err) => err ? fail() : loaded());
+      renderReference();
+      window.addEventListener("api-theme-change", renderReference);
     } else {
       const navigation = document.getElementById("resource-navigation");
       const counts = new Map();

@@ -244,7 +244,7 @@ A parsing failure prevents clinical writes. A failure after a confirmed commit
 does not make the committed sample disappear. The
 [ingestion API](../api/sample-ingestion.md) defines submission, failure and recovery
 behavior. Parser input formats are specified in
-[Sample input files](../reference/sample-file-formats.md) and [Sample YAML](../reference/sample-manifest.md).
+[Sample input files](../reference/ingest-files/README.md#file-contracts) and [Sample YAML](../reference/sample-manifest.md).
 
 ## Reporting
 
@@ -291,6 +291,12 @@ Deployments can enable local authentication, LDAP or both. Browser sessions use
 the configured session cookie; state-changing cookie-authenticated requests require
 the session CSRF token. Supported bearer authentication is handled at the API boundary.
 
+Public-page identity checks also use the shared frontend API client so an
+authenticated `GET /auth/whoami` captures the CSRF token before settings are saved.
+These optional checks set `redirectOnUnauthorized: false` and handle anonymous
+responses inline. Protected requests retain the default login redirect; the option
+does not bypass API authentication or CSRF validation.
+
 Roles bundle permissions. API access checks combine the required permission with
 applicable assay and environment scope. Frontend visibility is not an authorization
 decision. Bootstrap permissions and roles are installed from
@@ -315,6 +321,15 @@ purposes and are not interchangeable. Retention and delivery behavior is documen
 in [Audit and logging](../operations/audit-and-logging.md).
 
 ## Frontend interfaces
+
+Native text inputs, selects, textareas, combobox triggers and rich-text editors share
+the outlined field surface in `frontend/src/styles/form-controls.css`. The global
+stylesheet imports it once, so lazy-loaded pages and native controls receive the
+same light/dark surface, inset shadow, focus ring and validation state. Disabled
+and read-only controls use the muted surface. Checkbox, radio, range, color, upload
+and hidden controls retain their specialized presentation. Do not add page-specific
+background or shadow overrides for ordinary fields. Rich-text editors use one outer
+outline around their toolbar and content.
 
 Admin routes in `frontend/src/App.tsx` name their resource pages explicitly.
 Each resource has a feature directory under `frontend/src/pages/admin/` containing
@@ -356,7 +371,8 @@ Public routes also have dedicated modules: `PublicCatalogPage.tsx`,
 not-found, password-request, and password-reset routes each have their own page.
 Route modules are loaded independently through `App.tsx`.
 
-Pages own route parameters, queries, mutations, and top-level composition.
+Pages coordinate route parameters and top-level composition. Feature hooks own
+request, mutation and asynchronous state when that behavior needs a separate boundary.
 Keep cohesive editors, viewers, and presentation helpers beside their owning
 feature instead of adding unrelated routes to one module:
 
@@ -369,6 +385,10 @@ feature instead of adding unrelated routes to one module:
 | Small-variant detail | `VariantEvidencePanel` owns knowledgebase presentation and on-demand public lookups. |
 | Sample and gene-cohort tables | `useSampleColumns`, `useSampleExportColumns`, and `useCohortColumns`. |
 | Public matrix | `AssayMatrixTable` and matrix layout helpers. |
+| Report review | `useReportPreview` owns preview/PDF requests, saving and feedback; `ReportDocumentPreview` and `ReportReviewSummary` render the document and immutable finding snapshot. |
+| Dashboard charts | Individual modules under `components/dashboard/` own composition, tiers, gene coverage, capabilities and tiered-gene plots. |
+| Knowledgebase charts | `CancerGeneCensusChart` and `KnowledgebaseStatisticsCharts` live with knowledgebase components and load independently of dashboard charts. |
+| Rule workspace layout | `useRuleWorkspaceLayout` owns pane widths and collapse state; the shared `components/admin/RuleWorkspaceDivider` handles pointer and keyboard resizing. |
 
 Share form controls and presentation components without duplicating resource
 workflows. Keep pure helpers separate from React components so they can be tested
@@ -388,6 +408,72 @@ server-state caching and mutation invalidation.
 | `useClinicalTableState` | URL-backed server pagination, search and sorting. |
 | Theme tokens | Consistent colors, typography, surfaces and interaction states. |
 | `users.ui_settings` | Persisted user-owned display preferences. |
+
+Sequencing badges use `sequencingValueClasses` in `lib/badge-colors.ts` and the
+theme's `--color-dna`, `--color-rna`, `--color-panel-dna`, `--color-panel-rna`,
+`--color-wgs` and `--color-wts` tokens. Reuse these classes for modality and technical
+family badges. Catalog card outlines, shadows, inner gradients and technical-family
+badges use the corresponding family color; DNA/RNA badges retain modality colors.
+Light-theme card gradients use faint tints. Dark-theme cards use charcoal surfaces
+with subtle family tints, muted borders and restrained shadows. The catalog heading
+and filter panel sit slightly above the page background.
+Badges inside service cards have an all-around shadow and inset highlights. Both themes
+retain text labels so color is not the only identifier.
+
+Domain badge classes name the value they represent: for example `badge-snv`,
+`badge-illumina`, `badge-auth-local` and `badge-role-admin`. Their tokens in
+`styles/domain-badge-theme.css` use named color palettes that vary by theme.
+Use `valueBadgeClass` for configured values and `GENELIST_TYPE_METADATA` for
+gene-list types. Status classes such as `badge-danger` and `badge-success` are
+reserved for actual status or severity indicators. A domain value must not use a
+status class merely to obtain its color. Generic decorative tones use explicit
+color names such as `badge-tone-blue`.
+
+About, Contact, knowledgebase details, the catalog matrix, cohort exploration,
+tiered variant search and the dashboard use the `material-page` presentation scope.
+`styles/page-materials.css` gives raised content cards very light accent gradients
+and shared elevation tokens across routes, including outside that presentation scope.
+Grouping panels and table frames retain their standard shared treatment.
+Cards inherit their knowledgebase, panel
+or static-section accent; semantic badge fills and tier colors remain intact.
+
+Use the same treatment for the same component role across routes:
+
+- Page headings and section panels group content; their elevation is separate from
+  the raised cards inside them.
+- Raised content and metric cards share `--content-card-border`,
+  `--content-card-radius`, `--inner-card-background` and `--material-card-shadow`.
+  Keep the border visible; do not combine transparent borders with a separate
+  page-specific background that hides the border's underlying gradient.
+- Assign accent variables for a meaningful resource type or section. Do not color
+  a card because it happens to be the first child or appears in a particular route.
+- `Badge` and `TableBadge` own their default elevation through
+  `--material-badge-shadow`. Explicit compact clinical markers can opt out; do not
+  restore their shadow with a page-level selector.
+- Keep equivalent metric cards' padding and label/value typography aligned. Content
+  length may differ; the card treatment should not.
+The page heading retains the standard backdrop. Forced-colors mode removes the
+decorative gradients and shadows.
+
+Horizontal progress and prevalence bars share `progress-pipe` for the recessed
+track and `progress-pipe-fill` for a rounded fill. Stacked bars use
+`progress-pipe-segment` on each segment. Set each fill's existing color through a
+background-color class or `backgroundColor`, so the shared cylindrical highlight
+does not replace semantic colors or change the represented proportions.
+
+Capability-ring tracks, their progress arcs and Recharts donut sectors share
+`--chart-ring-depth` in `styles/charts.css`. Theme-specific highlight and shadow
+tokens add elevation without changing the data colors, angles or values. Keep
+the effect on the ring geometry; labels and legend markers remain unfiltered.
+Forced-colors mode removes the decorative filter. Chart export inlines the
+resolved `filter` alongside stroke and fill so standalone SVG and PNG exports
+retain the chart's presentation.
+
+The shared layout uses native scrolling at browser speed. `app-scroll-viewport`
+marks the main and sidebar scroll surfaces; it does not intercept wheel or touch
+input or add easing. Back-to-top jumps directly. Page-height controls update from
+resize observation rather than measuring layout on each scroll event. The static
+canvas decoration is paint-contained independently of scrolling content.
 
 Views distinguish loading, empty, forbidden, disabled and failed states. Icon-only
 controls have accessible names. Keyboard focus, disabled behavior and reduced-motion

@@ -65,7 +65,7 @@ def export_query_condition_fields() -> None:
         ]
         for field in fields:
             operators = ", ".join(f"`${operator}`" for operator in field["operators"])
-            references = ", ".join(f"`{ref['key']}`" for ref in field["filter_references"]) or "—"
+            references = ", ".join(f"`{ref['key']}`" for ref in field["filter_references"]) or "-"
             lines.append(
                 f"| `{field['path']}` | {field['kind'].replace('_', ' ')} | {operators} | {references} |"
             )
