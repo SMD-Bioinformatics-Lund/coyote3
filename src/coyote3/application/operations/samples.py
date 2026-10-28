@@ -23,6 +23,7 @@ from coyote3.application.operations.runtime import ApplicationRuntime
 from coyote3.domain.common.errors import api_error
 
 if TYPE_CHECKING:
+    from coyote3.contracts.dna import BiomarkerAssessmentRequest
     from coyote3.contracts.resource_fields import SampleField
     from coyote3.contracts.resource_metadata import SampleMetadata
     from coyote3.contracts.samples import ConfigurationApplyRequest
@@ -585,6 +586,50 @@ class Sample:
                 )
             ),
             sample_id=self.id,
+        )
+
+    def biomarker_review(self) -> dict[str, Any]:
+        """Read enabled biomarker measurements and saved assessments under sample access."""
+        return self._runtime.execute(
+            "sample.biomarker_review",
+            ("sample:view",),
+            lambda actor, record: self._services.biomarkers().review_payload(
+                sample=_sample(record)
+            ),
+            sample_id=self.id,
+        )
+
+    def assess_biomarker(
+        self, record_id: str, method: str, change: BiomarkerAssessmentRequest
+    ) -> dict[str, Any]:
+        """Assign a revision-checked assessment under a sample editing lease.
+
+        Args:
+            record_id: Existing biomarker document identifier belonging to this sample.
+            method: Enabled measurement key: HRD, MSIS, MSIP or TMB.
+            change: BiomarkerAssessmentRequest with manual value and expected revision.
+
+        Returns:
+            Current measured biomarkers with the saved assessment.
+
+        Raises:
+            AppError: Access, production publication, editing lease or revision checks fail.
+        """
+        return self._runtime.execute(
+            "sample.assess_biomarker",
+            ("sample:edit:own",),
+            lambda actor, record: self._services.biomarkers().assign_assessment(
+                sample=_sample(record),
+                record_id=record_id,
+                method=method,
+                change=change,
+                actor=actor.username,
+            ),
+            sample_id=self.id,
+            edit_resource=("sample-biomarkers", self.id),
+            sample_permissions=lambda sample: (
+                ("annotation:publish",) if sample.get("environment") == "production" else ()
+            ),
         )
 
 

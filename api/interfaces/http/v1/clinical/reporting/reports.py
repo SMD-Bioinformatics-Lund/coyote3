@@ -1,6 +1,7 @@
 """HTTP adapters for the authoritative application SDK report operations."""
 
 from base64 import b64encode
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 
@@ -75,15 +76,21 @@ def preview_report(
     report_type: Analyte,
     include_snapshot: bool = Query(default=False),
     save: bool = Query(default=False),
+    report_format: Literal["modern", "legacy"] = Query(default="modern", alias="format"),
     user: ApiUser = Depends(require_access(permission="report:preview")),
     application: CoyoteApplication = Depends(get_application),
 ):
     """Render an authorized report preview; requires report:preview.
 
+    Modern format is the default; use format=legacy for the previous layout.
     The save flag selects presentation context and does not persist a report.
     """
     result = application.reports.preview(
-        sample_id, report_type, include_snapshot=include_snapshot, save_context=save
+        sample_id,
+        report_type,
+        include_snapshot=include_snapshot,
+        save_context=save,
+        layout=report_format,
     )
     return util.common.convert_to_serializable(
         ReportPresenter.preview_payload(
@@ -109,12 +116,16 @@ def preview_report_pdf(
     sample_id: str,
     report_type: Analyte,
     include_snapshot: bool = Query(default=True),
+    report_format: Literal["modern", "legacy"] = Query(default="modern", alias="format"),
     user: ApiUser = Depends(require_access(permission="report:preview")),
     application: CoyoteApplication = Depends(get_application),
 ):
-    """Download a current report preview without persisting it; requires report:preview."""
+    """Download a current report preview without persisting it; requires report:preview.
+
+    Modern format is the default; use format=legacy for the previous layout.
+    """
     artifact = application.reports.preview_pdf(
-        sample_id, report_type, include_snapshot=include_snapshot
+        sample_id, report_type, include_snapshot=include_snapshot, layout=report_format
     )
     return Response(
         content=artifact.content,
@@ -141,10 +152,14 @@ def save_report(
 ):
     """Save the reviewed report with snapshots and artifacts; requires report:create.
 
-    A stale preview fingerprint returns 409 before artifact creation.
+    Use the same report_format as the preview (modern by default). A stale preview
+    fingerprint or a different format returns 409 before artifact creation.
     """
     result = application.reports.save(
-        sample_id, report_type, fingerprint=payload.preview_fingerprint
+        sample_id,
+        report_type,
+        fingerprint=payload.preview_fingerprint,
+        layout=payload.report_format,
     )
     return util.common.convert_to_serializable(
         ReportPresenter.save_payload(

@@ -195,6 +195,12 @@ class CoyoteApplication:
         self.editing = DocumentEditors(
             runtime,
             {
+                "sample-biomarkers": EditableResource(
+                    "sample:edit:own",
+                    lambda identity: runtime.sample_loader(identity) or {},
+                    "_id",
+                    sample_scoped=True,
+                ),
                 "sample-filters": EditableResource(
                     "sample:edit:own",
                     lambda identity: runtime.sample_loader(identity) or {},

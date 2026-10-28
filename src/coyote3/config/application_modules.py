@@ -28,6 +28,7 @@ APPLICATION_MODULES: tuple[ApplicationModule, ...] = (
             "/cnvs",
             "/translocations",
             "/hrd",
+            "/biomarkers",
             "/msi",
             "/tmb",
             "/coverage",

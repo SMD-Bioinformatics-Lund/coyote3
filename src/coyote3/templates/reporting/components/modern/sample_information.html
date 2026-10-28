@@ -1,5 +1,7 @@
 {% set metadata = namespace(rows=[], pending=[]) %}
+{% set columns = 3 if compact_metadata|default(false) else 2 %}
 {% macro field(label, value, wide=false) -%}
+  {%- set wide = wide or (compact_metadata|default(false) and value|string|length > 60) %}
   {%- if wide %}
     {%- if metadata.pending %}
       {%- set _ = metadata.rows.append(metadata.pending) %}
@@ -8,7 +10,7 @@
     {%- set _ = metadata.rows.append([(label, value, true)]) %}
   {%- else %}
     {%- set _ = metadata.pending.append((label, value, false)) %}
-    {%- if metadata.pending|length == 2 %}
+    {%- if metadata.pending|length == columns %}
       {%- set _ = metadata.rows.append(metadata.pending) %}
       {%- set metadata.pending = [] %}
     {%- endif %}
@@ -37,13 +39,13 @@
     {% endif %}
   {% if metadata.pending %}{% set _ = metadata.rows.append(metadata.pending) %}{% endif %}
   <table class="report-patient-table" aria-label="Patient- och provuppgifter">
-    <colgroup><col class="metadata-label"><col><col class="metadata-label"><col></colgroup>
+    <colgroup>{% for _ in range(columns) %}<col class="metadata-label"><col>{% endfor %}</colgroup>
     <tbody>
       {% for row in metadata.rows %}
       <tr>
         {% for label, value, wide in row %}
         <th scope="row">{{ label }}</th>
-        <td{% if wide or row|length == 1 %} colspan="3"{% endif %}>{{ value }}</td>
+        <td{% if wide %} colspan="{{ columns * 2 - 1 }}"{% elif loop.last and row|length < columns %} colspan="{{ (columns - row|length) * 2 + 1 }}"{% endif %}>{{ value }}</td>
         {% endfor %}
       </tr>
       {% endfor %}

@@ -1,0 +1,33 @@
+{% if "HRD" in report_sections or "MSI" in report_sections or "TMB" in report_sections or "BIOMARKER" in report_sections %}
+<span class="report_header">Kliniskt relevanta biomarkörer</span>
+  {% set rows = namespace(values=[]) %}
+  {% for analysis, methods in [("HRD", ["HRD"]), ("MSI", ["MSIS", "MSIP"]), ("TMB", ["TMB"])] %}
+    {% if analysis in report_sections %}
+      {% for biomarker in report_sections_data[analysis|lower] %}
+        {% for method in methods %}{% if biomarker.get(method) %}
+          {% set assessment = biomarker[method].get('clinical_assessment') or {} %}
+          {% set _ = rows.values.append((method, biomarker.name or "-", assessment.get('value') or "Ej bedömd")) %}
+        {% endif %}{% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+  {% if "BIOMARKER" in report_sections %}
+    {% for biomarker in report_sections_data.biomarkers %}
+      {% set _ = rows.values.append((biomarker.biomarker or "Biomarkör", biomarker.name or "-", (biomarker.get('clinical_assessment') or {}).get('value') or "Ej bedömd")) %}
+    {% endfor %}
+  {% endif %}
+{% if rows.values %}
+<table class="variant_table report-biomarker-summary">
+  <thead><tr><th>Biomarkör</th><th>Analys</th><th>Klinisk bedömning</th></tr></thead>
+  <tbody>{% for method, name, assessment in rows.values %}
+    <tr><td>{{ method }}</td><td>{{ name }}</td><td>{{ assessment }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% for analysis in ["HRD", "MSI", "TMB", "BIOMARKER"] %}
+  {% if analysis in report_sections and not (report_sections_data.biomarkers if analysis == "BIOMARKER" else report_sections_data[analysis|lower]) %}
+    <p class="report-empty-result">{{ empty_result_messages[analysis] }}</p>
+  {% endif %}
+{% endfor %}
+{% endif %}

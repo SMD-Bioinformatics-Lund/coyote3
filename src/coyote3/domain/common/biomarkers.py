@@ -33,7 +33,15 @@ def project_biomarkers(
     )
     result = []
     for document in documents:
-        values = {key: document[key] for key in fields if document.get(key) is not None}
+        values = {
+            key: {
+                name: value for name, value in document[key].items() if name != "assessment_history"
+            }
+            if isinstance(document[key], dict)
+            else document[key]
+            for key in fields
+            if document.get(key) is not None
+        }
         if values:
             result.append(
                 {

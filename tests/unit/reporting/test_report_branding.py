@@ -41,6 +41,68 @@ def test_center_can_select_a_local_logo_or_omit_it(tmp_path, monkeypatch):
         )
 
 
+@pytest.mark.parametrize("accredited", [True, False, None, "true"])
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
+    accredited, analyte, tmp_path, monkeypatch
+):
+    """Only the captured assay accreditation enables the optional footer logo on every page."""
+    from tests.unit.reporting.test_report_presentation import empty_context
+
+    monkeypatch.setattr(branding, "CENTER_CONFIG_DIR", tmp_path)
+    (tmp_path / "accreditation.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20"><rect width="90" height="20" fill="#555"/></svg>'
+    )
+    inputs = empty_context()
+    inputs["assay_config"]["assay_resource_release"] = {"content": {"accredited": accredited}}
+    html = branding.render_branded_report_html(
+        config={"CONTACT": {"organization": {"accreditation_logo": "accreditation.svg"}}},
+        template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte=analyte,
+        preview=False,
+        layout="modern",
+    )
+    assert ('<img class="report-accreditation-logo"' in html) is (accredited is True)
+    document = HTML(string=html).render()
+    for index, page in enumerate(document.pages, 1):
+        boxes = list(page._page_box.descendants())
+        logos = [
+            box
+            for box in boxes
+            if isinstance(box, ReplacedBox)
+            and box.element.get("class") == "report-accreditation-logo"
+        ]
+        assert len(logos) == int(accredited is True)
+        text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
+        assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
+        assert f"Sida {index} av {len(document.pages)}" in text
+        assert f"{analyte.upper()} template v" in text
+        version = next(
+            box
+            for box in boxes
+            if isinstance(box, TextBox) and box.text.startswith(f"{analyte.upper()} template v")
+        )
+        page_number = next(
+            box for box in boxes if isinstance(box, TextBox) and box.text.startswith("Sida ")
+        )
+        assert version.position_y >= page._page_box.content_box_y() + page._page_box.height
+        assert version.position_y + version.height <= page_number.position_y
+        assert page_number.position_y + page_number.height <= page.height
+        header = next(
+            box
+            for box in boxes
+            if box.element is not None and box.element.get("class") == "report-page-header"
+        )
+        assert header.position_y >= 0
+        assert header.position_y + header.height <= page._page_box.content_box_y() + 1
+    with pytest.raises(ValueError, match="inside the center"):
+        branding.load_report_branding(
+            {"CONTACT": {"organization": {"accreditation_logo": "../outside.svg"}}}
+        )
+
+
 @pytest.mark.parametrize(
     "template_name,layout,analyte",
     [
@@ -70,7 +132,7 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
             "genes_covered_in_panel": {},
         },
     )
-    assert html.count('src="data:image/svg+xml;base64,') == 2
+    assert html.count('src="data:image/svg+xml;base64,') == 4
     assert 'class="report-metadata"' in html and '<table class="report-patient-table"' in html
     assert ("SYNTHETIC_CASE" if analyte == "dna" else "SYNTHETIC_REPORT") in html
     assert "SYNTHETIC CENTER" in html
@@ -84,15 +146,26 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
         if box.element is not None and box.element.get("class") == "report-center-brand"
     )
     logo = next(box for box in center.descendants() if isinstance(box, ReplacedBox))
+    coyote = next(
+        box
+        for box in first_page.descendants()
+        if isinstance(box, ReplacedBox) and box.element.get("class") == "report-coyote-logo"
+    )
+    title = next(
+        box
+        for box in first_page.descendants()
+        if isinstance(box, TextBox) and box.text == "COYOTE3"
+    )
+    assert logo.height == pytest.approx(coyote.height)
+    assert 0 <= title.position_x - (coyote.border_box_x() + coyote.width) <= 12
     center_name = [box for box in center.descendants() if isinstance(box, TextBox)]
     assert logo.border_box_x() + logo.width == pytest.approx(
         first_page.content_box_x() + first_page.width, abs=1
     )
     assert center_name
-    assert min(box.position_y for box in center_name) >= logo.position_y + logo.height
-    assert max(box.position_x + box.width for box in center_name) == pytest.approx(
-        logo.border_box_x() + logo.width, abs=1
-    )
+    assert all(box.style["font_size"] <= 7 * 96 / 72 + 0.01 for box in center_name)
+    assert max(box.position_x + box.width for box in center_name) <= logo.border_box_x() - 1
+    assert min(box.position_y for box in center_name) >= center.position_y
     for page in document.pages:
         bounds = page._page_box
         for box in bounds.descendants():
@@ -100,8 +173,9 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
                 continue
             assert box.position_x >= bounds.content_box_x() - 1
             assert box.position_x + box.width <= bounds.content_box_x() + bounds.width + 1
-            assert box.position_y >= bounds.content_box_y() - 1
-            assert box.position_y + box.height <= bounds.content_box_y() + bounds.height + 1
+            # Running header/footer content occupies the reserved page margins.
+            assert box.position_y >= 0
+            assert box.position_y + box.height <= bounds.margin_height() + 1
     assert render_pdf_bytes(html).startswith(b"%PDF-")
 
 

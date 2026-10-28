@@ -139,6 +139,62 @@ def test_disabled_sections_do_not_emit_empty_messages():
     assert not HTML(string=output).etree_element.findall('.//p[@class="report-empty-result"]')
 
 
+def test_manual_assessments_are_separate_from_measured_details_and_tier_one_is_semibold():
+    """Report summaries show authored values, while detailed evidence retains the scores."""
+    inputs = empty_context()
+    inputs["report_sections"] = ["SNV", "TMB", "MSI"]
+    inputs["report_sections_data"]["snvs"] = [
+        {
+            "symbol": f"GENE_{tier}",
+            "variant": "p.Synthetic",
+            "indel_size": 0,
+            "af": 0.4,
+            "class": tier,
+            "class_short_desc": f"Tier {tier}",
+            "global_annotations": [],
+        }
+        for tier in [1, 2]
+    ]
+    inputs["report_sections_data"]["tmb"] = [
+        {"name": "source", "TMB": {"value": 0, "clinical_assessment": {"value": "HIGH"}}}
+    ]
+    inputs["report_sections_data"]["msi"] = [
+        {
+            "name": "source",
+            "MSIS": {"per": 0, "som": 0, "tot": 100},
+            "MSIP": {"per": 1, "som": 1, "tot": 100, "clinical_assessment": {"value": "LOW"}},
+        }
+    ]
+    output = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    html = HTML(string=output)
+    summary = html.etree_element.find('.//table[@class="variant_table report-biomarker-summary"]')
+    text = " ".join(summary.itertext())
+    assert all(value in text for value in ["MSIS", "MSIP", "HIGH", "LOW", "Ej bedömd"])
+    assert "mut/Mb" not in text
+    assert output.index('report-biomarker-detail"') > output.index("Detekterade mutationer")
+    detail = html.etree_element.findall('.//table[@class="report-biomarker-detail"]')[-1]
+    assert "0 mut/Mb" in "".join(detail.itertext())
+    rows = html.etree_element.findall('.//table[@class="variant_table"]/tbody/tr')
+    assert rows[0].get("class") == "report-tier-one"
+    assert rows[1].get("class") is None
+    document = html.render()
+    summary_cells = set(rows[0].findall("td"))
+    rendered_cells = [
+        box
+        for page in document.pages
+        for box in page._page_box.descendants()
+        if isinstance(box, TableCellBox) and box.element in summary_cells
+    ]
+    assert rendered_cells and all(box.style["font_weight"] == 600 for box in rendered_cells)
+
+
 def test_populated_dna_sections_retain_every_finding_table():
     inputs = empty_context()
     variant = {
@@ -177,10 +233,25 @@ def test_populated_dna_sections_retain_every_finding_table():
         )
         root = HTML(string=output).etree_element
         tables = root.findall('.//table[@class="variant_table"]')
-        assert len(tables) == 9
+        assert len(tables) == (9 if layout == "legacy" else 5)
         assert not root.findall('.//p[@class="report-empty-result"]')
-        outputs[layout] = [" ".join("".join(table.itertext()).split()) for table in tables]
-    assert outputs["modern"] == outputs["legacy"]
+        outputs[layout] = [
+            [
+                " ".join("".join(cell.itertext()).split())
+                for cell in table.iter()
+                if cell.tag in {"td", "th"}
+            ]
+            for table in tables
+        ]
+        if layout == "modern":
+            summary = root.find('.//table[@class="variant_table report-biomarker-summary"]')
+            assert len(summary.findall(".//tbody/tr")) == 4
+            assert "Ej bedömd" in "".join(summary.itertext())
+            details = root.findall('.//table[@class="report-biomarker-detail"]')
+            assert len(details) == 4
+            assert "Synthetic biomarker" in "".join(details[-1].itertext())
+            assert "mut/Mb" in "".join(details[2].itertext())
+    assert outputs["modern"] == outputs["legacy"][:4] + outputs["legacy"][-1:]
 
 
 def test_center_wording_is_optional_and_reloaded_without_aspc_edits(monkeypatch, tmp_path):
@@ -255,8 +326,8 @@ def test_metadata_is_compact_in_a4_output_without_losing_fields():
         for box in page._page_box.descendants()
         if box.element_tag == "section" and box.element.get("class") == "report-metadata"
     ]
-    assert len(metadata) == 1
-    assert metadata[0].height < 200
+    assert len(metadata) == len(document.pages)
+    assert all(box.height < 150 for box in metadata)
     metadata_element = HTML(string=output).etree_element.find(
         './/section[@class="report-metadata"]'
     )
@@ -274,8 +345,8 @@ def test_metadata_is_compact_in_a4_output_without_losing_fields():
         assert value in text
 
 
-def test_short_report_uses_compact_rows_and_keeps_details_with_the_summary():
-    """Compact findings continue after the conclusion without a forced page break."""
+def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
+    """Summary findings start on page one; the conclusion begins on a separate page."""
     inputs = context()
     inputs["report_sections"] = ["SNV"]
     inputs["report_sections_data"] = {
@@ -308,8 +379,13 @@ def test_short_report_uses_compact_rows_and_keeps_details_with_the_summary():
     first_page_text = " ".join(
         box.text for box in document.pages[0]._page_box.descendants() if isinstance(box, TextBox)
     )
-    assert "SYNTHETIC_CONCLUSION" in first_page_text
-    assert "Detekterade mutationer" in first_page_text
+    assert "SYNTHETIC_CONCLUSION" not in first_page_text
+    assert "Analysresultat" in first_page_text
+    second_page_text = " ".join(
+        box.text for box in document.pages[1]._page_box.descendants() if isinstance(box, TextBox)
+    )
+    assert "SYNTHETIC_CONCLUSION" in second_page_text
+    assert "Detekterade mutationer" in second_page_text
     table = html.etree_element.find('.//table[@class="variant_table"]')
     rows = set(table.findall(".//tr"))
     rendered_rows = [

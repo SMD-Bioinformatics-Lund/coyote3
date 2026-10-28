@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 class DnaTieredVariantsPayload(RootModel[list[dict[str, Any]]]):
@@ -63,6 +63,22 @@ class DnaHrdPayload(BaseModel):
     sample: dict[str, Any]
     meta: dict[str, Any]
     hrd: list[dict[str, Any]]
+
+
+class BiomarkerAssessmentRequest(BaseModel):
+    """Assign a manual assessment using the last observed assessment revision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    value: Literal["HIGH", "MODERATE", "LOW"] | None
+    expected_revision: int = Field(ge=0)
+
+
+class DnaBiomarkersPayload(BaseModel):
+    """Enabled measurements and their saved manual assessments for a DNA sample."""
+
+    biomarkers: list[dict[str, Any]]
+    analysis_types: list[str]
 
 
 class DnaMsiPayload(BaseModel):

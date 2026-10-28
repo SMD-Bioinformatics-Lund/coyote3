@@ -31,12 +31,12 @@
   </table>{% endblock pgx_table %}
 {% endif %}
 
-<span class="report_header">Slutsats</span>
+{% block report_summary scoped %}<span class="report_header">Slutsats</span>
 <div class="conclusion">
   <div class="results_summary">
     {% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}
   </div>
-</div>
+</div>{% endblock report_summary %}
 
 <p style="page-break-before: always;"></p>
 <br>

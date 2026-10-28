@@ -261,12 +261,21 @@ def test_individual_measurement_route_success(monkeypatch, analysis):
     assert set(payload[analysis.lower()][0]) == {"name", field}
 
 
-def test_measurement_routes_are_individual_and_module_gated():
-    """No aggregate or dynamic endpoint bypasses the DNA module gate."""
+def test_measurement_and_review_routes_are_module_gated():
+    """Individual measurements and the assessment workspace share the DNA module gate."""
     from coyote3.config.application_modules import APPLICATION_MODULES
 
     paths = {route.path for route in biomarker_router.router.routes}
-    assert paths == {f"/api/v1/samples/{{sample_id}}/{key}" for key in ("hrd", "msi", "tmb")}
+    assert paths == {
+        f"/api/v1/samples/{{sample_id}}/{key}"
+        for key in (
+            "hrd",
+            "msi",
+            "tmb",
+            "biomarkers",
+            "biomarkers/{record_id}/assessments/{method}",
+        )
+    }
     module = next(item for item in APPLICATION_MODULES if item.key == "dna_analysis")
     assert all(any(fragment in path for fragment in module.route_fragments) for path in paths)
 

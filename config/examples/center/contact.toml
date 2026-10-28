@@ -4,6 +4,8 @@ name = "Example Molecular Diagnostics Center"
 department = "Molecular Diagnostics"
 # Bundled mark, a relative SVG/PNG/JPEG path inside this center directory, or "" to omit.
 report_logo = "region-skane"
+# Optional center-owned SVG/PNG/JPEG. Printed only for assays with accredited = true.
+accreditation_logo = ""
 # Optional postal address and center telephone printed in modern report headers.
 address = ""
 phone = ""

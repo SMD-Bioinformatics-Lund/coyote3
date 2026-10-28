@@ -144,8 +144,13 @@ def test_sample_context_comments_and_report_save(workflow_client):
     fingerprint = preview.meta.preview_fingerprint
     sample.reports.save("dna", preview_fingerprint=fingerprint)
     assert requests[-1].url.path.endswith("/reports/dna")
-    assert json.loads(requests[-1].content) == {"preview_fingerprint": fingerprint}
-    assert len(requests) == 5  # Save does not refresh the preview or retry a mutation.
+    assert json.loads(requests[-1].content) == {
+        "preview_fingerprint": fingerprint,
+        "report_format": "modern",
+    }
+    sample.reports.save("dna", preview_fingerprint=fingerprint, report_format="legacy")
+    assert json.loads(requests[-1].content)["report_format"] == "legacy"
+    assert len(requests) == 6  # Neither save refreshes the preview or retries a mutation.
 
 
 @pytest.mark.parametrize(

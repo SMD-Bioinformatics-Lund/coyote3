@@ -1,0 +1,37 @@
+{% for analysis, methods in [("HRD", ["HRD"]), ("MSI", ["MSIS", "MSIP"]), ("TMB", ["TMB"])] %}
+  {% if analysis in report_sections and report_sections_data[analysis|lower] %}
+  <span class="report_header">{{ analysis }} - detaljerade resultat</span>
+  {% for biomarker in report_sections_data[analysis|lower] %}
+    {% for method in methods %}{% if biomarker.get(method) %}
+      {% set measurement = biomarker[method] %}
+      <table class="report-biomarker-detail">
+        <thead><tr><th colspan="4">{{ method }} · {{ biomarker.name or "Biomarkör" }}</th></tr></thead>
+        <tbody>
+          {% if analysis == "HRD" %}
+          <tr><th scope="row">Summa</th><td>{{ measurement.sum }}</td><th scope="row">TAI</th><td>{{ measurement.tai }}</td></tr>
+          <tr><th scope="row">HRD</th><td>{{ measurement.hrd }}</td><th scope="row">LST</th><td>{{ measurement.lst }}</td></tr>
+          {% elif analysis == "MSI" %}
+          <tr><th scope="row">Andel</th><td>{{ measurement.per }}%</td><th scope="row">Instabila / totalt</th><td>{{ measurement.som }} / {{ measurement.tot }}</td></tr>
+          {% else %}
+          <tr><th scope="row">TMB</th><td colspan="3">{{ measurement.value }} {{ measurement.unit or "mut/Mb" }}</td></tr>
+          {% endif %}
+          <tr><th scope="row">Klinisk bedömning</th><td colspan="3">{{ (measurement.get('clinical_assessment') or {}).get('value') or "Ej bedömd" }}</td></tr>
+        </tbody>
+      </table>
+    {% endif %}{% endfor %}
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+{% if "BIOMARKER" in report_sections and report_sections_data.biomarkers %}
+<span class="report_header">Biomarkörer - detaljerade resultat</span>
+{% for biomarker in report_sections_data.biomarkers %}
+<table class="report-biomarker-detail">
+  <thead><tr><th colspan="2">{{ biomarker.name or biomarker.biomarker or "Biomarkör" }}</th></tr></thead>
+  <tbody>{% for key, value in biomarker.items() %}
+    {% if key not in ["_id", "SAMPLE_ID", "name", "biomarker", "clinical_assessment", "assessment_history"] %}
+    <tr><th scope="row">{{ key }}</th><td>{{ value }}</td></tr>
+    {% endif %}
+  {% endfor %}</tbody>
+</table>
+{% endfor %}
+{% endif %}

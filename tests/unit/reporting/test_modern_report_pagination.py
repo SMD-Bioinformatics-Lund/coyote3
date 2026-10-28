@@ -7,9 +7,10 @@ from io import BytesIO
 import pytest
 from PIL import Image
 from weasyprint import CSS, HTML
-from weasyprint.formatting_structure.boxes import ReplacedBox, TextBox
+from weasyprint.formatting_structure.boxes import MarginBox, ReplacedBox, TextBox
 
 from coyote3.application.reporting.report_renderer import render_report_html
+from coyote3.application.reporting.report_service import modern_template_version
 
 
 def pagination_context(analyte, image_shape):
@@ -87,16 +88,26 @@ def test_modern_report_content_fits_a4_and_keeps_long_annotation_tail(analyte, i
         bounds = page._page_box
         left, top = bounds.content_box_x(), bounds.content_box_y()
         right, bottom = left + bounds.width, top + bounds.height
+        margin_boxes = {
+            id(box)
+            for child in bounds.children
+            if isinstance(child, MarginBox)
+            for box in child.descendants()
+        }
         assert page.width == pytest.approx(210 * 96 / 25.4)
         assert page.height == pytest.approx(297 * 96 / 25.4)
         for box in bounds.descendants():
             if box.element_tag is None or not isinstance(box, (TextBox, ReplacedBox)):
                 continue
-            visible.append(box)
             assert box.position_x >= left - 1
             assert box.position_x + box.width <= right + 1
-            assert box.position_y >= top - 1
-            assert box.position_y + box.height <= bottom + 1
+            if id(box) in margin_boxes:
+                assert box.position_y >= 0
+                assert box.position_y + box.height <= page.height
+            else:
+                visible.append(box)
+                assert box.position_y >= top - 1
+                assert box.position_y + box.height <= bottom + 1
             if isinstance(box, TextBox):
                 text.append(box.text)
         assert visible, "A report page contains only headers or footers"
@@ -107,8 +118,8 @@ def test_modern_report_content_fits_a4_and_keeps_long_annotation_tail(analyte, i
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
-def test_screen_and_pdf_share_content_width_and_patient_field_wrapping(analyte):
-    """A4 HTML and PDF retain the same usable width, metadata wrapping and table layout."""
+def test_screen_and_pdf_share_content_width_and_keep_all_patient_fields(analyte):
+    """The compact repeating PDF header keeps all fields within the shared paper width."""
     html = render_report_html(
         template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
         template_context=pagination_context(analyte, None),
@@ -144,12 +155,12 @@ def test_screen_and_pdf_share_content_width_and_patient_field_wrapping(analyte):
         if class_name == "report-content":
             assert boxes[0].width == pytest.approx(178 * 96 / 25.4, abs=0.1)
         if class_name == "report-metadata":
-            assert boxes[0].height == pytest.approx(boxes[1].height, abs=0.1)
+            assert boxes[1].height < boxes[0].height
             lines = [
                 [box.text for box in metadata.descendants() if isinstance(box, TextBox)]
                 for metadata in boxes
             ]
-            assert lines[0] == lines[1]
+            assert re.sub(r"\s+", "", "".join(lines[0])) == re.sub(r"\s+", "", "".join(lines[1]))
 
 
 def test_long_result_table_repeats_column_headings_without_losing_findings():
@@ -193,7 +204,7 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
 
 
 def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_version():
-    """Compact details move intact; every footer identifies the template, not report count."""
+    """Compact details move intact; every page identifies the installed template version."""
     inputs = pagination_context("dna", None)
     variant = {
         **inputs["report_sections_data"]["snvs"][0],
@@ -218,7 +229,7 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
     table_pages = {}
     for index, page in enumerate(document.pages):
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        assert "Coyote3 · DNA report (template v1.0.0)" in words
+        assert f"DNA template v{modern_template_version('dna')}" in words
         for box in page._page_box.descendants():
             if box.element is not None and box.element.get("class") == "report_variant":
                 table_pages.setdefault(box.element, set()).add(index)

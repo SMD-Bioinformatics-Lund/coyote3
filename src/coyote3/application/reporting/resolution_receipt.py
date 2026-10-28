@@ -92,8 +92,10 @@ def report_resolution_receipt(template: str, context: dict[str, Any]) -> dict[st
             },
             "genome_build": sample.get("genome_build"),
             "rendering": {
-                "template": template,
-                "content_hash": template_content_hash(template),
+                "template": (context.get("report_layout") or {}).get("template", template),
+                "content_hash": (context.get("report_layout") or {}).get("content_hash")
+                or template_content_hash(template),
+                **({"configured_template": template} if context.get("report_layout") else {}),
                 "software_version": __version__,
                 "language": configuration.get("reporting", {}).get("language"),
             },

@@ -41,6 +41,8 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
     Args:
         config: Host settings. CONTACT.organization.report_logo selects region-skane
             (the bundled default), a path within the center directory, or empty to omit.
+            Optional organization.accreditation_logo selects another center-owned image;
+            the report displays it only for an accredited assay.
             Optional organization.address and organization.phone supply the public
             center contact details; blank or non-text values are omitted.
 
@@ -70,6 +72,14 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
                     "The report logo must be inside the center configuration directory"
                 )
         branding["center_logo"] = _image_url(path)
+    accreditation = organization.get("accreditation_logo")
+    if isinstance(accreditation, str) and accreditation.strip():
+        path = (CENTER_CONFIG_DIR / accreditation.strip()).resolve()
+        if not path.is_relative_to(CENTER_CONFIG_DIR.resolve()):
+            raise ValueError(
+                "The accreditation logo must be inside the center configuration directory"
+            )
+        branding["accreditation_logo"] = _image_url(path)
     return branding
 
 

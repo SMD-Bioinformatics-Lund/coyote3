@@ -297,19 +297,28 @@ class SampleReports:
         """
         return parse_model(ReportTrial, self.api[report_type]["try-new"].get())
 
-    def save(self, report_type: Literal["dna", "rna"], *, preview_fingerprint: str) -> SavedReport:
+    def save(
+        self,
+        report_type: Literal["dna", "rna"],
+        *,
+        preview_fingerprint: str,
+        report_format: Literal["modern", "legacy"] = "modern",
+    ) -> SavedReport:
         """Persist a report only when the reviewed preview still matches current inputs.
 
         Args:
             report_type: dna or rna, as used in the reviewed preview.
             preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
+            report_format: Presentation selected in the preview; modern is the default.
 
         Returns:
             Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.
         """
         return parse_model(
             SavedReport,
-            self.api[report_type].post(json={"preview_fingerprint": preview_fingerprint}),
+            self.api[report_type].post(
+                json={"preview_fingerprint": preview_fingerprint, "report_format": report_format}
+            ),
         )
 
     def download(self, report_id: str, *, file_type: Literal["html", "pdf"] = "pdf") -> bytes | str:

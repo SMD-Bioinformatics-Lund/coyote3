@@ -1,7 +1,7 @@
 """Report API contracts."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -29,6 +29,7 @@ class ReportSaveRequest(BaseModel):
     """Require the reviewed preview's input fingerprint when creating a report."""
 
     preview_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    report_format: Literal["modern", "legacy"] = "modern"
 
 
 class ReportPreviewBody(BaseModel):

@@ -527,12 +527,27 @@ class TranslocationsDoc(_FindingDocBase):
     blacklisted: str | bool = ""
 
 
+class BiomarkerAssessmentDoc(_DocBase):
+    """A manually authored assessment with its server-recorded author and revision."""
+
+    value: Literal["HIGH", "MODERATE", "LOW"] | None
+    assessed_by: str
+    assessed_at: datetime
+    revision: int = Field(ge=1)
+
+
 class BiomarkersMsiDoc(_DocBase):
     """MSI total and somatic counts with the reported percentage."""
 
     tot: int
     som: int
     per: float
+    clinical_assessment: BiomarkerAssessmentDoc | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    assessment_history: list[BiomarkerAssessmentDoc] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
 
 
 class BiomarkersHrdDoc(_DocBase):
@@ -542,6 +557,12 @@ class BiomarkersHrdDoc(_DocBase):
     hrd: int
     lst: int
     sum: int
+    clinical_assessment: BiomarkerAssessmentDoc | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    assessment_history: list[BiomarkerAssessmentDoc] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
 
     @model_validator(mode="after")
     def _validate_sum(self) -> "BiomarkersHrdDoc":
@@ -566,6 +587,12 @@ class BiomarkersTmbDoc(_DocBase):
 
     value: float = Field(ge=0, allow_inf_nan=False)
     unit: Literal["mut/Mb"] = "mut/Mb"
+    clinical_assessment: BiomarkerAssessmentDoc | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    assessment_history: list[BiomarkerAssessmentDoc] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
 
 
 class BiomarkersDoc(_CollectionDocBase):

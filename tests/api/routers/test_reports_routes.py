@@ -110,7 +110,9 @@ def boundary():
 
 @pytest.mark.parametrize("include", [True, False])
 def test_http_preview_uses_sdk_results_and_retains_snapshot_contract(boundary, include):
-    direct = boundary.sdk.preview("synthetic-sample", "dna", include_snapshot=include)
+    direct = boundary.sdk.preview(
+        "synthetic-sample", "dna", include_snapshot=include, layout="modern"
+    )
     response = boundary.client.get(
         "/api/v1/samples/synthetic-sample/reports/dna/preview",
         params={"include_snapshot": str(include).lower()},
@@ -156,7 +158,7 @@ def test_trial_returns_matching_temporary_outputs_and_never_allocates_a_report(b
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
 def test_saved_report_preserves_author_snapshot_and_resolution_receipt(boundary, analyte):
     boundary.sample["asp_category"] = analyte
-    preview = boundary.sdk.preview("synthetic-sample", analyte)
+    preview = boundary.sdk.preview("synthetic-sample", analyte, layout="modern")
     response = boundary.client.post(
         f"/api/v1/samples/synthetic-sample/reports/{analyte}",
         json={"preview_fingerprint": preview.fingerprint},
@@ -167,11 +169,14 @@ def test_saved_report_preserves_author_snapshot_and_resolution_receipt(boundary,
     assert values["created_by"] == boundary.actor.username
     assert values["snapshot_rows"][0]["resource_id"] == "synthetic-finding"
     assert values["resolution_snapshot"]["configuration"] == boundary.config
+    leaf = "dna_report.html" if analyte == "dna" else "report_fusion.html"
+    assert values["resolution_snapshot"]["rendering"]["template"] == f"modern/{leaf}"
+    assert values["resolution_snapshot"]["rendering"]["configured_template"] == leaf
     assert response.json()["report"]["snapshot_count"] == 1
 
 
 def test_stale_preview_fails_before_any_artifact_or_number_allocation(boundary):
-    preview = boundary.sdk.preview("synthetic-sample", "dna")
+    preview = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
     boundary.context["sample"]["version"] = 2
     response = boundary.client.post(
         "/api/v1/samples/synthetic-sample/reports/dna",
@@ -180,6 +185,53 @@ def test_stale_preview_fails_before_any_artifact_or_number_allocation(boundary):
     assert response.status_code == 409
     boundary.workflow.next_report_num.assert_not_called()
     boundary.workflow.prepare_report_output.assert_not_called()
+    boundary.workflow.persist_report.assert_not_called()
+
+
+def test_report_format_is_fingerprinted_and_saved_as_rendering_provenance(boundary):
+    modern = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
+    legacy = boundary.client.get(
+        "/api/v1/samples/synthetic-sample/reports/dna/preview?format=legacy"
+    ).json()
+    fingerprint = legacy["meta"]["preview_fingerprint"]
+    assert fingerprint != modern.fingerprint
+    mismatch = boundary.client.post(
+        "/api/v1/samples/synthetic-sample/reports/dna",
+        json={"preview_fingerprint": fingerprint, "report_format": "modern"},
+    )
+    assert mismatch.status_code == 409
+    boundary.workflow.next_report_num.assert_not_called()
+    saved = boundary.client.post(
+        "/api/v1/samples/synthetic-sample/reports/dna",
+        json={"preview_fingerprint": fingerprint, "report_format": "legacy"},
+    )
+    assert saved.status_code == 201
+    receipt = boundary.workflow.persist_report.call_args.kwargs["resolution_snapshot"]
+    assert receipt["rendering"]["template"] == "dna_report.html"
+    assert receipt["rendering"]["configured_template"] == "dna_report.html"
+    assert receipt["rendering"]["content_hash"]
+
+
+def test_invalid_report_format_is_rejected_before_rendering(boundary):
+    response = boundary.client.get(
+        "/api/v1/samples/synthetic-sample/reports/dna/preview?format=unknown"
+    )
+    assert response.status_code == 422
+    boundary.render.assert_not_called()
+
+
+def test_changed_presentation_source_invalidates_a_reviewed_preview(boundary, monkeypatch):
+    preview = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
+    monkeypatch.setattr(
+        "coyote3.application.reporting.report_service.template_content_hash",
+        lambda template: "changed-synthetic-presentation",
+    )
+    response = boundary.client.post(
+        "/api/v1/samples/synthetic-sample/reports/dna",
+        json={"preview_fingerprint": preview.fingerprint},
+    )
+    assert response.status_code == 409
+    boundary.workflow.next_report_num.assert_not_called()
     boundary.workflow.persist_report.assert_not_called()
 
 

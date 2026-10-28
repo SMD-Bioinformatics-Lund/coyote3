@@ -99,6 +99,16 @@ def test_combined_measurements_are_read_once(tmp_path, monkeypatch):
     }
 
 
+@pytest.mark.parametrize("field", ["clinical_assessment", "assessment_history"])
+def test_ingest_cannot_supply_manual_review_metadata(tmp_path, field):
+    document = deepcopy(MEASUREMENTS)
+    document["HRD"][field] = {"value": "HIGH", "assessed_by": "forged"}
+    source = tmp_path / "measurements.json"
+    source.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="review workflow"):
+        DnaIngestParser().parse({"biomarkers": str(source)})
+
+
 @pytest.mark.parametrize("key", ["hrd", "msi", "tmb"])
 @pytest.mark.parametrize("container", [None, "files", "_runtime_files"])
 def test_separate_file_keys_are_rejected_before_parsing(key, container):

@@ -16,6 +16,44 @@ from coyote3.domain.dna.variant_identity import ensure_variant_identity_fields
 logger = logging.getLogger(__name__)
 
 
+def _preserve_biomarker_assessments(existing: dict, incoming: dict) -> dict:
+    """Retain manual review when re-importing identical measurements.
+
+    Args:
+        existing: Stored biomarker document including any manual assessment history.
+        incoming: Parsed measurements supplied for replacement, without review metadata.
+
+    Returns:
+        Incoming measurements with existing review metadata copied for unchanged values.
+
+    Raises:
+        ValueError: Replacement would change or remove a measurement with recorded review.
+            Such changes require clinical reconciliation rather than silently dropping history.
+    """
+    incoming = dict(incoming)
+    review_fields = {"clinical_assessment", "assessment_history"}
+    for fields in BIOMARKER_FIELDS.values():
+        if not any(field in incoming for field in fields):
+            continue
+        for field in fields:
+            previous = existing.get(field) or {}
+            review = {key: previous[key] for key in review_fields if previous.get(key)}
+            if not review:
+                continue
+            measured = {key: value for key, value in previous.items() if key not in review_fields}
+            replacement = incoming.get(field)
+            if isinstance(replacement, dict) and field == "TMB":
+                measured.setdefault("unit", "mut/Mb")
+                replacement = {"unit": "mut/Mb", **replacement}
+            if replacement != measured:
+                raise ValueError(
+                    f"Cannot replace reviewed {field} measurements through ingestion. "
+                    "Reconcile the clinical assessment and its history before changing the evidence."
+                )
+            incoming[field] = {**replacement, **review}
+    return incoming
+
+
 def write_dependents(
     service: Any,
     *,
@@ -121,7 +159,8 @@ def replace_dependents(
         Written document counts keyed by ingest payload name.
 
     Raises:
-        ValueError: Multiple existing documents or a conflicting source name require reconciliation.
+        ValueError: Multiple existing documents, a conflicting source name, or changed
+            measurements with recorded clinical review require reconciliation.
 
     Notes:
         Replacing MSI replaces both method fields as one analysis. Absent HRD,
@@ -139,6 +178,7 @@ def replace_dependents(
             raise ValueError(
                 "Biomarker update source name differs from the stored measurement source"
             )
+        incoming = _preserve_biomarker_assessments(merged, incoming)
         merged.pop("_id", None)
         for fields in BIOMARKER_FIELDS.values():
             if any(field in incoming for field in fields):

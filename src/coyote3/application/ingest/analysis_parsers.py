@@ -149,6 +149,15 @@ class DnaIngestParser:
             selected = {key: document[key] for key in fields if document.get(key) is not None}
             if not selected:
                 raise ValueError(f"Biomarkers JSON requires a measurement: {', '.join(fields)}")
+            if any(
+                isinstance(measurement, dict)
+                and {"clinical_assessment", "assessment_history"}.intersection(measurement)
+                for measurement in selected.values()
+            ):
+                raise ValueError(
+                    "Biomarker clinical assessments must be assigned through the review workflow, "
+                    "not supplied in an ingest file"
+                )
             measurements.update(name=document["name"], **selected)
         if measurements:
             preload["biomarkers"] = measurements

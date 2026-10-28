@@ -295,12 +295,27 @@ class AsyncReports:
         return parse_model(ReportTrial, await self.api[report_type]["try-new"].get())
 
     async def save(
-        self, report_type: Literal["dna", "rna"], *, preview_fingerprint: str
+        self,
+        report_type: Literal["dna", "rna"],
+        *,
+        preview_fingerprint: str,
+        report_format: Literal["modern", "legacy"] = "modern",
     ) -> SavedReport:
-        """Save only the explicitly reviewed fingerprint; never refresh or retry a mutation."""
+        """Save the reviewed fingerprint using the same modern or legacy presentation.
+
+        Args:
+            report_type: DNA or RNA modality from the reviewed preview.
+            preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
+            report_format: Modern by default, or legacy if selected in the preview.
+
+        Returns:
+            Saved report identifiers and artifact metadata.
+        """
         return parse_model(
             SavedReport,
-            await self.api[report_type].post(json={"preview_fingerprint": preview_fingerprint}),
+            await self.api[report_type].post(
+                json={"preview_fingerprint": preview_fingerprint, "report_format": report_format}
+            ),
         )
 
 

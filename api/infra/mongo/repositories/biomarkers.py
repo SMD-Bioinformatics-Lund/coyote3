@@ -10,6 +10,10 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from typing import Any
+
+from bson import ObjectId
+
 from api.infra.mongo.repositories.base import BaseRepository
 from coyote3.contracts.operations import OperationResult
 
@@ -104,6 +108,45 @@ class BiomarkerRepository(BaseRepository):
             if sample_id in grouped:
                 grouped[sample_id].append(document)
         return grouped
+
+    def assign_assessment(
+        self,
+        *,
+        sample_id: str,
+        record_id: str,
+        method: str,
+        expected_revision: int,
+        assessment: dict[str, Any],
+    ) -> bool:
+        """Atomically save a sample-owned measurement assessment and retain its history.
+
+        Args:
+            sample_id: Owning sample's canonical identifier.
+            record_id: Existing measurement document ObjectId.
+            method: Validated HRD, MSIS, MSIP or TMB measurement key.
+            expected_revision: Zero for an unassessed record, otherwise its current revision.
+            assessment: Server-authored value, actor, UTC time and next revision.
+
+        Returns:
+            Whether the existing measurement matched the expected revision and was updated.
+        """
+        if method not in {"HRD", "MSIS", "MSIP", "TMB"} or not ObjectId.is_valid(record_id):
+            return False
+        field = f"{method}.clinical_assessment"
+        query = {
+            "_id": ObjectId(record_id),
+            "SAMPLE_ID": sample_id,
+            method: {"$type": "object"},
+            f"{field}.revision": expected_revision if expected_revision else {"$exists": False},
+        }
+        result = self.get_collection().update_one(
+            query,
+            {
+                "$set": {field: assessment},
+                "$push": {f"{method}.assessment_history": assessment},
+            },
+        )
+        return result.matched_count == 1
 
     def delete_sample_biomarkers(self, sample_id: str) -> OperationResult:
         """

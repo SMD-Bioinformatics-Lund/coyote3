@@ -4405,6 +4405,27 @@ Sample.apply_genelists(self, payload: 'dict[str, Any]', *, target: 'str | None' 
 Apply only released, target-compatible gene lists through the existing mutation workflow.
 ```
 
+#### `Sample.assess_biomarker`
+
+```python
+Sample.assess_biomarker(self, record_id: 'str', method: 'str', change: 'BiomarkerAssessmentRequest') -> 'dict[str, Any]'
+```
+
+```text
+Assign a revision-checked assessment under a sample editing lease.
+
+Args:
+    record_id: Existing biomarker document identifier belonging to this sample.
+    method: Enabled measurement key: HRD, MSIS, MSIP or TMB.
+    change: BiomarkerAssessmentRequest with manual value and expected revision.
+
+Returns:
+    Current measured biomarkers with the saved assessment.
+
+Raises:
+    AppError: Access, production publication, editing lease or revision checks fail.
+```
+
 #### `Sample.bam_files`
 
 ```python
@@ -4413,6 +4434,16 @@ Sample.bam_files(self) -> 'dict[str, Any]'
 
 ```text
 Read BAM-service paths using only case/control identities from the authorized sample.
+```
+
+#### `Sample.biomarker_review`
+
+```python
+Sample.biomarker_review(self) -> 'dict[str, Any]'
+```
+
+```text
+Read enabled biomarker measurements and saved assessments under sample access.
 ```
 
 #### `Sample.biomarkers`
@@ -6677,7 +6708,7 @@ Returns:
 #### `SampleReports.save`
 
 ```python
-SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str') -> 'SavedReport'
+SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern', 'legacy']" = 'modern') -> 'SavedReport'
 ```
 
 ```text
@@ -6686,6 +6717,7 @@ Persist a report only when the reviewed preview still matches current inputs.
 Args:
     report_type: dna or rna, as used in the reviewed preview.
     preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
+    report_format: Presentation selected in the preview; modern is the default.
 
 Returns:
     Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.
@@ -7161,11 +7193,19 @@ Read an existing preview and its fingerprint without saving a report.
 #### `AsyncReports.save`
 
 ```python
-AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str') -> 'SavedReport'
+AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern', 'legacy']" = 'modern') -> 'SavedReport'
 ```
 
 ```text
-Save only the explicitly reviewed fingerprint; never refresh or retry a mutation.
+Save the reviewed fingerprint using the same modern or legacy presentation.
+
+Args:
+    report_type: DNA or RNA modality from the reviewed preview.
+    preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
+    report_format: Modern by default, or legacy if selected in the preview.
+
+Returns:
+    Saved report identifiers and artifact metadata.
 ```
 
 #### `AsyncReports.try_new`

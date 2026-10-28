@@ -183,6 +183,9 @@ def render_report_html(
         raise ValueError("Report layout must be legacy or modern")
     context["legacy_template"] = leaf
     context.update(report_analyte=analyte, branding=branding or {})
+    context["assay_accredited"] = (
+        (context["assay_config"].get("assay_resource_release") or {}).get("content") or {}
+    ).get("accredited") is True
     if selected_layout == "modern":
         context["report_template_version"] = modern_template_version(analyte)
     settings = presentation or ReportPresentation.model_validate(

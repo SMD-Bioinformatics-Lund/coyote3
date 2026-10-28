@@ -32,11 +32,11 @@ def context():
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
 def test_template_version_participates_in_its_analyte_identity_only(monkeypatch, analyte):
-    """Releasing one analyte changes only its versioned identity and rendered footer."""
+    """Releasing one analyte changes only its versioned identity and header label."""
     names = {"dna": "dna_report.html", "rna": "report_fusion.html"}
     hashes = {name: template_content_hash(name) for name in report_service.REPORT_TEMPLATES}
-    versions = {"dna": "1.0.0", "rna": "1.0.0"}
-    versions[analyte] = "1.0.1"
+    versions = {key: report_service.modern_template_version(key) for key in names}
+    versions[analyte] = "1.99.0"
     source = "\n".join(f'[{key}]\nversion = "{value}"' for key, value in versions.items())
     original_source = report_service._expanded_source
     monkeypatch.setattr(
@@ -59,7 +59,7 @@ def test_template_version_participates_in_its_analyte_identity_only(monkeypatch,
             layout="modern",
         )
         assert (
-            f'data-footer-label="Coyote3 · {modality.upper()} report (template v{versions[modality]})"'
+            f'class="report-template-version">{modality.upper()} template v{versions[modality]}</span>'
             in html
         )
 
@@ -93,7 +93,7 @@ def test_template_version_rejects_unsupported_analyte():
     "analyte,name", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
 )
 def test_footer_template_version_is_independent_of_patient_report_number(analyte, name):
-    """Repeated patient reports use the same installed presentation version in the footer."""
+    """Repeated patient reports use the installed presentation version in the footer."""
     inputs = context()
     for number in (0, 8):
         inputs["sample"]["report_num"] = number
@@ -105,7 +105,10 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
             preview=True,
             layout="modern",
         )
-        assert f'data-footer-label="Coyote3 · {analyte.upper()} report (template v1.0.0)"' in html
+        version = report_service.modern_template_version(analyte)
+        assert (
+            f'class="report-template-version">{analyte.upper()} template v{version}</span>' in html
+        )
 
 
 @pytest.mark.parametrize(
@@ -172,10 +175,9 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
         preview=False,
     )
     assert "TRY NEW REPORT · TEMPORARY PREVIEW" not in issued
-    assert "@bottom-left { content: string(report-footer); }" in issued
-    assert (
-        'data-footer-label="Coyote3 · ' + analyte.upper() + ' report (template v1.0.0)"' in issued
-    )
+    assert "@bottom-left { content: element(report-page-footer); }" in issued
+    version = report_service.modern_template_version(analyte)
+    assert f'class="report-template-version">{analyte.upper()} template v{version}</span>' in issued
     inputs["assay_config"]["template_release"]["content_hash"] = "invalid"
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(

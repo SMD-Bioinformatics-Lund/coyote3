@@ -1,24 +1,27 @@
 @page {
-  size: A4; margin: 14mm 16mm 18mm;
+  size: A4; margin: 65mm 16mm 18mm;
   @top-right { content: none; }
   @top-left {
-    content: string(report-sample); color: #70717b;
-    font: 8pt "Source Sans 3", sans-serif;
+    content: element(report-page-header); width: 100%; vertical-align: bottom;
   }
   @bottom-left {
-    content: string(report-footer); color: #70717b;
-    width: 80%;
+    content: element(report-page-footer); color: #70717b;
+    width: 75%;
     font: 8pt "Source Sans 3", sans-serif;
     border-top: 1px solid #e5e5e9; padding-top: 3mm;
   }
   @bottom-right {
-    content: counter(page) " / " counter(pages); color: #70717b;
-    width: 20%; text-align: right;
+    content: element(report-page-number-footer); color: #70717b;
+    width: 25%; text-align: right;
     font: 8pt "Source Sans 3", sans-serif;
     border-top: 1px solid #e5e5e9; padding-top: 3mm;
   }
 }
-@page:first { @top-left { content: none; } }
+.report-page-header, .report-page-footer, .report-page-number-footer { display: none; }
+.report-template-version { display: block; font-size: 6.5pt; line-height: 1.2; }
+.report-page-number { display: block; margin-top: 2px; font-size: 8pt; line-height: 1.2; }
+.report-page-number::after { content: "Sida " counter(page) " av " counter(pages); }
+.report-accreditation-logo { max-width: 32mm; max-height: 9mm; object-fit: contain; }
 html { background: #f2f1f4; color-scheme: light; }
 body {
   margin: 0; color: #2f3038; font: 10pt/1.35 "Source Sans 3", sans-serif;
@@ -41,21 +44,24 @@ body .page {
   background: linear-gradient(90deg, #a58ab8, #d9b18a);
 }
 .report-product-brand { display: table-cell; width: 50%; vertical-align: middle; }
-.report-product-brand > div { display: inline-block; margin-left: 12px; vertical-align: middle; }
+.report-product-brand > div { display: inline-block; margin-left: 6px; vertical-align: middle; }
+.report-product-brand > .report-logo-identity { margin-left: 0; text-align: center; }
 .report-product-brand strong {
   display: block; color: #181818; font-size: 15pt; font-weight: 600;
   letter-spacing: .12em; white-space: nowrap;
 }
-.report-product-brand span { display: block; color: #70717b; font-size: 8pt; margin-top: 3px; }
-.report-coyote-logo { width: 56px; height: 38px; vertical-align: middle; object-fit: contain; }
+.report-coyote-logo { width: 52px; height: 34px; vertical-align: middle; object-fit: contain; }
 .report-center-brand { display: table-cell; width: 50%; vertical-align: middle; text-align: right; }
 .report-center-brand span {
   display: block; max-width: 220px; margin-left: auto; color: #70717b;
-  font-size: 8.5pt; line-height: 1.3;
+  font-size: 7pt; line-height: 1.15;
 }
+.report-center-contact { margin-right: 52px; }
 .report-center-logo {
-  display: block; width: 48px; height: 40px; margin: 0 0 5px auto; object-fit: contain;
+  display: block; float: right; width: 44px; height: 34px;
+  margin: 0 0 0 8px; object-fit: contain;
 }
+.report-center-brand:not(:has(.report-center-logo)) .report-center-contact { margin-right: 0; }
 .report-coyote-logo, .report-center-logo { color-scheme: light; }
 .report-center-address { white-space: pre-line; }
 .report-center-phone svg { vertical-align: middle; }
@@ -67,7 +73,6 @@ body .page {
 .report-preview-card, .report-content > span.report_header:first-of-type { display: none; }
 .report-document-heading {
   margin: 0 0 12px; break-inside: avoid; break-after: avoid;
-  string-set: report-footer attr(data-footer-label);
 }
 .report-document-label {
   margin: 0 0 3px; color: #665271; font-size: 8pt; font-weight: 600;
@@ -88,10 +93,10 @@ body .page {
   color: #44364e; font-size: 8.5pt; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; break-after: avoid;
 }
-body table.report-patient-table { margin: 0; font-size: 9pt; line-height: 1.25; }
+body table.report-patient-table { margin: 0; font-size: 8.5pt; line-height: 1.2; }
 .report-patient-table .metadata-label { width: 18%; }
 body table.report-patient-table th, body table.report-patient-table td {
-  padding: 4px 7px; border: 1px solid #e5e5e9; text-align: left;
+  padding: 3px 6px; border: 1px solid #e5e5e9; text-align: left;
 }
 body table.report-patient-table th {
   color: #656670; background: #fafafa; font-size: 8pt; font-weight: 400;
@@ -118,6 +123,7 @@ body table.report_variant {
   width: 100%; margin: 6px 0 12px; border: 1px solid #e5e5e9; background: white;
   font-size: 9.5pt;
 }
+body table.report_variant :is(th, td) { padding: 3px 6px; }
 body table.variant_table { margin: 5px 0 9px; border: 0; border-bottom: 1px solid #d8d8df; }
 body td, body th { padding: 4px 7px; vertical-align: top; overflow-wrap: anywhere; }
 body table.variant_table td, body table.variant_table th {
@@ -204,6 +210,11 @@ body table.genetable td { padding: 3px; border-color: #e5e5e9; font-size: 7.5pt;
 body img { max-width: 100%; height: auto; }
 body a { color: #654577; text-decoration: underline; }
 body strong, body b { font-weight: 600; }
+body .report-tier-one td { font-weight: 600; }
+body table.report-biomarker-detail { width: 100%; margin: 5px 0 8px; border-collapse: collapse; break-inside: avoid; font-size: 9pt; }
+body table.report-biomarker-detail :is(th, td) { padding: 3px 6px; border: 1px solid #e5e5e9; text-align: left; }
+body table.report-biomarker-detail thead th { color: #493e53; background: #faf8fb; font-weight: 600; }
+body table.report-biomarker-detail tbody th { color: #656670; background: #fafafa; font-weight: 400; }
 body tr { break-inside: avoid; }
 body thead { display: table-header-group; }
 body p, body li { orphans: 3; widows: 3; }
@@ -250,6 +261,20 @@ body .page div[style*="rotate(90deg)"] > img {
 }
 @media print {
   html, body { background: white; }
+  body .page div[style*="rotate(90deg)"] > img { max-height: 190mm; }
+  .report-summary { break-before: page; }
+  .report-screen-brand, .report-content > .report-metadata { display: none; }
+  .report-page-header { display: block; position: running(report-page-header); padding-bottom: 3mm; }
+  .report-page-footer { display: block; position: running(report-page-footer); }
+  .report-page-number-footer { display: block; position: running(report-page-number-footer); }
+  .report-page-header .report-brand-header { padding-bottom: 1mm; }
+  .report-page-header .report-brand-rule { margin-bottom: 1mm; }
+  .report-page-header .report-metadata { margin-bottom: 0; }
+  .report-page-header .report-metadata-heading { padding: 2px 4px; font-size: 7pt; }
+  .report-page-header table.report-patient-table { font-size: 7.5pt; line-height: 1.1; }
+  .report-page-header table.report-patient-table :is(th, td) { padding: 2px 4px; }
+  .report-page-header table.report-patient-table th { font-size: 6.5pt; width: 12%; }
+  .report-page-header .report-patient-table .metadata-label { width: 12%; }
   body .page {
     width: auto; margin: 0; padding: 0; box-shadow: none;
   }

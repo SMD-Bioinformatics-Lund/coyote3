@@ -18,12 +18,23 @@ class BodyText(HTMLParser):
         self.notice = False
         self.brand = False
         self.label = False
+        self.print_depth = 0
         self.text = []
 
     def handle_starttag(self, tag, attrs):
         """Track body entry and the additional temporary-preview notice."""
         if tag == "body":
             self.body = True
+        if tag == "div" and (
+            self.print_depth
+            or dict(attrs).get("class")
+            in {
+                "report-page-header",
+                "report-page-footer",
+                "report-page-number-footer",
+            }
+        ):
+            self.print_depth += 1
         if tag == "header" and dict(attrs).get("class") in {
             "report-brand-header",
             "report-document-heading",
@@ -38,6 +49,8 @@ class BodyText(HTMLParser):
         """Stop collecting outside the body and resume after the trial notice."""
         if tag == "body":
             self.body = False
+        if tag == "div" and self.print_depth:
+            self.print_depth -= 1
         if tag == "p":
             self.notice = False
         if tag == "header":
@@ -47,7 +60,14 @@ class BodyText(HTMLParser):
 
     def handle_data(self, data):
         """Retain nonblank body text without changing its clinical wording."""
-        if self.body and not self.notice and not self.brand and not self.label and data.strip():
+        if (
+            self.body
+            and not self.notice
+            and not self.brand
+            and not self.label
+            and not self.print_depth
+            and data.strip()
+        ):
             self.text.append(data.strip())
 
 
@@ -128,7 +148,7 @@ def test_alternate_layout_preserves_all_report_text_and_embeds_its_css(analyte, 
     assert '<style id="modern-report-style">' in alternate
     assert "Content-Security-Policy" in alternate
     assert '<link rel="stylesheet"' not in alternate
-    assert "TRY NEW REPORT" in alternate
+    assert "PREVIEW · UNSAVED REPORT" in alternate
     pdf = render_pdf_bytes(alternate)
     assert pdf.startswith(b"%PDF-")
     assert len(pdf) > 1000

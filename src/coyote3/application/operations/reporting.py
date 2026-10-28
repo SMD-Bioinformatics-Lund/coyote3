@@ -155,7 +155,12 @@ class Reports:
         return self._runtime.execute("reports.list", ("report:view",), read)
 
     def preview_pdf(
-        self, sample_id: str, analyte: Analyte, *, include_snapshot: bool = True
+        self,
+        sample_id: str,
+        analyte: Analyte,
+        *,
+        include_snapshot: bool = True,
+        layout: Literal["modern", "legacy"] | None = None,
     ) -> Download:
         """Generate a PDF of the current authorized preview without saving report records.
 
@@ -163,11 +168,12 @@ class Reports:
             sample_id: Sample name or identifier, checked using the current session and scope.
             analyte: DNA or RNA report modality matching the sample.
             include_snapshot: Include finding snapshot context when True.
+            layout: Explicit presentation choice; None retains the configured layout.
 
         Returns:
             PDF bytes and the established sample-based download filename.
         """
-        preview = self.preview(sample_id, analyte, include_snapshot=include_snapshot)
+        preview = self.preview(sample_id, analyte, include_snapshot=include_snapshot, layout=layout)
         return Download(
             filename=f"{preview.sample.get('name') or sample_id}_{analyte}_preview.pdf",
             content=self._services.render_pdf(preview.html),
@@ -175,7 +181,13 @@ class Reports:
         )
 
     def _build(
-        self, sample: dict[str, Any], analyte: Analyte, *, save: bool, include_snapshot: bool
+        self,
+        sample: dict[str, Any],
+        analyte: Analyte,
+        *,
+        save: bool,
+        include_snapshot: bool,
+        layout: Literal["modern", "legacy"] | None = None,
     ) -> tuple[str, dict[str, Any], builtins.list[dict[str, Any]], dict[str, Any]]:
         """Validate modality and build the existing clinical report context and snapshots."""
         category = str(sample.get("asp_category") or "").lower()
@@ -237,7 +249,21 @@ class Reports:
                 category="validation",
             ) from exc
         release = (context.get("assay_config") or {}).get("template_release") or {}
-        if str(release.get("template_name") or template).startswith("modern/"):
+        if layout is not None:
+            from coyote3.application.reporting.report_service import template_content_hash
+
+            if layout not in {"modern", "legacy"}:
+                raise ValueError("Report layout must be legacy or modern")
+            configured_leaf = "dna_report.html" if analyte == "dna" else "report_fusion.html"
+            actual_template = f"modern/{configured_leaf}" if layout == "modern" else configured_leaf
+            context["report_layout"] = {
+                "layout": layout,
+                "template": actual_template,
+                "content_hash": template_content_hash(actual_template),
+            }
+        if layout == "modern" or str(release.get("template_name") or template).startswith(
+            "modern/"
+        ):
             context["report_presentation"] = self._services.presentation().model_dump(mode="json")
         return template, context, rows or [], config
 
@@ -248,6 +274,7 @@ class Reports:
         *,
         include_snapshot: bool = False,
         save_context: bool = False,
+        layout: Literal["modern", "legacy"] | None = None,
     ) -> ReportPreview:
         """Render current report inputs with the fingerprint required by save.
 
@@ -256,6 +283,7 @@ class Reports:
             analyte: DNA or RNA modality matching the sample.
             include_snapshot: Include immutable finding rows when True.
             save_context: Render the save presentation without persisting artifacts.
+            layout: Explicit layout choice, included in the reviewed fingerprint.
 
         Returns:
             HTML, clinical context, optional finding rows and review fingerprint.
@@ -268,7 +296,11 @@ class Reports:
             from coyote3.application.reporting.preview_consistency import preview_fingerprint
 
             template, context, rows, _ = self._build(
-                _sample(record), analyte, save=save_context, include_snapshot=include_snapshot
+                _sample(record),
+                analyte,
+                save=save_context,
+                include_snapshot=include_snapshot,
+                layout=layout,
             )
             fingerprint = preview_fingerprint(template, context)
             html = self._services.render_html(
@@ -279,9 +311,10 @@ class Reports:
                 snapshot_rows=rows,
                 analyte=analyte,
                 preview=not save_context,
+                **({"layout": layout} if layout else {}),
             )
             return ReportPreview(
-                template=template,
+                template=context.get("report_layout", {}).get("template", template),
                 context=context,
                 html=html,
                 snapshot_rows=rows if include_snapshot else [],
@@ -294,13 +327,21 @@ class Reports:
             "reports.preview", ("report:preview",), read, sample_id=sample_id
         )
 
-    def save(self, sample_id: str, analyte: Analyte, *, fingerprint: str) -> SavedReport:
+    def save(
+        self,
+        sample_id: str,
+        analyte: Analyte,
+        *,
+        fingerprint: str,
+        layout: Literal["modern", "legacy"] | None = None,
+    ) -> SavedReport:
         """Save a reviewed report, rejecting changed inputs before creating artifacts.
 
         Args:
             sample_id: Sample name or identifier, reloaded under current sample scope.
             analyte: DNA or RNA modality matching the sample.
             fingerprint: Fingerprint returned by the reviewed preview.
+            layout: Same explicit presentation choice used by the reviewed preview.
 
         Returns:
             Report identity, artifact locations and finding snapshot count.
@@ -318,7 +359,7 @@ class Reports:
 
             sample = _sample(record)
             template, context, rows, config = self._build(
-                sample, analyte, save=True, include_snapshot=True
+                sample, analyte, save=True, include_snapshot=True, layout=layout
             )
             require_current_preview(fingerprint, template, context)
             workflow = self._services.workflow(analyte)
@@ -337,6 +378,7 @@ class Reports:
                 snapshot_rows=rows,
                 analyte=analyte,
                 preview=False,
+                **({"layout": layout} if layout else {}),
             )
             evaluation = context.get("clinical_rule_evaluation")
             provenance = None
