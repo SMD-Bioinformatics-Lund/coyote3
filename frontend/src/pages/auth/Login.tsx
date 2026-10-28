@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { EnvironmentBanner } from "@/components/layout/EnvironmentBanner"
 import { BrandWordmark } from "@/components/layout/BrandWordmark"
-import { Eye, EyeOff, Loader2, Cloud } from "lucide-react"
+import { icon, logo, illustration } from "@/lib/assets"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
@@ -122,10 +122,10 @@ export function Login() {
 
             {/* Clouds */}
             <div className="login-cloud absolute top-24 left-[20%] opacity-30">
-              <Cloud size={140} strokeWidth={0.5} />
+              <icon.cloud size={140} strokeWidth={0.5} />
             </div>
             <div className="login-cloud absolute top-48 right-[35%] opacity-30">
-              <Cloud size={100} strokeWidth={0.5} />
+              <icon.cloud size={100} strokeWidth={0.5} />
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export function Login() {
           <div className="relative w-full h-1/2">
             <div className="absolute bottom-[-2rem] -left-12 w-[min(130vw,1400px)] opacity-[0.2] dark:-bottom-15 dark:left-0 dark:w-[min(130vw,1400px)] dark:opacity-[0.26]">
               <img
-                src={appPath(isDark ? "/coyote-howling-sketch.svg" : "/coyote-walking-sketch.svg")}
+                src={appPath(isDark ? illustration.coyoteHowling.src : illustration.coyoteWalking.src)}
                 alt=""
                 className="h-auto w-full"
               />
@@ -144,7 +144,7 @@ export function Login() {
         <header className="login-header relative z-10">
           <div className="inline-flex min-w-max items-center gap-2.5">
             <img
-              src={appPath("/logos/coyote-vector.svg")}
+              src={appPath(logo.coyote.src)}
               alt={organizationName}
               className="w-11 h-7"
             />
@@ -235,7 +235,7 @@ export function Login() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <icon.eyeOff size={18} /> : <icon.eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export function Login() {
                 disabled={loading || !provider || !username || !password}
               >
                 {loading ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <icon.loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : null}
                 {loading ? "Signing in..." : "Sign in"}
               </Button>

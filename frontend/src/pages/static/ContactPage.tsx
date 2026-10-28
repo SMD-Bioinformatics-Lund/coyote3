@@ -3,7 +3,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useQuery } from "@tanstack/react-query"
-import { Building2, ExternalLink, LifeBuoy } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { AddressCard, ContactCard, ContentSection, DetailHeading, HoursSummary, OrganizationCard, SupportCard, UsefulLinksCard } from "./static-content"
 import { STATIC_TONES, type PublicContactPayload } from "./static-values"
@@ -35,7 +35,7 @@ export function ContactPage() {
         ) : null}
 
         <ContentSection
-          icon={LifeBuoy}
+          icon={icon.lifeBuoy}
           title="Support channels"
           description="Choose the clinical, sample, or platform channel that matches the request."
           aside={<HoursSummary hours={hours} />}
@@ -50,7 +50,7 @@ export function ContactPage() {
         </ContentSection>
 
         <ContentSection
-          icon={Building2}
+          icon={icon.building2}
           title="Center and service details"
           description="Deployment ownership, central contacts, location, and related resources."
           tone="info"
@@ -66,14 +66,14 @@ export function ContactPage() {
               data-static-tone="primary"
             >
               <div>
-                <DetailHeading icon={Building2} title="Application and deployment" />
+                <DetailHeading icon={icon.building2} title="Application and deployment" />
                 <p className="mt-2 type-body-sm text-muted-foreground">
                   Review application, reference database, pipeline, and knowledgebase versions.
                 </p>
               </div>
               <span className="inline-flex items-center gap-2 type-body-sm font-semibold text-link">
                 Open deployment details
-                <ExternalLink className="size-4" />
+                <icon.externalLink className="size-4" />
               </span>
             </Link>
         </ContentSection>

@@ -1,7 +1,7 @@
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { SearchInput } from "@/components/ui/search-input"
-import { Check, Search, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { useAnnotationVisibility } from "./annotation-visibility"
@@ -128,11 +128,11 @@ export function AssayMatrixTable({
             />
           </label>
           <button type="submit" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90">
-            <Search className="h-3.5 w-3.5" />
+            <icon.search className="h-3.5 w-3.5" />
             Search
           </button>
           <button type="button" onClick={onGeneSearchClear} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-bold hover:bg-muted">
-            <X className="h-3.5 w-3.5" />
+            <icon.x className="h-3.5 w-3.5" />
             Clear
           </button>
         </form>
@@ -280,7 +280,7 @@ export function AssayMatrixTable({
                     >
                       {col.no_gene_list ? <span className="type-meta text-muted-foreground" title="No gene list is assigned to this analysis">N/A</span> : present ? (
                         <span className="matrix-coverage-mark" aria-label="Included" title="Included in this gene list">
-                          <Check className="size-3" strokeWidth={2.4} aria-hidden="true" />
+                          <icon.check className="size-3" strokeWidth={2.4} aria-hidden="true" />
                         </span>
                       ) : (
                         <span className="text-muted-foreground/65">-</span>

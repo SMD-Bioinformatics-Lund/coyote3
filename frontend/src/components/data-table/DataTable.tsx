@@ -12,7 +12,7 @@ import {
   type Table,
 } from "@tanstack/react-table";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SearchX, ArrowDownToLine, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { SearchInput } from "@/components/ui/search-input";
 import { shortCount } from "@/lib/detail-formatters";
 import { cn } from "@/lib/utils";
@@ -303,7 +303,7 @@ export function DataTable<TData, TValue>({
                 onClick={exportToCSV}
                 className="inline-flex items-center gap-2 rounded-lg border border-primary/75 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[0_2px_6px_color-mix(in_srgb,var(--primary)_24%,transparent)] transition-colors hover:bg-primary/90"
               >
-                <ArrowDownToLine className="h-4 w-4" />
+                <icon.arrowDownToLine className="h-4 w-4" />
                 Export to CSV
               </button>
             )}
@@ -328,11 +328,11 @@ export function DataTable<TData, TValue>({
                     const meta = header.column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
                     const sortedIcon =
                       {
-                        asc: <ArrowUp className="h-2 w-2 shrink-0" />,
-                        desc: <ArrowDown className="h-2 w-2 shrink-0" />,
+                        asc: <icon.arrowUp className="h-2 w-2 shrink-0" />,
+                        desc: <icon.arrowDown className="h-2 w-2 shrink-0" />,
                       }[header.column.getIsSorted() as string] ??
                       (header.column.getCanSort() ? (
-                        <ArrowUpDown className="h-2 w-2 shrink-0 opacity-70" />
+                        <icon.arrowUpDown className="h-2 w-2 shrink-0 opacity-70" />
                       ) : null);
                     const sortIndex = sorting.findIndex((item) => item.id === header.column.id);
                     const HeaderControl = header.column.getCanSort() ? "button" : "div";
@@ -428,7 +428,7 @@ export function DataTable<TData, TValue>({
                     className="h-36 text-center text-muted-foreground font-medium"
                   >
                     <div className="flex flex-col items-center gap-2 px-4 py-6">
-                      <span className="rounded-xl border border-border bg-muted/50 p-2.5"><SearchX className="size-5" aria-hidden="true" /></span>
+                      <span className="rounded-xl border border-border bg-muted/50 p-2.5"><icon.searchX className="size-5" aria-hidden="true" /></span>
                       <p className="type-body-sm text-foreground">{emptyMessage}</p>
                       {displayedSearchValue.trim() && <p className="type-supporting">Try another search or clear the search field.</p>}
                     </div>

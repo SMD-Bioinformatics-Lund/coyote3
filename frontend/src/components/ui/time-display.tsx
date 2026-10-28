@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Clock3 } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { fullDateTime, humanRelativeDate } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
@@ -32,7 +32,7 @@ export function TimeDisplay({
       className={cn("inline-flex items-center gap-1 whitespace-nowrap", className)}
       title={mode === "relative" && absolute ? absolute : undefined}
     >
-      <Clock3 className="size-3 shrink-0" aria-hidden="true" />
+      <icon.clock3 className="size-3 shrink-0" aria-hidden="true" />
       {prefix}
       <span>{visible}</span>
       {suffix}

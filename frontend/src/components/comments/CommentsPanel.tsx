@@ -1,27 +1,6 @@
 import { useRef, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  Bold,
-  Code,
-  Edit3,
-  Eye,
-  EyeOff,
-  Heading,
-  Italic,
-  Link,
-  List,
-  ListOrdered,
-  Minus,
-  MessageSquare,
-  Quote,
-  Redo2,
-  Save,
-  Slash,
-  Sparkles,
-  Strikethrough,
-  Table2,
-  Undo2,
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { translocationAnnotationIdentity } from "@/lib/variant-helpers"
 import { MarkdownText } from "@/components/comments/MarkdownText"
@@ -259,24 +238,24 @@ export function CommentsPanel({
   }
 
   const toolbar = [
-    { label: "Bold", icon: Bold, action: () => insertMarkdown("**", "**", "bold text") },
-    { label: "Italic", icon: Italic, action: () => insertMarkdown("*", "*", "italic text") },
-    { label: "Strikethrough", icon: Strikethrough, action: () => insertMarkdown("~~", "~~", "removed text") },
-    { label: "Heading", icon: Heading, action: () => insertMarkdown("## ", "", "Heading", true) },
-    { label: "Code", icon: Code, action: () => insertMarkdown("`", "`", "code") },
-    { label: "Quote", icon: Quote, action: () => insertMarkdown("> ", "", "quote", true) },
-    { label: "Bulleted list", icon: List, action: () => insertMarkdown("- ", "", "list item", true) },
-    { label: "Numbered list", icon: ListOrdered, action: () => insertMarkdown("1. ", "", "list item", true) },
-    { label: "Link", icon: Link, action: () => insertMarkdown("[", "](https://)", "link text") },
-    { label: "Table", icon: Table2, action: () => insertMarkdown("| Column | Value |\n| --- | --- |\n| ", " | value |", "item", true) },
-    { label: "Horizontal rule", icon: Minus, action: () => insertMarkdown("---\n", "", "", true) },
-    { label: "Escape Markdown", icon: Slash, action: escapeMarkdownSelection },
+    { label: "Bold", icon: icon.bold, action: () => insertMarkdown("**", "**", "bold text") },
+    { label: "Italic", icon: icon.italic, action: () => insertMarkdown("*", "*", "italic text") },
+    { label: "Strikethrough", icon: icon.strikethrough, action: () => insertMarkdown("~~", "~~", "removed text") },
+    { label: "Heading", icon: icon.heading, action: () => insertMarkdown("## ", "", "Heading", true) },
+    { label: "Code", icon: icon.code, action: () => insertMarkdown("`", "`", "code") },
+    { label: "Quote", icon: icon.quote, action: () => insertMarkdown("> ", "", "quote", true) },
+    { label: "Bulleted list", icon: icon.list, action: () => insertMarkdown("- ", "", "list item", true) },
+    { label: "Numbered list", icon: icon.listOrdered, action: () => insertMarkdown("1. ", "", "list item", true) },
+    { label: "Link", icon: icon.link, action: () => insertMarkdown("[", "](https://)", "link text") },
+    { label: "Table", icon: icon.table2, action: () => insertMarkdown("| Column | Value |\n| --- | --- |\n| ", " | value |", "item", true) },
+    { label: "Horizontal rule", icon: icon.minus, action: () => insertMarkdown("---\n", "", "", true) },
+    { label: "Escape Markdown", icon: icon.slash, action: escapeMarkdownSelection },
   ]
 
   return (
     <section className={cn("glass-card p-2.5", fillHeight && "flex h-full min-h-0 flex-col")}>
       <div className="mb-2 flex items-center gap-2">
-        <MessageSquare className="h-4 w-4 text-tier2" />
+        <icon.messageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {showList && (
           <div className="ml-auto flex items-center gap-2">
@@ -288,8 +267,8 @@ export function CommentsPanel({
                 aria-pressed={showHiddenComments}
               >
                 {showHiddenComments
-                  ? <EyeOff className="size-3.5" aria-hidden="true" />
-                  : <Eye className="size-3.5" aria-hidden="true" />}
+                  ? <icon.eyeOff className="size-3.5" aria-hidden="true" />
+                  : <icon.eye className="size-3.5" aria-hidden="true" />}
                 {showHiddenComments ? "Hide hidden" : `Show hidden (${hiddenComments.length})`}
               </button>
             )}
@@ -348,7 +327,7 @@ export function CommentsPanel({
               title="Undo"
               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <Undo2 className="h-4 w-4" />
+              <icon.undo2 className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -356,7 +335,7 @@ export function CommentsPanel({
               title="Redo"
               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <Redo2 className="h-4 w-4" />
+              <icon.redo2 className="h-4 w-4" />
             </button>
           </>
           {showSuggestion && (
@@ -369,7 +348,7 @@ export function CommentsPanel({
                 title={suggestedText.trim() || onRequestSuggestion ? "Insert suggested text" : "No suggested text available"}
                 className="inline-flex items-center gap-1.5 rounded-md bg-validation/10 px-2 py-1.5 text-xs font-bold text-validation hover:bg-validation/20 disabled:opacity-45"
               >
-                <Sparkles className="h-4 w-4" />
+                <icon.sparkles className="h-4 w-4" />
                 {isSuggestionLoading ? "Preparing..." : "Suggest"}
               </button>
             </>
@@ -381,7 +360,7 @@ export function CommentsPanel({
                 onClick={() => setMode("edit")}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold ${mode === "edit" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
-                <Edit3 className="h-3.5 w-3.5" />
+                <icon.edit3 className="h-3.5 w-3.5" />
                 Edit
               </button>
               <button
@@ -389,7 +368,7 @@ export function CommentsPanel({
                 onClick={() => setMode("preview")}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold ${mode === "preview" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
-                <Eye className="h-3.5 w-3.5" />
+                <icon.eye className="h-3.5 w-3.5" />
                 Preview
               </button>
             </div>
@@ -423,7 +402,7 @@ export function CommentsPanel({
             disabled={!text.trim() || addComment.isPending}
             className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-50"
           >
-            <Save className="h-3.5 w-3.5" />
+            <icon.save className="h-3.5 w-3.5" />
             Save comment
           </button>
         </div>

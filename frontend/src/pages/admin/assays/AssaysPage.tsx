@@ -8,7 +8,7 @@ import { useAdminList } from "@/components/admin/useAdminList";
 import { DataTable } from "@/components/data-table/DataTable";
 import { PageShell } from "@/components/layout/PageShell";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom";
 import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../resource-list";
 import { filters, columns as preferredColumns, resource as spec } from "./resource";
@@ -57,7 +57,7 @@ export function AssaysPage() {
               to="/admin/assay-setups?setup=new"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
             >
-              <Plus className="h-4 w-4" />
+              <icon.plus className="h-4 w-4" />
               Create
             </Link>
           )}

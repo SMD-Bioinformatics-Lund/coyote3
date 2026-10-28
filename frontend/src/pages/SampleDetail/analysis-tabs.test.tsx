@@ -301,7 +301,7 @@ describe("sample analysis table tabs", () => {
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=250")
   })
 
-  it("renders a report preview and requires confirmation before saving", async () => {
+  it.each(["modern", "legacy"] as const)("reviews and saves the selected %s format", async (reportFormat) => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_REPORT" },
       meta: { snapshot_count: 1, preview_fingerprint: "a".repeat(64), template_status: { status: "ready", has_html: true } },
@@ -315,13 +315,18 @@ describe("sample analysis table tabs", () => {
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered DNA report")
     fireEvent.click(screen.getByText("Report rule details"))
     expect(screen.getByText(/assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
-    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false&format=modern")
+    if (reportFormat === "legacy") {
+      fireEvent.click(screen.getByRole("tab", { name: "Legacy format" }))
+      await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false&format=legacy"))
+      await screen.findByRole("heading", { name: "Legacy report preview" })
+    }
     fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
     expect(mocks.post).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }))
 
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64) }))
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64), report_format: reportFormat }))
     expect(mocks.notifySuccess).toHaveBeenCalledWith(
       "Report saved",
       "DNA report was saved for DNA_REPORT.",
@@ -411,7 +416,7 @@ describe("sample analysis table tabs", () => {
     mount(<ReportsTab sampleId="RNA_REPORT" reportType="rna" />, "/samples/RNA_REPORT?tab=reports")
 
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered RNA report")
-    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_REPORT/reports/rna/preview?include_snapshot=true&save=false")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_REPORT/reports/rna/preview?include_snapshot=true&save=false&format=modern")
     expect(screen.queryByRole("button", { name: "dna" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "rna" })).not.toBeInTheDocument()
     expect(screen.getByText("KMT2A::AFF1")).toBeVisible()

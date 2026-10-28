@@ -126,32 +126,81 @@
     border-color: color-mix(in srgb, var(--catalog-family) 60%, var(--border));
     background: color-mix(in srgb, var(--catalog-family) 9%, var(--field-surface));
   }
-  .catalog-browse-switch {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--paper-edge));
-    border-radius: 0.75rem;
-    background: var(--paper-inset);
-    box-shadow: var(--inset-shadow);
-  }
-  .catalog-browse-option {
-    min-height: var(--control-height);
-    border-radius: 0.5rem;
-    padding-inline: 0.875rem;
-  }
-  .catalog-browse-option[aria-pressed="false"] { color: var(--muted-foreground); }
-  .catalog-browse-option[aria-pressed="true"] {
-    box-shadow: var(--shadow-sm), var(--material-badge-shadow);
-  }
   .catalog-page > .surface-panel.responsive-card-padding,
+  .catalog-page .catalog-sidebar,
   .catalog-page .surface-panel.catalog-toolbar {
     border-color: color-mix(in srgb, var(--primary) 25%, var(--paper-edge));
     background: linear-gradient(145deg,
       color-mix(in srgb, var(--primary) 6%, var(--catalog-control-surface)),
       var(--catalog-control-surface));
     box-shadow: var(--material-card-shadow);
+  }
+  .catalog-sidebar-heading {
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, var(--paper-edge));
+    background: linear-gradient(110deg,
+      color-mix(in srgb, var(--brand-start) 12%, var(--paper-raised)),
+      color-mix(in srgb, var(--brand-end) 8%, var(--paper-raised)));
+  }
+  .catalog-sidebar .catalog-sidebar-option {
+    --catalog-nav-accent: var(--primary);
+    border: 1px solid transparent;
+    color: var(--foreground);
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  .catalog-sidebar-option[data-modality="dna"] { --catalog-nav-accent: var(--color-dna); }
+  .catalog-sidebar-option[data-modality="rna"] { --catalog-nav-accent: var(--color-rna); }
+  .catalog-sidebar .catalog-sidebar-option[data-level="diagnosis"] { text-transform: none; }
+  .catalog-sidebar .catalog-sidebar-option:hover {
+    border-color: color-mix(in srgb, var(--catalog-nav-accent) 22%, var(--paper-edge));
+    background-color: var(--surface-hover);
+  }
+  .catalog-sidebar .catalog-sidebar-option[data-ancestor="true"] {
+    --catalog-path-tint: 4%;
+    border-color: color-mix(in srgb, var(--foreground) 9%, var(--paper-edge));
+    background: color-mix(in srgb, var(--foreground) var(--catalog-path-tint), var(--paper-raised));
+    color: var(--foreground);
+    font-weight: 500;
+  }
+  .catalog-sidebar .catalog-sidebar-option[data-ancestor="true"][data-level="family"] {
+    --catalog-path-tint: 7%;
+  }
+  .catalog-sidebar .catalog-sidebar-option[data-ancestor="true"][data-level="group"] {
+    --catalog-path-tint: 10%;
+  }
+  .catalog-sidebar .catalog-sidebar-option[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--brand-start) 65%, var(--brand-end));
+    background: var(--brand-gradient);
+    color: var(--primary-foreground);
+    font-weight: 600;
+    box-shadow: var(--material-badge-shadow), var(--shadow-sm);
+  }
+  .catalog-sidebar .catalog-sidebar-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    min-height: 1.25rem;
+    padding-inline: 0.375rem;
+    border: 1px solid var(--paper-edge);
+    border-radius: 999px;
+    background: var(--paper-inset);
+    color: var(--muted-foreground);
+    box-shadow: var(--material-badge-shadow);
+  }
+  .catalog-sidebar .catalog-sidebar-option[aria-pressed="true"] .catalog-sidebar-count {
+    border-color: color-mix(in srgb, var(--primary-foreground) 24%, transparent);
+    background: color-mix(in srgb, var(--primary-foreground) 12%, transparent);
+    color: inherit;
+    box-shadow: var(--inset-shadow);
+  }
+  .catalog-sidebar .catalog-sidebar-branch {
+    border-color: color-mix(in srgb, var(--primary) 20%, var(--paper-edge));
+  }
+  @media (min-width: 64rem) {
+    .catalog-page .catalog-sidebar { position: sticky; top: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .catalog-sidebar .catalog-sidebar-option { transition: none; }
   }
   .paper-surface {
     border: 1px solid var(--paper-edge);
@@ -297,6 +346,17 @@
     gap: 0.75rem;
     padding-left: 1rem;
     border-left: 1px solid var(--paper-edge);
+  }
+  @media (max-width: 80rem) {
+    .sample-workspace-navigation { gap: 0.25rem 0.5rem; padding: 0.25rem; }
+    .sample-workspace-tabs .segmented-control-item {
+      gap: 0.25rem;
+      padding: 0.5rem 0.625rem;
+    }
+    .sample-workspace-layout { gap: 0.375rem; padding-left: 0.5rem; }
+  }
+  @media (max-width: 40rem) {
+    .sample-workspace-tabs .segmented-control-item { padding: 0.375rem 0.5rem; }
   }
   .sample-meta-card { min-width: 0; }
   .gene-settings-targets {

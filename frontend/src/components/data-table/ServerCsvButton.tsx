@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
-import { Activity, Download } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { downloadText } from "@/lib/browser-download"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -40,7 +40,7 @@ export function ServerCsvButton({
       className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
       title={exportCsv.error instanceof Error ? exportCsv.error.message : "Download backend-generated CSV"}
     >
-      {exportCsv.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+      {exportCsv.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.download className="h-4 w-4" />}
       {label}
     </button>
   )

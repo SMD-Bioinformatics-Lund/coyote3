@@ -1,5 +1,5 @@
 import type { Category } from "@/pages/admin/catalog-types"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState } from "react"
 
 /** Render parent-linked catalog entries without putting analysis controls in navigation. */
@@ -32,7 +32,7 @@ export function CatalogTree({ categories, selected, onSelect, parent = null, anc
           {hasChildren ? <button type="button" aria-label={`${open ? "Collapse" : "Expand"} ${label}`}
             aria-expanded={open} className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted"
             onClick={() => setExpanded((current) => ({ ...current, [key]: !open }))}>
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            {open ? <icon.chevronDown className="h-4 w-4" /> : <icon.chevronRight className="h-4 w-4" />}
           </button> : <span className="w-6 shrink-0" />}
         <button type="button" aria-current={selected === key ? "page" : undefined}
           className={`block w-full rounded-md px-2 py-1.5 text-left hover:bg-muted ${ancestors.length === 0 ? "type-body font-semibold" : ancestors.length === 1 ? "type-body-sm font-semibold" : "type-meta"} ${selected === key ? "bg-primary/10 font-semibold text-primary" : "text-foreground"}`}

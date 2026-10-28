@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, ChevronUp } from "lucide-react";
+import { icon } from "@/lib/assets"
 
 interface ExpandableTextProps {
   text: string;
@@ -43,7 +43,7 @@ export function ExpandableText({ text, maxLength = 25, className = "" }: Expanda
           aria-expanded={isExpanded}
         >
           {isExpanded ? (
-            <ChevronUp className="w-3 h-3" />
+            <icon.chevronUp className="w-3 h-3" />
           ) : (
             <span className="type-label bg-primary/10 px-1 py-0.5 rounded leading-none">
               +{text.length - maxLength}
@@ -57,7 +57,7 @@ export function ExpandableText({ text, maxLength = 25, className = "" }: Expanda
         className={`shrink-0 rounded p-1 interaction-transition ${copied ? "text-pass opacity-100" : "text-muted-foreground opacity-0 group-hover/expandable:opacity-100 hover:bg-surface-hover hover:text-foreground"}`}
         title="Copy to clipboard"
       >
-        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        {copied ? <icon.check className="w-3 h-3" /> : <icon.copy className="w-3 h-3" />}
       </button>
     </div>
   );

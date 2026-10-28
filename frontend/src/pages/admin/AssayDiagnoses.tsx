@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Power } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RecordProvenance } from "./RecordProvenance"
 import { StatusBadge } from "./resource-list"
@@ -108,7 +108,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
         { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
           const association = row.original
           const active = association.is_active
-          return <Button variant="ghost" size="icon" className="text-validation" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || association.system_installed || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}><Power className="h-4 w-4" aria-hidden="true" /></Button>
+          return <Button variant="ghost" size="icon" className="text-validation" title={active ? "Deactivate association" : "Activate association"} aria-label={`${active ? "Deactivate" : "Activate"} ${association.display_name} for ${aspId}`} disabled={!canEdit || association.system_installed || mutation.isPending || (!association.definition_is_active && !active)} onClick={() => mutation.mutate(association)}><icon.power className="h-4 w-4" aria-hidden="true" /></Button>
         } },
       ]}
     />}

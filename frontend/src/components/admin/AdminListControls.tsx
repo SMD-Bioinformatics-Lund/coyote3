@@ -9,7 +9,7 @@ import {
 import {
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
-import { Edit, Eye, MailPlus, Power, Trash2 } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { SearchInput } from "@/components/ui/search-input"
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
@@ -88,14 +88,14 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
         className="rounded-md p-1.5 text-primary hover:bg-primary/10"
         title="View"
       >
-        <Eye className="h-4 w-4" />
+        <icon.eye className="h-4 w-4" />
       </Link>}
       {canEdit && !systemPermission && <Link
         to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
         className="rounded-md p-1.5 text-panel hover:bg-panel/10"
         title="Edit"
       >
-        <Edit className="h-4 w-4" />
+        <icon.edit className="h-4 w-4" />
       </Link>}
       {spec.canToggle && canEdit && !systemPermission && (
         <button
@@ -106,7 +106,7 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
           className="rounded-md p-1.5 text-validation hover:bg-validation/10"
           title="Toggle active"
         >
-          <Power className="h-4 w-4" />
+          <icon.power className="h-4 w-4" />
         </button>
       )}
       {allowInvite && canCreate && (
@@ -116,7 +116,7 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
           className="rounded-md p-1.5 text-rna hover:bg-rna/10"
           title="Invite user"
         >
-          <MailPlus className="h-4 w-4" />
+          <icon.mailPlus className="h-4 w-4" />
         </button>
       )}
       {spec.canDelete && canDelete && !systemManaged && (
@@ -126,7 +126,7 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
           className="rounded-md p-1.5 text-destructive hover:bg-destructive/10"
           title="Delete"
         >
-          <Trash2 className="h-4 w-4" />
+          <icon.trash2 className="h-4 w-4" />
         </button>
       )}
     </div>

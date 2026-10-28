@@ -1,4 +1,4 @@
-import { AlertCircle, Ban, Bookmark, CircleHelp, MessageSquare, ShieldCheck, XCircle, XSquare } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
 import {
@@ -49,7 +49,7 @@ export function FallbackTierBadge({ candidates = [] }: { candidates?: Array<{ cl
   if (!candidate) return <TierBadge tier={999} />
   return <span className="inline-flex items-center gap-1" title={`Tier from ${candidate.asp_group} / ${candidate.diagnosis_id}. Confirmation required before reporting.`} aria-label={`Suggested Tier ${candidate.class}; confirmation required`}>
     {candidate.match_level === "same_assay" ? <TierBadge tier={candidate.class} /> : <TableBadge className="bg-muted text-muted-foreground">{candidate.class}</TableBadge>}
-    <CircleHelp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+    <icon.circleHelp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
   </span>
 }
 
@@ -232,7 +232,7 @@ export function StatusBadges({
           severity="fail"
           ariaLabel="False positive"
         >
-          <XCircle className="h-3.5 w-3.5" />
+          <icon.xCircle className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {isBlacklist && (
@@ -242,7 +242,7 @@ export function StatusBadges({
           severity="fail"
           ariaLabel="Blacklisted"
         >
-          <Ban className="h-3.5 w-3.5" />
+          <icon.ban className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {hasBlacklistOverride && (
@@ -252,7 +252,7 @@ export function StatusBadges({
           severity="info"
           ariaLabel="Blacklist override"
         >
-          <ShieldCheck className="h-3.5 w-3.5" />
+          <icon.shieldCheck className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {isIrrelevant && (
@@ -262,7 +262,7 @@ export function StatusBadges({
           severity="warn"
           ariaLabel="Irrelevant"
         >
-          <XSquare className="h-3.5 w-3.5" />
+          <icon.xSquare className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {isInteresting && (
@@ -272,7 +272,7 @@ export function StatusBadges({
           severity="pass"
           ariaLabel="Interesting"
         >
-          <AlertCircle className="h-3.5 w-3.5" />
+          <icon.alertCircle className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {isNoteworthy && (
@@ -282,7 +282,7 @@ export function StatusBadges({
           severity="warn"
           ariaLabel="Noteworthy"
         >
-          <Bookmark className="h-3.5 w-3.5" />
+          <icon.bookmark className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {isNormalCall && (
@@ -303,7 +303,7 @@ export function StatusBadges({
           severity="info"
           ariaLabel="Has comments"
         >
-          <MessageSquare className="h-3.5 w-3.5" />
+          <icon.messageSquare className="h-3.5 w-3.5" />
         </VariantTooltipBadge>
       )}
       {hasOncoKbCancerGene && (

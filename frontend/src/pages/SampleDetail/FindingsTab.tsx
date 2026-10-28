@@ -1,4 +1,4 @@
-import { ChevronLeft, Filter } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState } from "react"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
@@ -96,7 +96,7 @@ export function ClassicAnalysisFiltersSidebar({
   return (
     <aside aria-label="All finding filters" className="sticky top-3 flex max-h-[calc(100dvh-2rem)] w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-        <Filter className="h-4 w-4 text-primary" />
+        <icon.filter className="h-4 w-4 text-primary" />
         <div>
           <h2 className="type-card-title">Finding filters</h2>
           <p className="type-meta text-muted-foreground">All enabled analysis filters</p>
@@ -108,7 +108,7 @@ export function ClassicAnalysisFiltersSidebar({
           title="Collapse finding filters"
           aria-label="Collapse finding filters"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <icon.chevronLeft className="h-4 w-4" />
         </button>
       </div>
       <div className="min-h-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">

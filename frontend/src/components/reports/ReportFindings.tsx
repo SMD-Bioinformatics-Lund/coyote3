@@ -25,7 +25,8 @@ function BiomarkerSummary({ type, result }: {
   const extraFields = Object.fromEntries(Object.entries(result).flatMap(([key, value]) => {
     if (!knownGroups.includes(key)) return [[key, value]]
     const extra = Object.fromEntries(Object.entries(measurements(value))
-      .filter(([field]) => !knownFields.includes(field)))
+      .filter(([field]) => !knownFields.includes(field)
+        && field !== "clinical_assessment" && field !== "assessment_history"))
     return Object.keys(extra).length ? [[key, extra]] : []
   }))
 
@@ -75,6 +76,13 @@ function BiomarkerSummary({ type, result }: {
 
   return <div className="space-y-3 py-1">
     {content}
+    <dl className="report-measurements type-body-sm">
+      {knownGroups.filter((key) => result[key] != null).map((key) => <Fragment key={key}>
+        <dt>{key} clinical assessment</dt>
+        <dd>{measurementText(measurements(measurements(result[key]).clinical_assessment).value)
+          .replace(/^-$/, "Not assessed")}</dd>
+      </Fragment>)}
+    </dl>
     {Object.keys(extraFields).length > 0 && <details className="type-meta">
       <summary className="cursor-pointer text-muted-foreground">Additional measurements</summary>
       <dl className="report-measurements mt-3"><MeasurementValues value={extraFields} /></dl>

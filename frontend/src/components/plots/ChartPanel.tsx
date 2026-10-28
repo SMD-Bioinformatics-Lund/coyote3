@@ -1,4 +1,4 @@
-import { Download, FileDown, ImageDown } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useRef, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,7 +40,7 @@ export function ChartPanel({
             aria-label={`Export ${title} chart as PNG`}
             onClick={() => exportChartAsPng(chartRef.current, `${safeName}.png`, { title, subtitle: description })}
           >
-            <ImageDown className="h-3.5 w-3.5" />
+            <icon.imageDown className="h-3.5 w-3.5" />
             PNG
           </Button>
           <Button
@@ -51,7 +51,7 @@ export function ChartPanel({
             aria-label={`Export ${title} chart as SVG`}
             onClick={() => exportChartAsSvg(chartRef.current, `${safeName}.svg`, { title, subtitle: description })}
           >
-            <Download className="h-3.5 w-3.5" />
+            <icon.download className="h-3.5 w-3.5" />
             SVG
           </Button>
           <Button
@@ -62,7 +62,7 @@ export function ChartPanel({
             aria-label={`Export ${title} chart data as CSV`}
             onClick={() => exportRowsAsCsv(data, `${safeName}.csv`)}
           >
-            <FileDown className="h-3.5 w-3.5" />
+            <icon.fileDown className="h-3.5 w-3.5" />
             CSV
           </Button>
         </div>

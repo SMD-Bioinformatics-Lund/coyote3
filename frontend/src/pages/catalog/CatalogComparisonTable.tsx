@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { valueBadgeClass } from "@/lib/badge-colors"
 import { BadgeList, HtmlText } from "./catalog-presentation"
 import { familyLabels, offeringPrice, type Offering } from "./offering-types"
+import { CatalogGeneMatches } from "./CatalogGeneMatches"
 
 const properties = ["Method", "Analysis", "Gene scope", "Reports", "Price", "Limitations"] as const
 
@@ -36,7 +37,7 @@ function ComparisonValue({ item, property }: {
   }
 }
 
-export function CatalogComparisonTable({ offerings }: { offerings: Offering[] }) {
+export function CatalogComparisonTable({ offerings, genes = [] }: { offerings: Offering[]; genes?: readonly string[] }) {
   return <section className="surface-panel min-w-0 space-y-3 p-4" aria-labelledby="catalog-comparison-title">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 id="catalog-comparison-title" className="type-section-title">Compare published services</h2>
@@ -63,6 +64,10 @@ export function CatalogComparisonTable({ offerings }: { offerings: Offering[] })
             </tr>
           </thead>
           <tbody>
+            {genes.length > 0 && <tr className="bg-primary/5">
+              <th scope="row" className="sticky left-0 border-b border-r border-border bg-card px-4 py-3 align-top font-semibold">Requested genes</th>
+              {offerings.map(item => <td key={item.offering_id} className="border-b border-r border-border px-4 py-3 align-top"><CatalogGeneMatches offering={item} genes={genes} /></td>)}
+            </tr>}
             {properties.map(property => <tr key={property}
               className="odd:bg-[var(--paper-raised)] even:bg-table-row-alt hover:bg-primary/5">
               <th scope="row" className="sticky left-0 z-10 border-b border-r border-border/60 bg-inherit px-4 py-3 align-top font-semibold">{property}</th>

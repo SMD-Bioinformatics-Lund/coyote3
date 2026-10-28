@@ -7,7 +7,7 @@ import { valueBadgeClass } from "@/lib/badge-colors"
 import { cn } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Clock3, Dna, FileText, FlaskConical, Layers, Microscope, Package, ShieldCheck } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { useId, useMemo, useState, type ReactNode } from "react"
 import { BadgeList, HtmlText } from "./catalog-presentation"
 import { familyLabels, offeringPrice, type Offering } from "./offering-types"
@@ -52,7 +52,7 @@ const geneColumns: ColumnDef<GeneRow>[] = [
 ]
 
 function DetailCard({ title, icon: Icon, children }: {
-  title: string; icon: typeof FileText; children: ReactNode
+  title: string; icon: typeof appIcon.fileText; children: ReactNode
 }) {
   return <section className="paper-surface min-w-0 space-y-3 rounded-xl p-4">
     <h3 className="type-section-title flex items-center gap-2"><Icon className="size-4 text-primary" />{title}</h3>
@@ -60,7 +60,9 @@ function DetailCard({ title, icon: Icon, children }: {
   </section>
 }
 
-export function CatalogOfferingDetails({ offering: item }: { offering: Offering }) {
+export function CatalogOfferingDetails({ offering: item, onBack }: {
+  offering: Offering; onBack?: () => void
+}) {
   const id = useId()
   const analyses = [...new Set([...item.analysis, ...item.gene_scopes.map(scope => scope.analysis)])]
   const [chosenAnalysis, setChosenAnalysis] = useState("SNV")
@@ -98,7 +100,11 @@ export function CatalogOfferingDetails({ offering: item }: { offering: Offering 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={valueBadgeClass(item.modality)}>{item.modality === "dna" ? <Dna /> : <FlaskConical />}{item.modality.toUpperCase()}</Badge>
+            {onBack && <Button variant="outline" size="icon"
+              aria-label="Back to available tests" title="Back to available tests" onClick={onBack}>
+              <appIcon.arrowLeft className="size-4" aria-hidden="true" />
+            </Button>}
+            <Badge variant="outline" className={valueBadgeClass(item.modality)}>{item.modality === "dna" ? <appIcon.dna /> : <appIcon.flaskConical />}{item.modality.toUpperCase()}</Badge>
             <Badge variant="outline" className={valueBadgeClass(item.family)}>{familyLabels[item.family] || item.family}</Badge>
             <span className="type-body-sm text-muted-foreground">{item.group_label} · {item.diagnosis_label}</span>
           </div>
@@ -113,16 +119,16 @@ export function CatalogOfferingDetails({ offering: item }: { offering: Offering 
       </div>
       <HtmlText html={item.description} className="type-body leading-relaxed" />
       <div className="grid gap-3 sm:grid-cols-3">
-        <DetailCard title="Turnaround" icon={Clock3}>{item.turnaround || "Contact the service"}</DetailCard>
-        <DetailCard title="Published genes" icon={Dna}><strong className="type-title">{uniqueGenes.size}</strong> unique genes across published analyses</DetailCard>
-        <DetailCard title="Available analyses" icon={Microscope}><BadgeList values={item.analysis} /></DetailCard>
+        <DetailCard title="Turnaround" icon={appIcon.clock3}>{item.turnaround || "Contact the service"}</DetailCard>
+        <DetailCard title="Published genes" icon={appIcon.dna}><strong className="type-title">{uniqueGenes.size}</strong> unique genes across published analyses</DetailCard>
+        <DetailCard title="Available analyses" icon={appIcon.microscope}><BadgeList values={item.analysis} /></DetailCard>
       </div>
       {item.diagnosis_id === "base" && <p className="type-body-sm text-muted-foreground">General testing uses the published Base scope, without a named diagnosis.</p>}
     </header>
 
     <section className="surface-panel min-w-0 space-y-4 p-5" aria-labelledby={`${id}-scope`}>
       <div className="space-y-2">
-        <h3 id={`${id}-scope`} className="type-section-title flex items-center gap-2"><Layers className="size-4 text-primary" />Clinical gene scope</h3>
+        <h3 id={`${id}-scope`} className="type-section-title flex items-center gap-2"><appIcon.layers className="size-4 text-primary" />Clinical gene scope</h3>
         <p className="type-body-sm text-muted-foreground">Choose an analysis to explore its published genes and HGNC reference information. Gene scope is limited to the published lists and validated assay coverage.</p>
       </div>
       <div role="tablist" aria-label="Gene scope by analysis" className="flex flex-wrap gap-2">
@@ -161,11 +167,11 @@ export function CatalogOfferingDetails({ offering: item }: { offering: Offering 
     </section>
 
     <div className="grid gap-4 md:grid-cols-2">
-      <DetailCard title="Reporting" icon={FileText}><BadgeList values={item.report_deliverables} empty="Contact the service for report deliverables." /></DetailCard>
-      <DetailCard title="Specimen requirements" icon={Package}><BadgeList values={item.input_material} empty="Contact the service for specimen requirements." /></DetailCard>
-      <DetailCard title="Methodology" icon={Microscope}>{item.methodology || familyLabels[item.family] || item.family}</DetailCard>
-      <DetailCard title="Analytical limitations" icon={ShieldCheck}>{item.limitations ? <HtmlText html={item.limitations} /> : "Contact the service for analytical limitations."}</DetailCard>
+      <DetailCard title="Reporting" icon={appIcon.fileText}><BadgeList values={item.report_deliverables} empty="Contact the service for report deliverables." /></DetailCard>
+      <DetailCard title="Specimen requirements" icon={appIcon.package}><BadgeList values={item.input_material} empty="Contact the service for specimen requirements." /></DetailCard>
+      <DetailCard title="Methodology" icon={appIcon.microscope}>{item.methodology || familyLabels[item.family] || item.family}</DetailCard>
+      <DetailCard title="Analytical limitations" icon={appIcon.shieldCheck}>{item.limitations ? <HtmlText html={item.limitations} /> : "Contact the service for analytical limitations."}</DetailCard>
     </div>
-    <DetailCard title="Ordering information" icon={FileText}><p className="whitespace-pre-wrap">{item.ordering_information || "Contact the center for eligibility and submission instructions."}</p></DetailCard>
+    <DetailCard title="Ordering information" icon={appIcon.fileText}><p className="whitespace-pre-wrap">{item.ordering_information || "Contact the center for eligibility and submission instructions."}</p></DetailCard>
   </article>
 }

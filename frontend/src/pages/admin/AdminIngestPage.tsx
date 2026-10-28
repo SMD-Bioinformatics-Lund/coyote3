@@ -3,11 +3,7 @@ import { FileUpload } from "@/components/ui/file-upload"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess, notifyWarning } from "@/lib/notifications"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import {
-  Activity,
-  Database,
-  FileUp
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useEffect, useRef, useState } from "react"
 
 
@@ -72,7 +68,7 @@ export function AdminIngestPage() {
       <div className="grid gap-3 xl:grid-cols-2">
         <section className="surface-panel p-4">
           <div className="mb-3 flex items-center gap-2">
-            <FileUp className="h-5 w-5 text-dna" />
+            <icon.fileUp className="h-5 w-5 text-dna" />
             <h2 className="text-lg font-bold">Sample Bundle Upload</h2>
           </div>
           <div className="space-y-3">
@@ -115,14 +111,14 @@ export function AdminIngestPage() {
               disabled={!yamlFile || uploadMutation.isPending}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
             >
-              {uploadMutation.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+              {uploadMutation.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.fileUp className="h-4 w-4" />}
               Queue ingest
             </button>
           </div>
         </section>
         <section className="surface-panel p-4">
           <div className="mb-3 flex items-center gap-2">
-            <Database className="h-5 w-5 text-rna" />
+            <icon.database className="h-5 w-5 text-rna" />
             <h2 className="text-lg font-bold">Worker Task</h2>
           </div>
           {taskId ? (
@@ -132,7 +128,7 @@ export function AdminIngestPage() {
                 <p className="break-all text-sm">{taskId}</p>
               </div>
               {taskStatus.isLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Activity className="h-4 w-4 animate-spin" /> Checking worker state...</div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><icon.activity className="h-4 w-4 animate-spin" /> Checking worker state...</div>
               ) : taskStatus.error ? (
                 <ModuleNotice>{taskStatus.error instanceof Error ? taskStatus.error.message : "Unable to read task state."}</ModuleNotice>
               ) : (

@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useId, useRef } from "react"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { AlertTriangle, Check, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 
 type ConfirmationDialogProps = {
@@ -90,7 +90,7 @@ export function ConfirmationDialog({
       >
         <div className="flex items-start gap-3">
           <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-warn/35 bg-warn/12 text-warn">
-            <AlertTriangle className="size-4" aria-hidden="true" />
+            <icon.alertTriangle className="size-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
             <h2 id={titleId} className="text-sm font-semibold text-foreground">{title}</h2>
@@ -107,7 +107,7 @@ export function ConfirmationDialog({
             disabled={isPending}
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
-            <X className="size-3.5" aria-hidden="true" />
+            <icon.x className="size-3.5" aria-hidden="true" />
             {cancelLabel}
           </button>
           <button
@@ -119,7 +119,7 @@ export function ConfirmationDialog({
             {isPending ? (
               <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             ) : (
-              <Check className="size-3.5" aria-hidden="true" />
+              <icon.check className="size-3.5" aria-hidden="true" />
             )}
             {isPending ? "Applying" : confirmLabel}
           </button>

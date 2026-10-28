@@ -15,21 +15,22 @@ async function loadPreviewPdf(endpoint: string, signal?: AbortSignal): Promise<B
 }
 
 /** Own preview requests, PDF reuse, save preconditions and report mutation feedback. */
-export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEnabled, onSaved }: {
+export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEnabled, onSaved, reportFormat = "modern" }: {
   sampleId: string
   reportType: ReportType
   includeSnapshot: boolean
   pdfEnabled: boolean
   onSaved: () => void
+  reportFormat?: "modern" | "legacy"
 }) {
   const queryClient = useQueryClient()
-  const pdfEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}`
+  const pdfEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}&format=${reportFormat}`
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["report-preview", sampleId, reportType, includeSnapshot],
+    queryKey: ["report-preview", sampleId, reportType, includeSnapshot, reportFormat],
     queryFn: () =>
       api
-        .get<ReportPreviewPayload>(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false`)
+        .get<ReportPreviewPayload>(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false&format=${reportFormat}`)
         .then((response) => response.data),
     retry: false,
     refetchOnMount: "always",
@@ -37,7 +38,7 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
 
   const hasRenderedHtml = Boolean(data?.meta?.template_status?.has_html && data?.report?.html)
   const pdfPreview = useQuery({
-    queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint],
+    queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint, reportFormat],
     queryFn: ({ signal }) => loadPreviewPdf(pdfEndpoint, signal),
     enabled: hasRenderedHtml && pdfEnabled,
     retry: (attempt, failure) => attempt < 1 && failure instanceof ApiClientError
@@ -49,6 +50,7 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
   const saveReport = useMutation({
     mutationFn: () => api.post(`/samples/${sampleId}/reports/${reportType}`, {
       preview_fingerprint: data?.meta?.preview_fingerprint,
+      report_format: reportFormat,
     }),
     onSuccess: () => {
       const sampleName = data?.sample?.name || sampleId
@@ -99,5 +101,5 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
     },
   })
 
-  return { data, isLoading, error, hasRenderedHtml, pdfPreview, saveReport, downloadPreviewPdf }
+  return { data, isLoading, error, refetch, hasRenderedHtml, pdfPreview, saveReport, downloadPreviewPdf }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { api, ApiClientError } from "@/lib/api"
@@ -14,10 +14,10 @@ import {
 } from "./notification-store"
 
 const toneMeta = {
-  success: { icon: CheckCircle2, className: "border-pass/35 bg-pass/10 text-pass" },
-  info: { icon: Info, className: "border-primary/35 bg-primary/10 text-primary" },
-  warning: { icon: AlertTriangle, className: "border-warn/35 bg-warn/10 text-warn" },
-  error: { icon: XCircle, className: "border-destructive/35 bg-destructive/10 text-destructive" },
+  success: { icon: icon.checkCircle2, className: "border-pass/35 bg-pass/10 text-pass" },
+  info: { icon: icon.info, className: "border-primary/35 bg-primary/10 text-primary" },
+  warning: { icon: icon.alertTriangle, className: "border-warn/35 bg-warn/10 text-warn" },
+  error: { icon: icon.xCircle, className: "border-destructive/35 bg-destructive/10 text-destructive" },
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -322,7 +322,7 @@ function NotificationToast({
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Dismiss notification"
             >
-              <X className="h-3.5 w-3.5" />
+              <icon.x className="h-3.5 w-3.5" />
             </button>
           </div>
           {notification.message && !notification.isBroadcast && (

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { CircleHelp, MessageSquare, Tags } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { TierBadge } from "@/lib/variant-ui"
@@ -20,7 +20,7 @@ const tierButtonClasses: Record<number, string> = {
 export function CommentsCard({ comments = [], title = "Sample Comments" }: { comments?: any[]; title?: string }) {
   const visibleComments = comments.filter((comment) => !comment?.hidden)
   return (
-    <DetailCard title={title} icon={MessageSquare}>
+    <DetailCard title={title} icon={icon.messageSquare}>
       {visibleComments.length ? (
         <div className="space-y-2">
           {visibleComments.map((comment, index) => (
@@ -86,7 +86,7 @@ export function ClassificationsCard({
       && tieringIsEnabled(controlsQuery.data, resourceType),
   )
   return (
-    <DetailCard title="Classifications" icon={Tags}>
+    <DetailCard title="Classifications" icon={icon.tags}>
       <div className="space-y-3">
         {canMutate && (
           <div className="rounded-lg border border-border bg-background/70 p-2">
@@ -141,7 +141,7 @@ export function ClassificationsCard({
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-muted-foreground">
                   {item.match_level === "same_assay" ? <TierBadge tier={item.class || item.tier} /> : <>Tier {item.class || item.tier}</>}
-                  <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
+                  <icon.circleHelp className="h-3.5 w-3.5" aria-hidden="true" />
                   Re-tier required
                 </span>
               </div>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ArrowDown } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Badge } from "@/components/ui/badge"
 import type { QueryCondition } from "./query-condition-types"
 import { QueryConditionSummary } from "./QueryConditionSummary"
@@ -51,7 +51,7 @@ function Inheritance({ value }: { value: PolicyResolution }) {
       const modeReplacement = replacement ?? later.find(next => next.content?.evidence_mode != null)
       const exceptionReplacement = replacement ?? later.find(next => next.content?.exceptions != null && next.content.exception_mode !== "extend")
       return <li key={index} className="min-w-0 space-y-2">
-        {index > 0 && <ArrowDown aria-hidden="true" className="mx-auto h-4 w-4 text-muted-foreground" />}
+        {index > 0 && <icon.arrowDown aria-hidden="true" className="mx-auto h-4 w-4 text-muted-foreground" />}
         <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
           <h4 className="break-all type-label">{sourceName(row)}{row.version != null && ` · v${row.version}`}</h4>
           {row.scope && <p className="break-words type-supporting text-muted-foreground">{[
@@ -109,7 +109,7 @@ export function QueryPolicyFlow({ value, analysis }: { value: PolicyResolution; 
   return <div className="min-w-0 space-y-4">
     <p className="type-supporting">Application defaults included · {value.lineage.length} source layer(s) · {value.exceptions.length} active exception(s){value.evidence_mode ? ` · ${label(value.evidence_mode)} evidence` : ""}</p>
     <Inheritance value={value} />
-    <ArrowDown aria-hidden="true" className="mx-auto h-5 w-5 text-primary" />
+    <icon.arrowDown aria-hidden="true" className="mx-auto h-5 w-5 text-primary" />
     <section aria-label="Final selection flow" className="min-w-0 space-y-3">
       <h3 className="type-section-title">Final selection flow</h3>
       <p className="type-supporting text-muted-foreground">Application rules and active policy conditions combined. sample.filters values come from the sample and its recorded assay configuration.</p>

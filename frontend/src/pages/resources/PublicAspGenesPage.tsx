@@ -2,7 +2,7 @@ import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink, Tags } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useMemo } from "react"
 import { Link, useParams } from "react-router-dom"
 import { BadgeList, ErrorBox, HtmlText, InfoTile, Loading, SectionTitle } from "./resource-presentation"
@@ -57,7 +57,7 @@ export function PublicAspGenesPage() {
               </div>
               <Link to="/public/catalog" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
                 Catalog
-                <ExternalLink className="h-4 w-4" />
+                <icon.externalLink className="h-4 w-4" />
               </Link>
             </div>
 
@@ -110,7 +110,7 @@ export function PublicAspGenesPage() {
 
           {geneLists.length > 0 && (
             <section className="surface-panel p-4">
-              <SectionTitle icon={Tags}>Catalog Gene Lists</SectionTitle>
+              <SectionTitle icon={icon.tags}>Catalog Gene Lists</SectionTitle>
               <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {geneLists.map((list: any) => (
                   <div key={list.key || list.label} className="rounded-lg border border-border bg-background/70 p-3">

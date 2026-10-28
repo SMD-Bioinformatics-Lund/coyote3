@@ -1,4 +1,4 @@
-import { Bell, CheckCheck, Mail, Trash2, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { TimeDisplay } from "@/components/ui/time-display"
@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils"
 export function NotificationHistoryPage() {
   const { notifications, unreadCount, markRead, markUnread, markAllRead, remove, clear } = useNotifications()
   return <PageShell eyebrow="Account" title="Notifications" actions={<>
-    <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}><CheckCheck className="h-4 w-4" />Mark read</Button>
-    <Button variant="outline" onClick={clear} disabled={!notifications.length} title="Remove notifications from your inbox"><Trash2 className="h-4 w-4" />Clear</Button>
+    <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}><icon.checkCheck className="h-4 w-4" />Mark read</Button>
+    <Button variant="outline" onClick={clear} disabled={!notifications.length} title="Remove notifications from your inbox"><icon.trash2 className="h-4 w-4" />Clear</Button>
   </>}>
     <section className="surface-panel divide-y divide-border px-3">
-      {!notifications.length && <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><Bell className="h-6 w-6" /><p>No notifications yet</p></div>}
+      {!notifications.length && <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><icon.bell className="h-6 w-6" /><p>No notifications yet</p></div>}
       {notifications.map((notification) => <article key={notification.id} className={cn("flex items-start gap-2 py-3", !notification.read && "bg-primary/5")}>
         <details className="min-w-0 flex-1" onToggle={(event) => { if (event.currentTarget.open && !notification.read) markRead(notification.id) }}>
           <summary className="cursor-pointer rounded px-2 py-1 focus-visible:outline-2 focus-visible:outline-ring">
@@ -27,9 +27,9 @@ export function NotificationHistoryPage() {
           </div>
         </details>
         <div className="flex shrink-0 gap-1">
-          {!notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markRead(notification.id)} title="Mark notification as read" aria-label="Mark notification as read"><CheckCheck className="h-4 w-4" /></Button>}
-          {notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markUnread(notification.id)} title="Mark notification as unread" aria-label="Mark notification as unread"><Mail className="h-4 w-4" /></Button>}
-          <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification" aria-label="Remove notification from your inbox"><X className="h-4 w-4" /></Button>
+          {!notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markRead(notification.id)} title="Mark notification as read" aria-label="Mark notification as read"><icon.checkCheck className="h-4 w-4" /></Button>}
+          {notification.read && <Button variant="ghost" size="icon-sm" onClick={() => markUnread(notification.id)} title="Mark notification as unread" aria-label="Mark notification as unread"><icon.mail className="h-4 w-4" /></Button>}
+          <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification" aria-label="Remove notification from your inbox"><icon.x className="h-4 w-4" /></Button>
         </div>
       </article>)}
     </section>

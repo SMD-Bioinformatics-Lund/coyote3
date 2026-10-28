@@ -1,7 +1,7 @@
 /* eslint-disable react/only-export-components -- this module intentionally colocates knowledgebase renderers with their pure presentation helpers. */
 
 import { Children, createContext, type ReactNode, useContext, useState } from "react"
-import { AlertTriangle, ExternalLink, Target } from "lucide-react"
+import { icon } from "@/lib/assets"
 import {
   DetailDataTable,
   EvidenceBadge,
@@ -351,7 +351,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
         ) : null}
         {records.length ? (
           <div className="flex items-start gap-2 rounded-md border border-pass/35 bg-pass/10 px-3 py-2">
-            <Target className="mt-0.5 size-4 shrink-0 text-pass" aria-hidden="true" />
+            <icon.target className="mt-0.5 size-4 shrink-0 text-pass" aria-hidden="true" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="type-body-sm font-semibold text-foreground">Relevant match</span>
@@ -363,7 +363,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
         ) : null}
         {unavailable.length ? (
           <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 type-body-sm text-foreground">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <icon.alertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
             <span>
               Not configured: {unavailable.map(({ label }) => label).join(", ")}.
             </span>
@@ -602,7 +602,7 @@ function IdentifierRow({
               rel="noreferrer"
             >
               <span className="break-all">{value}</span>
-              <ExternalLink className="size-3 shrink-0" />
+              <icon.externalLink className="size-3 shrink-0" />
             </a>
           ))}
         </div>

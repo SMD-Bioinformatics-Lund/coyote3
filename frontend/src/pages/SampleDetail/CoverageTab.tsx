@@ -7,7 +7,7 @@ import { shortCount } from "@/lib/detail-formatters"
 import { sampleFilterSection } from "@/lib/sample-shape"
 import { useQuery } from "@tanstack/react-query"
 import { ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useEffect, useMemo, useState } from "react"
 import { coverageNumber, flattenCoverageTable, metric } from "./coverage-presentation"
 import { CoverageGeneView } from "./CoverageGeneView"
@@ -117,7 +117,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        <AlertTriangle className="mr-2 inline h-4 w-4" />
+        <icon.alertTriangle className="mr-2 inline h-4 w-4" />
         {error instanceof Error ? error.message : "Error loading coverage"}
       </div>
     )

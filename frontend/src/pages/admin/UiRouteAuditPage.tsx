@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
@@ -89,7 +89,7 @@ export function UiRouteAuditPage() {
       description="Registered client routes, their API dependencies, expected response fields, and defined empty and error states."
       actions={
         <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium shadow-sm">
-          <ShieldCheck className="h-4 w-4 text-primary" />
+          <icon.shieldCheck className="h-4 w-4 text-primary" />
           {apiBacked}/{uiRouteRegistry.length} API-backed
         </div>
       }

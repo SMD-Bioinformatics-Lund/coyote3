@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Activity, Info } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import type { AppControlHelp } from "@/lib/app-control-metadata"
 
@@ -127,7 +127,7 @@ export function RuntimeExecutionSummary({
             }
   return (
     <div className={`mb-3 flex items-start gap-2 rounded-lg border p-3 ${content.cls}`}>
-      <Activity className="mt-0.5 h-4 w-4 shrink-0" />
+      <appIcon.activity className="mt-0.5 h-4 w-4 shrink-0" />
       <div>
         <p className="text-sm font-semibold">{content.title}</p>
         <p className="text-xs opacity-90">{content.detail}</p>
@@ -280,7 +280,7 @@ export function InfoHint({ title, description }: { title: string; description: s
         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`About ${title}`}
       >
-        <Info className="h-3.5 w-3.5" />
+        <appIcon.info className="h-3.5 w-3.5" />
       </button>
     </AppTooltip>
   )
@@ -295,7 +295,7 @@ export function ControlHelp({ definition }: { definition: AppControlHelp }) {
         className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`About ${definition.label}`}
       >
-        <Info className="h-3.5 w-3.5" />
+        <appIcon.info className="h-3.5 w-3.5" />
       </button>
     </AppTooltip>
   )

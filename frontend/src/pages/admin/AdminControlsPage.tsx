@@ -16,15 +16,7 @@ import { appControlHelp } from "@/lib/app-control-metadata"
 import { APPLICATION_MODULES_QUERY_KEY } from "@/lib/app-module-state"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  Activity,
-  Database,
-  RefreshCw,
-  Save,
-  Settings2,
-  SlidersHorizontal,
-  Tags
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState } from "react"
 
 import {
@@ -184,15 +176,15 @@ export function AdminControlsPage() {
       actions={
         <div className="flex flex-wrap gap-2">
           {canRunMaintenance && <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled}>
-            <RefreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
+            <icon.refreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
             Run maintenance
           </Button>}
           {canRunMaintenance && <Button type="button" variant="outline" onClick={() => refreshPublicOncoKb.mutate()} disabled={refreshPublicOncoKb.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled || !controls?.modules?.knowledgebases_enabled}>
-            <Database className={`h-4 w-4 ${refreshPublicOncoKb.isPending ? "animate-spin" : ""}`} />
+            <icon.database className={`h-4 w-4 ${refreshPublicOncoKb.isPending ? "animate-spin" : ""}`} />
             Refresh public OncoKB
           </Button>}
           {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
-            {saveControls.isPending ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saveControls.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}
             Save controls
           </Button>}
         </div>
@@ -210,7 +202,7 @@ export function AdminControlsPage() {
           <ControlSection
             title="Celery Task Families"
             description="Sample ingestion is one complete clinical transaction. Generic collection writes and retention remain independent operational jobs."
-            icon={<SlidersHorizontal className="h-4 w-4" />}
+            icon={<icon.slidersHorizontal className="h-4 w-4" />}
           >
             {Object.entries(controls.celery).map(([key, value]) => (
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("celery", key, checked)} />
@@ -220,7 +212,7 @@ export function AdminControlsPage() {
           <ControlSection
             title="Application Modules"
             description="Disabling a module hides its UI routes and causes its API routes to return HTTP 503. Audit access remains permission-controlled."
-            icon={<Settings2 className="h-4 w-4" />}
+            icon={<icon.settings2 className="h-4 w-4" />}
           >
             {Object.entries(controls.modules).map(([key, value]) => (
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateBool("modules", key, checked)} />
@@ -230,7 +222,7 @@ export function AdminControlsPage() {
           <ControlSection
             title="Email Service"
             description="Control outgoing account, security, password-reset, and broadcast emails. In-app notifications remain available."
-            icon={<Settings2 className="h-4 w-4" />}
+            icon={<icon.settings2 className="h-4 w-4" />}
           >
             <ControlToggle definition={appControlHelp("email_enabled")} checked={controls.email?.enabled ?? true} disabled={!canEdit} onChange={(checked) => updateBool("email", "enabled", checked)} />
           </ControlSection>
@@ -238,7 +230,7 @@ export function AdminControlsPage() {
           <ControlSection
             title="Clinical Curation"
             description="Resource-level availability of Tier 1-4 mutation actions. Existing classifications remain visible when an action is disabled."
-            icon={<Tags className="h-4 w-4" />}
+            icon={<icon.tags className="h-4 w-4" />}
           >
             {Object.entries(controls.curation.tiering).map(([key, value]) => (
               <ControlToggle key={key} definition={appControlHelp(key)} checked={Boolean(value)} disabled={!canEdit} onChange={(checked) => updateTiering(key, checked)} />
@@ -270,7 +262,7 @@ export function AdminControlsPage() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => controlsQuery.refetch()} disabled={controlsQuery.isFetching}>
-                  <RefreshCw className={`h-3.5 w-3.5 ${controlsQuery.isFetching ? "animate-spin" : ""}`} />
+                  <icon.refreshCw className={`h-3.5 w-3.5 ${controlsQuery.isFetching ? "animate-spin" : ""}`} />
                   Refresh
                 </Button>
                 <RuntimeStatusBadge status={runtime.celery?.status} />

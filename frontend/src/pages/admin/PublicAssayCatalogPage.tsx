@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
-import { Check, Download, Edit, Eye, FileUp, Plus, Save, Send, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -139,21 +139,21 @@ export function PublicAssayCatalogPage() {
     {version && <span>Created by <RecordProvenance record={version} /> · Updated by {version.updated_by || "Unknown"}</span>}
     <DocumentEditorNotice editor={documentEditor} />
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
-    <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><FileUp /> Import draft</Button>
-    <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><Download /> Export catalog</Button>
+    <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><icon.fileUp /> Import draft</Button>
+    <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><icon.download /> Export catalog</Button>
     {section && displayedCatalog.modalities[section] && <Button variant="outline" onClick={() => downloadJson(`catalog_${section}.json`, {
       kind: "coyote3.public_assay_catalog_modality", schema_version: 1, modality: section,
       definition: displayedCatalog.modalities[section],
-    })}><Download /> Export section</Button>}
-    {version?.status === "rejected" && <Button disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "import", document: version.catalog })}><Plus /> Revise as new draft</Button>}
-    {editable && !snapshot && <><Button variant="outline" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? <Eye /> : <Edit />}{editing ? "Preview changes" : "Edit draft"}</Button>
-      <Button disabled={!dirty || busy} onClick={() => mutation.mutate({ action: "save" })}><Save /> Save draft</Button></>}
+    })}><icon.download /> Export section</Button>}
+    {version?.status === "rejected" && <Button disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "import", document: version.catalog })}><icon.plus /> Revise as new draft</Button>}
+    {editable && !snapshot && <><Button variant="outline" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? <icon.eye /> : <icon.edit />}{editing ? "Preview changes" : "Edit draft"}</Button>
+      <Button disabled={!dirty || busy} onClick={() => mutation.mutate({ action: "save" })}><icon.save /> Save draft</Button></>}
   </>}>
     <div className="grid flex-1 gap-3 rounded-lg border border-border bg-card text-card-foreground lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="space-y-4 border-b border-border p-3 lg:border-b-0 lg:border-r">
         <Button className="w-full" variant={!id ? "default" : "outline"} onClick={() => select("")}>{data.has_published ? `Published catalog v${data.catalog.version}` : "Starter catalog"}</Button>
         {!id && <div className="space-y-2">
-          <Button className="w-full whitespace-normal" disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><Edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>
+          <Button className="w-full whitespace-normal" disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "create" })}><icon.edit /> {data.has_published ? "Edit published catalog" : "Create first draft"}</Button>
           <p className="type-body-sm text-muted-foreground">Organize DNA and RNA sections into families, groups and assay or diagnosis entries. Starter folders are optional.</p>
         </div>}
         <div className="max-h-64 space-y-1 overflow-auto">
@@ -175,7 +175,7 @@ export function PublicAssayCatalogPage() {
             setDraft({ ...draft, layout: { order: [...order, key] },
               modalities: { ...draft.modalities, [key]: { label: "New section", categories: {} } } })
             setSection(key); setEntry("")
-          }}><Plus /> Add section</Button>}
+          }}><icon.plus /> Add section</Button>}
         </nav>}
       </aside>
       <div className="min-w-0 space-y-3">
@@ -196,7 +196,7 @@ export function PublicAssayCatalogPage() {
               <option value="">Select reviewer</option>
               {data.reviewers.filter((v) => !editors.includes(v.username) && v.username !== username).map((v) => <option key={v.username} value={v.username}>{v.name}</option>)}
             </select>
-            <Button disabled={dirty || busy || !reviewer || editing} onClick={() => mutation.mutate({ action: "submit" })}><Send /> Send for approval</Button>
+            <Button disabled={dirty || busy || !reviewer || editing} onClick={() => mutation.mutate({ action: "submit" })}><icon.send /> Send for approval</Button>
           </div>}
           {!snapshot && !version.system_installed && version.status === "submitted" && allowed("catalog:review") && independent && version.review.reviewer === username && <div className="space-y-2">
             <textarea aria-label="Review reason" className="paper-inset w-full rounded-lg p-2 type-body" value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -204,8 +204,8 @@ export function PublicAssayCatalogPage() {
               <option value="">Select publisher</option>
               {data.publishers.filter((v) => !editors.includes(v.username)).map((v) => <option key={v.username} value={v.username}>{v.name}</option>)}
             </select>
-            <div className="flex gap-2"><Button disabled={busy || !publisher} onClick={() => mutation.mutate({ action: "review" })}><Check /> Approve</Button>
-              <Button variant="outline" disabled={busy || !reason.trim()} onClick={() => mutation.mutate({ action: "reject" })}><X /> Reject</Button></div>
+            <div className="flex gap-2"><Button disabled={busy || !publisher} onClick={() => mutation.mutate({ action: "review" })}><icon.check /> Approve</Button>
+              <Button variant="outline" disabled={busy || !reason.trim()} onClick={() => mutation.mutate({ action: "reject" })}><icon.x /> Reject</Button></div>
           </div>}
           {!snapshot && !version.system_installed && version.status === "approved" && independent && allowed("catalog:publish") && version.review.publisher === username &&
             <Button disabled={busy} onClick={() => setConfirmPublish(true)}>Publish catalog</Button>}

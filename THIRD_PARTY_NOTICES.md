@@ -25,6 +25,8 @@ rights. Components expressly identified under separate terms retain those terms.
   The bundled Ensembl-derived materials retain their
   [Apache License 2.0](api/bootstrap/catalogs/reference/LICENSE.txt).
 - [Logo sources and attribution](frontend/public/logos/README.md).
+- [Local icon sources and attribution](frontend/public/icons/README.md)
+  (Lucide Icons and Contributors, ISC).
 - [Independent Python client license](clients/python/LICENSE.txt).
 
 Knowledgebase data, institutional insignia and third-party marks are subject to

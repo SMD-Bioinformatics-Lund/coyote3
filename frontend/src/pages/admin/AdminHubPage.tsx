@@ -1,24 +1,6 @@
 import { useState, type ComponentType } from "react"
 import { Link } from "react-router-dom"
-import {
-  Beaker,
-  ChevronRight,
-  BookOpenCheck,
-  Database,
-  Dna,
-  FilePenLine,
-  FileUp,
-  KeyRound,
-  ListTree,
-  Megaphone,
-  Settings2,
-  Shield,
-  ShieldCheck,
-  SlidersHorizontal,
-  UsersRound,
-  X,
-  RefreshCw,
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -33,13 +15,13 @@ import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { specs } from "@/pages/admin/resource-specs"
 
 const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
-  users: UsersRound,
-  roles: Shield,
-  permissions: KeyRound,
-  asp: Dna,
-  aspc: SlidersHorizontal,
-  genelists: ListTree,
-  samples: Database,
+  users: icon.usersRound,
+  roles: icon.shield,
+  permissions: icon.keyRound,
+  asp: icon.dna,
+  aspc: icon.slidersHorizontal,
+  genelists: icon.listTree,
+  samples: icon.database,
 }
 
 const utilityModules = [
@@ -47,114 +29,114 @@ const utilityModules = [
     title: "Query Rule Testing",
     description: "Compare query-rule versions against authorized samples without changing findings.",
     href: "/admin/query-rules/testing",
-    icon: Beaker,
+    icon: icon.beaker,
     permission: "query_rules:test",
   },
   {
     title: "Query rules",
     description: "Review inherited finding-selection policies and publish scoped exceptions.",
     href: "/admin/query-rules",
-    icon: SlidersHorizontal,
+    icon: icon.slidersHorizontal,
     permission: "query_rules:view",
   },
   {
     title: "Assay groups",
     description: "View system groups and register center-owned assay groups.",
     href: "/admin/assay-groups",
-    icon: ListTree,
+    icon: icon.listTree,
     permission: "assay.panel:view",
   },
   {
     title: "Assay setup",
     description: "Prepare assay scopes, gene lists, reporting rules and configurations for review.",
     href: "/admin/assay-setups",
-    icon: Dna,
+    icon: icon.dna,
     permission: "assay.panel:view",
   },
   {
     title: "Diagnosis definitions",
     description: "Create shared diagnoses and select their assays.",
     href: "/admin/diagnoses",
-    icon: ListTree,
+    icon: icon.listTree,
     permission: "assay.panel:view",
   },
   {
     title: "Assay diagnosis associations",
     description: "Enable or disable diagnoses for each assay.",
     href: "/admin/assay-diagnoses",
-    icon: SlidersHorizontal,
+    icon: icon.slidersHorizontal,
     permission: "assay.panel:view",
   },
   {
     title: "Assay Catalog",
     description: "Manage public assay narrative, modality structure, and portable JSON imports and exports.",
     href: "/admin/assay-catalog",
-    icon: FilePenLine,
+    icon: icon.filePenLine,
     permission: "catalog:view",
   },
   {
     title: "Reporting Rule Sets",
     description: "Author, review, validate, and publish governed clinical report wording.",
     href: "/admin/clinical-rules",
-    icon: BookOpenCheck,
+    icon: icon.bookOpenCheck,
     permission: ADMIN_UTILITY_PERMISSIONS.clinicalRulesView,
   },
   {
     title: "Clinical Rule Testing",
     description: "Test rule-set versions against authorized samples without persisting reports or sample changes.",
     href: "/admin/clinical-rules/testing",
-    icon: Beaker,
+    icon: icon.beaker,
     permission: ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest,
   },
   {
     title: "Application Controls",
     description: "Manage runtime module switches, Celery task gates, and retention settings.",
     href: "/admin/controls",
-    icon: Settings2,
+    icon: icon.settings2,
     permission: ADMIN_UTILITY_PERMISSIONS.controlsView,
   },
   {
     title: "Audit",
     description: "Review administrative and workflow audit events.",
     href: "/admin/audit",
-    icon: ShieldCheck,
+    icon: icon.shieldCheck,
     permission: ADMIN_UTILITY_PERMISSIONS.auditView,
   },
   {
     title: "Ingest Workspace",
     description: "Queue validated sample-bundle ingestion and inspect worker task state.",
     href: "/admin/ingest",
-    icon: FileUp,
+    icon: icon.fileUp,
     permission: ADMIN_UTILITY_PERMISSIONS.ingestManage,
   },
   {
     title: "Demo installation",
     description: "Install synthetic assay configuration and sample data for training and validation.",
     href: "/admin/demo-installation",
-    icon: Beaker,
+    icon: icon.beaker,
     permission: ADMIN_UTILITY_PERMISSIONS.demoInstall,
   },
   {
     title: "UI Route Audit",
     description: "Review frontend routes, API dependencies, and consumed payload fields.",
     href: "/admin/ui-routes",
-    icon: ShieldCheck,
+    icon: icon.shieldCheck,
     permission: ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView,
   },
   {
     title: "Broadcast Notifications",
     description: "Send application information, warnings, and maintenance notices to all or selected users.",
     href: "/admin/notifications",
-    icon: Megaphone,
+    icon: icon.megaphone,
     permission: ADMIN_UTILITY_PERMISSIONS.broadcastCreate,
   },
 ] as const
 
 const adminSections = [
-  { id: "assays", title: "Assays and diagnoses", icon: Dna, paths: ["assay-groups", "assay-setups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
-  { id: "reporting", title: "Clinical rules and catalog", icon: BookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
-  { id: "access", title: "Identity and access", icon: UsersRound, paths: ["users", "roles", "permissions"] },
-  { id: "operations", title: "Application operations", icon: Settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
+  { id: "assays", title: "Assays and diagnoses", icon: icon.dna, paths: ["assay-groups", "assay-setups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
+  { id: "reporting", title: "Clinical rules and catalog", icon: icon.bookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
+  { id: "access", title: "Identity and access", icon: icon.usersRound, paths: ["users", "roles", "permissions"] },
+  { id: "operations", title: "Application operations", icon: icon.settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
 ] as const
 
 export function AdminHubPage() {
@@ -171,7 +153,7 @@ export function AdminHubPage() {
   const links = [
     ...visibleResources.map((spec) => ({
       title: spec.title, description: spec.description, href: `/admin/${spec.key}`,
-      icon: resourceIcons[spec.key] || Settings2,
+      icon: resourceIcons[spec.key] || icon.settings2,
     })),
     ...visibleUtilities,
   ]
@@ -196,7 +178,7 @@ export function AdminHubPage() {
       ) : accessQuery.isError ? (
         <div role="alert" className="surface-panel flex flex-wrap items-center justify-between gap-3 p-4">
           <p>Unable to load administration access.</p>
-          <Button variant="outline" onClick={() => void accessQuery.refetch()}><RefreshCw className="size-4" />Retry</Button>
+          <Button variant="outline" onClick={() => void accessQuery.refetch()}><icon.refreshCw className="size-4" />Retry</Button>
         </div>
       ) : visibleResources.length === 0 && authorizedUtilities.length === 0 ? (
         <section className="surface-panel p-5">
@@ -210,13 +192,13 @@ export function AdminHubPage() {
           <div className="glass-card space-y-3 bg-card p-4">
             <div className="flex flex-wrap items-center gap-3">
               <SearchInput aria-label="Search administration" placeholder="Search administration" value={search} onChange={event => setSearch(event.target.value)}
-                endAdornment={search && <Button variant="ghost" size="icon" title="Clear search" aria-label="Clear search" onClick={() => setSearch("")}><X className="size-4" /></Button>}
+                endAdornment={search && <Button variant="ghost" size="icon" title="Clear search" aria-label="Clear search" onClick={() => setSearch("")}><icon.x className="size-4" /></Button>}
               />
               <span role="status" className="type-meta text-muted-foreground">{matching.reduce((total, section) => total + section.items.length, 0)} destinations</span>
             </div>
           </div>
-          {modulesQuery.isError && hasPermission(user, ADMIN_UTILITY_PERMISSIONS.ingestManage) && <div role="alert" className="flex flex-wrap items-center gap-3 type-body-sm"><p>Ingest availability could not be checked.</p><Button variant="outline" onClick={() => void modulesQuery.refetch()}><RefreshCw className="size-4" />Retry module status</Button></div>}
-          {!matching.length && <div className="py-6 text-center"><p className="type-body text-muted-foreground">No administrative pages match this search.</p><Button className="mt-3" variant="outline" onClick={() => setSearch("")}><X className="size-4" />Clear search</Button></div>}
+          {modulesQuery.isError && hasPermission(user, ADMIN_UTILITY_PERMISSIONS.ingestManage) && <div role="alert" className="flex flex-wrap items-center gap-3 type-body-sm"><p>Ingest availability could not be checked.</p><Button variant="outline" onClick={() => void modulesQuery.refetch()}><icon.refreshCw className="size-4" />Retry module status</Button></div>}
+          {!matching.length && <div className="py-6 text-center"><p className="type-body text-muted-foreground">No administrative pages match this search.</p><Button className="mt-3" variant="outline" onClick={() => setSearch("")}><icon.x className="size-4" />Clear search</Button></div>}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {matching.map((section) => {
             const items = section.items
@@ -234,7 +216,7 @@ export function AdminHubPage() {
                     <h3 className="type-body font-semibold">{item.title}</h3>
                     <p className="mt-1 type-body-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden="true" />
+                  <icon.chevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden="true" />
                 </Link>)}
               </div>
             </section>

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
-import { Bold, Italic, Underline, List, ListOrdered, Link, Unlink, RemoveFormatting } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { sanitizeRichText } from "@/lib/safe-html"
 import { Button } from "./button"
 import { Input } from "./input"
@@ -61,13 +61,13 @@ export function RichTextEditor({ label, value, onChange }: {
     <div className="rich-text-field form-control overflow-hidden rounded-lg">
       <div role="group" aria-label={`${label} formatting`} className="flex flex-wrap gap-1 border-b border-border bg-muted/30 p-1">
         {([
-          ["bold", "Bold", Bold], ["italic", "Italic", Italic], ["underline", "Underline", Underline],
-          ["insertUnorderedList", "Bullet list", List], ["insertOrderedList", "Numbered list", ListOrdered],
-          ["unlink", "Remove link", Unlink], ["removeFormat", "Clear formatting", RemoveFormatting],
+          ["bold", "Bold", icon.bold], ["italic", "Italic", icon.italic], ["underline", "Underline", icon.underline],
+          ["insertUnorderedList", "Bullet list", icon.list], ["insertOrderedList", "Numbered list", icon.listOrdered],
+          ["unlink", "Remove link", icon.unlink], ["removeFormat", "Clear formatting", icon.removeFormatting],
         ] as const).map(([command, title, Icon]) => <Button key={command} type="button" size="icon-sm" variant="ghost"
           aria-label={title} title={title} onMouseDown={(event) => event.preventDefault()} onClick={() => apply(command)}><Icon /></Button>)}
         <Button type="button" size="icon-sm" variant="ghost" aria-label="Insert link" title="Insert link"
-          onMouseDown={(event) => event.preventDefault()} onClick={() => { remember(); setLinkOpen(true); setError("") }}><Link /></Button>
+          onMouseDown={(event) => event.preventDefault()} onClick={() => { remember(); setLinkOpen(true); setError("") }}><icon.link /></Button>
       </div>
       {linkOpen && <div className="space-y-2 border-b border-border p-2">
         <div className="flex flex-wrap gap-2"><Input aria-label={`${label} link URL`} placeholder="https://example.org" value={url} onChange={(event) => setUrl(event.target.value)} />

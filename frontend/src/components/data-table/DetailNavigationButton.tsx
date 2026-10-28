@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Link, type LinkProps } from "react-router-dom"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { cn } from "@/lib/utils"
@@ -26,7 +26,7 @@ export function DetailNavigationButton({
         aria-label={label}
         className={cn("detail-navigation-button", className)}
       >
-        <ArrowRight aria-hidden="true" className="size-4" />
+        <icon.arrowRight aria-hidden="true" className="size-4" />
       </Link>
     </AppTooltip>
   )

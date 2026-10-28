@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api"
+import { logo } from "@/lib/assets"
 import { VariantDetail } from "./VariantDetail"
 
 vi.mock("@/lib/api", () => ({
@@ -193,10 +194,10 @@ describe("VariantDetail", () => {
     expect(screen.getByRole("img", { name: "BRCA Exchange logo" })).toBeVisible()
     expect(screen.getByText("IARC TP53")).toBeVisible()
     expect(screen.getByText("HPA expression")).toBeVisible()
-    expect(screen.getByRole("img", { name: "CIViC logo" })).toHaveAttribute("src", "/logos/civic-vector.svg")
-    expect(screen.getByRole("img", { name: "BRCA Exchange logo" })).toHaveAttribute("src", "/logos/brca-exchange-vector.svg")
+    expect(screen.getByRole("img", { name: "CIViC logo" })).toHaveAttribute("src", logo.civic.src)
+    expect(screen.getByRole("img", { name: "BRCA Exchange logo" })).toHaveAttribute("src", logo.brcaExchange.src)
     expect(screen.getAllByRole("img", { name: "OncoKB logo" })).toHaveLength(3)
-    expect(screen.getByRole("img", { name: "ClinPGx logo" })).toHaveAttribute("src", "/logos/clinpgx-vector.svg")
+    expect(screen.getByRole("img", { name: "ClinPGx logo" })).toHaveAttribute("src", logo.clinpgx.src)
     expect(screen.getByText("SRSF2 M89V")).toBeVisible()
     expect(screen.getByText("bone_marrow")).toBeVisible()
   })

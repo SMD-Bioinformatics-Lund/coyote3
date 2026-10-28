@@ -5,6 +5,19 @@ import { ReportFindings } from "./ReportFindings"
 import { REPORT_SNAPSHOT_SECTIONS } from "./report-snapshot"
 
 describe("ReportFindings", () => {
+  it("separates the recorded clinical assessment from producer measurements", () => {
+    const section = REPORT_SNAPSHOT_SECTIONS.find((entry) => entry.type === "TMB")!
+    render(<ReportFindings analysisType="TMB" columns={section.columns} rows={[
+      { result: { TMB: { value: 0, unit: "mut/Mb", clinical_assessment: {
+        value: "HIGH", revision: 1, assessed_by: "Synthetic reviewer",
+      }, assessment_history: [] } } },
+    ]} />)
+    expect(screen.getByText("0")).toBeVisible()
+    expect(screen.getByText("HIGH")).toBeVisible()
+    expect(screen.getByText("TMB clinical assessment")).toBeVisible()
+    expect(screen.queryByText("Additional measurements")).not.toBeInTheDocument()
+  })
+
   it("keeps repeated findings and full annotations in separate compact table rows", () => {
     const section = REPORT_SNAPSHOT_SECTIONS.find((entry) => entry.type === "SNV")!
     const annotation = "Synthetic interpretation with a retained annotation tail."

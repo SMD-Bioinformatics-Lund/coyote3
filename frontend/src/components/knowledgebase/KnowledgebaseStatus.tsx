@@ -1,4 +1,4 @@
-import { CheckCircle2, Cloud } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { TimeDisplay } from "@/components/ui/time-display"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
@@ -64,7 +64,7 @@ export function KnowledgebaseStatus({
                   <td className="px-3 py-2 text-right tabular-nums">{shortCount(release.records)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{release.collections?.length || 0}</td>
                   {!compact && <td className="px-3 py-2 text-muted-foreground">{release.published_at ? <TimeDisplay value={release.published_at} /> : "-"}</td>}
-                  <td className="px-3 py-2 text-center">{release.status === "configured" ? <Cloud className="mx-auto size-4 text-info" aria-label="Configured remote service" /> : <CheckCircle2 className="mx-auto size-4 text-pass" aria-label="Installed" />}</td>
+                  <td className="px-3 py-2 text-center">{release.status === "configured" ? <icon.cloud className="mx-auto size-4 text-info" aria-label="Configured remote service" /> : <icon.checkCircle2 className="mx-auto size-4 text-pass" aria-label="Installed" />}</td>
                 </tr>
               )
             })}

@@ -42,12 +42,6 @@
 .report-actions [data-slot="button"],
 .report-viewer-actions :is(button, a) { border-radius: 0.625rem; }
 
-.report-actions .report-trial-action {
-  color: var(--primary);
-  border-color: color-mix(in srgb, var(--primary) 28%, var(--report-edge));
-  background: color-mix(in srgb, var(--primary) 5%, var(--paper-raised));
-}
-
 .report-ready {
   display: inline-flex;
   align-items: center;

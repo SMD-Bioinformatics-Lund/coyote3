@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { valueBadgeClass } from "@/lib/badge-colors"
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, RefreshCw } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -60,7 +60,7 @@ function MetricUnavailable({ label }: { label: string }) {
   return (
     <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-4 py-6 text-center type-body-sm text-muted-foreground">
       <span>
-        <AlertTriangle className="mr-2 inline h-4 w-4 text-destructive" />
+        <icon.alertTriangle className="mr-2 inline h-4 w-4 text-destructive" />
         {label} is temporarily unavailable.
       </span>
     </div>
@@ -160,7 +160,7 @@ export function Dashboard() {
       onClick={() => refreshMutation.mutate()}
       title="Queue a background refresh of dashboard metrics"
     >
-      <RefreshCw className={cn("h-4 w-4", refreshPending && "animate-spin")} />
+      <icon.refreshCw className={cn("h-4 w-4", refreshPending && "animate-spin")} />
       {refreshPending ? "Refreshing" : "Refresh metrics"}
     </Button>
   )
@@ -229,8 +229,8 @@ export function Dashboard() {
               className="inline-flex items-center gap-2 self-center rounded-full bg-warn/10 px-3 py-1.5 type-meta font-medium text-warn"
             >
               {refreshPending
-                ? <RefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                : <Clock3 className="size-3.5" aria-hidden="true" />}
+                ? <icon.refreshCw className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                : <icon.clock3 className="size-3.5" aria-hidden="true" />}
               {refreshPending ? "Updating metrics" : "Cached metrics"}
             </span>
           )}
@@ -245,7 +245,7 @@ export function Dashboard() {
       {failedMetrics.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           <span>
-            <AlertTriangle className="mr-2 inline h-4 w-4" />
+            <icon.alertTriangle className="mr-2 inline h-4 w-4" />
             Some dashboard sections could not be updated: {failedMetrics.join(", ").replaceAll("_", " ")}.
           </span>
           {refreshButton}
@@ -263,7 +263,7 @@ export function Dashboard() {
                   {fmt(data?.analysed_samples)} <span className="text-sm font-medium text-muted-foreground">of {fmt(data?.total_samples)} analysed</span>
                 </p>
               </div>
-              <CheckCircle2 className="mt-0.5 h-5 w-5 text-pass" />
+              <icon.checkCircle2 className="mt-0.5 h-5 w-5 text-pass" />
             </div>
             <div className="progress-pipe mt-3 h-2 overflow-hidden rounded-full">
               <div className="progress-pipe-fill h-full rounded-full bg-pass" style={{ width: `${Math.min(100, Number(data?.total_samples) > 0 ? (Number(data?.analysed_samples || 0) / Number(data?.total_samples)) * 100 : 0)}%` }} />
@@ -363,7 +363,7 @@ export function Dashboard() {
                     <TimeDisplay value={sample.time_added} className="shrink-0" />
                   </p>
                 </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                <icon.arrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
               </Link>
             )) : <p className="text-xs text-muted-foreground">No recent visible samples.</p>}
           </div>
@@ -371,7 +371,7 @@ export function Dashboard() {
             <span>Showing up to 5 most recent samples.</span>
             <Link to="/samples" className="inline-flex items-center gap-1 font-semibold text-link hover:underline">
               View all samples
-              <ArrowRight className="h-3.5 w-3.5" />
+              <icon.arrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           </>}

@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,7 +37,7 @@ export function DateRangeFilter({
       <div className="space-y-1">
         <label htmlFor={presetId} className="block type-meta font-semibold text-muted-foreground">{label}</label>
         <div className="relative">
-          <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <icon.calendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <select
             id={presetId}
             className="paper-inset h-9 min-w-[165px] rounded-lg pl-9 pr-8 text-sm font-medium"

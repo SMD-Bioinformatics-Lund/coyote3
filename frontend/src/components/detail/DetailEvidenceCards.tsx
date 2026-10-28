@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { type ReactNode, useState } from "react"
 import { DetailCard } from "@/components/detail/FindingDetailLayout"
 import { displayValue, isPresent } from "@/lib/detail-formatters"
@@ -42,7 +42,7 @@ function TableDisclosure({
         aria-expanded={expanded}
         onClick={onToggle}
       >
-        {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        {expanded ? <icon.chevronUp className="size-3.5" /> : <icon.chevronDown className="size-3.5" />}
         {expanded ? `Show first ${initialRows}` : `Show all ${total}`}
       </button>
     </div>
@@ -85,7 +85,7 @@ export function DetailMetricTable({
                     rel="noreferrer"
                   >
                     <span className="truncate">{displayValue(metric.value, metric.href)}</span>
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    <icon.externalLink className="h-3.5 w-3.5 shrink-0" />
                   </a>
                 ) : (
                   displayValue(metric.value)
@@ -219,7 +219,7 @@ export function ExternalLinksCard({
                   className="link-text flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-semibold transition-colors hover:bg-primary/10"
                 >
                   <span className="min-w-0 break-words">{link.label}</span>
-                  <ExternalLink className="h-4 w-4 shrink-0" />
+                  <icon.externalLink className="h-4 w-4 shrink-0" />
                 </a>
               ))}
             </div>

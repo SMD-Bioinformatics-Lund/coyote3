@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
-import { AlertTriangle, Image as ImageIcon, RotateCw } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
 import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
@@ -127,7 +127,7 @@ export function CNVTab({
   if (error)
     return (
       <div className="text-destructive p-4 flex gap-2">
-        <AlertTriangle /> Error loading CNVs
+        <icon.alertTriangle /> Error loading CNVs
       </div>
     );
 
@@ -340,7 +340,7 @@ export function CNVTab({
     <div className="glass-card flex h-full w-full min-w-0 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
-          <ImageIcon className="size-4" /> CNV Profile
+          <icon.image className="size-4" /> CNV Profile
         </h4>
         <div className="flex items-center gap-2">
           <span className="text-xs type-numeric text-muted-foreground">{profileRotation}°</span>
@@ -358,7 +358,7 @@ export function CNVTab({
             }
             onClick={() => setProfileRotation((rotation) => (rotation === 0 ? 90 : 0))}
           >
-            <RotateCw aria-hidden="true" />
+            <icon.rotateCw aria-hidden="true" />
           </Button>
         </div>
       </div>

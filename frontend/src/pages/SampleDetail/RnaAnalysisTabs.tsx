@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle, BarChart3, Dna } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -46,7 +46,7 @@ function AnalysisState({
   if (error) {
     return (
       <div className="flex items-center gap-2 p-4 text-destructive">
-        <AlertTriangle className="h-4 w-4" />
+        <icon.alertTriangle className="h-4 w-4" />
         Unable to load RNA analysis.
       </div>
     )
@@ -195,7 +195,7 @@ function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sa
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/50 p-3">
         <div>
-          <h4 className="flex items-center gap-2 text-sm font-semibold"><Dna className="size-4" /> Expression of Selected Genes</h4>
+          <h4 className="flex items-center gap-2 text-sm font-semibold"><icon.dna className="size-4" /> Expression of Selected Genes</h4>
           <p className="text-xs text-muted-foreground">TPM and z-scores compared with the configured reference cohort.</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Z-score legend">
@@ -246,7 +246,7 @@ function ClassificationPanel({ rows, sampleId, header }: { rows: ClassificationR
       ) : null}
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <div>
-          <h4 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="size-4" /> Expression-Based Classification</h4>
+          <h4 className="flex items-center gap-2 text-sm font-semibold"><icon.barChart3 className="size-4" /> Expression-Based Classification</h4>
           <p className="text-xs text-muted-foreground">Classifier scores are ranked from highest to lowest.</p>
         </div>
       </div>

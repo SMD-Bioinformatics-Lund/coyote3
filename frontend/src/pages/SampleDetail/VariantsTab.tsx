@@ -8,7 +8,7 @@ import { BulkActionDropdown } from "@/components/data-table/BulkActionDropdown";
 import { ServerCsvButton } from "@/components/data-table/ServerCsvButton";
 import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { AnalysisIntentBadge, ConsequenceBadges, FallbackTierBadge, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
@@ -101,7 +101,7 @@ export function VariantsTab({
   if (error)
     return (
       <div className="text-destructive p-4 flex gap-2">
-        <AlertTriangle /> Error loading variants
+        <icon.alertTriangle /> Error loading variants
       </div>
     );
 

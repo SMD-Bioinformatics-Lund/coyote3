@@ -10,7 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { api } from "@/lib/api";
 import { TierBadge } from "@/lib/variant-ui";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Dna, Users } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { humanSex, percent } from "./cohort-formatters";
@@ -91,7 +91,7 @@ export function GeneCohortExplorer() {
     >
       {!requestedGene && (
         <section className="surface-panel p-6 text-center">
-          <Dna className="mx-auto h-8 w-8 text-primary" />
+          <icon.dna className="mx-auto h-8 w-8 text-primary" />
           <h2 className="mt-3 text-lg font-semibold">Search for a gene</h2>
           <p className="type-body mx-auto mt-1 max-w-2xl text-muted-foreground">
             Enter an exact approved gene symbol or HGNC identifier to build an access-scoped cohort
@@ -233,7 +233,7 @@ export function GeneCohortExplorer() {
 
           <section className="surface-panel p-4">
             <div className="surface-panel-heading flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
+              <icon.barChart3 className="h-4 w-4 text-primary" />
               <div>
                 <h2 className="text-base font-semibold">Recurrent findings</h2>
                 <p className="type-caption text-muted-foreground">
@@ -258,7 +258,7 @@ export function GeneCohortExplorer() {
 
           <section className="surface-panel p-4">
             <div className="surface-panel-heading flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
+              <icon.users className="h-4 w-4 text-primary" />
               <div>
                 <h2 className="text-base font-semibold">Samples with reported findings</h2>
                 <p className="type-caption text-muted-foreground">

@@ -19,6 +19,21 @@ export const familyLabels: Record<string, string> = {
   wts: "Whole transcriptome sequencing",
 }
 
+/** Normalize pasted gene symbols without expanding unpublished assay coverage. */
+export function parseCatalogGenes(value: string): string[] {
+  return [...new Set(value.split(/[\s,;]+/).map(gene => gene.trim().toUpperCase()).filter(Boolean))]
+}
+
+export function offeringGeneMatches(offering: Offering, genes: readonly string[]) {
+  const scope = new Set(offering.gene_scopes.flatMap(item => item.genes.map(gene => gene.toUpperCase())))
+  return { matched: genes.filter(gene => scope.has(gene)), unmatched: genes.filter(gene => !scope.has(gene)) }
+}
+
+export function matchesCatalogCategory(offering: Offering, category: string): boolean {
+  const [modality, family] = category.split(":")
+  return category === "all" || offering.modality === modality && (!family || offering.family === family)
+}
+
 export function offeringPrice(offering: Offering): string {
   if (!offering.price) return offering.pricing_message || "Contact for pricing"
   const { amount, currency, kind } = offering.price

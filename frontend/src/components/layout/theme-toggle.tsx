@@ -1,6 +1,6 @@
 "use client"
 
-import { Moon, Sun, SunMoon } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
@@ -14,7 +14,7 @@ export function ThemeToggle({ className, value, onChange, disabled = false }: {
   const { theme, setTheme } = useTheme()
   const current = value || (theme === "light" || theme === "dark" ? theme : "auto")
   const next = current === "auto" ? "light" : current === "light" ? "dark" : "auto"
-  const Icon = current === "auto" ? SunMoon : current === "light" ? Sun : Moon
+  const Icon = current === "auto" ? icon.sunMoon : current === "light" ? icon.sun : icon.moon
   const label = `Theme: ${current}. Switch to ${next}`
 
   return (

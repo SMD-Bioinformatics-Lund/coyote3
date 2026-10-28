@@ -8,7 +8,7 @@ import { api } from "@/lib/api"
 import { clinGenGeneUrl, ensemblGeneSummaryUrl, geneCardsUrl, hgncReportUrl, ncbiGeneUrl, omimEntryUrl } from "@/lib/external-links"
 import { useQuery } from "@tanstack/react-query"
 import { ColumnDef } from "@tanstack/react-table"
-import { CalendarDays, Database, Dna, ExternalLink, Fingerprint, Link2, MapPinned, Tags } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useParams } from "react-router-dom"
 import { ChipList, ErrorBox, InfoTile, Loading, SectionTitle } from "./resource-presentation"
 import { asList, display, formatCoordinate, formatDate } from "./resource-values"
@@ -90,19 +90,19 @@ export function GeneInfoPage() {
 
           <aside className="space-y-3">
             <section className="surface-panel p-4">
-              <SectionTitle icon={ExternalLink}>External Links</SectionTitle>
+              <SectionTitle icon={icon.externalLink}>External Links</SectionTitle>
               <div className="mt-3 flex flex-wrap gap-2">
                 {links.length ? links.map((link) => (
                   <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
                     {link.label}
-                    <ExternalLink className="h-4 w-4" />
+                    <icon.externalLink className="h-4 w-4" />
                   </a>
                 )) : <p className="text-sm text-muted-foreground">No external identifiers available.</p>}
               </div>
             </section>
 
             <section className="surface-panel p-4">
-              <SectionTitle icon={Tags}>Aliases</SectionTitle>
+              <SectionTitle icon={icon.tags}>Aliases</SectionTitle>
               <div className="space-y-3">
                 <div>
                   <p className="mb-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">Alias symbols</p>
@@ -125,7 +125,7 @@ export function GeneInfoPage() {
           </div>
 
           <section className="surface-panel p-4">
-            <SectionTitle icon={MapPinned}>Genomic Location</SectionTitle>
+            <SectionTitle icon={icon.mapPinned}>Genomic Location</SectionTitle>
             <dl className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <InfoTile label="Chromosome" value={gene.chromosome} />
               <InfoTile label="Start" value={formatCoordinate(gene.start)} mono />
@@ -137,7 +137,7 @@ export function GeneInfoPage() {
           </section>
 
           <section className="surface-panel p-4">
-            <SectionTitle icon={Dna}>Transcripts</SectionTitle>
+            <SectionTitle icon={icon.dna}>Transcripts</SectionTitle>
             <div className="space-y-3">
               <div>
                 <p className="mb-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">MANE select</p>
@@ -155,7 +155,7 @@ export function GeneInfoPage() {
           </section>
 
           <section className="surface-panel p-4">
-            <SectionTitle icon={Database}>Clinical And Database References</SectionTitle>
+            <SectionTitle icon={icon.database}>Clinical And Database References</SectionTitle>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <p className="mb-1 type-label font-semibold uppercase tracking-wide text-muted-foreground">OMIM</p>
@@ -183,7 +183,7 @@ export function GeneInfoPage() {
           </section>
 
           <section className="surface-panel p-4">
-            <SectionTitle icon={CalendarDays}>Record Dates</SectionTitle>
+            <SectionTitle icon={icon.calendarDays}>Record Dates</SectionTitle>
             <dl className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <InfoTile label="Approved/reserved" value={formatDate(gene.date_approved_reserved)} />
               <InfoTile label="Symbol changed" value={formatDate(gene.date_symbol_changed)} />
@@ -195,7 +195,7 @@ export function GeneInfoPage() {
           {transcriptRows.length > 0 && (
             <section className="surface-panel p-3 xl:col-span-2">
               <div className="mb-2 px-1">
-                <SectionTitle icon={Fingerprint}>Additional Transcript Coordinates</SectionTitle>
+                <SectionTitle icon={icon.fingerprint}>Additional Transcript Coordinates</SectionTitle>
               </div>
               <DataTable columns={transcriptColumns} data={transcriptRows} filename={`${symbol}_transcripts.csv`} />
             </section>
@@ -203,7 +203,7 @@ export function GeneInfoPage() {
 
           {gene.pseudogene_org?.length > 0 && (
             <section className="surface-panel p-4 xl:col-span-2">
-              <SectionTitle icon={Link2}>Pseudogene Orthologs</SectionTitle>
+              <SectionTitle icon={icon.link2}>Pseudogene Orthologs</SectionTitle>
               <ChipList values={gene.pseudogene_org} />
             </section>
           )}

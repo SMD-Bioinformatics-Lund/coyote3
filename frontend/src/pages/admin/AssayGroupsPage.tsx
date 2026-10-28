@@ -1,6 +1,6 @@
 import { useId, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, Power, Save, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { DataTable } from "@/components/data-table/DataTable"
 import { Button } from "@/components/ui/button"
@@ -102,7 +102,7 @@ export function AssayGroupsPage() {
           <span className="type-meta text-muted-foreground">Parent classifications provide fallback evidence and require confirmation for this assay and diagnosis. Access and assay assignments remain explicit.</span>
         </label>
         {save.error && <p role="alert" className="text-destructive md:col-span-2">{save.error.message}</p>}
-        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={save.isPending || !validId || !values.display_name.trim()}><Save className="h-4 w-4" />Save group</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setCreating(false)}><X className="h-4 w-4" />Cancel</Button></div>
+        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={save.isPending || !validId || !values.display_name.trim()}><icon.save className="h-4 w-4" />Save group</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setCreating(false)}><icon.x className="h-4 w-4" />Cancel</Button></div>
       </form>}
       {!groups.isLoading && !groups.error && <DataTable
         data={rows}
@@ -113,7 +113,7 @@ export function AssayGroupsPage() {
         searchPlaceholder="Search assay groups"
         searchValue={search}
         onSearchChange={setSearch}
-        renderToolbar={() => canCreate && !creating && <Button disabled={save.isPending} onClick={() => { setCreating(true); setValues(empty); setIdEdited(false); save.reset() }}><Plus className="h-4 w-4" />Create group</Button>}
+        renderToolbar={() => canCreate && !creating && <Button disabled={save.isPending} onClick={() => { setCreating(true); setValues(empty); setIdEdited(false); save.reset() }}><icon.plus className="h-4 w-4" />Create group</Button>}
         columns={[
           { accessorKey: "display_name", header: "Group", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><div className="type-meta text-muted-foreground">{row.original.group_id}</div></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
@@ -123,7 +123,7 @@ export function AssayGroupsPage() {
           { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
             const group = row.original
-            return canCreate && !group.system_managed && !group.system_installed && <Button variant="ghost" size="icon" className="text-validation" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><Power className="h-4 w-4" aria-hidden="true" /></Button>
+            return canCreate && !group.system_managed && !group.system_installed && <Button variant="ghost" size="icon" className="text-validation" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><icon.power className="h-4 w-4" aria-hidden="true" /></Button>
           } },
         ]}
       />}

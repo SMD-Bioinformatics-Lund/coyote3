@@ -1,4 +1,4 @@
-import { Activity, Database, Dna, Sparkles } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { TableBadge } from "@/components/ui/table-badge"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
@@ -96,7 +96,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
   return (
     <section className="surface-panel p-4" aria-labelledby="gene-knowledgebase-heading">
       <div className="surface-panel-heading flex items-center gap-2">
-        <Database className="size-4 text-primary" />
+        <icon.database className="size-4 text-primary" />
         <div>
           <h2 id="gene-knowledgebase-heading" className="type-card-title">Knowledgebase context</h2>
           <p className="type-caption text-muted-foreground">
@@ -144,7 +144,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
         <div className="mt-3 columns-1 gap-3 lg:columns-2">
           <div className="mb-3 inline-block w-full break-inside-avoid content-item p-3 align-top">
             <div className="mb-3 flex items-center gap-2">
-              <Dna className="size-4 text-primary" />
+              <icon.dna className="size-4 text-primary" />
               <p className="type-section-title">Cancer Gene Census</p>
             </div>
             <div className="space-y-2">
@@ -170,7 +170,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
           <div className="mb-3 inline-block w-full break-inside-avoid content-item p-3 align-top">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-primary" />
+                <icon.sparkles className="size-4 text-primary" />
                 <p className="type-section-title">Cancer hallmarks</p>
               </div>
               <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
@@ -186,7 +186,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
           </div>
           <div className="mb-3 inline-block w-full break-inside-avoid content-item p-3 align-top">
             <div className="flex items-center gap-2">
-              <Activity className="size-4 text-primary" />
+              <icon.activity className="size-4 text-primary" />
               <div>
                 <p className="type-section-title">Interpretation scope</p>
                 <p className="type-caption text-muted-foreground">

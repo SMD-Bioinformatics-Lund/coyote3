@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Bold, Italic, List, Link, Code, Quote, Slash } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { MarkdownText } from "./MarkdownText"
 
@@ -21,13 +21,13 @@ export function MarkdownComposer({ id, value, onChange, maxLength = 5000 }: {
   return <div className="overflow-hidden rounded-lg border border-border bg-card">
     <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted p-1.5">
       {[
-        { label: "Bold", icon: Bold, before: "**", after: "**" },
-        { label: "Italic", icon: Italic, before: "*", after: "*" },
-        { label: "Bulleted list", icon: List, before: "\n- " },
-        { label: "Quote", icon: Quote, before: "\n> " },
-        { label: "Code", icon: Code, before: "`", after: "`" },
-        { label: "Link", icon: Link, before: "[", after: "](https://)" },
-        { label: "Escape Markdown", icon: Slash, before: "", escape: true },
+        { label: "Bold", icon: appIcon.bold, before: "**", after: "**" },
+        { label: "Italic", icon: appIcon.italic, before: "*", after: "*" },
+        { label: "Bulleted list", icon: appIcon.list, before: "\n- " },
+        { label: "Quote", icon: appIcon.quote, before: "\n> " },
+        { label: "Code", icon: appIcon.code, before: "`", after: "`" },
+        { label: "Link", icon: appIcon.link, before: "[", after: "](https://)" },
+        { label: "Escape Markdown", icon: appIcon.slash, before: "", escape: true },
       ].map(({ label, icon: Icon, before, after, escape }) => <Button key={label} type="button" size="icon-sm" variant="ghost" aria-label={label} title={label} disabled={preview} onClick={() => insert(before, after, escape)}><Icon className="h-4 w-4" /></Button>)}
       <div className="ml-auto flex gap-1" role="group" aria-label="Message mode">
         <Button type="button" size="sm" variant={!preview ? "secondary" : "ghost"} aria-pressed={!preview} onClick={() => setPreview(false)}>Write</Button>

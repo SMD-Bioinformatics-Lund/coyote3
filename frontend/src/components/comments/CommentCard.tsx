@@ -1,4 +1,4 @@
-import { Dna, Eye, EyeOff, Globe2, PencilLine, UserRound } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { AppTooltip } from "@/components/ui/app-tooltip"
@@ -71,14 +71,14 @@ export function CommentCard({
     >
       <header className="mb-2.5 flex min-w-0 items-start gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-primary/8 type-meta font-semibold text-primary">
-          {initials || <UserRound className="size-4" aria-hidden="true" />}
+          {initials || <icon.userRound className="size-4" aria-hidden="true" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-foreground">{author}</span>
             {isGlobalComment(comment) && (
               <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
-                <Globe2 className="size-3" aria-hidden="true" />
+                <icon.globe2 className="size-3" aria-hidden="true" />
                 Global
               </span>
             )}
@@ -89,14 +89,14 @@ export function CommentCard({
                 content={`This annotation belongs to transcript ${commentTranscript}. The currently selected transcript is ${currentTranscript}.`}
               >
                 <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
-                  <Dna className="size-3" aria-hidden="true" />
+                  <icon.dna className="size-3" aria-hidden="true" />
                   Transcript {commentTranscript}
                 </span>
               </AppTooltip>
             )}
             {hidden && (
               <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 type-label font-medium text-muted-foreground">
-                <EyeOff className="size-3" aria-hidden="true" />
+                <icon.eyeOff className="size-3" aria-hidden="true" />
                 Hidden
               </span>
             )}
@@ -123,7 +123,7 @@ export function CommentCard({
           <MarkdownText text={text || "-"} />
           {!hidden && (
             <span aria-hidden="true" className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 type-meta font-medium text-muted-foreground opacity-0 transition-opacity group-hover/comment-body:opacity-100 group-focus-visible/comment-body:opacity-100">
-              <PencilLine className="size-3" />
+              <icon.pencilLine className="size-3" />
               Use as draft
             </span>
           )}
@@ -142,7 +142,7 @@ export function CommentCard({
             disabled={updating}
             className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
           >
-            {hidden ? <Eye className="size-3.5" aria-hidden="true" /> : <EyeOff className="size-3.5" aria-hidden="true" />}
+            {hidden ? <icon.eye className="size-3.5" aria-hidden="true" /> : <icon.eyeOff className="size-3.5" aria-hidden="true" />}
             {hidden ? "Unhide" : "Hide"}
           </button>
         </footer>

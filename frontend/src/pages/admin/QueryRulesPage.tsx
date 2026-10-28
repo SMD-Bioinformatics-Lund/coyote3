@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from "react"
-import { Beaker, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
@@ -165,16 +165,16 @@ export function QueryRulesPage() {
     return (!statusFilter || rule.status === statusFilter) && (!groupFilter || (rule.scope.assay_group ?? "__default__") === groupFilter) && searchable.includes(search.trim().toLowerCase())
   })
   return <PageShell eyebrow="Finding selection" title="Query rules" description="Author, review and publish finding-selection policies for groups, assays and diagnoses."
-    actions={<>{dirty && <Badge variant="outline">Unsaved</Badge>}{hasPermission(access, "query_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to={selected ? `/admin/query-rules/testing?version=${encodeURIComponent(selected._id)}` : "/admin/query-rules/testing"} />}><Beaker />Test rules</Button>}<Button variant="outline" onClick={() => selectVersion(null)} disabled={mutation.isPending || !hasPermission(access, "query_rules:draft")}><Plus />New scope version</Button></>}>
+    actions={<>{dirty && <Badge variant="outline">Unsaved</Badge>}{hasPermission(access, "query_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to={selected ? `/admin/query-rules/testing?version=${encodeURIComponent(selected._id)}` : "/admin/query-rules/testing"} />}><icon.beaker />Test rules</Button>}<Button variant="outline" onClick={() => selectVersion(null)} disabled={mutation.isPending || !hasPermission(access, "query_rules:draft")}><icon.plus />New scope version</Button></>}>
     <DocumentEditorNotice editor={documentEditor} />
     {(list.isError || options.isError) && <p role="alert">Unable to load query rules. Refresh to retry.</p>}
     <div className={cn("query-rules-layout clinical-rules-workspace surface-panel overflow-hidden", listCollapsed && "is-rule-list-collapsed")} style={{ "--rule-list-width": `${listWidth}px`, "--preview-width": `${previewWidth}px` } as CSSProperties}>
       <aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0" aria-label="Query-rule navigation">
-        {listCollapsed ? <button type="button" className="clinical-rules-rail" aria-label="Expand query-rule list" onClick={() => setListCollapsed(false)}><PanelLeftOpen /><span>Rule sets</span></button> : <>
+        {listCollapsed ? <button type="button" className="clinical-rules-rail" aria-label="Expand query-rule list" onClick={() => setListCollapsed(false)}><icon.panelLeftOpen /><span>Rule sets</span></button> : <>
           <div className="space-y-2 border-b border-border p-3">
             <div className="flex items-center gap-1">
               <SearchInput aria-label="Search query rules" placeholder="Search rules" value={search} onChange={event => setSearch(event.target.value)} />
-              <Button size="icon-sm" variant="ghost" aria-label="Collapse query-rule list" title="Collapse query-rule list" onClick={() => setListCollapsed(true)}><PanelLeftClose /></Button>
+              <Button size="icon-sm" variant="ghost" aria-label="Collapse query-rule list" title="Collapse query-rule list" onClick={() => setListCollapsed(true)}><icon.panelLeftClose /></Button>
             </div>
             <label className="block type-meta text-muted-foreground">Workflow state<select aria-label="Filter query rules by workflow state" className="paper-inset mt-1 w-full rounded-lg p-2 type-body-sm text-foreground" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All workflow states</option>{["draft", "approved", "published", "retired"].map(status => <option key={status} value={status}>{label(status)}</option>)}</select></label>
             <select aria-label="Filter query rules by assay group" className="paper-inset w-full rounded-lg p-2 type-supporting" value={groupFilter} onChange={event => setGroupFilter(event.target.value)}><option value="">All assay groups</option><option value="__default__">Default: all groups</option>{options.data?.groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select>

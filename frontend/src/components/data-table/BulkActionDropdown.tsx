@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Check } from "lucide-react"
+import { icon } from "@/lib/assets"
 import {
   FindingAction,
   FindingActionOption,
@@ -65,7 +65,7 @@ export function BulkActionDropdown({
         disabled={!action || isPending}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors disabled:opacity-50 disabled:pointer-events-none"
       >
-        {isPending ? <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+        {isPending ? <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <icon.check className="w-3.5 h-3.5" />}
         {isPending ? "Applying" : "Apply"}
       </button>
       <ConfirmationDialog

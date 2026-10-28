@@ -1,4 +1,4 @@
-import { Columns3, Rows3 } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { Button } from "@/components/ui/button"
 
@@ -14,7 +14,7 @@ export function LayoutDiscoveryBanner({ onTryModern }: LayoutDiscoveryBannerProp
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-          <Rows3 className="h-4 w-4" />
+          <icon.rows3 className="h-4 w-4" />
         </span>
         <div>
           <p className="font-semibold text-foreground">Try the modern layout</p>
@@ -22,7 +22,7 @@ export function LayoutDiscoveryBanner({ onTryModern }: LayoutDiscoveryBannerProp
         </div>
       </div>
       <Button type="button" size="sm" onClick={onTryModern}>
-        <Columns3 className="h-4 w-4" />
+        <icon.columns3 className="h-4 w-4" />
         Try modern
       </Button>
     </div>

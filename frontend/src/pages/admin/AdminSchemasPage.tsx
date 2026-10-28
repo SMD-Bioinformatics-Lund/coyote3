@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { BookOpenCheck } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
@@ -30,7 +30,7 @@ export default function AdminSchemasPage() {
       <section className="surface-panel p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 px-1">
           <div className="flex items-start gap-2">
-            <BookOpenCheck className="mt-0.5 h-5 w-5 text-panel" />
+            <icon.bookOpenCheck className="mt-0.5 h-5 w-5 text-panel" />
             <div>
               <h2 className="text-lg font-semibold">Managed Collection Contracts</h2>
               <p className="text-sm text-muted-foreground">These contracts support QA and diagnostics. Managed resources are edited through their dedicated admin forms.</p>

@@ -2,10 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
-import {
-  Plus,
-  Trash2
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import type {
   Condition,
   FactDefinition
@@ -50,7 +47,7 @@ export function ConditionBuilder({
           <option value="collection_match">Find in collection</option>
         </select>
         <RuleHelp label="Combine conditions">Condition checks one value. Match all requires every child condition. Match any accepts at least one. Exclude when reverses a condition. Find in collection checks individual findings, selected gene lists or measurements; put related checks inside the same item match.</RuleHelp>
-        {onRemove && <Button type="button" variant="ghost" size="icon-sm" title="Remove condition" onClick={onRemove}><Trash2 /></Button>}
+        {onRemove && <Button type="button" variant="ghost" size="icon-sm" title="Remove condition" onClick={onRemove}><icon.trash2 /></Button>}
       </div>
       {value.type === "predicate" && (
         <PredicateEditor value={value} facts={facts} controlledValues={controlledValues} onChange={onChange} />
@@ -69,7 +66,7 @@ export function ConditionBuilder({
               onRemove={value.children.length > 1 ? () => onChange({ ...value, children: value.children.filter((_, childIndex) => childIndex !== index) }) : undefined}
             />
           ))}
-          <Button type="button" className="clinical-rule-action" data-action="condition" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><Plus /> Add condition</Button>
+          <Button type="button" className="clinical-rule-action" data-action="condition" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><icon.plus /> Add condition</Button>
         </div>
       )}
       {value.type === "not" && <ConditionBuilder value={value.child} facts={facts} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(child) => onChange({ ...value, child })} />}

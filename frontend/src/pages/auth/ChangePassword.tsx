@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { KeyRound, LogOut } from "lucide-react"
+import { icon, logo } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { appPath } from "@/lib/runtime-paths"
 import { clearSessionState } from "@/lib/session-state"
@@ -70,11 +70,11 @@ export function ChangePassword() {
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-10 w-16 object-contain" />
+          <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-10 w-16 object-contain" />
           <span className="text-xl font-semibold">Coyote3</span>
         </div>
         <Button variant="ghost" onClick={signOut} disabled={pending}>
-          <LogOut className="h-4 w-4" />Sign out
+          <icon.logOut className="h-4 w-4" />Sign out
         </Button>
       </header>
       <h1 className="type-page-title">Change your password</h1>
@@ -100,7 +100,7 @@ export function ChangePassword() {
         {confirmation && password !== confirmation && <p className="text-sm text-destructive">Passwords do not match.</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" disabled={!identity.data || pending || !current || !password || password !== confirmation || password === current}>
-          <KeyRound className="h-4 w-4" />{pending ? "Changing password..." : "Change password"}
+          <icon.keyRound className="h-4 w-4" />{pending ? "Changing password..." : "Change password"}
         </Button>
       </form>
     </main>

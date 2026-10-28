@@ -4,7 +4,7 @@ import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
 import { ThemeToggle } from "./theme-toggle"
 import { EnvironmentBanner } from "./EnvironmentBanner"
-import { ArrowUp, BarChart3, Bell, BookOpen, Bug, FileQuestion, LayoutDashboard, Dna, Database, FileText, Grid2X2, LifeBuoy, Settings, User, ChevronDown, LogOut, Search, PanelLeftClose, PanelRightClose, Lightbulb } from "lucide-react"
+import { icon, logo } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api, ApiClientError } from "@/lib/api"
@@ -164,12 +164,12 @@ export function Layout() {
     if (publicOnlyMode) {
       const publicItems = [
         ...(moduleIsEnabled(modules, "assay_catalog") ? [
-          { name: "Public Home", href: "/public", icon: BookOpen },
-          { name: "Catalog", href: "/public/catalog", icon: FileText },
-          { name: "Matrix", href: "/public/matrix", icon: Grid2X2 },
+          { name: "Public Home", href: "/public", icon: icon.bookOpen },
+          { name: "Catalog", href: "/public/catalog", icon: icon.fileText },
+          { name: "Matrix", href: "/public/matrix", icon: icon.grid2X2 },
         ] : []),
-        { name: "About", href: "/about", icon: FileQuestion },
-        { name: "Contact", href: "/contact", icon: LifeBuoy },
+        { name: "About", href: "/about", icon: icon.fileQuestion },
+        { name: "Contact", href: "/contact", icon: icon.lifeBuoy },
       ]
       return [
         {
@@ -182,30 +182,30 @@ export function Layout() {
       {
         label: "Workspace",
         items: [
-          { name: "Home", href: "/", icon: LayoutDashboard },
-          ...(canViewSamples ? [{ name: "Samples", href: "/samples", icon: Dna }] : []),
-          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: Search }] : []),
-          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Gene Cohorts", href: "/variants/gene-cohort", icon: BarChart3 }] : []),
-          ...(canViewReports && moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: FileText }] : []),
+          { name: "Home", href: "/", icon: icon.layoutDashboard },
+          ...(canViewSamples ? [{ name: "Samples", href: "/samples", icon: icon.dna }] : []),
+          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Variant Search", href: "/variants/search", icon: icon.search }] : []),
+          ...(canViewFindings && moduleIsEnabled(modules, "variant_search") ? [{ name: "Gene Cohorts", href: "/variants/gene-cohort", icon: icon.barChart3 }] : []),
+          ...(canViewReports && moduleIsEnabled(modules, "reports") ? [{ name: "Reports", href: "/reports", icon: icon.fileText }] : []),
         ],
       },
       {
         label: "Reference",
         items: [
-          ...(moduleIsEnabled(modules, "knowledgebases") ? [{ name: "Knowledgebases", href: "/knowledgebases", icon: Database }] : []),
+          ...(moduleIsEnabled(modules, "knowledgebases") ? [{ name: "Knowledgebases", href: "/knowledgebases", icon: icon.database }] : []),
           ...(moduleIsEnabled(modules, "assay_catalog") ? [
-            { name: "Matrix", href: "/public/matrix", icon: Grid2X2 },
-            { name: "Catalog", href: "/public/catalog", icon: FileText },
+            { name: "Matrix", href: "/public/matrix", icon: icon.grid2X2 },
+            { name: "Catalog", href: "/public/catalog", icon: icon.fileText },
           ] : []),
-          { name: "About", href: "/about", icon: BookOpen },
-          { name: "Contact", href: "/contact", icon: LifeBuoy },
+          { name: "About", href: "/about", icon: icon.bookOpen },
+          { name: "Contact", href: "/contact", icon: icon.lifeBuoy },
         ],
       },
     ]
     if (canAccessAdministration) {
       sections.push({
         label: "Administration",
-        items: [{ name: "Admin Settings", href: "/admin", icon: Settings }],
+        items: [{ name: "Admin Settings", href: "/admin", icon: icon.settings }],
       })
     }
     return sections
@@ -228,17 +228,17 @@ export function Layout() {
       {
         label: "Report a Bug",
         url: codebase.bug_report_url,
-        icon: Bug,
+        icon: icon.bug,
       },
       {
         label: "Request a Feature",
         url: codebase.feature_request_url,
-        icon: Lightbulb,
+        icon: icon.lightbulb,
       },
       {
         label: "Support",
         url: codebase.support_request_url,
-        icon: LifeBuoy,
+        icon: icon.lifeBuoy,
       },
     ].filter((link) => Boolean(link.url))
   }, [contactData])
@@ -322,11 +322,11 @@ export function Layout() {
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <PanelRightClose className="h-8 w-8" /> : <PanelLeftClose className="h-8 w-8" />}
+            {isCollapsed ? <icon.panelRightClose className="h-8 w-8" /> : <icon.panelLeftClose className="h-8 w-8" />}
           </Button>
           <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
             <div className="py-1">
-              <img src={appPath("/logos/coyote-vector.svg")} alt="Coyote3" className="h-7 w-11 shrink-0 brightness-0 invert" />
+              <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-7 w-11 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
               <BrandWordmark className="text-chrome-foreground" />
@@ -348,7 +348,7 @@ export function Layout() {
                   )}
                 >
                   {category}
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-100", activeAssayCategory === category && "rotate-180")} />
+                  <icon.chevronDown className={cn("h-3.5 w-3.5 transition-transform duration-100", activeAssayCategory === category && "rotate-180")} />
                 </button>
               ))}
             </div>
@@ -422,7 +422,7 @@ export function Layout() {
                 title="Notifications"
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <icon.bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center type-label font-semibold leading-none text-primary-foreground shadow-sm">
                     {unreadCount > 99 ? "99+" : unreadCount}
@@ -450,17 +450,17 @@ export function Layout() {
                   <span className="font-bold">{userDisplayName}</span>
                   <span className="text-chrome-muted-foreground">{user?.role || "Guest"}</span>
                 </div>
-                <ChevronDown className="h-4 w-4 text-chrome-muted-foreground" />
+                <icon.chevronDown className="h-4 w-4 text-chrome-muted-foreground" />
               </button>
 
               {isUserMenuOpen && (
                 <div className="paper-menu absolute right-0 top-full z-50 mt-2 w-60 rounded-lg py-1">
               <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
-                    <User className="mr-3 h-4 w-4 text-primary" /> Profile
+                    <icon.user className="mr-3 h-4 w-4 text-primary" /> Profile
                   </Link>
                   <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <span className="flex items-center">
-                      <Bell className="mr-3 h-4 w-4 text-primary" /> Notifications
+                      <icon.bell className="mr-3 h-4 w-4 text-primary" /> Notifications
                     </span>
                     {unreadCount > 0 && (
                       <span className="rounded-full bg-primary px-1.5 py-0.5 type-label font-semibold text-primary-foreground">
@@ -470,10 +470,10 @@ export function Layout() {
                   </Link>
                   <div className="my-1 border-t border-border/50"></div>
                   <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
-                    <FileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
+                    <icon.fileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
                   </Link>
                   <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
-                    <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact
+                    <icon.lifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact
                   </Link>
                   {issueMenuLinks.map((link) => (
                     <a
@@ -489,7 +489,7 @@ export function Layout() {
                   ))}
                   <div className="my-1 border-t border-border/50"></div>
                   <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-left text-sm font-normal text-destructive transition-colors hover:bg-destructive/10">
-                    <LogOut className="mr-3 h-4 w-4" /> Logout
+                    <icon.logOut className="mr-3 h-4 w-4" /> Logout
                   </button>
                 </div>
               )}
@@ -598,7 +598,7 @@ export function Layout() {
               })
             }}
           >
-            <ArrowUp className="h-5 w-5" />
+            <icon.arrowUp className="h-5 w-5" />
           </Button>
         )}
       </div>

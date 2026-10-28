@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { GitBranch } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { Badge } from "@/components/ui/badge"
 import type { ClinicalRuleSet, Condition, FactDefinition, RuleBlock } from "./clinical-rules-types"
@@ -52,7 +52,7 @@ export function RuleCompositionPreview({ draft, facts }: {
 
   return <div className="space-y-4">
     <div className="space-y-2">
-      <Badge variant="secondary"><GitBranch aria-hidden="true" />Report structure</Badge>
+      <Badge variant="secondary"><icon.gitBranch aria-hidden="true" />Report structure</Badge>
       <p className="type-body-sm text-muted-foreground">Conditional sentences are shown separately, in report order. They are not all included in a report. Select a sample to see which sentences match and how they join. Brackets represent dynamic values.</p>
       <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={showConditionalText} onChange={event => setShowConditionalText(event.target.checked)} />Show conditional wording</label>
     </div>

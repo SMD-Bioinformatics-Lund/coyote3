@@ -1,5 +1,5 @@
 import { useId, useState } from "react"
-import { Plus } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -35,7 +35,7 @@ export function Choices({ label, value = [], presets, custom = false, onChange }
     {custom && <div className="flex max-w-sm gap-2"><Input aria-label={`New ${label.toLowerCase()}`}
       value={text} onChange={(e) => setText(e.target.value)}
       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add() } }} />
-      <Button size="icon-sm" variant="outline" aria-label={`Add ${label.toLowerCase()}`} title="Add custom value" onClick={add} disabled={!text.trim()}><Plus /></Button>
+      <Button size="icon-sm" variant="outline" aria-label={`Add ${label.toLowerCase()}`} title="Add custom value" onClick={add} disabled={!text.trim()}><icon.plus /></Button>
     </div>}
   </div>
 }

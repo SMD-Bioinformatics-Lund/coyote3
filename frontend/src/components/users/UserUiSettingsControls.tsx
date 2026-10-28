@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { LayoutGrid, Rows3, TableProperties, SunMoon } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
@@ -46,14 +46,14 @@ export function UserUiSettingsControls({
 
   return (
     <div className="user-preferences grid gap-4 lg:grid-cols-2">
-      <SettingRow icon={SunMoon} title="Theme"
+      <SettingRow icon={appIcon.sunMoon} title="Theme"
         description="Auto follows your local time: light 07:00–19:00, dark overnight. Saved to your account.">
         <SegmentedControl ariaLabel="Theme preference" value={settings.theme}
           onValueChange={(theme: UserUiSettings["theme"]) => { if (!disabled) onChange({ ...settings, theme }) }}
           items={[{ value: "auto", label: "Auto", disabled }, { value: "light", label: "Light", disabled }, { value: "dark", label: "Dark", disabled }]} />
       </SettingRow>
       <SettingRow
-        icon={LayoutGrid}
+        icon={appIcon.layoutGrid}
         title="Analysis workspace"
         description="Choose a combined findings page or separate analysis tabs."
       >
@@ -66,7 +66,7 @@ export function UserUiSettingsControls({
         />
       </SettingRow>
       <SettingRow
-        icon={TableProperties}
+        icon={appIcon.tableProperties}
         title="Table page size"
         description="Set the default number of rows shown in paginated tables."
       >
@@ -83,7 +83,7 @@ export function UserUiSettingsControls({
         </label>
       </SettingRow>
       <SettingRow
-        icon={Rows3}
+        icon={appIcon.rows3}
         title="Samples worklist"
         description="Choose a combined worklist or separate live and reported tabs."
       >
@@ -105,7 +105,7 @@ function SettingRow({
   description,
   children,
 }: {
-  icon: typeof LayoutGrid
+  icon: typeof appIcon.layoutGrid
   title: string
   description: string
   children: ReactNode

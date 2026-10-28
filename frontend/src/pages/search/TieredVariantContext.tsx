@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowLeft } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { ColumnDef } from "@tanstack/react-table"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -44,7 +44,7 @@ export function TieredVariantContext() {
     return (
       <PageShell eyebrow="Reported Variant" title="Unable to load tiered variant">
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          <AlertTriangle className="mr-2 inline h-4 w-4" />
+          <icon.alertTriangle className="mr-2 inline h-4 w-4" />
           {error instanceof Error ? error.message : "The reported variant context could not be loaded."}
         </div>
       </PageShell>
@@ -151,7 +151,7 @@ export function TieredVariantContext() {
       description="Reported samples and reports matching this variant identity."
       actions={
         <Link to={sampleDetailPath(data.sample, variant.SAMPLE_ID || data.sample_id || "")} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted">
-          <ArrowLeft className="h-4 w-4" />
+          <icon.arrowLeft className="h-4 w-4" />
           Back to sample
         </Link>
       }

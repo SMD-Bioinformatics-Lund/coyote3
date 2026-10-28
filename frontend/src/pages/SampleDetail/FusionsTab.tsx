@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
-import { AlertTriangle } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
 import { DETAIL_NAVIGATION_COLUMN_META } from "@/components/data-table/detail-navigation-column";
@@ -75,7 +75,7 @@ export function FusionsTab({
   if (error)
     return (
       <div className="text-destructive p-4 flex gap-2">
-        <AlertTriangle /> Error loading Fusions
+        <icon.alertTriangle /> Error loading Fusions
       </div>
     );
 

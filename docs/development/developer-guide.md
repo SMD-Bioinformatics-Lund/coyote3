@@ -92,6 +92,34 @@ assembly from `api.app`. The frontend consumes HTTP contracts, not Python module
 or database documents directly. These boundaries are checked by
 `tests/integration/test_api_architecture_boundaries.py`.
 
+### Frontend icons and image assets
+
+`frontend/src/lib/assets.ts` owns the frontend's `icon`, `logo` and `illustration`
+registries. Change a component or image path there to update its consumers.
+Import icons from this registry rather than directly from `lucide-react`.
+
+```tsx
+import { icon, logo } from "@/lib/assets"
+import { appPath } from "@/lib/runtime-paths"
+
+<icon.dna className="size-4" aria-hidden="true" />
+<img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} />
+<img src={appPath(icon.dataStack.src)} alt="" aria-hidden="true" />
+```
+
+Component icons use their existing Lucide props. File assets expose typed `src`
+and `alt` fields; `appPath` preserves the installation's URL prefix. The data-stack
+icon remains an external SVG file. Login illustrations are available through
+`illustration.coyoteWalking` and `illustration.coyoteHowling`. Database source
+matching remains in `frontend/src/lib/database-logos.ts`, which selects assets
+from `logo` rather than owning separate paths.
+
+Keep descriptive text alternatives for informative images and empty alternatives
+for decorative images beside visible labels. Preserve existing theme filters and
+icon sizes at the consumer. Include downloaded artwork's attribution with the
+asset. Server-rendered PDF logos follow the separate
+[report branding configuration](../configuration/contact-file.md).
+
 ## Runtime services
 
 ![Runtime topology](../assets/diagrams/runtime-topology.svg)

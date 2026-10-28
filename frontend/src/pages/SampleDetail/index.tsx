@@ -3,7 +3,7 @@ import { api } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { ChartNoAxesCombined, FileText, LayoutDashboard, Microscope } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { CommentsPanel } from "@/components/comments/CommentsPanel"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -21,6 +21,7 @@ import {
 } from "@/lib/user-settings"
 import { CNVTab } from "./CNVTab"
 import { CoverageTab } from "./CoverageTab"
+import { BiomarkersTab } from "./BiomarkersTab"
 import { FiltersSidebar } from "./FiltersSidebar"
 import {
   ClassicAnalysisFiltersSidebar,
@@ -48,6 +49,7 @@ const TABS = [
   { id: "rna-analysis", label: "Expression & Classification", analysis: "RNA_ANALYSIS" },
   { id: "translocations", label: "Translocations", analysis: "TRANSLOCATION" },
   { id: "coverage", label: "Coverage", analysis: "COVERAGE" },
+  { id: "biomarkers", label: "Biomarker analysis" },
   { id: "reports", label: "Reports" }
 ]
 
@@ -76,6 +78,7 @@ function visibleTabs(sample: any, context: any, modules?: any) {
   )
   return TABS.filter((tab) => {
     if (tab.id === "reports") return moduleIsEnabled(modules, "reports")
+    if (tab.id === "biomarkers") return omicsLayer === "dna" && moduleIsEnabled(modules, "dna_analysis") && hasAnalysis("HRD", "MSI", "TMB")
     if (["snvs", "germline-snvs", "cnvs", "translocations", "coverage"].includes(tab.id) && !moduleIsEnabled(modules, "dna_analysis")) return false
     if (["fusions", "rna-analysis"].includes(tab.id) && !moduleIsEnabled(modules, "rna_analysis")) return false
     if (tab.id === "coverage") {
@@ -152,7 +155,7 @@ export function SampleDetail() {
   )
   const navigationTabs = useMemo(() => {
     if (analysisLayout === "modern") return tabs
-    const compactTabs = tabs.filter((tab) => ["overview", "coverage", "reports"].includes(tab.id))
+    const compactTabs = tabs.filter((tab) => ["overview", "coverage", "biomarkers", "reports"].includes(tab.id))
     if (findingSections.length > 0) {
       compactTabs.splice(1, 0, { id: "findings", label: "Findings" })
     }
@@ -267,9 +270,9 @@ export function SampleDetail() {
             value={activeTab}
             onValueChange={selectTab}
             items={navigationTabs.map((tab) => {
-              const Icon = tab.id === "overview" ? LayoutDashboard
-                : tab.id === "coverage" ? ChartNoAxesCombined
-                : tab.id === "reports" ? FileText : Microscope
+              const Icon = tab.id === "overview" ? icon.layoutDashboard
+                : tab.id === "coverage" ? icon.chartNoAxesCombined
+                : tab.id === "reports" ? icon.fileText : icon.microscope
               return { value: tab.id, label: <><Icon className="size-4" aria-hidden="true" />{tab.label}</> }
             })}
           />
@@ -301,7 +304,7 @@ export function SampleDetail() {
               )}
 
               <div className="space-y-3">
-                {activeTab !== "overview" && activeTab !== "coverage" && activeTab !== "reports" && (
+                {activeTab !== "overview" && activeTab !== "coverage" && activeTab !== "biomarkers" && activeTab !== "reports" && (
                   <PanelSummary sample={sample} context={data} />
                 )}
 
@@ -323,6 +326,7 @@ export function SampleDetail() {
                 {activeTab === "rna-analysis" && <RnaAnalysisTab sampleId={sampleRouteKey} />}
                 {activeTab === "translocations" && <TranslocationsTab sampleId={sampleRouteKey} />}
                 {activeTab === "coverage" && <CoverageTab sampleId={sampleRouteKey} sample={sample} />}
+                {activeTab === "biomarkers" && <BiomarkersTab sampleId={sampleRouteKey} production={sample.environment === "production"} />}
                 {activeTab === "reports" && (
                   <ReportsTab sampleId={sampleRouteKey} reportType={sampleReportType} />
                 )}

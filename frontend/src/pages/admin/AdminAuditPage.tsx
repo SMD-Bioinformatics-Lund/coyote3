@@ -7,14 +7,7 @@ import { api } from "@/lib/api"
 import { fullDateTime, localDate } from "@/lib/detail-formatters"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import {
-  AlertTriangle,
-  CircleAlert,
-  Database,
-  Info,
-  RefreshCw,
-  Siren
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useMemo, useState } from "react"
 
 
@@ -261,7 +254,7 @@ export function AdminAuditPage() {
           disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          <icon.refreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           Refresh
         </button>
       }
@@ -365,7 +358,7 @@ export function AdminAuditPage() {
             hideSearch
             renderToolbar={() => (
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Database className="h-3.5 w-3.5" />
+                <icon.database className="h-3.5 w-3.5" />
                 MongoDB audit_events
               </span>
             )}
@@ -384,10 +377,10 @@ const severityClass: Record<Severity, string> = {
 }
 
 const severityIcon = {
-  info: Info,
-  warning: AlertTriangle,
-  error: CircleAlert,
-  critical: Siren,
+  info: icon.info,
+  warning: icon.alertTriangle,
+  error: icon.circleAlert,
+  critical: icon.siren,
 }
 
 function severityValue(value: unknown): Severity {

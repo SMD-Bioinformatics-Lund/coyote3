@@ -1,6 +1,4 @@
-import {
-  GripVertical
-} from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useRef, type KeyboardEvent, type PointerEvent } from "react"
 
 
@@ -39,5 +37,5 @@ export function ResizeDivider({
     const delta = event.key === 'ArrowRight' ? 16 : -16
     update(width + delta * direction)
   }
-  return <div role="separator" aria-label={label} aria-orientation="vertical" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(width)} tabIndex={0} className="clinical-rules-divider" onKeyDown={onKeyDown} onPointerDown={(event) => { if (event.pointerType === "mouse" && event.button !== 0) return; start.current = { x: event.clientX, width }; event.currentTarget.setPointerCapture(event.pointerId) }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) update(start.current.width + (event.clientX - start.current.x) * direction) }} onPointerUp={finish} onPointerCancel={finish}><GripVertical /></div>
+  return <div role="separator" aria-label={label} aria-orientation="vertical" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(width)} tabIndex={0} className="clinical-rules-divider" onKeyDown={onKeyDown} onPointerDown={(event) => { if (event.pointerType === "mouse" && event.button !== 0) return; start.current = { x: event.clientX, width }; event.currentTarget.setPointerCapture(event.pointerId) }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) update(start.current.width + (event.clientX - start.current.x) * direction) }} onPointerUp={finish} onPointerCancel={finish}><icon.gripVertical /></div>
 }

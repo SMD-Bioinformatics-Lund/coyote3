@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, ExternalLink, ZoomIn, ZoomOut } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { DetailDataTable } from "@/components/detail/DetailEvidenceCards"
@@ -26,7 +26,7 @@ export type VepReference = {
 
 function SourceLink({ href, children }: { href: string; children: React.ReactNode }) {
   if (!/^https?:\/\//i.test(href)) return <span>{children}</span>
-  return <a href={href} target="_blank" rel="noreferrer" className="link-text inline-flex items-center gap-1 break-all">{children}<ExternalLink className="size-3 shrink-0" aria-hidden="true" /></a>
+  return <a href={href} target="_blank" rel="noreferrer" className="link-text inline-flex items-center gap-1 break-all">{children}<icon.externalLink className="size-3 shrink-0" aria-hidden="true" /></a>
 }
 
 export default function VepReferencePage() {
@@ -51,7 +51,7 @@ export default function VepReferencePage() {
   const ontology = (term?: string, kind = "current_svn") => term && /^SO:\d{7}$/.test(term)
     ? <SourceLink href={`http://www.sequenceontology.org/miso/${kind}/term/${term}`}>{term}</SourceLink> : <span>{term || "-"}</span>
 
-  return <PageShell title="VEP Reference" eyebrow="Reference library" actions={<Link to="/about" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2"><ArrowLeft className="size-4" />About Coyote3</Link>}>
+  return <PageShell title="VEP Reference" eyebrow="Reference library" actions={<Link to="/about" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2"><icon.arrowLeft className="size-4" />About Coyote3</Link>}>
     <section className="surface-panel space-y-4 p-4">
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 type-label">VEP release
@@ -71,7 +71,7 @@ export default function VepReferencePage() {
           <summary className="cursor-pointer py-2 type-section-title">Consequence locations · Ensembl {data.vep_id}</summary>
           {diagramAllowed ? <figure className="w-fit max-w-full space-y-2">
             <div className="max-w-full overflow-x-auto rounded-md"><img src={apiPath(`/public/vep/${encodeURIComponent(data.vep_id)}/diagram`)} width={diagram.width} height={diagram.height} alt={`Ensembl ${data.vep_id} variant consequences relative to transcript structure`} className={zoom ? "vep-reference-diagram block h-auto max-w-none" : "vep-reference-diagram block h-auto max-w-full"} style={{ width: zoom ? diagram.width : Math.min(diagram.width, 760) }} /></div>
-            <figcaption className="flex flex-wrap items-center justify-between gap-2 type-meta text-muted-foreground"><span><SourceLink href={data.conseq_translation_source}>Ensembl diagram source</SourceLink> · Release {diagram.release}</span><Button variant="outline" size="icon" aria-label={zoom ? "Fit diagram" : "Zoom diagram"} title={zoom ? "Fit diagram" : "Zoom diagram"} onClick={() => setZoom(value => !value)}>{zoom ? <ZoomOut className="size-4" /> : <ZoomIn className="size-4" />}</Button></figcaption>
+            <figcaption className="flex flex-wrap items-center justify-between gap-2 type-meta text-muted-foreground"><span><SourceLink href={data.conseq_translation_source}>Ensembl diagram source</SourceLink> · Release {diagram.release}</span><Button variant="outline" size="icon" aria-label={zoom ? "Fit diagram" : "Zoom diagram"} title={zoom ? "Fit diagram" : "Zoom diagram"} onClick={() => setZoom(value => !value)}>{zoom ? <icon.zoomOut className="size-4" /> : <icon.zoomIn className="size-4" />}</Button></figcaption>
           </figure> : <p className="type-body-sm text-muted-foreground">No diagram is installed for this release.</p>}
         </details>
         <SegmentedControl ariaLabel="VEP reference tables" value={tab} onValueChange={setTab} items={[{ value: "consequences", label: <span className="type-meta normal-case tracking-normal">Consequences</span> }, { value: "classes", label: <span className="type-meta normal-case tracking-normal">Variant classes</span> }, { value: "cache", label: <span className="type-meta normal-case tracking-normal">Cache sources</span> }]} />

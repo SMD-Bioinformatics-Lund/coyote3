@@ -3,7 +3,7 @@ import { useAdminList } from "@/components/admin/useAdminList"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
@@ -30,7 +30,7 @@ export function GeneListsPage() {
   ]
   return (
     <PageShell eyebrow="Admin" title={spec.title} description={spec.description} actions={<>
-      {canCreate && <Link to="/admin/genelists/create" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"><Plus className="h-4 w-4" />Create</Link>}
+      {canCreate && <Link to="/admin/genelists/create" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"><icon.plus className="h-4 w-4" />Create</Link>}
       <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Admin home</Link>
     </>}>
       <div className="glass-card p-3">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { Copy, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { Input } from "@/components/ui/input"
@@ -118,13 +118,13 @@ export function QueryConditionBuilder({ value, fields, catalog, onChange, depth 
     {"children" in value && <details open className="space-y-3"><summary className="cursor-pointer type-label">{value.children.length} conditions · {value.type === "all" ? "all must match" : value.type === "any" ? "at least one must match" : "none may match"}</summary>
       {value.children.map((child, index) => <div key={index}>
         {nested(child, next => onChange({ ...value, children: value.children.map((item, i) => i === index ? next : item) }), prefix, <div className="flex shrink-0 gap-1">
-          <Button type="button" size="icon-sm" variant="ghost" aria-label="Move condition up" disabled={index === 0} onClick={() => { const children = [...value.children]; [children[index - 1], children[index]] = [children[index], children[index - 1]]; onChange({ ...value, children }) }}><ArrowUp /></Button>
-          <Button type="button" size="icon-sm" variant="ghost" aria-label="Move condition down" disabled={index === value.children.length - 1} onClick={() => { const children = [...value.children]; [children[index + 1], children[index]] = [children[index], children[index + 1]]; onChange({ ...value, children }) }}><ArrowDown /></Button>
-          <Button type="button" size="icon-sm" variant="ghost" aria-label="Duplicate condition" onClick={() => onChange({ ...value, children: [...value.children, structuredClone(child)] })}><Copy /></Button>
-          <Button type="button" size="icon-sm" variant="ghost" aria-label="Remove condition" disabled={value.children.length === 1} onClick={() => onChange({ ...value, children: value.children.filter((_, i) => i !== index) })}><Trash2 /></Button>
+          <Button type="button" size="icon-sm" variant="ghost" aria-label="Move condition up" disabled={index === 0} onClick={() => { const children = [...value.children]; [children[index - 1], children[index]] = [children[index], children[index - 1]]; onChange({ ...value, children }) }}><icon.arrowUp /></Button>
+          <Button type="button" size="icon-sm" variant="ghost" aria-label="Move condition down" disabled={index === value.children.length - 1} onClick={() => { const children = [...value.children]; [children[index + 1], children[index]] = [children[index], children[index + 1]]; onChange({ ...value, children }) }}><icon.arrowDown /></Button>
+          <Button type="button" size="icon-sm" variant="ghost" aria-label="Duplicate condition" onClick={() => onChange({ ...value, children: [...value.children, structuredClone(child)] })}><icon.copy /></Button>
+          <Button type="button" size="icon-sm" variant="ghost" aria-label="Remove condition" disabled={value.children.length === 1} onClick={() => onChange({ ...value, children: value.children.filter((_, i) => i !== index) })}><icon.trash2 /></Button>
         </div>, `Condition ${index + 1}`)}
       </div>)}
-      <Button type="button" size="sm" variant="outline" disabled={atLimit} onClick={() => onChange({ ...value, children: [...value.children, newQueryPredicate(available)] })}><Plus />Add condition</Button>
+      <Button type="button" size="sm" variant="outline" disabled={atLimit} onClick={() => onChange({ ...value, children: [...value.children, newQueryPredicate(available)] })}><icon.plus />Add condition</Button>
     </details>}
     {value.type === "not" && nested(value.child, child => onChange({ ...value, child }))}
     {value.type === "elem_match" && <>

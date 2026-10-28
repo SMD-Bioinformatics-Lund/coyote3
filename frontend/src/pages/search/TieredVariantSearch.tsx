@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronDown, Search, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { DataTable } from "@/components/data-table/DataTable"
 import { SearchInput } from "@/components/ui/search-input"
@@ -355,11 +355,11 @@ export function TieredVariantSearch() {
             Include annotation text
           </label>
           <button type="submit" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90">
-            <Search className="h-4 w-4" />
+            <icon.search className="h-4 w-4" />
             Search
           </button>
           <button type="button" onClick={clearSearch} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted">
-            <X className="h-4 w-4" />
+            <icon.x className="h-4 w-4" />
             Clear
           </button>
         </form>
@@ -424,7 +424,7 @@ export function TieredVariantSearch() {
               </div>
               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                 <span>{assayStats.length} assay{assayStats.length === 1 ? "" : "s"}</span>
-                <ChevronDown className="h-4 w-4 transition-transform duration-150 group-open:rotate-180" />
+                <icon.chevronDown className="h-4 w-4 transition-transform duration-150 group-open:rotate-180" />
               </div>
             </summary>
             <div className="overflow-x-auto border-t border-border">

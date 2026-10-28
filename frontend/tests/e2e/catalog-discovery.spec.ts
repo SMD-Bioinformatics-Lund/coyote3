@@ -39,7 +39,8 @@ for (const theme of ["light", "dark"]) {
       { hgnc_symbol: "MYC", hgnc_id: "HGNC:7553", gene_name: "MYC proto-oncogene", chromosome: "8" },
     ] } }))
     await page.goto("/public/catalog")
-    await expect(page.getByRole("button", { name: "By Diagnosis" })).toHaveAttribute("aria-pressed", "true")
+    await page.getByText("Additional filters", { exact: true }).click()
+    await expect(page.getByRole("combobox", { name: "Assay", exact: true })).toBeVisible()
     await expect(page.getByRole("article")).toHaveCount(4)
     const positions = await page.getByRole("article").evaluateAll(elements =>
       elements.map(element => {
@@ -48,8 +49,8 @@ for (const theme of ["light", "dark"]) {
       }),
     )
     if (theme === "light") {
-      expect(new Set(positions.map(position => position.top)).size).toBe(1)
-      expect(new Set(positions.map(position => position.left)).size).toBe(4)
+      expect(new Set(positions.map(position => position.top)).size).toBe(2)
+      expect(new Set(positions.map(position => position.left)).size).toBe(2)
     } else {
       expect(new Set(positions.map(position => position.left)).size).toBe(1)
     }
@@ -95,9 +96,28 @@ for (const theme of ["light", "dark"]) {
     await page.getByRole("button", { name: "Back to top", exact: true }).click()
     await expect.poll(() => scrollArea.evaluate(element => element.scrollTop)).toBe(0)
     await page.setViewportSize({ width: theme === "light" ? 1440 : 390, height: 900 })
-    await page.getByLabel("Biological group").selectOption("solid")
-    await page.getByLabel("Diagnosis", { exact: true }).selectOption("breast")
-    await page.getByLabel("Molecular modality").selectOption("dna")
+    await page.getByRole("button", { name: "DNA Panels", exact: true }).click()
+    await page.getByRole("button", { name: "DNA Panels / Solid", exact: true }).click()
+    await page.getByRole("button", { name: "DNA Panels / Solid / Breast", exact: true }).click()
+    await expect(page.getByRole("article")).toHaveCount(1)
+    await expect(page.getByRole("button", { name: "DNA Panels / Solid / Breast", exact: true })).toHaveAttribute("aria-pressed", "true")
+    const hierarchy = ["DNA", "DNA Panels", "DNA Panels / Solid", "DNA Panels / Solid / Breast"]
+    const sizes: number[] = []
+    for (const [index, name] of hierarchy.entries()) {
+      const entry = page.getByRole("button", { name, exact: true })
+      sizes.push(await entry.evaluate(el => parseFloat(getComputedStyle(el).fontSize)))
+      if (index < 3) await expect(entry).toHaveAttribute("data-ancestor", "true")
+    }
+    expect(sizes.every((size, index) => index === 0 || size < sizes[index - 1])).toBe(true)
+    expect(sizes[0] - sizes[3]).toBeLessThan(4)
+    const expandWts = page.getByRole("button", { name: "Expand RNA WTS", exact: true })
+    await expandWts.focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: "RNA WTS / Solid", exact: true })).toBeVisible()
+    await expect(page.getByRole("article")).toHaveCount(1)
+    await page.screenshot({ path: `test-results/catalog-hierarchy-${theme}.png`, fullPage: true })
+    await page.getByRole("button", { name: "DNA", exact: true }).click()
+    await expect(page.getByRole("button", { name: "DNA Panels / Solid / Breast", exact: true })).toBeVisible()
     await expect(page.getByRole("article")).toHaveCount(2)
     await expect(page.locator('.catalog-service-card[data-modality="dna"]')).toHaveCount(2)
     expect(await page.getByRole("article").first().evaluate(element => getComputedStyle(element).borderTopWidth)).toBe("4px")
@@ -109,9 +129,16 @@ for (const theme of ["light", "dark"]) {
     await expect(comparison.getByRole("rowheader", { name: "Method", exact: true })).toBeVisible()
     await expect(comparison.locator(".badge-panel-dna")).toHaveCount(1)
     await expect(comparison.locator(".badge-wgs")).toHaveCount(1)
+    await page.getByLabel("Requested genes", { exact: true }).fill("BRCA1, TP53\nNOTPUBLISHED\nBRCA1")
+    await expect(page.getByRole("article")).toHaveCount(2)
+    await expect(comparison.getByText("1 / 3 requested genes matched")).toHaveCount(2)
+    await page.getByRole("article").first().getByRole("button", { name: "View unmatched genes (2)" }).click()
+    await expect(page.getByRole("dialog")).toContainText("NOTPUBLISHED")
+    await page.keyboard.press("Escape")
+    await expect(page.getByRole("dialog")).toHaveCount(0)
+    await page.getByLabel("Requested genes", { exact: true }).fill("")
     await comparison.scrollIntoViewIfNeeded()
     await page.screenshot({ path: `test-results/catalog-comparison-${theme}.png`, fullPage: true })
-    await page.getByRole("button", { name: "By Assay" }).click()
     await expect(page.getByRole("article")).toHaveCount(2)
     await page.getByLabel("Assay", { exact: true }).selectOption("solid_GMSv3")
     await expect(page.getByRole("article")).toHaveCount(1)

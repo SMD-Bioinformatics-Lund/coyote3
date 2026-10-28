@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { TextField, PresentationFields } from "./CatalogFields"
 import type { Catalog, Category, Workspace } from "./catalog-types"
@@ -47,17 +47,17 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
           if (target < 0 || target >= order.length) return
           ;[order[index], order[target]] = [order[target], order[index]]
           onChange({ ...catalog, layout: { order } })
-        }}>{direction < 0 ? <ArrowUp /> : <ArrowDown />}</Button>)}
+        }}>{direction < 0 ? <icon.arrowUp /> : <icon.arrowDown />}</Button>)}
       <Button variant="outline" onClick={() => {
         const key = crypto.randomUUID().replaceAll("-", "_")
         onChange({ ...catalog, modalities: { ...catalog.modalities, [section]: {
           ...modality, categories: { ...modality.categories, [key]: { label: "New entry", gene_lists: [] } },
         } } })
-      }}><Plus /> Add entry</Button>
+      }}><icon.plus /> Add entry</Button>
       <Button variant="outline" onClick={() => {
         const modalities = { ...catalog.modalities }; delete modalities[section]
         onChange({ ...catalog, modalities, layout: { order: catalog.layout.order.filter((v) => v !== section) } })
-      }}><Trash2 /> Remove section</Button>
+      }}><icon.trash2 /> Remove section</Button>
     </div>
   </div>
   const effective = effectiveCatalogEntry(modality, entryKey)
@@ -99,7 +99,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
       onChange({ ...catalog, modalities: { ...catalog.modalities, [section]: { ...modality,
         categories: { ...modality.categories, [key]: { label: "New child", parent_key: entryKey } },
       } } })
-    }}><Plus /> Add child entry</Button>
+    }}><icon.plus /> Add child entry</Button>
     <label className="grid gap-1 type-label">Assay
       <select aria-label="Assay" className="paper-inset rounded-lg p-2 type-body" value={entry.asp_id || ""}
         onChange={(e) => updateCategory({ ...entry, asp_id: e.target.value, aspc_id: null, aspc_ids: {}, diagnosis_id: null, gene_lists: [], no_gene_list: [] })}>
@@ -150,7 +150,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
           <p className="type-meta text-muted-foreground">{gene.isgl_id || gene.key}</p>
           <PresentationFields value={gene} presets={presets} showAnalysis={false} onChange={(next) =>
             updateCategory({ ...entry, gene_lists: genes.map((v, i) => i === index ? { ...v, ...next } : v) })} />
-          <Button size="sm" variant="outline" onClick={() => updateCategory({ ...entry, gene_lists: genes.filter((_, i) => i !== index) })}><Trash2 /> Remove gene list</Button>
+          <Button size="sm" variant="outline" onClick={() => updateCategory({ ...entry, gene_lists: genes.filter((_, i) => i !== index) })}><icon.trash2 /> Remove gene list</Button>
         </div>
       </details>)}
     </details>
@@ -164,7 +164,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
     <Button variant="outline" disabled={Object.values(modality.categories).some((node) => node.parent_key === entryKey)} onClick={() => {
       const categories = { ...modality.categories }; delete categories[entryKey]
       onChange({ ...catalog, modalities: { ...catalog.modalities, [section]: { ...modality, categories } } })
-    }}><Trash2 /> Remove entry</Button>
+    }}><icon.trash2 /> Remove entry</Button>
     {Object.values(modality.categories).some((node) => node.parent_key === entryKey) && <p className="type-body-sm text-muted-foreground">Move or remove child entries before removing their parent.</p>}
   </div>
 }

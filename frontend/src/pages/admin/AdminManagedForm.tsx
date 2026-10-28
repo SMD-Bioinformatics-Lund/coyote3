@@ -5,7 +5,7 @@ import {
   optionsForDependency
 } from "@/pages/admin/resource-list"
 import type { AdminFormMode, AdminResourceSpec, FormSpec } from "@/pages/admin/resource-specs"
-import { Activity, Save } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { readFormPath, writeFormPath } from "./form-paths"
 import { FormControl } from "./FormControl"
@@ -100,7 +100,7 @@ export function AdminManagedForm({
               onClick={onSave}
               disabled={isSaving}
             >
-              {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSaving ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}
               {saveLabel}
             </Button>
           )}
@@ -145,7 +145,7 @@ export function AdminManagedForm({
       {bottomActions && mode !== "view" && <footer className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="button" onClick={onSave} disabled={isSaving}>
-          {isSaving ? <Activity className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saveLabel}
+          {isSaving ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}{saveLabel}
         </Button>
       </footer>}
     </section>

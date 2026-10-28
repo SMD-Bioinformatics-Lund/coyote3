@@ -59,7 +59,7 @@ test("authorized operator can inspect application controls through the proxy", a
 })
 
 for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as const) {
-  test(`${analyte} trial previews and downloads one temporary HTML/PDF pair`, async ({ page }) => {
+  test(`${analyte} modern previews download without issuing a report`, async ({ page }) => {
     test.skip(!sampleId, "A controlled synthetic sample is required.")
     await signIn(page)
     await page.goto(`samples/${encodeURIComponent(sampleId!)}`)
@@ -72,29 +72,30 @@ for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as co
     page.on("request", request => {
       if (request.url().includes("/reports/") && request.method() !== "GET") writes.push(request.url())
     })
-    await page.getByRole("button", { name: "Try new report", exact: true }).click()
-    const frame = page.frameLocator('iframe[title="New report HTML preview"]')
-    await expect(frame.getByText("TRY NEW REPORT · TEMPORARY PREVIEW")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Save report", exact: true })).toHaveCount(0)
+    await expect(page.getByRole("tab", { name: "Modern report", exact: true })).toHaveAttribute("aria-selected", "true")
+    const frame = page.frameLocator('iframe[title="Report preview"]')
+    await expect(frame.getByText("PREVIEW · UNSAVED REPORT")).toBeVisible()
+    await expect(frame.locator('.report-metadata:visible')).toHaveCount(1)
     const htmlDownload = page.waitForEvent("download")
     await page.getByRole("button", { name: "Download HTML", exact: true }).click()
     const html = await htmlDownload
-    expect(html.suggestedFilename()).toBe(`coyote3_${analyte}_report_trial.html`)
+    expect(html.suggestedFilename()).toMatch(new RegExp(`_${analyte}_preview\\.html$`))
     const htmlContent = await readFile((await html.path())!, "utf-8")
     expect(htmlContent).toContain('<style id="modern-report-style">')
     expect(htmlContent).toContain(sampleId!)
     await page.getByRole("tab", { name: "PDF preview", exact: true }).click()
-    await expect(page.getByTitle("New report PDF preview", { exact: true })).toHaveAttribute("src", /^blob:/)
+    await expect(page.getByTitle("Report PDF preview", { exact: true })).toHaveAttribute("src", /^blob:/)
     const pdfDownload = page.waitForEvent("download")
     await page.getByRole("button", { name: "Download PDF", exact: true }).click()
     const pdf = await pdfDownload
-    expect(pdf.suggestedFilename()).toBe(`coyote3_${analyte}_report_trial.pdf`)
+    expect(pdf.suggestedFilename()).toMatch(new RegExp(`_${analyte}_preview\\.pdf$`))
     expect((await readFile((await pdf.path())!)).subarray(0, 5).toString()).toBe("%PDF-")
     expect(writes).toEqual([])
     const savedAfter = await page.request.get(libraryPath)
     expect(savedAfter.status()).toBe(savedBefore.status())
     expect(await savedAfter.json()).toEqual(await savedBefore.json())
-    await page.getByRole("button", { name: "Current report", exact: true }).click()
+    await page.getByRole("tab", { name: "Legacy format", exact: true }).click()
+    await expect(page.getByRole("heading", { name: "Legacy report preview" })).toBeVisible()
     await expect(page.getByRole("region", { name: "Rendered report preview" })).toBeVisible()
   })
 }

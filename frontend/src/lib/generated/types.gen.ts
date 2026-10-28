@@ -1524,6 +1524,22 @@ export type AuthLoginEnvelope = {
 };
 
 /**
+ * BiomarkerAssessmentRequest
+ *
+ * Assign a manual assessment using the last observed assessment revision.
+ */
+export type BiomarkerAssessmentRequest = {
+    /**
+     * Expected Revision
+     */
+    expected_revision: number;
+    /**
+     * Value
+     */
+    value: 'HIGH' | 'MODERATE' | 'LOW' | null;
+};
+
+/**
  * Body_enqueue_ingest_sample_bundle_upload_internal_api_v1_internal_ingest_sample_bundle_upload_async_post
  */
 export type BodyEnqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost = {
@@ -4212,6 +4228,24 @@ export type DiagnosisUpdate = {
      * Is Active
      */
     is_active?: boolean;
+};
+
+/**
+ * DnaBiomarkersPayload
+ *
+ * Enabled measurements and their saved manual assessments for a DNA sample.
+ */
+export type DnaBiomarkersPayload = {
+    /**
+     * Analysis Types
+     */
+    analysis_types: Array<string>;
+    /**
+     * Biomarkers
+     */
+    biomarkers: Array<{
+        [key: string]: unknown;
+    }>;
 };
 
 /**
@@ -8595,6 +8629,10 @@ export type ReportSaveRequest = {
      * Preview Fingerprint
      */
     preview_fingerprint: string;
+    /**
+     * Report Format
+     */
+    report_format?: 'modern' | 'legacy';
 };
 
 /**
@@ -20879,6 +20917,126 @@ export type Responses_previewSampleAspcApiV1SamplesSampleIdAspcPreviewGet = {
 
 export type Response_previewSampleAspcApiV1SamplesSampleIdAspcPreviewGet = Responses_previewSampleAspcApiV1SamplesSampleIdAspcPreviewGet[keyof Responses_previewSampleAspcApiV1SamplesSampleIdAspcPreviewGet];
 
+export type Request_reviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/samples/{sample_id}/biomarkers';
+};
+
+export type ReviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ReviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGetError = ReviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGetErrors[keyof ReviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGetErrors];
+
+export type Responses_reviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGet = {
+    /**
+     * Successful Response
+     */
+    200: DnaBiomarkersPayload;
+};
+
+export type Response_reviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGet = Responses_reviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGet[keyof Responses_reviewDnaBiomarkersApiV1SamplesSampleIdBiomarkersGet];
+
+export type Request_assessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatch = {
+    body: BiomarkerAssessmentRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+        /**
+         * Record Id
+         */
+        record_id: string;
+        /**
+         * Method
+         */
+        method: string;
+    };
+    query?: never;
+    url: '/api/v1/samples/{sample_id}/biomarkers/{record_id}/assessments/{method}';
+};
+
+export type AssessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatchErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type AssessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatchError = AssessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatchErrors[keyof AssessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatchErrors];
+
+export type Responses_assessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatch = {
+    /**
+     * Successful Response
+     */
+    200: DnaBiomarkersPayload;
+};
+
+export type Response_assessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatch = Responses_assessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatch[keyof Responses_assessDnaBiomarkerApiV1SamplesSampleIdBiomarkersRecordIdAssessmentsMethodPatch];
+
 export type Request_removeClassifiedResourceChangeApiV1SamplesSampleIdClassificationsDelete = {
     /**
      * Payload
@@ -24030,6 +24188,10 @@ export type Request_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet
          * Save
          */
         save?: boolean;
+        /**
+         * Format
+         */
+        format?: 'modern' | 'legacy';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview';
 };
@@ -24095,6 +24257,10 @@ export type Request_previewReportPdfApiV1SamplesSampleIdReportsReportTypePreview
          * Include Snapshot
          */
         include_snapshot?: boolean;
+        /**
+         * Format
+         */
+        format?: 'modern' | 'legacy';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf';
 };

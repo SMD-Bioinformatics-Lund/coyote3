@@ -30,7 +30,7 @@ import {
   type SampleListLayout,
 } from "@/lib/user-settings"
 import { useQuery } from "@tanstack/react-query"
-import { Dna } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { DEFAULT_LIVE_SORTING, DEFAULT_REPORTED_SORTING, positivePage, resetSamplePagination, type SampleTab } from "./sample-list-presentation"
@@ -187,7 +187,7 @@ export function Samples() {
       getRowClassName={() => "group"}
       renderToolbar={() => rows.length === 0 ? (
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-          <Dna className="h-4 w-4 text-muted-foreground/50" />
+          <icon.dna className="h-4 w-4 text-muted-foreground/50" />
           No samples found.
         </div>
       ) : null}

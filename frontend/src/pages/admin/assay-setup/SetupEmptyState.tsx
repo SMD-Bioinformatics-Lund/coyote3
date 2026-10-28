@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react"
+import { type LucideIcon } from "@/lib/assets"
 
 export function SetupEmptyState({ icon: Icon, title, description }: {
   icon: LucideIcon

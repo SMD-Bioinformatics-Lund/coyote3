@@ -1,4 +1,4 @@
-import { Flame } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { clinicalBadgeClassName, TableBadge } from "@/components/ui/table-badge"
@@ -68,7 +68,7 @@ export function HotspotIndicator({
         aria-label="Known hotspot"
         className={cn(clinicalBadgeClassName, "badge-hotspot gap-1", className)}
       >
-        <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+        <icon.flame className="h-3.5 w-3.5" aria-hidden="true" />
         {showLabel ? <span>Hotspot</span> : null}
       </TableBadge>
     </AppTooltip>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Download, ExternalLink, FileText, LoaderCircle, RefreshCw } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
 import { downloadBlob } from "@/lib/browser-download"
@@ -34,16 +34,16 @@ export function ReportPdfFrame({ blob, title, filename }: {
 
   return <div className="report-pdf-viewer">
     <div className="report-viewer-toolbar">
-      <span className="report-viewer-label type-body-sm"><FileText className="size-4" aria-hidden="true" />PDF document</span>
+      <span className="report-viewer-label type-body-sm"><icon.fileText className="size-4" aria-hidden="true" />PDF document</span>
       <div className="report-viewer-actions">
         <Button variant="ghost" size="icon" aria-label="Reload PDF viewer" title="Reload PDF viewer" onClick={() => setGeneration(value => value + 1)}>
-          <RefreshCw className="size-4" aria-hidden="true" />
+          <icon.refreshCw className="size-4" aria-hidden="true" />
         </Button>
         {url && <a className={buttonVariants({ variant: "outline" })} href={url} target="_blank" rel="noopener noreferrer">
-          <ExternalLink className="size-4" aria-hidden="true" />Open PDF
+          <icon.externalLink className="size-4" aria-hidden="true" />Open PDF
         </a>}
         <Button variant="outline" onClick={() => downloadBlob(blob, filename)}>
-          <Download className="size-4" aria-hidden="true" />Download this PDF
+          <icon.download className="size-4" aria-hidden="true" />Download this PDF
         </Button>
       </div>
     </div>
@@ -52,7 +52,7 @@ export function ReportPdfFrame({ blob, title, filename }: {
     </p>}
     {supported && <>
       {loading && <p role="status" aria-live="polite" className="flex items-center gap-2 type-body-sm text-muted-foreground">
-        <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />Loading PDF viewer
+        <icon.loaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />Loading PDF viewer
       </p>}
       {url && <iframe key={url} title={title} src={url}
         onLoad={() => { setLoading(false); setFailed(false) }} onError={() => { setLoading(false); setFailed(true) }}

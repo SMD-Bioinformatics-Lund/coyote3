@@ -1,6 +1,6 @@
 import { type ComponentType, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { ArrowLeft, Fingerprint } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageFrame } from "@/components/layout/PageFrame"
 import { ExpandableText } from "@/components/detail/ExpandableText"
@@ -24,7 +24,7 @@ export function FindingError({
       <h2 className="mb-4 text-2xl font-bold">{title}</h2>
       <p>{message}</p>
       <Link to={backTo} className="link-text mt-4 inline-flex items-center">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sample
+        <appIcon.arrowLeft className="mr-2 h-4 w-4" /> Back to Sample
       </Link>
     </div>
   )
@@ -75,7 +75,7 @@ export function DetailHero({
           "
           aria-label="Back to samples"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <appIcon.arrowLeft className="h-4 w-4" />
         </Link>
 
         <div className="min-w-0 flex-1">
@@ -168,7 +168,7 @@ export function FindingDetailHero({
           className="inline-flex h-8 w-8 shrink-0 self-start items-center justify-center rounded-full border border-border bg-card text-muted-foreground interaction-transition hover:bg-surface-hover hover:text-foreground"
           aria-label="Back to findings"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <appIcon.arrowLeft className="h-4 w-4" />
         </Link>
 
         <div className="min-w-0 flex-1">
@@ -303,7 +303,7 @@ export function FindingIdentityCard({
       title={(
         <span className="inline-flex items-center gap-2">
           <span className="detail-identity-icon" aria-hidden="true">
-            <Fingerprint className="h-4 w-4" />
+            <appIcon.fingerprint className="h-4 w-4" />
           </span>
           {title}
         </span>

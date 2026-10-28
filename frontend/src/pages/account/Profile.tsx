@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, BadgeCheck, Dna, KeyRound, Mail, ShieldCheck, User } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -86,7 +86,7 @@ export function Profile() {
             <section aria-label="Account details" className="account-card account-identity overflow-hidden rounded-2xl">
               <div className="flex items-start gap-3 p-4 sm:p-5">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <User className="h-6 w-6" aria-hidden="true" />
+                  <appIcon.user className="h-6 w-6" aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="type-card-title break-words text-foreground">
@@ -99,7 +99,7 @@ export function Profile() {
                     </span>
                     {user.email && (
                       <a className="link-text inline-flex min-w-0 items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`mailto:${user.email}`}>
-                        <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <appIcon.mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span className="break-all">{user.email}</span>
                       </a>
                     )}
@@ -156,9 +156,9 @@ export function Profile() {
               />
             </section>
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
-              <ScopeCard title="Profiles" icon={BadgeCheck} values={environments} empty="No profile scope" />
-              <ScopeCard title="Assays" icon={Dna} values={assays} empty="No assay scope" />
-              <ScopeCard title="Assay groups" icon={ShieldCheck} values={assayGroups} empty="No assay group scope" />
+              <ScopeCard title="Profiles" icon={appIcon.badgeCheck} values={environments} empty="No profile scope" />
+              <ScopeCard title="Assays" icon={appIcon.dna} values={assays} empty="No assay scope" />
+              <ScopeCard title="Assay groups" icon={appIcon.shieldCheck} values={assayGroups} empty="No assay group scope" />
             </div>
             <section className="account-card mt-6 rounded-2xl p-5 sm:p-6">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Effective permissions</h3>
@@ -178,7 +178,7 @@ export function Profile() {
 
           <section className="account-card rounded-2xl p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary" />
+              <appIcon.keyRound className="h-5 w-5 text-primary" />
               <h2 className="type-card-title">Password & security</h2>
             </div>
             <div className="space-y-3">
@@ -215,7 +215,7 @@ export function Profile() {
                 disabled={!canChangePassword || !currentPassword || !newPassword || changePassword.isPending}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
               >
-                {changePassword.isPending && <Activity className="h-4 w-4 animate-spin" />}
+                {changePassword.isPending && <appIcon.activity className="h-4 w-4 animate-spin" />}
                 Update password
               </button>
               {message && <p className="text-sm text-muted-foreground">{message}</p>}
@@ -234,7 +234,7 @@ function RoleChip({ role }: { role: string }) {
 function AuthChip({ value }: { value: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 type-meta font-medium text-foreground">
-      <KeyRound className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+      <appIcon.keyRound className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       {value === "local" ? "Local account" : value.toUpperCase()}
     </span>
   )

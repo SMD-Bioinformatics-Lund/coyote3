@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { Button } from "@/components/ui/button"
@@ -46,9 +46,9 @@ export function AssayDiagnosesPage() {
         {assays.error && <p role="alert" className="text-destructive">Unable to load assays.</p>}
         {assays.data && <div className="flex items-center gap-3 sm:col-span-2">
           <span className="type-body text-muted-foreground">{assays.data.pagination.total} assays</span>
-          <Button variant="outline" size="icon" aria-label="Previous assay page" title="Previous assay page" disabled={page === 1 || assays.isFetching} onClick={() => setPage(page - 1)}><ChevronLeft /></Button>
+          <Button variant="outline" size="icon" aria-label="Previous assay page" title="Previous assay page" disabled={page === 1 || assays.isFetching} onClick={() => setPage(page - 1)}><icon.chevronLeft /></Button>
           <span className="type-body">{page}</span>
-          <Button variant="outline" size="icon" aria-label="Next assay page" title="Next assay page" disabled={page * 30 >= assays.data.pagination.total || assays.isFetching} onClick={() => setPage(page + 1)}><ChevronRight /></Button>
+          <Button variant="outline" size="icon" aria-label="Next assay page" title="Next assay page" disabled={page * 30 >= assays.data.pagination.total || assays.isFetching} onClick={() => setPage(page + 1)}><icon.chevronRight /></Button>
         </div>}
       </section>
       {selected && <AssayDiagnoses key={selected} aspId={selected} canEdit={hasPermission(access.data, "assay.panel:edit")} />}

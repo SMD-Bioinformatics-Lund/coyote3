@@ -1,6 +1,6 @@
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
-import type { LucideIcon } from "lucide-react"
-import { BookOpen, Bug, Building2, Clock3, ExternalLink, LifeBuoy, Lightbulb, Mail, MapPin, MessageSquareWarning, Phone, Workflow } from "lucide-react"
+import { icon as appIcon, type LucideIcon } from "@/lib/assets"
+
 import type { ReactNode } from "react"
 import { humanLabel, isExternalHref, publicHref, type ContactChannel, type LinkLike, type StaticTone } from "./static-values"
 
@@ -14,13 +14,13 @@ export function ContactCard({ contact, tone }: { contact: ContactChannel; tone: 
       <div className="mt-3 space-y-1.5 type-body-sm">
         {people.map((person) => (
           <a key={person.email} className="static-contact-method link-text flex items-start gap-2 p-2 font-semibold" href={`mailto:${person.email}`}>
-            <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+            <appIcon.mail className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="min-w-0 break-words">{person.name ? `${person.name} (${person.email})` : person.email}</span>
           </a>
         ))}
         {contact.phone ? (
           <a className="static-contact-method link-text flex items-center gap-2 p-2 font-semibold" href={`tel:${contact.phone}`}>
-            <Phone className="h-4 w-4" />
+            <appIcon.phone className="h-4 w-4" />
             {contact.phone}
           </a>
         ) : null}
@@ -33,17 +33,17 @@ export function SupportCard({ support }: { support: Record<string, string> }) {
   if (!support.primary_email && !support.urgent_phone) return null
   return (
     <div className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="success">
-      <DetailHeading icon={LifeBuoy} title="Central support" />
+      <DetailHeading icon={appIcon.lifeBuoy} title="Central support" />
       <div className="mt-2 space-y-1.5 type-body-sm">
         {support.primary_email ? (
           <a className="static-contact-method link-text flex items-center gap-2 p-2 font-semibold" href={`mailto:${support.primary_email}`}>
-            <Mail className="h-4 w-4" />
+            <appIcon.mail className="h-4 w-4" />
             <span className="min-w-0 break-words">{support.primary_email}</span>
           </a>
         ) : null}
         {support.urgent_phone ? (
           <a className="static-contact-method link-text flex items-center gap-2 p-2 font-semibold" href={`tel:${support.urgent_phone}`}>
-            <Phone className="h-4 w-4" />
+            <appIcon.phone className="h-4 w-4" />
             {support.urgent_phone}
           </a>
         ) : null}
@@ -55,7 +55,7 @@ export function SupportCard({ support }: { support: Record<string, string> }) {
 export function OrganizationCard({ organization, fallbackName }: { organization: Record<string, string>; fallbackName: string }) {
   return (
     <section className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="primary">
-      <DetailHeading icon={Building2} title={fallbackName} />
+      <DetailHeading icon={appIcon.building2} title={fallbackName} />
       {organization.department ? <p className="type-label mt-2 uppercase text-muted-foreground">{organization.department}</p> : null}
       {organization.description ? <p className="type-body-sm mt-2 text-muted-foreground">{organization.description}</p> : null}
     </section>
@@ -68,7 +68,7 @@ export function HoursSummary({ hours }: { hours: Array<Record<string, string>> }
     <dl className="flex flex-wrap gap-2 lg:justify-end">
         {hours.map((item) => (
           <div key={`${item.label}-${item.value}`} className="static-info-card flex items-center gap-2 px-3 py-2">
-            <Clock3 className="size-4 shrink-0 text-primary" />
+            <appIcon.clock3 className="size-4 shrink-0 text-primary" />
             <div>
               <dt className="type-label text-muted-foreground">{item.label}</dt>
               <dd className="type-meta text-foreground">{item.value}</dd>
@@ -83,7 +83,7 @@ export function AddressCard({ organization }: { organization: Record<string, str
   if (!organization.address) return null
   return (
     <div className="static-info-card min-w-full flex-1 p-4 type-body-sm md:min-w-80 md:basis-96" data-static-tone="warning">
-      <DetailHeading icon={MapPin} title="Address" />
+      <DetailHeading icon={appIcon.mapPin} title="Address" />
       <p className="mt-2 whitespace-pre-line text-muted-foreground">{organization.address}</p>
     </div>
   )
@@ -93,7 +93,7 @@ export function UsefulLinksCard({ links }: { links: LinkLike[] }) {
   if (!links.length) return null
   return (
     <div className="static-info-card min-w-full flex-1 p-4 md:min-w-80 md:basis-96" data-static-tone="info">
-      <DetailHeading icon={ExternalLink} title="Useful links" />
+      <DetailHeading icon={appIcon.externalLink} title="Useful links" />
       <div className="mt-3 space-y-2">
         {links.map((link) => <ResourceLink key={`${link.label}-${link.url}`} link={link} embedded />)}
       </div>
@@ -103,12 +103,12 @@ export function UsefulLinksCard({ links }: { links: LinkLike[] }) {
 
 export function ResourceLink({ link, embedded = false }: { link: LinkLike; embedded?: boolean }) {
   const Icon =
-    link.icon === "bug" ? Bug :
-    link.icon === "feature" ? Lightbulb :
-    link.icon === "issue" ? MessageSquareWarning :
-    link.icon === "docs" ? BookOpen :
-    link.icon === "external" ? Workflow :
-    ExternalLink
+    link.icon === "bug" ? appIcon.bug :
+    link.icon === "feature" ? appIcon.lightbulb :
+    link.icon === "issue" ? appIcon.messageSquareWarning :
+    link.icon === "docs" ? appIcon.bookOpen :
+    link.icon === "external" ? appIcon.workflow :
+    appIcon.externalLink
   return (
     <a
       href={publicHref(link.url)}

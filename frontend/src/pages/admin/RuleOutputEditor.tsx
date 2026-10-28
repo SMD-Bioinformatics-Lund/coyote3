@@ -2,13 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
-import {
-  BookOpenCheck,
-  CirclePlus,
-  ListFilter,
-  Plus,
-  Trash2
-} from "lucide-react";
+import { icon } from "@/lib/assets"
 import type {
   FactDefinition,
   OutputNode
@@ -38,7 +32,7 @@ export function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; 
         <SearchInput aria-label="Search report values" placeholder="Search name, count, diagnosis, VAF…" value={search} onChange={event => setSearch(event.target.value)} />
         <div className="mt-2 max-h-64 space-y-3 overflow-auto">{[...new Set(facts.map(fact => fact.group))].map(group => {
           const matches = facts.filter(fact => fact.group === group && fact.kind !== "object_list" && `${fact.label} ${fact.path}`.toLowerCase().includes(search.toLowerCase()))
-          return matches.length ? <section key={group}><h4 className="type-label mb-1">{group}</h4><div className="flex flex-wrap gap-1">{matches.map(fact => <Button key={fact.path} type="button" variant="outline" size="sm" title={fact.path} onClick={() => insertFact(fact)}><Plus />{fact.label}</Button>)}</div></section> : null
+          return matches.length ? <section key={group}><h4 className="type-label mb-1">{group}</h4><div className="flex flex-wrap gap-1">{matches.map(fact => <Button key={fact.path} type="button" variant="outline" size="sm" title={fact.path} onClick={() => insertFact(fact)}><icon.plus />{fact.label}</Button>)}</div></section> : null
         })}</div>
       </details>
       {nodes.map((node, index) => (
@@ -52,17 +46,17 @@ export function OutputEditor({ nodes, facts, onChange }: { nodes: OutputNode[]; 
             {node.type === "renderer" && <select className="paper-inset w-full rounded-lg p-2 text-sm" value={node.name} onChange={(event) => replace(index, { type: "renderer", name: event.target.value as typeof node.name })}><option value="dna_report_intro">DNA analysis introduction</option><option value="tier_summary">Tiered variant summary</option><option value="fusion_summary">Fusion summary</option></select>}
             {node.type === "paragraph_break" && <p className="py-2 text-xs font-medium text-muted-foreground">Paragraph break</p>}
           </div>
-          <div className="flex flex-col gap-1"><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} up`} disabled={index === 0} onClick={() => { const next = [...nodes]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; onChange(next) }}>↑</Button><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} down`} disabled={index === nodes.length - 1} onClick={() => { const next = [...nodes]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; onChange(next) }}>↓</Button><Button type="button" variant="ghost" size="icon-sm" title="Remove output part" disabled={nodes.length === 1} onClick={() => onChange(nodes.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></Button></div>
+          <div className="flex flex-col gap-1"><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} up`} disabled={index === 0} onClick={() => { const next = [...nodes]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; onChange(next) }}>↑</Button><Button type="button" variant="ghost" size="sm" aria-label={`Move output part ${index + 1} down`} disabled={index === nodes.length - 1} onClick={() => { const next = [...nodes]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; onChange(next) }}>↓</Button><Button type="button" variant="ghost" size="icon-sm" title="Remove output part" disabled={nodes.length === 1} onClick={() => onChange(nodes.filter((_, itemIndex) => itemIndex !== index))}><icon.trash2 /></Button></div>
         </div>
       ))}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "text", value: "New report text" }])}><Plus /> Text</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!scalarFacts.length} onClick={() => onChange([...nodes, { type: "fact", path: scalarFacts[0]?.path || "finding.gene", formatter: "text", missing: "error" }])}><CirclePlus /> Value</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!listFacts.length} onClick={() => onChange([...nodes, { type: "list", path: listFacts[0]?.path || "finding.genes", conjunction: "and", formatter: "text", missing: "error" }])}><ListFilter /> List</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "number", path: numberFacts[0]?.path || "aggregates.finding_count", precision: 0, unit: "", missing: "error" }])}><CirclePlus /> Number</Button>
-        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "message", count_path: numberFacts[0]?.path || "aggregates.finding_count", one: "One finding", other: "Multiple findings" }])}><CirclePlus /> Singular / plural</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "paragraph_break" }])}><BookOpenCheck /> Paragraph</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "renderer", name: "tier_summary" }])}><ListFilter /> Structured summary</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "text", value: "New report text" }])}><icon.plus /> Text</Button>
+        <Button type="button" variant="outline" size="sm" disabled={!scalarFacts.length} onClick={() => onChange([...nodes, { type: "fact", path: scalarFacts[0]?.path || "finding.gene", formatter: "text", missing: "error" }])}><icon.circlePlus /> Value</Button>
+        <Button type="button" variant="outline" size="sm" disabled={!listFacts.length} onClick={() => onChange([...nodes, { type: "list", path: listFacts[0]?.path || "finding.genes", conjunction: "and", formatter: "text", missing: "error" }])}><icon.listFilter /> List</Button>
+        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "number", path: numberFacts[0]?.path || "aggregates.finding_count", precision: 0, unit: "", missing: "error" }])}><icon.circlePlus /> Number</Button>
+        <Button type="button" variant="outline" size="sm" disabled={!numberFacts.length} onClick={() => onChange([...nodes, { type: "message", count_path: numberFacts[0]?.path || "aggregates.finding_count", one: "One finding", other: "Multiple findings" }])}><icon.circlePlus /> Singular / plural</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "paragraph_break" }])}><icon.bookOpenCheck /> Paragraph</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...nodes, { type: "renderer", name: "tier_summary" }])}><icon.listFilter /> Structured summary</Button>
       </div>
     </div>
   )

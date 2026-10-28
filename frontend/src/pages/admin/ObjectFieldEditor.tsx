@@ -1,7 +1,7 @@
 import {
   parseCellValue
 } from "@/pages/admin/resource-list"
-import { X } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 
 export function ObjectFieldEditor({
@@ -54,7 +54,7 @@ export function ObjectFieldEditor({
             className="rounded-md border border-border p-1.5 text-destructive hover:bg-destructive/10 disabled:opacity-50"
             title="Remove entry"
           >
-            <X className="h-3.5 w-3.5" />
+            <icon.x className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}

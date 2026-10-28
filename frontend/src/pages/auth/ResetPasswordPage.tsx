@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { FormEvent, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { AuthShell } from "./PasswordAuthShell"
@@ -62,12 +62,12 @@ export function ResetPassword() {
           <Input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required disabled={loading} />
         </div>
         <Button type="submit" className="h-11 w-full" disabled={loading || !token || !newPassword || !confirmPassword}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {loading && <icon.loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save password
         </Button>
       </form>
       <Link to="/login" className="link-text mt-5 inline-flex items-center gap-2 text-sm font-semibold">
-        <ArrowLeft className="h-4 w-4" />
+        <icon.arrowLeft className="h-4 w-4" />
         Back to sign in
       </Link>
     </AuthShell>

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Edit, Plus, Save, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { DataTable } from "@/components/data-table/DataTable"
 import { TableBadge } from "@/components/ui/table-badge"
@@ -91,7 +91,7 @@ export function DiagnosisDefinitionsPage() {
         searchPlaceholder="Search diagnosis definitions"
         searchValue={search}
         onSearchChange={setSearch}
-        renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><Plus className="h-4 w-4" />Create diagnosis</Button>}
+        renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><icon.plus className="h-4 w-4" />Create diagnosis</Button>}
         columns={[
           { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.diagnosis_id}</span></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
@@ -106,7 +106,7 @@ export function DiagnosisDefinitionsPage() {
           { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
           { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
           { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
-          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && !row.system_installed && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><Edit className="h-4 w-4" /></Button> },
+          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && !row.system_installed && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><icon.edit className="h-4 w-4" /></Button> },
         ]}
       />}
       {canEdit && editing && <form onSubmit={(event) => { event.preventDefault(); if (documentEditor.owned && validId && values.display_name.trim()) mutation.mutate() }}><fieldset disabled={!documentEditor.owned} className="grid gap-4 border-t border-border py-4 md:grid-cols-2">
@@ -134,7 +134,7 @@ export function DiagnosisDefinitionsPage() {
           })}</div>
         </fieldset>
         {mutation.error && <p role="alert" className="text-destructive md:col-span-2">{mutation.error.message}</p>}
-        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><Save className="h-4 w-4" />Save diagnosis</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><X className="h-4 w-4" />Cancel</Button></div>
+        <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><icon.save className="h-4 w-4" />Save diagnosis</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><icon.x className="h-4 w-4" />Cancel</Button></div>
       </fieldset></form>}
     </>}
     </section>

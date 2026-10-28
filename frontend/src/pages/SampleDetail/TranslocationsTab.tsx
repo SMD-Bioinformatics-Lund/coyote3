@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
-import { AlertTriangle } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable";
 import { DetailNavigationButton } from "@/components/data-table/DetailNavigationButton";
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge";
@@ -86,7 +86,7 @@ export function TranslocationsTab({
   if (error)
     return (
       <div className="text-destructive p-4 flex gap-2">
-        <AlertTriangle /> Error loading Translocations
+        <icon.alertTriangle /> Error loading Translocations
       </div>
     );
 

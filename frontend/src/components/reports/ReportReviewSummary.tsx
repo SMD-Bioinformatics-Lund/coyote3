@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { ReportFindings } from "./ReportFindings"
 import { REPORT_SNAPSHOT_SECTIONS, isCompactReportBiomarker, reportSnapshotAnalysisType,
   type ReportSnapshotRow, type ReportType } from "./report-snapshot"
@@ -52,7 +52,7 @@ export function ReportReviewSummary({ reportType, snapshotRows, snapshotCount, i
               <summary className="interaction-transition flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                 <span className="font-semibold type-body-sm text-foreground">{section.label}</span>
                 <span className="ml-auto rounded-md border border-border bg-muted/50 px-1.5 py-0.5 type-meta text-muted-foreground">{section.rows.length}</span>
-                <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open/report-section:rotate-180" aria-hidden="true" />
+                <icon.chevronDown className="size-3.5 text-muted-foreground transition-transform group-open/report-section:rotate-180" aria-hidden="true" />
               </summary>
               <ReportFindings
                 analysisType={section.type}

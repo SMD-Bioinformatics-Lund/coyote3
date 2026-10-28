@@ -3,7 +3,7 @@ import { AppTooltip } from "@/components/ui/app-tooltip"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useMutation } from "@tanstack/react-query"
-import { RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState } from "react"
 import { coord, coverageNumber, metric, regionLength, type CoverageFeatureKind, type InspectedCoverageFeature } from "./coverage-presentation"
 
@@ -195,13 +195,13 @@ export function CoverageGeneView({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AppTooltip content="Reduce the genomic track scale.">
-            <button aria-label="Zoom out" className="soft-icon-button" onClick={() => setZoom((value) => Math.max(0.5, value / 1.25))}><ZoomOut className="h-4 w-4" /></button>
+            <button aria-label="Zoom out" className="soft-icon-button" onClick={() => setZoom((value) => Math.max(0.5, value / 1.25))}><icon.zoomOut className="h-4 w-4" /></button>
           </AppTooltip>
           <AppTooltip content="Increase the genomic track scale and use the horizontal scrollbar to inspect the complete interval.">
-            <button aria-label="Zoom in" className="soft-icon-button" onClick={() => setZoom((value) => Math.min(8, value * 1.25))}><ZoomIn className="h-4 w-4" /></button>
+            <button aria-label="Zoom in" className="soft-icon-button" onClick={() => setZoom((value) => Math.min(8, value * 1.25))}><icon.zoomIn className="h-4 w-4" /></button>
           </AppTooltip>
           <AppTooltip content="Return the genomic track to its original scale.">
-            <button aria-label="Reset zoom" className="soft-icon-button" onClick={() => setZoom(1)}><RotateCcw className="h-4 w-4" /></button>
+            <button aria-label="Reset zoom" className="soft-icon-button" onClick={() => setZoom(1)}><icon.rotateCcw className="h-4 w-4" /></button>
           </AppTooltip>
           <span className="type-badge rounded-md border border-border bg-background px-2 py-1">{Math.round(zoom * 100)}%</span>
           <button

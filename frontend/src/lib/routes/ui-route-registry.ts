@@ -119,6 +119,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /samples/:id/fusions",
       "GET /samples/:id/translocations",
       "GET /samples/:id/coverage",
+      "GET /samples/:id/biomarkers",
+      "PATCH /samples/:id/biomarkers/:record_id/assessments/:method",
       "POST /samples/:id/comments",
       "PUT /samples/:id/filters",
       "GET /samples/:id/aspc/preview",

@@ -9,7 +9,7 @@ import {
   type AdminFormMode,
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
-import { CopyPlus, Download, Edit, LockKeyhole, Upload } from "lucide-react"
+import { icon } from "@/lib/assets"
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 import type { AdminEditorState } from "./useAdminEditor"
@@ -23,7 +23,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
           to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
         >
-          <Edit className="h-4 w-4" />
+          <icon.edit className="h-4 w-4" />
           Edit
         </Link>
       )}
@@ -42,7 +42,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
             variant="outline"
             onClick={() => importInputRef.current?.click()}
           >
-            <Upload className="h-4 w-4" />
+            <icon.upload className="h-4 w-4" />
             Import JSON
           </Button>
         </>
@@ -53,7 +53,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
           onClick={() => downloadJson(`${spec.key}_${String(id)}`, submitPayload(form, values, "create"))}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
         >
-          <Download className="h-4 w-4" />
+          <icon.download className="h-4 w-4" />
           Export JSON
         </button>
       )}
@@ -63,7 +63,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
           state={{ copiedDocument: doc }}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
         >
-          <CopyPlus className="h-4 w-4" />
+          <icon.copyPlus className="h-4 w-4" />
           Copy as new
         </Link>
       )}
@@ -79,7 +79,7 @@ export function SystemRecordNotice({ state }: { state: AdminEditorState }) {
   return <>
     {systemPermission && (
       <section className="surface-panel flex items-start gap-3 p-3">
-        <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <icon.lockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
           <h2 className="text-sm font-semibold">System-installed record</h2>
           <p className="text-xs text-muted-foreground">

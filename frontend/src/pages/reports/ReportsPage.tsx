@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Download, FileText } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 
 import { DataTable } from "@/components/data-table/DataTable"
@@ -73,7 +73,7 @@ export function ReportsPage() {
       cell: ({ row }) => (
         <div className="flex min-w-0 items-center gap-2">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <FileText className="size-4" />
+            <icon.fileText className="size-4" />
           </span>
           <div className="min-w-0">
             <Link
@@ -164,7 +164,7 @@ export function ReportsPage() {
             title="Download saved report"
             aria-label={`Download report ${row.original.report_id}`}
           >
-            <Download className="h-4 w-4" />
+            <icon.download className="h-4 w-4" />
           </a>
         </div>
       ),
@@ -178,7 +178,7 @@ export function ReportsPage() {
       description="Review finalized clinical reports and the immutable findings recorded with each report."
       actions={
         <Link to="/samples" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold">
-          <FileText className="h-4 w-4" />
+          <icon.fileText className="h-4 w-4" />
           Open samples
         </Link>
       }

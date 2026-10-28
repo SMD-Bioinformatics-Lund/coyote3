@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Download } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -102,11 +102,11 @@ export function SavedReportPage() {
             href={apiPath(`${reportPath}/download`)}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
           >
-            <Download className="h-4 w-4" />
+            <icon.download className="h-4 w-4" />
             Download
           </a>
           <Link to="/reports" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">
-            <ArrowLeft className="h-4 w-4" />
+            <icon.arrowLeft className="h-4 w-4" />
             All reports
           </Link>
         </>

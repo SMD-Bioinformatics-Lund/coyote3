@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { ExternalLink, Info } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 import { isOncoKbGene, type OncoKbGeneRecord } from "@/lib/oncokb-ui"
 import { oncokbGeneUrl } from "@/lib/external-links"
@@ -83,7 +83,7 @@ export function OncoKbGeneBadge({
       aria-label={`${gene} is an OncoKB gene`}
     >
       OncoKB
-      <ExternalLink className="h-2.5 w-2.5" />
+      <icon.externalLink className="h-2.5 w-2.5" />
     </a>
   )
 }
@@ -142,7 +142,7 @@ export function GeneWithOncoKbBadge({
           title={symbolTitle}
           aria-label={symbolTitle}
         >
-          <Info className="h-3 w-3" />
+          <icon.info className="h-3 w-3" />
         </span>
       )}
       {showBadge && <OncoKbGeneBadge gene={currentGene || shownGene} record={record} />}

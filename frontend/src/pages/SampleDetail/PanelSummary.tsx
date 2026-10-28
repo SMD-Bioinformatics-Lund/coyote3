@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { icon } from "@/lib/assets"
 import { useState } from "react";
 import { normalizePanelEntries } from "./overview-data";
 
@@ -22,7 +22,7 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
             {entries.length ? `${entries.length} selected list${entries.length === 1 ? "" : "s"}` : emptyText}
           </p>
         </div>
-        {open ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+        {open ? <icon.chevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <icon.chevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
       </button>
 
       <div className="px-4 py-3 text-sm font-medium">

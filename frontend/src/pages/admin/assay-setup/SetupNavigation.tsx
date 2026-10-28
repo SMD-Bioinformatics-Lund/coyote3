@@ -1,13 +1,13 @@
-import { ClipboardCheck, Dna, FileCheck, Layers, ListTree, Settings2 } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 
 const steps = [
-  { name: "Assay", icon: Dna },
-  { name: "Diagnoses", icon: Layers },
-  { name: "Gene lists", icon: ListTree },
-  { name: "Reporting rules", icon: FileCheck },
-  { name: "Configurations", icon: Settings2 },
-  { name: "Review", icon: ClipboardCheck },
+  { name: "Assay", icon: appIcon.dna },
+  { name: "Diagnoses", icon: appIcon.layers },
+  { name: "Gene lists", icon: appIcon.listTree },
+  { name: "Reporting rules", icon: appIcon.fileCheck },
+  { name: "Configurations", icon: appIcon.settings2 },
+  { name: "Review", icon: appIcon.clipboardCheck },
 ]
 
 export function SetupNavigation({ step, isNew, pending, onChange }: {

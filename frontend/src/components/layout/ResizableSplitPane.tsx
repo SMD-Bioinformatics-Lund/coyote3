@@ -1,5 +1,5 @@
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react"
-import { GripVertical } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { cn } from "@/lib/utils"
 
@@ -118,7 +118,7 @@ export function ResizableSplitPane({
         onKeyDown={resizeWithKeyboard}
       >
         <span title="Drag to resize panes">
-          <GripVertical aria-hidden="true" />
+          <icon.gripVertical aria-hidden="true" />
         </span>
       </div>
       <div className="resizable-split-secondary min-w-0">{secondary}</div>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Ban, Bookmark, FileCheck2, ShieldCheck, XCircle, XSquare } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import { FindingResourceType } from "@/lib/finding-actions"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -109,7 +109,7 @@ export function VariantActionButtons({
         className={`${buttonBase} ${isFp ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
         title="Toggle False Positive"
       >
-        <XCircle className={iconClassName} />
+        <icon.xCircle className={iconClassName} />
         {!compact && "FP"}
       </button>}
       {supportsBlacklist && showsControl("blacklist") && (
@@ -121,7 +121,7 @@ export function VariantActionButtons({
               className={`${buttonBase} border-border bg-background hover:bg-fail/10 hover:text-fail`}
               title="Add to blacklist"
             >
-              <Ban className={iconClassName} />
+              <icon.ban className={iconClassName} />
               {!compact && "Add BL"}
             </button>
           )}
@@ -140,7 +140,7 @@ export function VariantActionButtons({
               className={`${buttonBase} ${isBlacklist ? 'border-validation/40 bg-validation/15 text-validation' : 'border-rna/35 bg-rna/10 text-rna hover:bg-rna/15'}`}
               title={isBlacklist ? "Override blacklist for this sample" : "Remove blacklist override"}
             >
-              <ShieldCheck className={iconClassName} />
+              <icon.shieldCheck className={iconClassName} />
               {!compact && (isBlacklist ? "Override BL" : "Clear BL Override")}
             </button>
           )}
@@ -159,7 +159,7 @@ export function VariantActionButtons({
               className={`${buttonBase} ${isBlacklisted ? 'border-fail/40 bg-fail/15 text-fail' : 'border-border bg-background hover:bg-fail/10 hover:text-fail'}`}
               title={isBlacklisted ? "Remove sample blacklist" : "Blacklist for this sample"}
             >
-              <Ban className={iconClassName} />
+              <icon.ban className={iconClassName} />
               {!compact && (isBlacklisted ? "Remove BL" : "Blacklist")}
             </button>
           )}
@@ -180,7 +180,7 @@ export function VariantActionButtons({
           className={`${buttonBase} ${isIrrelevant ? 'border-warn/40 bg-warn/15 text-warn' : 'border-border bg-background hover:bg-warn/10 hover:text-warn'}`}
         title="Toggle Irrelevant"
       >
-          <XSquare className={iconClassName} />
+          <icon.xSquare className={iconClassName} />
           {!compact && "Ignore"}
         </button>
       )}
@@ -204,9 +204,9 @@ export function VariantActionButtons({
           title={!interestingControlsReport ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
         >
           {!interestingControlsReport ? (
-            <AlertCircle className={iconClassName} />
+            <icon.alertCircle className={iconClassName} />
           ) : (
-            <FileCheck2 className={iconClassName} />
+            <icon.fileCheck2 className={iconClassName} />
           )}
           {(!compact || labeledCompactAction) && (!interestingControlsReport ? "Interesting" : isInteresting ? "Exclude" : "Report")}
         </button>
@@ -224,13 +224,13 @@ export function VariantActionButtons({
           className={`${buttonBase} ${isNoteworthy ? 'border-tier2/40 bg-tier2/15 text-tier2' : 'border-border bg-background hover:bg-tier2/10 hover:text-tier2'}`}
           title="Toggle Noteworthy"
         >
-          <Bookmark className={iconClassName} />
+          <icon.bookmark className={iconClassName} />
           {!compact && (isNoteworthy ? "Unnote" : "Note")}
         </button>
       )}
       {showsControl("blacklist") && variant.override_blacklist && (
         <span className={compact ? "inline-flex h-6 w-6 items-center justify-center rounded-md border border-rna/30 bg-rna/10 text-xs font-bold text-rna" : "inline-flex items-center gap-1 rounded-lg border border-rna/30 bg-rna/10 px-2.5 py-1.5 text-xs font-bold text-rna"}>
-          <ShieldCheck className={iconClassName} />
+          <icon.shieldCheck className={iconClassName} />
           {!compact && "Override"}
         </span>
       )}

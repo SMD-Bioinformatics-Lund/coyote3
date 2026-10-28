@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import { ChevronRight, Filter, RotateCcw, Save } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
@@ -168,7 +168,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-lg border border-border bg-background/55 p-2.5">
       <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-foreground">
-        <Filter className="h-3.5 w-3.5 text-primary" />
+        <icon.filter className="h-3.5 w-3.5 text-primary" />
         {title}
       </h4>
       <div className="space-y-2">{children}</div>
@@ -408,7 +408,7 @@ export function FiltersSidebar({
         </div>
         {!inline && (
           <button onClick={() => setIsCollapsed(true)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Collapse filters">
-            <ChevronRight className="h-4 w-4" />
+            <icon.chevronRight className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -556,14 +556,14 @@ export function FiltersSidebar({
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted disabled:opacity-50"
           title="Reset filters"
         >
-          {resetFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <RotateCcw className="h-4 w-4" />}
+          {resetFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <icon.rotateCcw className="h-4 w-4" />}
         </button>
         <button
           onClick={() => updateFilters.mutate(filters)}
           disabled={!canEdit || updateFilters.isPending || resetFilters.isPending}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
         >
-          {updateFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Save className="h-4 w-4" />}
+          {updateFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <icon.save className="h-4 w-4" />}
           Apply
         </button>
       </div>

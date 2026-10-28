@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Megaphone, Send } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -86,12 +86,12 @@ export function AdminNotificationBroadcastPage() {
       eyebrow="Admin"
       title="Broadcast Notifications"
       description="Publish application information, feature notices, maintenance messages, warnings, or security notices to active accounts."
-      actions={<Button onClick={() => setConfirming(true)} disabled={!valid || mutation.isPending}><Send className="h-4 w-4" />Send</Button>}
+      actions={<Button onClick={() => setConfirming(true)} disabled={!valid || mutation.isPending}><icon.send className="h-4 w-4" />Send</Button>}
     >
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <section className="surface-panel space-y-4 p-4">
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-primary/10 p-2 text-primary"><Megaphone className="h-4 w-4" /></span>
+            <span className="rounded-lg bg-primary/10 p-2 text-primary"><icon.megaphone className="h-4 w-4" /></span>
             <div><h2 className="font-semibold">Message</h2><p className="text-sm text-muted-foreground">The title and message are retained in each recipient's notification inbox.</p></div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

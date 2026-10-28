@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Activity, ChevronDown, Dna, Layers, Network, Save, Trash2, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { sampleFilterSection } from "@/lib/sample-shape"
+import { appPath } from "@/lib/runtime-paths"
 
 function geneInputCount(value: string) {
   return value.split(/[,\\s]+/).map((item) => item.trim()).filter(Boolean).length
@@ -172,7 +173,6 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
       <div className="space-y-4">
         <div className="gene-settings-targets" role="group" aria-label="Gene list analysis">
           {options.map((option) => {
-            const Icon = option.value === "snv" ? Dna : option.value === "cnv" ? Layers : Network
             return <Button
               key={option.value}
               type="button"
@@ -181,7 +181,9 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
               onClick={() => setTarget(option.value)}
               className="gene-settings-target"
             >
-              <Icon className="size-4" aria-hidden="true" />
+              <img src={appPath(icon.dataStack.src)} alt="" aria-hidden="true"
+                className={`size-4 shrink-0 object-contain ${target === option.value
+                  ? "brightness-0 invert dark:invert-0" : "dark:invert"}`} />
               <span className="type-body font-semibold">{option.label}</span>
             </Button>
           })}
@@ -201,7 +203,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
               disabled={genelists.isLoading}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm disabled:opacity-50"
             >
-              <ChevronDown className="h-3.5 w-3.5" />
+              <icon.chevronDown className="h-3.5 w-3.5" />
               Choose lists
             </button>
           </div>
@@ -233,7 +235,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                     className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Close list picker"
                   >
-                    <X className="h-4 w-4" />
+                    <icon.x className="h-4 w-4" />
                   </button>
                 </div>
 
@@ -303,7 +305,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                     disabled={isPending}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm disabled:opacity-50"
                   >
-                    {saveLists.isPending ? <Activity className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    {saveLists.isPending ? <icon.activity className="h-3.5 w-3.5 animate-spin" /> : <icon.save className="h-3.5 w-3.5" />}
                     Apply lists
                   </button>
                 </div>
@@ -323,7 +325,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                 disabled={isPending}
                 className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/10 disabled:opacity-50"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <icon.trash2 className="h-3.5 w-3.5" />
                 Clear
               </button>
               <button
@@ -332,7 +334,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                 disabled={isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-50"
               >
-                {saveAdhoc.isPending ? <Activity className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {saveAdhoc.isPending ? <icon.activity className="h-3.5 w-3.5 animate-spin" /> : <icon.save className="h-3.5 w-3.5" />}
                 Save
               </button>
             </div>

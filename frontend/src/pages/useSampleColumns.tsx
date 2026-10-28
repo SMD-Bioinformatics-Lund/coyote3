@@ -7,7 +7,7 @@ import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
 import { sampleDetailPath } from "@/lib/sample-routing"
 import { sampleDiagnosis } from "@/lib/sample-shape"
 import type { ColumnDef } from "@tanstack/react-table"
-import { FileText } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 import { SampleDataStatus } from "./sample-data-status"
@@ -24,7 +24,7 @@ export function useSampleColumns() {
         return (
           <Link to={sampleDetailPath(sample)} className="link-text flex items-center gap-2 font-semibold">
             <div className="rounded-lg bg-primary/10 p-1.5 text-primary shadow-sm transition-colors duration-100 group-hover:bg-primary/15">
-              <FileText className="h-4 w-4" />
+              <icon.fileText className="h-4 w-4" />
             </div>
             {sample.name || sample.case_id}
           </Link>
@@ -122,7 +122,8 @@ export function useSampleColumns() {
               `${FILE_ANALYSIS_LABELS[key] || key} not available`),
           ].filter(Boolean).join("; ")
         },
-        cellClassName: "min-w-[220px]",
+        headerClassName: "w-px whitespace-nowrap",
+        cellClassName: "w-px whitespace-nowrap",
       },
     },
     {

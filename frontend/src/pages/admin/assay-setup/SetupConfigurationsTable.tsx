@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Edit, Plus, Trash2 } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,12 +34,12 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
           const matches = records.map((record, index) => ({ record, index })).filter(({ record }) => (record.diagnosis_id || "base") === scope && record.environment === environment)
           return <tr key={`${scope}::${environment}`}>
             <th scope="row" className="p-3 font-medium">{scope}</th><td className="p-3">{environment}</td>
-            <td className="p-3"><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : "border-warning/30 bg-warning/10"}>{matches.length ? <Check /> : <CircleAlert />}{matches.length ? "Configured" : "Missing"}</Badge></td>
+            <td className="p-3"><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : "border-warning/30 bg-warning/10"}>{matches.length ? <icon.check /> : <icon.circleAlert />}{matches.length ? "Configured" : "Missing"}</Badge></td>
             <td className="p-3">{matches.length ? matches.map(({ record, index }) => <div key={index} className="break-words font-medium">{String(record.display_name || record.name || record.aspc_id || `${scope} / ${environment}`)}</div>) : <span className="type-body-sm text-muted-foreground">Not saved yet</span>}</td>
             <td className="p-3"><div className="flex flex-wrap gap-2">{matches.length ? matches.map(({ index }) => <div key={index} className="flex gap-1">
-              <Button variant="outline" size="sm" disabled={!formAvailable || pending} onClick={() => onEdit(index)} aria-label={`${readonly ? "View" : "Edit"} ${scope} ${environment}`}><Edit />{readonly ? "View" : "Edit"}</Button>
-              {!readonly && <Button variant="ghost" size="icon" disabled={pending} aria-label={`Remove configuration ${scope} ${environment}`} onClick={() => onRemove(index)}><Trash2 /></Button>}
-            </div>) : !readonly && <Button variant="outline" size="sm" disabled={!formAvailable || pending} aria-label={`Add configuration ${scope} ${environment}`} onClick={() => onCreate(scope, environment)}><Plus />Add</Button>}</div></td>
+              <Button variant="outline" size="sm" disabled={!formAvailable || pending} onClick={() => onEdit(index)} aria-label={`${readonly ? "View" : "Edit"} ${scope} ${environment}`}><icon.edit />{readonly ? "View" : "Edit"}</Button>
+              {!readonly && <Button variant="ghost" size="icon" disabled={pending} aria-label={`Remove configuration ${scope} ${environment}`} onClick={() => onRemove(index)}><icon.trash2 /></Button>}
+            </div>) : !readonly && <Button variant="outline" size="sm" disabled={!formAvailable || pending} aria-label={`Add configuration ${scope} ${environment}`} onClick={() => onCreate(scope, environment)}><icon.plus />Add</Button>}</div></td>
           </tr>
         })}</tbody>
       </table>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type UIEvent } from "react"
-import { AlertCircle, Braces, CheckCircle2, RotateCcw, Save, WandSparkles } from "lucide-react"
+import { icon } from "@/lib/assets"
 
 import { validateJsonDocument } from "./json-document-validation"
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,7 @@ export function JsonDocumentEditor({
             title={message}
             role="alert"
           >
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <icon.alertCircle className="h-3.5 w-3.5 shrink-0" />
             <span className="shrink-0">Line {line}:{columns}</span>
             <span className="truncate">{message}</span>
           </div>
@@ -88,7 +88,7 @@ export function JsonDocumentEditor({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="rounded-lg bg-primary/10 p-2 text-primary">
-            <Braces className="h-5 w-5" />
+            <icon.braces className="h-5 w-5" />
           </span>
           <div>
             <h2 className="text-base font-semibold">Sample JSON document</h2>
@@ -100,11 +100,11 @@ export function JsonDocumentEditor({
         {!readOnly && (
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={formatDocument} disabled={!validation.valid || isSaving}>
-              <WandSparkles className="h-4 w-4" />
+              <icon.wandSparkles className="h-4 w-4" />
               Format JSON
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setSource(initialSource)} disabled={!isDirty || isSaving}>
-              <RotateCcw className="h-4 w-4" />
+              <icon.rotateCcw className="h-4 w-4" />
               Reset
             </Button>
           </div>
@@ -145,7 +145,7 @@ export function JsonDocumentEditor({
           <div className="min-w-0" aria-live="polite">
             {validation.valid ? (
               <p className="flex items-center gap-2 text-xs font-semibold text-success">
-                <CheckCircle2 className="h-4 w-4" />
+                <icon.checkCircle2 className="h-4 w-4" />
                 Valid JSON object
               </p>
             ) : (
@@ -164,7 +164,7 @@ export function JsonDocumentEditor({
                 onClick={() => validation.valid && onSave(validation.document)}
                 disabled={!validation.valid || !isDirty || isSaving}
               >
-                <Save className="h-4 w-4" />
+                <icon.save className="h-4 w-4" />
                 {isSaving ? "Saving" : "Save sample"}
               </Button>
             </div>

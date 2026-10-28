@@ -1,4 +1,4 @@
-import { Check, TriangleAlert, X } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 
 export type SampleDataSegment = {
@@ -18,7 +18,7 @@ export function SampleDataStatus({ segments }: { segments: SampleDataSegment[] }
   const availableCount = rows.filter((row) => row.available).length
   const summary = `${availableCount} of ${rows.length} data types available`
   const complete = availableCount === rows.length
-  const StatusIcon = complete ? Check : availableCount === 0 ? X : TriangleAlert
+  const StatusIcon = complete ? icon.check : availableCount === 0 ? icon.x : icon.triangleAlert
   const statusClass = complete ? "matte-badge-pass"
     : availableCount === 0 ? "matte-badge-fail" : "matte-badge-warn"
   const description = rows.map((row) =>
@@ -37,13 +37,13 @@ export function SampleDataStatus({ segments }: { segments: SampleDataSegment[] }
                 {row.available ? (
                   row.value !== undefined ? <span className="text-foreground">{row.value}</span> : (
                     <>
-                      <Check className="h-3 w-3 text-pass" aria-hidden="true" />
+                      <icon.check className="h-3 w-3 text-pass" aria-hidden="true" />
                       <span className="sr-only">Available</span>
                     </>
                   )
                 ) : (
                   <>
-                    <X className="h-3 w-3 text-fail" aria-hidden="true" />
+                    <icon.x className="h-3 w-3 text-fail" aria-hidden="true" />
                     <span className="sr-only">Not available</span>
                   </>
                 )}

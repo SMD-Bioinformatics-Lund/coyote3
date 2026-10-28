@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock3, FileCode2, FileText } from "lucide-react"
+import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
@@ -26,19 +26,19 @@ export function ReportDocumentPreview({ reportType, sampleName, hasRenderedHtml,
           <h3 className="type-card-title text-foreground">{reportType.toUpperCase()} report</h3>
           <p className="mt-1 break-words type-body-sm text-muted-foreground">{sampleName}</p>
         </div>
-        <span className="report-preview-state type-meta"><Clock3 className="size-3.5" aria-hidden="true" />Unsaved preview</span>
+        <span className="report-preview-state type-meta"><icon.clock3 className="size-3.5" aria-hidden="true" />Unsaved preview</span>
       </div>
       {hasRenderedHtml && <div className="report-format-toolbar">
         <span className="type-meta text-muted-foreground">Document view</span>
         <SegmentedControl className="report-format-tabs type-body" ariaLabel="Report preview format" value={format} onValueChange={onFormatChange}
           items={[
-            { value: "html", label: <><FileCode2 className="size-4" aria-hidden="true" />HTML preview</> },
-            { value: "pdf", label: <><FileText className="size-4" aria-hidden="true" />PDF preview</> },
+            { value: "html", label: <><icon.fileCode2 className="size-4" aria-hidden="true" />HTML preview</> },
+            { value: "pdf", label: <><icon.fileText className="size-4" aria-hidden="true" />PDF preview</> },
           ]} />
       </div>}
       {!hasRenderedHtml && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/35 bg-warn/10 px-3 py-2 text-warn">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <icon.alertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <p className="type-body-sm">{templateStatusMessage}</p>
         </div>
       )}

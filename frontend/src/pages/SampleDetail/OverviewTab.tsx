@@ -11,7 +11,7 @@ import {
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGeneSettings"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, ChartNoAxesCombined, Database, Dna, Layers, Network, UserRound, Workflow } from "lucide-react"
+import { icon as appIcon } from "@/lib/assets"
 import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { Link } from "react-router-dom"
 import { displayValue, fileItems, formatFileSize, formatPurityPercentage, overviewFilterGroups, reportItems } from "./overview-data"
@@ -46,7 +46,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   const databaseVersions = Object.entries(sample?.database_versions || {})
     .filter(([, value]) => value !== null && value !== undefined && value !== "")
   const metadataGroups = [
-    { title: "Analysis", icon: Dna, fields: [
+    { title: "Analysis", icon: appIcon.dna, fields: [
       { label: "Type", value: sample?.asp_category || sample?.asp_family ? <>
         {sample?.asp_category && <StatusPill tone="blue">{String(sample.asp_category).toUpperCase()}</StatusPill>}
         {sample?.asp_family && <StatusPill tone="blue">{sample.asp_family}</StatusPill>}
@@ -58,13 +58,13 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       { label: "Reference", value: sample?.genome_build ? <StatusPill>{`GRCh${sample.genome_build}`}</StatusPill> : null },
       { label: "Environment", value: sample?.environment ? <StatusPill tone="yellow">{sample.environment}</StatusPill> : null },
     ] },
-    { title: "Workflow", icon: Workflow, fields: [
+    { title: "Workflow", icon: appIcon.workflow, fields: [
       { label: "Assay", value: sample?.asp_id ? <StatusPill tone="blue">{sample.asp_id}</StatusPill> : null },
       { label: "Configuration", value: context?.assay_config?.aspc_id ? <StatusPill tone="blue">{context.assay_config.aspc_id}{context.assay_config.version ? ` v${context.assay_config.version}` : ""}</StatusPill> : null },
       { label: "Pipeline", value: sample?.pipeline ? <StatusPill tone="blue">{sample.pipeline}{sample.pipeline_version ? ` v${sample.pipeline_version}` : ""}</StatusPill> : null },
       { label: "Reporting", value: sampleReported(sample) ? <StatusPill tone="blue">Reported</StatusPill> : null },
     ] },
-    { title: "Record history", icon: UserRound, fields: [
+    { title: "Record history", icon: appIcon.userRound, fields: [
       { label: "Created by", value: sample?.created_by || "Unknown" },
       { label: "Updated by", value: sample?.updated_by || "Unknown" },
     ] },
@@ -74,7 +74,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
     <div className="space-y-3">
       {resolution?.used_base_configuration && (
         <section className="glass-card flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+          <appIcon.alertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <div className="min-w-0">
             <strong className="text-warn">Base configuration in use.</strong>{" "}
             <span className="text-muted-foreground">
@@ -98,7 +98,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               </dl>
             </section>)}
           <section className="sample-meta-group" aria-label="Database versions">
-            <h3 className="sample-meta-group-title type-label"><Database className="size-3.5" aria-hidden="true" />Database versions</h3>
+            <h3 className="sample-meta-group-title type-label"><appIcon.database className="size-3.5" aria-hidden="true" />Database versions</h3>
             {databaseVersions.length ? <dl className="sample-meta-fields">
               {databaseVersions.map(([key, value]) => <div key={key}>
                 <dt className="type-meta">{key === "vep" ? "VEP" : key}</dt>
@@ -264,9 +264,9 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
         <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-full">
           <div className="configured-filter-grid">
             {filterGroups.length ? filterGroups.map((group) => {
-              const Icon = group.key === "cnv" ? Layers
-                : group.key === "coverage" ? ChartNoAxesCombined
-                : group.key.includes("snv") ? Dna : Network
+              const Icon = group.key === "cnv" ? appIcon.layers
+                : group.key === "coverage" ? appIcon.chartNoAxesCombined
+                : group.key.includes("snv") ? appIcon.dna : appIcon.network
               return <section key={group.key} aria-labelledby={`filter-group-${group.key}`}
                 data-fact-columns={group.rows.filter(([, value]) => !Array.isArray(value)).length > 4 ? 3 : 2}
                 className="content-item configured-filter-card">
