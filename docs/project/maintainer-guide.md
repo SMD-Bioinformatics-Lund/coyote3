@@ -29,6 +29,12 @@ explains where each responsibility belongs.
 
 ## Review checklist
 
+Review the contributor's [module checklists](contributing.md#module-update-checklist)
+for every affected module. Confirm the owner, version decision, changelog entry
+or approved exemption, evidence, and any release-blocking follow-up. Require
+explicit reasons for items marked not applicable and distinguish reviewed code
+from an approved or completed deployment.
+
 | Area | Review question |
 | --- | --- |
 | Correctness | Does the implementation satisfy the stated behavior for positive and negative cases? |

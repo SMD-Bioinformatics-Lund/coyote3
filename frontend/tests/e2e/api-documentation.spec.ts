@@ -64,7 +64,7 @@ async function expectReadable(locator: Locator) {
 }
 
 for (const theme of ["light", "dark"] as const) {
-  for (const width of [1440, 390]) {
+  for (const width of [1920, 1440, 390]) {
     for (const view of ["reference", "explorer"] as const) {
       test(`API ${view} is readable and responsive in ${theme} at ${width}px`, async ({ page }, testInfo) => {
         await page.emulateMedia({ colorScheme: theme })
@@ -98,6 +98,32 @@ for (const theme of ["light", "dark"] as const) {
           await expectReadable(authentication.getByRole("cell", { name: "Your Coyote3 session cookie", exact: true }))
           await expectReadable(page.locator("#api-renderer [role=tab].tab-error").first())
           await expectReadable(page.locator("#api-renderer .redoc-json .token.string").first())
+          await expectReadable(page.getByRole("tab", { name: "Payload", exact: true }).first())
+          const responseSample = page.locator('#api-renderer div:has(> [data-rttabs="true"])')
+            .filter({ has: page.getByRole("heading", { name: "Response samples", exact: true }) }).first()
+          await responseSample.scrollIntoViewIfNeeded()
+          const panelEdges = await responseSample.evaluate(element => {
+            const panel = element.querySelector('.react-tabs__tab-panel--selected')!
+            return [element, panel].map(node => {
+              const style = getComputedStyle(node)
+              return { border: style.borderWidth, radius: Number.parseFloat(style.borderRadius),
+                outlined: style.borderStyle === "solid" && style.borderColor !== style.backgroundColor }
+            })
+          })
+          expect(panelEdges.every(edge => edge.border === "1px" && edge.radius > 0 && edge.outlined)).toBe(true)
+          const errorTab = responseSample.getByRole("tab", { name: "401", exact: true })
+          await errorTab.click()
+          await expect(errorTab).toHaveAttribute("aria-selected", "true")
+          await expectReadable(errorTab)
+          await errorTab.press("ArrowLeft")
+          await expect(responseSample.getByRole("tab", { name: "200", exact: true }))
+            .toHaveAttribute("aria-selected", "true")
+          const copy = responseSample.getByRole("button", { name: "Copy", exact: true })
+          await copy.focus()
+          await expect(copy).toBeFocused()
+          const successRow = page.getByRole("button", { name: /^200 Successful Response/ }).first()
+          expect(await successRow.evaluate(element => getComputedStyle(element).borderWidth)).toBe("1px")
+          await page.screenshot({ path: testInfo.outputPath("response-samples.png") })
           const selector = page.getByRole("combobox", { name: "API resource", exact: true })
           await selector.selectOption("Clinical Samples")
           await expect(selector).toHaveValue("Clinical Samples")
@@ -105,6 +131,8 @@ for (const theme of ["light", "dark"] as const) {
           await expect(page.locator("#api-renderer")).toContainText("Clinical Samples")
           await page.locator('#api-renderer a[href^="#tag/Clinical-Samples/operation/"]').first().click()
           await expect(selector).toHaveValue("Clinical Samples")
+          // Scroll-spy updates must not override an explicitly selected resource.
+          await page.evaluate(() => { location.hash = "tag/Authentication" })
           await page.reload()
           await expect(page.locator("#docs-loading")).toBeHidden()
           await expect(selector).toHaveValue("Clinical Samples")
@@ -128,6 +156,17 @@ for (const theme of ["light", "dark"] as const) {
         expect(errors).toEqual([])
         await page.locator("#api-content").scrollIntoViewIfNeeded()
         await page.screenshot({ path: testInfo.outputPath("api-documentation.png") })
+        const selectedTheme = theme === "dark" ? "light" : "dark"
+        if (view === "explorer") {
+          await page.getByRole("button", { name: theme === "dark" ? "Use light theme" : "Use dark theme" }).click()
+        }
+        expect(await page.evaluate(() => localStorage.getItem("coyote3-docs-theme"))).toBe(selectedTheme)
+        await page.reload()
+        await expect(page.locator("#docs-loading")).toBeHidden()
+        expect(await page.locator("html").evaluate(element => element.classList.contains("dark")))
+          .toBe(selectedTheme === "dark")
+        await expect(page.getByRole("button", { name: selectedTheme === "dark" ? "Use light theme" : "Use dark theme" }))
+          .toHaveAttribute("aria-pressed", String(selectedTheme === "dark"))
       })
     }
   }

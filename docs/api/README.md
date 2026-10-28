@@ -26,7 +26,9 @@ For installation rather than API use, follow [deployment](../deployment/README.m
 The installation's `/api/v1/docs` explorer and `/api/v1/redoc` reference include
 an integration guide with the mounted base path, OpenAPI version, authentication
 steps, request example, access constraints and error-response guidance. Both views
-use the application theme and offer a light/dark switch. The explorer retains the
+use the application theme and offer a light/dark switch. The selection is remembered
+in the browser and shared with the documentation guides. With no saved selection,
+the views follow the browser's light/dark preference. The explorer retains the
 signed-in browser session and retrieves CSRF protection for cookie-based changes;
 bearer authorization is held in page memory and is not persisted. Its resource
 search and endpoint counts come from the running OpenAPI schema.

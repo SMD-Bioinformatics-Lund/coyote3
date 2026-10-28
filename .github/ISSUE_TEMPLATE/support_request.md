@@ -1,25 +1,41 @@
 ---
 name: Support request
-about: Ask for help with setup, access, configuration, or operation
+about: Request help with installation, access, configuration, or API usage
 title: "[Support]: "
 labels: ["support"]
 assignees: ""
 ---
 
-## Request
+<!-- Check the documentation and existing issues before opening a request.
+Public issues are not an operational incident-response channel. For an active service
+incident, use your center's established support process. Follow SECURITY.md for
+suspected vulnerabilities. Never include patient data, real sample identifiers,
+credentials, tokens, private URLs, or unredacted configuration and logs. -->
 
-State the question or assistance needed.
+## Question or assistance needed
 
-## Context
+Describe what you are trying to accomplish and the specific question you need
+answered. If a supported operation produces an unexpected result, use a bug report.
 
-- Coyote3 version:
-- Deployment environment:
-- Affected page, API route, or service:
-- What has already been tried:
+## Context and impact
 
-## Diagnostics
+- Coyote3 application version or commit:
+- Environment: <!-- Production, staging, test, or local; no private hostnames. -->
+- Affected page, API method and route, or service:
+- Browser, SDK, or API client version, if relevant:
+- Relevant role or permission:
+- Impact: <!-- What is blocked or unclear, and whether a workaround exists. -->
 
-Add a redacted error message or log excerpt when relevant.
+## What you tried
 
-> Do not include credentials, sample identifiers, patient information, or clinical
-> production data.
+List the documentation or procedure followed, the steps attempted, and the result
+of each attempt. Include the expected outcome and where you became blocked.
+
+## Relevant evidence
+
+Include a minimal synthetic example, redacted error, or short log excerpt when
+useful. For API failures, include the HTTP status, approximate timestamp with time
+zone, and `X-Request-ID` or displayed support reference if available.
+
+Describe only the relevant configuration keys; do not upload environment files,
+database dumps, full configurations, or clinical reports.

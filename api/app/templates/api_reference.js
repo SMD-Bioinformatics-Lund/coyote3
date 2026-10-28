@@ -7,7 +7,10 @@ const syncThemeControl = () => {
 };
 syncThemeControl();
 themeToggle.addEventListener("click", () => {
-  document.documentElement.classList.toggle("dark");
+  const dark = document.documentElement.classList.toggle("dark");
+  try {
+    localStorage.setItem("coyote3-docs-theme", dark ? "dark" : "light");
+  } catch { /* Theme switching remains available without browser storage. */ }
   syncThemeControl();
   window.dispatchEvent(new Event("api-theme-change"));
 });
@@ -53,6 +56,9 @@ script.onload = async () => {
       const tagId = (tag) => tag.replace(/&/g, "and").replace(/\s+/g, "-");
       let activeResource;
       const resourceFromHash = () => {
+        // Explicit resource selection wins over hashes changed by ReDoc's scroll spy.
+        const selected = new URLSearchParams(location.search).get("resource");
+        if (resources.has(selected)) return selected;
         try {
           const operation = location.hash.match(/(?:^#|\/)operation\/([^/]+)/);
           if (operation) {
@@ -66,8 +72,6 @@ script.onload = async () => {
             if (tag) return tag;
           }
         } catch { return orderedTags[0]; }
-        const selected = new URLSearchParams(location.search).get("resource");
-        if (resources.has(selected)) return selected;
         return activeResource || orderedTags[0];
       };
       const renderReference = () => {

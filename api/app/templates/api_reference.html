@@ -6,7 +6,16 @@
   <meta name="referrer" content="same-origin">
   <title>Coyote3 API {{ 'Reference' if view == 'reference' else 'Explorer' }}</title>
   <link rel="icon" href="{{ logo }}">
-  <script>document.documentElement.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);</script>
+  <script>
+    (() => {
+      let dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      try {
+        const saved = localStorage.getItem("coyote3-docs-theme");
+        if (saved === "light" || saved === "dark") dark = saved === "dark";
+      } catch { /* Follow the browser preference when storage is unavailable. */ }
+      document.documentElement.classList.toggle("dark", dark);
+    })();
+  </script>
   {% if view == 'explorer' %}
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui.css">
   {% endif %}

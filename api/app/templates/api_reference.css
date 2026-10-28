@@ -141,6 +141,10 @@ h1 { margin: 0 8px 0 0; font-size: 26px; font-weight: 650; }
 #api-renderer .redoc-json .token { color: var(--code-ink); }
 #api-renderer .redoc-json .token.string { color: var(--code-string); }
 #api-renderer .redoc-json .token.property { color: var(--code-ink); }
+#api-renderer [data-rttabs="true"] :where([role="tab"]) {
+  color: var(--code-ink);
+  background: var(--code-surface);
+}
 #api-renderer [role="tab"].tab-success {
   color: var(--code-success);
   background: var(--code-surface);
@@ -151,6 +155,58 @@ h1 { margin: 0 8px 0 0; font-size: 26px; font-weight: 650; }
   background: var(--code-surface);
   border: 1px solid currentColor;
 }
+.reference #api-renderer div:has(> [data-rttabs="true"]) {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  box-shadow: var(--inner-card-shadow);
+}
+.reference #api-renderer div:has(> [data-rttabs="true"]) > h3 {
+  margin-top: 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+.reference #api-renderer [data-rttabs="true"] > [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+  margin-bottom: 0.75rem;
+}
+.reference #api-renderer [data-rttabs="true"] [role="tab"] {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.reference #api-renderer [data-rttabs="true"] [role="tab"][aria-selected="true"] {
+  box-shadow: var(--material-badge-shadow);
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.reference #api-renderer .react-tabs__tab-panel--selected {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-surface);
+  color: var(--code-ink);
+}
+.reference #api-renderer .redoc-json {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.reference #api-renderer [data-rttabs="true"] :is(button, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.reference #api-renderer button:has(> strong) {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  box-shadow: var(--material-badge-shadow);
+}
+.reference #api-renderer button:has(> strong) svg { fill: currentColor; }
 .swagger-ui { color: var(--ink); font-family: inherit; }
 .swagger-ui .wrapper { max-width: none; padding: 0 24px; }
 .swagger-ui .info { margin: 28px 0; }

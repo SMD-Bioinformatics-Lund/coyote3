@@ -29,8 +29,9 @@ review, reporting, administration and integrations into one application.
 
 ### Integrations and operations
 
-- Typed HTTP APIs, generated frontend contracts, and an API documentation portal
-  with authentication guidance, request examples and searchable endpoints.
+- Typed HTTP APIs, generated frontend contracts, and a themed API documentation
+  portal with resource browsing, structured response examples, authentication
+  guidance and searchable endpoints.
 - Independently versioned core SDK and sync/async Python HTTP client, both starting
   at `1.0.0`, alongside application `4.0.0`.
 - Offline v2/v3 migration workflows for samples, findings, annotations, blacklist

@@ -89,13 +89,24 @@ A PR should include:
 
 Use the repository PR template and link related issues.
 
+For each affected module or workflow, maintain the
+[module update checklist](docs/project/contributing.md#module-update-checklist)
+through the PR's minimum checklist, module selection, and module checklists.
+Name an owner and record the version decision, changelog treatment,
+compatibility impacts, validation evidence, deployment and
+recovery needs, and unresolved follow-ups. Mark irrelevant items with a reason.
+Version decisions follow the existing application, SDK, client, and DNA/RNA
+template release rules; an internal module does not gain its own version counter.
+
 ## PR CI gates
 
-Every PR runs GitHub Actions formatting and test gates via:
+Pull requests targeting `master` use the checks defined in:
 
-- `.github/workflows/pr-format-tests.yml`
+- `.github/workflows/quality.yml`
 
-To enforce merge blocking, configure branch protection on your main integration branch and mark this workflow check as required.
+Configure branch protection to require the applicable quality checks. Release-facing
+changes require a `CHANGELOG.md` update; maintainers may apply `skip-changelog-update`
+for changes with no release impact, with the reason recorded in the PR.
 
 ## Change types with extra care
 

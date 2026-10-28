@@ -134,7 +134,10 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert "validatorUrl: null" in html
     assert "persistAuthorization: false" in html
     assert "disableGoogleFont: true" in html
-    assert "localStorage" not in html
+    stored_keys = re.findall(r'localStorage\.setItem\("([^"]+)"', html)
+    assert stored_keys == ["coyote3-docs-theme"]
+    assert html.count("localStorage.setItem(") == len(stored_keys)
+    assert "sessionStorage" not in html
     assert '<section class="endpoint-workspace" aria-label="API endpoints">' in html
     assert ('id="resource-navigation"' in html) is (path == "/api/v1/docs")
     assert ('id="resource-search"' in html) is (path == "/api/v1/docs")

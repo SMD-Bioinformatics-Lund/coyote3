@@ -315,6 +315,16 @@ from a database name or pass a session across different MongoClient instances.
 
 ### Verification and completion
 
+- Maintain the [module update checklist](docs/project/contributing.md#module-update-checklist)
+  for every affected module or workflow. Track the owner, version decision, changelog
+  treatment, contract/clinical/security impacts, verification evidence, documentation,
+  deployment/recovery needs, and unresolved follow-ups. Carry pending items through
+  handoffs; mark exclusions with a reason rather than treating them as completed checks.
+- Use the PR template's minimum checklist, module selection, and module checklists
+  when preparing a PR. For work without a PR, retain the same decisions in the
+  task record and report material gaps at
+  completion. Do not introduce per-module version counters or bump unrelated releases;
+  follow the five authoritative release identities and immutable-artifact rules.
 - Run the narrowest relevant checks while iterating, then the applicable broader
   checks after the final change. Scale verification to the affected behavior;
   clinical, security, persistence and concurrency changes need focused regressions.
