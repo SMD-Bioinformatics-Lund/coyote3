@@ -28,6 +28,7 @@ email addresses. Review public content before publishing it.
 | `organization.name` | Recommended text | Runtime name comes from `ORGANIZATION_NAME` (`Coyote3` by default); the docs hook can use file identity when no override is supplied | Keep the center name aligned with the environment. |
 | `organization.department` | Optional text | Not supplied | Laboratory or department shown with the center identity. |
 | `organization.report_logo` | Optional text | `region-skane` | Modern report logo: bundled mark, a supported image path inside the center directory, or empty to omit. |
+| `organization.accreditation_logo` | Optional text | Not supplied | SVG, PNG or JPEG inside the center directory, printed in the PDF footer only when the applied ASP snapshot has `accredited = true`. Empty omits it. |
 | `organization.address` | Optional text | Not supplied | Postal address printed below the center name in modern reports. Newlines are retained. |
 | `organization.phone` | Optional text | Not supplied | Center contact number printed with a telephone icon in modern reports. This is separate from the support escalation number. |
 | `support` | Recommended table | Empty table, with available generated links added | Public support information. |
@@ -52,6 +53,7 @@ name = "Example Molecular Diagnostics Center"
 department = "Molecular Diagnostics"
 address = "Example Road 1, 12345 Example City"
 phone = "+46 00 123456"
+accreditation_logo = "" # For example, "assets/accreditation.svg" when configured.
 
 [support]
 primary_email = "support@example.org"
@@ -78,3 +80,52 @@ Repository URLs, issue templates, product description, documentation links,
 and catalog links are intentionally not configurable per center. They are
 loaded from `api/config/application_metadata.py`, because they identify the
 Coyote3 software project rather than the deploying organization.
+
+## Swedac accreditation artwork
+
+For issued reports, obtain the center's complete accreditation symbol from
+[Swedac Mina sidor](https://minasidor.swedac.se/). Swedac supplies each accredited
+organization's symbol with its number and standard. Store that original inside
+the external center directory and select it using `organization.accreditation_logo`.
+See [Swedac's symbol guidance](https://www.swedac.se/tjanster/ackreditering/ackreditering-sa-fungerar-det/ackrediteringssymbolen/).
+
+The medical-laboratory example in Annex 1 contains, in order:
+
+1. The circular Swedac accreditation mark.
+2. `Ackred. nr. XXXX`, with the organization's assigned number.
+3. `Provning`.
+4. `ISO 15189`.
+
+This order and wording come from
+[STAFS 2020:1, consolidated 2026-10-01, Annex 1](https://regelverk.swedac.se/foreskrifter/swedac/stafs-2020-1-konsol.html).
+Section 14 permits the specified blue/yellow colors, black or white against a
+contrasting background. Section 13 requires the accredited organization's name,
+mark or logo near the accreditation reference.
+
+[Swedac DOC 20:1, edition 7](https://regelverk.swedac.se/policy/swedac-doc-20-1_sv.html)
+states that Swedac supplies the report symbols and that these must not be modified.
+The symbol must not dominate the accredited organization's identity. Reports
+containing both accredited and non-accredited results must clearly identify the
+results outside accreditation.
+
+### Dimensions and example SVG
+
+The cited current Swedac rules do not specify a numeric minimum width, height or
+clear-space distance for the Swedac symbol. The 20 mm print / 75 px digital minimum
+in DOC 20:1 concerns the separate IAF MLA mark. Do not apply it as a Swedac minimum.
+Preserve the supplied artwork's proportions and verify all wording in the final
+PDF at its actual printed size.
+
+The [example SVG](../assets/examples/reporting/swedac-iso-15189-example.svg) has a
+compact 24 mm by 28 mm canvas and uses Swedac's published vector paths in black.
+These dimensions are a layout choice, not a prescribed minimum. The information
+lines sit directly below the circular mark; `XXXX` remains a placeholder.
+The asset is documentation artwork and is not configured as a report logo.
+
+![Swedac ISO 15189 layout example with placeholder accreditation number](../assets/examples/reporting/swedac-iso-15189-example.svg)
+
+The current modern report footer limits configured artwork to 32 mm wide and
+9 mm high. A full circular symbol with three text lines will become too small
+within that height. Before enabling the center's original, allocate footer space
+for its complete proportions and check its text at 100% print scale; the SVG's
+intrinsic dimensions alone do not override the report's CSS limits.

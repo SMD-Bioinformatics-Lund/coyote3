@@ -1,38 +1,46 @@
-# Try new report
+# Preview and save reports
 
-Open a DNA or RNA sample's **Reports** tab and select **Try new report**.
-The trial renders the same clinical content used by the current report workflow
-with an alternate layout. It does not change finding selection, interpretation,
-report wording or reporting-rule resolution.
+Open a DNA or RNA sample's **Reports** tab. **Modern report** is the default;
+**Legacy format** selects the older presentation. Both use the sample's applied
+configuration, selected findings and reporting rules.
 
-1. Review the **HTML preview** or **PDF preview**.
-2. Use **Download HTML** or **Download PDF** to save a copy to your computer.
-3. Use **Refresh** to render the current clinical state again.
-4. Select **Current report** to return to the established report workflow.
+1. Review the **HTML preview** and **PDF preview**. **Refresh** reloads current inputs.
+2. Use **Download HTML** or **Download PDF** for an unsaved local copy.
+3. Select **Save report**, review the sample, format and included finding count,
+   then confirm to create the issued report and its immutable snapshots.
 
-Both previews and downloads use the same trial render. HTML includes its CSS;
-it does not need a separate stylesheet. The PDF is generated from that HTML.
-The modern layout uses Coyote3 branding, the configured center logo, and labeled
-sample-detail fields. Both logos are embedded for offline HTML and PDF viewing.
+Preview and download require `report:preview`; saving requires `report:create`.
+All operations require sample access. Saving rejects a changed preview, including
+a changed clinical assessment or a different selected format. Refresh and review
+again before saving. Previously issued reports retain their original files.
 
-The trial has no save action. It does not allocate a report number, create a
-saved report or snapshot, or write report files to server storage. Rendering
-uses temporary memory; leaving the trial releases its browser preview. Normal
-access auditing remains active. Existing saved reports and the current report
-workflow retain their established behavior.
+## Modern presentation
 
-The trial requires the same sample access and `report:preview` permission as
-other report previews. It is a temporary review/download feature, not a persisted
-clinical report.
+The PDF repeats the Coyote3/center logo line and a compact patient-information
+table on every page. The HTML shows this information once. The DNA or RNA template
+version appears above the page number in the bottom-right PDF footer; it is independent
+of the patient's report number. Pagination reads `Sida 1 av 2`. The footer also contains,
+when configured, an accreditation
+logo for an assay whose applied ASP snapshot has `accredited = true`.
+See [center branding](../configuration/contact-file.md).
 
-The modern report uses compact patient/sample details. Enabled sections with no
-reportable findings show a message instead of an empty table. Centers can configure
-these messages in the [report presentation file](../configuration/report-presentation-file.md).
+**Slutsats** begins on a new PDF page. Its saved comment supports sanitized
+Markdown, including tables and lists. Tier 1 SNVs use semibold summary rows.
+Detailed finding tables retain their compact layout and stay together when they
+fit on a page; longer content can continue onto another page.
 
-## Current report PDF preview
+**Kliniskt relevanta biomarkörer** summarizes manually assigned HRD, MSI and TMB
+assessments. Unassessed measurements show **Ej bedömd**. Raw scores appear in the
+detailed biomarker tables after detailed SNVs. Set assessments in
+[Biomarker analysis](biomarker-review.md) before reviewing the report.
 
-The established report also offers **HTML preview** and **PDF preview** in the
-sample's Reports tab. Select **PDF preview** to generate and view its temporary
-PDF in place. **Download PDF** saves a copy to your computer. Return to **HTML
-preview** to review the document in the existing format. These preview actions do
-not save a report; the existing **Save report** confirmation remains separate.
+Enabled sections without findings show configurable messages from the
+[report presentation file](../configuration/report-presentation-file.md).
+Fonts, styles and logos are embedded for offline viewing.
+
+## Temporary API render
+
+The existing `GET /api/v1/samples/{sample_id}/reports/{dna|rna}/try-new` operation
+remains available for integrations. It returns one temporary modern HTML/PDF pair
+without allocating a report number or saving files on the server. The normal UI
+uses the preview and save endpoints, with an explicit modern or legacy selection.

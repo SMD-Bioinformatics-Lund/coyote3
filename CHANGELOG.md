@@ -11,8 +11,10 @@ review, reporting, administration and integrations into one application.
   coverage, biomarkers and consistent finding identities across workflows.
 - Governed query policies and reporting rules with visual authoring, sample-backed
   previews, independent clinical review and controlled publication.
-- Modern branded HTML/PDF reports with compact patient information, readable
-  findings and formatted summaries. Saved reports retain immutable finding and
+- Modern branded reports are the primary format, with repeated PDF patient headers,
+  assay-specific accreditation, compact findings and formatted summaries. Manual
+  biomarker assessments retain reviewer history and appear in report summaries.
+  Saved reports retain immutable finding and
   configuration snapshots; existing issued reports remain unchanged.
 - Consistent light/dark themes and clearer navigation across sample review,
   reporting, the assay catalog and administration.
@@ -20,7 +22,9 @@ review, reporting, administration and integrations into one application.
 ### Administration and security
 
 - Central management of assays, diagnoses, gene lists and configurations, including
-  validated JSON/YAML bulk installation and a public assay catalog.
+  validated JSON/YAML bulk installation and a public assay catalog with DNA/RNA
+  navigation by sequencing family, biological group and diagnosis, multi-gene
+  matching and test comparison.
 - Shared editing sessions and revision checks protect concurrent changes. Creator
   attribution and read-only system records preserve configuration provenance.
 - Permission-based access across the UI and API, with assay and environment scopes,

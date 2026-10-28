@@ -6,9 +6,19 @@ resources. Editing catalog wording does not change sample analysis or reporting 
 
 ## Find a service
 
-**By Diagnosis** is the default view: select a biological group, a diagnosis,
-then a technical family. **By Assay** provides modality, family and assay filters
-before diagnosis selection. Both views use the same published offerings.
+The landing page shows the catalog overview and all published tests, ordered by
+test name. The sidebar groups **DNA → WGS / Panels** and **RNA → WTS / Panels**.
+Select a method to reveal its biological groups, then select a group to reveal
+its diagnoses. Each level filters the cards and shows its published test count.
+Opened branches stay expanded when another item is selected, including after
+viewing a test and returning to the list. Use the separate arrow controls to
+expand or collapse a branch without changing the test selection. The selected
+item uses the theme accent; its parent path uses graduated gray highlights.
+Choose **All tests** to clear the sidebar selection while keeping branches open.
+
+**Additional filters** is initially collapsed. It contains assay, analysis and sort
+controls. Published sequencing families outside WGS, WTS and Panels also appear
+in the sidebar. Sidebar categories are not repeated as dropdowns.
 
 For example, Solid → Breast can contain a targeted DNA panel and a WGS service.
 Each offering has its own price, capabilities and effective gene scope.
@@ -21,6 +31,13 @@ technical families and published gene symbols. Results identify which field matc
 Gene searches include only the effective scope in the publication. WGS sequencing
 breadth does not imply that every gene is assessed or reportable.
 
+Paste comma-separated or newline-separated symbols into **Requested genes**.
+Symbols are matched exactly without case sensitivity; duplicates count once.
+Tests with at least one matching published gene are shown. Each card shows the
+matched count out of the number requested. **View unmatched genes** opens a
+floating dialog listing the remaining symbols. Comparison columns show the same
+counts and dialog, including zero matches for an already-selected comparison.
+
 Select **View details** to open an offering's service information and searchable,
 downloadable gene table. Details include methodology, material requirements,
 turnaround, report deliverables, limitations and ordering instructions when configured.
@@ -29,7 +46,7 @@ The offering identifier is retained in the page URL.
 Select **Compare** on two or three offerings to compare methods, enabled analyses,
 gene counts, deliverables, prices and limitations. Price sorting is available only
 when the selected group's published prices share a currency and pricing basis.
-The default order follows the catalog's section order and entry order.
+The default order is alphabetical by displayed test name.
 No published offerings produces **No published services**.
 
 ## Prepare resources

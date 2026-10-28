@@ -402,6 +402,10 @@ finding-count columns.
 
 ### Preview and save
 
+The Modern format is selected by default. Choose Legacy format to use the previous
+layout. Review and save the same format; switching formats requires a new preview.
+See [report formats](try-new-report.md) for PDF headers, accreditation and template versions.
+
 | Stage | Stored state |
 | --- | --- |
 | Preview | Temporary render based on current sample state and report configuration. |
@@ -410,6 +414,10 @@ finding-count columns.
 The report table and snapshot can include every reportable analysis selected by
 the ASPC: SNVs, CNVs, fusions, translocations, biomarkers, PGX, and other
 released report sections. False-positive and irrelevant findings are excluded.
+
+For HRD, MSI and TMB, use [Biomarker analysis](biomarker-review.md) to record the clinical
+assessment before previewing. The modern report lists these assessments in the biomarker
+summary and retains the measured values in detailed tables after the detailed SNVs.
 
 The report summary is the latest visible sample comment. If no visible sample
 comment exists, the summary is empty. Preview and save do not create an

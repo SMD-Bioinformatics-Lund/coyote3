@@ -34,5 +34,10 @@ Updates replace supplied analyses and preserve omitted analyses. Supplying MSI
 replaces its method set (`MSIS`/`MSIP`); an omitted method within that set is removed.
 The source `name` must remain consistent with the stored measurement record.
 
+`clinical_assessment` and `assessment_history` are server-owned review fields and
+are rejected in ingest files. Identical re-imports retain existing assessments.
+A changed or removed measurement with recorded review requires clinical
+reconciliation and cannot be replaced through ordinary ingestion.
+
 See [measurement analysis behavior](../measurement-analyses.md) for review,
 clinical-rule facts, report selection, and update behavior.

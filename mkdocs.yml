@@ -100,8 +100,9 @@ nav:
           - "DNA findings": user-guide/dna-review.md
           - "RNA findings": user-guide/rna-review.md
           - "Coverage": user-guide/coverage-review.md
+          - "Biomarker assessments": user-guide/biomarker-review.md
           - "Gene lists and assay context": user-guide/gene-lists-and-assay-context.md
-          - "Preview the new report format": user-guide/try-new-report.md
+          - "Preview and save reports": user-guide/try-new-report.md
       - Find help and understand controls:
           - "Missing samples, analyses or results": user-guide/sample-readiness-and-missing-results.md
           - "Dashboard": user-guide/dashboard.md

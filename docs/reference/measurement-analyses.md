@@ -62,7 +62,29 @@ Each analysis has a sample-scoped endpoint:
 Each response includes `sample` and `meta.count`. Sample access and the DNA
 analysis module are required. The sample's stored ASPC must enable the requested
 analysis; otherwise the request returns HTTP 400. An enabled analysis without
-measurements returns an empty record list. There is no aggregate biomarker endpoint.
+measurements returns an empty record list.
+
+The **Biomarker analysis** tab uses `GET /api/v1/samples/{sample_id}/biomarkers`
+to retrieve all enabled measurements and their current manual assessments.
+`PATCH /api/v1/samples/{sample_id}/biomarkers/{record_id}/assessments/{method}`
+accepts `value` (`HIGH`, `MODERATE`, `LOW`, or null to clear) and
+`expected_revision` (zero before the first assessment). `method` is `HRD`, `MSIS`,
+`MSIP`, or `TMB`; the record must belong to the accessible sample and the measurement
+must be enabled and present.
+
+Writes require `sample:edit:own`, an active `sample-biomarkers` editing session,
+and `annotation:publish` for production samples. Stale revisions return HTTP 409.
+The current value is stored at `<method>.clinical_assessment`, with `assessed_by`,
+`assessed_at` and an incrementing `revision` assigned by the server. Each write,
+including clearing, is appended atomically to `<method>.assessment_history`.
+The history remains in storage; current review/report projections include only
+the current assessment. Existing records require no backfill and remain unassessed.
+
+Ingest files cannot supply either review field. Re-importing an identical
+measurement retains its assessment and history. Changing or removing a measurement
+with recorded review is rejected before replacement and requires clinical
+reconciliation. Omitted analyses retain their measurements and review metadata.
+See [Review biomarker assessments](../user-guide/biomarker-review.md).
 
 ## Clinical rules and reports
 
@@ -86,7 +108,11 @@ rule using a component absent from an item receives a missing-fact result.
 Clinical thresholds and narrative require reviewed rule definitions and embedded
 test cases. The application does not supply universal high/low cutoffs.
 
-Each selected analysis has a report table and its own saved finding row. Snapshot
+The modern report groups the assigned values in **Kliniskt relevanta biomarkörer**,
+using **Ej bedömd** for an unset assessment. Detailed numeric HRD/MSI/TMB tables
+follow the detailed SNVs. Legacy reports keep their numeric summary tables.
+Each selected analysis retains its own saved finding row, including its current
+manual assessment. Snapshot
 identities include the analysis and source name, so a source's HRD and TMB results
 remain distinct. Saved reports preserve their original evidence and wording when
 configuration or measurements change later.

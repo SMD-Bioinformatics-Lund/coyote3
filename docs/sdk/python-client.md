@@ -172,7 +172,7 @@ blacklisted findings under the established selection rules, including the existi
 handling of blacklist overrides. It is a sample small-variant selection; the
 cross-sample reported-finding search remains a separate operation.
 
-To try the alternate report layout without saving a report on the server:
+To retrieve a temporary modern HTML/PDF pair without saving a report on the server:
 
 ```python
 import base64
@@ -185,7 +185,21 @@ Path(f"{trial.filename}.pdf").write_bytes(base64.b64decode(trial.pdf_base64))
 
 These writes occur on the computer running the script. The server renders HTML
 and PDF in memory and retains normal access auditing, without creating report
-records or server report files. See [Try new report](../user-guide/try-new-report.md).
+records or server report files. See [Preview and save reports](../user-guide/try-new-report.md).
+
+Normal report previews default to the modern format. To review and explicitly save
+the legacy presentation, use the same format for both operations:
+
+```python
+preview = sample.reports.preview("dna", format="legacy", include_snapshot=True)
+# Review preview.report.html before issuing the report.
+sample.reports.save(
+    "dna", preview_fingerprint=preview.meta.preview_fingerprint, report_format="legacy"
+)
+```
+
+The sync and async clients support `report_format`. Saving with a different format
+from the preview returns HTTP 409 instead of issuing an unreviewed presentation.
 
 Review mutations are explicit:
 

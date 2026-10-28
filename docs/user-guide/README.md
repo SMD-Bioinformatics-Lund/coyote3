@@ -12,8 +12,8 @@ configuration and user access. Account and assay configuration are covered in
    selection through interpretation and reporting.
 3. Use the [DNA](dna-review.md), [RNA](rna-review.md) and [coverage](coverage-review.md)
    guides for the analyses available on that sample.
-4. [Preview and save the report](application-guide.md#reports). The
-   [new report preview](try-new-report.md) is a separate temporary preview/download workflow.
+4. [Review biomarker assessments](biomarker-review.md) when enabled, then
+   [preview and save the report](try-new-report.md) in modern or legacy format.
 
 If a sample, analysis or result is missing, start with
 [sample readiness and missing results](sample-readiness-and-missing-results.md)
@@ -33,7 +33,8 @@ To change an assay's configuration, use [administration](../administration/READM
 | [DNA clinical review](dna-review.md) | Review DNA findings, filters, classifications, and comments. |
 | [RNA Clinical Review](rna-review.md) | Review fusions, expression, and RNA classifications. |
 | [Coverage Review](coverage-review.md) | Inspect coverage summaries, low-coverage genes, and regions. |
-| [Try new report](try-new-report.md) | Preview and download the alternative report format without saving a clinical report. |
+| [Biomarker assessments](biomarker-review.md) | Review measured HRD/MSI/TMB results and save manual clinical assessments. |
+| [Preview and save reports](try-new-report.md) | Review modern or legacy HTML/PDF and explicitly save the issued report. |
 | [Operational Dashboard](dashboard.md) | Interpret workload, recent samples, and operational summaries. |
 | [User Action and Operational Impact Reference](actions-and-record-changes.md) | Check which records a user action changes. |
 | [UI Page And Table Reference](pages-and-table-columns.md) | Look up page controls, columns, badges, and tooltips. |

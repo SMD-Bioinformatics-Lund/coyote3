@@ -22,8 +22,8 @@ package versions, and two modern report-template versions.
 | Application, including the UI | `4.0.0` | `application_version` in `release.toml` | Tested frontend, API, worker and selected SDK combination. The UI has no independent release counter. |
 | Core SDK/server package | `1.0.0` | `[project].version` in `pyproject.toml` | Installable `coyote3` core, bundled API modules and report assets. Changed wheel content requires a new published package version. |
 | Python client SDK | `1.0.0` | `[project].version` in `clients/python/pyproject.toml` | Independent HTTP-only `coyote3-client` package, imported as `coyote3_client`. |
-| Modern DNA report template | `1.0.0` | `[dna].version` in `src/coyote3/templates/reporting/modern/manifest.toml` | DNA presentation release printed in the DNA report footer. |
-| Modern RNA report template | `1.0.0` | `[rna].version` in the same template manifest | RNA presentation release printed in the RNA report footer. |
+| Modern DNA report template | `1.0.0` | `[dna].version` in `src/coyote3/templates/reporting/modern/manifest.toml` | DNA presentation release printed above the page number in the PDF footer. |
+| Modern RNA report template | `1.0.0` | `[rna].version` in the same template manifest | RNA presentation release printed above the page number in the PDF footer. |
 
 Matching version numbers do not couple release cycles. DNA and RNA can advance
 independently; changes to shared report HTML, CSS or fonts require both template
