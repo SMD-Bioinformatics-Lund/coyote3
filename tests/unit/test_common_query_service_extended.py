@@ -49,8 +49,8 @@ class ReportedRepository:
     @staticmethod
     def list_reported_variants(query):
         query = compile_selection(query)
-        if query.get("annotation_oid"):
-            annotation_id = query["annotation_oid"]["$in"][0]
+        if query.get("$or"):
+            annotation_id = query["$or"][0]["annotation_oid"]["$in"][0]
             if annotation_id == "annotation-1":
                 return [
                     {
@@ -430,6 +430,100 @@ def test_tiered_search_normalizes_fusion_identity_and_genes() -> None:
     assert result["docs"][0]["analysis_type"] == "FUSION"
     assert result["docs"][0]["identity"] == "KMT2A::AFF1"
     assert result["docs"][0]["genes"] == ["KMT2A", "AFF1"]
+
+
+def test_tiered_search_keeps_inactive_origin_links_and_latest_unlinked_legacy_record():
+    """Source IDs attach exact samples; uncertain legacy history keeps only its newest version."""
+    rows = [
+        {"_id": "legacy-new", "gene": "LEGACY", "variant": "p.L1", "class": 2, "is_active": False},
+        {"_id": "legacy-old", "gene": "LEGACY", "variant": "p.L1", "class": 1},
+        {
+            "_id": "original",
+            "gene": "TP53",
+            "variant": "p.R1",
+            "class": 2,
+            "is_active": False,
+            "source_sample_id": "sample-a",
+        },
+        {
+            "_id": "new",
+            "gene": "TP53",
+            "variant": "p.R1",
+            "class": 1,
+            "source_sample_id": "sample-b",
+        },
+    ]
+    annotations = AnnotationRepository()
+    annotations.find_variants_by_search_string = lambda **kwargs: rows
+    service = _service(
+        annotation_repository=annotations,
+        reported_variant_repository=SimpleNamespace(
+            list_reported_variants=lambda query: [],
+            find_reported_variants_by_search_string=lambda **kwargs: [],
+        ),
+        sample_repository=SimpleNamespace(get_sample_by_oid=lambda oid: {"_id": oid, "name": oid}),
+    )
+    result = service.tiered_variant_search_payload(
+        search_str="",
+        search_mode="all",
+        include_annotation_text=False,
+        assays=None,
+        limit_entries=50,
+    )
+    by_id = {row["_id"]: row for row in result["docs"]}
+    assert "legacy-old" not in by_id
+    assert by_id["legacy-new"]["is_active"] is False
+    assert by_id["legacy-new"]["legacy_fallback"] is True
+    assert by_id["legacy-new"]["samples"] == {}
+    assert set(by_id["original"]["samples"]) == {"sample-a"}
+    assert set(by_id["new"]["samples"]) == {"sample-b"}
+    restricted = service.tiered_variant_search_payload(
+        search_str="",
+        search_mode="all",
+        include_annotation_text=False,
+        assays=None,
+        limit_entries=50,
+        sample_is_visible=lambda oid: oid == "sample-b",
+    )
+    assert all(row["_id"] != "original" for row in restricted["docs"])
+    assert all("sample-a" not in row["samples"] for row in restricted["docs"])
+
+
+@pytest.mark.parametrize("visible", [True, False])
+def test_tiered_search_recognizes_reported_text_history_without_false_legacy_warning(visible):
+    """Text references retain provenance even when access rules hide their linked sample."""
+    annotations = AnnotationRepository()
+    annotations.find_variants_by_search_string = lambda **kwargs: [
+        {"_id": "text-history", "gene": "TP53", "text": "Historical text", "is_active": False}
+    ]
+
+    def linked_reports(selection):
+        query = compile_selection(selection)
+        assert {"annotation_text_oid": {"$in": ["text-history"]}} in query["$or"]
+        return [
+            {"_id": "report-text", "sample_oid": "sample-1", "annotation_text_oid": "text-history"}
+        ]
+
+    service = _service(
+        annotation_repository=annotations,
+        reported_variant_repository=SimpleNamespace(
+            list_reported_variants=linked_reports,
+            find_reported_variants_by_search_string=lambda **kwargs: [],
+        ),
+        sample_repository=SimpleNamespace(get_sample_by_oid=lambda oid: {"_id": oid, "name": oid}),
+    )
+    result = service.tiered_variant_search_payload(
+        search_str="",
+        search_mode="all",
+        include_annotation_text=True,
+        assays=None,
+        limit_entries=50,
+        sample_is_visible=lambda oid: visible,
+    )
+    row = result["docs"][0]
+    assert row["legacy_fallback"] is False
+    assert set(row["samples"]) == ({"sample-1"} if visible else set())
+    assert len(row["reported_docs"]) == int(visible)
 
 
 def test_gene_cohort_uses_effective_scope_latest_report_and_visible_samples() -> None:

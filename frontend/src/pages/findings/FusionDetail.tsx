@@ -8,7 +8,7 @@ import { FindingCommentComposer, FindingCommentLists } from "@/components/commen
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { StatusBadges } from "@/lib/variant-ui"
 import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/lib/fusion-ui"
-import { fusionCallers, fusionGenes, selectedFusionCall } from "@/lib/variant-helpers"
+import { fusionCallers, fusionGenes, fusionTierUnavailableReason, selectedFusionCall } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -192,6 +192,7 @@ export function FusionDetail() {
           <>
             <ClassificationsCard
               latest={latest_classification}
+              unavailableReason={fusionTierUnavailableReason(fusion)}
               other={data.other_classifications || []}
               sampleId={id}
               resourceType="fusion"

@@ -15,3 +15,20 @@ def reportable_tiers(reporting: dict, analysis: str) -> list[int]:
     """
     policy = ReportableTiersDoc.model_validate(reporting.get("reportable_tiers", {}))
     return policy.model_dump()[analysis]
+
+
+def classification_is_usable(classification: dict | None) -> bool:
+    """Allow active classifications or inactive versions explicitly linked to this sample.
+
+    Args:
+        classification: Scoped classification; None has no usable interpretation.
+
+    Returns:
+        False for uncertain legacy fallbacks and unrelated inactive interpretations.
+    """
+    if not classification:
+        return False
+    return (
+        classification.get("is_active", True)
+        or classification.get("historical_sample_match") is True
+    )

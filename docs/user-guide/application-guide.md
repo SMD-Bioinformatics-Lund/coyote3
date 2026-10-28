@@ -440,6 +440,11 @@ authoritative report contract.
 | Gene cohort explorer | Summarize reported findings for one gene by assay group, tier, recurrence, and recorded sample sex. |
 | Reported finding context | Open samples and report snapshots linked to a selected classified finding. |
 
+Tiered search includes inactive annotations with their recorded sample links.
+Unlinked legacy records show the latest matching annotation and a history disclaimer;
+they do not prove the tier previously used on a sample. See
+[inactive annotations and sample history](actions-and-record-changes.md#inactive-annotations-and-sample-history).
+
 Gene-cohort prevalence uses profiled samples in the applicable ASP or effective
 sample gene-list scope as the denominator. By default, calculations use the
 current reported occurrence for a sample. The historic option includes older

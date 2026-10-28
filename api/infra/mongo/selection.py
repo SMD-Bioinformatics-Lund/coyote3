@@ -38,6 +38,7 @@ _FIELDS = {
     RecordField.IDENTITY: "_id",
     RecordField.SAMPLE: "SAMPLE_ID",
     RecordField.ANNOTATION_REFERENCE: "annotation_oid",
+    RecordField.ANNOTATION_TEXT_REFERENCE: "annotation_text_oid",
 }
 
 
@@ -147,7 +148,7 @@ def _compile(value: Any) -> Any:
                 if isinstance(key, RecordField)
                 else key
             )
-            if key is RecordField.ANNOTATION_REFERENCE:
+            if key in (RecordField.ANNOTATION_REFERENCE, RecordField.ANNOTATION_TEXT_REFERENCE):
                 result[name] = _annotation_references(item)
             elif key is RecordField.IDENTITY:
                 result[name] = _identity_comparison(item)

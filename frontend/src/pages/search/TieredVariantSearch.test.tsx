@@ -63,6 +63,19 @@ describe("TieredVariantSearch", () => {
     expect(mocks.get).toHaveBeenCalledWith(expect.stringContaining("assays=hematology"))
   })
 
+  it("shows an explicit legacy-history disclaimer above results", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      ...response, docs: [{ ...response.docs[0], is_active: false, legacy_fallback: true }],
+    } })
+    mount("/variants/search?search_str=TP53")
+    expect(await screen.findByRole("note")).toHaveTextContent("even if inactive")
+    expect(screen.getByRole("note")).toHaveTextContent("does not confirm the tier used on a particular sample")
+    await screen.findByText("Results: 1")
+    expect(mocks.table.mock.lastCall?.[0].columns).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "annotation_status", header: "Annotation status" }),
+    ]))
+  })
+
   it("applies trimmed search criteria and selected assays only on submit", async () => {
     mount()
     await screen.findByText("Results: 1")

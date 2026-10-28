@@ -213,6 +213,13 @@ sample.comments.post(json={"form_data": {"sample_comment": "Synthetic review not
 sample.comments["demo-comment-id"].hidden.patch()
 ```
 
+`apply=False` deactivates matching annotations and retains their history. To deactivate
+all annotations for the finding across its biological group's assays and diagnoses,
+pass `deactivation_scope="group"` with `apply=False`; this requires
+`tier:remove:global`. Classification responses expose `is_active`,
+`historical_sample_match` and `legacy_fallback` so callers can distinguish recorded
+sample history from an uncertain legacy match.
+
 Flag names and bulk tier operations retain their finding-specific server validation,
 ownership checks, publication rules and permissions. Invalid integer tiers are
 rejected locally instead of relying on server defaults. Finding comments, annotation

@@ -44,6 +44,11 @@ class AnnotationDoc(_StrictCollectionDocBase):
 
     class_: int | None = Field(default=None, alias="class")
     text: str | None = None
+    is_active: bool = Field(default=True, exclude_if=lambda value: value is True)
+    deactivated_at: datetime | None = Field(default=None, exclude_if=lambda value: value is None)
+    deactivated_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    source_sample_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    source_finding_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="before")
     @classmethod

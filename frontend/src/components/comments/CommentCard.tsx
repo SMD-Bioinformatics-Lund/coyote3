@@ -100,6 +100,11 @@ export function CommentCard({
                 Hidden
               </span>
             )}
+            {comment?.is_active === false && (
+              <span className="inline-flex items-center rounded-full border border-warn/50 bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn">
+                Inactive annotation
+              </span>
+            )}
           </div>
           {createdAt && (
             <TimeDisplay

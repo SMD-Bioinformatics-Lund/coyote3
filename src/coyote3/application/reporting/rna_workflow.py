@@ -8,7 +8,7 @@ from coyote3.application.interpretation.annotation_enrichment import add_alt_cla
 from coyote3.application.query_rules.service import QueryRuleService, effective_policy
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
 from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
-from coyote3.application.reporting.eligibility import reportable_tiers
+from coyote3.application.reporting.eligibility import classification_is_usable, reportable_tiers
 from coyote3.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
@@ -223,7 +223,11 @@ class RNAWorkflowService:
             other_classifications,
             annotations_interesting,
         ) = self.annotation_repository.get_global_annotations(
-            selected_fusion_call, assay_group, diagnosis, sample_context=sample_context
+            {**(selected_fusion_call or {}), "SAMPLE_ID": fusion.get("SAMPLE_ID")},
+            assay_group,
+            diagnosis,
+            sample_context=sample_context,
+            include_history=True,
         )
 
         if not latest_classification or latest_classification.get("class") == 999:
@@ -450,6 +454,7 @@ class RNAWorkflowService:
             and not fusion.get("blacklisted")
             and not fusion.get("fp")
             and not fusion.get("irrelevant")
+            and classification_is_usable(fusion.get("classification"))
             and (fusion.get("classification") or {}).get("class") in allowed_tiers
         ]
         for fusion in reportable_fusions:

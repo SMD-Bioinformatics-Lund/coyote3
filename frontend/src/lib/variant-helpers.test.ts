@@ -5,6 +5,7 @@ import {
   findingRowClass,
   fusionCallers,
   fusionGenes,
+  fusionTierUnavailableReason,
   isFlaggedFinding,
   normalizedCallerList,
   selectedFusionCall,
@@ -22,6 +23,13 @@ import {
 } from "./variant-helpers"
 
 describe("variant display normalization", () => {
+  it("distinguishes missing evidence from an unselected fusion call", () => {
+    expect(fusionTierUnavailableReason({})).toBe("Missing fusion evidence")
+    expect(fusionTierUnavailableReason({ calls: [] })).toBe("Missing fusion evidence")
+    expect(fusionTierUnavailableReason({ calls: [{ selected: false }] })).toBe("Select a fusion call")
+    expect(fusionTierUnavailableReason({ calls: [{ selected: true }] })).toBe("Missing fusion evidence")
+    expect(fusionTierUnavailableReason({ calls: [{ selected: 1, breakpoint1: "22:100", breakpoint2: "9:200" }] })).toBeUndefined()
+  })
   it("uses the stored fusion partners independently of the display name", () => {
     expect(fusionGenes({ gene1: "BCR", gene2: "ABL1", genes: "BCR-ABL1" }))
       .toEqual(["BCR", "ABL1"])
@@ -71,7 +79,7 @@ describe("variant display normalization", () => {
   it("selects fusion calls from the current gene-pair contract", () => {
     const selected = { selected: true, caller: "arriba" }
     expect(selectedFusionCall({ calls: [{ caller: "star" }, selected] })).toBe(selected)
-    expect(selectedFusionCall({ calls: [{ caller: "star" }] })).toEqual({ caller: "star" })
+    expect(selectedFusionCall({ calls: [{ caller: "star" }] })).toEqual({})
     expect(selectedFusionCall({ calls: [] })).toEqual({})
     expect(fusionGenes({ gene1: "BCR", gene2: "ABL1" })).toEqual(["BCR", "ABL1"])
     expect(fusionGenes({})).toEqual([])

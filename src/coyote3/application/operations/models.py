@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from coyote3.domain.finding_types import normalize_finding_kind
 
@@ -49,6 +49,14 @@ class TierChange(BaseModel):
     tier: int = Field(ge=1, le=4)
     apply: bool = True
     include_automatic_text: bool = False
+    deactivation_scope: Literal["diagnosis", "group"] = "diagnosis"
+
+    @model_validator(mode="after")
+    def validate_deactivation_scope(self) -> "TierChange":
+        """Reject group deactivation intent on a tier assignment."""
+        if self.apply and self.deactivation_scope != "diagnosis":
+            raise ValueError("Group deactivation requires apply=false")
+        return self
 
     @field_validator("resource_type", mode="before")
     @classmethod

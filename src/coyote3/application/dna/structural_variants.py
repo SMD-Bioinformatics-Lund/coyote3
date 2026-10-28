@@ -481,10 +481,12 @@ class DnaStructuralService:
             {
                 "nomenclature": "cn",
                 "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
+                "SAMPLE_ID": cnv.get("SAMPLE_ID"),
             },
             assay_group,
             sample.get("diagnosis_id") or "base",
             sample_context=assay_config["aspc_resolution"]["context"],
+            include_history=True,
         )
         return {
             "latest_classification": classification,
@@ -679,10 +681,15 @@ class DnaStructuralService:
         )
         by_id, by_symbol = build_hgnc_lookup_maps(records)
         _, classification, alternatives, _ = self.annotation_repository.get_global_annotations(
-            {"nomenclature": "t", "variant": translocation_annotation_identity(transloc)},
+            {
+                "nomenclature": "t",
+                "variant": translocation_annotation_identity(transloc),
+                "SAMPLE_ID": transloc.get("SAMPLE_ID"),
+            },
             assay_group,
             sample.get("diagnosis_id") or "base",
             sample_context=assay_config["aspc_resolution"]["context"],
+            include_history=True,
         )
         return {
             "latest_classification": classification,

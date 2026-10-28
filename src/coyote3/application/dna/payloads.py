@@ -771,10 +771,11 @@ def variant_context_payload(
             assay_group,
             diagnosis,
             sample_context=assay_config["aspc_resolution"]["context"],
+            include_history=True,
         )
     )
     assay_group_mappings = service.assay_panel_repository.get_asp_group_mappings()
-    tier_by_scope: dict[tuple[str, str, str, str], int | None] = {}
+    tier_by_scope: dict[tuple[str, ...], int | None] = {}
 
     def classification_tier(classification: dict[str, Any] | None) -> int | None:
         """Extract a displayable tier from a scoped classification.
@@ -813,10 +814,11 @@ def variant_context_payload(
             matched_diagnosis,
             matched_context.get("assay_id"),
             matched_context.get("environment"),
+            str(matched_sample["_id"]),
         )
         if scope not in tier_by_scope:
             _, matched_classification, _, _ = service.annotation_repository.get_global_annotations(
-                variant,
+                {**variant, "SAMPLE_ID": str(matched_sample["_id"])},
                 matched_group,
                 matched_diagnosis,
                 sample_context=matched_context,

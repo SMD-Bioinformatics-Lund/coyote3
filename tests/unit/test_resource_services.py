@@ -26,8 +26,8 @@ class _AnnotationHandlerStub:
         """Insert annotation bulk."""
         self.inserted_bulk = docs
 
-    def delete_classified_variant(self, **kwargs) -> None:
-        """Delete classified variant.
+    def deactivate_classified_variant(self, **kwargs) -> None:
+        """Deactivate classified variant.
 
         Args:
             **kwargs: Additional keyword values for ``kwargs``.
@@ -310,6 +310,8 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         "diagnosis_id",
         "gene1",
         "gene2",
+        "source_sample_id",
+        "source_finding_id",
     }
 
 

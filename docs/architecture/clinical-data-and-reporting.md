@@ -350,7 +350,7 @@ different transcript.
 ### 5.3 Annotation identity and matching
 
 Every annotation stores the common review context (`variant`, `nomenclature`,
-`assay`, `diagnosis`, `author`, and `time_created`) and only the identity fields
+`asp_group`, `asp_id`, `diagnosis_id`, `namespace`, `author`, and `time_created`) and only the identity fields
 that belong to its nomenclature:
 
 | Nomenclature | Required identity and context fields |
@@ -381,8 +381,24 @@ Matching is identity-equivalent rather than fallback-based:
    breakpoint identity together with the applicable `gene1` and `gene2`
    context.
 
-Matching rows are ordered by `time_created`. Iteration therefore leaves the
-newest applicable row as the current classification.
+Fusion analysis tables and detail views resolve the same explicitly selected call.
+Its breakpoints and gene context supply the lookup identity, while the parent
+fusion's `SAMPLE_ID` supplies sample provenance. Caller names are not classification
+identities. With no selected call, analysis does not infer an identity from the first
+caller. See [fusion tier status](../user-guide/rna-review.md#fusion-tier-matching).
+
+Matching rows are ordered by `time_created`, with `_id` breaking timestamp ties.
+Within each identity/scope, a recorded assignment to the sample or a saved report
+reference takes precedence over reusable versions. The newest linked version is
+used when several exist; otherwise the newest matching version is considered.
+Inactive records cannot automatically tier another sample. A missing `is_active`
+field means active for existing records. An older active version is not resurrected
+when the newer version is inactive.
+
+Detail views request classification history separately from normal table enrichment.
+The current classification contains a `history` list of the other identity-matched,
+exact-scope class records, newest first, including inactive versions. This list is
+display information and does not assign a tier or qualify a finding for reporting.
 
 #### Authoritative runtime flow
 
@@ -458,14 +474,42 @@ developer and tester roles do not. Centers control the grant through role admini
 
 Classification applicability is contextual:
 
-- for the `solid` assay group, both annotation `assay` and `diagnosis` must
-  match;
-- for other assay groups, annotation `assay` must match;
-- classifications from other assay/diagnosis contexts are retained separately
-  for display but do not become the current classification.
+- effective classifications require the same `asp_group`, `asp_id` and
+  `diagnosis_id` for every biological group;
+- production reads `clinical` annotations only; development, testing and validation
+  can read `clinical` and `sandboxed` annotations, but write to `sandboxed`;
+- group-scoped, parent-group and other diagnosis interpretations are contextual
+  references and require explicit re-tiering to become effective in the sample scope.
 
 Free-text annotations use the same assay/diagnosis context. They are available
-as global annotation history and as the current assay-specific text.
+as global annotation history. Current text is resolved independently by eligible
+scope specificity and recency; an inactive text requires a recorded sample link.
+
+#### Deactivation and historical provenance
+
+New classifications and global text annotations retain `source_sample_id` and
+`source_finding_id`. Deactivation sets `is_active: false`, `deactivated_at` and
+`deactivated_by`, preserving the original annotation identity, author and time.
+Repeating deactivation does not replace its original actor or timestamp.
+
+Diagnosis deactivation affects the matching tier in the current assay and diagnosis.
+Group deactivation affects matching class and text records across all assays and
+diagnoses in the same biological group and namespace, and requires
+`tier:remove:global`. Assigning a tier again creates a new record.
+
+`reported_variants.annotation_oid` and `annotation_text_oid` can establish which
+versions a sample used, including inactive versions. Such versions remain usable
+for that linked sample. Legacy records without origin or report links cannot prove
+a sample's historical tier. Tiered search can display their latest matching version
+with a disclaimer; analysis does not automatically assign an inactive legacy tier.
+Saved report artifacts and snapshots retain their report-time content.
+
+The implementation owners are `domain/annotation_scope.py`,
+`application/interpretation/annotation_enrichment.py` and
+`application/common/query_service.py` under `src/coyote3/`, and
+`api/infra/mongo/repositories/annotations.py`. See the
+[search provenance reference](../reference/report-snapshots.md#tiered-variant-search)
+and [user action reference](../user-guide/actions-and-record-changes.md#inactive-annotations-and-sample-history).
 
 ### 5.5 Reportability
 

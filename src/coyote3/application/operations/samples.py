@@ -59,10 +59,11 @@ class Sample:
         return self._runtime.execute("sample.read", ("sample:view",), read, sample_id=self.id)
 
     def set_tiers(self, change: TierChange) -> None:
-        """Assign or remove tiers with current curation and production-publication grants.
+        """Assign tiers or deactivate annotations with curation and publication grants.
 
         Args:
-            change: Explicit tier, finding family, identifiers and assignment/removal intent.
+            change: Tier, finding family, identifiers and assignment/deactivation intent.
+                Group deactivation additionally requires tier:remove:global.
 
         Raises:
             AppError: Access, ownership or existing clinical configuration checks fail.
@@ -87,11 +88,21 @@ class Sample:
                 class_num=change.tier,
                 include_automatic_text=change.include_automatic_text,
                 create_classified_variant_doc_fn=self._services.classification_document,
+                deactivation_scope=change.deactivation_scope,
             )
 
         self._runtime.execute(
             "sample.set_tiers",
-            ("snv:manage", "tier:assign" if change.apply else "tier:remove:own"),
+            (
+                "snv:manage",
+                "tier:assign"
+                if change.apply
+                else (
+                    "tier:remove:global"
+                    if change.deactivation_scope == "group"
+                    else "tier:remove:own"
+                ),
+            ),
             write,
             sample_id=self.id,
             sample_permissions=lambda sample: (
@@ -141,7 +152,12 @@ class Sample:
             )
             service.classify_resource(
                 resource_type=resource_type,
-                form_data={**authored, **service.classification_context(sample)},
+                form_data={
+                    **authored,
+                    **service.classification_context(sample),
+                    "source_sample_id": str(sample["_id"]),
+                    "source_finding_id": resource_id,
+                },
                 get_tier_classification_fn=get_tier_classification,
                 get_variant_nomenclature_fn=get_variant_nomenclature,
             )
@@ -159,7 +175,7 @@ class Sample:
     def remove_classification(
         self, resource_type: FindingKind, resource_id: str, form_data: dict[str, Any]
     ) -> None:
-        """Remove a classification through the existing sample-owned identity workflow.
+        """Deactivate classifications through the sample-owned identity workflow.
 
         Args:
             resource_type: Canonical finding family.

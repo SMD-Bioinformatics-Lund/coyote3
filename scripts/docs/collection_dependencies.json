@@ -101,7 +101,7 @@
   "notes": {
     "primary.asp_configs": "The operational identity is assay + diagnosis + environment, with retained document versions. query_policy_release, clinical_rule_release and clinical_rule_base are historical capture fields: current schema comments and writes explicitly exclude them from new runtime captures. Preserve historical data without making these fields a prerequisite for new configurations.",
     "primary.blacklist": "pos matches variants.simple_id, not variants._id. The repository queries and indexes (assay,pos); assay stores the biological group identifier. Coverage exclusions use d4_coverage_blacklist instead.",
-    "primary.annotation": "No SAMPLE_ID, sample_oid or variant_oid foreign key exists here. Nomenclature p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Preserve namespace, assay scope, author, timestamps and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.",
+    "primary.annotation": "New annotations record optional source_sample_id and source_finding_id provenance; older records may have neither. Reusable interpretation matching still uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Deactivation retains records with is_active false; missing is_active means active. Preserve namespace, assay scope, author, timestamps, source links and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.",
     "primary.anno_vep": "Shared transcript vault in PRIMARY, not the knowledgebase database. Unique index: (simple_id_hash, vep_version). Not owned by one sample; never delete it just because one sample is removed.",
     "primary.samples": "case_id, control_id, case.id and control.id describe sample material/case-control identifiers; they are not self-references to samples._id. The primary samples collection and BAM-service samples collection are different namespaces.",
     "primary.clinical_rule_sets": "rule_set_id is the stable rule identity, content_version the clinical release, revision the save counter, and _id one content-version document. None are interchangeable. The published document is immutable; reference dependencies are resolution by full scope, not merely matching the display name.",
@@ -119,6 +119,56 @@
     "bam.samples": "External BAM-service database. Its id is the case/control material identifier and bam_path is a filesystem resource. No primary samples._id equality is implied."
   },
   "edges": [
+    {
+      "source": "primary.annotation",
+      "field": "source_sample_id",
+      "target": "primary.samples",
+      "target_field": "_id",
+      "kind": "optional provenance",
+      "cardinality": "many → one",
+      "notes": "Sample where this annotation was authored or tiered. Missing legacy origins are not inferred; retain this link after deactivation.",
+      "evidence": "src/coyote3/contracts/schemas/variant_annotations.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "source_finding_id",
+      "target": "primary.variants",
+      "target_field": "_id",
+      "kind": "optional polymorphic provenance",
+      "cardinality": "many → one",
+      "notes": "Originating finding; p/c/g annotations reference a small variant. Older annotations may lack this link.",
+      "evidence": "src/coyote3/application/classification/tiering.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "source_finding_id",
+      "target": "primary.cnvs",
+      "target_field": "_id",
+      "kind": "optional polymorphic provenance",
+      "cardinality": "many → one",
+      "notes": "Originating finding for cn annotations. Older annotations may lack this link.",
+      "evidence": "src/coyote3/application/classification/tiering.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "source_finding_id",
+      "target": "primary.translocations",
+      "target_field": "_id",
+      "kind": "optional polymorphic provenance",
+      "cardinality": "many → one",
+      "notes": "Originating finding for t annotations. Older annotations may lack this link.",
+      "evidence": "src/coyote3/application/classification/tiering.py"
+    },
+    {
+      "source": "primary.annotation",
+      "field": "source_finding_id",
+      "target": "primary.fusions",
+      "target_field": "_id",
+      "kind": "optional polymorphic provenance",
+      "cardinality": "many → one",
+      "notes": "Originating finding for f annotations. Older annotations may lack this link.",
+      "evidence": "src/coyote3/application/classification/tiering.py"
+    },
     {
       "source": "primary.assay_groups",
       "field": "parent_group_id",

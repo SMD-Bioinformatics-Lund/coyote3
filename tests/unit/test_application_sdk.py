@@ -278,6 +278,34 @@ def test_tiering_prevalidates_ownership_and_retains_clinical_workflow(sdk):
     assert sdk.classifier.set_tier_bulk.call_args.kwargs["class_num"] == 2
 
 
+def test_group_deactivation_requires_global_removal_grant(sdk):
+    change = TierChange(
+        resource_type="small_variant",
+        resource_ids=["finding-1"],
+        tier=2,
+        apply=False,
+        deactivation_scope="group",
+    )
+    with pytest.raises(AppError) as error:
+        sdk.samples.ref("demo").set_tiers(change)
+    assert error.value.status_code == 403
+    sdk.classifier.set_tier_bulk.assert_not_called()
+    sdk.grants.add("tier:remove:global")
+    sdk.samples.ref("demo").set_tiers(change)
+    assert sdk.classifier.set_tier_bulk.call_args.kwargs["deactivation_scope"] == "group"
+
+
+def test_group_deactivation_rejects_assignment_intent():
+    with pytest.raises(ValueError, match="Group deactivation requires apply=false"):
+        TierChange(
+            resource_type="small_variant",
+            resource_ids=["finding-1"],
+            tier=2,
+            apply=True,
+            deactivation_scope="group",
+        )
+
+
 def test_finding_page_and_lookup_return_detached_values(sdk):
     variants = sdk.samples.ref("demo").variants
     page = variants.list()

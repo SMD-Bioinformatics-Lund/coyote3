@@ -76,6 +76,37 @@ persisted finding state.
 Bulk actions require row selection and confirmation. Available actions depend
 on the analysis type and the user's permissions.
 
+### How a tier is matched
+
+An automatic clinical tier requires a matching finding identity and the sample's
+biological group, assay and diagnosis, in a visible annotation namespace. A tier
+from another scope is supporting context and requires re-tiering. RNA fusion tables
+and detail pages use the same selected caller's identity; see
+[fusion tier matching](rna-review.md#fusion-tier-matching).
+
+Inactive annotations do not automatically tier new samples. A recorded assignment
+or report link can preserve an inactive historical tier for its original sample.
+The classification card shows the current match and other matching versions, newest
+first, with tier, recorded text, author and time. The current tier button uses full
+color; the remaining buttons are subdued.
+
+Use **Deactivate** to retire the current scoped tier while preserving history.
+**Deactivate group annotations**, where permitted, retires this finding's matching
+annotations across the group's assays and diagnoses in the same namespace. See
+[deactivation and sample history](actions-and-record-changes.md#inactive-annotations-and-sample-history).
+
+Knowledgebase evidence grades have their own meaning. **CGC Tier 1/2**, for example,
+is COSMIC Cancer Gene Census evidence about a gene, not Coyote's clinical variant
+tier. Its badge provides a source-specific explanation and link.
+
+### Search previous interpretations
+
+Open [Tiered Variant Search](pages-and-table-columns.md#tiered-variant-search), choose
+the search mode and filters, and submit the query. Results identify active and inactive
+annotations and show recorded sample/report links. For legacy annotations without
+such links, the latest matching version can appear with a disclaimer above the table.
+That fallback does not establish which tier a particular sample used.
+
 ## 6. Add comments
 
 Use sample comments for report-level interpretation and finding comments for a

@@ -170,6 +170,17 @@ describe("sample analysis table tabs", () => {
     expect(screen.queryByText("CNV Profile")).not.toBeInTheDocument()
   })
 
+  it.each([
+    { calls: [], reason: "Missing fusion evidence" },
+    { calls: [{ selected: false, caller: "ARRIBA" }], reason: "Select a fusion call" },
+  ])("explains an unavailable fusion tier: $reason", async ({ calls, reason }) => {
+    mocks.get.mockResolvedValue({ data: {
+      fusions: [{ _id: "F1", gene1: "BCR", gene2: "ABL1", calls, classification: { class: 999 } }],
+    } })
+    mount(<FusionsTab sampleId="RNA_1" />, "/samples/RNA_1?tab=fusions")
+    expect(await screen.findByText(reason)).toBeVisible()
+  })
+
   it("requests fusion rows with server metadata and fusion-only export context", async () => {
     mocks.get.mockResolvedValue({ data: {
       fusions: [{ _id: "F1", gene1: "BCR", gene2: "ABL1", calls: [{ caller: "ARRIBA", selected: 1, spanpairs: 0, spanreads: 0 }] }],

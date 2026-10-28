@@ -505,6 +505,18 @@ class Knowledgebase:
             """Evaluate the operation under the current verified actor."""
             effective_limit = self._search_limit if limit_entries is None else limit_entries
             selected_assays = assays or assay
+
+            @lru_cache(maxsize=256)
+            def sample_is_visible(sample_id: str) -> bool:
+                """Restrict annotation history links to samples visible to the current actor."""
+                try:
+                    self._require_visible_sample(sample_id, actor)
+                except AppError as exc:
+                    if exc.status_code in {403, 404}:
+                        return False
+                    raise
+                return True
+
             return cast(
                 dict[str, Any],
                 self._service().tiered_variant_search_payload(
@@ -514,6 +526,7 @@ class Knowledgebase:
                     assays=selected_assays,
                     nomenclatures=nomenclatures,
                     limit_entries=effective_limit,
+                    sample_is_visible=sample_is_visible,
                 ),
             )
 

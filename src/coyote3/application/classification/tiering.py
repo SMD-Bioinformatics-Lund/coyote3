@@ -153,6 +153,7 @@ class ResourceClassificationService:
             key: classification_context[key]
             for key in ("asp_group", "asp_id", "diagnosis_id", "namespace")
         }
+        base_context.update(source_sample_id=str(sample["_id"]), source_finding_id=str(resource_id))
         if normalized_type == "small_variant":
             var = self.variant_repository.get_variant(str(resource_id))
             if not var or str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
@@ -253,8 +254,9 @@ class ResourceClassificationService:
         class_num: int,
         create_classified_variant_doc_fn,
         include_automatic_text: bool = False,
+        deactivation_scope: str = "diagnosis",
     ) -> None:
-        """Apply or remove tier classifications in bulk.
+        """Assign tiers or deactivate matching annotations in bulk.
 
         Args:
             sample: Sample payload containing ownership context.
@@ -264,7 +266,13 @@ class ResourceClassificationService:
             class_num: Target tier/class number.
             create_classified_variant_doc_fn: Helper used to build classification documents.
             include_automatic_text: Whether to add supported application-generated text.
+            deactivation_scope: Diagnosis limits deactivation to the current assay/diagnosis/tier;
+                group retires all finding annotations across assays and diagnoses in the group.
         """
+        if deactivation_scope not in {"diagnosis", "group"} or (
+            apply and deactivation_scope == "group"
+        ):
+            raise api_error(422, "Invalid deactivation scope")
         bulk_docs: list[dict[str, Any]] = []
         classification_context = self.classification_context(sample)
         normalized_type = self.normalize_resource_type(resource_type)
@@ -317,12 +325,13 @@ class ResourceClassificationService:
                         )
 
             if not apply:
-                self.annotation_repository.delete_classified_variant(
+                self.annotation_repository.deactivate_classified_variant(
                     variant=identity["variant"],
                     nomenclature=identity["nomenclature"],
                     variant_data=identity["variant_data"],
                     class_num=class_num,
                     annotation_text=automatic_text,
+                    group=deactivation_scope == "group",
                 )
                 continue
 
@@ -374,9 +383,9 @@ class ResourceClassificationService:
         form_data: dict,
         get_variant_nomenclature_fn,
     ) -> None:
-        """Remove a classification document for a resource."""
+        """Deactivate matching resource classifications while retaining their stored history."""
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
-        self.annotation_repository.delete_classified_variant(variant, nomenclature, form_data)
+        self.annotation_repository.deactivate_classified_variant(variant, nomenclature, form_data)
 
 
 __all__ = ["ResourceClassificationService"]

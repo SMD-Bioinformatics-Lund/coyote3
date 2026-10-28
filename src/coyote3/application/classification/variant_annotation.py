@@ -105,6 +105,8 @@ class ResourceAnnotationService:
             doc["asp_id"] = context["assay_id"]
             doc["diagnosis_id"] = context["diagnosis_id"]
             doc["namespace"] = annotation_namespace(sample["environment"])
+            doc["source_sample_id"] = str(sample["_id"])
+            doc["source_finding_id"] = str(target_id)
             self.annotation_repository.add_anno_comment(doc)
         if nomenclature == "f":
             if comment_scope != "global":

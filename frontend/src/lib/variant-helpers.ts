@@ -55,10 +55,21 @@ export function normalizedCallerList(value: unknown) {
 
 export function selectedFusionCall(fusion: any) {
   if (Array.isArray(fusion?.calls) && fusion.calls.length > 0) {
-    return fusion.calls.find((call: any) => call?.selected === 1 || call?.selected === true) ?? fusion.calls[0]
+    return fusion.calls.find((call: any) => call?.selected === 1 || call?.selected === true) ?? {}
   }
 
   return {}
+}
+
+/** Explain why caller evidence cannot supply a fusion identity for tier matching. */
+export function fusionTierUnavailableReason(fusion: {
+  calls?: Array<{ selected?: number | boolean; breakpoint1?: string; breakpoint2?: string }>
+}) {
+  if (!fusion.calls?.length) return "Missing fusion evidence"
+  const selected = fusion.calls.find((call) => call.selected === 1 || call.selected === true)
+  if (!selected) return "Select a fusion call"
+  if (!selected.breakpoint1?.trim() || !selected.breakpoint2?.trim()) return "Missing fusion evidence"
+  return undefined
 }
 
 export function fusionGenes(fusion: any) {

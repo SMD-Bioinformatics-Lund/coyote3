@@ -207,14 +207,19 @@ class FindingCollection:
         *,
         apply: bool = True,
         include_automatic_text: bool = False,
+        deactivation_scope: Literal["diagnosis", "group"] = "diagnosis",
     ) -> ChangeResult:
-        """Assign or remove a tier through the governed bulk classification endpoint.
+        """Assign a tier or deactivate annotations while retaining server-side history.
 
         Args:
             resource_ids: Identifiers belonging to this sample and finding kind.
             tier: Tier from 1 through 4.
-            apply: True assigns; False removes the tier.
+            apply: True assigns; False deactivates the tier without deleting its annotation.
             include_automatic_text: Whether to include the server's automatic annotation text.
+            deactivation_scope: Diagnosis deactivates the selected tier in the current assay
+                and diagnosis. Group deactivates all finding annotations across the biological
+                group's assays and diagnoses in the current namespace; requires apply=False
+                and the server's tier:remove:global permission.
 
         Returns:
             Server change envelope. Permissions, publication and ownership checks remain server-side.
@@ -232,6 +237,10 @@ class FindingCollection:
             raise ValueError("resource_ids must be a nonempty sequence of nonempty strings")
         if type(apply) is not bool or type(include_automatic_text) is not bool:
             raise ValueError("apply and include_automatic_text must be booleans")
+        if deactivation_scope not in ("diagnosis", "group") or (
+            apply and deactivation_scope == "group"
+        ):
+            raise ValueError("Group deactivation requires apply=False and a valid scope")
         return parse_model(
             ChangeResult,
             self._sample_api.classifications.tier.patch(
@@ -241,6 +250,7 @@ class FindingCollection:
                     "tier": tier,
                     "apply": apply,
                     "include_automatic_text": include_automatic_text,
+                    **({"deactivation_scope": "group"} if deactivation_scope == "group" else {}),
                 }
             ),
         )

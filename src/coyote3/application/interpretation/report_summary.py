@@ -170,6 +170,9 @@ def create_classified_variant_doc(
         "diagnosis_id": variant_data.get("diagnosis_id"),
         "namespace": variant_data.get("namespace"),
     }
+    for key in ("source_sample_id", "source_finding_id"):
+        if variant_data.get(key):
+            document[key] = variant_data[key]
 
     if "text" in kwargs:
         document["text"] = kwargs["text"]

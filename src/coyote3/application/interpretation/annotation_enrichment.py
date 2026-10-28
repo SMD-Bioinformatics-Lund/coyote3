@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from coyote3.application.reporting.eligibility import classification_is_usable
+from coyote3.domain.rna.helpers import get_selected_fusioncall
+
 
 def add_alt_class(
     variant: dict,
@@ -43,18 +46,36 @@ def add_global_annotations(
     annotation_repository,
     sample_context: dict | None = None,
 ) -> tuple[list, list]:
-    """
-    Add global annotation/classification fields and collect selected entities.
+    """Attach matched annotations and collect eligible tiered findings.
+
+    Fusion matching uses the selected call's identity with the parent sample ID,
+    as in the fusion detail view, without flattening or changing the stored calls.
+
+    Args:
+        variants: Finding records to enrich in place.
+        assay_group: Biological group used for annotation scope matching.
+        diagnosis: Current diagnosis; None selects the base diagnosis scope.
+        annotation_repository: Repository providing scoped annotation lookups.
+        sample_context: Resolved assay and environment; None cannot establish
+            an effective classification.
+
+    Returns:
+        Enriched findings and the subset with usable tiers and no exclusion flags.
     """
     selected_variants = []
     for var_idx, var in enumerate(variants):
+        annotation_identity = (
+            {**(get_selected_fusioncall(var) or {}), "SAMPLE_ID": var.get("SAMPLE_ID")}
+            if "calls" in var
+            else var
+        )
         (
             variants[var_idx]["global_annotations"],
             variants[var_idx]["classification"],
             variants[var_idx]["other_classification"],
             variants[var_idx]["annotations_interesting"],
         ) = annotation_repository.get_global_annotations(
-            var, assay_group, diagnosis, sample_context=sample_context
+            annotation_identity, assay_group, diagnosis, sample_context=sample_context
         )
         classification = variants[var_idx]["classification"]
         if classification is not None:
@@ -62,6 +83,7 @@ def add_global_annotations(
             if (
                 class_value is not None
                 and class_value < 999
+                and classification_is_usable(classification)
                 and not var.get("blacklist")
                 and not var.get("fp")
                 and not var.get("irrelevant")

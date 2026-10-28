@@ -16,6 +16,7 @@ import {
   findingRowClass,
   fusionCallers,
   fusionGenes,
+  fusionTierUnavailableReason,
   selectedFusionCall,
   statusLabels,
   tierValue,
@@ -212,7 +213,11 @@ export function FusionsTab({
         cellClassName: "w-14 min-w-14",
       },
       header: "Tier",
-      cell: ({ row }) => tierValue(row.original) === 999 ? <FallbackTierBadge candidates={row.original.other_classification} /> : <TierBadge tier={tierValue(row.original)} />,
+      cell: ({ row }) => {
+        const reason = fusionTierUnavailableReason(row.original)
+        if (reason) return <span className="type-meta text-muted-foreground">{reason}</span>
+        return tierValue(row.original) === 999 ? <FallbackTierBadge candidates={row.original.other_classification} /> : <TierBadge tier={tierValue(row.original)} />
+      },
     },
     {
       id: "description",

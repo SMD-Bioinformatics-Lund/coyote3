@@ -42,6 +42,9 @@ class Classification(SdkModel):
     """Server-supplied classification; the SDK does not calculate clinical tiers."""
 
     class_value: int | None = Field(default=None, alias="class")
+    is_active: bool = True
+    historical_sample_match: bool = False
+    legacy_fallback: bool = False
 
 
 class FindingData(SdkModel):

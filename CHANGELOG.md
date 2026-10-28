@@ -9,6 +9,9 @@ review, reporting, administration and integrations into one application.
 
 - Unified DNA and RNA review with assay-aware filtering, reference annotations,
   coverage, biomarkers and consistent finding identities across workflows.
+  Annotation deactivation preserves classification history and recorded sample links,
+  with explicit warnings for uncertain legacy history. Inactive annotations do not
+  automatically tier new samples during analysis.
 - Governed query policies and reporting rules with visual authoring, sample-backed
   previews, independent clinical review and controlled publication.
 - Modern branded reports are the primary format, with repeated PDF patient headers,
@@ -24,7 +27,8 @@ review, reporting, administration and integrations into one application.
 - Central management of assays, diagnoses, gene lists and configurations, including
   validated JSON/YAML bulk installation and a public assay catalog with DNA/RNA
   navigation by sequencing family, biological group and diagnosis, multi-gene
-  matching and test comparison.
+  matching and test comparison. The gene coverage matrix includes knowledgebase
+  badges and keeps grouped headers aligned when analyses and filters change.
 - Shared editing sessions and revision checks protect concurrent changes. Creator
   attribution and read-only system records preserve configuration provenance.
 - Permission-based access across the UI and API, with assay and environment scopes,

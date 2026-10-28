@@ -33,7 +33,10 @@ from coyote3.domain.annotation_identity import (
     annotation_context_fields,
     enrich_annotation_identity,
 )
-from coyote3.domain.annotation_scope import annotation_scope_match
+from coyote3.domain.annotation_scope import (
+    annotation_scope_match,
+    select_sample_annotation_versions,
+)
 from coyote3.domain.dna.variant_identity import build_simple_id
 
 
@@ -153,7 +156,15 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         return None
 
     def get_matching_annotation_text(self, annotation: dict[str, Any]) -> str | None:
-        """Return the newest free-text annotation matching a class annotation identity."""
+        """Return scoped text, preserving a recorded source sample's annotation version.
+
+        Args:
+            annotation: Classification identity, scope, and optional originating sample.
+
+        Returns:
+            Matching active or sample-linked historical text, or None. Unlinked
+            inactive text is never presented as a verified classification explanation.
+        """
         query = _classification_text_lookup_query(annotation)
         if query is None:
             return None
@@ -172,7 +183,14 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         environment = "production" if annotation["namespace"] == "clinical" else "testing"
         query.update(annotation_visibility_query(environment))
         candidates = []
-        for row in self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]):
+        versions = AnnotationsRepository._sample_annotation_versions(
+            self,
+            list(self.get_collection().find(query).sort([("time_created", 1), ("_id", 1)])),
+            annotation.get("source_sample_id"),
+        )
+        for row in reversed(versions):
+            if row.get("legacy_fallback"):
+                continue
             match = annotation_scope_match(
                 row,
                 group_path=group_path,
@@ -228,7 +246,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         return result
 
     def get_global_annotations(
-        self, variant: dict, assay_group: str, diagnosis: str, *, sample_context: dict | None = None
+        self,
+        variant: dict,
+        assay_group: str,
+        diagnosis: str,
+        *,
+        sample_context: dict | None = None,
+        include_history: bool = False,
     ) -> tuple:
         """
         Retrieve global annotations for a given variant, assay, and diagnosis.
@@ -237,6 +261,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         visible-namespace classifications are effective. Broader interpretations are
         ordered by specificity, including nearest biological ancestors, and
         require re-tiering before they can qualify for reporting.
+        Inactive classifications are matched only when explicitly linked to this
+        sample's assignment or report history. Unlinked inactive legacy records
+        remain available in historical search but cannot automatically tier analysis.
 
         Args:
             variant (dict): A dictionary containing variant details, including
@@ -246,6 +273,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             diagnosis (str): Exact diagnosis scope; null or blank selects Base.
             sample_context: Resolved assay and environment. Without context no
                 classification is accepted as effective.
+            include_history: Include other exact-scope classification versions under
+                latest_classification.history, newest first, for detail views only.
 
         Returns:
             tuple: A tuple containing:
@@ -336,11 +365,19 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 break
             group_path.append(parent)
 
+        all_annotations = list(annotations)
+        annotations = AnnotationsRepository._sample_annotation_versions(
+            self,
+            all_annotations,
+            variant.get("SAMPLE_ID") or (sample_context or {}).get("sample_id"),
+        )
         latest_classification = {"class": 999}
         latest_classification_other = {}
-        annotations_arr = []
+        annotations_arr = [row for row in all_annotations if row.get("text") is not None]
         text_candidates = []
         for anno in annotations:
+            if anno.get("is_active") is False and not anno.get("historical_sample_match"):
+                continue
             match = annotation_scope_match(
                 anno, group_path=group_path, diagnosis=diagnosis, context=sample_context or {}
             )
@@ -356,8 +393,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                         **match,
                     }
             if anno.get("text") is not None:
-                annotations_arr.append(anno)
-                if match["effective"] or match["fallback_eligible"]:
+                if (match["effective"] or match["fallback_eligible"]) and (
+                    anno.get("is_active", True) or anno.get("historical_sample_match")
+                ):
                     text_candidates.append((anno, match))
 
         # Oldest-first query order makes reverse order newest-first. Stable
@@ -378,11 +416,74 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         if text_candidates:
             annotations_interesting[f"{assay_group}:{diagnosis}"] = text_candidates[0][0]
 
+        if include_history:
+            latest_classification = {
+                **latest_classification,
+                "history": [
+                    row
+                    for row in reversed(all_annotations)
+                    if _annotation_class_value(row.get("class")) is not None
+                    and row.get("_id") != latest_classification.get("_id")
+                    and annotation_scope_match(
+                        row,
+                        group_path=group_path,
+                        diagnosis=diagnosis,
+                        context=sample_context or {},
+                    )["effective"]
+                ],
+            }
+
         return (
             annotations_arr,
             latest_classification,
             latest_other_arr,
             annotations_interesting,
+        )
+
+    def _sample_annotation_versions(self, annotations: list[dict], sample_id: object) -> list[dict]:
+        """Select sample-linked history before the newest reusable version in each scope.
+
+        Args:
+            annotations: Identity-matched, visible records in oldest-first order.
+            sample_id: Sample owner, or None when no sample-specific history is available.
+
+        Returns:
+            Selected records in creation order. Inactive unlinked legacy records are
+            explicitly marked as uncertain display fallbacks and cannot qualify reports.
+        """
+        references: set[str] = set()
+        if not annotations:
+            return []
+        annotation_ids: list[object] = []
+        for row in annotations:
+            if row.get("_id"):
+                annotation_ids.append(str(row["_id"]))
+                native_id = _annotation_object_id(row["_id"])
+                if native_id is not None:
+                    annotation_ids.append(native_id)
+        reported = getattr(self.adapter, "reported_variants_collection", None)
+        if sample_id and annotation_ids and reported is not None:
+            sample_ids: list[object] = [str(sample_id)]
+            object_id = _annotation_object_id(sample_id)
+            if object_id is not None:
+                sample_ids.append(object_id)
+            for row in reported.find(
+                {
+                    "sample_oid": {"$in": sample_ids},
+                    "$or": [
+                        {"annotation_oid": {"$in": annotation_ids}},
+                        {"annotation_text_oid": {"$in": annotation_ids}},
+                    ],
+                },
+                {"annotation_oid": 1, "annotation_text_oid": 1},
+            ):
+                references.update(
+                    str(row[key])
+                    for key in ("annotation_oid", "annotation_text_oid")
+                    if row.get(key)
+                )
+        return select_sample_annotation_versions(
+            annotations, sample_id=sample_id, report_references=references
         )
 
     def get_latest_transcript_classifications(
@@ -435,8 +536,15 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         query.update(annotation_visibility_query(sample_context["environment"]))
 
         latest_by_transcript: dict[str, dict[str, Any]] = {}
-        annotations = self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)])
+        annotations = AnnotationsRepository._sample_annotation_versions(
+            self,
+            list(self.get_collection().find(query).sort([("time_created", 1), ("_id", 1)])),
+            variant.get("SAMPLE_ID") or sample_context.get("sample_id"),
+        )
+        annotations.reverse()
         for annotation in annotations:
+            if annotation.get("legacy_fallback"):
+                continue
             feature = str(annotation.get("transcript") or "").strip()
             if feature and feature not in latest_by_transcript:
                 latest_by_transcript[feature] = annotation
@@ -492,9 +600,12 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         query["asp_id"] = sample_context["assay_id"]
         query.update(annotation_visibility_query(sample_context["environment"]))
 
-        return list(
-            self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)]).limit(1)
+        annotations = AnnotationsRepository._sample_annotation_versions(
+            self,
+            list(self.get_collection().find(query).sort([("time_created", 1), ("_id", 1)])),
+            variant.get("SAMPLE_ID") or sample_context.get("sample_id"),
         )
+        return [row for row in reversed(annotations) if not row.get("legacy_fallback")][:1]
 
     def insert_classified_variant(
         self,
@@ -542,6 +653,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "diagnosis_id": variant_data.get("diagnosis_id"),
             "namespace": variant_data.get("namespace"),
         }
+        for key in ("source_sample_id", "source_finding_id"):
+            if variant_data.get(key):
+                document[key] = variant_data[key]
 
         if "text" in kwargs:
             document["text"] = kwargs["text"]
@@ -557,20 +671,20 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             self.invalidate_dashboard_metrics()
         return result
 
-    def delete_classified_variant(
+    def deactivate_classified_variant(
         self,
         variant: str,
         nomenclature: str,
         variant_data: dict,
         class_num: int | None = None,
         annotation_text: str | None = None,
+        group: bool = False,
     ) -> OperationResult:
         """
-        Delete a classified variant from the database.
+        Deactivate matching classifications while retaining their identities and history.
 
-        This method removes a classified variant document from the MongoDB collection
-        based on the provided variant details, nomenclature, and assay information.
-        Deletion is limited to the exact assay, diagnosis, nomenclature, and
+        This method retains classification documents in the MongoDB collection.
+        Deactivation is limited to the exact assay, diagnosis, nomenclature, and
         finding context supplied by the current workflow.
 
         Args:
@@ -582,9 +696,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 - namespace (str): Clinical or sandboxed interpretation scope.
                 - diagnosis_id (str): Diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
+            class_num: Selected tier; None deactivates all classifications in the scope.
+            annotation_text: Matching generated text to deactivate alongside the tier, if any.
+            group: Deactivate all classes and text across assays and diagnoses in this
+                biological group, retaining the exact finding identity and namespace.
 
         Returns:
-            A structured write result for the scoped deletion.
+            Matched and modified counts for the scoped deactivation.
         """
         query = {
             "variant": variant,
@@ -598,15 +716,32 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         if class_num is not None:
             class_filter["class"] = class_num
 
-        delete_clause: list[dict] = [class_filter]
+        deactivation_clause: list[dict] = [class_filter]
         if annotation_text:
-            delete_clause.append({"text": annotation_text})
+            deactivation_clause.append({"text": annotation_text})
 
-        scoped_query = {**query, "$or": delete_clause}
+        scoped_query = {**query, "$or": deactivation_clause}
         scoped_query["asp_id"] = variant_data["asp_id"]
         scoped_query["namespace"] = variant_data["namespace"]
-        result = OperationResult.from_delete(self.delete_many_atomic(scoped_query))
-        if result.deleted_count:
+        if group:
+            scoped_query.pop("asp_id")
+            scoped_query.pop("diagnosis_id")
+            scoped_query.pop("$or")
+        scoped_query["is_active"] = {"$ne": False}
+        result = OperationResult.from_update(
+            self.update_many_atomic(
+                scoped_query,
+                {
+                    "$set": {
+                        "is_active": False,
+                        "deactivated_at": utc_now(),
+                        "deactivated_by": current_username(),
+                        "updated_by": current_username(),
+                    }
+                },
+            )
+        )
+        if result.modified_count:
             self.invalidate_dashboard_metrics()
         return result
 
@@ -686,7 +821,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         if query is None:
             return []
 
-        cursor = self.get_collection().find(query).sort("time_created", -1)
+        cursor = self.get_collection().find(query).sort([("time_created", -1), ("_id", -1)])
 
         if limit is not None:
             cursor = cursor.limit(limit)

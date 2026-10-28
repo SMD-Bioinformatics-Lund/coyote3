@@ -1,81 +1,121 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1109" viewBox="0 0 1200 1109" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1674" viewBox="0 0 1200 1674" role="img" aria-labelledby="title description">
 <title id="title">primary.annotation field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
 <style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
-<rect width="1200" height="1109" fill="white"/>
+<rect width="1200" height="1674" fill="white"/>
 <text x="20" y="32" style="font-size:23px;font-weight:600">primary.annotation</text>
 <text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
-<rect x="20" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="116" font-weight="600">primary.reported_variants</text>
-<text x="34" y="135" font-weight="400">annotation_oid</text>
-<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="116" font-weight="600">primary.annotation</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">primary.annotation</text>
+<text x="34" y="135" font-weight="400">source_sample_id</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">primary.samples</text>
 <text x="674" y="135" font-weight="400">_id</text>
 <path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="179" class="kind">optional provenance · many → one</text>
-<rect x="20" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="229" font-weight="600">primary.reported_variants</text>
-<text x="34" y="248" font-weight="400">annotation_text_oid</text>
-<rect x="660" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="229" font-weight="600">primary.annotation</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">primary.annotation</text>
+<text x="34" y="248" font-weight="400">source_finding_id</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">primary.variants</text>
 <text x="674" y="248" font-weight="400">_id</text>
 <path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="292" class="kind">optional provenance · many → one</text>
+<text x="20" y="292" class="kind">optional polymorphic provenance · many → one</text>
 <rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="342" font-weight="600">primary.annotation</text>
-<text x="34" y="361" font-weight="400">asp_id</text>
+<text x="34" y="361" font-weight="400">source_finding_id</text>
 <rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="342" font-weight="600">primary.assay_specific_panels</text>
-<text x="674" y="361" font-weight="400">asp_id</text>
+<text x="674" y="342" font-weight="600">primary.cnvs</text>
+<text x="674" y="361" font-weight="400">_id</text>
 <path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="405" class="kind">scope · many → one</text>
+<text x="20" y="405" class="kind">optional polymorphic provenance · many → one</text>
 <rect x="20" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="455" font-weight="600">primary.annotation</text>
-<text x="34" y="474" font-weight="400">asp_group</text>
+<text x="34" y="474" font-weight="400">source_finding_id</text>
 <rect x="660" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="455" font-weight="600">primary.assay_groups</text>
-<text x="674" y="474" font-weight="400">group_id</text>
+<text x="674" y="455" font-weight="600">primary.translocations</text>
+<text x="674" y="474" font-weight="400">_id</text>
 <path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="518" class="kind">scope · many → one</text>
+<text x="20" y="518" class="kind">optional polymorphic provenance · many → one</text>
 <rect x="20" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="568" font-weight="600">primary.annotation</text>
-<text x="34" y="587" font-weight="400">diagnosis_id</text>
+<text x="34" y="587" font-weight="400">source_finding_id</text>
 <rect x="660" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="568" font-weight="600">primary.diagnoses</text>
-<text x="674" y="587" font-weight="400">diagnosis_id</text>
+<text x="674" y="568" font-weight="600">primary.fusions</text>
+<text x="674" y="587" font-weight="400">_id</text>
 <path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="631" class="kind">scope · many → one</text>
-<rect x="20" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="681" font-weight="600">primary.annotation</text>
-<text x="34" y="700" font-weight="400">genomic + genomic_hash</text>
-<rect x="660" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="681" font-weight="600">primary.variants</text>
-<text x="674" y="700" font-weight="400">simple_id + simple_id_hash</text>
+<text x="20" y="631" class="kind">optional polymorphic provenance · many → one</text>
+<rect x="20" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="681" font-weight="600">primary.reported_variants</text>
+<text x="34" y="700" font-weight="400">annotation_oid</text>
+<rect x="660" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="681" font-weight="600">primary.annotation</text>
+<text x="674" y="700" font-weight="400">_id</text>
 <path d="M540 691.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="744" class="kind">clinical identity match · many ↔ many</text>
-<rect x="20" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="794" font-weight="600">primary.annotation</text>
-<text x="34" y="813" font-weight="400">hgvsc</text>
-<rect x="660" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="794" font-weight="600">primary.variants</text>
-<text x="674" y="813" font-weight="400">HGVSc</text>
+<text x="20" y="744" class="kind">optional provenance · many → one</text>
+<rect x="20" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="794" font-weight="600">primary.reported_variants</text>
+<text x="34" y="813" font-weight="400">annotation_text_oid</text>
+<rect x="660" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="794" font-weight="600">primary.annotation</text>
+<text x="674" y="813" font-weight="400">_id</text>
 <path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="857" class="kind">clinical identity match · many ↔ many</text>
+<text x="20" y="857" class="kind">optional provenance · many → one</text>
 <rect x="20" y="883" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="907" font-weight="600">primary.annotation</text>
-<text x="34" y="926" font-weight="400">hgvsp</text>
+<text x="34" y="926" font-weight="400">asp_id</text>
 <rect x="660" y="883" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="907" font-weight="600">primary.variants</text>
-<text x="674" y="926" font-weight="400">HGVSp</text>
+<text x="674" y="907" font-weight="600">primary.assay_specific_panels</text>
+<text x="674" y="926" font-weight="400">asp_id</text>
 <path d="M540 917.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="970" class="kind">clinical identity match · many ↔ many</text>
+<text x="20" y="970" class="kind">scope · many → one</text>
 <rect x="20" y="996" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1020" font-weight="600">primary.annotation</text>
-<text x="34" y="1039" font-weight="400">transcript</text>
+<text x="34" y="1039" font-weight="400">asp_group</text>
 <rect x="660" y="996" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1020" font-weight="600">primary.anno_vep</text>
-<text x="674" y="1039" font-weight="400">CSQ[].Feature</text>
+<text x="674" y="1020" font-weight="600">primary.assay_groups</text>
+<text x="674" y="1039" font-weight="400">group_id</text>
 <path d="M540 1030.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1083" class="kind">enrichment lookup · many ↔ many</text>
+<text x="20" y="1083" class="kind">scope · many → one</text>
+<rect x="20" y="1109" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1133" font-weight="600">primary.annotation</text>
+<text x="34" y="1152" font-weight="400">diagnosis_id</text>
+<rect x="660" y="1109" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1133" font-weight="600">primary.diagnoses</text>
+<text x="674" y="1152" font-weight="400">diagnosis_id</text>
+<path d="M540 1143.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1196" class="kind">scope · many → one</text>
+<rect x="20" y="1222" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1246" font-weight="600">primary.annotation</text>
+<text x="34" y="1265" font-weight="400">genomic + genomic_hash</text>
+<rect x="660" y="1222" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1246" font-weight="600">primary.variants</text>
+<text x="674" y="1265" font-weight="400">simple_id + simple_id_hash</text>
+<path d="M540 1256.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1309" class="kind">clinical identity match · many ↔ many</text>
+<rect x="20" y="1335" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1359" font-weight="600">primary.annotation</text>
+<text x="34" y="1378" font-weight="400">hgvsc</text>
+<rect x="660" y="1335" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1359" font-weight="600">primary.variants</text>
+<text x="674" y="1378" font-weight="400">HGVSc</text>
+<path d="M540 1369.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1422" class="kind">clinical identity match · many ↔ many</text>
+<rect x="20" y="1448" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1472" font-weight="600">primary.annotation</text>
+<text x="34" y="1491" font-weight="400">hgvsp</text>
+<rect x="660" y="1448" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1472" font-weight="600">primary.variants</text>
+<text x="674" y="1491" font-weight="400">HGVSp</text>
+<path d="M540 1482.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1535" class="kind">clinical identity match · many ↔ many</text>
+<rect x="20" y="1561" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="1585" font-weight="600">primary.annotation</text>
+<text x="34" y="1604" font-weight="400">transcript</text>
+<rect x="660" y="1561" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="1585" font-weight="600">primary.anno_vep</text>
+<text x="674" y="1604" font-weight="400">CSQ[].Feature</text>
+<path d="M540 1595.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="1648" class="kind">enrichment lookup · many ↔ many</text>
 </svg>

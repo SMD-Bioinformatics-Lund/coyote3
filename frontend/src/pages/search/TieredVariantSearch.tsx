@@ -191,6 +191,19 @@ export function TieredVariantSearch() {
       cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {
+      id: "annotation_status",
+      header: "Annotation status",
+      accessorFn: (row) => row.is_active === false ? "Inactive" : "Active",
+      cell: ({ row }) => (
+        <div className="space-y-1">
+          <TableBadge className={row.original.is_active === false ? "badge-warning" : "badge-info"}>
+            {row.getValue("annotation_status")}
+          </TableBadge>
+          {row.original.legacy_fallback && <p className="type-caption text-muted-foreground">Legacy fallback</p>}
+        </div>
+      ),
+    },
+    {
       id: "analysis_type",
       header: "Type",
       accessorFn: (row) => row.analysis_type || row.finding_type || "FINDING",
@@ -487,17 +500,26 @@ export function TieredVariantSearch() {
             {error instanceof Error ? error.message : "Unable to search tiered findings"}
           </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={data?.docs || []}
-            filename="tiered_findings.csv"
-            stateKey="tiered_variants"
-            sortingState={sorting}
-            onSortingChange={(value) => {
-              setSorting(value)
-              updateTableSearchParams({ sorting: value })
-            }}
-          />
+          <>
+            {(data?.docs || []).some((row: { legacy_fallback?: boolean }) => row.legacy_fallback) && (
+              <div role="note" className="mb-3 rounded-lg border border-warn/40 bg-warn/10 p-3 type-body-sm text-foreground">
+                Legacy annotation history: where no saved tier-assignment or report link exists,
+                the latest matching annotation is shown, even if inactive. This does not confirm
+                the tier used on a particular sample. Only recorded links identify historical samples.
+              </div>
+            )}
+            <DataTable
+              columns={columns}
+              data={data?.docs || []}
+              filename="tiered_findings.csv"
+              stateKey="tiered_variants"
+              sortingState={sorting}
+              onSortingChange={(value) => {
+                setSorting(value)
+                updateTableSearchParams({ sorting: value })
+              }}
+            />
+          </>
         )}
       </div>
     </PageShell>

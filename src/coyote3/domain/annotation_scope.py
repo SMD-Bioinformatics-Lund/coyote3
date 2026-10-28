@@ -3,6 +3,55 @@
 from typing import Any
 
 
+def select_sample_annotation_versions(
+    annotations: list[dict[str, Any]], *, sample_id: object, report_references: set[str]
+) -> list[dict[str, Any]]:
+    """Prefer recorded sample history over reusable interpretations in each clinical scope.
+
+    Args:
+        annotations: Identity-matched, namespace-visible records in oldest-first order.
+        sample_id: Current sample identifier, or None for a context-free lookup.
+        report_references: Annotation IDs explicitly referenced by this sample's reports.
+
+    Returns:
+        Selected records in creation order. Unlinked inactive legacy versions carry
+        legacy_fallback instead of being represented as verified sample history.
+    """
+    selected: dict[tuple[Any, ...], tuple[dict[str, Any], bool, int]] = {}
+    for index, annotation in enumerate(annotations):
+        key = tuple(
+            annotation.get(field)
+            for field in (
+                "asp_group",
+                "asp_id",
+                "diagnosis_id",
+                "namespace",
+                "nomenclature",
+                "gene",
+                "gene1",
+                "gene2",
+                "transcript",
+            )
+        ) + ("class" if annotation.get("class") is not None else "text",)
+        linked = bool(sample_id) and (
+            str(annotation.get("source_sample_id") or "") == str(sample_id)
+            or str(annotation.get("_id")) in report_references
+        )
+        previous = selected.get(key)
+        if previous and previous[1] and not linked:
+            continue
+        selected[key] = (annotation, linked, index)
+    result = []
+    for annotation, linked, _index in sorted(selected.values(), key=lambda item: item[2]):
+        if annotation.get("is_active", True):
+            result.append(annotation)
+        elif linked:
+            result.append({**annotation, "historical_sample_match": True})
+        elif not annotation.get("source_sample_id"):
+            result.append({**annotation, "legacy_fallback": True})
+    return result
+
+
 def annotation_namespace(environment: str) -> str:
     """Map a sample environment to its stored interpretation namespace.
 

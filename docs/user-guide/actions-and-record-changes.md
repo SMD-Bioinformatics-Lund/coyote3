@@ -26,7 +26,9 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 |---|---|---|---|---|
 | **Mark False Positive** | Detail Views | `PATCH .../flags/false-positive` | `fp` flag status | finding removal from prioritized review streams. |
 | **Classify (Tier)** | Classification Panel | `POST .../classifications` | `annotations.class` | Formal clinical tier assignment applied. |
-| **Remove Class** | Classification Panel | `DELETE .../classifications` | Mutation of active annotation index | Clearance of clinical priority markers. |
+| **Deactivate** | Classification Panel or bulk tier actions | `PATCH .../classifications/tier` with `apply: false` | `annotations.is_active: false`, `deactivated_at`, `deactivated_by` | Retains matching tier records in the current assay, diagnosis and namespace. Recorded sample/report links continue to resolve the historical annotation. |
+| **Deactivate group annotations** | Classification Panel | Same endpoint with `apply: false`, `deactivation_scope: group` | Same lifecycle fields on all matching classifications and text annotations | Deactivates this finding across all assays and diagnoses in its biological group, within the current namespace. Requires `tier:remove:global`; no records are deleted. |
+| **Deactivate classification (API)** | API clients | `DELETE .../classifications` | Marks matching classifications inactive | Preserves annotation records and their historical sample links. |
 | **Save Comment** | Annotation Form | `POST .../annotations` | `annotations` collection record | Persistence of review notes and diagnostic audit trail. |
 | **Add to Blacklist** | Variant Details | `POST .../blacklist_entries` | `blacklist` collection update | Systematic exclusion from future center-level findings. |
 
@@ -38,6 +40,12 @@ Finding detail pages expose only actions that are meaningful for the active doma
 - **CNVs**: false-positive toggle, report inclusion toggle, and noteworthy toggle.
 - **Translocations**: false-positive toggle and report inclusion toggle.
 - **Fusions**: false-positive toggle and selected-call control. Fusion call selection is separate from the finding flag controls because it changes the evidence source rather than the clinical interpretation state.
+
+Fusion tables and detail pages use the explicitly selected call for breakpoint-based
+tier matching. If calls exist but none is selected, they show **Select a fusion call**.
+If calls are absent or the selected call lacks either breakpoint, they show
+**Missing fusion evidence**. Detail-page tier controls are unavailable until the
+selected call supplies both breakpoints; the first caller is never selected implicitly.
 
 Blacklist entry creation asks for confirmation because it changes center-level future filtering. Blacklist override is sample-scoped and is only available when a blacklist match is present.
 
@@ -52,6 +60,37 @@ Comment behavior is intentionally different between sample-level review and find
 - Hide/unhide controls mutate visibility; hidden comments remain auditable but are visually de-emphasized.
 
 Global finding annotations and sample-specific finding annotations are shown in separate cards so reviewers can distinguish center-wide interpretation knowledge from comments tied to the active sample.
+
+### Inactive annotations and sample history
+
+New tier assignments store `source_sample_id` and `source_finding_id` on the annotation.
+Deactivation preserves the original annotation ID, tier, author, text and creation time.
+Repeated deactivation leaves the original deactivation actor and time unchanged.
+Assigning a tier again creates a new annotation; it does not reactivate an old record.
+
+Sample views retain an inactive version when a tier assignment or saved
+`reported_variants.annotation_oid` links that version to the sample. Other samples
+use the newest reusable interpretation in their exact clinical scope. An inactive
+assignment from another sample is not adopted, and an older active tier is not
+resurrected after its newer replacement is deactivated.
+Analysis tables do not automatically assign tiers from inactive, unlinked annotations,
+including legacy annotations. The latest inactive legacy fallback is available in
+tiered variant search for historical review, not as an automatic analysis tier.
+Finding detail cards show the current matched classification and its classification
+history, newest first, with the recorded tier, text, author and time. History uses
+the same finding identity, namespace, assay, biological group and diagnosis matching
+as the current classification; it includes inactive versions without reapplying them.
+
+Tiered variant search shows **Active** or **Inactive** and attaches only recorded
+sample links. For legacy annotations without assignment or report links, it shows
+the latest matching version, including inactive versions, with a disclaimer above
+the table. Such a fallback cannot establish the tier used on a particular sample.
+An uncertain inactive legacy fallback must be re-tiered before a new report can
+include it. Existing saved report artifacts and snapshots remain unchanged.
+
+Existing annotations without `is_active` are treated as active. No historical
+sample links are inferred or backfilled. Deployed collection validators must accept
+the current annotation contract before lifecycle writes are enabled.
 
 ### Bulk classification text
 

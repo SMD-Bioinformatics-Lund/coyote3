@@ -14,7 +14,7 @@ from coyote3.application.interpretation.annotation_enrichment import (
 )
 from coyote3.application.query_rules.service import effective_policy
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
-from coyote3.application.reporting.eligibility import reportable_tiers
+from coyote3.application.reporting.eligibility import classification_is_usable, reportable_tiers
 from coyote3.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
@@ -131,7 +131,7 @@ def filter_variants_for_report(
                 or (not restrict_to_genes and len(filter_genes) == 0)
             )
             and not var.get("blacklist")
-            and var.get("classification")
+            and classification_is_usable(var.get("classification"))
             and var.get("classification", {}).get("class") in allowed_tiers
         ],
         key=lambda var: var.get("classification", {}).get("class", 0),

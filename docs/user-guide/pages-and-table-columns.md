@@ -581,7 +581,7 @@ are defined in [Knowledgebase Evidence](../reference/knowledgebases/evidence-sou
 
 Route: `/variants/search`
 
-This page searches reported tiered clinical findings across samples. It uses
+This page searches classification/text annotations and reported findings across samples. It uses
 the typed annotation and `reported_variants` contracts, so one result set can
 contain small variants, CNVs, fusions, and translocations.
 
@@ -592,7 +592,8 @@ contain small variants, CNVs, fusions, and translocations.
 | Assays | Filters results by assay. |
 | Tier cards | Current result count by tier. |
 | Assay distribution | Tier count distribution by assay for the current search. |
-| Tier | Reported tier badge. |
+| Tier | Clinical annotation tier, or the saved report tier for a snapshot result. |
+| Annotation status | Active or Inactive; unlinked legacy results also show Legacy fallback. |
 | Type | Normalized analysis type: SNV, CNV, FUSION, or TRANSLOCATION. |
 | Gene(s) | One gene for SNV/CNV findings or both partner genes for fusions and translocations. |
 | Finding | Nomenclature-aware primary identity. Small variants prefer the matching HGVS field; CNVs, fusions, and translocations use their typed `variant` identity. |
@@ -602,13 +603,18 @@ contain small variants, CNVs, fusions, and translocations.
 | Diagnosis | Diagnosis/diagnosis context. |
 | Author | User who created the annotation/classification. |
 | Annotation | Stored annotation text, merged with class context when applicable. |
-| Samples | Samples and immutable report links where this reported finding appears. |
+| Samples | Recorded annotation-origin samples and samples linked through saved report snapshots. |
 
-Search results originate in `annotation`. Sample/report links are resolved
-through `reported_variants.annotation_oid`, `sample_oid`, and `report_oid`;
-`report_id` remains the report's logical identifier. Links are not inferred
-from display text. The snapshot preserves nomenclature, analysis type,
-applicable genes, and typed identity fields.
+Search combines `annotation` records and `reported_variants` snapshots. Sample links
+come from `source_sample_id`, or snapshot `annotation_oid`/`annotation_text_oid`
+references with `sample_oid` and report identifiers. Only links to samples the user
+can access are shown. Links are not inferred from display text or gene names.
+
+Inactive annotations remain searchable. For legacy annotations without origin or
+report references, only the latest matching version per identity/scope is shown,
+including inactive versions. A disclaimer above the table explains that this cannot
+establish which tier a particular sample used. This search fallback does not
+automatically assign an inactive tier during analysis.
 
 ## Gene Cohort Explorer
 

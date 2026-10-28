@@ -4600,7 +4600,7 @@ Sample.remove_classification(self, resource_type: 'FindingKind', resource_id: 's
 ```
 
 ```text
-Remove a classification through the existing sample-owned identity workflow.
+Deactivate classifications through the sample-owned identity workflow.
 
 Args:
     resource_type: Canonical finding family.
@@ -4665,10 +4665,11 @@ Sample.set_tiers(self, change: 'TierChange') -> 'None'
 ```
 
 ```text
-Assign or remove tiers with current curation and production-publication grants.
+Assign tiers or deactivate annotations with curation and publication grants.
 
 Args:
-    change: Explicit tier, finding family, identifiers and assignment/removal intent.
+    change: Tier, finding family, identifiers and assignment/deactivation intent.
+        Group deactivation additionally requires tier:remove:global.
 
 Raises:
     AppError: Access, ownership or existing clinical configuration checks fail.
@@ -5002,7 +5003,7 @@ Returns:
 ### `TierChange`
 
 ```python
-TierChange(*, resource_type: Literal['small_variant', 'cnv', 'fusion', 'translocation'], resource_ids: Annotated[list[str], MaxLen(max_length=10000)], tier: Annotated[int, Ge(ge=1), Le(le=4)], apply: bool = True, include_automatic_text: bool = False) -> None
+TierChange(*, resource_type: Literal['small_variant', 'cnv', 'fusion', 'translocation'], resource_ids: Annotated[list[str], MaxLen(max_length=10000)], tier: Annotated[int, Ge(ge=1), Le(le=4)], apply: bool = True, include_automatic_text: bool = False, deactivation_scope: Literal['diagnosis', 'group'] = 'diagnosis') -> None
 ```
 
 ```text
@@ -5017,6 +5018,16 @@ TierChange.normalize_resource_type(value: str) -> str
 
 ```text
 Retain the existing finding-family input spellings before canonical validation.
+```
+
+#### `TierChange.validate_deactivation_scope`
+
+```python
+TierChange.validate_deactivation_scope(self) -> 'TierChange'
+```
+
+```text
+Reject group deactivation intent on a tier assignment.
 ```
 
 ### `Traceability`
@@ -6577,17 +6588,21 @@ Returns:
 #### `FindingCollection.set_tier`
 
 ```python
-FindingCollection.set_tier(self, resource_ids: 'Sequence[str]', tier: 'Literal[1, 2, 3, 4]', *, apply: 'bool' = True, include_automatic_text: 'bool' = False) -> 'ChangeResult'
+FindingCollection.set_tier(self, resource_ids: 'Sequence[str]', tier: 'Literal[1, 2, 3, 4]', *, apply: 'bool' = True, include_automatic_text: 'bool' = False, deactivation_scope: "Literal['diagnosis', 'group']" = 'diagnosis') -> 'ChangeResult'
 ```
 
 ```text
-Assign or remove a tier through the governed bulk classification endpoint.
+Assign a tier or deactivate annotations while retaining server-side history.
 
 Args:
     resource_ids: Identifiers belonging to this sample and finding kind.
     tier: Tier from 1 through 4.
-    apply: True assigns; False removes the tier.
+    apply: True assigns; False deactivates the tier without deleting its annotation.
     include_automatic_text: Whether to include the server's automatic annotation text.
+    deactivation_scope: Diagnosis deactivates the selected tier in the current assay
+        and diagnosis. Group deactivates all finding annotations across the biological
+        group's assays and diagnoses in the current namespace; requires apply=False
+        and the server's tier:remove:global permission.
 
 Returns:
     Server change envelope. Permissions, publication and ownership checks remain server-side.

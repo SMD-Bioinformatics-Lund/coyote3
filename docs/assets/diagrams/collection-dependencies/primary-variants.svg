@@ -1,112 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2013" viewBox="0 0 1200 2013" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2126" viewBox="0 0 1200 2126" role="img" aria-labelledby="title description">
 <title id="title">primary.variants field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
 <style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
-<rect width="1200" height="2013" fill="white"/>
+<rect width="1200" height="2126" fill="white"/>
 <text x="20" y="32" style="font-size:23px;font-weight:600">primary.variants</text>
 <text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
-<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="116" font-weight="600">primary.variants</text>
-<text x="34" y="135" font-weight="400">SAMPLE_ID</text>
-<rect x="660" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="116" font-weight="600">primary.samples</text>
+<rect x="20" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="116" font-weight="600">primary.annotation</text>
+<text x="34" y="135" font-weight="400">source_finding_id</text>
+<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="116" font-weight="600">primary.variants</text>
 <text x="674" y="135" font-weight="400">_id</text>
 <path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="179" class="kind">string ObjectId · many → one</text>
-<rect x="20" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="229" font-weight="600">primary.finding_comments</text>
-<text x="34" y="248" font-weight="400">finding_oid</text>
-<rect x="660" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="229" font-weight="600">primary.variants</text>
+<text x="20" y="179" class="kind">optional polymorphic provenance · many → one</text>
+<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="229" font-weight="600">primary.variants</text>
+<text x="34" y="248" font-weight="400">SAMPLE_ID</text>
+<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="229" font-weight="600">primary.samples</text>
 <text x="674" y="248" font-weight="400">_id</text>
 <path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="292" class="kind">polymorphic reference · many → one</text>
+<text x="20" y="292" class="kind">string ObjectId · many → one</text>
 <rect x="20" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="342" font-weight="600">primary.reported_variants</text>
-<text x="34" y="361" font-weight="400">var_oid</text>
+<text x="34" y="342" font-weight="600">primary.finding_comments</text>
+<text x="34" y="361" font-weight="400">finding_oid</text>
 <rect x="660" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="342" font-weight="600">primary.variants</text>
 <text x="674" y="361" font-weight="400">_id</text>
 <path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="405" class="kind">optional polymorphic reference · many → one</text>
-<rect x="20" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="455" font-weight="600">primary.variants</text>
-<text x="34" y="474" font-weight="400">simple_id_hash + sample database_versions.vep</text>
-<rect x="660" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="455" font-weight="600">primary.anno_vep</text>
-<text x="674" y="474" font-weight="400">simple_id_hash + vep_version</text>
+<text x="20" y="405" class="kind">polymorphic reference · many → one</text>
+<rect x="20" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="455" font-weight="600">primary.reported_variants</text>
+<text x="34" y="474" font-weight="400">var_oid</text>
+<rect x="660" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="455" font-weight="600">primary.variants</text>
+<text x="674" y="474" font-weight="400">_id</text>
 <path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="518" class="kind">composite lookup · many → one</text>
+<text x="20" y="518" class="kind">optional polymorphic reference · many → one</text>
 <rect x="20" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="568" font-weight="600">primary.variants</text>
-<text x="34" y="587" font-weight="400">selected_csq_feature</text>
+<text x="34" y="587" font-weight="400">simple_id_hash + sample database_versions.vep</text>
 <rect x="660" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="674" y="568" font-weight="600">primary.anno_vep</text>
-<text x="674" y="587" font-weight="400">CSQ[].Feature</text>
+<text x="674" y="587" font-weight="400">simple_id_hash + vep_version</text>
 <path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="631" class="kind">conditional lookup · many → one</text>
-<rect x="20" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="681" font-weight="600">primary.annotation</text>
-<text x="34" y="700" font-weight="400">genomic + genomic_hash</text>
-<rect x="660" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="681" font-weight="600">primary.variants</text>
-<text x="674" y="700" font-weight="400">simple_id + simple_id_hash</text>
+<text x="20" y="631" class="kind">composite lookup · many → one</text>
+<rect x="20" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="681" font-weight="600">primary.variants</text>
+<text x="34" y="700" font-weight="400">selected_csq_feature</text>
+<rect x="660" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="681" font-weight="600">primary.anno_vep</text>
+<text x="674" y="700" font-weight="400">CSQ[].Feature</text>
 <path d="M540 691.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="744" class="kind">clinical identity match · many ↔ many</text>
+<text x="20" y="744" class="kind">conditional lookup · many → one</text>
 <rect x="20" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="34" y="794" font-weight="600">primary.annotation</text>
-<text x="34" y="813" font-weight="400">hgvsc</text>
+<text x="34" y="813" font-weight="400">genomic + genomic_hash</text>
 <rect x="660" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="794" font-weight="600">primary.variants</text>
-<text x="674" y="813" font-weight="400">HGVSc</text>
+<text x="674" y="813" font-weight="400">simple_id + simple_id_hash</text>
 <path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="857" class="kind">clinical identity match · many ↔ many</text>
 <rect x="20" y="883" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="34" y="907" font-weight="600">primary.annotation</text>
-<text x="34" y="926" font-weight="400">hgvsp</text>
+<text x="34" y="926" font-weight="400">hgvsc</text>
 <rect x="660" y="883" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="907" font-weight="600">primary.variants</text>
-<text x="674" y="926" font-weight="400">HGVSp</text>
+<text x="674" y="926" font-weight="400">HGVSc</text>
 <path d="M540 917.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="970" class="kind">clinical identity match · many ↔ many</text>
 <rect x="20" y="996" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1020" font-weight="600">primary.blacklist</text>
-<text x="34" y="1039" font-weight="400">pos</text>
+<text x="34" y="1020" font-weight="600">primary.annotation</text>
+<text x="34" y="1039" font-weight="400">hgvsp</text>
 <rect x="660" y="996" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1020" font-weight="600">primary.variants</text>
-<text x="674" y="1039" font-weight="400">simple_id</text>
+<text x="674" y="1039" font-weight="400">HGVSp</text>
 <path d="M540 1030.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1083" class="kind">identity match · many ↔ many</text>
-<rect x="20" y="1109" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="1133" font-weight="600">primary.variants</text>
-<text x="34" y="1152" font-weight="400">CHROM + POS + ALT</text>
-<rect x="660" y="1109" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1133" font-weight="600">knowledgebase.civic_variants</text>
-<text x="674" y="1152" font-weight="400">chromosome + start + variant_bases</text>
+<text x="20" y="1083" class="kind">clinical identity match · many ↔ many</text>
+<rect x="20" y="1109" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="34" y="1133" font-weight="600">primary.blacklist</text>
+<text x="34" y="1152" font-weight="400">pos</text>
+<rect x="660" y="1109" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="674" y="1133" font-weight="600">primary.variants</text>
+<text x="674" y="1152" font-weight="400">simple_id</text>
 <path d="M540 1143.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1196" class="kind">evidence lookup · one → many</text>
+<text x="20" y="1196" class="kind">identity match · many ↔ many</text>
 <rect x="20" y="1222" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1246" font-weight="600">primary.variants</text>
-<text x="34" y="1265" font-weight="400">CHROM + POS + REF + ALT</text>
+<text x="34" y="1265" font-weight="400">CHROM + POS + ALT</text>
 <rect x="660" y="1222" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1246" font-weight="600">knowledgebase.brcaexchange</text>
-<text x="674" y="1265" font-weight="400">chr + pos + ref + alt OR chr38 + pos38 + ref38 + alt38</text>
+<text x="674" y="1246" font-weight="600">knowledgebase.civic_variants</text>
+<text x="674" y="1265" font-weight="400">chromosome + start + variant_bases</text>
 <path d="M540 1256.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1309" class="kind">assembly-specific lookup · many → one</text>
+<text x="20" y="1309" class="kind">evidence lookup · one → many</text>
 <rect x="20" y="1335" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1359" font-weight="600">primary.variants</text>
-<text x="34" y="1378" font-weight="400">cosmic_ids[] + CHROM + POS + REF + ALT</text>
+<text x="34" y="1378" font-weight="400">CHROM + POS + REF + ALT</text>
 <rect x="660" y="1335" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1359" font-weight="600">knowledgebase.cosmic</text>
-<text x="674" y="1378" font-weight="400">id OR chr + start + ref + alt</text>
+<text x="674" y="1359" font-weight="600">knowledgebase.brcaexchange</text>
+<text x="674" y="1378" font-weight="400">chr + pos + ref + alt OR chr38 + pos38 + ref38 + alt38</text>
 <path d="M540 1369.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1422" class="kind">evidence lookup · one → many</text>
+<text x="20" y="1422" class="kind">assembly-specific lookup · many → one</text>
 <rect x="20" y="1448" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1472" font-weight="600">primary.variants</text>
 <text x="34" y="1491" font-weight="400">cosmic_ids[] + CHROM + POS + REF + ALT</text>
 <rect x="660" y="1448" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1472" font-weight="600">knowledgebase.cosmic_noncoding_variants</text>
+<text x="674" y="1472" font-weight="600">knowledgebase.cosmic</text>
 <text x="674" y="1491" font-weight="400">id OR chr + start + ref + alt</text>
 <path d="M540 1482.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="1535" class="kind">evidence lookup · one → many</text>
@@ -114,32 +114,40 @@
 <text x="34" y="1585" font-weight="600">primary.variants</text>
 <text x="34" y="1604" font-weight="400">cosmic_ids[] + CHROM + POS + REF + ALT</text>
 <rect x="660" y="1561" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1585" font-weight="600">knowledgebase.cosmic_targeted_variants</text>
+<text x="674" y="1585" font-weight="600">knowledgebase.cosmic_noncoding_variants</text>
 <text x="674" y="1604" font-weight="400">id OR chr + start + ref + alt</text>
 <path d="M540 1595.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="1648" class="kind">evidence lookup · one → many</text>
 <rect x="20" y="1674" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1698" font-weight="600">primary.variants</text>
-<text x="34" y="1717" font-weight="400">HGVSc</text>
+<text x="34" y="1717" font-weight="400">cosmic_ids[] + CHROM + POS + REF + ALT</text>
 <rect x="660" y="1674" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1698" font-weight="600">knowledgebase.iarc_tp53</text>
-<text x="674" y="1717" font-weight="400">var</text>
+<text x="674" y="1698" font-weight="600">knowledgebase.cosmic_targeted_variants</text>
+<text x="674" y="1717" font-weight="400">id OR chr + start + ref + alt</text>
 <path d="M540 1708.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1761" class="kind">evidence lookup · many → one</text>
+<text x="20" y="1761" class="kind">evidence lookup · one → many</text>
 <rect x="20" y="1787" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1811" font-weight="600">primary.variants</text>
-<text x="34" y="1830" font-weight="400">HGVSp + genes[]</text>
+<text x="34" y="1830" font-weight="400">HGVSc</text>
 <rect x="660" y="1787" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1811" font-weight="600">knowledgebase.onkokb</text>
-<text x="674" y="1830" font-weight="400">Alteration + Gene</text>
+<text x="674" y="1811" font-weight="600">knowledgebase.iarc_tp53</text>
+<text x="674" y="1830" font-weight="400">var</text>
 <path d="M540 1821.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1874" class="kind">evidence lookup · one → many</text>
+<text x="20" y="1874" class="kind">evidence lookup · many → one</text>
 <rect x="20" y="1900" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="34" y="1924" font-weight="600">primary.variants</text>
 <text x="34" y="1943" font-weight="400">HGVSp + genes[]</text>
 <rect x="660" y="1900" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="1924" font-weight="600">knowledgebase.oncokb_actionable</text>
+<text x="674" y="1924" font-weight="600">knowledgebase.onkokb</text>
 <text x="674" y="1943" font-weight="400">Alteration + Gene</text>
 <path d="M540 1934.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
 <text x="20" y="1987" class="kind">evidence lookup · one → many</text>
+<rect x="20" y="2013" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
+<text x="34" y="2037" font-weight="600">primary.variants</text>
+<text x="34" y="2056" font-weight="400">HGVSp + genes[]</text>
+<rect x="660" y="2013" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
+<text x="674" y="2037" font-weight="600">knowledgebase.oncokb_actionable</text>
+<text x="674" y="2056" font-weight="400">Alteration + Gene</text>
+<path d="M540 2047.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="20" y="2100" class="kind">evidence lookup · one → many</text>
 </svg>

@@ -38,12 +38,12 @@ result set rather than only the rows visible on the current page.
 | --- | --- |
 | Select | Selects rows for an allowed bulk action. |
 | Info | Curation and knowledgebase markers such as false positive, irrelevant, or COSMIC Cancer Gene Census (`CGC`). Hover a marker to read its meaning and matched gene context. |
-| Gene 1 and Gene 2 | The two fusion partners selected from the normalized fusion call. |
+| Gene 1 and Gene 2 | The two partners stored on the normalized fusion finding. |
 | Effect | The predicted fusion effect, such as in-frame, when supplied by the source data. |
 | SP | Spanning-pair evidence supporting the selected fusion call. |
 | Unique SR | Unique split-read or spanning-read evidence, depending on the caller payload. |
 | Fusion points | The available breakpoint coordinates for both partners. |
-| Tier | The current clinical tier. A dash means that the fusion has not been tiered. |
+| Tier | The current matched clinical tier, a contextual tier requiring confirmation, or an evidence/selection status. A dash means no eligible tier match was found. |
 | Description | Caller or annotation description associated with the selected fusion call. |
 | Callers | The tools that reported the fusion. |
 | Unlabeled detail column | Opens the fusion detail page. |
@@ -54,6 +54,24 @@ result set rather than only the rows visible on the current page.
 > interpretation depends on the assay, caller, and validated laboratory
 > thresholds.
 >
+
+### Fusion tier matching
+
+The table and detail page match the explicitly selected call's breakpoints and gene
+context against annotations in the sample's clinical scope. The parent sample ID
+preserves recorded historical links; caller names do not determine tiers.
+
+| State | Display and action |
+| --- | --- |
+| Selected call with both breakpoints | Review the matched tier or classify the finding in the current scope. |
+| Calls exist, none selected | **Select a fusion call**. Review the caller alternatives and use **Pick** to select one. The first caller is not used implicitly. |
+| No calls, or selected call lacks a breakpoint | **Missing fusion evidence**. Review the source evidence; detail-page tier controls are unavailable until a selected call supplies both breakpoints. |
+
+Inactive annotations do not automatically tier a new sample. Explicit sample/report
+links can preserve a historical tier. See
+[matching, deactivation and history](clinical-review-workflow.md#how-a-tier-is-matched).
+COSMIC **CGC Tier** badges describe gene-level knowledgebase evidence and are separate
+from this clinical classification.
 
 ## Search, Sort, and Export
 

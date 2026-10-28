@@ -80,6 +80,11 @@ Optional keys:
 - `time_created` (datetime)
 - `class_` (int | None)
 - `text` (str | None)
+- `is_active` (bool)
+- `deactivated_at` (datetime.datetime | None)
+- `deactivated_by` (str | None)
+- `source_sample_id` (str | None)
+- `source_finding_id` (str | None)
 
 ## `app_controls`
 

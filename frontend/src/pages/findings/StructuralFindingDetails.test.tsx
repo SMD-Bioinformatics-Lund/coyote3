@@ -26,6 +26,20 @@ function mount(path: string, route: string, element: React.ReactNode) {
 describe("structural finding detail pages", () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it.each([
+    { calls: [], reason: "Missing fusion evidence" },
+    { calls: [{ selected: false, caller: "ARRIBA", breakpoint1: "22:100", breakpoint2: "9:200" }], reason: "Select a fusion call" },
+  ])("explains unavailable classification on fusion detail: $reason", async ({ calls, reason }) => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "RNA_001" },
+      fusion: { _id: "F1", gene1: "BCR", gene2: "ABL1", calls },
+      annotations: [], latest_classification: { class: 999 },
+    } })
+    mount("/samples/RNA_001/fusion/F1", "/samples/:id/fusion/:varId", <FusionDetail />)
+    expect(await screen.findByText(reason)).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Tier 1" })).not.toBeInTheDocument()
+  })
+
   it("renders CNV identity, copy-number evidence, overlapping genes, and status", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_001" },

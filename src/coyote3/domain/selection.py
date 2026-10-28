@@ -50,6 +50,7 @@ class RecordField(Enum):
     IDENTITY = "identity"
     SAMPLE = "sample_identity"
     ANNOTATION_REFERENCE = "annotation_reference"
+    ANNOTATION_TEXT_REFERENCE = "annotation_text_reference"
 
 
 Criteria = dict[str | Operator | RecordField, Any]

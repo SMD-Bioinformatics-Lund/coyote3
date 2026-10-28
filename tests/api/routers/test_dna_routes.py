@@ -751,12 +751,14 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
         "hgvsc",
         "genomic",
         "genomic_hash",
+        "source_sample_id",
+        "source_finding_id",
     }
     assert captured["docs"][0]["variant_data"]["hgvsp"] == "p.V600E"
     assert captured["docs"][0]["variant_data"]["hgvsc"] is None
 
 
-def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypatch):
+def test_set_variant_tier_bulk_remove_deactivates_requested_classification(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: list[dict] = []
@@ -781,7 +783,7 @@ def test_set_variant_tier_bulk_remove_deletes_requested_classification(monkeypat
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
         store.annotation_repository,
-        "delete_classified_variant",
+        "deactivate_classified_variant",
         lambda **kwargs: captured.append(kwargs),
     )
     monkeypatch.setattr(

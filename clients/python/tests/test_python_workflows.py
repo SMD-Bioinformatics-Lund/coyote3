@@ -108,6 +108,8 @@ def test_nested_finding_workflows(workflow_client, collection, path, resource_ty
     }
     findings.set_tier(["demo-finding"], 2, apply=False)
     assert json.loads(requests[-1].content)["apply"] is False
+    findings.set_tier(["demo-finding"], 2, apply=False, deactivation_scope="group")
+    assert json.loads(requests[-1].content)["deactivation_scope"] == "group"
     assert all(request.headers["authorization"] == "Bearer synthetic-token" for request in requests)
 
 
@@ -119,6 +121,15 @@ def test_tiered_variants_uses_server_selection(workflow_client):
     assert len(requests) == 1
     assert requests[0].url.path == "/mounted/api/v1/samples/demo/small-variants/tiered"
     assert dict(requests[0].url.params) == {"intent": "germline", "q": "gene"}
+
+
+def test_group_deactivation_cannot_be_sent_as_tier_assignment(workflow_client):
+    client, requests = workflow_client
+    with pytest.raises(ValueError, match="Group deactivation requires apply=False"):
+        client.samples.ref("demo").variants.set_tier(
+            ["demo-finding"], 2, deactivation_scope="group"
+        )
+    assert requests == []
 
 
 @pytest.mark.parametrize("tier", [0, 5, True, 2.0, "2"])

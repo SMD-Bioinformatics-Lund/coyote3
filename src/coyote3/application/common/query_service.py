@@ -427,8 +427,24 @@ class CommonQueryService:
         assays: list[str] | None,
         limit_entries: int,
         nomenclatures: list[str] | None = None,
+        sample_is_visible: Callable[[str], bool] | None = None,
     ) -> dict[str, Any]:
-        """Search tiered variants and related annotations across reports."""
+        """Search classification history with recorded sample links and legacy fallbacks.
+
+        Args:
+            search_str: Identity or text search, or None for no search term.
+            search_mode: Supported identity, author, diagnosis or annotation search field.
+            include_annotation_text: Include stored text and resolve referenced report text.
+            assays: Optional biological group identifiers restricting the search.
+            limit_entries: Maximum annotation and reported-finding candidates per source.
+            nomenclatures: Optional finding identity kinds; None permits all kinds.
+            sample_is_visible: Request-scoped sample-access predicate. None is reserved
+                for trusted internal callers with unrestricted sample access.
+
+        Returns:
+            Search rows with recorded sample/report links, annotation lifecycle state,
+            legacy_fallback on unlinked latest versions, and filter/count metadata.
+        """
         assay_choices = list(self.assay_panel_repository.get_all_asp_groups() or [])
         effective_assays = assays if assays else None
         nomenclature_choices = sorted(NOMENCLATURE_FIELDS)
@@ -481,10 +497,46 @@ class CommonQueryService:
             sample_oids: dict[str, dict[str, Any]] = {}
             reported_docs = list(
                 self.reported_variant_repository.list_reported_variants(
-                    select({RecordField.ANNOTATION_REFERENCE: {Operator.IN: [str(doc["_id"])]}})
+                    select(
+                        {
+                            Operator.ANY: [
+                                {field: {Operator.IN: [str(doc["_id"])]}}
+                                for field in (
+                                    RecordField.ANNOTATION_REFERENCE,
+                                    RecordField.ANNOTATION_TEXT_REFERENCE,
+                                )
+                            ]
+                        }
+                    )
                 )
                 or []
             )
+            has_recorded_history = bool(reported_docs) or bool(doc.get("source_sample_id"))
+            if sample_is_visible is not None:
+                reported_docs = [
+                    row
+                    for row in reported_docs
+                    if row.get("sample_oid") and sample_is_visible(str(row["sample_oid"]))
+                ]
+            source_sample_id = doc.get("source_sample_id")
+            if source_sample_id and (
+                sample_is_visible is None or sample_is_visible(str(source_sample_id))
+            ):
+                source_sample = self.sample_repository.get_sample_by_oid(source_sample_id)
+                if source_sample:
+                    sample_oids[str(source_sample_id)] = {
+                        **self._sample_reference(
+                            sample_oid=source_sample_id,
+                            sample_doc=source_sample,
+                            sample_name=source_sample.get("name"),
+                        ),
+                        "annotation_link": "tier_assignment",
+                    }
+            elif source_sample_id:
+                merged_doc.pop("source_sample_id", None)
+                merged_doc.pop("source_finding_id", None)
+                if not reported_docs and doc.get("is_active") is False:
+                    continue
 
             for reported_doc in reported_docs:
                 if reported_doc.get("_id") is not None:
@@ -517,13 +569,15 @@ class CommonQueryService:
                             sample_oids[sample_key]["latest_report_num"] = numeric_report_num
 
                 if include_annotation_text and annotation_text_oid:
-                    associated_annotation_text_oids.add(annotation_text_oid)
+                    if str(annotation_text_oid) != str(doc["_id"]):
+                        associated_annotation_text_oids.add(str(annotation_text_oid))
                     merged_doc["text"] = self.annotation_repository.get_annotation_text_by_oid(
                         annotation_text_oid
                     )
 
             merged_doc["reported_docs"] = reported_docs
             merged_doc["samples"] = sample_oids
+            merged_doc["legacy_fallback"] = not has_recorded_history
             assay_groups = list(
                 dict.fromkeys(
                     str(value).strip()
@@ -550,12 +604,22 @@ class CommonQueryService:
             merged_doc["diagnosis"] = diagnoses[0] if len(diagnoses) == 1 else None
             merged_doc.update(finding_display_fields(merged_doc))
 
-            if merged_doc.get("_id") not in associated_annotation_text_oids:
-                sample_tagged_docs.append(merged_doc)
+            sample_tagged_docs.append(merged_doc)
+
+        sample_tagged_docs = [
+            row
+            for row in sample_tagged_docs
+            if str(row.get("_id")) not in associated_annotation_text_oids
+        ]
 
         for reported_doc in reported_found:
             reported_doc_id = str(reported_doc.get("_id"))
             if reported_doc_id in reported_docs_seen:
+                continue
+            if sample_is_visible is not None and (
+                not reported_doc.get("sample_oid")
+                or not sample_is_visible(str(reported_doc["sample_oid"]))
+            ):
                 continue
 
             annotation_oid = reported_doc.get("annotation_oid")
@@ -580,7 +644,7 @@ class CommonQueryService:
             merged_doc = {
                 **annotation_doc,
                 **reported_doc,
-                "class": annotation_doc.get("class") or reported_doc.get("tier"),
+                "class": reported_doc.get("tier") or annotation_doc.get("class"),
                 "author": annotation_doc.get("author") or reported_doc.get("created_by"),
                 "samples": {
                     sample_key: {
@@ -595,6 +659,13 @@ class CommonQueryService:
                 },
                 "reported_docs": [reported_doc],
             }
+            if (
+                sample_is_visible is not None
+                and merged_doc.get("source_sample_id")
+                and not sample_is_visible(str(merged_doc["source_sample_id"]))
+            ):
+                merged_doc.pop("source_sample_id", None)
+                merged_doc.pop("source_finding_id", None)
             merged_doc["assay_group"] = (
                 (sample_doc or {}).get("assay_group")
                 or merged_doc.get("assay_group")
@@ -620,8 +691,34 @@ class CommonQueryService:
                 )
             sample_tagged_docs.append(merged_doc)
 
+        # Unlinked legacy records cannot establish which version a sample used.
+        # Keep only the newest version per exact scope without inventing sample links.
+        legacy_scopes: set[tuple] = set()
+        history_docs = []
+        for row in sample_tagged_docs:
+            if row.get("legacy_fallback"):
+                key = tuple(
+                    row.get(field)
+                    for field in (
+                        "variant",
+                        "nomenclature",
+                        "gene",
+                        "gene1",
+                        "gene2",
+                        "transcript",
+                        "asp_group",
+                        "asp_id",
+                        "diagnosis_id",
+                        "namespace",
+                    )
+                ) + ("class" if row.get("class") is not None else "text",)
+                if key in legacy_scopes:
+                    continue
+                legacy_scopes.add(key)
+            history_docs.append(row)
+
         return {
-            "docs": sample_tagged_docs,
+            "docs": history_docs,
             "search_str": search_str,
             "search_mode": search_mode,
             "include_annotation_text": include_annotation_text,

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { ClassificationsCard, CommentsCard } from "./FindingDetailCards"
@@ -8,6 +8,10 @@ import { DetailCard } from "./FindingDetailLayout"
 const { patch, notifySuccess } = vi.hoisted(() => ({ patch: vi.fn(), notifySuccess: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { patch } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess, notifyActionError: vi.fn() }))
+vi.mock("@/lib/access-control", () => ({
+  useCurrentUserAccess: () => ({ data: { permissions: ["tier:remove:global"] } }),
+  hasPermission: (user: { permissions: string[] }, permission: string) => user.permissions.includes(permission),
+}))
 vi.mock("@/lib/app-module-state", () => ({
   useApplicationModules: () => ({
     data: {
@@ -33,6 +37,26 @@ function renderWithQuery(ui: React.ReactNode) {
 }
 
 describe("finding detail cards", () => {
+  it("emphasizes the current tier and shows matching history with author, text and date", () => {
+    renderWithQuery(<ClassificationsCard
+      latest={{ class: 2, author: "current-reviewer", time_created: "2026-03-01T10:00:00Z", history: [
+        { _id: "previous", class: 1, text: "Previous reasoning", author: "previous-reviewer", time_created: "2026-02-01T10:00:00Z", is_active: false },
+        { _id: "oldest", class: 3, text: "Original reasoning", author: "first-reviewer", time_created: "2026-01-01T10:00:00Z" },
+      ] }}
+      sampleId="S1" resourceType="small_variant" resourceId="V1"
+    />)
+    expect(screen.getByRole("button", { name: "Tier 2" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: "Tier 2" })).toHaveClass("opacity-100")
+    expect(screen.getByRole("button", { name: "Tier 1" })).toHaveClass("opacity-65")
+    const entries = within(screen.getByRole("region", { name: "Classification history" })).getAllByRole("article")
+    expect(entries).toHaveLength(2)
+    expect(entries[0]).toHaveTextContent("Previous reasoning")
+    expect(entries[0]).toHaveTextContent("previous-reviewer")
+    expect(entries[0]).toHaveTextContent("Inactive")
+    expect(entries[0]).toHaveTextContent("2026")
+    expect(entries[1]).toHaveTextContent("Original reasoning")
+    expect(screen.getByText("current-reviewer")).toBeVisible()
+  })
   it("distinguishes reference tiers from the effective classification", () => {
     renderWithQuery(<ClassificationsCard latest={{ class: 999 }} other={[
       { class: 2, asp_group: "solid", asp_id: "demo-solid", diagnosis_id: "lung", namespace: "clinical", effective: false, requires_retiering: true },
@@ -103,8 +127,8 @@ describe("finding detail cards", () => {
     const { rerender } = renderWithQuery(
       <ClassificationsCard latest={{ tier: 4 }} sampleId="S1" resourceType="small_variant" resourceId="V1" />,
     )
-    await user.click(screen.getByRole("button", { name: "Remove" }))
-    await user.click(screen.getByRole("button", { name: "Remove classification" }))
+    await user.click(screen.getByRole("button", { name: "Deactivate" }))
+    await user.click(screen.getByRole("button", { name: "Deactivate annotations" }))
     await waitFor(() => expect(patch).toHaveBeenCalledWith(
       "/samples/S1/classifications/tier",
       expect.objectContaining({ tier: 4, apply: false }),
@@ -127,6 +151,25 @@ describe("finding detail cards", () => {
 
     expect(screen.getByText("Existing classification")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Tier 1" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument()
+  })
+
+  it("confirms group deactivation with its scope and retains historical status", async () => {
+    patch.mockClear()
+    patch.mockResolvedValueOnce({ ok: true })
+    renderWithQuery(<ClassificationsCard latest={{ class: 2, is_active: false, historical_sample_match: true }}
+      sampleId="S1" resourceType="small_variant" resourceId="V1" />)
+    expect(screen.getByText("Inactive")).toBeVisible()
+    expect(screen.getByText(/Historical annotation linked to this sample/)).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: "Deactivate group annotations" }))
+    expect(screen.getByText(/every assay and diagnosis in the biological group/)).toBeVisible()
+    expect(patch).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("button", { name: "Deactivate annotations" }))
+    await waitFor(() => expect(patch).toHaveBeenCalledWith("/samples/S1/classifications/tier", {
+      resource_type: "small_variant", resource_ids: ["V1"], tier: 2, apply: false,
+      deactivation_scope: "group",
+    }))
   })
 })
