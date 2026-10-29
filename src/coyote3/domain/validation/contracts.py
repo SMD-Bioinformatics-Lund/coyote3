@@ -50,7 +50,7 @@ def validate_report_inputs(
     if not assay_config.get("asp_group"):
         _raise_contract_error(logger, "report", sample_name, "Missing assay_config.asp_group")
     reporting = assay_config.get("reporting") or {}
-    for field_name in ("report_header", "report_method", "report_description"):
+    for field_name in ("report_header", "report_method"):
         if not str(reporting.get(field_name) or "").strip():
             _raise_contract_error(
                 logger,

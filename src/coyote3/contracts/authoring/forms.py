@@ -202,10 +202,19 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
             fields[field_name].update(deepcopy(override))
 
     display_name_fields = {"display_name", "displayname"} & fields.keys()
+    display_example, short_example = {
+        "asp": ("Example Sequencing Panel", "Example Panel"),
+        "aspc_dna": ("Example DNA Base Configuration", "Example DNA Base"),
+        "aspc_rna": ("Example RNA Base Configuration", "Example RNA Base"),
+        "isgl": ("Myeloid Neoplasm Gene List", "Myeloid genes"),
+        "role": ("Clinical Variant Reviewer", "Variant reviewer"),
+        "permission": ("View Audit Log", "Audit view"),
+    }.get(spec.key, ("Clinical Review", "Review"))
     if "name" in fields and display_name_fields:
         fields["name"]["help"] = (
             "Short name used in tables, dropdowns, filters and compact badges. "
-            "Use Display name for the full name shown on cards and detail headings."
+            "Use Display name for the full name shown on cards and detail headings. "
+            f"Example: {short_example}."
         )
     for field_name in display_name_fields:
         fields[field_name]["help"] = "Full name shown on cards and detail headings. " + (
@@ -215,6 +224,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
             else "This resource has no separate short name, so its display name is "
             "also used in tables and dropdowns."
         )
+        fields[field_name]["help"] += f" Example: {display_example}."
 
     identity_field = {
         "asp": "asp_id",

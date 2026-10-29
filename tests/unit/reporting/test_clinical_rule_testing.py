@@ -8,7 +8,10 @@ import pytest
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
 from coyote3.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.contracts.schemas.clinical_rules import (
+    ClinicalRuleSamplePreviewPayload,
+    ClinicalRuleSetDoc,
+)
 from coyote3.domain.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
@@ -168,6 +171,7 @@ def test_preview_uses_selected_rule_version_without_persistence(monkeypatch, ana
         )
         .model_dump(mode="json")
     )
+    evaluation["sections"]["analysis_description"] = ["Synthetic method description."]
     testing = service(document=document, evaluation=evaluation)
     monkeypatch.setattr(
         "coyote3.application.reporting.clinical_rules.testing.get_formatted_assay_config",
@@ -188,6 +192,9 @@ def test_preview_uses_selected_rule_version_without_persistence(monkeypatch, ana
     assert result["persisted"] is False
     assert result["sample"]["name"] == "Case 1"
     assert "Findings" in result["summary"]
+    response = ClinicalRuleSamplePreviewPayload.model_validate(result)
+    assert response.analysis_description == "Synthetic method description."
+    assert response.analysis_description not in response.summary
 
 
 def test_preview_can_request_detailed_condition_trace(monkeypatch) -> None:

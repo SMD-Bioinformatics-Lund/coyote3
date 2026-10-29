@@ -72,7 +72,7 @@
 
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
+  {{ analysis_description|format_comment|safe }}
   <p><b>Tabell: Förklaring av klassificering</b></p>
   {% include 'components/rna/classification.html' %}
   <p><b>Referenser</b></p>

@@ -209,7 +209,7 @@
 
 {% block biomarker_details scoped %}{% endblock biomarker_details %}<span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ assay_config.reporting.report_description|sanitize_report_html|safe }}
+  {{ analysis_description|format_comment|safe }}
 
   {% set ns = namespace(table_no=1) %}
   <div>

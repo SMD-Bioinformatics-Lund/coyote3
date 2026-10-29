@@ -65,7 +65,7 @@ export function PresentationFields({ value, presets, onChange, showAnalysis = tr
 }) {
   return <div className="space-y-4">
     {showHeading && <><div className="grid gap-3 md:grid-cols-2">
-      <TextField label="Display name" help="Full service title shown on catalog cards and service details. Assay dropdowns and matrix headers use the assay's short name." value={value.label || value.title} onChange={(label) => onChange({ ...value, label, title: label })} />
+      <TextField label="Display name" help="Full service title shown on catalog cards and service details. Assay dropdowns and matrix headers use the assay's short name. Example: Example Sequencing Panel." value={value.label || value.title} onChange={(label) => onChange({ ...value, label, title: label })} />
       <TextField label="Subheading" value={value.subheading} onChange={(subheading) => onChange({ ...value, subheading })} />
     </div>
     <TextField label="Description" multiline value={value.description} onChange={(description) => onChange({ ...value, description })} /></>}

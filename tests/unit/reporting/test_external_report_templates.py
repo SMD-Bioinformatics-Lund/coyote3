@@ -1,4 +1,4 @@
-"""External templates preserve approved legacy hashes, HTML and PDF presentation."""
+"""Registered templates retain deterministic hashes and HTML/PDF presentation."""
 
 from copy import deepcopy
 from pathlib import Path
@@ -117,19 +117,17 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
         (
             "dna",
             "dna_report.html",
-            "1081dbe2540a415b821366f524c1c5f3059782bddd91ad2b15166230771b5f62",
+            "bb363aa1ec3f76158119ce2cde5f6f9ef124376192777d89cf19dfc017ef19fb",
         ),
         (
             "rna",
             "report_fusion.html",
-            "6f292583c7e8c4633707240bf776dc7ba97e1846f9af732ffe5c23b5bcc32f17",
+            "3706c04884402ff098802909cb9d066957c5ee63cf6912ccf076cee2bfb47907",
         ),
     ],
 )
 @pytest.mark.parametrize("layout", ["legacy", "modern"])
-def test_registered_layout_matches_html_fixture_and_preserves_legacy_digest(
-    analyte, name, digest, layout
-):
+def test_registered_layout_matches_html_fixture_and_template_digest(analyte, name, digest, layout):
     inputs = context()
     original = deepcopy(inputs)
     html = render_report_html(

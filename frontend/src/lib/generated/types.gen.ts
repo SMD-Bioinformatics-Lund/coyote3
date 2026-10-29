@@ -2502,6 +2502,7 @@ export type ClinicalRuleDraftUpdate = {
  * Rendered sections, heading choices, and traces tied to a rule source.
  */
 export type ClinicalRuleEvaluation = {
+    analysis_description_source?: ClinicalRuleSourceRef | null;
     /**
      * Section Headings
      */
@@ -2874,9 +2875,13 @@ export type ClinicalRuleRevisionsPayload = {
 /**
  * ClinicalRuleSamplePreviewPayload
  *
- * Nonpersisted evaluation with sample, rule-set, and summary context.
+ * Nonpersisted evaluation with separate summary and analysis description text.
  */
 export type ClinicalRuleSamplePreviewPayload = {
+    /**
+     * Analysis Description
+     */
+    analysis_description: string;
     evaluation: ClinicalRuleEvaluation;
     /**
      * Persisted

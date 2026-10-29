@@ -38,10 +38,12 @@ def pagination_context(analyte, image_shape):
             "reporting": {
                 "report_header": "Synthetic report",
                 "report_method": "Synthetic assay",
-                "report_description": "<p>SYNTHETIC_DESCRIPTION_END</p>",
             }
         },
         "report_header": "Synthetic report",
+        "clinical_rule_evaluation": {
+            "sections": {"analysis_description": ["SYNTHETIC_DESCRIPTION_END"]}
+        },
         "report_sections": ["SNV"] if analyte == "dna" else [],
         "report_sections_data": {"snvs": [variant]},
         "genes_covered_in_panel": {},

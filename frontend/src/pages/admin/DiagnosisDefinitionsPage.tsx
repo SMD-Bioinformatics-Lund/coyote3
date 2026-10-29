@@ -166,7 +166,7 @@ export function DiagnosisDefinitionsPage() {
           const name = event.target.value
           setValues({ ...values, display_name: name, ...(editing === "new" && !idEdited ? { diagnosis_id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100).replace(/^-|-$/g, "") } : {}) })
         }} /></label>
-        <p className="mt-1 type-meta text-muted-foreground">Display name is the readable diagnosis label used in cards, tables and dropdowns. Diagnoses have no separate short-name field; the identifier remains the stable reference.</p></div>
+        <p className="mt-1 type-meta text-muted-foreground">Display name is the readable diagnosis label used in cards, tables and dropdowns. Diagnoses have no separate short-name field; the identifier remains the stable reference. Example: Myeloproliferative Neoplasm.</p></div>
         <label className="type-label">Diagnosis identifier<Input required readOnly={editing !== "new"} maxLength={100} value={values.diagnosis_id} aria-invalid={Boolean(values.diagnosis_id) && !validId} onChange={(event) => { setIdEdited(true); setValues({ ...values, diagnosis_id: event.target.value }) }} />
           {values.diagnosis_id && !validId && <span className="text-destructive">Use lowercase letters, numbers, hyphens between distinct terms; underscores within names. Base is implicit.</span>}
         </label>

@@ -13,6 +13,9 @@ export const ANALYSES = {
 
 export const clone = <T,>(value: T): T => structuredClone(value)
 
+export const ruleSectionLabel = (section: string): string =>
+  section === "analysis_description" ? "Analysis description" : section
+
 export type NewRuleSetScope = {
   asp_id: string
   diagnosis_id: string
@@ -107,6 +110,7 @@ export const newRuleBlock = (blocks: RuleBlock[]): RuleBlock => {
 
 export const SECTION_STARTERS = [
   ["intro", "General introduction", ""],
+  ["analysis_description", "Analysis description", ""],
   ["snv_summary", "SNV summary: findings / no findings", "SNV"],
   ["snv", "Variant text", "SNV"],
   ["cnv", "CNV text", "CNV"],
@@ -125,7 +129,8 @@ export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleS
   block.block_id = nextIdentifier(`${scope.asp_id}_${scope.diagnosis_id}_${key}`, blocks.map(item => item.block_id))
   block.section = block.name = preset[1]
   block.analysis = preset[2] || null
-  block.show_heading = !["intro", "closing"].includes(key)
+  block.show_heading = !["intro", "closing", "analysis_description"].includes(key)
+  if (key === "analysis_description") block.section = "analysis_description"
   block.rules = []
   const used = blocks.flatMap(item => item.rules.map(rule => rule.rule_id))
   const add = (name: string, output: OutputNode[], condition: ClinicalRule["condition"] = null) => {
@@ -145,7 +150,7 @@ export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleS
   const number = (path: string): OutputNode => ({ type: "number", path, precision: 0, unit: "", missing: "error" })
   const predicate = (fact: string, operator: string, value: unknown): ClinicalRule["condition"] => ({ type: "predicate", fact, operator, value })
   const sv = scope.language === "sv"
-  if (key === "intro") {
+  if (key === "intro" || key === "analysis_description") {
     block.match_strategy = "all_matches"
     const analysis = scope.analyte === "rna" ? "fusion" : "snv"
     add("Assay and panel scope", [text(sv ? "Analysen omfattar " : "The analysis covers "), number("asp.covered_genes_count"), text(sv ? " gener i " : " genes in "), fact("asp.display_name"), text(". ")])

@@ -8,7 +8,7 @@ import { RuleCompositionPreview } from "./RuleCompositionPreview"
 import { RuleHelp } from "./RuleHelp"
 
 type Sample = { id: string; name: string; diagnosis_id: string }
-type Preview = { summary: string; evaluation: { trace: { matched: boolean }[] } }
+type Preview = { summary: string; analysis_description: string; evaluation: { trace: { matched: boolean }[] } }
 
 export function RuleSetPreview({ draft, facts, saved, canTest }: {
   draft: ClinicalRuleSet; facts: FactDefinition[]; saved: boolean; canTest: boolean
@@ -31,7 +31,7 @@ export function RuleSetPreview({ draft, facts, saved, canTest }: {
     staleTime: Infinity,
   })
   return <section aria-label="Complete rule-set preview" className="space-y-3">
-    <div className="flex items-center gap-2"><h2 className="type-section-title">Complete report summary</h2><RuleHelp label="Composition or actual sample result">Without a sample, this panel shows all enabled alternatives and placeholder values, not a final report. Choose an authorized sample to evaluate the complete saved rule set. Disabled rules are excluded. Live preview does not create the embedded cases required for publication.</RuleHelp></div>
+    <div className="flex items-center gap-2"><h2 className="type-section-title">Complete report text</h2><RuleHelp label="Composition or actual sample result">Without a sample, this panel shows all enabled alternatives and placeholder values, not a final report. Choose an authorized sample to evaluate the complete saved rule set. Disabled rules are excluded. Live preview does not create the embedded cases required for publication.</RuleHelp></div>
     {canTest ? <div className="space-y-2">
       <Input aria-label="Find preview sample" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a sample for actual values…" />
       <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={matchDiagnosis} onChange={event => { setMatchDiagnosis(event.target.checked); setSampleId("") }} /> Match rule-set diagnosis only</label>
@@ -42,7 +42,7 @@ export function RuleSetPreview({ draft, facts, saved, canTest }: {
       {!saved ? <p role="status" className="type-body-sm text-muted-foreground">Waiting for valid edits to save before evaluating all conditions.</p>
         : result.isFetching ? <p role="status" className="type-body-sm">Evaluating the complete rule set…</p>
           : result.error ? <p role="alert" className="type-body-sm text-destructive">{result.error instanceof Error ? result.error.message : "Unable to evaluate this rule set."}</p>
-            : result.data && <><div className="paper-inset rounded-lg p-3"><MarkdownText text={result.data.summary || "No narrative rules matched this sample."} /></div><p className="type-meta text-muted-foreground">Actual sample values · saved revision {draft.revision} · {result.data.evaluation.trace.filter(item => item.matched).length} rules matched. No report is saved.</p></>}
+            : result.data && <><div className="paper-inset space-y-3 rounded-lg p-3"><h3 className="type-section-title">Report summary</h3><MarkdownText text={result.data.summary || "No summary rules matched this sample."} /><h3 className="type-section-title">Analysis description</h3><MarkdownText text={result.data.analysis_description || "No analysis description rules matched this sample."} /></div><p className="type-meta text-muted-foreground">Actual sample values · saved revision {draft.revision} · {result.data.evaluation.trace.filter(item => item.matched).length} rules matched. No report is saved.</p></>}
     </> : <RuleCompositionPreview draft={draft} facts={facts} />}
   </section>
 }

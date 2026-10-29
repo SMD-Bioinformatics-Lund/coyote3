@@ -29,19 +29,21 @@ def test_renderer_rejects_a_changed_approved_template():
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
-def test_report_description_preserves_formatting_but_rejects_active_html(analyte):
+def test_rule_analysis_description_preserves_formatting_but_rejects_active_html(analyte):
     html = render_report_html(
         template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
         template_context={
             "sample": {"name": "synthetic", "case": {}, "control": {}},
-            "assay_config": {
-                "reporting": {
-                    "report_description": (
-                        '<p onclick="attack()">Method <strong>validated</strong> H<sub>2</sub>O</p>'
-                        '<img src=x onerror="attack()"><svg onload="attack()"></svg>'
-                        '<a href="javascript:attack()">bad link</a><script>attack()</script>'
-                        '<a href="https://example.org">Reference</a>'
-                    )
+            "clinical_rule_evaluation": {
+                "sections": {
+                    "analysis_description": [
+                        (
+                            '<p onclick="attack()">Method <strong>validated</strong> H<sub>2</sub>O</p>'
+                            '<img src=x onerror="attack()"><svg onload="attack()"></svg>'
+                            '<a href="javascript:attack()">bad link</a><script>attack()</script>'
+                            '<a href="https://example.org">Reference</a>'
+                        )
+                    ]
                 }
             },
             "report_sections": [],
@@ -129,7 +131,6 @@ def test_dna_report_renderer_uses_master_style_template():
                 "reporting": {
                     "report_header": "DNA report",
                     "report_method": "Panel sequencing",
-                    "report_description": "Analysis description",
                 }
             },
             "report_sections": ["SNV"],
@@ -201,7 +202,6 @@ def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():
             "assay_config": {
                 "reporting": {
                     "report_method": "RNA fusion analysis",
-                    "report_description": "Fusion analysis",
                 }
             },
             "fusions": [],

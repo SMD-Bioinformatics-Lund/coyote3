@@ -203,6 +203,9 @@ class ClinicalRuleTestingService:
                 "status": rule_set.status.value,
             },
             "summary": rendered_summary(ClinicalRuleEvaluation.model_validate(evaluation)),
+            "analysis_description": "\n\n".join(
+                evaluation.get("sections", {}).get("analysis_description", [])
+            ),
             "evaluation": evaluation,
             "persisted": False,
         }

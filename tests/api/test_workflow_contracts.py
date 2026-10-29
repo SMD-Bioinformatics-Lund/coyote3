@@ -34,7 +34,6 @@ def test_validate_report_inputs_accepts_valid_payload():
             "reporting": {
                 "report_header": "DNA report",
                 "report_method": "Panel sequencing",
-                "report_description": "Clinical DNA analysis.",
                 "report_folder": "templates/dna_report.html",
             },
         },
@@ -58,7 +57,6 @@ def test_validate_report_inputs_raises_on_missing_report_folder():
                 "reporting": {
                     "report_header": "DNA report",
                     "report_method": "Panel sequencing",
-                    "report_description": "Clinical DNA analysis.",
                 },
             },
             analyte="dna",

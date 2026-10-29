@@ -105,7 +105,6 @@ def validate_profile_content(draft: ConfigurationProfileDraft) -> None:
         baseline = {
             "report_header": "Profile validation",
             "report_method": "Profile validation",
-            "report_description": "Profile validation",
             "plots_path": "plots",
             "report_folder": "reports",
         }

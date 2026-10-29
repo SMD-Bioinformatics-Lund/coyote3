@@ -12,6 +12,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { cn } from "@/lib/utils"
 import type { ClinicalRuleSet } from "./clinical-rules-types"
 import { clinicalConditionTone, clinicalRuleSectionTone } from "./clinical-rules-visuals"
+import { ruleSectionLabel } from "./clinical-rule-authoring"
 import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
 
 type TestSample = {
@@ -73,7 +74,7 @@ function RuleExecutionTrace({ preview }: { preview: SamplePreview }) {
         return (
           <section key={section} className={cn("rounded-lg border p-3", clinicalRuleSectionTone(sectionIndex).surface)}>
             <div className="flex items-center justify-between gap-3">
-              <h3 className="font-semibold">{section}</h3>
+              <h3 className="font-semibold">{ruleSectionLabel(section)}</h3>
               <span className="text-xs text-muted-foreground">{entries.filter((entry) => entry.matched).length}/{entries.length} matched</span>
             </div>
             {blocks.map((blockId) => (
@@ -162,13 +163,13 @@ export function ClinicalRuleTestingPage() {
           </div>
         </section>
         <section className="surface-panel min-h-80 p-4">
-          <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Generated report summary</h2>{previewMutation.data && <Badge variant="outline" className="badge-read-only-preview">Read-only preview</Badge>}</div>
+          <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Generated report text</h2>{previewMutation.data && <Badge variant="outline" className="badge-read-only-preview">Read-only preview</Badge>}</div>
           {previewMutation.error && <p role="alert" className="mt-4 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{previewMutation.error instanceof Error ? previewMutation.error.message : "Unable to generate the rule-set preview."}</p>}
           {previewMutation.data ? <>
-            <div className="mt-4 space-y-3">{Object.entries(previewMutation.data.evaluation.sections).map(([section, texts], sectionIndex) => <section key={section} className={cn("rounded-lg border p-4", clinicalRuleSectionTone(sectionIndex).surface)}><h3 className="mb-2 font-semibold">{section}</h3>{texts.map((text, index) => <MarkdownText key={index} text={text} />)}</section>)}{!Object.keys(previewMutation.data.evaluation.sections).length && <MarkdownText className="rounded-lg border border-border bg-background p-4" text={previewMutation.data.summary} />}</div>
+            <div className="mt-4 space-y-3">{Object.entries(previewMutation.data.evaluation.sections).map(([section, texts], sectionIndex) => <section key={section} className={cn("rounded-lg border p-4", clinicalRuleSectionTone(sectionIndex).surface)}><h3 className="mb-2 font-semibold">{ruleSectionLabel(section)}</h3>{texts.map((text, index) => <MarkdownText key={index} text={text} />)}</section>)}{!Object.keys(previewMutation.data.evaluation.sections).length && <MarkdownText className="rounded-lg border border-border bg-background p-4" text={previewMutation.data.summary} />}</div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{previewMutation.data.evaluation.trace.filter((item) => item.matched).length} rules matched. No data was persisted.</p><Button variant="outline" size="sm" disabled={previewMutation.isPending} onClick={() => { if (traceOpen) setTraceOpen(false); else if (traceLoaded) setTraceOpen(true); else previewMutation.mutate(true) }}>{traceOpen ? <icon.chevronUp /> : <icon.chevronDown />} {previewMutation.isPending ? "Building trace" : traceOpen ? "Hide" : "Show"} execution trace</Button></div>
             {traceOpen && <RuleExecutionTrace preview={previewMutation.data} />}
-          </> : !previewMutation.error && <div className="grid min-h-64 place-items-center text-sm text-muted-foreground">Select a sample and test the rule set to generate its report summary.</div>}
+          </> : !previewMutation.error && <div className="grid min-h-64 place-items-center text-sm text-muted-foreground">Select a sample and test the rule set to generate its report text.</div>}
         </section>
       </div>
     </PageShell>

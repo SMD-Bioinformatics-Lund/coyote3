@@ -196,7 +196,21 @@ class ClinicalRuleService:
         context: PreparedReportContext,
         include_condition_trace: bool = False,
     ) -> ClinicalRuleEvaluation:
-        """Evaluate an explicitly selected rule version against prepared report facts."""
+        """Evaluate selected rules and inherit missing method wording from published Base.
+
+        Args:
+            rule_set: Selected published version or explicitly tested draft.
+            context: Actual sample facts, retained when evaluating inherited wording.
+            include_condition_trace: Include nested condition decisions when True.
+
+        Returns:
+            Separate summary and analysis sections with their source references.
+            An explicit diagnosis description, even disabled or unmatched, overrides Base.
+
+        Raises:
+            ValueError: Analyte or declarations differ, inherited publication integrity
+                fails, or evaluation cannot render the selected rules.
+        """
         if rule_set.scope.analyte != context.sample.asp_category:
             raise ValueError("Clinical rule-set analyte does not match the report context")
         report_sections = self._report_sections(context)
@@ -206,21 +220,48 @@ class ClinicalRuleService:
                 "Clinical rule set does not declare every ASPC report section: "
                 + ", ".join(undeclared)
             )
-        return self.evaluator.evaluate(
+        evaluation = self.evaluator.evaluate(
             context,
             rule_set,
             reporting_analyses=report_sections,
             include_condition_trace=include_condition_trace,
         )
+        if rule_set.scope.diagnosis_id == "base" or any(
+            block.section == "analysis_description" for block in rule_set.blocks
+        ):
+            return evaluation
+        base_context = context.model_copy(
+            update={"sample": context.sample.model_copy(update={"diagnosis_id": "base"})}
+        )
+        try:
+            base = self.resolve(context=base_context)
+        except MissingClinicalRuleSet:
+            return evaluation
+        description_blocks = [
+            block for block in base.blocks if block.section == "analysis_description"
+        ]
+        if not description_blocks:
+            return evaluation
+        description = self.evaluator.evaluate(
+            context,
+            base.model_copy(update={"blocks": description_blocks}),
+            reporting_analyses=report_sections,
+            include_condition_trace=include_condition_trace,
+        )
+        evaluation.sections.update(description.sections)
+        evaluation.section_headings.update(description.section_headings)
+        evaluation.trace.extend(description.trace)
+        evaluation.analysis_description_source = description.source
+        return evaluation
 
 
 def rendered_summary(evaluation: ClinicalRuleEvaluation | None) -> str:
-    """Flatten ordered rendered sections into report-ready Markdown text."""
+    """Flatten summary sections, excluding metadata and the analysis description."""
     if evaluation is None:
         return ""
     paragraphs: list[str] = []
     for section, texts in evaluation.sections.items():
-        if section in REPORT_METADATA_SECTIONS:
+        if section in REPORT_METADATA_SECTIONS or section == "analysis_description":
             continue
         if not texts:
             continue

@@ -59,12 +59,13 @@ change query filters, transcript selection or tier assignment. See the
 
 ## Report metadata outputs
 
-Sections have one of three destinations. In the visual builder, choose **Output
+Sections have one of four destinations. In the visual builder, choose **Output
 destination** before adding conditions and output text.
 
 | Destination | Section key | Report behavior |
 | --- | --- | --- |
 | Report summary | Author-defined name | Narrative, with optional section heading. |
+| Analysis description | `analysis_description` | Method and scope paragraphs under the report's fixed Analysbeskrivning heading, separate from the summary. Supports dynamic values, conditions and paragraph placement. |
 | Header suffix | `report_header_suffix` | Appended verbatim to the ASPC report header. Include any leading space or punctuation in the rule text. |
 | Clinical question | `clinical_question` | Populates the clinical-question row in DNA and RNA reports. |
 
@@ -79,6 +80,16 @@ row is omitted. Neither output is repeated in the narrative.
 
 Metadata text is HTML-escaped; it is not an HTML template. Rule traces retain the
 selected rule and text. Saved report artifacts retain their original wording.
+Only header suffix and clinical question are single-value metadata destinations.
+Analysis description permits multiple ordered paragraphs. If an exact diagnosis
+release has no analysis-description block, that destination inherits the published
+assay Base blocks for the same analyte and language. An explicit block suppresses
+inheritance even if disabled or unmatched. Other destinations and terminology retain
+whole-release selection. Evaluation records `analysis_description_source` when inherited;
+saved resolution receipts include both source publications and their profiles.
+
+Analysis descriptions are authored and published exclusively through clinical rules.
+
 Metadata destinations are part of the current rule schema, as are conflict groups.
 There is no separate reporting-engine version counter.
 The SDK release identifies the installed rendering implementation; clinical rule
@@ -296,7 +307,8 @@ field does not change the content hashes of existing publications.
 The visual editor's **Report sentence** accepts inline placeholders such as
 `{{asp.display_name}}`, converting them to the same typed output nodes used by
 JSON imports. These are registered fact substitutions, not executable templates.
-The **Complete report summary** panel combines all enabled wording; selecting an
+The **Complete report text** panel shows summary and analysis-description wording separately;
+selecting an
 authorized sample evaluates actual conditions and values through the existing
 read-only testing service after edits save.
 `first_match` provides ordered fallback behavior. `exactly_one` and `at_most_one` make
@@ -663,7 +675,7 @@ facts: report header and template assembly, display-only finding conversion, sam
 VEP display translations, finding snapshots, and CNV profile file reads. This avoids building an
 entire printable report for an interactive rule test while preserving clinical evaluation parity.
 It substitutes only the explicitly selected rule-set version, evaluates the prepared live facts,
-and returns the rendered report summary and rule trace. Preview segments retain their report
+and returns the rendered report summary, analysis description and rule trace. Preview segments retain their report
 section color. The initial preview evaluates conditions through the normal report path and returns
 the summary plus the compact matched/unmatched rule trace. Opening the execution trace makes a
 second, explicit diagnostic request that adds collection-item identity, missing facts, and the

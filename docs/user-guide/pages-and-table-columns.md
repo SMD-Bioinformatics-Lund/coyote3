@@ -512,7 +512,7 @@ The reports tab builds and previews clinical report content from current filters
 | Report context | Collapsible technical context used for the report snapshot. |
 
 The rendered RNA report uses the sample's recorded ASPC revision's `reporting.report_header`,
-`report_method`, and `report_description`. Its result table contains `Fusion`
+and `report_method`. Clinical rules supply the analysis description. Its result table contains `Fusion`
 and `Klassificering`; the detailed section adds effect, breakpoints, spanning
 reads, spanning pairs, longest anchor, classification, and reviewed comment.
 Each snapshot section uses columns specific to its finding type. Only findings

@@ -96,7 +96,7 @@ configuration.
 | `filters` | Default analytical filters |
 | `reporting.report_header` | Report heading |
 | `reporting.report_method` | Method description |
-| `reporting.report_description` | Assay description |
+| Clinical-rule `analysis_description` section | Reviewed method and scope wording, with dynamic sample and applied gene-list values |
 | `reporting.language` | Language for exact assay/diagnosis/analyte rule selection, with assay Base fallback |
 | Published rule source | MongoDB `clinical_rule_sets` release resolved by assay, diagnosis, analyte and language, with assay Base fallback; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
 | `reporting.plots_path` | Approved source directory for report plots |

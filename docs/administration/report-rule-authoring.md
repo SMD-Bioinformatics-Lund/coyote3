@@ -88,6 +88,37 @@ is available in its own reviewer-details panel.
 
 ## Compose the introduction without fixed names or counts
 
+For clinical interpretation use **Report summary**. For method and scope wording
+use **Analysis description**, as described below.
+
+### Analysis description
+
+Use **Start a section → Analysis description** for method and scope text printed
+under **Analysbeskrivning**. Existing sections can select **Section settings →
+Output destination → Analysis description**. This destination is separate from
+**Report summary**, **Header suffix** and **Clinical question**. It supports the
+same sentence editor, dynamic values, conditions, collection iteration and paragraph
+placement as summary text. The report supplies the section heading.
+
+Keep reviewed extraction, sequencing, limitations and validated sensitivity wording
+in these rules. Insert assay names, covered-gene counts and applied gene-list names,
+genes and unique counts through **Insert value at cursor**. Panel gene counts and
+selected gene-list counts describe different scopes. Generated gene tables and
+their captions remain part of report rendering. Table references inside authored
+text are literal; review them against the rendered tables.
+
+Publish shared assay wording in the assay's **Base** rule set. A diagnosis rule set
+with no `analysis_description` block inherits only those blocks from the published
+Base release for the same analyte and language. Conditions use the actual sample's
+facts. An explicit diagnosis description overrides Base, including when its rules
+are disabled or none match. Base summary and header text are not appended.
+Sample previews show summary and analysis description separately and identify the
+inherited source in evaluation provenance. Saved report receipts capture both releases.
+
+Analysis descriptions are authored and published exclusively through clinical rules.
+
+### Compose dynamic sentences
+
 Under **Report text**, write the complete sentence in **Report sentence**. Expand
 **Insert value at cursor**, search by name, count, diagnosis or VAF, and choose a
 value. The editor inserts a placeholder such as `{{asp.display_name}}` at the

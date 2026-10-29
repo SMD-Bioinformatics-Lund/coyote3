@@ -349,6 +349,13 @@ describe("ClinicalRulesPage", () => {
     await user.type(screen.getByLabelText("Rule identifier"), "custom_result_rule")
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("custom_result_rule")
 
+    await user.selectOptions(screen.getByLabelText("Output destination"), "analysis_description")
+    expect(screen.getByLabelText("Section")).toHaveValue("Analysis description")
+    expect(screen.getByLabelText("Section")).toBeDisabled()
+    expect(screen.getByLabelText("Match behavior")).toHaveValue("all_matches")
+    expect(screen.getByLabelText("Show section heading")).toBeDisabled()
+    expect(screen.getByLabelText("Text placement")).not.toBeDisabled()
+
     await user.selectOptions(screen.getByLabelText("Output destination"), "clinical_question")
     expect(screen.getByLabelText("Section")).toHaveValue("clinical_question")
     expect(screen.getByLabelText("Section")).toBeDisabled()

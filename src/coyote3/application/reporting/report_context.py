@@ -27,6 +27,7 @@ def prepare_render_context(
     sample.setdefault("report_num", 0)
     context = dict(context)
     sections = (context.get("clinical_rule_evaluation") or {}).get("sections", {})
+    context["analysis_description"] = "\n\n".join(sections.get("analysis_description", []))
     for field in REPORT_METADATA_SECTIONS:
         values = sections.get(field, [])
         if len(values) > 1:

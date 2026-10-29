@@ -240,7 +240,12 @@ class Reports:
                     else None
                 )
                 context["clinical_rule_resolution"] = selected_rules.get("rule_set")
-                context["clinical_rule_sources"] = selected_rules
+                context["clinical_rule_sources"] = {
+                    **selected_rules,
+                    "dependencies": [
+                        value for value in rules.values() if value is not selected_rules
+                    ],
+                }
         except (KeyError, ValueError) as exc:
             raise api_error(
                 422,

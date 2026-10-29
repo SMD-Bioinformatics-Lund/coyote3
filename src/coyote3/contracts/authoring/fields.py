@@ -507,12 +507,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "default": "NGS panel analysis",
                         },
                         {
-                            "key": "report_description",
-                            "label": "Report Description",
-                            "type": "textarea",
-                            "default": "DNA panel summary report",
-                        },
-                        {
                             "key": "language",
                             "label": "Reporting Language",
                             "type": "text",
@@ -708,12 +702,6 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
                             "label": "Report Method",
                             "type": "text",
                             "default": "RNA fusion analysis",
-                        },
-                        {
-                            "key": "report_description",
-                            "label": "Report Description",
-                            "type": "textarea",
-                            "default": "RNA fusion summary report",
                         },
                         {
                             "key": "language",

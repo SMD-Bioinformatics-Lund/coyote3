@@ -4,6 +4,15 @@ import { sectionStarter } from "./clinical-rule-authoring"
 const scope = { asp_id: "synthetic", diagnosis_id: "base", analyte: "dna" as const, language: "sv", name: "Synthetic" }
 
 describe("Report section starters", () => {
+  it("creates analysis wording with dynamic values and its own output destination", () => {
+    const block = sectionStarter([], "analysis_description", scope)
+    expect(block.section).toBe("analysis_description")
+    expect(block.show_heading).toBe(false)
+    expect(block.match_strategy).toBe("all_matches")
+    expect(block.rules.every(rule => !rule.enabled)).toBe(true)
+    expect(JSON.stringify(block)).toContain("asp.covered_genes_count")
+    expect(JSON.stringify(block)).toContain("gene_lists.snv.gene_count")
+  })
   it("builds complementary SNV sentences with stable purpose-based IDs", () => {
     const block = sectionStarter([], "snv_summary", scope)
     expect(block.analysis).toBe("SNV")

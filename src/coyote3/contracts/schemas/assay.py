@@ -92,7 +92,6 @@ class AspcReportingDoc(_StrictDocBase):
     language: str = Field(default="sv", min_length=2, max_length=16)
     report_header: str
     report_method: str
-    report_description: str
     plots_path: str
     report_folder: str
 
@@ -104,8 +103,7 @@ class AspcReportingDoc(_StrictDocBase):
             This reporting configuration unchanged.
 
         Raises:
-            ValueError: If plots_path, report_folder, report_header, report_method,
-                or report_description is empty.
+            ValueError: If plots_path, report_folder, report_header, or report_method is empty.
 
         Notes:
             Paths are checked for presence, not filesystem existence.
@@ -122,9 +120,6 @@ class AspcReportingDoc(_StrictDocBase):
 
         if not self.report_method:
             raise ValueError("report_method cannot be empty")
-
-        if not self.report_description:
-            raise ValueError("report_description cannot be empty")
 
         return self
 

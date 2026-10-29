@@ -189,7 +189,8 @@ findings. This single reportable set is used for all three outputs:
 3. the rendered report's `Fusion / Klassificering` result table and detailed
    fusion sections.
 
-The sample's recorded ASPC revision provides the report header, method, and analysis description.
+The sample's recorded ASPC revision provides the report header and method.
+Clinical rules provide the analysis description in the `analysis_description` destination.
 The scope-selected published rule set provides the approved assay/diagnosis wording. Fusion
 caller selection and filtering occur before rule evaluation, so report rules
 cannot silently select a different call or reintroduce an excluded fusion.
@@ -197,7 +198,7 @@ cannot silently select a different call or reintroduce an excluded fusion.
 Each reportable fusion must contain
 canonical `gene1` and `gene2` values and exactly one `calls[].selected = 1`
 entry. The sample's recorded ASPC revision must contain non-empty `reporting.report_header`,
-`reporting.report_method`, `reporting.report_description`, and
+`reporting.report_method`, and
 `reporting.report_folder` values. A missing requirement stops preview or save
 with a validation response identifying the missing requirement.
 

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import type { ClinicalRuleSet, Condition, FactDefinition, RuleBlock } from "./clinical-rules-types"
 import { OPERATOR_LABELS, valueText } from "./rule-condition-values"
 import { outputPreview } from "./rule-output-preview"
+import { ruleSectionLabel } from "./clinical-rule-authoring"
 
 const placementLabels = {
   paragraph: "New paragraph",
@@ -58,7 +59,7 @@ export function RuleCompositionPreview({ draft, facts }: {
     </div>
     {blocks.map(block => <section key={block.block_id} aria-label={`Preview section: ${block.section}`} className="space-y-2 border-t border-border pt-3">
       <header className="space-y-1">
-        <h3 className="type-section-title break-words">{block.section}</h3>
+        <h3 className="type-section-title break-words">{ruleSectionLabel(block.section)}</h3>
         <p className="type-meta text-muted-foreground">{block.show_heading ? "Heading included in report" : "No heading in report"} · {block.evaluation.mode === "once" ? "Once per report" : block.evaluation.mode === "each_finding" ? "For each finding" : "For each item"}</p>
         <p className="type-body-sm text-muted-foreground">{matchLabels[block.match_strategy]}</p>
       </header>

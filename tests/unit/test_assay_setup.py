@@ -188,7 +188,6 @@ def content(**overrides):
                         language="sv",
                         report_header="Header",
                         report_method="Method",
-                        report_description="Description",
                         plots_path="plots",
                         report_folder="reports",
                     ),

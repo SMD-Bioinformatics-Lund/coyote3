@@ -583,6 +583,7 @@ class ClinicalRuleEvaluation(_StrictModel):
     """Rendered sections, heading choices, and traces tied to a rule source."""
 
     source: ClinicalRuleSourceRef
+    analysis_description_source: ClinicalRuleSourceRef | None = None
     sections: dict[str, list[str]] = Field(default_factory=dict)
     section_headings: dict[str, bool] = Field(default_factory=dict)
     trace: list[ClinicalRuleTraceEntry] = Field(default_factory=list)
@@ -733,11 +734,12 @@ class ClinicalRuleTestSamplesPayload(_StrictModel):
 
 
 class ClinicalRuleSamplePreviewPayload(_StrictModel):
-    """Nonpersisted evaluation with sample, rule-set, and summary context."""
+    """Nonpersisted evaluation with separate summary and analysis description text."""
 
     sample: dict[str, Any]
     rule_set: dict[str, Any]
     summary: str
+    analysis_description: str
     evaluation: ClinicalRuleEvaluation
     persisted: Literal[False]
 

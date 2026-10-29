@@ -602,7 +602,6 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
             "reporting": {
                 "report_header": "RNA fusion report",
                 "report_method": "RNA fusion analysis",
-                "report_description": "Fusion analysis description",
             },
         },
         save=1,

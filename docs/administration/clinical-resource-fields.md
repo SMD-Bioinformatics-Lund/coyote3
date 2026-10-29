@@ -69,7 +69,7 @@ the actual rules used; no ASPC update is needed to adopt a new rule publication.
 | `report_sections` | Optional; `[]` | Selected analysis sections, constrained by enabled analyses. |
 | `reportable_tiers.SNV`, `reportable_tiers.FUSION` | Optional; each `[1, 2, 3]` | Accepted values 1–4. Explicit `[]` excludes that type; it does not restore defaults. |
 | `language` | Optional; `sv` | Normalized language tag, 2–16 characters; selects compatible published rules. |
-| `report_header`, `report_method`, `report_description` | Required, nonempty | Approved report metadata; not generated from an assay's name. |
+| `report_header`, `report_method` | Required, nonempty | Approved report metadata; not generated from an assay's name. Analysis description text belongs to clinical reporting rules. |
 | `plots_path`, `report_folder` | Required, nonempty | Report locations; saving additionally constrains the output folder to the report root. |
 
 Creating a new ASPC revision does not silently replace a sample's recorded revision

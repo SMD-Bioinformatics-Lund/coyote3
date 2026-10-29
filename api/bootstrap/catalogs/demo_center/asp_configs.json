@@ -60,7 +60,6 @@
       ],
       "report_header": "Demo report header",
       "report_method": "Demo method",
-      "report_description": "DNA panel summary report for assay_1",
       "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo"
@@ -111,7 +110,6 @@
       ],
       "report_header": "Demo RNA report header",
       "report_method": "Demo RNA method",
-      "report_description": "RNA WTS summary report for assay_rna_1",
       "language": "sv",
       "plots_path": "/tmp",
       "report_folder": "demo-rna"

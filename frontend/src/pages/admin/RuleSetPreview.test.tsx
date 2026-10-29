@@ -60,11 +60,12 @@ describe("Complete rule-set preview", () => {
   })
   it("evaluates authorized sample values using the server after a sample is selected", async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { items: [{ id: "sample1", name: "SYNTHETIC", diagnosis_id: "base" }] }, status: 200 })
-    vi.mocked(api.post).mockResolvedValue({ data: { summary: "Resolved assay name and all matching sentences.", evaluation: { trace: [{ matched: true }] } }, status: 200 })
+    vi.mocked(api.post).mockResolvedValue({ data: { summary: "Resolved assay name and all matching sentences.", analysis_description: "Resolved method and selected genes.", evaluation: { trace: [{ matched: true }] } }, status: 200 })
     mount(true, true)
     await screen.findByRole("option", { name: "SYNTHETIC · base" })
     fireEvent.change(screen.getByLabelText("Preview sample"), { target: { value: "sample1" } })
     expect(await screen.findByText("Resolved assay name and all matching sentences.")).toBeVisible()
+    expect(screen.getByText("Resolved method and selected genes.")).toBeVisible()
     expect(screen.queryByText("Report structure")).not.toBeInTheDocument()
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/versions/rules1/test-samples/sample1/preview?include_condition_trace=false", undefined, expect.objectContaining({ errorNotice: "inline", signal: expect.anything() })))
   })

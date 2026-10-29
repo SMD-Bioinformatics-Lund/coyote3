@@ -75,7 +75,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -164,7 +163,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -253,7 +251,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -342,7 +339,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -431,7 +427,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -479,7 +474,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -531,7 +525,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -624,7 +617,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -713,7 +705,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -765,7 +756,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -858,7 +848,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -908,7 +897,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1001,7 +989,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1051,7 +1038,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1144,7 +1130,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1237,7 +1222,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1330,7 +1314,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1423,7 +1406,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1516,7 +1498,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1609,7 +1590,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1702,7 +1682,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1795,7 +1774,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1888,7 +1866,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -1981,7 +1958,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2074,7 +2050,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2124,7 +2099,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2174,7 +2148,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2228,7 +2201,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2282,7 +2254,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2375,7 +2346,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2468,7 +2438,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2561,7 +2530,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2654,7 +2622,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2708,7 +2675,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2762,7 +2728,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2855,7 +2820,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -2948,7 +2912,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -3041,7 +3004,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"
@@ -3134,7 +3096,6 @@
       ],
       "report_header": "SYNTHETIC - NOT FOR CLINICAL USE",
       "report_method": "Artificial fixture evidence",
-      "report_description": "Workflow verification",
       "language": "en",
       "plots_path": "/tmp",
       "report_folder": "demo-e2e"

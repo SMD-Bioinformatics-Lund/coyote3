@@ -41,6 +41,8 @@ review, reporting, administration and integrations into one application.
 
 ### Integrations and operations
 
+- Analysis descriptions are authored, tested and published through clinical rules
+  with dynamic values and assay Base inheritance. ASPCs no longer store description text.
 - Dedicated Admin ingestion audit with outcome filters, sample links and correlated
   history; synchronous uploads and workers retain attempt outcomes in audit storage.
 - Cron ingestion records pending submissions before upload, recovers terminal
