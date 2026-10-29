@@ -24,6 +24,12 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Query rules, reusable profiles and assay setups support reviewed JSON imports
+  and portable exports. Diagnosis, group and assay-association registries provide
+  JSON exports matching their bulk creation workflows. User, role, permission and
+  application-control forms also support configuration transfer without credentials
+  or imported approval state.
+
 - Diagnosis definitions always provide a view action, explain protected records,
   and offer confirmed availability changes for editable definitions.
 - Updated vulnerable runtime dependencies and the documentation toolchain's RE2JS

@@ -5,11 +5,13 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
 import { editLease, editSessionOptions } from "@/test/edit-lease"
 import { QueryRulesPage } from "./QueryRulesPage"
+import { downloadJson } from "@/lib/json-download"
 
 const access = vi.hoisted(() => ({ permissions: ["query_rules:view", "query_rules:draft", "query_rules:publish"], roles: [] }))
 vi.mock("@/lib/access-control", async original => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: access }) }))
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
+vi.mock("@/lib/json-download", () => ({ downloadJson: vi.fn() }))
 
 const scope = { assay_group: "example", asp_id: null, diagnosis_id: null, analysis: "snv", intent: "somatic", modality: null, family: null, environment: null }
 const rule = { _id: "version-one", name: "Example selection", reason: "Reviewed", scope, content: { evidence_mode: null, exceptions: null }, version: 1, revision: 2, status: "approved", created_by: "author" }
@@ -17,12 +19,51 @@ beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["query_rules:view", "query_rules:draft", "query_rules:publish"]
   vi.mocked(api.get).mockImplementation(async path => ({ status: 200, data: path.endsWith("/options") ? { groups: [{ id: "example", name: "Example laboratory" }], assays: [{ id: "panel", group: "example", category: "dna", diagnoses: ["myeloid"] }] } : { items: [] } }))
-  vi.mocked(api.post).mockImplementation(async (url) => ({ status: 200, data: url.startsWith("/editing/") ? editLease() : { evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } }))
+  vi.mocked(api.post).mockImplementation(async (url) => ({ status: 200, data: url.startsWith("/editing/") ? editLease() : { scope, evidence_mode: "paired", exceptions: [], lineage: [{ source: "default", version: null }] } }))
 })
 
 function mount(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return render(<MemoryRouter><QueryClientProvider client={client}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
 }
+
+it("exports only portable query content from a read-only published version", async () => {
+  access.permissions = ["query_rules:view"]
+  const original = vi.mocked(api.get).getMockImplementation()!
+  vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options")
+    ? original(path, options) : { status: 200, data: { items: [{ ...rule, status: "published" }] } })
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
+  fireEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+  expect(downloadJson).toHaveBeenCalledWith(expect.any(String), {
+    name: rule.name, scope: rule.scope, content: rule.content,
+  })
+  expect(screen.queryByRole("button", { name: "Import JSON" })).not.toBeInTheDocument()
+})
+
+it("validates an import and stages a new draft without copying its lifecycle", async () => {
+  const originalPost = vi.mocked(api.post).getMockImplementation()!
+  vi.mocked(api.post).mockImplementation(async (path, body, options) => path === "/admin/query-rule-sets"
+    ? { status: 201, data: { ...rule, ...body as object, status: "draft" } }
+    : originalPost(path, body, options))
+  mount()
+  await screen.findByText("No published overrides. Default policies apply.")
+  const document = { name: rule.name, scope, content: rule.content }
+  const file = new File([JSON.stringify(document)], "query.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+  fireEvent.change(screen.getByLabelText("Import query rules JSON"), { target: { files: [file] } })
+  await waitFor(() => expect(screen.getByLabelText("Assay group")).toHaveValue("example"))
+  expect(screen.getByLabelText("Change or review reason")).toHaveValue("")
+  expect(screen.getByRole("button", { name: "Save draft" })).toBeDisabled()
+  expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+    scope, content: rule.content,
+  }, { errorNotice: "inline" })
+  expect(api.post).not.toHaveBeenCalledWith("/admin/query-rule-sets", expect.anything())
+  fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Reviewed imported policy" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets", {
+    ...document, reason: "Reviewed imported policy",
+  }))
+})
 
 it("separates policy preview and authorized sample testing from the editor", async () => {
   access.permissions.push("query_rules:test")

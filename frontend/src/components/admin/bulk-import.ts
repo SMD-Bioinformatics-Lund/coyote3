@@ -3,9 +3,14 @@ import { parseDocument } from "yaml"
 export const BULK_LIMIT = 100
 export const BULK_BYTES = 1024 * 1024
 export type BulkRecord = Record<string, unknown>
-export type BulkKind = "diagnoses" | "assay-groups" | "asp" | "aspc" | "genelists"
+export type BulkKind = "diagnoses" | "assay-groups" | "assay-diagnoses" | "asp" | "aspc" | "genelists"
 
 export const bulkDefinitions = {
+  "assay-diagnoses": {
+    permission: "assay.panel:edit", identity: "diagnosis_id",
+    example: { diagnosis_id: "example-diagnosis", display_name: "Example diagnosis", description: "", is_active: true },
+    required: ["diagnosis_id", "display_name"],
+  },
   diagnoses: {
     permission: "assay.panel:edit", identity: "diagnosis_id",
     example: { diagnosis_id: "example-diagnosis", display_name: "Example diagnosis", description: "Replace with your diagnosis description", is_active: true, asp_ids: [] },

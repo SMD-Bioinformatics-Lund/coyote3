@@ -7,6 +7,8 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
+import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -82,6 +84,7 @@ export function AssaySetupPage() {
   const [configurationSeed, setConfigurationSeed] = useState<Document>({})
   const [reason, setReason] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [imported, setImported] = useState<Document | null>(null)
   const client = useQueryClient()
   const canView = hasPermission(user, "assay.panel:view") && hasPermission(user, "assay.panel:list")
   const canWrite = writePermissions.every((permission) => hasPermission(user, permission))
@@ -115,6 +118,17 @@ export function AssaySetupPage() {
     onError: (error) => notifyActionError("Assay setup", error),
   })
   const choose = (identifier: string) => { navigate(`/admin/assay-setups${identifier ? `?setup=${encodeURIComponent(identifier)}` : ""}`); setStep(0); setEditing(null); setReason(""); mutation.reset() }
+  const importSetup = useMutation({
+    mutationFn: (document: Document) => api.post<Setup>("/admin/assay-setups", document),
+    onSuccess: response => {
+      setImported(null); choose(response.data._id)
+      void client.invalidateQueries({ queryKey: ["assay-setups"] })
+      void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
+      void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
+      notifySuccess("Assay setup draft imported")
+    },
+    onError: error => notifyActionError("Import assay setup", error),
+  })
   const deletion = useMutation({
     mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`, documentEditor.options()),
     onSuccess: () => {
@@ -136,6 +150,22 @@ export function AssaySetupPage() {
   return <PageShell className="min-w-0 [&>*]:min-w-0" eyebrow="Admin" title="Assay setup" actions={canWrite ? <Button disabled={mutation.isPending} onClick={() => choose("new")}><icon.plus />New assay setup</Button> : undefined}>
     <DocumentEditorNotice editor={documentEditor} />
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
+      <ConfigurationTransfer label="assay setup" filename={`${setup?.asp_id || "assay"}-setup`}
+        document={content} fields={["panel", "scopes", "environments", "gene_lists", "existing_gene_list_ids", "configurations"]}
+        required={["panel"]} disabled={mutation.isPending || importSetup.isPending || imported !== null}
+        onImport={canWrite ? document => { importSetup.reset(); setImported(document) } : undefined} />
+      {isNew && canWrite && context.data && <ConfigurationTransfer label="assay identity"
+        filename="assay" importLabel="Import assay identity JSON"
+        fields={Object.keys(context.data.panel_form.fields)} required={["asp_id"]}
+        disabled={mutation.isPending || importSetup.isPending || imported !== null}
+        onImport={panel => { importSetup.reset(); setImported({ panel, scopes: ["base"], environments: [],
+          gene_lists: [], existing_gene_list_ids: [], configurations: [] }) }} />}
+      {imported && <section className="surface-panel space-y-3 p-4" aria-label="Import assay setup">
+        <p className="type-body-sm">Review the imported configuration and choose an unused assay identifier. Saving creates a draft for independent review.</p>
+        <JsonDocumentEditor document={imported} label="Assay setup" allowUnchanged
+          onCancel={() => setImported(null)} serverError={importSetup.error?.message}
+          onSave={document => importSetup.mutate(document)} isSaving={importSetup.isPending} />
+      </section>}
       <section className="surface-panel flex flex-wrap items-end gap-3 p-4">
         <div className="min-w-0 flex-1 space-y-1"><p className="type-label">Saved setups</p>
           <Select label="Saved setups" value={selected} disabled={mutation.isPending} onValueChange={choose} options={[

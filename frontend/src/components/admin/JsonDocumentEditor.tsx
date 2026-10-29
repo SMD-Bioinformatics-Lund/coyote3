@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 
 interface JsonDocumentEditorProps {
   document: Record<string, unknown>
+  label?: string
+  allowUnchanged?: boolean
   readOnly?: boolean
   isSaving?: boolean
   serverError?: string
@@ -15,6 +17,8 @@ interface JsonDocumentEditorProps {
 
 export function JsonDocumentEditor({
   document,
+  label = "Sample",
+  allowUnchanged = false,
   readOnly = false,
   isSaving = false,
   serverError = "",
@@ -28,7 +32,7 @@ export function JsonDocumentEditor({
 
   useEffect(() => setSource(initialSource), [initialSource])
 
-  const validation = useMemo(() => validateJsonDocument(source), [source])
+  const validation = useMemo(() => validateJsonDocument(source, label.toLowerCase()), [source, label])
   const isDirty = source !== initialSource
   const lineCount = source ? source.split("\n").length : 1
   const lineNumbers = useMemo(
@@ -91,9 +95,9 @@ export function JsonDocumentEditor({
             <icon.braces className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="text-base font-semibold">Sample JSON document</h2>
+            <h2 className="text-base font-semibold">{label} JSON document</h2>
             <p className="text-xs text-muted-foreground">
-              JSON syntax is checked locally. The complete sample contract is checked by the API when saved.
+              JSON syntax is checked locally. The complete {label.toLowerCase()} contract is checked by the API when saved.
             </p>
           </div>
         </div>
@@ -121,7 +125,7 @@ export function JsonDocumentEditor({
             {lineNumbers}
           </pre>
           <textarea
-            aria-label="Sample JSON"
+            aria-label={`${label} JSON`}
             value={source}
             onChange={(event) => setSource(event.target.value)}
             onKeyDown={handleEditorKeyDown}
@@ -162,10 +166,10 @@ export function JsonDocumentEditor({
               <Button
                 type="button"
                 onClick={() => validation.valid && onSave(validation.document)}
-                disabled={!validation.valid || !isDirty || isSaving}
+                disabled={!validation.valid || (!isDirty && !allowUnchanged) || isSaving}
               >
                 <icon.save className="h-4 w-4" />
-                {isSaving ? "Saving" : "Save sample"}
+                {isSaving ? "Saving" : `Save ${label.toLowerCase()}`}
               </Button>
             </div>
           )}

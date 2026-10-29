@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import { PageShell } from "@/components/layout/PageShell"
 import { DataTable } from "@/components/data-table/DataTable"
 import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
@@ -23,6 +24,9 @@ const initialProfile = {
   content: { somatic: { snv: { min_depth: 100 } } }, reason: "",
 }
 const initialPromotion = { source_id: "", target_environment: "validation", evidence: [""], reason: "" }
+const profileFields = ["profile_id", "name", "kind", "bindings", "content", "reason"] as const
+const portableProfile = (entry: Entry) => ({ profile_id: entry.profile_id, name: entry.name,
+  kind: entry.kind, bindings: entry.bindings, content: entry.content, reason: "" })
 
 export function ConfigurationProfilesPage() {
   const access = useCurrentUserAccess()
@@ -68,6 +72,8 @@ export function ConfigurationProfilesPage() {
     { header: "Author", accessorKey: "created_by" },
     { id: "actions", header: "Actions", cell: ({ row }) => <div className="flex gap-2">
       <Button variant="outline" size="sm" onClick={() => { setReview(row.original); setDraft(null); setReason("") }}>Review</Button>
+      {section === "profiles" && <ConfigurationTransfer label="configuration profile"
+        filename={`${row.original.profile_id}-profile`} document={portableProfile(row.original)} />}
       {canCreate && section === "profiles" && <Button variant="ghost" size="sm" onClick={() => {
         const item = row.original
         setReview(null)
@@ -80,6 +86,12 @@ export function ConfigurationProfilesPage() {
     actions={<Link to="/admin/aspc" className="text-primary underline">Assay configurations</Link>}>
     <div className="glass-card space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-2">
+        {canCreate && section === "profiles" && <ConfigurationTransfer label="configuration profile"
+          filename="configuration-profile" fields={profileFields}
+          required={["profile_id", "name", "kind", "bindings", "content"]}
+          disabled={create.isPending || publish.isPending || draft !== null} onImport={document => {
+            create.reset(); setReview(null); setDraft({ ...document, reason: "" })
+          }} />}
         {(["profiles", "promotions"] as const).map((value) => <Button key={value}
           variant={section === value ? "default" : "outline"} aria-pressed={section === value}
           onClick={() => { setSection(value); setDraft(null); setReview(null) }}>
@@ -92,10 +104,10 @@ export function ConfigurationProfilesPage() {
       {rows.isError ? <p role="alert">Configuration records could not be loaded. <Button variant="link" onClick={() => void rows.refetch()}>Retry</Button></p>
         : rows.isPending ? <p role="status">Loading configuration records…</p>
         : <DataTable columns={columns} data={rows.data || []} filename={`configuration-${section}.csv`} />}
-      {draft && <JsonDocumentEditor document={draft} onCancel={() => setDraft(null)}
-        onSave={(value) => create.mutate(value)} isSaving={create.isPending} />}
+      {draft && <JsonDocumentEditor document={draft} label="Configuration" onCancel={() => setDraft(null)}
+        onSave={(value) => create.mutate(value)} isSaving={create.isPending} serverError={create.error?.message} />}
       {review && <section className="space-y-3" aria-label="Configuration review">
-        <JsonDocumentEditor document={review} readOnly onCancel={() => setReview(null)} onSave={() => undefined} />
+        <JsonDocumentEditor document={review} label="Configuration" readOnly onCancel={() => setReview(null)} onSave={() => undefined} />
         {canPublish && ["draft", "pending"].includes(review.status) && review.created_by !== access.data?.username && <>
           <label htmlFor="configuration-review-reason" className="type-body">Review decision</label>
           <Input id="configuration-review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Record the validation and review decision" />

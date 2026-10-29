@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { MemoryRouter } from "react-router-dom"
@@ -101,6 +101,23 @@ describe("AdminControlsPage", () => {
     mocks.get.mockResolvedValue({ data: controlsPayload })
     mocks.put.mockResolvedValue({ data: controlsPayload })
     mocks.post.mockResolvedValue({ data: { task_id: "MAINT_1" } })
+  })
+
+  it("reviews imported settings before saving through the current editing lease", async () => {
+    renderPage(<AdminControlsPage />)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import JSON" })).toBeEnabled())
+    const { celery, modules, curation, retention } = controlsPayload.controls
+    const portable = { celery, modules, curation, retention }
+    const file = new File([JSON.stringify(portable)], "controls.json")
+    Object.defineProperty(file, "text", { value: async () => JSON.stringify(portable) })
+    fireEvent.change(screen.getByLabelText("Import application controls JSON"), { target: { files: [file] } })
+    await screen.findByRole("textbox", { name: "Application controls JSON" })
+    expect(mocks.put).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Save controls" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Save application controls" }))
+    await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/admin/controls", {
+      controls: portable,
+    }, editSessionOptions))
   })
 
   it("shows configured controls and observed worker, queue, task, and schedule state", async () => {

@@ -13,10 +13,23 @@ import { StatusBadge } from "@/pages/admin/resource-list"
 import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
 import { BulkInstall } from "@/components/admin/BulkInstall"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
 import type { RecordProvenanceData } from "./record-provenance"
 
 type Group = RecordProvenanceData & { group_id: string; parent_group_id: string | null; display_name: string; description: string; system_managed: boolean; is_active: boolean; version: number }
 const empty = { group_id: "", parent_group_id: "", display_name: "", description: "" }
+
+function groupDepth(group: Group, groups: Group[]): number {
+  const seen = new Set([group.group_id])
+  let parent = group.parent_group_id
+  let depth = 0
+  while (parent && !seen.has(parent)) {
+    seen.add(parent)
+    depth += 1
+    parent = groups.find(item => item.group_id === parent)?.parent_group_id ?? null
+  }
+  return depth
+}
 
 export function AssayGroupsPage() {
   const access = useCurrentUserAccess()
@@ -83,6 +96,9 @@ export function AssayGroupsPage() {
       </div>} />
     <section aria-label="Assay group registry" className="glass-card min-w-0 space-y-3 p-3">
     {allowed && canCreate && <BulkInstall kind="assay-groups" />}
+    {allowed && groups.data && <ConfigurationTransfer label="assay groups" filename="assay-groups"
+      document={groups.data.toSorted((a, b) => groupDepth(a, groups.data!) - groupDepth(b, groups.data!)).map(row => ({ group_id: row.group_id, display_name: row.display_name,
+        description: row.description, parent_group_id: row.parent_group_id }))} />}
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay view permission is required.</p> : <>
       {groups.isLoading && <p role="status">Loading assay groups...</p>}
       {groups.error && <p role="alert" className="text-destructive">Unable to load assay groups.</p>}

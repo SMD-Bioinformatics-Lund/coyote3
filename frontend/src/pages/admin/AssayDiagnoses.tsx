@@ -7,6 +7,8 @@ import { StatusBadge } from "./resource-list"
 import { DataTable } from "@/components/data-table/DataTable"
 import { TableBadge } from "@/components/ui/table-badge"
 import { Button } from "@/components/ui/button"
+import { BulkInstall } from "@/components/admin/BulkInstall"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 
@@ -73,6 +75,12 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   const error = associations.error
   const rows = (associations.data ?? []).filter((row) => `${row.diagnosis_id} ${row.display_name}`.toLowerCase().includes(search.toLowerCase()))
   return <section className="min-w-0 space-y-3" aria-label="Assay diagnosis associations">
+    {canEdit && <BulkInstall kind="assay-diagnoses" aspId={aspId} />}
+    {associations.data && !error && <ConfigurationTransfer label="assay diagnoses"
+      filename={`${aspId}-diagnoses`} document={associations.data.map(row => ({
+        diagnosis_id: row.diagnosis_id, display_name: row.display_name,
+        description: row.description, is_active: row.is_active,
+      }))} />}
     {canEdit && <div className="space-y-2">
       <p className="type-body-sm text-muted-foreground">Link an existing diagnosis now or return after creating one in <Link className="link-text" to="/admin/diagnoses">Diagnosis definitions</Link>.</p>
       <div className="flex flex-wrap items-end gap-2">

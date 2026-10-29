@@ -10,7 +10,7 @@ vi.mock("@/lib/access-control", () => ({ useCurrentUserAccess: () => ({ data: ac
 vi.mock("@/lib/api", async (original) => ({ ...await original<typeof import("@/lib/api")>(), api: { get: vi.fn(), post: vi.fn() } }))
 const rows = [{ diagnosis_id: "first", display_name: "First" }, { diagnosis_id: "second", display_name: "Second" }]
 function mount(kind: BulkKind = "diagnoses") {
-  return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><BulkInstall kind={kind} /></QueryClientProvider>)
+  return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{kind === "assay-diagnoses" ? <BulkInstall kind={kind} aspId="panel-a" /> : <BulkInstall kind={kind} />}</QueryClientProvider>)
 }
 async function upload() {
   await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())
@@ -20,6 +20,15 @@ async function upload() {
   await screen.findByRole("dialog")
 }
 beforeEach(() => { vi.clearAllMocks(); access.permissions = ["assay.panel:edit"]; vi.mocked(api.post).mockResolvedValue({ status: 201, data: {} }) })
+it("imports association records into the selected assay through its normal create API", async () => {
+  mount("assay-diagnoses")
+  await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())
+  const file = new File([JSON.stringify(rows)], "associations.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(rows) })
+  fireEvent.change(screen.getByLabelText("Bulk upload assay-diagnoses"), { target: { files: [file] } })
+  fireEvent.click(await screen.findByRole("button", { name: "Install records" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/asp/panel-a/diagnoses", rows[1]))
+})
 it("hides uploading without the resource permission", () => {
   access.permissions = []; mount()
   expect(screen.queryByRole("button", { name: "Upload JSON / YAML" })).not.toBeInTheDocument()

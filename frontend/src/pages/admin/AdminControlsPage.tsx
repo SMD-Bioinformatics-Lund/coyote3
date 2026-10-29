@@ -12,6 +12,8 @@ import {
 import { api } from "@/lib/api"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
+import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
 import { appControlHelp } from "@/lib/app-control-metadata"
 import { APPLICATION_MODULES_QUERY_KEY } from "@/lib/app-module-state"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -103,6 +105,7 @@ export function AdminControlsPage() {
   const canEdit = mayEdit && documentEditor.owned
   const canRunMaintenance = hasPermission(accessQuery.data, ADMIN_UTILITY_PERMISSIONS.maintenanceRun)
   const [draft, setDraft] = useState<AppControls | null>(null)
+  const [imported, setImported] = useState<Record<string, unknown> | null>(null)
   const controlsQuery = useQuery({
     queryKey: ["admin-controls"],
     queryFn: () => api.get("/admin/controls").then((res) => res.data),
@@ -117,6 +120,7 @@ export function AdminControlsPage() {
   const saveControls = useMutation({
     mutationFn: (controlsPayload: AppControls) => api.put("/admin/controls", { controls: controlsPayload }, documentEditor.options()).then((res) => res.data),
     onSuccess: (data) => {
+      setImported(null)
       setDraft(data.controls)
       controlsQuery.refetch()
       queryClient.invalidateQueries({ queryKey: APPLICATION_MODULES_QUERY_KEY })
@@ -183,7 +187,7 @@ export function AdminControlsPage() {
             <icon.database className={`h-4 w-4 ${refreshPublicOncoKb.isPending ? "animate-spin" : ""}`} />
             Refresh public OncoKB
           </Button>}
-          {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending}>
+          {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending || imported !== null}>
             {saveControls.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}
             Save controls
           </Button>}
@@ -191,6 +195,16 @@ export function AdminControlsPage() {
       }
     >
       <DocumentEditorNotice editor={documentEditor} />
+      {controls && !controlsQuery.error && <ConfigurationTransfer label="application controls"
+        filename="application-controls" document={{ email: controls.email, celery: controls.celery,
+          retention: controls.retention, modules: controls.modules, curation: controls.curation }}
+        fields={["email", "celery", "retention", "modules", "curation"]}
+        required={["celery", "retention", "modules", "curation"]}
+        disabled={saveControls.isPending || imported !== null}
+        onImport={canEdit ? document => { saveControls.reset(); setImported(document) } : undefined} />}
+      {imported && <JsonDocumentEditor label="Application controls" document={imported} allowUnchanged
+        readOnly={!canEdit} isSaving={saveControls.isPending} serverError={saveControls.error?.message}
+        onCancel={() => setImported(null)} onSave={document => saveControls.mutate(document as AppControls)} />}
       {controlsQuery.error ? (
         <ModuleNotice>{controlsQuery.error instanceof Error ? controlsQuery.error.message : "Unable to load application controls."}</ModuleNotice>
       ) : controlsQuery.isLoading || !controls ? (

@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { downloadJson } from "@/lib/json-download"
 import { installEditLeaseMock, editSessionOptions } from "@/test/edit-lease"
 
 const mocks = vi.hoisted(() => ({
@@ -37,6 +38,7 @@ vi.mock("@/lib/notifications", () => ({
   notifySuccess: mocks.success,
   notifyActionError: mocks.error,
 }))
+vi.mock("@/lib/json-download", () => ({ downloadJson: vi.fn() }))
 
 import { AssaysPage } from "./assays/AssaysPage"
 import { AssayEditorPage } from "./assays/AssayEditorPage"
@@ -603,6 +605,55 @@ describe("Managed admin resource workflows", () => {
     await waitFor(() => expect(mocks.put).toHaveBeenCalledWith("/users/reviewer", {
       form_data: { email: "new@example.org" },
     }, editSessionOptions))
+  })
+
+  it("exports user configuration without stored credentials", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      user_doc: { username: "reviewer", email: "reviewer@example.org", password: "SYNTHETIC_HASH" },
+      form: { fields: { username: { label: "Username" }, email: { label: "Email" },
+        password: { label: "Password", display_type: "password" } } },
+    } })
+    renderEditor("users", "view", "reviewer")
+    await screen.findByRole("link", { name: "reviewer@example.org" })
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+    expect(downloadJson).toHaveBeenCalledWith("users_reviewer", {
+      username: "reviewer", email: "reviewer@example.org",
+    })
+  })
+
+  it.each([
+    ["users", "username", "/users"],
+    ["roles", "name", "/roles"],
+    ["permissions", "permission_id", "/permissions"],
+  ])("stages %s imports and creates only after saving the form", async (resource, field, endpoint) => {
+    mocks.get.mockResolvedValue({ data: { form: { fields: {
+      [field]: { label: "Record identifier" },
+    } } } })
+    renderEditor(resource, "create")
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import JSON" })).toBeEnabled())
+    const document = { [field]: "synthetic-import" }
+    const file = new File([JSON.stringify(document)], "identity.json")
+    Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+    fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByLabelText(/Record identifier/)).toHaveValue("synthetic-import"))
+    expect(mocks.post).not.toHaveBeenCalledWith(endpoint, expect.anything())
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(endpoint, { form_data: document }))
+  })
+
+  it("rejects account imports containing a password before changing form values", async () => {
+    mocks.get.mockResolvedValue({ data: { form: { fields: {
+      username: { label: "Username" }, password: { label: "Password", display_type: "password" },
+    } } } })
+    renderEditor("users", "create")
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import JSON" })).toBeEnabled())
+    const document = { username: "imported-user", password: "SYNTHETIC_PASSWORD" }
+    const file = new File([JSON.stringify(document)], "user.json")
+    Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+    fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
+    expect(await screen.findByText(/Import account configuration without passwords/)).toBeVisible()
+    expect(screen.getByLabelText(/Username/)).toHaveValue("")
+    expect(mocks.post).not.toHaveBeenCalledWith("/users", expect.anything())
   })
 
   it.each(["create", "edit"] as const)("keeps unsaved %s form values during a background refresh", async mode => {

@@ -4,11 +4,13 @@ import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
 import { AssayGroupsPage } from "./AssayGroupsPage"
+import { downloadJson } from "@/lib/json-download"
 
 const access = vi.hoisted(() => ({ permissions: ["assay.panel:view", "assay.panel:edit"], roles: [] }))
 vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: access, isLoading: false }) }))
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
+vi.mock("@/lib/json-download", () => ({ downloadJson: vi.fn() }))
 beforeEach(() => {
   vi.resetAllMocks()
   access.permissions = ["assay.panel:view", "assay.panel:edit"]
@@ -20,6 +22,16 @@ beforeEach(() => {
 function mount() {
   return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AssayGroupsPage /></QueryClientProvider></MemoryRouter>)
 }
+it("exports parents before their children using only supported creation fields", async () => {
+  const child = { group_id: "child", parent_group_id: "parent", display_name: "Child", description: "" }
+  const parent = { group_id: "parent", parent_group_id: null, display_name: "Parent", description: "" }
+  const source = [{ ...child, system_installed: true, created_by: "system" }, parent]
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { groups: source } })
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "Export JSON" }))
+  expect(downloadJson).toHaveBeenCalledWith("assay-groups", [parent, child])
+  expect(source[0].group_id).toBe("child")
+})
 it("shows protected system entries without edit or delete actions", async () => {
   vi.mocked(api.get).mockResolvedValue({ status: 200, data: { groups: [{ group_id: "solid", display_name: "Solid tumors", system_installed: true, created_by: "system" }] } })
   mount()

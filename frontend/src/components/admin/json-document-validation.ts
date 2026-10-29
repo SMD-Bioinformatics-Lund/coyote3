@@ -36,7 +36,7 @@ function parseErrorMessage(error: ParseError): string {
   return `JSON syntax error: ${description}.`
 }
 
-export function validateJsonDocument(source: string): JsonValidation {
+export function validateJsonDocument(source: string, subject = "sample"): JsonValidation {
   const errors: ParseError[] = []
   const parsed = parse(source, errors, {
     allowEmptyContent: false,
@@ -60,7 +60,7 @@ export function validateJsonDocument(source: string): JsonValidation {
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     const diagnostic = {
-      message: "The sample document must be a JSON object.",
+      message: `The ${subject} document must be a JSON object.`,
       line: 1,
       column: 1,
     }

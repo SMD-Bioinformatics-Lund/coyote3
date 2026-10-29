@@ -20,6 +20,7 @@ import type { DiagnosisDefinition } from "./AssayDiagnoses"
 import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
 import { BulkInstall } from "@/components/admin/BulkInstall"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
 
 type Assay = { asp_id: string; name?: string | null; display_name: string; is_active: boolean }
 const empty = { diagnosis_id: "", display_name: "", description: "", is_active: true, asp_ids: [] as string[] }
@@ -110,6 +111,10 @@ export function DiagnosisDefinitionsPage() {
     <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="definitions" />
     {allowed && canEdit && <BulkInstall kind="diagnoses" />}
+    {allowed && definitions.data && <ConfigurationTransfer label="diagnoses" filename="diagnoses"
+      document={definitions.data.map(row => ({ diagnosis_id: row.diagnosis_id,
+        display_name: row.display_name, description: row.description, is_active: row.is_active,
+        asp_ids: row.associated_asp_ids || [] }))} />}
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay list and view permissions are required.</p> : <>
       {definitions.isLoading && <p role="status">Loading diagnoses...</p>}
       {definitions.error && <p role="alert" className="text-destructive">Unable to load shared diagnoses.</p>}

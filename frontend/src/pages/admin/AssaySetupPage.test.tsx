@@ -26,6 +26,19 @@ function mount() {
   installEditLeaseMock(vi.mocked(api.post))
   render(<MemoryRouter initialEntries={["/admin/assay-setups?setup=setup-1"]}><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AssaySetupPage /></QueryClientProvider></MemoryRouter>)
 }
+it("reviews imported setup content before creating an unpublished draft", async () => {
+  mount()
+  await screen.findByRole("button", { name: "6. Review" })
+  const document = { ...setup.content, panel: { ...setup.content.panel, asp_id: "imported_panel" } }
+  const file = new File([JSON.stringify(document)], "setup.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+  fireEvent.change(screen.getByLabelText("Import assay setup JSON"), { target: { files: [file] } })
+  await screen.findByRole("textbox", { name: "Assay setup JSON" })
+  expect(api.post).not.toHaveBeenCalledWith("/admin/assay-setups", expect.anything())
+  fireEvent.click(screen.getByRole("button", { name: "Save assay setup" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups", document))
+  expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/publish"), expect.anything())
+})
 it("allows an independent reviewer to approve the loaded revision", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))

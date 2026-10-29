@@ -1,5 +1,13 @@
 # Finding query rules
 
+**Export JSON** downloads the selected saved version's editable name, scope and
+content. **Import JSON** validates that content through the existing policy-preview
+endpoint and loads a new unsaved draft. It does not copy database identity, authorship,
+revision, approval or publication state. Enter a new change reason, save, then
+complete the normal independent review/publication workflow. References must exist
+in the target installation. See [configuration transfer](bulk-installation.md#json-configuration-transfer)
+for the supported formats across administration resources.
+
 Start with [application base queries](#application-base-queries-by-analysis) to see
 the built-in selection behavior, then [scope and inheritance](#scope-and-inheritance)
 to understand how UI rules modify it. To make a change, follow

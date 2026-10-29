@@ -13,7 +13,9 @@ import { BULK_BYTES, bulkDefinitions, parseBulkFile, type BulkKind, type BulkRec
 type Result = { row: number; identity: string; status: string }
 
 /** Preview and create independent records through their permission-checked resource APIs. */
-export function BulkInstall({ kind }: { kind: BulkKind }) {
+export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> }
+  | { kind: "assay-diagnoses"; aspId: string }) {
+  const { kind } = props
   const access = useCurrentUserAccess()
   const definition = bulkDefinitions[kind]
   const allowed = hasPermission(access.data, definition.permission)
@@ -31,7 +33,8 @@ export function BulkInstall({ kind }: { kind: BulkKind }) {
   const [running, setRunning] = useState(false)
   const [reading, setReading] = useState(false)
   const [attempted, setAttempted] = useState(false)
-  const endpoint = `/resources/${kind}`
+  const endpoint = props.kind === "assay-diagnoses"
+    ? `/resources/asp/${encodeURIComponent(props.aspId)}/diagnoses` : `/resources/${kind}`
   const contract = useQuery({
     queryKey: ["bulk-install-contract", kind, category], enabled: allowed,
     queryFn: async () => {

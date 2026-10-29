@@ -16,6 +16,10 @@ import type { AdminEditorState } from "./useAdminEditor"
 
 export function AdminEditorActions({ state, spec, mode, supportsConfigurationTransfer = false }: { state: AdminEditorState; spec: AdminResourceSpec; mode: AdminFormMode; supportsConfigurationTransfer?: boolean }) {
   const { id, canEdit, systemPermission, importInputRef, handleImportFile, doc, form, values } = state
+  const transferDocument = () => Object.fromEntries(
+    Object.entries(submitPayload(form, values, "create"))
+      .filter(([key]) => form?.fields[key]?.display_type !== "password"),
+  )
   return (
     <div className="flex items-center gap-2">
       {mode === "view" && canEdit && !systemPermission && (
@@ -35,11 +39,13 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
             accept="application/json,.json"
             className="sr-only"
             aria-label="Import configuration JSON"
+            disabled={!form}
             onChange={handleImportFile}
           />
           <Button
             type="button"
             variant="outline"
+            disabled={!form}
             onClick={() => importInputRef.current?.click()}
           >
             <icon.upload className="h-4 w-4" />
@@ -50,7 +56,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
       {supportsConfigurationTransfer && mode !== "create" && doc && (
         <button
           type="button"
-          onClick={() => downloadJson(`${spec.key}_${String(id)}`, submitPayload(form, values, "create"))}
+          onClick={() => downloadJson(`${spec.key}_${String(id)}`, transferDocument())}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
         >
           <icon.download className="h-4 w-4" />
@@ -60,7 +66,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
       {supportsConfigurationTransfer && mode !== "create" && doc && canEdit && (
         <Link
           to={`/admin/${spec.key}/create`}
-          state={{ copiedDocument: doc }}
+          state={{ copiedDocument: spec.key === "users" ? transferDocument() : doc }}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
         >
           <icon.copyPlus className="h-4 w-4" />

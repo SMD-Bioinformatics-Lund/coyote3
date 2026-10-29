@@ -12,6 +12,7 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
+import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
 import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
@@ -94,6 +95,8 @@ export function QueryRulesPage() {
   const [previewTab, setPreviewTab] = useState<"draft" | "published">("draft")
   const parent = useQuery({ queryKey: ["query-rule-parent", draft.scope], enabled: draft.scope.assay_group !== "", queryFn: () => api.post<Resolution>("/admin/query-rule-sets/preview", { scope: draft.scope, content: { evidence_mode: null, exceptions: null } }).then(r => r.data) })
   const [dirty, setDirty] = useState(false)
+  const dirtyRef = useRef(dirty)
+  dirtyRef.current = dirty || Boolean(draft.reason)
   const previewGeneration = useRef(0)
   const [confirmation, setConfirmation] = useState<{ title: string; description: string; run: () => void } | null>(null)
   const list = useQuery({ queryKey: ["query-rules"], queryFn: () => api.get<{ items: Rule[] }>("/admin/query-rule-sets").then(r => r.data) })
@@ -107,6 +110,22 @@ export function QueryRulesPage() {
   const selectVersion = (rule: Rule | null) => {
     if (!dirty) choose(rule)
     else setConfirmation({ title: "Discard unsaved changes?", description: "The saved version remains unchanged.", run: () => choose(rule) })
+  }
+  const importDraft = async (document: Record<string, unknown>) => {
+    if (!document.scope || typeof document.scope !== "object" || Array.isArray(document.scope)
+      || !document.content || typeof document.content !== "object" || Array.isArray(document.content)
+      || typeof document.name !== "string") throw new Error("Provide a query-rule name, scope and content")
+    const generation = previewGeneration.current
+    const { data: validated } = await api.post<{ scope: Scope }>("/admin/query-rule-sets/preview",
+      { scope: document.scope, content: document.content }, { errorNotice: "inline" })
+    if (generation !== previewGeneration.current) throw new Error("The draft changed while checking the file. Import it again.")
+    const run = () => {
+      choose(null)
+      change({ name: document.name as string, scope: validated.scope,
+        content: { ...initial().content, ...document.content as Content }, reason: "" })
+    }
+    if (dirtyRef.current) setConfirmation({ title: "Discard unsaved changes?", description: "Import this policy into a new unsaved draft.", run })
+    else run()
   }
   const mutation = useMutation({
     mutationFn: async (action: string) => {
@@ -167,6 +186,11 @@ export function QueryRulesPage() {
   return <PageShell eyebrow="Finding selection" title="Query rules" description="Author, review and publish finding-selection policies for groups, assays and diagnoses."
     actions={<>{dirty && <Badge variant="outline">Unsaved</Badge>}{hasPermission(access, "query_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to={selected ? `/admin/query-rules/testing?version=${encodeURIComponent(selected._id)}` : "/admin/query-rules/testing"} />}><icon.beaker />Test rules</Button>}<Button variant="outline" onClick={() => selectVersion(null)} disabled={mutation.isPending || !hasPermission(access, "query_rules:draft")}><icon.plus />New scope version</Button></>}>
     <DocumentEditorNotice editor={documentEditor} />
+    <ConfigurationTransfer label="query rules" filename={selected ? `${selected.name}-query-rules` : "query-rules"}
+      document={selected ? { name: selected.name, scope: selected.scope, content: selected.content } : undefined}
+      onImport={hasPermission(access, "query_rules:draft") ? importDraft : undefined}
+      fields={["name", "scope", "content"]} required={["name", "scope", "content"]}
+      disabled={mutation.isPending || deletion.isPending} />
     {(list.isError || options.isError) && <p role="alert">Unable to load query rules. Refresh to retry.</p>}
     <div className={cn("query-rules-layout clinical-rules-workspace surface-panel overflow-hidden", listCollapsed && "is-rule-list-collapsed")} style={{ "--rule-list-width": `${listWidth}px`, "--preview-width": `${previewWidth}px` } as CSSProperties}>
       <aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0" aria-label="Query-rule navigation">

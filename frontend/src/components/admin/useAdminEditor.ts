@@ -76,16 +76,25 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
       return
     }
     const imported = source as Record<string, any>
+    if ((spec.key === "users" && "password" in imported)
+      || Object.keys(imported).some(key => form?.fields[key]?.display_type === "password")) {
+      setEditorError("Import account configuration without passwords. Use the account credential workflow.")
+      return
+    }
     const importedVariant = importSchemaVariant?.(imported)
     setHasImportedValues(false)
     setPendingImport({ document: imported, schemaVariant: importedVariant })
     setEditorError("")
-  }, [importSchemaVariant])
+  }, [form, importSchemaVariant, spec.key])
 
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ""
     if (!file) return
+    if (file.size > 1024 * 1024) {
+      setEditorError("File must be no larger than 1 MiB")
+      return
+    }
     try {
       stageImport(JSON.parse(await file.text()))
     } catch {
