@@ -192,11 +192,12 @@ class Traceability:
         """Bind current grants, audit storage and schema adapters."""
         self._runtime, self._services = runtime, services
 
-    def events(self, limit: int = 200) -> dict[str, Any]:
+    def events(self, limit: int = 200, *, ingestion_only: bool = False) -> dict[str, Any]:
         """Read recent durable audit events with audit_log:view permission.
 
         Args:
             limit: Maximum recent events, from 1 to 1000; defaults to 200.
+            ingestion_only: Query only ingestion events before applying the limit.
 
         Returns:
             Existing durable audit event envelope.
@@ -209,6 +210,8 @@ class Traceability:
             """Check the public limit before querying the traceability store."""
             if not 1 <= limit <= 1000:
                 raise api_error(422, "Audit event limit must be between 1 and 1000")
+            if ingestion_only:
+                return dict(self._services.audit().recent_events(limit=limit, ingestion_only=True))
             return dict(self._services.audit().recent_events(limit=limit))
 
         return self._runtime.execute("traceability.events", ("audit_log:view",), read)

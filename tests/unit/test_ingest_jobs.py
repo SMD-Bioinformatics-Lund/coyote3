@@ -124,7 +124,11 @@ def test_failed_job_and_audit_preserve_validation_reason(
     error = job_status_payload(jobs.get(identity))["error"]
     assert detail in error
     assert "private connection details" not in error
-    failure_events = [event for event in events if event[0][0] != "ingest.worker.access"]
+    started_events = [event for event in events if event[0][0] == "ingest.bundle.started"]
+    assert len(started_events) == 1
+    assert started_events[0][1]["metadata"]["task_id"] == identity
+    failure_events = [event for event in events if event[0][0] == "ingest.bundle.failed"]
+    assert len(failure_events) == 1
     assert failure_events[0][0][1] == f"Ingest attempt failed: {error}"
     assert failure_events[0][1]["metadata"]["error"] == error
     notification = notifications.create_notification.call_args.kwargs
@@ -219,7 +223,10 @@ def test_reclaimed_attempt_does_not_notify_failure_or_remove_staging(jobs, monke
     }
     assert jobs.get(identity)["state"] == "running"
     assert staging.exists()
-    assert all(call.args[0] == "ingest.worker.access" for call in audit.call_args_list)
+    assert [call.args[0] for call in audit.call_args_list] == [
+        "ingest.bundle.started",
+        "ingest.worker.access",
+    ]
     notifications.create_notification.assert_not_called()
 
 

@@ -33,6 +33,7 @@ vi.mock("./pages/SampleDetail", () => ({ SampleDetail: () => {
   return <div>Sample detail {id}</div>
 } }))
 vi.mock("./pages/admin/AdminAuditPage", () => ({ AdminAuditPage: () => <div>Audit page</div> }))
+vi.mock("./pages/admin/AdminIngestionAuditPage", () => ({ AdminIngestionAuditPage: () => <div>Ingestion audit page</div> }))
 vi.mock("./pages/admin/AdminControlsPage", () => ({ AdminControlsPage: () => <div>Controls page</div> }))
 vi.mock("./pages/admin/AdminIngestPage", () => ({ AdminIngestPage: () => <div>Ingest page</div> }))
 vi.mock("./pages/static/AboutPage", () => ({
@@ -88,9 +89,9 @@ describe("App route wiring", () => {
     expect(await screen.findByText("Knowledgebase details page")).toBeVisible()
   })
 
-  it("wraps protected admin routes in their exact permission boundary", async () => {
-    navigate("/admin/audit")
-    expect(await screen.findByText("Audit page")).toBeVisible()
+  it.each([["/admin/audit", "Audit page"], ["/admin/ingestion-audit", "Ingestion audit page"]])("wraps %s in its permission boundary", async (path, title) => {
+    navigate(path)
+    expect(await screen.findByText(title)).toBeVisible()
     expect(screen.getByTestId("permission-boundary")).toHaveAttribute(
       "data-permission",
       ADMIN_UTILITY_PERMISSIONS.auditView,

@@ -140,9 +140,19 @@ class AuditService:
         """
         return self.repository.replay_pending(environment=self.environment)
 
-    def recent_events(self, *, limit: int) -> dict[str, Any]:
-        """Return recent audit events and total event count."""
+    def recent_events(self, *, limit: int, ingestion_only: bool = False) -> dict[str, Any]:
+        """Return recent events and their total, optionally restricted to ingestion.
+
+        Args:
+            limit: Requested event count, clamped to 1–1000; zero selects 200.
+            ingestion_only: Select ingestion event types before applying the limit.
+
+        Returns:
+            Newest-first event window and the total matching stored event count.
+        """
         bounded_limit = max(1, min(int(limit or 200), 1000))
+        if ingestion_only:
+            return self.repository.recent_events(limit=bounded_limit, ingestion_only=True)
         return self.repository.recent_events(limit=bounded_limit)
 
     @staticmethod

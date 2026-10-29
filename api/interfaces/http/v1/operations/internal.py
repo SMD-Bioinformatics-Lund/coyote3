@@ -48,6 +48,7 @@ from api.security.access import (
     require_sample_ingest_access,
 )
 from coyote3.application.operations.ingest import Ingestion
+from coyote3.application.operations.ingest_audit import IngestionAuditAttempt
 from coyote3.application.operations.internal_references import InternalReferences
 from coyote3.domain.exceptions import AppError
 
@@ -202,6 +203,13 @@ def ingest_sample_bundle_internal(
             detail="Provide only one of `sample` or `yaml_content`",
         )
 
+    attempt = IngestionAuditAttempt(
+        get_audit_service(),
+        actor=user,
+        source="api",
+        update_existing=payload.update_existing,
+        increment=payload.increment,
+    )
     try:
         ingest_service.authorize_sample()
         source_payload = (
@@ -217,7 +225,9 @@ def ingest_sample_bundle_internal(
             source="api",
         ).model_dump()
     except Exception as exc:
+        attempt.failed(exc)
         return _ingest_failure(user, exc, acknowledge=acknowledge)
+    attempt.succeeded(result)
     serialized = util.common.convert_to_serializable(result)
     return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
 
@@ -300,6 +310,14 @@ def _execute_sample_bundle_upload(
     """Stage, execute, and clean up one authenticated bundle upload."""
 
     logging.getLogger(__name__).info("Ingest upload started: manifest=%s", yaml_file.filename)
+    attempt = IngestionAuditAttempt(
+        get_audit_service(),
+        actor=user,
+        source="upload",
+        manifest=yaml_file.filename,
+        update_existing=update_existing,
+        increment=increment,
+    )
     staging_dir = Path(tempfile.mkdtemp(prefix="coyote3_ingest_upload_"))
     upload_refs: list[UploadFile] = [yaml_file, *([data_archive] if data_archive else [])]
     try:
@@ -325,8 +343,10 @@ def _execute_sample_bundle_upload(
                 *source_payload["_ingest_warnings"],
             ]
         logging.getLogger(__name__).info("Ingest upload completed: manifest=%s", yaml_file.filename)
+        attempt.succeeded(result)
         return _ingest_acknowledgement(result=serialized) if acknowledge else serialized
     except Exception as exc:
+        attempt.failed(exc)
         return _ingest_failure(user, exc, acknowledge=acknowledge)
     finally:
         for upload in upload_refs:

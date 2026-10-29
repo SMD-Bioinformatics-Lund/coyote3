@@ -14,7 +14,7 @@ class AuditRepository(Protocol):
         """Deliver pending events for the configured environment and return the count."""
         ...
 
-    def recent_events(self, *, limit: int) -> dict[str, Any]:
+    def recent_events(self, *, limit: int, ingestion_only: bool = False) -> dict[str, Any]:
         """Return bounded recent events and the total event count."""
         ...
 

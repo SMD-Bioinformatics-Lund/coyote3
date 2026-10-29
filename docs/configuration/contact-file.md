@@ -28,7 +28,7 @@ email addresses. Review public content before publishing it.
 | `organization.name` | Recommended text | Runtime name comes from `ORGANIZATION_NAME` (`Coyote3` by default); the docs hook can use file identity when no override is supplied | Keep the center name aligned with the environment. |
 | `organization.department` | Optional text | Not supplied | Laboratory or department shown with the center identity. |
 | `organization.report_logo` | Optional text | `region-skane` | Modern report logo: bundled mark, a supported image path inside the center directory, or empty to omit. |
-| `organization.accreditation_logo` | Optional text | Not supplied | SVG, PNG or JPEG inside the center directory, printed in the PDF footer only when the applied ASP snapshot has `accredited = true`. Empty omits it. |
+| `organization.accreditation_logo` | Optional text | Not supplied | SVG, PNG or JPEG inside the center directory, or an absolute host path imported by the Compose wrapper before container creation. Printed in the PDF footer only when the applied ASP snapshot has `accredited = true`. Empty omits it. |
 | `organization.address` | Optional text | Not supplied | Postal address printed below the center name in modern reports. Newlines are retained. |
 | `organization.phone` | Optional text | Not supplied | Center contact number printed with a telephone icon in modern reports. This is separate from the support escalation number. |
 | `support` | Recommended table | Empty table, with available generated links added | Public support information. |

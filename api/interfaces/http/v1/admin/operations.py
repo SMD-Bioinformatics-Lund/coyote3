@@ -106,8 +106,9 @@ def admin_schemas_read(
 @router.get("/api/v1/admin/audit", response_model=AdminAuditPayload)
 def admin_audit_read(
     limit: int = Query(default=200, ge=1, le=1000),
+    ingestion_only: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="audit_log:view")),
     service: Traceability = Depends(get_traceability),
 ):
     """Return recent durable audit events."""
-    return util.common.convert_to_serializable(service.events(limit))
+    return util.common.convert_to_serializable(service.events(limit, ingestion_only=ingestion_only))

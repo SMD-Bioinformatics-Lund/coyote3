@@ -72,6 +72,15 @@ status and checkboxes for available active ASPs. Assay search filters the list
 without discarding selections. Saving creates one definition and all selected
 associations in one transaction. An unassigned definition is also allowed.
 
+Every row offers **View**, including system-installed definitions and users with
+read-only access. The details show shared metadata, global status, version, assay
+links and provenance. System-installed definitions explain their read-only status.
+Editable definitions also offer **Edit** and **Activate/Deactivate**. Availability
+changes require confirmation and use an editing session and revision check.
+Global deactivation excludes the diagnosis from new assignments across all assays;
+activation still requires an active assay association. Existing clinical records
+and saved reports remain unchanged.
+
 The identifier is generated from the display name and can be edited before
 creation. Existing definitions keep their identifier. Editing changes shared
 metadata and global availability and can add assay associations. Existing links

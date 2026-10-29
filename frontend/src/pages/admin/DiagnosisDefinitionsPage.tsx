@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { SearchInput } from "@/components/ui/search-input"
 import { api } from "@/lib/api"
 import { shortResourceName } from "@/lib/resource-names"
-import { useDocumentEditor } from "@/hooks/useDocumentEditor"
+import { useDocumentEditor, withDocumentEditor } from "@/hooks/useDocumentEditor"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
@@ -30,6 +31,10 @@ export function DiagnosisDefinitionsPage() {
   const canEdit = hasPermission(access.data, "assay.panel:edit")
   const client = useQueryClient()
   const [editing, setEditing] = useState<DiagnosisDefinition | "new" | null>(null)
+  const [viewing, setViewing] = useState<DiagnosisDefinition | null>(null)
+  const [statusTarget, setStatusTarget] = useState<DiagnosisDefinition | null>(null)
+  const viewRef = useRef<HTMLElement>(null)
+  useEffect(() => { if (viewing) viewRef.current?.focus() }, [viewing])
   const documentEditor = useDocumentEditor("diagnoses", editing && editing !== "new" ? editing.diagnosis_id : "", canEdit && Boolean(editing && editing !== "new"))
   const [values, setValues] = useState(empty)
   const [idEdited, setIdEdited] = useState(false)
@@ -51,6 +56,31 @@ export function DiagnosisDefinitionsPage() {
       }
     },
   })
+  const refreshDefinitions = () => {
+    for (const queryKey of [
+      ["diagnosis-definitions"], ["assay-diagnoses"],
+      ["admin-resource-context", "aspc"], ["admin-resource-context", "genelists"],
+      ["assay-setup-context"], ["clinical-rule-authoring-options"],
+    ]) void client.invalidateQueries({ queryKey })
+  }
+  const statusMutation = useMutation({
+    mutationFn: async () => {
+      if (!statusTarget || !canEdit || statusTarget.system_installed) throw new Error("Select an editable diagnosis")
+      return withDocumentEditor("diagnoses", statusTarget.diagnosis_id, (options) =>
+        api.put(`/resources/diagnoses/${encodeURIComponent(statusTarget.diagnosis_id)}`, {
+          display_name: statusTarget.display_name, description: statusTarget.description,
+          is_active: !statusTarget.is_active, expected_version: statusTarget.version,
+          add_asp_ids: [],
+        }, options))
+    },
+    onSuccess: () => {
+      setStatusTarget(null)
+      setViewing(null)
+      refreshDefinitions()
+      notifySuccess("Diagnosis availability updated")
+    },
+    onError: (error) => notifyActionError("Change diagnosis availability", error),
+  })
   const mutation = useMutation({
     mutationFn: () => {
       if (editing === "new") return api.post("/resources/diagnoses", values)
@@ -62,12 +92,7 @@ export function DiagnosisDefinitionsPage() {
     },
     onSuccess: () => {
       setEditing(null)
-      void client.invalidateQueries({ queryKey: ["diagnosis-definitions"] })
-      void client.invalidateQueries({ queryKey: ["assay-diagnoses"] })
-      void client.invalidateQueries({ queryKey: ["admin-resource-context", "aspc"] })
-      void client.invalidateQueries({ queryKey: ["admin-resource-context", "genelists"] })
-      void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
-      void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
+      refreshDefinitions()
       notifySuccess("Shared diagnosis saved")
     },
     onError: (error) => notifyActionError("Save shared diagnosis", error),
@@ -75,6 +100,12 @@ export function DiagnosisDefinitionsPage() {
   const validId = editing !== "new" || /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(values.diagnosis_id) && values.diagnosis_id !== "base"
   const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.diagnosis_id}`.toLowerCase().includes(search.toLowerCase()))
   return <PageShell eyebrow="Admin" title="Diagnosis definitions" actions={<AdminHomeLink />}>
+    <ConfirmationDialog open={Boolean(statusTarget)}
+      title={`${statusTarget?.is_active ? "Deactivate" : "Activate"} ${statusTarget?.display_name || "diagnosis"}`}
+      confirmLabel={statusTarget?.is_active ? "Deactivate diagnosis" : "Activate diagnosis"}
+      isPending={statusMutation.isPending}
+      description={<><p>{statusTarget?.is_active ? "This diagnosis will be unavailable for new assignments across all associated assays. Existing samples, annotations and saved reports are preserved." : "This diagnosis will become globally available. Each assay association must also be active for new assignments."}</p>{statusMutation.error && <p role="alert" className="mt-2 text-destructive">{statusMutation.error.message}</p>}</>}
+      onCancel={() => setStatusTarget(null)} onConfirm={() => statusMutation.mutate()} />
     <DocumentEditorNotice editor={documentEditor} />
     <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="definitions" />
@@ -106,9 +137,28 @@ export function DiagnosisDefinitionsPage() {
           { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
           { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
           { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
-          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => canEdit && !row.system_installed && <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending} onClick={() => { setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><icon.edit className="h-4 w-4" /></Button> },
+          { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" title={`View ${row.display_name}`} aria-label={`View ${row.display_name}`} onClick={() => setViewing(row)}><icon.eye className="h-4 w-4" /></Button>
+            {canEdit && !row.system_installed && <>
+              <Button variant="ghost" size="icon" title={`Edit ${row.display_name}`} aria-label={`Edit ${row.display_name}`} disabled={mutation.isPending || statusMutation.isPending} onClick={() => { setViewing(null); setEditing(row); setValues({ ...empty, ...row, asp_ids: [] }); setAssaySearch(""); mutation.reset() }}><icon.edit className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="text-validation" title={`${row.is_active ? "Deactivate" : "Activate"} ${row.display_name}`} aria-label={`${row.is_active ? "Deactivate" : "Activate"} ${row.display_name}`} disabled={mutation.isPending || statusMutation.isPending} onClick={() => { setStatusTarget(row); statusMutation.reset() }}><icon.power className="h-4 w-4" /></Button>
+            </>}
+          </div> },
         ]}
       />}
+      {viewing && !editing && <section ref={viewRef} tabIndex={-1} aria-label="Diagnosis details" className="paper-inset space-y-3 rounded-lg border border-border p-4">
+        <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">{viewing.display_name}</h2><Button variant="ghost" size="icon" aria-label="Close diagnosis details" onClick={() => setViewing(null)}><icon.x className="h-4 w-4" /></Button></div>
+        <p className="type-body text-muted-foreground">{viewing.system_installed ? "System-installed definition. Editing and availability changes are managed by the application installation." : !canEdit ? "Read-only access. Assay edit permission is required to change this definition." : "Shared definition. Availability changes apply across all associated assays."}</p>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div><dt className="type-label text-muted-foreground">Identifier</dt><dd className="break-words type-body">{viewing.diagnosis_id}</dd></div>
+          <div><dt className="type-label text-muted-foreground">Global status</dt><dd><TableBadge className={viewing.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{viewing.is_active ? "Available" : "Retired"}</TableBadge></dd></div>
+          <div className="sm:col-span-2"><dt className="type-label text-muted-foreground">Description</dt><dd className="whitespace-pre-wrap break-words type-body">{viewing.description || "No description provided."}</dd></div>
+          <div><dt className="type-label text-muted-foreground">Version</dt><dd className="type-body">{viewing.version}</dd></div>
+          <div><dt className="type-label text-muted-foreground">Associated assays</dt><dd className="flex flex-wrap gap-2">{viewing.associated_asp_ids?.length ? viewing.associated_asp_ids.map(id => <Link key={id} className="break-all text-primary underline" to={`/admin/assay-diagnoses?assay=${encodeURIComponent(id)}`}>{shortResourceName(assays.data?.find(assay => assay.asp_id === id), id)}</Link>) : "None"}</dd></div>
+          <div><dt className="type-label text-muted-foreground">Created by</dt><dd><RecordProvenance record={viewing} /></dd></div>
+          <div><dt className="type-label text-muted-foreground">Updated by</dt><dd><RecordProvenance record={viewing} kind="updated" /></dd></div>
+        </dl>
+      </section>}
       {canEdit && editing && <form onSubmit={(event) => { event.preventDefault(); if (documentEditor.owned && validId && values.display_name.trim()) mutation.mutate() }}><fieldset disabled={!documentEditor.owned} className="grid gap-4 border-t border-border py-4 md:grid-cols-2">
         <h2 className="text-lg font-semibold md:col-span-2">{editing === "new" ? "New diagnosis" : "Edit shared definition"}</h2>
         {editing !== "new" && <p className="type-body md:col-span-2" role="status">Changes apply to every associated assay.</p>}

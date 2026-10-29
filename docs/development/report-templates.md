@@ -122,7 +122,10 @@ center logos, with a black Coyote3 wordmark and no product subtitle.
 A separate document heading displays the configured report title and sample name.
 Patient and sample details appear in a compact table with paired labels and values,
 and full-width question and report-identifier fields. Findings use consistent tables;
-the conclusion has a distinct bordered panel. Supporting descriptions and classification references use
+the conclusion has a distinct bordered panel unless it contains a table. Conclusion tables
+use the full content width, compact cells and plain borders, with long text wrapping.
+Only the classification cell of a Tier 1 SNV summary row is semibold.
+Supporting descriptions and classification references use
 the same typography, with smaller text than the main results.
 
 The modern layout embeds Source Sans 3 in regular, semibold and italic weights
@@ -137,9 +140,12 @@ after the detailed SNVs. Presentation overrides are
 loaded only for the modern layout, and their sources participate in its content hash.
 
 The modern stylesheet defines A4 paper, a 65 mm top region for the repeating
-logo line and patient table, 16 mm side and 18 mm bottom margins. The footer
-shows page counters and the optional accreditation logo for an accredited applied
-assay. HTML uses 14 mm top padding and shows the logo line and patient table once.
+logo line and patient table, 16 mm side and 22 mm bottom margins. When an accredited
+applied assay has a configured accreditation logo, the bottom margin increases to
+38 mm. The footer places the logo on the left in a 28 mm high image area, capped
+at 32 mm wide with its proportions preserved; the template version and Swedish
+`Sida X av Y` counter align on the right. HTML uses 14 mm top padding and shows
+the logo line and patient table once.
 Both formats use the same 210 mm paper width, giving both renderers
 178 mm of content width. The preview scrolls horizontally on narrower screens
 instead of changing table columns, font sizes or label placement. Detailed finding

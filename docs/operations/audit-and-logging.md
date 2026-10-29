@@ -344,6 +344,13 @@ not generate notifications. No database migration is required for this delivery 
 
 ## Application Controls
 
+The **Admin → Ingestion audit** page provides an ingestion-only view for users with
+`audit_log:view`. It shows the latest 1,000 matching events, source and outcome filters,
+sample links, and correlated attempt history. See the
+[ingestion audit reference](../api/sample-ingestion.md#deployment-server-helper)
+for recording, retention and recovery behavior. This view does not change ingestion
+paths or schedule directory scans.
+
 Use [application control settings](../administration/application-controls.md) for
 editable defaults, permissions and module boundaries. Configured switches express
 allowed work; observed runtime state reports which workers and queues respond.

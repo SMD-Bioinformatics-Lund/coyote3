@@ -5043,7 +5043,7 @@ Read durable audit records and inspect the authoritative collection schemas.
 #### `Traceability.events`
 
 ```python
-Traceability.events(self, limit: 'int' = 200) -> 'dict[str, Any]'
+Traceability.events(self, limit: 'int' = 200, *, ingestion_only: 'bool' = False) -> 'dict[str, Any]'
 ```
 
 ```text
@@ -5051,6 +5051,7 @@ Read recent durable audit events with audit_log:view permission.
 
 Args:
     limit: Maximum recent events, from 1 to 1000; defaults to 200.
+    ingestion_only: Query only ingestion events before applying the limit.
 
 Returns:
     Existing durable audit event envelope.

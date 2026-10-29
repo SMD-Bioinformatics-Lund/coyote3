@@ -513,6 +513,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
 
 
   {
+    path: "/admin/ingestion-audit",
+    page: "AdminIngestionAuditPage",
+    area: "admin",
+    api: ["GET /admin/audit"],
+    dataUsed: ["ingestion audit events, attempt correlations and outcomes"],
+  },
+  {
     path: "/admin/audit",
     page: "AdminAuditPage",
     area: "admin",

@@ -94,6 +94,7 @@ def _record_ingest_audit(event_type: str, message: str, **kwargs: Any) -> None:
     if audit is None:
         return
     try:
+        kwargs.setdefault("retention_class", "traceability")
         audit.record(event_type, message, category="data", tags=["celery", "ingest"], **kwargs)
     except Exception:
         logger.exception("Ingest audit delivery failed; durable job state is unchanged")
@@ -403,6 +404,14 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
     job = repository.claim(job_id, lease_seconds=DefaultConfig.CELERY_TASK_TIME_LIMIT + 60)
     if job is None:
         return {"status": "busy", "job_id": job_id}
+    _record_ingest_audit(
+        "ingest.bundle.started",
+        "Ingest worker claimed job",
+        actor=job.get("submitted_by"),
+        resource_type="ingest",
+        resource_id=job_id,
+        metadata={"task_id": job_id, "attempt": job.get("attempts"), "source": "celery"},
+    )
     try:
         with timed_operation("ingest.sample_bundle", observer=observe_operation, task_id=job_id):
             service = get_internal_ingest_service()
@@ -449,7 +458,13 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                 severity="error",
                 outcome="failure",
                 actor=job.get("submitted_by"),
-                metadata={"task_id": job_id, "retryable": retryable, "error": error},
+                metadata={
+                    "task_id": job_id,
+                    "attempt": job.get("attempts"),
+                    "source": "celery",
+                    "retryable": retryable,
+                    "error": error,
+                },
             )
             if not retryable and job.get("submitted_by"):
                 try:
@@ -476,11 +491,14 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
         _record_ingest_audit(
             "ingest.bundle.succeeded",
             "Sample bundle ingested",
+            actor=job.get("submitted_by"),
             resource_type="sample",
             resource_id=str(result.get("sample_id", "")),
             resource_name=str(result.get("sample_name", "")),
             metadata={
                 "task_id": job_id,
+                "attempt": job.get("attempts"),
+                "source": "celery",
                 "counts": result.get("counts") or result.get("data_counts"),
             },
         )

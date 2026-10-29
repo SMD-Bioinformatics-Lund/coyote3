@@ -11008,6 +11008,10 @@ export type Request_adminAuditReadApiV1AdminAuditGet = {
          * Limit
          */
         limit?: number;
+        /**
+         * Ingestion Only
+         */
+        ingestion_only?: boolean;
     };
     url: '/api/v1/admin/audit';
 };

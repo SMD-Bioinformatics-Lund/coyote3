@@ -103,6 +103,13 @@ const utilityModules = [
     permission: ADMIN_UTILITY_PERMISSIONS.auditView,
   },
   {
+    title: "Ingestion audit",
+    description: "Inspect ingestion outcomes, attempt history and recovery details.",
+    href: "/admin/ingestion-audit",
+    icon: icon.history,
+    permission: ADMIN_UTILITY_PERMISSIONS.auditView,
+  },
+  {
     title: "Ingest Workspace",
     description: "Queue validated sample-bundle ingestion and inspect worker task state.",
     href: "/admin/ingest",

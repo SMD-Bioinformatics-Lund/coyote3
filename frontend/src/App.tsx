@@ -42,6 +42,7 @@ const AdminSampleEditorPage = lazy(() => import("./pages/admin/samples/AdminSamp
 const AdminSamplesPage = lazy(() => import("./pages/admin/samples/AdminSamplesPage").then((module) => ({ default: module.AdminSamplesPage })))
 const AssaySetupPage = lazy(() => import("./pages/admin/AssaySetupPage").then((module) => ({ default: module.AssaySetupPage })))
 const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage").then((module) => ({ default: module.AdminAuditPage })))
+const AdminIngestionAuditPage = lazy(() => import("./pages/admin/AdminIngestionAuditPage").then((module) => ({ default: module.AdminIngestionAuditPage })))
 const AdminControlsPage = lazy(() => import("./pages/admin/AdminControlsPage").then((module) => ({ default: module.AdminControlsPage })))
 const AdminIngestPage = lazy(() => import("./pages/admin/AdminIngestPage").then((module) => ({ default: module.AdminIngestPage })))
 const AdminSchemasPage = lazy(() => import("./pages/admin/AdminSchemasPage"))
@@ -170,6 +171,7 @@ export default function App() {
             <Route path="/coverage/blacklisted/:group" element={withModule(<CoverageBlacklistPage />, "dna_analysis")} />
             <Route path="/admin" element={withRouteLoader(<AdminHub />)} />
             <Route path="/admin/audit" element={withAdminPermission(<AdminAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
+            <Route path="/admin/ingestion-audit" element={withAdminPermission(<AdminIngestionAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
             <Route path="/admin/controls" element={withAdminPermission(<AdminControlsPage />, ADMIN_UTILITY_PERMISSIONS.controlsView)} />
             <Route path="/admin/ingest" element={withModule(
               <AdminPermissionBoundary permission={ADMIN_UTILITY_PERMISSIONS.ingestManage}><AdminIngestPage /></AdminPermissionBoundary>,

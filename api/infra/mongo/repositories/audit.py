@@ -106,20 +106,24 @@ class AuditRepository:
             )
         return delivered
 
-    def recent_events(self, *, limit: int) -> dict[str, Any]:
-        """Return newest stored events and the complete audit count.
+    def recent_events(self, *, limit: int, ingestion_only: bool = False) -> dict[str, Any]:
+        """Return newest matching events and their total across both audit stores.
 
         Args:
             limit: Positive event limit already bounded by the application service.
+            ingestion_only: Restrict the database query to ingestion event identifiers.
 
         Returns:
-            Events ordered newest first and the collection's complete document count.
+            Events ordered newest first and the total matching stored event count.
         """
         events = []
         total = 0
+        query = {"event_type": {"$regex": "^ingest\\."}} if ingestion_only else {}
         for collection in (self.collection, self.operational_collection):
-            events.extend(collection.find({}).sort([("occurred_at", -1), ("_id", -1)]).limit(limit))
-            total += collection.count_documents({})
+            events.extend(
+                collection.find(query).sort([("occurred_at", -1), ("_id", -1)]).limit(limit)
+            )
+            total += collection.count_documents(query)
         events.sort(key=_event_order, reverse=True)
         return {"events": events[:limit], "total": total}
 

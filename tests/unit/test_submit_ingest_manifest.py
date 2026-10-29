@@ -110,7 +110,7 @@ def test_remote_acknowledgement_moves_original_and_is_idempotent(
     assert len(calls) == 1
 
 
-def test_remote_original_is_uploaded_again_after_rename_failure(remote_args, monkeypatch):
+def test_remote_rename_failure_recovers_without_another_upload(remote_args, monkeypatch):
     finalize = client.finalize_remote
     monkeypatch.setattr(
         client, "upload", lambda *a: {"status": "ok", "sample_id": "synthetic", "message": "done"}
@@ -133,7 +133,7 @@ def test_remote_original_is_uploaded_again_after_rename_failure(remote_args, mon
 
     monkeypatch.setattr(client, "upload", upload)
     assert client.submit_remote(remote_args) == 0
-    assert len(calls) == 1
+    assert len(calls) == 0
 
 
 def test_changed_remote_manifest_is_left_in_place(remote_args, monkeypatch):
@@ -168,7 +168,9 @@ def test_unconfirmed_remote_upload_never_renames_source(remote_args, monkeypatch
     with pytest.raises(ValueError, match="Unconfirmed timeout"):
         client.submit_remote(remote_args)
     assert Path(remote_args.yaml).exists()
-    assert not list(Path(remote_args.state_dir).glob("*.ack.json"))
+    receipts = list(Path(remote_args.state_dir).glob("*.ack.json"))
+    assert len(receipts) == 1
+    assert json.loads(receipts[0].read_text())["state"] == "pending"
 
 
 def test_remote_shell_metacharacters_rejected_before_connecting(remote_args, monkeypatch):
@@ -233,7 +235,7 @@ def test_unconfirmed_upload_leaves_manifest_unchanged(args, monkeypatch, returnc
     assert Path(args.yaml).exists()
     assert not Path(args.yaml + ".done").exists()
     assert not Path(args.yaml + ".failed").exists()
-    assert not Path(args.yaml + ".ack.json").exists()
+    assert json.loads(Path(args.yaml + ".ack.json").read_text())["state"] == "pending"
 
 
 def test_http_error_displays_server_reason_without_finalizing(args, monkeypatch):
@@ -252,13 +254,15 @@ def test_http_error_displays_server_reason_without_finalizing(args, monkeypatch)
     assert Path(args.yaml).exists()
 
 
-def test_saved_receipt_does_not_prevent_resubmission(args, monkeypatch):
+def test_saved_receipt_finishes_rename_without_resubmission(args, monkeypatch):
     manifest = Path(args.yaml)
     client.save_receipt(
         Path(args.yaml + ".ack.json"),
         {
             "sha256": client.fingerprint(manifest),
             "base_url": args.base_url,
+            "options": client.submission_options(args),
+            "archive_sha256": None,
             "acknowledgement": {"status": "ok", "sample_id": "synthetic", "message": "done"},
         },
     )
@@ -270,13 +274,13 @@ def test_saved_receipt_does_not_prevent_resubmission(args, monkeypatch):
 
     monkeypatch.setattr(client, "upload", upload)
     assert client.submit(args) == 0
-    assert len(calls) == 1
+    assert len(calls) == 0
 
 
 @pytest.mark.parametrize(
     "options", [None, {"increment": False, "update_existing": False, "archive": None}]
 )
-def test_increment_does_not_replay_saved_failure(args, monkeypatch, options):
+def test_changed_increment_or_old_receipt_blocks_resubmission(args, monkeypatch, options):
     manifest = Path(args.yaml)
     args.increment = True
     client.save_receipt(
@@ -294,9 +298,82 @@ def test_increment_does_not_replay_saved_failure(args, monkeypatch, options):
         return {"status": "ok", "sample_id": "new", "message": "incremented"}
 
     monkeypatch.setattr(client, "upload", upload)
-    assert client.submit(args) == 0
-    assert not manifest.exists()
+    with pytest.raises(ValueError, match="reconcile"):
+        client.submit(args)
+    assert manifest.exists()
     assert not Path(args.yaml + ".failed").exists()
+
+
+@pytest.mark.parametrize("remote", [False, True])
+@pytest.mark.parametrize("failure", [ValueError, KeyboardInterrupt])
+def test_uncertain_or_interrupted_upload_blocks_next_cron_run(
+    remote_args, monkeypatch, remote, failure
+):
+    """Timeouts and abrupt interruption cannot trigger another incremented submission."""
+    remote_args.increment = True
+    calls = []
+
+    def upload(*unused):
+        calls.append(True)
+        raise failure("Connection lost after commit")
+
+    monkeypatch.setattr(client, "upload", upload)
+    submit = client.submit_remote if remote else client.submit
+    with pytest.raises(failure):
+        submit(remote_args)
+    with pytest.raises(ValueError, match="outcome is unconfirmed"):
+        submit(remote_args)
+    assert len(calls) == 1
+    assert Path(remote_args.yaml).exists()
+
+
+def test_local_rename_failure_recovers_without_another_upload(args, monkeypatch):
+    """A durable successful response survives inability to rename the manifest."""
+    link = client.os.link
+    calls = []
+
+    def upload(*unused):
+        calls.append(True)
+        return {"status": "ok", "sample_id": "synthetic", "message": "done"}
+
+    def denied(*unused):
+        raise PermissionError("Read-only source")
+
+    monkeypatch.setattr(client, "upload", upload)
+    monkeypatch.setattr(client.os, "link", denied)
+    with pytest.raises(PermissionError):
+        client.submit(args)
+    monkeypatch.setattr(client.os, "link", link)
+    assert client.submit(args) == 0
+    assert len(calls) == 1
+
+
+def test_changed_archive_cannot_reuse_a_saved_result(args, monkeypatch):
+    """The ZIP contents participate in receipt identity even at the same file path."""
+    archive = Path(args.yaml).with_suffix(".zip")
+    archive.write_bytes(b"synthetic first archive")
+    args.archive = str(archive)
+    monkeypatch.setattr(
+        client, "upload", lambda *a: {"status": "ok", "sample_id": "synthetic", "message": "done"}
+    )
+    client.submit(args)
+    Path(args.yaml + ".done").rename(args.yaml)
+    archive.write_bytes(b"synthetic second archive")
+    with pytest.raises(ValueError, match="differs"):
+        client.submit(args)
+
+
+def test_journal_write_failure_prevents_upload(args, monkeypatch):
+    """No request is sent unless durable pending state can be recorded first."""
+
+    def denied(*unused):
+        raise OSError("State storage unavailable")
+
+    monkeypatch.setattr(client, "save_receipt", denied)
+    monkeypatch.setattr(client, "upload", lambda *a: pytest.fail("Must not upload"))
+    with pytest.raises(OSError, match="State storage unavailable"):
+        client.submit(args)
+    assert Path(args.yaml).exists()
 
 
 def test_existing_marker_is_archived_on_submission(args, monkeypatch):

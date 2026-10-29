@@ -24,6 +24,10 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Diagnosis definitions always provide a view action, explain protected records,
+  and offer confirmed availability changes for editable definitions.
+- Updated vulnerable runtime dependencies and the documentation toolchain's RE2JS
+  dependency; corrected the aggregate SDK extra to select SDK version `1.0.0`.
 - Central management of assays, diagnoses, gene lists and configurations, including
   validated JSON/YAML bulk installation and a public assay catalog with DNA/RNA
   navigation by sequencing family, biological group and diagnosis, multi-gene
@@ -37,6 +41,10 @@ review, reporting, administration and integrations into one application.
 
 ### Integrations and operations
 
+- Dedicated Admin ingestion audit with outcome filters, sample links and correlated
+  history; synchronous uploads and workers retain attempt outcomes in audit storage.
+- Cron ingestion records pending submissions before upload, recovers terminal
+  acknowledgements without reuploading, and blocks uncertain or conflicting retries.
 - Typed HTTP APIs, generated frontend contracts, and a themed API documentation
   portal with resource browsing, structured response examples, authentication
   guidance and searchable endpoints.

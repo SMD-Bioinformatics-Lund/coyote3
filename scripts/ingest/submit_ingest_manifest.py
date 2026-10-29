@@ -66,7 +66,11 @@ def submission_lock(path: Path):
 
 def fingerprint(path: Path) -> str:
     """Hash the manifest so an acknowledgement cannot rename subsequently edited input."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def form_file(field: str, path: Path, content_type: str) -> str:
@@ -234,9 +238,75 @@ def save_receipt(path: Path, receipt: dict) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def upload_once(
+    args: argparse.Namespace, manifest: Path, receipt_path: Path, identity: dict
+) -> dict:
+    """Upload once under the caller's lock, or recover a saved terminal result.
+
+    Args:
+        args: Upload options including authentication mode and the local ZIP path.
+        manifest: Local manifest bytes submitted to the API.
+        receipt_path: Durable private journal retained across coordinator restarts.
+        identity: Manifest hash, API URL, submission options, and remote source if used.
+
+    Returns:
+        Saved or newly received terminal acknowledgement with its source identity.
+
+    Raises:
+        ValueError: The journal conflicts, an outcome is unknown, or credentials are missing.
+        OSError: Input or journal persistence fails. No upload precedes journal persistence.
+
+    Notes:
+        A pending journal deliberately blocks retries after a timeout or process kill.
+        It must be reconciled against the API before an operator archives it for resubmission.
+        All coordinators for a source must share this journal and its enclosing lock.
+    """
+    identity = {
+        **identity,
+        "archive_sha256": fingerprint(Path(args.archive).expanduser().resolve(strict=True))
+        if args.archive
+        else None,
+    }
+    if receipt_path.exists():
+        receipt = json.loads(receipt_path.read_text())
+        if not isinstance(receipt, dict) or any(
+            key not in receipt or receipt[key] != value for key, value in identity.items()
+        ):
+            raise ValueError("Saved submission differs; reconcile and archive its receipt first")
+        acknowledgement = receipt.get("acknowledgement")
+        if not isinstance(acknowledgement, dict) or acknowledgement.get("status") not in {
+            "ok",
+            "failed",
+        }:
+            raise ValueError(
+                "Previous ingest outcome is unconfirmed; reconcile before resubmitting"
+            )
+        if acknowledgement["status"] == "ok" and not acknowledgement.get("sample_id"):
+            raise ValueError("Saved successful acknowledgement has no sample_id; reconcile first")
+        return receipt
+    token_variable = {
+        "internal": "INTERNAL_API_TOKEN",
+        "bearer": "API_BEARER_TOKEN",
+        "ingest": "COYOTE3_INGEST_TOKEN",
+    }[args.auth]
+    token = os.environ.get(token_variable, "").strip()
+    if not token or any(char in token for char in '\r\n"\\'):
+        raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
+    save_receipt(receipt_path, {**identity, "state": "pending"})
+    acknowledgement = upload(args, manifest, token)
+    receipt = {**identity, "state": "terminal", "acknowledgement": acknowledgement}
+    save_receipt(receipt_path, receipt)
+    return receipt
 
 
 def remote_connection(args: argparse.Namespace, program: str) -> list[str]:
@@ -336,8 +406,8 @@ def submission_options(args: argparse.Namespace) -> dict:
 def submit_remote(args: argparse.Namespace) -> int:
     """Fetch inputs on the deployment server and finalize the analysis-server YAML.
 
-    An available original YAML always triggers a fresh upload using current options.
-    The local state lock serializes submissions from this deployment server.
+    The durable local journal prevents reuploading a completed or uncertain submission.
+    Its lock serializes coordinators sharing the state directory.
     """
     if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.@-]*", args.remote_host):
         raise ValueError("Use an SSH config alias or user@hostname for --remote-host")
@@ -357,14 +427,6 @@ def submit_remote(args: argparse.Namespace) -> int:
 """,
             args.yaml,
         )
-        token_variable = {
-            "internal": "INTERNAL_API_TOKEN",
-            "bearer": "API_BEARER_TOKEN",
-            "ingest": "COYOTE3_INGEST_TOKEN",
-        }[args.auth]
-        token = os.environ.get(token_variable, "").strip()
-        if not token or any(char in token for char in '\r\n"\\'):
-            raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
         with tempfile.TemporaryDirectory(prefix="coyote3-upload-") as staging:
             manifest = Path(staging) / Path(args.yaml).name
             fetch_remote(args, args.yaml, manifest)
@@ -373,28 +435,29 @@ def submit_remote(args: argparse.Namespace) -> int:
                 archive = Path(staging) / "inputs.zip"
                 fetch_remote(args, args.archive, archive)
                 local_args.archive = str(archive)
-            acknowledgement = upload(local_args, manifest, token)
-            receipt = {
+            identity = {
                 "base_url": args.base_url,
                 "remote_host": args.remote_host,
                 "remote_path": args.yaml,
                 "sha256": fingerprint(manifest),
                 "options": submission_options(args),
-                "acknowledgement": acknowledgement,
             }
-            save_receipt(receipt_path, receipt)
+            receipt = upload_once(local_args, manifest, receipt_path, identity)
         print(f"Acknowledgement saved: {receipt_path}", flush=True)
         return finalize_remote(args, receipt)
 
 
 def submit(args: argparse.Namespace) -> int:
-    """Upload an available original YAML using the current submission options.
+    """Submit a local YAML once or finish renaming it from its saved acknowledgement.
+
+    Args:
+        args: Local manifest, upload options, and authentication mode.
 
     Returns:
         Zero for acknowledged success or one for acknowledged ingest failure.
 
     Raises:
-        ValueError: Input, saved receipt, or acknowledgement is invalid.
+        ValueError: Input or receipt is invalid, conflicting, or has an uncertain outcome.
         OSError: A local file operation fails; existing destination files are retained.
     """
     manifest = Path(args.yaml).expanduser().absolute()
@@ -405,24 +468,17 @@ def submit(args: argparse.Namespace) -> int:
         if not manifest.is_file():
             raise ValueError("Manifest does not exist or is not a regular file")
         digest = fingerprint(manifest)
-        token_variable = {
-            "internal": "INTERNAL_API_TOKEN",
-            "bearer": "API_BEARER_TOKEN",
-            "ingest": "COYOTE3_INGEST_TOKEN",
-        }[args.auth]
-        token = os.environ.get(token_variable, "").strip()
-        if not token or any(char in token for char in '\r\n"\\'):
-            raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
-        acknowledgement = upload(args, manifest, token)
-        save_receipt(
+        receipt = upload_once(
+            args,
+            manifest,
             receipt_path,
             {
                 "sha256": digest,
                 "base_url": args.base_url,
                 "options": submission_options(args),
-                "acknowledgement": acknowledgement,
             },
         )
+        acknowledgement = receipt["acknowledgement"]
         if fingerprint(manifest) != digest:
             raise ValueError(
                 "Manifest changed during submission; acknowledgement saved but file left unchanged"

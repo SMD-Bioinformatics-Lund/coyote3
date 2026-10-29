@@ -320,16 +320,44 @@ directly rather than using an unattended HTTP credential.
 
 ### Deployment-server helper
 
+In **Admin → Ingestion audit**, users with `audit_log:view` can inspect ingestion
+events separately from other administrative activity. The view reads database audit
+records; it does not scan input folders or change ingestion paths. Synchronous API
+and helper uploads record correlated start, committed-success, rejection, or
+unconfirmed-outcome events, with actor, duration and sample identity when available.
+Celery events include the job ID and attempt number. An unconfirmed outcome requires
+reconciliation; a start event alone is not proof that work is still running.
+
+The page loads the latest 1,000 ingestion events, filtered in the database before
+the limit, from retained and legacy operational audit storage. Its counters, search,
+source/outcome filters, CSV export and correlated history apply to that loaded window.
+It refreshes every 30 seconds. New synchronous attempt and worker events are retained
+as traceability records; historical operational events keep their original retention.
+Audit delivery uses the existing durable spool when configured. If all audit storage
+fails, the error is logged without retrying committed ingestion. The audit is not
+an API-wide duplicate-prevention mechanism and contains no uploaded file contents
+or credentials. A request that fails authentication remains in the security audit.
+
 Run `scripts/ingest/submit_ingest_manifest.py` on the deployment server. Use
 `--remote-host USER@ANALYSIS_SERVER` to fetch the YAML and optional ZIP with SCP,
 submit them to the API, then rename the original YAML through SSH after a terminal
 acknowledgement. SCP cannot rename remote files; SSH command access is required.
 The helper requires Python 3.10+, `curl`, `ssh`, and `scp` on the deployment server;
 it has no Coyote3 Python package or MongoDB dependency. The analysis server needs
-a POSIX shell and `sha256sum`, `ln`, and `rm`, but no installed helper or API token.
+a POSIX shell and `sha256sum`, `ln`, `rm`, `mktemp`, and `mv`, but no installed
+helper or API token. `mktemp` and `mv` preserve an existing completion file in
+a history directory when the same manifest name is submitted again.
 Configure SSH key/agent access and verified host keys beforehand. The SSH account
 must be able to read the inputs and modify their directory. Remote paths must be
 absolute, without spaces or shell metacharacters.
+
+The API's read-only mount and the helper's access are separate. The API does not
+rename the source file in this mode; the cron account does so locally, or through
+its SSH account with `--remote-host`. If both accounts lack directory write access,
+this helper cannot complete acknowledgement. It does not edit fields inside
+`coyote3.yaml`: it preserves the content and appends `.done` or `.failed` to the
+filename after the API returns a terminal result. It also does not install a cron
+entry or scan directories; invoke it once per manifest from the center's scheduler.
 
 By default the helper reads `INTERNAL_API_TOKEN` and sends the internal
 header, so unattended pipelines do not log in. Use the same secret value as the
@@ -371,8 +399,9 @@ original filename: `sample.yaml.done` for `status=ok`, or `sample.yaml.failed`
 for `status=failed`. In remote mode, it saves the full reason/result in a hashed
 `.ack.json` file under `~/.local/state/coyote3-ingest` on the deployment server
 (`$XDG_STATE_HOME/coyote3-ingest` when set). Use `--state-dir` to select another
-durable directory. Receipts have owner-only permissions and are saved before the
-remote rename. A hash check prevents acknowledging a YAML changed since upload.
+durable directory. Receipts have owner-only permissions. A pending record is flushed
+to disk before upload and replaced with the terminal result before remote rename.
+A hash check prevents acknowledging a YAML changed since upload.
 Both statuses leave the input ZIP untouched; downloaded temporary copies are removed.
 A local state lock prevents competing submissions from this deployment server.
 Run one coordinator for each remote manifest and retain its receipt directory.
@@ -400,16 +429,31 @@ the corresponding ingest options to the API.
 There are no automatic upload retries. A connection failure or timeout can occur
 after the API commits: inspect the application audit before resubmitting an
 unacknowledged input. Do not blindly retry exit code 2 from cron.
-The original `.yaml` or `.yml` file controls submission in both local and remote
-mode: if it exists, each invocation uploads it with the current options, including
-`--increment`. Without the original YAML, nothing is uploaded. Saved `.ack.json`
-files are informational only; they are never read to skip, block, or replay an
-upload. Each terminal response replaces the acknowledgement and records its
-submission options. If finalization needs an existing `.done` or `.failed` name,
-the previous completion file is preserved in a unique adjacent `.history.*`
-directory. Restore a failed manifest to its original YAML name to submit again.
-If a previous upload committed but renaming failed, another invocation uploads
-again; `--increment` can therefore create another sample.
+The original `.yaml` or `.yml` must exist. With no saved receipt, the helper records
+the manifest hash, ZIP hash (if supplied), API URL, source and submission options
+before uploading. A matching terminal receipt is reused to finish acknowledgement
+without uploading again, including when `--increment` is set. This also applies to
+saved failures: restoring a `.failed` file alone does not resubmit it.
+A pending receipt blocks uploads after a timeout, interrupted process, HTTP error,
+or invalid response. A changed source, ZIP, target API, or submission option also
+blocks reuse rather than silently submitting another request. Older receipts missing
+identity fields require reconciliation. Malformed receipts fail closed.
+
+Reconcile blocked submissions against API/audit records. If ingestion committed,
+retain the record and complete the source acknowledgement; do not upload again.
+Only after confirming a new attempt is required, archive the receipt in a retained
+operator-controlled location, then restore/correct the YAML and submit. Do not
+automate receipt deletion. Existing `.done` or `.failed` files displaced during
+finalization remain in adjacent `.history.*` directories.
+
+A cron coordinator must check that the original manifest still exists, retain the
+receipt directory, and pause that manifest after exit code `2` until its API outcome
+and rename status have been reconciled. This protection is local to coordinators
+sharing the same source identity, receipt directory and lock; it is not an API-wide
+idempotency key. Keep one coordinator per source, use stable SSH aliases and manifest
+paths, and retain its state across restarts. Avoid `--increment` unless a new sample
+is intentional. Test success, API failure, timeout, and denied rename access with
+synthetic data before enabling unattended submission.
 
 Use the synchronous upload endpoint with `acknowledge=true` when a remote
 pipeline owns the manifest directory and the application may only read it. The

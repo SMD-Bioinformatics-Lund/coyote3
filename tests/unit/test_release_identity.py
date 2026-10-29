@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -9,6 +10,14 @@ import pytest
 
 from scripts.release import build_sdk
 from scripts.release.check_release import release_identity, source_provenance, wheel_record
+
+
+def test_aggregate_extra_selects_the_sdk_version_instead_of_application_version():
+    """Installing the all extra must not request a different Coyote3 distribution."""
+    project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+    assert project["optional-dependencies"]["all"] == [
+        f"Coyote3[api,dev,test,docs,load]=={project['version']}"
+    ]
 
 
 @pytest.fixture
