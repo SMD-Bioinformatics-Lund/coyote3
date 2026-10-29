@@ -55,7 +55,7 @@ export type OutputNode =
   | { type: "list"; path: string; conjunction: string; formatter: "text" | "gene_symbol" | "upper" | "lower"; missing: "error" | "omit" }
   | { type: "number"; path: string; precision: number; unit: "" | "%" | "x"; missing: "error" | "omit" }
   | { type: "message"; count_path: string; one: string; other: string }
-  | { type: "renderer"; name: "dna_report_intro" | "tier_summary" | "fusion_summary"; source?: string }
+  | { type: "renderer"; name: "dna_report_intro" | "tier_summary" | "fusion_summary" | "cnv_summary"; source?: string }
   | { type: "paragraph_break" }
 
 export type ClinicalRule = {

@@ -215,7 +215,7 @@ class ClinicalRendererOutput(_StrictModel):
     """Invocation of a named report renderer with an optional source path."""
 
     type: Literal["renderer"] = "renderer"
-    name: Literal["dna_report_intro", "tier_summary", "fusion_summary"]
+    name: Literal["dna_report_intro", "tier_summary", "fusion_summary", "cnv_summary"]
     source: str | None = None
 
 

@@ -25,7 +25,10 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleTransition,
 )
 from coyote3.domain.common.errors import api_error
-from coyote3.domain.common.reporting import STANDARD_TIER_SUMMARY_PHRASES
+from coyote3.domain.common.reporting import (
+    STANDARD_CNV_SUMMARY_PHRASES,
+    STANDARD_TIER_SUMMARY_PHRASES,
+)
 from coyote3.domain.common.resource_names import short_resource_name
 
 
@@ -134,7 +137,8 @@ class ClinicalRuleAuthoringService:
                 "tier_summary": {
                     **deepcopy(STANDARD_TIER_SUMMARY_PHRASES),
                     "single_gene_always_read_context": True,
-                }
+                },
+                "cnv_summary": deepcopy(STANDARD_CNV_SUMMARY_PHRASES),
             }
         }
         if self.assay_panel_repository is None:

@@ -137,6 +137,57 @@ formatting** exposes precision, list conjunctions, missing-value behavior,
 structured renderers and the individual parts when needed. Editing a sentence
 preserves those settings for its existing placeholders.
 
+### CNV calculations and summary sentences
+
+CNV calculations run in report preparation. In a CNV section evaluated **for each
+finding**, insert these values into a sentence:
+
+| Value | Meaning |
+| --- | --- |
+| `finding.cnv_copy_number` | `2 × 2^ratio`, rounded to two decimals, without purity correction |
+| `finding.cnv_paired_read_percent` | Alternate paired reads divided by total paired reads, as a percentage |
+| `finding.cnv_split_read_percent` | Alternate split reads divided by total split reads, as a percentage |
+| `finding.cnv_report_genes` | Genes carrying a classification key in the prepared CNV |
+| `finding.cnv_other_gene_count` | Number of other gene records in the CNV |
+
+Read counts accept reference/alternate pairs separated by commas or slashes.
+Fractions are rounded to three decimals before conversion to percent. Missing,
+malformed, nonfinite, negative, fractional-count and zero-total evidence remains
+unknown; an observed zero alternate count remains `0.0`. Missing, nonfinite or
+overflowing copy-number estimates remain unknown. Guard required values with
+**Is unknown → Not**, or choose **Omit** for missing output values.
+
+For grouped prose, set the CNV section to evaluate **once** and add this output
+under **Advanced output parts and formatting → Structured summary → Grouped CNV
+summary**:
+
+```json
+{"type": "renderer", "name": "cnv_summary"}
+```
+
+Use `aggregates.cnv_summary_count > 0` as the condition. The renderer reads
+`aggregates.cnv_summaries` and requires `terminology.cnv_summary`. Expand **Edit cnv
+summary wording** to add the supplied Swedish sentence wording for review, then
+edit its fragments. All report wording remains part of the published rule set.
+
+Preparation groups explicitly interesting calls by ordered classified genes and
+gain/loss, preserving first-occurrence order. Calls without classified genes or
+a known effect do not produce summary groups. Positive ratios mean gain;
+nonpositive ratios mean loss. Without a ratio, stored AMP/DUP/GAIN and DEL/LOSS
+types can supply the effect. Each group retains the largest GATK/CNVkit copy
+number and other-gene count, and the last valid Manta paired/split percentages,
+matching the established summary selection policy. An observed zero replaces
+earlier support; unknown support does not. These groups do not change the finding
+list, report filters or classifications.
+
+Sentences use first/next/final leads, singular/plural gene labels and available
+positive evidence. Missing evidence does not create empty parentheses. The CNV
+analysis must also be enabled in the assay's report sections and declared with
+`narrative: "enabled"` in the rule set. Importing a rule does not enable CNV
+reporting in assay settings.
+
+### Swedish introduction sentences
+
 For the Swedish introduction, compose:
 
 | Text or value | Source / control |

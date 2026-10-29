@@ -194,13 +194,67 @@ def render_fusion_summary(findings: list[dict[str, Any]], terminology: dict[str,
     return "\n\n" + "\n\n".join(paragraphs) + "\n\n" if paragraphs else "\n\n"
 
 
+def render_cnv_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Compose grouped CNV sentences using rule-owned wording and prepared metrics.
+
+    Args:
+        groups: Ordered groups from aggregates.cnv_summaries, with classified genes,
+            gain/loss and nullable copy-number and read-support values.
+        terminology: Must contain cnv_summary wording, including effect_labels.
+
+    Returns:
+        One sentence per group with first/next/final leads. Positive evidence is
+        appended in parentheses; missing or zero evidence produces no empty
+        parentheses. Numeric values are already rounded during preparation.
+
+    Raises:
+        ValueError: Required rule-owned wording is missing.
+        KeyError: A group or effect label lacks a required field.
+    """
+    terms = _required(terminology, "cnv_summary")
+    sentences = []
+    for index, group in enumerate(groups):
+        prefix = (
+            "first_prefix"
+            if index == 0
+            else ("final_prefix" if len(groups) > 2 and index == len(groups) - 1 else "next_prefix")
+        )
+        genes = group["genes"]
+        text = _required(terms, prefix) + _required(terms, "effect_labels")[group["effect"]]
+        text += _required(
+            terms, "gene_singular_prefix" if len(genes) == 1 else "gene_plural_prefix"
+        )
+        text += nl_join(genes, _required(terms, "gene_joiner"))
+        evidence = ""
+        copy_number = group.get("copy_number")
+        if copy_number is not None and copy_number > 0:
+            evidence += _required(terms, "copy_number_prefix") + str(copy_number)
+        support = []
+        for field, suffix in (
+            ("paired_read_percent", "paired_read_suffix"),
+            ("split_read_percent", "split_read_suffix"),
+        ):
+            percent = group.get(field)
+            if percent is not None and percent > 0:
+                support.append(str(percent) + _required(terms, suffix))
+        if support:
+            evidence += _required(terms, "read_prefix")
+            evidence += _required(terms, "support_joiner").join(support)
+        if evidence:
+            text += (
+                _required(terms, "evidence_open") + evidence + _required(terms, "evidence_close")
+            )
+        sentences.append(text + _required(terms, "sentence_suffix"))
+    return "".join(sentences)
+
+
 def render_named(
     name: str, *, source: Any, scope: dict[str, Any], terminology: dict[str, Any]
 ) -> str:
     """Dispatch a named clinical renderer with rule-owned terminology.
 
     Args:
-        name: dna_report_intro, tier_summary, or fusion_summary.
+        name: dna_report_intro, tier_summary, fusion_summary, or cnv_summary.
         source: Tier groups or findings for summary renderers; falsey values use an
             empty list. The DNA introduction does not use this argument.
         scope: Prepared evaluation scope used by the DNA introduction.
@@ -221,4 +275,6 @@ def render_named(
         return render_tier_summary(list(source or []), terminology)
     if name == "fusion_summary":
         return render_fusion_summary(list(source or []), terminology)
+    if name == "cnv_summary":
+        return render_cnv_summary(list(source or []), terminology)
     raise ValueError(f"Unsupported clinical renderer '{name}'")

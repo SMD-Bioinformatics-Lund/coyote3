@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
 from coyote3.domain.common.biomarkers import biomarker_counts, measurement_facts, project_biomarkers
+from coyote3.domain.dna.cnv_metrics import copy_number_from_log2, supporting_read_percent
 
 
 def _genotype_vaf(variant: dict[str, Any], genotype_type: str) -> float | None:
@@ -92,7 +94,7 @@ def _snv_fact(variant: dict[str, Any]) -> dict[str, Any]:
 
 
 def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
-    """Project CNV genes, tier, and effect into rule facts.
+    """Project CNV genes, tier, effect and calculated evidence into rule facts.
 
     Args:
         cnv: Filtered CNV with gene dictionaries and optional effect or numeric ratio.
@@ -100,6 +102,10 @@ def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
     Returns:
         CNV facts; gene is populated only for one gene. Without an explicit
         effect, a positive ratio means gain and a nonpositive ratio means loss.
+        Without a ratio, stored AMP/DUP/GAIN or DEL/LOSS types supply the effect.
+        Copy number uses a diploid baseline rounded to two decimals; unusable or
+        overflowing estimates remain None. Only genes with a class key enter
+        cnv_report_genes, matching the established summary grouping.
     """
     genes = [
         str(gene.get("gene"))
@@ -107,9 +113,23 @@ def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
         if isinstance(gene, dict) and gene.get("gene")
     ]
     ratio = cnv.get("ratio")
+    copy_number = None
+    if isinstance(ratio, (int, float)) and not isinstance(ratio, bool) and math.isfinite(ratio):
+        try:
+            estimate = copy_number_from_log2(ratio)
+            copy_number = round(estimate, 2) if math.isfinite(estimate) else None
+        except OverflowError:
+            pass
+    else:
+        ratio = None
     effect = cnv.get("effect")
-    if not effect and isinstance(ratio, (int, float)):
+    if not effect and ratio is not None:
         effect = "gain" if ratio > 0 else "loss"
+    if not effect:
+        effect = {"AMP": "gain", "DUP": "gain", "GAIN": "gain", "DEL": "loss", "LOSS": "loss"}.get(
+            str(cnv.get("type") or "").upper()
+        )
+    gene_records = [gene for gene in cnv.get("genes", []) or [] if isinstance(gene, dict)]
     return {
         "kind": "cnv",
         "gene": genes[0] if len(genes) == 1 else None,
@@ -117,11 +137,61 @@ def _cnv_fact(cnv: dict[str, Any]) -> dict[str, Any]:
         "tier": (cnv.get("classification") or {}).get("class"),
         "cnv_effect": effect,
         "cnv_ratio": ratio,
+        "cnv_copy_number": copy_number,
+        "cnv_paired_read_percent": supporting_read_percent(cnv.get("PR")),
+        "cnv_split_read_percent": supporting_read_percent(cnv.get("SR")),
+        "cnv_report_genes": [
+            str(gene["gene"]) for gene in gene_records if "class" in gene and gene.get("gene")
+        ],
+        "cnv_other_gene_count": sum("class" not in gene for gene in gene_records),
         "chromosome": str(cnv["chr"]) if cnv.get("chr") is not None else None,
         "start": cnv.get("start"),
         "end": cnv.get("end"),
         "variant_type": "cnv",
     }
+
+
+def _cnv_summaries(cnvs: list[dict[str, Any]], facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group reviewed CNVs using the established report evidence-selection policy.
+
+    Args:
+        cnvs: Already filtered CNVs; only explicitly interesting calls contribute.
+        facts: Calculated CNV facts in the same order as cnvs.
+
+    Returns:
+        Groups in first-occurrence order, keyed by ordered classified genes and
+        gain/loss. Empty gene sets and unknown effects are omitted. Each group
+        keeps the largest GATK/CNVkit copy number and other-gene count, and the
+        last valid Manta paired/split percentages, including observed zeroes.
+        Inputs and finding eligibility are unchanged.
+    """
+    groups: dict[tuple[tuple[str, ...], str], dict[str, Any]] = {}
+    for cnv, fact in zip(cnvs, facts, strict=True):
+        genes, effect = fact["cnv_report_genes"], fact["cnv_effect"]
+        if not cnv.get("interesting") or not genes or effect not in {"gain", "loss"}:
+            continue
+        group = groups.setdefault(
+            (tuple(genes), effect),
+            {
+                "genes": genes,
+                "effect": effect,
+                "copy_number": None,
+                "paired_read_percent": None,
+                "split_read_percent": None,
+                "other_gene_count": 0,
+            },
+        )
+        group["other_gene_count"] = max(group["other_gene_count"], fact["cnv_other_gene_count"])
+        callers = cnv.get("callers") or []
+        copy_number = fact["cnv_copy_number"]
+        if {"gatk", "cnvkit"}.intersection(callers) and copy_number is not None:
+            group["copy_number"] = max(group["copy_number"] or 0.0, copy_number)
+        if "manta" in callers:
+            for key in ("paired_read_percent", "split_read_percent"):
+                value = fact["cnv_" + key]
+                if value is not None:
+                    group[key] = value
+    return list(groups.values())
 
 
 def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
@@ -286,7 +356,25 @@ def prepare_report_context(
     report_sections_data: dict[str, Any],
     intent: Literal["somatic", "germline"] = "somatic",
 ) -> PreparedReportContext:
-    """Build facts from the exact filtered data used by report rendering."""
+    """Build deterministic rule facts from the filtered data used by report rendering.
+
+    Args:
+        sample: Sample identity, assay scope and paired-control status.
+        asp: Pinned assay metadata, covered genes and germline gene definitions.
+        aspc: Resolved configuration supplying report sections, tiers and language.
+        analyte: DNA or RNA reporting modality.
+        applied_gene_lists: Exact selected lists with their selected_for analyses.
+        report_sections_data: Already filtered findings and biomarker measurements.
+        intent: Somatic or germline report intent; defaults to somatic.
+
+    Returns:
+        Query-free typed facts, including per-finding CNV metrics and reviewed CNV
+        summary groups. Clinical eligibility and transcript selection remain with
+        upstream preparation; this function neither queries nor mutates inputs.
+
+    Raises:
+        ValueError: Projected values do not satisfy the prepared-context contract.
+    """
     findings: list[dict[str, Any]] = []
     snvs = list(report_sections_data.get("snvs") or [])
     cnvs = list(report_sections_data.get("cnvs") or [])
@@ -297,10 +385,12 @@ def prepare_report_context(
         (aspc.get("reporting") or {}).get("report_sections") or [],
     )
     findings.extend(_snv_fact(item) for item in snvs)
-    findings.extend(_cnv_fact(item) for item in cnvs)
+    cnv_facts = [_cnv_fact(item) for item in cnvs]
+    findings.extend(cnv_facts)
     findings.extend(_structural_fact(item, "fusion") for item in fusions)
     findings.extend(_structural_fact(item, "translocation") for item in translocations)
     tier_summaries = _tier_summaries(snvs)
+    cnv_summaries = _cnv_summaries(cnvs, cnv_facts)
     tier_counts = {
         tier: next(
             (
@@ -365,6 +455,8 @@ def prepare_report_context(
             "tier_3_count": tier_counts[3],
             "tier_4_count": tier_counts[4],
             "tier_summaries": tier_summaries,
+            "cnv_summaries": cnv_summaries,
+            "cnv_summary_count": len(cnv_summaries),
             "has_tiered_snvs": bool(tier_summaries),
             "has_reportable_findings": bool(findings or biomarkers),
         },

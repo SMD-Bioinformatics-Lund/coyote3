@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from coyote3.contracts.dna import DnaCnvExportRow, DnaSnvExportRow, DnaTranslocExportRow
 from coyote3.domain.common.csv_safety import spreadsheet_text
+from coyote3.domain.dna.cnv_metrics import copy_number_from_log2
 from coyote3.domain.dna.notation import one_letter_p
 from coyote3.domain.dna.structural_identity import structural_position
 
@@ -211,13 +212,14 @@ def build_cnv_export_rows(
         ref_alt_reads = "-"
         try:
             ratio_num = float(ratio)
-            copy_number_value = f"{round(2 * (2**ratio_num), 2)} ({safe_text(ratio)})"
+            copy_number = copy_number_from_log2(ratio_num)
+            copy_number_value = f"{round(copy_number, 2)} ({safe_text(ratio)})"
             if sample_purity not in {None, "", 0}:
                 purity_float = float(sample_purity)
                 if ratio_num > 0:
-                    purity_cn_value = safe_text(round((2 * (2**ratio_num)) * 1 / purity_float, 2))
+                    purity_cn_value = safe_text(round(copy_number * 1 / purity_float, 2))
                 else:
-                    purity_cn_value = safe_text(round((2 * (2**ratio_num)) * purity_float, 2))
+                    purity_cn_value = safe_text(round(copy_number * purity_float, 2))
         except (ValueError, TypeError, OverflowError, ZeroDivisionError):
             copy_number_value = safe_text(ratio)
 

@@ -252,6 +252,49 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
         "finding.cnv_ratio", "CNV recorded ratio", "Finding", "number", _NUMBER, ("each_finding",)
     ),
     _fact(
+        "finding.cnv_copy_number",
+        "CNV diploid copy number",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+    ),
+    _fact(
+        "finding.cnv_paired_read_percent",
+        "CNV paired-read support",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
+        "finding.cnv_split_read_percent",
+        "CNV split-read support",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
+        "finding.cnv_report_genes",
+        "CNV classified genes",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
+        "finding.cnv_other_gene_count",
+        "CNV other gene count",
+        "Finding",
+        "integer",
+        _NUMBER,
+        ("each_finding",),
+    ),
+    _fact(
         "finding.chromosome", "CNV chromosome", "Finding", "string", _EQUALITY, ("each_finding",)
     ),
     _fact("finding.start", "CNV start", "Finding", "integer", _NUMBER, ("each_finding",)),
@@ -304,6 +347,8 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("aggregates.tmb_count", "TMB count", "Result", "integer", _NUMBER),
     _fact("aggregates.tier_4_count", "Tier IV SNV count", "Result", "integer", _NUMBER),
     _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
+    _fact("aggregates.cnv_summary_count", "CNV summary group count", "Result", "integer", _NUMBER),
+    _fact("aggregates.cnv_summaries", "Grouped CNV evidence", "Result", "object_list", _LIST),
     _fact(
         "aggregates.has_reportable_findings",
         "Has reportable findings",

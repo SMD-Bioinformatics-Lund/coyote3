@@ -110,6 +110,8 @@ def test_authoring_options_http_response_preserves_assay_short_name() -> None:
     with TestClient(app) as client:
         response = client.get("/api/v1/admin/clinical-rule-sets/authoring-options")
     assert response.status_code == 200
+    cnv_terms = response.json()["sentence_terminology"]["sv"]["cnv_summary"]
+    assert cnv_terms["effect_labels"] == {"gain": "amplifiering", "loss": "förlust"}
     assert response.json()["assays"] == [
         {
             "asp_id": "synthetic_assay",

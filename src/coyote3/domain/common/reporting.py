@@ -74,6 +74,25 @@ VARIANT_CLASS_TRANSLATION: dict[str, str] = {
 }
 
 
+STANDARD_CNV_SUMMARY_PHRASES = {
+    "first_prefix": "Vid analysen finner man en ",
+    "next_prefix": "Vidare finner man en ",
+    "final_prefix": "Slutligen finner man en ",
+    "effect_labels": {"gain": "amplifiering", "loss": "förlust"},
+    "gene_singular_prefix": " av genen ",
+    "gene_plural_prefix": " av generna ",
+    "gene_joiner": "samt",
+    "evidence_open": " (",
+    "evidence_close": ")",
+    "copy_number_prefix": "cn=",
+    "read_prefix": " i ",
+    "paired_read_suffix": "% av överspännande läsningar",
+    "split_read_suffix": "% av splittade läsningar",
+    "support_joiner": " och ",
+    "sentence_suffix": ". ",
+}
+
+
 def utc_now() -> datetime:
     """Return the current timezone-aware UTC datetime."""
     return datetime.now(timezone.utc)

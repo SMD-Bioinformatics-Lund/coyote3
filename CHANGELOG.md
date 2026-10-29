@@ -7,6 +7,8 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Reporting rules can use calculated CNV copy numbers and paired/split-read
+  percentages as inline values or compose grouped CNV summaries with reviewed wording.
 - Unified DNA and RNA review with assay-aware filtering, reference annotations,
   coverage, biomarkers and consistent finding identities across workflows.
   Annotation deactivation preserves classification history and recorded sample links,

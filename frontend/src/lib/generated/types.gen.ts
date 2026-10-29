@@ -1973,7 +1973,7 @@ export type ClinicalRendererOutput = {
     /**
      * Name
      */
-    name: 'dna_report_intro' | 'tier_summary' | 'fusion_summary';
+    name: 'dna_report_intro' | 'tier_summary' | 'fusion_summary' | 'cnv_summary';
     /**
      * Source
      */

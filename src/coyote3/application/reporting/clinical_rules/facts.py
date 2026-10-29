@@ -107,6 +107,11 @@ class PreparedFindingFacts(_FactModel):
     variant_type: str | None = None
     cnv_effect: str | None = None
     cnv_ratio: float | None = None
+    cnv_copy_number: float | None = None
+    cnv_paired_read_percent: float | None = None
+    cnv_split_read_percent: float | None = None
+    cnv_report_genes: list[str] = Field(default_factory=list)
+    cnv_other_gene_count: int = 0
     chromosome: str | None = None
     start: int | None = None
     end: int | None = None
@@ -135,6 +140,17 @@ class PreparedTierSummaryFacts(_FactModel):
     genes: list[PreparedTierGeneFacts] = Field(default_factory=list)
 
 
+class PreparedCnvSummaryFacts(_FactModel):
+    """Reviewed CNV calls grouped by ordered report genes and copy-number effect."""
+
+    genes: list[str]
+    effect: Literal["gain", "loss"]
+    copy_number: float | None = None
+    paired_read_percent: float | None = None
+    split_read_percent: float | None = None
+    other_gene_count: int = 0
+
+
 class PreparedAggregateFacts(_FactModel):
     """Deterministic counts derived from the prepared findings."""
 
@@ -151,6 +167,8 @@ class PreparedAggregateFacts(_FactModel):
     tier_3_count: int = 0
     tier_4_count: int = 0
     tier_summaries: list[PreparedTierSummaryFacts] = Field(default_factory=list)
+    cnv_summaries: list[PreparedCnvSummaryFacts] = Field(default_factory=list)
+    cnv_summary_count: int = 0
     has_tiered_snvs: bool = False
     has_reportable_findings: bool = False
 

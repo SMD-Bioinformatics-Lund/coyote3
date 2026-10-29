@@ -51,4 +51,17 @@ describe("Grouped SNV sentences", () => {
     expect(screen.queryByRole("button", { name: "Use grouped SNV sentences" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Add Swedish sentence wording" })).not.toBeInTheDocument()
   })
+
+  it("preserves the imported CNV renderer and lets its wording be added for review", () => {
+    const change = vi.fn()
+    const terms = { first_prefix: "Vid analysen finner man en " }
+    const cnvRule = { ...rule, output: [{ type: "renderer" as const, name: "cnv_summary" as const }] }
+    render(<RuleEditor rule={cnvRule} block={{ ...block, analysis: "CNV" }} facts={[]} controlledValues={{}} change={vi.fn()} terminology={{ existing: "Preserve" }} sentenceTerminology={{ cnv_summary: terms }} changeTerminology={change} />)
+    expect(screen.getByLabelText("Report sentence")).toHaveValue("{{renderer:cnv_summary}}")
+    fireEvent.click(screen.getByText("Advanced output parts and formatting"))
+    expect(screen.getByRole("option", { name: "Grouped CNV summary" })).toHaveProperty("selected", true)
+    fireEvent.click(screen.getByText("Edit cnv summary wording"))
+    fireEvent.click(screen.getByRole("button", { name: "Add Swedish sentence wording" }))
+    expect(change).toHaveBeenCalledWith({ existing: "Preserve", cnv_summary: terms })
+  })
 })

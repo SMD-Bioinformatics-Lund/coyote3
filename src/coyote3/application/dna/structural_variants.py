@@ -33,6 +33,7 @@ from coyote3.domain.common.sample_filters import (
     merged_dna_cnv_filters,
     merged_dna_translocation_filters,
 )
+from coyote3.domain.dna.cnv_metrics import copy_number_from_log2
 from coyote3.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
 from coyote3.domain.dna.dna_filters import (
     cnv_organizegenes,
@@ -68,7 +69,7 @@ def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
     ratio = numeric_value(cnv.get("ratio"))
     if ratio is None:
         return None
-    return 2 * (2**ratio)
+    return copy_number_from_log2(ratio)
 
 
 def _cnv_gene_text(cnv: dict[str, Any]) -> str:
