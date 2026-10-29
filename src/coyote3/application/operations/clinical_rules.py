@@ -168,6 +168,24 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(self._service().get(identity)),
         )
 
+    def export(self, identity: str, *, include_metadata: bool = False) -> dict[str, Any]:
+        """Export rules under clinical_rules:view, omitting managed metadata by default.
+
+        Args:
+            identity: Version document identifier.
+            include_metadata: Include stored lifecycle and audit metadata when True.
+
+        Returns:
+            Portable configuration or the full version when explicitly requested.
+        """
+        return self._runtime.execute(
+            "clinical_rules.export",
+            ("clinical_rules:view",),
+            lambda actor, sample: self._service().export(
+                identity, include_metadata=include_metadata
+            ),
+        )
+
     def options(self) -> dict[str, Any]:
         """Read registered authoring scopes with clinical_rules:view permission."""
         return self._runtime.execute(

@@ -282,19 +282,25 @@ def _gene_list_fact(gene_list: dict[str, Any], assay: dict[str, Any]) -> dict[st
 
 
 def _gene_scopes(gene_lists: list[dict[str, Any]], asp: dict[str, Any]) -> dict[str, Any]:
-    """Group selected lists by analysis without counting overlapping genes twice.
+    """Group selected lists by analysis using the panel's effective covered scope.
 
     Args:
         gene_lists: Resolved list documents carrying their actual selected_for domains.
-        asp: Physical assay supplying the germline gene set.
+        asp: Physical assay supplying germline genes and optional panel-DNA coverage.
 
     Returns:
         Per-analysis identifiers, names and unique genes, independent of findings.
+        Panel-DNA scopes exclude genes outside the defined covered_genes list,
+        matching finding selection and the established report introduction. The
+        applied source gene lists remain unchanged for provenance.
     """
     scopes = {}
     for analysis in ("snv", "cnv", "translocation", "fusion", "expression", "pgx"):
         selected = [item for item in gene_lists if analysis in (item.get("selected_for") or [])]
         genes = list(dict.fromkeys(gene for item in selected for gene in item.get("genes") or []))
+        if asp.get("asp_family") == "panel-dna" and asp.get("covered_genes") is not None:
+            covered = set(asp["covered_genes"])
+            genes = [gene for gene in genes if gene in covered]
         scopes[analysis] = {
             "ids": [item["isgl_id"] for item in selected],
             "names": [item["name"] for item in selected]

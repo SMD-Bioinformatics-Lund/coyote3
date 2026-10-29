@@ -196,7 +196,7 @@ export function AdminControlsPage() {
     >
       <DocumentEditorNotice editor={documentEditor} />
       {controls && !controlsQuery.error && <ConfigurationTransfer label="application controls"
-        filename="application-controls" document={{ email: controls.email, celery: controls.celery,
+        filename="application-controls" metadataDocument={controls} document={{ email: controls.email, celery: controls.celery,
           retention: controls.retention, modules: controls.modules, curation: controls.curation }}
         fields={["email", "celery", "retention", "modules", "curation"]}
         required={["celery", "retention", "modules", "curation"]}

@@ -2393,6 +2393,49 @@ export type ClinicalRuleCollectionMatchOutput = {
 };
 
 /**
+ * ClinicalRuleConfiguration
+ *
+ * Portable authored rules without application-managed identity or audit metadata.
+ */
+export type ClinicalRuleConfiguration = {
+    /**
+     * Analysis Declarations
+     */
+    analysis_declarations?: {
+        [key: string]: ClinicalAnalysisDeclaration;
+    };
+    /**
+     * Blocks
+     */
+    blocks?: Array<ClinicalRuleBlockOutput>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * References
+     */
+    references?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Schema Version
+     */
+    schema_version?: 1;
+    scope: ClinicalRuleScope;
+    /**
+     * Terminology
+     */
+    terminology?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Test Cases
+     */
+    test_cases?: Array<ClinicalRuleTestCase>;
+};
+
+/**
  * ClinicalRuleCountComparison
  *
  * Comparison operator and nonnegative target for a collection match count.
@@ -2601,7 +2644,7 @@ export type ClinicalRuleFactsPayload = {
 /**
  * ClinicalRuleImportRequest
  *
- * Canonical JSON export uploaded to create a separately governed draft.
+ * Portable configuration or metadata-inclusive export imported as a fresh draft.
  */
 export type ClinicalRuleImportRequest = {
     /**
@@ -11910,7 +11953,12 @@ export type Request_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocume
          */
         document_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Include Metadata
+         */
+        include_metadata?: boolean;
+    };
     url: '/api/v1/admin/clinical-rule-sets/versions/{document_id}/export';
 };
 
@@ -11945,9 +11993,11 @@ export type ExportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExpo
 
 export type Responses_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet = {
     /**
+     * Response Export Rule Set Version Api V1 Admin Clinical Rule Sets Versions  Document Id  Export Get
+     *
      * Successful Response
      */
-    200: ClinicalRuleSetDoc;
+    200: ClinicalRuleConfiguration | ClinicalRuleSetDoc;
 };
 
 export type Response_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet = Responses_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet[keyof Responses_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet];

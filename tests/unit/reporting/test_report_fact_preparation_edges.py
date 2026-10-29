@@ -3,6 +3,36 @@
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
 
 
+def test_panel_scope_counts_only_covered_selected_genes_and_keeps_source_lists():
+    """Master's analysed scope excludes off-panel genes without rewriting ISGL provenance."""
+    selected = [
+        {
+            "isgl_id": "selected",
+            "name": "Selected",
+            "genes": ["TP53", "OUTSIDE"],
+            "selected_for": ["snv"],
+            "list_type": ["snv"],
+        }
+    ]
+    context = prepare_report_context(
+        sample={"name": "", "asp_id": "panel"},
+        asp={
+            "asp_family": "panel-dna",
+            "covered_genes": ["TP53"],
+            "germline_genes": ["TP53", "OUTSIDE"],
+        },
+        aspc={},
+        analyte="dna",
+        applied_gene_lists=selected,
+        report_sections_data={},
+    )
+    assert context.gene_lists["snv"].genes == ["TP53"]
+    assert context.gene_lists["snv"].gene_count == 1
+    assert context.gene_lists["snv"].germline_genes == ["TP53"]
+    assert context.applied_gene_lists[0].genes == ["TP53", "OUTSIDE"]
+    assert selected[0]["genes"] == ["TP53", "OUTSIDE"]
+
+
 def test_prepare_report_context_normalizes_every_supported_finding_family() -> None:
     context = prepare_report_context(
         sample={

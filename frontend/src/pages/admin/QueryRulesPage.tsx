@@ -13,6 +13,7 @@ import { api } from "@/lib/api"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
+import { MarkdownComposer } from "@/components/comments/MarkdownComposer"
 import { cn } from "@/lib/utils"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { QueryConditionBuilder } from "./QueryConditionBuilder"
@@ -188,6 +189,7 @@ export function QueryRulesPage() {
     <DocumentEditorNotice editor={documentEditor} />
     <ConfigurationTransfer label="query rules" filename={selected ? `${selected.name}-query-rules` : "query-rules"}
       document={selected ? { name: selected.name, scope: selected.scope, content: selected.content } : undefined}
+      metadataDocument={selected}
       onImport={hasPermission(access, "query_rules:draft") ? importDraft : undefined}
       fields={["name", "scope", "content"]} required={["name", "scope", "content"]}
       disabled={mutation.isPending || deletion.isPending} />
@@ -221,7 +223,7 @@ export function QueryRulesPage() {
           <div className="flex items-center gap-2">{selected && !editable && <Badge variant="outline">Read-only</Badge>}{selected && <ClinicalRuleStatusBadge status={selected.status} />}</div>
         </div>
         <div className="border-b border-border bg-muted/15 p-3 space-y-2">
-        <label className="block type-body-sm">Change or review reason<Input value={draft.reason} onChange={e => setDraft({ ...draft, reason: e.target.value })} /></label>
+        <div className="space-y-1"><p className="type-label">Change or review reason</p><MarkdownComposer label="Change or review reason" compact value={draft.reason} onChange={reason => setDraft({ ...draft, reason })} maxLength={null} /></div>
         <div className="flex flex-wrap gap-2">
           {editable && <Button size="sm" disabled={mutation.isPending || !draft.reason.trim() || draft.scope.assay_group === ""} onClick={() => mutation.mutate("save")}>Save draft</Button>}
           {selected && !selected.system_installed && ["draft", "approved"].includes(selected.status) && hasPermission(access, "query_rules:draft") && <Button size="sm" variant="outline" disabled={mutation.isPending || deletion.isPending || !draft.reason.trim()} onClick={() => setConfirmation({ title: "Delete this unpublished version?", description: "This permanently removes the selected version and its private revision snapshots. Published rules remain unchanged. The deletion reason is retained in the audit log.", run: () => deletion.mutate() })}>Delete version</Button>}

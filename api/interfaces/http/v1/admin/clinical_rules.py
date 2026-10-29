@@ -11,6 +11,7 @@ from api.security.access import ApiUser, require_access
 from coyote3.application.operations import ClinicalRules
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleAuthoringOptionsPayload,
+    ClinicalRuleConfiguration,
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -218,14 +219,35 @@ def get_rule_set_version(
     return _serializable(service.get(document_id))
 
 
-@router.get("/versions/{document_id}/export", response_model=ClinicalRuleSetDoc)
+@router.get(
+    "/versions/{document_id}/export", response_model=ClinicalRuleConfiguration | ClinicalRuleSetDoc
+)
 def export_rule_set_version(
     document_id: str,
+    include_metadata: bool = False,
     _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
     service: ClinicalRules = Depends(get_clinical_rules),
 ):
-    """Return the canonical JSON representation of one governed version."""
-    return _serializable(service.get(document_id))
+    """Export authored rules; requires `clinical_rules:view`.
+
+    Set include_metadata=true to include stored identity, version and audit fields.
+    Importing either form always creates a fresh draft with server-managed metadata.
+
+
+
+    Args:
+        document_id: Stored version identifier to export.
+        include_metadata: Include version, ownership and audit fields when True.
+        _user: Authenticated caller with clinical_rules:view permission.
+        service: Authenticated clinical-rule operation boundary.
+
+    Returns:
+        Authored configuration, or the complete governed record when requested.
+
+    Raises:
+        AppError: The caller lacks access or the requested version is absent.
+    """
+    return _serializable(service.export(document_id, include_metadata=include_metadata))
 
 
 @router.get(

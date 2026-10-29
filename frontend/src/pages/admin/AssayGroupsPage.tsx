@@ -97,6 +97,7 @@ export function AssayGroupsPage() {
     <section aria-label="Assay group registry" className="glass-card min-w-0 space-y-3 p-3">
     {allowed && canCreate && <BulkInstall kind="assay-groups" />}
     {allowed && groups.data && <ConfigurationTransfer label="assay groups" filename="assay-groups"
+      metadataDocument={groups.data.toSorted((a, b) => groupDepth(a, groups.data!) - groupDepth(b, groups.data!))}
       document={groups.data.toSorted((a, b) => groupDepth(a, groups.data!) - groupDepth(b, groups.data!)).map(row => ({ group_id: row.group_id, display_name: row.display_name,
         description: row.description, parent_group_id: row.parent_group_id }))} />}
     {access.isLoading ? <p role="status">Loading access...</p> : !allowed ? <p role="alert">Assay view permission is required.</p> : <>

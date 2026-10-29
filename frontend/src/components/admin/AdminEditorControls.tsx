@@ -2,6 +2,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { Button } from "@/components/ui/button"
 import { downloadJson } from "@/lib/json-download"
+import { configurationContent, configurationWithMetadata } from "@/lib/configuration-transfer"
 import {
   submitPayload
 } from "@/pages/admin/resource-list"
@@ -10,18 +11,19 @@ import {
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
 import { icon } from "@/lib/assets"
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import type { AdminEditorState } from "./useAdminEditor"
 
 export function AdminEditorActions({ state, spec, mode, supportsConfigurationTransfer = false }: { state: AdminEditorState; spec: AdminResourceSpec; mode: AdminFormMode; supportsConfigurationTransfer?: boolean }) {
   const { id, canEdit, systemPermission, importInputRef, handleImportFile, doc, form, values } = state
+  const [includeMetadata, setIncludeMetadata] = useState(false)
   const transferDocument = () => Object.fromEntries(
     Object.entries(submitPayload(form, values, "create"))
       .filter(([key]) => form?.fields[key]?.display_type !== "password"),
   )
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {mode === "view" && canEdit && !systemPermission && (
         <Link
           to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
@@ -54,14 +56,17 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
         </>
       )}
       {supportsConfigurationTransfer && mode !== "create" && doc && (
-        <button
+        <><label className="flex items-center gap-2 type-body-sm"><input type="checkbox"
+          checked={includeMetadata} onChange={event => setIncludeMetadata(event.target.checked)} />Include metadata</label><button
           type="button"
-          onClick={() => downloadJson(`${spec.key}_${String(id)}`, transferDocument())}
+          onClick={() => downloadJson(`${spec.key}_${String(id)}`, includeMetadata
+            ? configurationWithMetadata(configurationContent(transferDocument()), doc)
+            : configurationContent(transferDocument()))}
           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"
         >
           <icon.download className="h-4 w-4" />
           Export JSON
-        </button>
+        </button></>
       )}
       {supportsConfigurationTransfer && mode !== "create" && doc && canEdit && (
         <Link

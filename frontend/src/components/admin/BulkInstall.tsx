@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { api, ApiClientError } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { downloadJson } from "@/lib/json-download"
+import { configurationContent } from "@/lib/configuration-transfer"
 import { formStateFromSpec, submitPayload } from "@/pages/admin/resource-list"
 import type { FormSpec } from "@/pages/admin/resource-specs"
 import { BULK_BYTES, bulkDefinitions, parseBulkFile, type BulkKind, type BulkRecord } from "./bulk-import"
@@ -46,8 +47,9 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
       for (const [key, field] of Object.entries(data.form.fields)) {
         if (!field.readonly && !field.readonly_mode?.includes("create") && !(key in example)) example[key] = field.default ?? null
       }
-      const required = Object.entries(data.form.fields).filter(([key, field]) => key in example && field.required).map(([key]) => key)
-      return { example, required, form: data.form }
+      const portable = configurationContent(example) as BulkRecord
+      const required = Object.entries(data.form.fields).filter(([key, field]) => key in portable && field.required).map(([key]) => key)
+      return { example: portable, required, form: data.form }
     },
   })
   const validation = useMemo(() => {

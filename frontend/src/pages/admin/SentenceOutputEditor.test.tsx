@@ -22,6 +22,18 @@ describe("Inline report sentences", () => {
       { type: "text", value: " genes." },
     ])
   })
+
+  it("formats a dynamic placeholder without changing its typed output settings", () => {
+    const change = vi.fn()
+    const node = { type: "number" as const, path: "asp.covered_genes_count", precision: 2, unit: "x" as const, missing: "omit" as const }
+    render(<SentenceOutputEditor nodes={[node]} facts={facts} onChange={change} />)
+    const input = screen.getByLabelText("Report sentence") as HTMLTextAreaElement
+    input.setSelectionRange(0, input.value.length)
+    fireEvent.click(screen.getByRole("button", { name: "Bold" }))
+    expect(change).toHaveBeenLastCalledWith([{ type: "text", value: "**" }, node, { type: "text", value: "**" }])
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }))
+    expect(screen.getByLabelText("Report sentence preview").querySelector("strong")).toHaveTextContent("{{asp.covered_genes_count}}")
+  })
   it("inserts at the cursor and preserves incomplete or unknown placeholders locally", () => {
     const change = vi.fn()
     render(<SentenceOutputEditor nodes={[{ type: "text", value: "Panel  genes" }]} facts={facts} onChange={change} />)

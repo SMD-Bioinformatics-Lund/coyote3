@@ -16,6 +16,7 @@ from coyote3.application.reporting.clinical_rules.validation import (
 from coyote3.application.resources.availability import require_active_group
 from coyote3.config.constants import DIAGNOSIS_BASE_ID, ENVIRONMENT_OPTIONS
 from coyote3.contracts.schemas.clinical_rules import (
+    ClinicalRuleConfiguration,
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -405,6 +406,28 @@ class ClinicalRuleAuthoringService:
         """
         return self._document(document_id).model_dump(mode="python", by_alias=True)
 
+    def export(self, document_id: str, *, include_metadata: bool = False) -> dict[str, Any]:
+        """Export portable rules, optionally including the stored version's metadata.
+
+        Args:
+            document_id: Version document identifier to read.
+            include_metadata: Include identity, lifecycle, versions and audit fields
+                when True; defaults to authored configuration only.
+
+        Returns:
+            Configuration fields or the full governed document, using Python values
+            and persistence aliases for transport serialization.
+
+        Raises:
+            AppError: The requested version does not exist.
+        """
+        document = self._document(document_id)
+        return document.model_dump(
+            mode="python",
+            by_alias=True,
+            include=None if include_metadata else set(ClinicalRuleConfiguration.model_fields),
+        )
+
     def revisions(self, document_id: str) -> list[dict[str, Any]]:
         """Read revision history after confirming the version exists.
 
@@ -554,15 +577,32 @@ class ClinicalRuleAuthoringService:
         return saved.model_dump(mode="python", by_alias=True)
 
     def import_draft(self, payload: ClinicalRuleImportRequest, *, actor: str) -> dict[str, Any]:
-        """Validate a canonical export and create an independent editable draft."""
+        """Import authored rules and assign fresh identity, version and audit metadata.
+
+        Args:
+            payload: Authored configuration or metadata-inclusive export, plus target
+                scope and name. Stored document metadata is ignored on import.
+            actor: Authenticated user to record as creator and updater.
+
+        Returns:
+            A new inactive draft with a server-allocated version and current timestamps.
+
+        Raises:
+            AppError: Configuration validation or target-scope validation fails.
+        """
+        managed_fields = set(ClinicalRuleSetDoc.model_fields) - set(
+            ClinicalRuleConfiguration.model_fields
+        )
+        managed_fields.add("_id")
         try:
-            source = ClinicalRuleSetDoc.model_validate(payload.document)
+            source = ClinicalRuleConfiguration.model_validate(
+                {key: value for key, value in payload.document.items() if key not in managed_fields}
+            )
         except ValueError as exc:
             raise api_error(
-                422, "Imported rule-set file is not a valid canonical export", str(exc)
+                422, "Imported rule-set file is not a valid configuration", str(exc)
             ) from exc
         create = ClinicalRuleDraftCreate(
-            source_version_id=str(source.id_),
             scope=payload.scope,
             name=payload.name,
             source="api",
@@ -574,7 +614,6 @@ class ClinicalRuleAuthoringService:
             f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
         )
         document = source.model_dump(mode="python", by_alias=True)
-        document.pop("_id", None)
         document.update(
             {
                 "rule_set_id": target_rule_set_id,
@@ -600,10 +639,17 @@ class ClinicalRuleAuthoringService:
                 "content_hash": None,
                 "provenance": {
                     "source": "import",
-                    "source_rule_set_id": source.rule_set_id,
-                    "source_content_version": source.content_version,
-                    "source_revision": source.revision,
+                    "source_rule_set_id": (
+                        f"{source.scope.asp_id}__{source.scope.diagnosis_id}__{source.scope.language}"
+                    ),
                     "imported_schema_version": source.schema_version,
+                    **{
+                        f"source_{key}": value
+                        for key in ("content_version", "revision")
+                        if isinstance(value := payload.document.get(key), int)
+                        and not isinstance(value, bool)
+                        and value > 0
+                    },
                 },
             }
         )

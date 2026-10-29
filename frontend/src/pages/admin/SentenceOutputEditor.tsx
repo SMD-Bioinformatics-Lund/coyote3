@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MarkdownComposer } from "@/components/comments/MarkdownComposer"
 import { useEffect, useRef, useState } from "react"
 import type { FactDefinition, OutputNode } from "./clinical-rules-types"
 import { parseSentence, sentenceTemplate } from "./rule-sentence"
 
-export function SentenceOutputEditor({ nodes, facts, onChange, onErrorChange }: {
+export function SentenceOutputEditor({ nodes, facts, onChange, onErrorChange, readOnly = false }: {
   nodes: OutputNode[]; facts: FactDefinition[]; onChange: (nodes: OutputNode[]) => void
   onErrorChange?: (error: string) => void
+  readOnly?: boolean
 }) {
   const [template, setTemplate] = useState(() => sentenceTemplate(nodes))
   const [error, setError] = useState("")
@@ -48,7 +50,8 @@ export function SentenceOutputEditor({ nodes, facts, onChange, onErrorChange }: 
   }
   return <div className="space-y-2">
     <p className="type-body-sm text-muted-foreground">Write the complete sentence here. Insert values at the cursor, for example {"{{asp.display_name}}"}. Conditions above control when this sentence appears.</p>
-    <textarea ref={textarea} aria-label="Report sentence" aria-invalid={!!error} className="paper-inset min-h-36 w-full resize-y rounded-lg p-3 type-body" value={template.text} onChange={event => update(event.target.value)} />
+    <MarkdownComposer inputRef={textarea} label="Report sentence" invalid={!!error}
+      value={template.text} onChange={update} maxLength={null} readOnly={readOnly} />
     {error && <p role="alert" className="type-body-sm text-destructive">{error} This edit is not saved until corrected.</p>}
     <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer type-body font-medium">Insert value at cursor</summary>
       <Input aria-label="Find inline value" className="mt-2" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find assay name, gene count, VAF…" />

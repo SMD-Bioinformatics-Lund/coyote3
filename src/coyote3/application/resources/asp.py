@@ -19,6 +19,7 @@ from coyote3.application.resources.availability import require_active_group
 from coyote3.application.resources.helpers import _validated_doc, require_new_identifier
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.contracts.authoring.resources import managed_resource_spec
+from coyote3.domain.common.configuration_transfer import CONFIGURATION_METADATA_FIELDS
 from coyote3.domain.common.errors import api_error
 
 
@@ -100,8 +101,12 @@ class AspService:
 
         Notes:
             Creation provenance and system ownership are assigned by the server.
+            Imported metadata is discarded and the submitted config is stamped in place.
         """
         config = payload.get("config", {})
+        if isinstance(config, dict):
+            for field in CONFIGURATION_METADATA_FIELDS:
+                config.pop(field, None)
         if not config:
             raise api_error(400, "Missing panel config payload")
         family = str(config.get("asp_family") or "").strip().lower()

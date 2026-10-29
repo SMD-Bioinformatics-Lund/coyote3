@@ -38,6 +38,10 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
         monkeypatch.setattr(service, "_validate_diagnoses", lambda config: None)
         config = {"isgl_id": "demo_genes"}
     config.update(
+        _id="imported-identifier",
+        version=99,
+        revision=99,
+        status="published",
         created_by="forged_actor",
         created_on="forged_time",
         system_managed=True,
@@ -49,6 +53,8 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
     assert stored["created_on"] == "server_time"
     assert stored["system_managed"] is False
     assert stored["system_installed"] is False
+    assert "_id" not in stored and "revision" not in stored and "status" not in stored
+    assert stored["version"] == 1
     if resource == "asp":
         assert stored["asp_category"] == "rna"
 

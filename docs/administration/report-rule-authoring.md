@@ -103,7 +103,9 @@ placement as summary text. The report supplies the section heading.
 Keep reviewed extraction, sequencing, limitations and validated sensitivity wording
 in these rules. Insert assay names, covered-gene counts and applied gene-list names,
 genes and unique counts through **Insert value at cursor**. Panel gene counts and
-selected gene-list counts describe different scopes. Generated gene tables and
+selected gene-list counts describe different scopes. For panel-DNA assays, the
+selected scope includes only genes covered by the assay; the source list may be
+larger. Full source list definitions remain available for provenance. Generated gene tables and
 their captions remain part of report rendering. Table references inside authored
 text are literal; review them against the rendered tables.
 
@@ -118,6 +120,20 @@ inherited source in evaluation provenance. Saved report receipts capture both re
 Analysis descriptions are authored and published exclusively through clinical rules.
 
 ### Compose dynamic sentences
+
+Report sentences, advanced literal and singular/plural text, structured wording,
+clinical rationale, tumor-type wording and change summaries use the shared comment
+Markdown editor. Use **Write** and **Preview** to switch between source and rendered
+text, or select text and use the formatting toolbar. Saved read-only prose renders
+as Markdown. Identifiers, numbers, field paths and condition literals retain their
+structured meaning and do not become formatted query expressions.
+
+Markdown can surround an inline value, for example
+`**{{asp.display_name}}**`. Formatting preserves the value's type, precision,
+missing-value behavior and list settings. The complete report preview renders
+Markdown with placeholder labels until a sample resolves actual values. Preview
+uses the same escaped-HTML and safe-link handling as comments. Existing comment
+length limits remain unchanged; report wording has no new editor length limit.
 
 Under **Report text**, write the complete sentence in **Report sentence**. Expand
 **Insert value at cursor**, search by name, count, diagnosis or VAF, and choose a
@@ -308,13 +324,33 @@ heading**. Header suffix and clinical-question outputs retain paragraph placemen
 Changing placement changes the rendered section text. Update the embedded cases'
 expected sections and complete the normal review before publishing that change.
 
-## Import an exported rule set
+## Import and export rule configuration
 
 Use **Import JSON** beside **Export JSON**, or choose **New rule set → Import JSON**.
-Upload the canonical JSON export, review the inferred scope/name, and create the
-draft. Import creates a new governed draft; it does not overwrite or publish the
-source version. The API checks permission, schema and content. Existing embedded
-cases and structured terminology are retained through this supported workflow.
+Upload authored configuration, review the inferred scope/name, and create the
+draft. Files contain `scope`, `name`, `analysis_declarations`, `terminology`,
+`blocks`, `test_cases` and `references`. Optional `schema_version` identifies the
+file syntax and defaults to `1`; it is separate from the application's rule versions.
+
+Do not supply author, timestamps, document identity, content version or revision.
+The application allocates the version and records the authenticated importing user
+and current timestamps. It creates an inactive draft with fresh review and lifecycle
+state. Import does not overwrite or publish the source version. Embedded cases and
+structured terminology are retained and validated.
+
+**Export JSON** downloads configuration without application-managed metadata by
+default. Check **Include metadata** to include the stored version's identity,
+timestamps, authors, content version, revision, provenance and lifecycle for inspection.
+Both export forms can be imported. Included metadata is ignored when importing;
+it cannot restore approval, publication, ownership or version numbers. Unknown
+configuration fields and invalid authored rule content are still rejected.
+Valid source version and revision numbers from a metadata-inclusive file remain
+informational import provenance; the new draft receives its own version and revision.
+
+The API exposes the same default at
+`GET /api/v1/admin/clinical-rule-sets/versions/{document_id}/export`; add
+`?include_metadata=true` to request metadata explicitly. Normal version and revision
+endpoints continue to return the complete governed records.
 
 ## Correct an autosave error
 

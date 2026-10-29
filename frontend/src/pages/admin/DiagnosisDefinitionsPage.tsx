@@ -112,6 +112,7 @@ export function DiagnosisDefinitionsPage() {
     <DiagnosisNavigation active="definitions" />
     {allowed && canEdit && <BulkInstall kind="diagnoses" />}
     {allowed && definitions.data && <ConfigurationTransfer label="diagnoses" filename="diagnoses"
+      metadataDocument={definitions.data}
       document={definitions.data.map(row => ({ diagnosis_id: row.diagnosis_id,
         display_name: row.display_name, description: row.description, is_active: row.is_active,
         asp_ids: row.associated_asp_ids || [] }))} />}

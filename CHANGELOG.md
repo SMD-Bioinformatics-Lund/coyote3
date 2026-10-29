@@ -7,6 +7,10 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Panel-DNA reporting rules count only panel-covered selected genes, matching the
+  analysed scope while preserving complete source gene-list definitions.
+- Rule prose uses the shared Markdown editor and preview, including dynamic report
+  sentences, structured wording and review notes, while preserving typed placeholders.
 - Reporting rules can use calculated CNV copy numbers and paired/split-read
   percentages as inline values or compose grouped CNV summaries with reviewed wording.
 - Unified DNA and RNA review with assay-aware filtering, reference annotations,
@@ -26,6 +30,9 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Administration configuration imports accept content without audit or version
+  fields. JSON exports omit application-managed metadata by default, with an
+  explicit option to include it; imports use fresh application-managed metadata.
 - Query rules, reusable profiles and assay setups support reviewed JSON imports
   and portable exports. Diagnosis, group and assay-association registries provide
   JSON exports matching their bulk creation workflows. User, role, permission and

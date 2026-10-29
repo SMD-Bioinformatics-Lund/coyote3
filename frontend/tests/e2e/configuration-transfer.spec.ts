@@ -68,8 +68,16 @@ for (const theme of ["light", "dark"]) {
       const download = await pending
       const contents = await readFile((await download.path())!, "utf8")
       expect(JSON.parse(contents)).toEqual(portable)
+      await expect(page.getByLabel("Include metadata")).not.toBeChecked()
+      await page.getByLabel("Include metadata").check()
+      const withMetadata = page.waitForEvent("download")
+      await page.getByRole("button", { name: "Export JSON", exact: true }).click()
+      const metadataContents = await readFile((await (await withMetadata).path())!, "utf8")
+      expect(JSON.parse(metadataContents)).toMatchObject({
+        ...portable, version: 3, revision: 5, created_by: "original", status: "published",
+      })
       await page.getByLabel("Import query rules JSON").setInputFiles({
-        name: "policy.json", mimeType: "application/json", buffer: Buffer.from(contents),
+        name: "policy.json", mimeType: "application/json", buffer: Buffer.from(metadataContents),
       })
       await expect(page.getByRole("heading", { name: "New draft", exact: true })).toBeVisible()
       await expect(page.getByRole("combobox", { name: "Evidence mode", exact: true })).toHaveValue("case_only")

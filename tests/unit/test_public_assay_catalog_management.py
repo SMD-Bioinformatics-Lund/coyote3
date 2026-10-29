@@ -380,6 +380,25 @@ def approved(service):
     )
 
 
+def test_catalog_import_assigns_fresh_metadata_for_a_metadata_inclusive_file(service):
+    """An exported author's lifecycle cannot be restored in a newly imported catalog."""
+    source = content()
+    source.update(
+        created_by="foreign.author",
+        created_at="invalid",
+        updated_by="foreign.author",
+        content_version=99,
+        revision=99,
+        status="published",
+        active=True,
+    )
+    result = service.create(actor="actual.author", imported=source)
+    assert result["created_by"] == result["updated_by"] == "actual.author"
+    assert result["revision"] == 1 and result["status"] == "draft"
+    assert result["content_version"] is None
+    assert result["catalog"]["created_by"] == "actual.author"
+
+
 def test_workspace_response_preserves_omics_specific_analysis_choices(service):
     """Validate the actual workspace against its HTTP response contract."""
     payload = PublicAssayCatalogAdminPayload.model_validate(service.workspace())

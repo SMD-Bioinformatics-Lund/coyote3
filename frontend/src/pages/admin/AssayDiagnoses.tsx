@@ -77,6 +77,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   return <section className="min-w-0 space-y-3" aria-label="Assay diagnosis associations">
     {canEdit && <BulkInstall kind="assay-diagnoses" aspId={aspId} />}
     {associations.data && !error && <ConfigurationTransfer label="assay diagnoses"
+      metadataDocument={associations.data}
       filename={`${aspId}-diagnoses`} document={associations.data.map(row => ({
         diagnosis_id: row.diagnosis_id, display_name: row.display_name,
         description: row.description, is_active: row.is_active,

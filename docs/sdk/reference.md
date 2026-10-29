@@ -1102,6 +1102,23 @@ ClinicalRules.delete_draft(self, identity: 'str', *, expected_revision: 'int') -
 Delete an unpublished draft under its revision guard with clinical_rules:draft.
 ```
 
+#### `ClinicalRules.export`
+
+```python
+ClinicalRules.export(self, identity: 'str', *, include_metadata: 'bool' = False) -> 'dict[str, Any]'
+```
+
+```text
+Export rules under clinical_rules:view, omitting managed metadata by default.
+
+Args:
+    identity: Version document identifier.
+    include_metadata: Include stored lifecycle and audit metadata when True.
+
+Returns:
+    Portable configuration or the full version when explicitly requested.
+```
+
 #### `ClinicalRules.facts`
 
 ```python
@@ -5499,8 +5516,25 @@ Args:
     value: Submitted assay document or an already validated model.
 
 Returns:
-    A copy without display counts, with missing modality derived from a known
-    sequencing family. Explicit modality values remain subject to validation.
+    A copy without display counts or application-managed audit metadata,
+    with missing modality derived from a known sequencing family. Explicit
+    modality values remain subject to validation.
+```
+
+#### `AssaySetupContent.prepare_staged_records`
+
+```python
+AssaySetupContent.prepare_staged_records(value: Any) -> Any
+```
+
+```text
+Discard imported audit metadata from staged gene lists and configurations.
+
+Args:
+    value: Staged record list, or invalid input left for contract validation.
+
+Returns:
+    Record content with application-owned metadata removed.
 ```
 
 ### `AssaySetupUpdate`
@@ -5550,7 +5584,7 @@ ClinicalRuleImportRequest(*, document: dict[str, typing.Any], scope: coyote3.con
 ```
 
 ```text
-Canonical JSON export uploaded to create a separately governed draft.
+Portable configuration or metadata-inclusive export imported as a fresh draft.
 ```
 
 ### `ClinicalRuleTransition`

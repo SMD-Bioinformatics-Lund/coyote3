@@ -151,7 +151,8 @@ export function AssaySetupPage() {
     <DocumentEditorNotice editor={documentEditor} />
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
       <ConfigurationTransfer label="assay setup" filename={`${setup?.asp_id || "assay"}-setup`}
-        document={content} fields={["panel", "scopes", "environments", "gene_lists", "existing_gene_list_ids", "configurations"]}
+        document={content} metadataDocument={setup ? { ...setup, ...content } : content}
+        fields={["panel", "scopes", "environments", "gene_lists", "existing_gene_list_ids", "configurations"]}
         required={["panel"]} disabled={mutation.isPending || importSetup.isPending || imported !== null}
         onImport={canWrite ? document => { importSetup.reset(); setImported(document) } : undefined} />
       {isNew && canWrite && context.data && <ConfigurationTransfer label="assay identity"

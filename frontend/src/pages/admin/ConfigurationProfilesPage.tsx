@@ -73,7 +73,7 @@ export function ConfigurationProfilesPage() {
     { id: "actions", header: "Actions", cell: ({ row }) => <div className="flex gap-2">
       <Button variant="outline" size="sm" onClick={() => { setReview(row.original); setDraft(null); setReason("") }}>Review</Button>
       {section === "profiles" && <ConfigurationTransfer label="configuration profile"
-        filename={`${row.original.profile_id}-profile`} document={portableProfile(row.original)} />}
+        filename={`${row.original.profile_id}-profile`} document={portableProfile(row.original)} metadataDocument={row.original} />}
       {canCreate && section === "profiles" && <Button variant="ghost" size="sm" onClick={() => {
         const item = row.original
         setReview(null)

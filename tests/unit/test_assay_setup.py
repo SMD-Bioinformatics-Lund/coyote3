@@ -139,6 +139,22 @@ def setup_service(monkeypatch):
     return AssaySetupService(store, common_util=SimpleNamespace()), db
 
 
+def test_setup_import_discards_nested_record_metadata_before_staging(setup_service):
+    """Imported audit identity cannot become a staged panel or configuration owner."""
+    source = content().model_dump(mode="python")
+    source["panel"].update(_id="foreign", version=99, created_by="foreign.author")
+    source["configurations"][0].update(version=99, created_by="foreign.author", status="published")
+    source["gene_lists"] = [
+        {"isgl_id": "synthetic", "version": 99, "created_by": "foreign.author", "genes": ["TP53"]}
+    ]
+    parsed = AssaySetupContent.model_validate(source)
+    assert parsed.panel.id_ is None and parsed.panel.version == 1
+    assert parsed.panel.created_by != "foreign.author"
+    assert "version" not in parsed.configurations[0]
+    assert "created_by" not in parsed.configurations[0]
+    assert parsed.gene_lists == [{"isgl_id": "synthetic", "genes": ["TP53"]}]
+
+
 def test_review_compilation_retains_resource_hashes_across_actors(setup_service):
     service, _db = setup_service
     draft = service.save(content(), actor="author")

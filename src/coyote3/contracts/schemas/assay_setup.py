@@ -13,6 +13,7 @@ from coyote3.config.constants import (
 )
 from coyote3.contracts.schemas.assay import AssaySpecificPanelsDoc
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase, _StrictDocBase
+from coyote3.domain.common.configuration_transfer import configuration_content
 
 
 class AssaySetupContent(_StrictDocBase):
@@ -34,13 +35,14 @@ class AssaySetupContent(_StrictDocBase):
             value: Submitted assay document or an already validated model.
 
         Returns:
-            A copy without display counts, with missing modality derived from a known
-            sequencing family. Explicit modality values remain subject to validation.
+            A copy without display counts or application-managed audit metadata,
+            with missing modality derived from a known sequencing family. Explicit
+            modality values remain subject to validation.
         """
         if isinstance(value, dict):
             panel = {
                 key: item
-                for key, item in value.items()
+                for key, item in configuration_content(value).items()
                 if key not in {"covered_genes_count", "germline_genes_count"}
             }
             family = str(panel.get("asp_family") or "").strip().lower()
@@ -50,6 +52,19 @@ class AssaySetupContent(_StrictDocBase):
                     panel["asp_category"] = category
             return panel
         return value
+
+    @field_validator("gene_lists", "configurations", mode="before")
+    @classmethod
+    def prepare_staged_records(cls, value: Any) -> Any:
+        """Discard imported audit metadata from staged gene lists and configurations.
+
+        Args:
+            value: Staged record list, or invalid input left for contract validation.
+
+        Returns:
+            Record content with application-owned metadata removed.
+        """
+        return configuration_content(value)
 
     @field_validator("scopes")
     @classmethod

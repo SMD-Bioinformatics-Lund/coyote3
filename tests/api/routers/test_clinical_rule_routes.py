@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -17,6 +18,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleTransition,
 )
 from tests.fixtures.api import mock_collections as fx
+from tests.unit.reporting.test_clinical_rules import _document
 
 
 def _operations(user, service):
@@ -121,6 +123,39 @@ def test_authoring_options_http_response_preserves_assay_short_name() -> None:
             "diagnoses": [{"diagnosis_id": "base", "display_name": "Base"}],
         }
     ]
+
+
+@pytest.mark.parametrize("include_metadata", [False, True])
+def test_export_http_omits_metadata_unless_requested(include_metadata):
+    """The response contract must not inject audit defaults into portable exports."""
+    source = _document(status="published", active=True)
+    service = ClinicalRuleAuthoringService(
+        SimpleNamespace(
+            get=lambda _: source.model_dump(mode="python", by_alias=True),
+        )
+    )
+    app = FastAPI()
+    app.include_router(rules.router)
+    route = next(route for route in rules.router.routes if route.path.endswith("/export"))
+    for dependency in route.dependant.dependencies:
+        if dependency.name == "_user":
+            app.dependency_overrides[dependency.call] = fx.api_user
+        elif dependency.name == "service":
+            app.dependency_overrides[dependency.call] = lambda: _operations(fx.api_user(), service)
+    query = "?include_metadata=true" if include_metadata else ""
+    with TestClient(app) as client:
+        response = client.get("/api/v1/admin/clinical-rule-sets/versions/source/export" + query)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["blocks"] == source.model_dump(mode="json", exclude={"id_"})["blocks"]
+    assert ("created_by" in payload) is include_metadata
+    assert ("content_version" in payload) is include_metadata
+    assert ("revision" in payload) is include_metadata
+    assert ("_id" in payload) is include_metadata
+    if include_metadata:
+        assert payload["status"] == "published" and payload["active"] is True
+    else:
+        assert "review" not in payload and "lifecycle" not in payload
 
 
 def test_revision_routes_return_immutable_history(monkeypatch) -> None:

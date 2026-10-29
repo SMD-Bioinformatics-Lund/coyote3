@@ -10,6 +10,7 @@ import pytest
 
 from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
 from coyote3.contracts.schemas.clinical_rules import (
+    ClinicalRuleConfiguration,
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
@@ -392,7 +393,7 @@ def test_import_rejects_invalid_canonical_document():
     payload = ClinicalRuleImportRequest(
         document={}, scope=_document().scope, name="Synthetic import"
     )
-    with pytest.raises(AppError, match="not a valid canonical export"):
+    with pytest.raises(AppError, match="not a valid configuration"):
         service.import_draft(payload, actor="author")
 
 
@@ -595,6 +596,97 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
     assert result["blocks"][0]["conflict_group"] == "classification"
     assert result["blocks"][0]["match_strategy"] == "at_most_one"
     assert result["test_cases"] == source["test_cases"]
+    assert result["provenance"]["source_content_version"] == source["content_version"]
+    assert result["provenance"]["source_revision"] == source["revision"]
+
+
+@pytest.mark.parametrize("include_metadata", [False, True])
+def test_export_import_round_trip_assigns_new_application_metadata(include_metadata):
+    """Both export forms preserve authored content while import allocates a fresh draft."""
+    source = _document(status="published", active=True)
+    repository = Repository(source)
+    service = ClinicalRuleAuthoringService(repository)
+    exported = service.export("source", include_metadata=include_metadata)
+    content_fields = set(ClinicalRuleConfiguration.model_fields)
+    assert set(exported) == (
+        set(source.model_dump(by_alias=True)) if include_metadata else content_fields
+    )
+    if not include_metadata:
+        assert not {
+            "created_by",
+            "updated_by",
+            "created_at",
+            "updated_at",
+            "content_version",
+            "revision",
+            "rule_set_id",
+            "status",
+            "review",
+            "lifecycle",
+            "_id",
+        } & set(exported)
+    result = service.import_draft(
+        ClinicalRuleImportRequest(
+            document=exported,
+            scope=source.scope,
+            name="Imported configuration",
+        ),
+        actor="new.author",
+    )
+    assert result["created_by"] == result["updated_by"] == "new.author"
+    assert result["created_at"] == result["updated_at"]
+    assert result["created_at"] >= source.created_at
+    assert result["content_version"] == 2 and result["revision"] == 1
+    assert result["status"] == "draft" and result["active"] is False
+    assert result["published_at"] is None and result["content_hash"] is None
+    assert not any(result["review"].values())
+    assert result.get("_id") != source.id_
+    assert result["blocks"] == source.model_dump()["blocks"]
+
+
+def test_handwritten_configuration_needs_no_audit_or_version_fields():
+    """The minimal file is authored content; schema_version defaults automatically."""
+    source = _document()
+    source_fields = source.model_dump(
+        mode="json", include=set(ClinicalRuleConfiguration.model_fields)
+    )
+    source_fields.pop("schema_version")
+    source_fields.update(
+        created_by="forged",
+        updated_at="not a timestamp",
+        content_version=900,
+        revision=-1,
+        status="published",
+        active=True,
+        _id="invalid id",
+    )
+    result = ClinicalRuleAuthoringService(Repository()).import_draft(
+        ClinicalRuleImportRequest(document=source_fields, scope=source.scope, name="Imported"),
+        actor="actual.author",
+    )
+    assert result["created_by"] == result["updated_by"] == "actual.author"
+    assert result["content_version"] == 2 and result["revision"] == 1
+    assert result["status"] == "draft" and result["active"] is False
+    assert result["schema_version"] == 1
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {"unknown_configuration": True},
+        {"schema_version": 2},
+        {"blocks": "invalid"},
+    ],
+)
+def test_portable_import_still_rejects_invalid_authored_content(invalid):
+    source = _document()
+    content = source.model_dump(mode="json", include=set(ClinicalRuleConfiguration.model_fields))
+    content.update(invalid)
+    with pytest.raises(AppError, match="not a valid configuration"):
+        ClinicalRuleAuthoringService(Repository()).import_draft(
+            ClinicalRuleImportRequest(document=content, scope=source.scope, name="Imported"),
+            actor="author",
+        )
 
 
 def test_validate_preview_and_update_actor() -> None:

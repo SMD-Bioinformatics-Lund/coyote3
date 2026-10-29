@@ -12,6 +12,7 @@ import { api } from "@/lib/api"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { downloadJson } from "@/lib/json-download"
+import { configurationContent, configurationWithMetadata } from "@/lib/configuration-transfer"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { RecordProvenance } from "./RecordProvenance"
 import { CatalogBuilder } from "./CatalogBuilder"
@@ -112,7 +113,7 @@ export function PublicAssayCatalogPage() {
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]; event.target.value = ""
     if (!file) return
-    try { mutation.mutate({ action: "import", document: JSON.parse(await file.text()) }) }
+    try { mutation.mutate({ action: "import", document: configurationContent(JSON.parse(await file.text())) }) }
     catch (error) { notifyActionError("Invalid catalog JSON", error, "Catalog") }
   }
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -123,6 +124,7 @@ export function PublicAssayCatalogPage() {
     enabled: Boolean(id) && historyOpen && allowed("catalog:view"),
   })
   const [snapshot, setSnapshot] = useState<Version | null>(null)
+  const [includeMetadata, setIncludeMetadata] = useState(false)
   useEffect(() => { setSnapshot(null) }, [id, version?.revision])
   if (access.isLoading) return <PageShell title="Assay Catalog"><AppLoader label="Loading permissions" /></PageShell>
   if (!allowed("catalog:view")) return <PageShell title="Assay Catalog"><p>Catalog access is required.</p></PageShell>
@@ -130,6 +132,9 @@ export function PublicAssayCatalogPage() {
   if (!draft || !workspace.data || (id && !version)) return <PageShell title="Assay Catalog"><AppLoader label="Loading catalog" /></PageShell>
   const data = workspace.data
   const displayedCatalog = snapshot?.catalog || draft
+  const exportContent = (content: unknown) => includeMetadata
+    ? configurationWithMetadata(configurationContent(content), { ...displayedCatalog, ...(snapshot || version) })
+    : configurationContent(content)
   const busy = mutation.isPending || deletion.isPending
   const editors = version?.content_editors || []
   const username = access.data?.username
@@ -140,11 +145,12 @@ export function PublicAssayCatalogPage() {
     <DocumentEditorNotice editor={documentEditor} />
     <input aria-label="Import catalog file" ref={upload} type="file" accept=".json,application/json" className="hidden" onChange={importFile} />
     <Button variant="outline" disabled={busy || dirty || !allowed("catalog:draft")} onClick={() => upload.current?.click()}><icon.fileUp /> Import draft</Button>
-    <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", displayedCatalog)}><icon.download /> Export catalog</Button>
-    {section && displayedCatalog.modalities[section] && <Button variant="outline" onClick={() => downloadJson(`catalog_${section}.json`, {
+    <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={includeMetadata} onChange={event => setIncludeMetadata(event.target.checked)} />Include metadata</label>
+    <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", exportContent(displayedCatalog))}><icon.download /> Export catalog</Button>
+    {section && displayedCatalog.modalities[section] && <Button variant="outline" onClick={() => downloadJson(`catalog_${section}.json`, exportContent({
       kind: "coyote3.public_assay_catalog_modality", schema_version: 1, modality: section,
       definition: displayedCatalog.modalities[section],
-    })}><icon.download /> Export section</Button>}
+    }))}><icon.download /> Export section</Button>}
     {version?.status === "rejected" && <Button disabled={busy || !allowed("catalog:draft")} onClick={() => mutation.mutate({ action: "import", document: version.catalog })}><icon.plus /> Revise as new draft</Button>}
     {editable && !snapshot && <><Button variant="outline" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? <icon.eye /> : <icon.edit />}{editing ? "Preview changes" : "Edit draft"}</Button>
       <Button disabled={!dirty || busy} onClick={() => mutation.mutate({ action: "save" })}><icon.save /> Save draft</Button></>}

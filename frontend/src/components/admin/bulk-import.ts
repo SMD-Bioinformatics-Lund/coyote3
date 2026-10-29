@@ -1,4 +1,5 @@
 import { parseDocument } from "yaml"
+import { configurationContent } from "@/lib/configuration-transfer"
 
 export const BULK_LIMIT = 100
 export const BULK_BYTES = 1024 * 1024
@@ -42,7 +43,7 @@ export function parseBulkFile(text: string, filename: string, keys: string[], re
   const seen = new Set<string>()
   return value.map((record: unknown, index) => {
     if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error(`Row ${index + 1}: expected an object`)
-    const item = record as BulkRecord
+    const item = configurationContent(record) as BulkRecord
     const unknown = Object.keys(item).filter((key) => !keys.includes(key))
     if (unknown.length) throw new Error(`Row ${index + 1}: unsupported keys: ${unknown.join(", ")}`)
     const missing = required.filter((key) => item[key] == null || item[key] === "")

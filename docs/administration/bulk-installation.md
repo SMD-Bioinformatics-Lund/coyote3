@@ -24,6 +24,16 @@ Import/export transfers editable configuration, not approval state or database
 identities. Referenced assays, groups, diagnoses, gene lists and files must exist
 in the target installation. Server validation and current permissions still apply.
 
+Every configuration export offers **Include metadata**, unchecked by default.
+The default file contains editable configuration. Select the option to include
+available author, timestamp, revision, version and workflow metadata for inspection.
+User credentials are excluded in both modes. Imports discard recognized metadata
+before staging new content; the application assigns ownership, timestamps and
+versions through the normal creation or draft workflow. Metadata cannot restore
+approval or publication state. Assay setups apply this rule to their panel, staged
+gene lists and configurations as well. Embedded policy values and pinned resource
+references retain their own version/status values; those are clinical content.
+
 | Resource | Export | Import |
 | --- | --- | --- |
 | Query rules | Select a version, then **Export JSON**; contains `name`, `scope`, and `content`, preserving null inheritance settings. | **Import JSON** validates the policy through backend preview, then loads a new unsaved draft. Enter a new reason and save before independent review/publication. Unsaved edits require confirmation before replacement. |
@@ -67,7 +77,9 @@ role. Normal page access permissions still apply; uploading grants no extra acce
 
 The server assigns creator, updater and timestamps to the authenticated operator.
 Uploaded records are center-managed, not system-installed. Do not include MongoDB
-IDs, ownership flags, authors, timestamps or revision fields.
+IDs, ownership flags, authors, timestamps or revision fields. If present in an
+exported file, recognized metadata is ignored; unknown configuration fields still
+fail validation. Bulk examples omit application-managed fields.
 
 ## Upload and install
 

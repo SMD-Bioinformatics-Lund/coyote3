@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { readFile } from "node:fs/promises"
 
 import { installApiFixtures } from "./support/api-fixtures"
 
@@ -33,6 +34,78 @@ const ruleSet = {
   review: {},
   updated_at: "2026-09-05T12:00:00Z",
   updated_by: "admin",
+}
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`rule Markdown keeps dynamic values: ${theme}, ${width}px`, async ({ page }, testInfo) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      let saved = structuredClone(ruleSet)
+      await installApiFixtures(page, (path, _url, route) => {
+        if (path.endsWith("/auth/whoami")) return { json: { username: "admin", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:draft"] } }
+        if (path.endsWith("/drafts/rule-version-1")) {
+          saved = { ...saved, ...route.request().postDataJSON(), revision: saved.revision + 1 }
+          return { json: saved }
+        }
+        if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [] } }
+        if (path.endsWith("/facts")) return { json: { items: [{ path: "asp.display_name", label: "Assay name", kind: "string", group: "Assay", operators: ["eq"], scopes: ["once"] }] } }
+      })
+      await page.goto("/admin/clinical-rules")
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      if (theme === "dark") await expect(page.locator("html")).toHaveClass(/dark/)
+      else await expect(page.locator("html")).not.toHaveClass(/dark/)
+      const input = page.getByLabel("Report sentence", { exact: true })
+      await input.fill("**Evidence** for {{asp.display_name}}\n\n- Reviewed scope")
+      await expect.poll(() => JSON.stringify(saved.blocks)).toContain('"path":"asp.display_name"')
+      await input.locator("..").getByRole("button", { name: "Preview", exact: true }).click()
+      const rendered = page.getByLabel("Report sentence preview", { exact: true })
+      await expect(rendered.locator("strong")).toHaveText("Evidence")
+      await expect(rendered.getByRole("listitem")).toHaveText("Reviewed scope")
+      await rendered.locator("..").getByRole("button", { name: "Write", exact: true }).focus()
+      await page.keyboard.press("Enter")
+      await expect(input).toHaveValue("**Evidence** for {{asp.display_name}}\n\n- Reviewed scope")
+      await input.locator("..").screenshot({ path: testInfo.outputPath("markdown-editor.png") })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    })
+
+    test(`rule export metadata is opt-in: ${theme}, ${width}px`, async ({ page }, testInfo) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      const portable = { schema_version: 1, scope: ruleSet.scope, name: ruleSet.name,
+        analysis_declarations: ruleSet.analysis_declarations, blocks: ruleSet.blocks,
+        terminology: {}, test_cases: [], references: [] }
+      await installApiFixtures(page, (path, url) => {
+        if (path.endsWith("/auth/whoami")) return { json: { username: "admin", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view"] } }
+        if (path.endsWith("/export")) return { json: url.searchParams.get("include_metadata") === "true" ? ruleSet : portable }
+        if (path.endsWith("/versions/rule-version-1")) return { json: ruleSet }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [ruleSet], total: 1 } }
+        if (path.endsWith("/facts")) return { json: { items: [] } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [] } }
+      })
+      await page.goto("/admin/clinical-rules")
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      const metadata = page.getByRole("checkbox", { name: "Include metadata" })
+      const exportButton = page.getByRole("button", { name: "Export JSON" })
+      await expect(metadata).not.toBeChecked()
+      await expect(metadata).toBeInViewport()
+      for (const include of [false, true]) {
+        if (include) { await metadata.focus(); await metadata.press("Space") }
+        const downloaded = page.waitForEvent("download")
+        await exportButton.click()
+        const file = await (await downloaded).path()
+        if (!file) throw new Error("Expected a downloaded JSON file")
+        const content = JSON.parse(await readFile(file, "utf8"))
+        expect(content.blocks).toEqual(ruleSet.blocks)
+        expect("content_version" in content).toBe(include)
+        expect("updated_by" in content).toBe(include)
+        expect("_id" in content).toBe(include)
+      }
+      await exportButton.locator("..").screenshot({ path: testInfo.outputPath("export-controls.png") })
+    })
+  }
 }
 
 test("composition preview separates conditional wording in a narrow report pane", async ({ page }) => {

@@ -77,7 +77,7 @@ class PreparedGeneListFacts(_FactModel):
 
 
 class PreparedGeneScopeFacts(_FactModel):
-    """Names and unique gene counts for lists actually selected for one analysis."""
+    """Names and effective analysed gene scope for lists selected for one analysis."""
 
     ids: list[str] = Field(default_factory=list)
     names: list[str] | None = Field(default_factory=list)

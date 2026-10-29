@@ -2,15 +2,17 @@ import { useId, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { icon } from "@/lib/assets"
 import { downloadJson } from "@/lib/json-download"
+import { configurationContent, configurationWithMetadata } from "@/lib/configuration-transfer"
 
 type Document = Record<string, unknown>
 
 /** Transfer editable configuration; importing stages a document for normal validation. */
-export function ConfigurationTransfer({ label, filename, document, onImport, fields,
+export function ConfigurationTransfer({ label, filename, document, metadataDocument, onImport, fields,
   required = [], disabled = false, importLabel = "Import JSON" }: {
   label: string
   filename: string
   document?: unknown
+  metadataDocument?: unknown
   onImport?: (document: Document) => void | Promise<void>
   fields?: readonly string[]
   required?: readonly string[]
@@ -21,6 +23,7 @@ export function ConfigurationTransfer({ label, filename, document, onImport, fie
   const errorId = useId()
   const [error, setError] = useState("")
   const [reading, setReading] = useState(false)
+  const [includeMetadata, setIncludeMetadata] = useState(false)
   return <div className="flex flex-wrap items-center gap-2">
     {onImport && <>
       <input ref={input} type="file" accept="application/json,.json" className="sr-only"
@@ -36,7 +39,7 @@ export function ConfigurationTransfer({ label, filename, document, onImport, fie
             if (!value || typeof value !== "object" || Array.isArray(value)) {
               throw new Error("Choose a JSON object exported for this resource")
             }
-            const record = value as Document
+            const record = configurationContent(value) as Document
             const unknown = fields && Object.keys(record).filter(key => !fields.includes(key))
             if (unknown?.length) throw new Error(`Unsupported fields: ${unknown.join(", ")}`)
             const missing = required.filter(key => record[key] == null)
@@ -50,8 +53,13 @@ export function ConfigurationTransfer({ label, filename, document, onImport, fie
       <Button type="button" variant="outline" disabled={disabled || reading}
         onClick={() => input.current?.click()}><icon.upload aria-hidden="true" />{importLabel}</Button>
     </>}
-    {document !== undefined && <Button type="button" variant="outline" disabled={disabled || reading}
-      onClick={() => downloadJson(filename, document)}><icon.download aria-hidden="true" />Export JSON</Button>}
+    {document !== undefined && <><label className="flex items-center gap-2 type-body-sm"><input
+      type="checkbox" checked={includeMetadata} disabled={disabled || reading}
+      onChange={event => setIncludeMetadata(event.target.checked)} />Include metadata</label>
+      <Button type="button" variant="outline" disabled={disabled || reading}
+      onClick={() => downloadJson(filename, includeMetadata
+        ? configurationWithMetadata(configurationContent(document), metadataDocument ?? document)
+        : configurationContent(document))}><icon.download aria-hidden="true" />Export JSON</Button></>}
     {error && <p id={errorId} role="alert" className="w-full type-body-sm text-destructive">{error}</p>}
   </div>
 }

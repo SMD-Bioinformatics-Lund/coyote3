@@ -20,6 +20,7 @@ from coyote3.application.resources.helpers import _validated_doc, require_new_id
 from coyote3.config.constants import DIAGNOSIS_BASE_ID
 from coyote3.contracts.authoring.resources import managed_resource_spec
 from coyote3.domain.common.assay_filters import create_assay_group_map
+from coyote3.domain.common.configuration_transfer import CONFIGURATION_METADATA_FIELDS
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.resource_names import short_resource_name
 
@@ -236,8 +237,12 @@ class IsglService:
 
         Notes:
             Creation provenance and system ownership are assigned by the server.
+            Imported metadata is discarded and the submitted config is stamped in place.
         """
         config = payload.get("config", {})
+        if isinstance(config, dict):
+            for field in CONFIGURATION_METADATA_FIELDS:
+                config.pop(field, None)
         if not config:
             raise api_error(400, "Missing genelist config payload")
         config.setdefault("is_active", True)

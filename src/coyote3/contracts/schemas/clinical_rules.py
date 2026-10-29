@@ -442,22 +442,47 @@ def validate_reporting_terminology(value: dict | None) -> dict | None:
     return value
 
 
-class ClinicalRuleSetDoc(_StrictCollectionDocBase):
-    """One draft or immutable released version of a clinical rule scope."""
+class ClinicalRuleConfiguration(_StrictModel):
+    """Portable authored rules without application-managed identity or audit metadata."""
 
-    rule_set_id: str
     schema_version: Literal[1] = 1
-    content_version: int = Field(ge=1)
-    revision: int = Field(ge=1)
     scope: ClinicalRuleScope
     name: str = Field(min_length=1, max_length=160)
-    status: ClinicalRuleStatus
-    active: bool = False
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] = Field(default_factory=dict)
     terminology: dict[str, Any] = Field(default_factory=dict)
     blocks: list[ClinicalRuleBlock] = Field(default_factory=list)
     test_cases: list[ClinicalRuleTestCase] = Field(default_factory=list)
     references: list[dict[str, Any]] = Field(default_factory=list)
+
+    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
+
+    @model_validator(mode="after")
+    def _unique_identifiers(self) -> "ClinicalRuleConfiguration":
+        """Reject duplicate block identifiers or rule identifiers across blocks.
+
+        Returns:
+            The validated authored configuration.
+
+        Raises:
+            ValueError: Block or rule identifiers repeat within the configuration.
+        """
+        block_ids = [block.block_id for block in self.blocks]
+        if len(block_ids) != len(set(block_ids)):
+            raise ValueError("block IDs must be unique")
+        rule_ids = [rule.rule_id for block in self.blocks for rule in block.rules]
+        if len(rule_ids) != len(set(rule_ids)):
+            raise ValueError("rule IDs must be unique across the rule set")
+        return self
+
+
+class ClinicalRuleSetDoc(ClinicalRuleConfiguration, _StrictCollectionDocBase):
+    """One draft or immutable released version of a clinical rule scope."""
+
+    rule_set_id: str
+    content_version: int = Field(ge=1)
+    revision: int = Field(ge=1)
+    status: ClinicalRuleStatus
+    active: bool = False
     provenance: ClinicalRuleProvenance | None = None
     system_installed: bool = Field(default=False, exclude_if=lambda value: not value)
     change_summary: str = ""
@@ -474,29 +499,21 @@ class ClinicalRuleSetDoc(_StrictCollectionDocBase):
     retired_by: str | None = None
     content_hash: str | None = None
 
-    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
-
     @model_validator(mode="after")
     def _document_invariants(self) -> "ClinicalRuleSetDoc":
-        """Check scope identity, global rule uniqueness, and publication metadata.
+        """Check scope identity and publication metadata after content validation.
 
         Returns:
             This rule set unchanged.
 
         Raises:
-            ValueError: If the ID differs from assay/diagnosis/language, block or
-                rule IDs repeat, publication metadata is missing, or an
+            ValueError: If the ID differs from assay/diagnosis/language,
+                publication metadata is missing, or an
                 unpublished rule set is active.
         """
         expected_id = f"{self.scope.asp_id}__{self.scope.diagnosis_id}__{self.scope.language}"
         if self.rule_set_id != expected_id:
             raise ValueError(f"rule_set_id must be '{expected_id}'")
-        block_ids = [block.block_id for block in self.blocks]
-        if len(block_ids) != len(set(block_ids)):
-            raise ValueError("block IDs must be unique")
-        rule_ids = [rule.rule_id for block in self.blocks for rule in block.rules]
-        if len(rule_ids) != len(set(rule_ids)):
-            raise ValueError("rule IDs must be unique across the rule set")
         if self.status == ClinicalRuleStatus.PUBLISHED:
             if not self.published_at or not self.published_by:
                 raise ValueError("published rule sets require publication metadata")
@@ -599,7 +616,7 @@ class ClinicalRuleDraftCreate(_StrictModel):
 
 
 class ClinicalRuleImportRequest(_StrictModel):
-    """Canonical JSON export uploaded to create a separately governed draft."""
+    """Portable configuration or metadata-inclusive export imported as a fresh draft."""
 
     document: dict[str, Any]
     scope: ClinicalRuleScope

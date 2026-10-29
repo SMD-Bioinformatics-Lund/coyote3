@@ -37,6 +37,12 @@ it("exports only portable query content from a read-only published version", asy
   expect(downloadJson).toHaveBeenCalledWith(expect.any(String), {
     name: rule.name, scope: rule.scope, content: rule.content,
   })
+  expect(screen.getByLabelText("Include metadata")).not.toBeChecked()
+  fireEvent.click(screen.getByLabelText("Include metadata"))
+  fireEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+  expect(downloadJson).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({
+    created_by: "author", version: 1, revision: 2, status: "published",
+  }))
   expect(screen.queryByRole("button", { name: "Import JSON" })).not.toBeInTheDocument()
 })
 

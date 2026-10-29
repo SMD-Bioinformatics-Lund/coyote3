@@ -25,7 +25,7 @@ it("stages a JSON object and exports the supplied portable document", async () =
 it.each([
   ["{", "not valid JSON"],
   ["[]", "JSON object"],
-  ['{"status":"published"}', "Unsupported fields: status"],
+  ['{"unexpected":true}', "Unsupported fields: unexpected"],
   ["{}", "Missing fields: name"],
 ])("rejects invalid or governed input without staging it: %s", async (source, message) => {
   const onImport = vi.fn()
@@ -51,4 +51,21 @@ it("does not offer import without its authorized handler", () => {
   render(<ConfigurationTransfer label="configuration" filename="config" document={{}} />)
   expect(screen.queryByRole("button", { name: "Import JSON" })).not.toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Export JSON" })).toBeEnabled()
+})
+
+it("ignores audit metadata on import and exports it only with explicit opt-in", async () => {
+  const onImport = vi.fn()
+  render(<ConfigurationTransfer label="configuration" filename="config" document={{ name: "Example" }}
+    metadataDocument={{ name: "Example", created_by: "author", version: 3, status: "published" }}
+    onImport={onImport} fields={["name"]} required={["name"]} />)
+  upload('{"name":"Example","created_by":"other","version":99,"status":"published"}')
+  await waitFor(() => expect(onImport).toHaveBeenCalledWith({ name: "Example" }))
+  expect(screen.getByLabelText("Include metadata")).not.toBeChecked()
+  fireEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+  expect(downloadJson).toHaveBeenLastCalledWith("config", { name: "Example" })
+  fireEvent.click(screen.getByLabelText("Include metadata"))
+  fireEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+  expect(downloadJson).toHaveBeenLastCalledWith("config", {
+    name: "Example", created_by: "author", version: 3, status: "published",
+  })
 })

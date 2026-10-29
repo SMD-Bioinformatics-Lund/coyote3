@@ -224,7 +224,15 @@ describe("Public assay catalog governance", () => {
     await user.click(await screen.findByRole("button", { name: "Preview r1" }))
     expect(screen.queryByRole("button", { name: "Edit draft" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Export catalog" }))
-    expect(mocks.downloadJson).toHaveBeenLastCalledWith("assay_catalog.json", historical.catalog)
+    expect(mocks.downloadJson).toHaveBeenLastCalledWith("assay_catalog.json", expect.objectContaining({
+      header: "Historical catalog", modalities: historical.catalog.modalities,
+    }))
+    expect(mocks.downloadJson.mock.lastCall?.[1]).not.toHaveProperty("version")
+    await user.click(screen.getByLabelText("Include metadata"))
+    await user.click(screen.getByRole("button", { name: "Export catalog" }))
+    expect(mocks.downloadJson.mock.lastCall?.[1]).toMatchObject({
+      header: "Historical catalog", version: 1, revision: historical.revision,
+    })
     await user.click(screen.getByRole("button", { name: "Return to current revision" }))
     expect(screen.getByRole("button", { name: "Edit draft" })).toBeEnabled()
   })

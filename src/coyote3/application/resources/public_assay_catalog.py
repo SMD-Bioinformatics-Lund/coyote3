@@ -27,6 +27,7 @@ from coyote3.contracts.schemas.public_catalog import (
 )
 from coyote3.contracts.schemas.registry import normalize_collection_document
 from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
+from coyote3.domain.common.configuration_transfer import configuration_content
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.resource_names import short_resource_name
 
@@ -364,6 +365,8 @@ class PublicAssayCatalogManagementService:
         Args:
             actor: Initial content editor and lifecycle actor.
             imported: Full catalog or modality envelope; None copies live/starter content.
+                Imported audit metadata is ignored. A full catalog import receives
+                the current actor and timestamp as its creation provenance.
 
         Returns:
             Inserted draft at revision one, bound to the current publication version.
@@ -373,7 +376,9 @@ class PublicAssayCatalogManagementService:
         """
         live = self.repository.get_default()
         content = deepcopy(live) if live else self._new_document().model_dump(by_alias=True)
+        now = datetime.now(timezone.utc)
         if imported is not None:
+            imported = configuration_content(imported)
             if imported.get("kind") == "coyote3.public_assay_catalog_modality":
                 try:
                     envelope = PublicCatalogModalityExport.model_validate(imported)
@@ -383,8 +388,7 @@ class PublicAssayCatalogManagementService:
                 if envelope.modality not in content["layout"]["order"]:
                     content["layout"]["order"].append(envelope.modality)
             else:
-                content = imported
-        now = datetime.now(timezone.utc)
+                content = {**imported, "created_by": actor, "created_at": now}
         doc = PublicAssayCatalogVersionDoc(
             revision=1,
             base_version=int((live or {}).get("version", 0)),

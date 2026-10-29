@@ -36,6 +36,7 @@ from coyote3.config.constants import (
 from coyote3.config.loaders.filter_flags import filter_flag_options
 from coyote3.contracts.authoring.resources import aspc_spec_for_category
 from coyote3.domain.common.assay_capabilities import supported_assay_analyses
+from coyote3.domain.common.configuration_transfer import CONFIGURATION_METADATA_FIELDS
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.resource_names import short_resource_name
 from coyote3.domain.common.sample_filters import normalize_sample_filters
@@ -523,8 +524,12 @@ class AspcService:
 
         Notes:
             Creation provenance and system ownership are assigned by the server.
+            Imported metadata is discarded and the submitted config is stamped in place.
         """
         config = payload.get("config", {})
+        if isinstance(config, dict):
+            for field in CONFIGURATION_METADATA_FIELDS:
+                config.pop(field, None)
         if not config:
             raise api_error(400, "Missing assay config payload")
         asp_id = str(config.get("asp_id", "")).strip()

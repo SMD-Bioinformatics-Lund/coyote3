@@ -139,12 +139,12 @@ describe("ClinicalRulesPage", () => {
 
   it("imports a planned assay draft without requiring an installed assay option", async () => {
     const user = userEvent.setup()
-    const source = { ...existingDraft, rule_set_id: "planned_hema__base__sv", scope: { ...existingDraft.scope, asp_id: "planned_hema" } }
-    mocks.post.mockResolvedValue({ data: source })
+    const source = { name: "Planned hematology", scope: { ...existingDraft.scope, asp_id: "planned_hema" }, blocks: [] }
+    mocks.post.mockResolvedValue({ data: { ...existingDraft, ...source, rule_set_id: "planned_hema__base__sv" } })
     renderPage()
     await user.click(await screen.findByRole("button", { name: "New rule set" }))
     await user.click(screen.getByRole("button", { name: "Import JSON" }))
-    await user.upload(screen.getByLabelText("Canonical rule-set JSON"), new File([JSON.stringify(source)], "planned.json", { type: "application/json" }))
+    await user.upload(screen.getByLabelText("Rule configuration JSON"), new File([JSON.stringify(source)], "planned.json", { type: "application/json" }))
     await waitFor(() => expect(screen.getByLabelText("Assay")).toHaveValue("planned_hema"))
     expect(screen.getByLabelText("Analyte")).toBeEnabled()
     expect(screen.getByText(/This assay is not registered yet/)).toBeVisible()
@@ -208,7 +208,30 @@ describe("ClinicalRulesPage", () => {
     expect(await screen.findByRole("button", { name: "Export JSON" })).toBeVisible()
     await userEvent.click(screen.getByRole("button", { name: "Import JSON" }))
     expect(screen.getByRole("region", { name: "Create clinical rule set" })).toBeVisible()
-    expect(screen.getByText("Canonical rule-set JSON")).toBeVisible()
+    expect(screen.getByText("Rule configuration JSON")).toBeVisible()
+  })
+
+  it("exports configuration by default and includes metadata only when checked", async () => {
+    const fallback = mocks.get.getMockImplementation()!
+    mocks.get.mockImplementation((path: string) => {
+      if (path.includes("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      if (path === "/admin/clinical-rule-sets?q=") return Promise.resolve({ data: { items: [existingDraft] } })
+      return fallback(path)
+    })
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test")
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+    try {
+      renderPage()
+      await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+      expect(screen.getByRole("checkbox", { name: "Include metadata" })).not.toBeChecked()
+      await userEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+      expect(mocks.get).toHaveBeenCalledWith("/admin/clinical-rule-sets/versions/rule-version-1/export")
+      await userEvent.click(screen.getByRole("checkbox", { name: "Include metadata" }))
+      await userEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+      expect(mocks.get).toHaveBeenCalledWith("/admin/clinical-rule-sets/versions/rule-version-1/export?include_metadata=true")
+      expect(click).toHaveBeenCalledTimes(2)
+    } finally { create.mockRestore(); revoke.mockRestore(); click.mockRestore() }
   })
 
   it("saves automatic annotation wording with the governed draft", async () => {

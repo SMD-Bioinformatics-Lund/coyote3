@@ -11,7 +11,7 @@ describe("bulk resource files", () => {
   it.each([
     ['{}', "list"], ['[]', "list"], ['[null]', "object"],
     ['[{"diagnosis_id":"a"}]', "display_name"],
-    ['[{"diagnosis_id":"a","display_name":"A","created_by":"system"}]', "unsupported"],
+    ['[{"diagnosis_id":"a","display_name":"A","unexpected":true}]', "unsupported"],
     [JSON.stringify([config.example, config.example]), "duplicate"],
     [JSON.stringify(Array(101).fill(config.example)), "1–100"],
   ])("rejects invalid or ambiguous content", (value, message) => {

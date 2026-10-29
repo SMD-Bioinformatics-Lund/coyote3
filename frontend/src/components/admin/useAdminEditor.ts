@@ -1,6 +1,7 @@
 import type { CurrentUserAccess } from "@/lib/access-control"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { configurationContent } from "@/lib/configuration-transfer"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import {
@@ -75,7 +76,7 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
       setEditorError("The selected file must contain one JSON configuration object.")
       return
     }
-    const imported = source as Record<string, any>
+    const imported = configurationContent(source) as Record<string, unknown>
     if ((spec.key === "users" && "password" in imported)
       || Object.keys(imported).some(key => form?.fields[key]?.display_type === "password")) {
       setEditorError("Import account configuration without passwords. Use the account credential workflow.")
