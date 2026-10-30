@@ -867,10 +867,10 @@ class ClinicalRuleAuthoringService:
     def reopen_draft(
         self, document_id: str, payload: ClinicalRuleReopenRequest, *, actor: str
     ) -> dict[str, Any]:
-        """Return an approved unpublished version to draft and revoke its approval.
+        """Recall a submitted, in-review or approved version for editing.
 
         Args:
-            document_id: Approved version to reopen without changing its identity.
+            document_id: Unpublished review-stage version to reopen without changing identity.
             payload: Revision seen by the editor and an audit reason.
             actor: Authorized editor recorded as the latest editor.
 
@@ -878,23 +878,27 @@ class ClinicalRuleAuthoringService:
             Same content version at its next revision, with review metadata cleared.
 
         Raises:
-            AppError: Version is absent, protected, stale or no longer approved.
+            AppError: Version is absent, protected, stale or no longer in a review stage.
 
         Notes:
-            Previous approval remains in immutable revision/lifecycle history.
-            The revision and approved-state predicate fence concurrent publication.
+            Previous review remains in immutable revision/lifecycle history.
+            The revision and source-state predicate fence concurrent review or publication.
         """
         document = self._document(document_id)
-        if document.status != ClinicalRuleStatus.APPROVED:
-            raise api_error(409, "Only an approved unpublished version can be reopened")
+        if document.status not in {
+            ClinicalRuleStatus.SUBMITTED,
+            ClinicalRuleStatus.IN_CLINICAL_REVIEW,
+            ClinicalRuleStatus.APPROVED,
+        }:
+            raise api_error(409, "Only submitted, in-review or approved versions can be reopened")
         if document.revision != payload.revision:
-            raise api_error(409, "The approved rule set changed. Reload before editing again.")
+            raise api_error(409, "The rule set changed. Reload before editing again.")
         return self._transition(
             document_id,
             expected_revision=payload.revision,
             actor=actor,
             reason=payload.reason,
-            from_statuses={"approved"},
+            from_statuses={document.status.value},
             status=ClinicalRuleStatus.DRAFT,
             extra={"review": {}, "content_hash": None, "active": False, "updated_by": actor},
         )

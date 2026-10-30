@@ -411,25 +411,26 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("CNV text")
   })
 
-  it("reopens an approved version before editing and resubmitting it", async () => {
+  it.each(["submitted", "in_clinical_review", "approved"])("recalls a %s version before editing and resubmitting it", async status => {
     const user = userEvent.setup()
-    const approved = { ...existingDraft, status: "approved", blocks: [newRuleBlock([])] }
+    const version = { ...existingDraft, status, blocks: [newRuleBlock([])] }
     mocks.get.mockImplementation((path: string) => {
       if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
       if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [], clinical_reviewers: [{ username: "reviewer", name: "Reviewer" }] } })
-      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: approved })
-      return Promise.resolve({ data: { items: [approved], total: 1 } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: version })
+      return Promise.resolve({ data: { items: [version], total: 1 } })
     })
     mocks.permissions = ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:submit"]
-    mocks.post.mockResolvedValue({ data: { ...approved, status: "draft", revision: 2, review: {} } })
+    mocks.post.mockResolvedValue({ data: { ...version, status: "draft", revision: 2, review: {} } })
     renderPage()
     await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
     expect(await screen.findByLabelText("Clinical rule name")).toBeDisabled()
-    await user.click(screen.getByRole("button", { name: "Edit again" }))
+    const recallLabel = status === "approved" ? "Edit again" : "Recall and edit"
+    await user.click(screen.getByRole("button", { name: recallLabel }))
     await waitFor(() => expect(screen.getByLabelText("Clinical rule name")).toBeEnabled())
     expect(mocks.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/drafts/rule-version-1/reopen",
-      { revision: 1, reason: "Reopened for editing; previous approval cleared" }, expect.anything())
-    expect(screen.queryByRole("button", { name: "Edit again" })).not.toBeInTheDocument()
+      { revision: 1, reason: status === "approved" ? "Reopened for editing; previous approval cleared" : "Review recalled for editing" }, expect.anything())
+    expect(screen.queryByRole("button", { name: recallLabel })).not.toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText("Assign clinical reviewer"), "reviewer")
     await user.click(screen.getByRole("button", { name: "Submit" }))
     expect(mocks.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/drafts/rule-version-1/submit", expect.objectContaining({ assignee: "reviewer" }), expect.anything())

@@ -635,8 +635,9 @@ never changed by the copy or import.
 Draft updates use optimistic locking. If another editor saves first, the API rejects the
 stale revision so the newer content must be reloaded and reconciled. The editor cannot
 modify submitted, approved, published, or retired content directly. An editor with
-`clinical_rules:draft` can return an approved unpublished version to draft using
-**Edit again** (`POST /drafts/{document_id}/reopen`, with the expected `revision`).
+`clinical_rules:draft` can return a submitted, in-review or approved unpublished
+version to draft using **Recall and edit** or **Edit again**
+(`POST /drafts/{document_id}/reopen`, with the expected `revision`).
 Reopening clears the current approval and assignments, preserves prior review in
 history, and requires another independent review before publication. It retains the
 document ID and content version while incrementing its revision. Published or

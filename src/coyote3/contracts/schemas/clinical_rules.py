@@ -664,7 +664,7 @@ class ClinicalRuleDecision(_StrictModel):
 
 
 class ClinicalRuleReopenRequest(_StrictModel):
-    """Expected approved revision and reason for returning it to draft."""
+    """Expected review-stage revision and reason for returning it to draft."""
 
     revision: int = Field(ge=1)
     reason: str = Field(default="Reopened for editing", max_length=1000)

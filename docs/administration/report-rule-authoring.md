@@ -308,11 +308,13 @@ produce test-setup warnings. Independent clinical review remains required.
 Review requests and outcomes arrive as **Application** notifications with source
 **Clinical reporting rules** and a link to the relevant rule set.
 
-An approved, unpublished version can be edited again. Choose **Edit again** to
-return the same content version to draft, clear its approval and reviewer/publisher
+Submitted versions and versions already under clinical review can be withdrawn
+using **Recall and edit**. Approved, unpublished versions use **Edit again**. Both
+return the same content version to draft, clear its review and reviewer/publisher
 assignments, and acquire the normal editing session. Make changes and submit for
-independent review again. Previous approval remains in revision history. A stale
-revision or a concurrent publication prevents reopening. Published versions remain
+independent review again. Previous review remains in revision history; the former
+reviewer cannot continue the withdrawn review. A stale revision or concurrent
+review/publication prevents reopening. Published versions remain
 immutable; create a new draft version to change them.
 
 **Validate** separates structural errors from actionable rule warnings.

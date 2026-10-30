@@ -7,6 +7,8 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Submitted and in-review reporting rules can be withdrawn with **Recall and edit**;
+  the review is cleared and editing requires a fresh submission for approval.
 - Approved unpublished reporting rules can return to draft with **Edit again**;
   editing clears approval and requires a new independent review before publication.
 - Reporting-rule workflow notifications use the supported application category,

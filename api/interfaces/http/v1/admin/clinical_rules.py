@@ -502,10 +502,10 @@ def reopen_rule_set_draft(
     _user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
     service: ClinicalRules = Depends(get_clinical_rules),
 ):
-    """Reopen an approved unpublished version for editing; requires clinical_rules:draft.
+    """Recall a submitted, in-review or approved version; requires clinical_rules:draft.
 
     Args:
-        document_id: Approved version identifier; published versions are immutable.
+        document_id: Review-stage version identifier; published versions are immutable.
         payload: Revision seen by the editor and an audit reason.
         _user: Authenticated editor authorized to create drafts.
         service: Application service enforcing state, revision and editing guards.
@@ -514,7 +514,7 @@ def reopen_rule_set_draft(
         Same version in draft with previous approval and assignments cleared.
 
     Raises:
-        AppError: Version is absent, protected, stale, busy or no longer approved.
+        AppError: Version is absent, protected, stale, busy or no longer in a review stage.
     """
     return _serializable(service.reopen(document_id, payload))
 

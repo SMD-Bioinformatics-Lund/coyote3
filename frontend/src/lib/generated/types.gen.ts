@@ -3013,7 +3013,7 @@ export type ClinicalRuleProvenance = {
 /**
  * ClinicalRuleReopenRequest
  *
- * Expected approved revision and reason for returning it to draft.
+ * Expected review-stage revision and reason for returning it to draft.
  */
 export type ClinicalRuleReopenRequest = {
     /**

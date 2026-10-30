@@ -270,9 +270,10 @@ def test_submission_still_rejects_structural_rule_errors():
     assert service.repository.document["status"] == "draft"
 
 
-def test_approved_version_can_be_edited_and_reviewed_again():
+@pytest.mark.parametrize("state", ["submitted", "in_clinical_review", "approved"])
+def test_review_stage_version_can_be_edited_and_reviewed_again(state):
     """Reopening revokes approval, preserves content and identity, and requires a new review."""
-    document = _document(status="approved")
+    document = _document(status=state)
     document.review.clinical_reviewer = "reviewer"
     document.review.publisher = "publisher"
     document.review.clinical_decision_reason = "Previous approval"
@@ -290,6 +291,14 @@ def test_approved_version_can_be_edited_and_reviewed_again():
     assert reopened["lifecycle"][-1]["actor"] == "editor"
     with pytest.raises(AppError, match="Clinical approval is required"):
         service.publish("id", ClinicalRuleTransition(), actor="publisher")
+    with pytest.raises(AppError, match="assigned to another"):
+        service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    with pytest.raises(AppError, match="assigned to another"):
+        service.clinical_decision(
+            "id",
+            ClinicalRuleDecision(approve=True, publisher="publisher", reason="Stale review"),
+            actor="reviewer",
+        )
     service.update_draft(
         "id", ClinicalRuleDraftUpdate(revision=2, name="Edited wording"), actor="editor"
     )
@@ -305,13 +314,11 @@ def test_approved_version_can_be_edited_and_reviewed_again():
     )
 
 
-@pytest.mark.parametrize(
-    "status", ["draft", "submitted", "in_clinical_review", "rejected", "published", "retired"]
-)
+@pytest.mark.parametrize("status", ["draft", "rejected", "published", "retired"])
 def test_reopen_rejects_other_lifecycle_states(status):
     repository = Repository(_document(status=status, active=status == "published"))
     before = repository.document.copy()
-    with pytest.raises(AppError, match="Only an approved unpublished version"):
+    with pytest.raises(AppError, match="Only submitted, in-review or approved versions"):
         governed_service(repository).reopen_draft(
             "id", ClinicalRuleReopenRequest(revision=1), actor="editor"
         )

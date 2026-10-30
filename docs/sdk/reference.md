@@ -1240,10 +1240,10 @@ ClinicalRules.reopen(self, identity: 'str', request: 'ClinicalRuleReopenRequest'
 ```
 
 ```text
-Reopen an approved unpublished version under clinical_rules:draft access.
+Recall a submitted, in-review or approved version with clinical_rules:draft.
 
 Args:
-    identity: Version to return to draft with its approval cleared.
+    identity: Version to return to draft with review and approval cleared.
     request: Expected revision and audit reason.
 
 Returns:

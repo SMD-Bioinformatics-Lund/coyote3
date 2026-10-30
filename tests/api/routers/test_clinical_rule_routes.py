@@ -205,7 +205,8 @@ def test_bulk_annotation_preview_http_uses_safe_facts_without_writes(extra_field
 
 
 @pytest.mark.parametrize("revision,status", [(1, 200), (99, 409), (None, 422)])
-def test_reopen_http_requires_the_current_approved_revision(revision, status):
+@pytest.mark.parametrize("state", ["submitted", "in_clinical_review", "approved"])
+def test_reopen_http_requires_the_current_review_revision(revision, status, state):
     from api.app.main import app_error_handler
     from coyote3.domain.exceptions import AppError
     from tests.unit.reporting.test_clinical_rule_authoring_exhaustive import (
@@ -213,7 +214,7 @@ def test_reopen_http_requires_the_current_approved_revision(revision, status):
         governed_service,
     )
 
-    repository = Repository(_document(status="approved"))
+    repository = Repository(_document(status=state))
     service = governed_service(repository)
     app = FastAPI()
     app.add_exception_handler(AppError, app_error_handler)
@@ -230,7 +231,7 @@ def test_reopen_http_requires_the_current_approved_revision(revision, status):
             json={} if revision is None else {"revision": revision},
         )
     assert response.status_code == status
-    assert repository.document["status"] == ("draft" if status == 200 else "approved")
+    assert repository.document["status"] == ("draft" if status == 200 else state)
     if status == 200:
         assert response.json()["revision"] == 2
         assert not any(response.json()["review"].values())
