@@ -386,7 +386,7 @@ class ClinicalRuleAuthoringService:
     def _notify(
         self, *, recipient: str, title: str, message: str, document: ClinicalRuleSetDoc, actor: str
     ) -> None:
-        """Send a linked rule-workflow notification when a sender is configured.
+        """Persist a linked workflow notification and queue email when configured.
 
         Args:
             recipient: Login receiving the notification.
@@ -400,6 +400,9 @@ class ClinicalRuleAuthoringService:
         self.notification_service.create_notification(
             audience="users",
             recipients=[recipient],
+            email_recipients=[recipient]
+            if getattr(self.notification_service, "email_sender", None)
+            else [],
             tone="info",
             category="application",
             title=title,
@@ -997,6 +1000,10 @@ class ClinicalRuleAuthoringService:
             label="clinical reviewer",
             exclude=actor,
         )
+        if reviewer == str(document.updated_by).strip().lower():
+            raise api_error(
+                409, "The latest content editor cannot be the assigned clinical reviewer"
+            )
         result = self._transition(
             document_id,
             expected_revision=document.revision,
@@ -1028,18 +1035,20 @@ class ClinicalRuleAuthoringService:
         Args:
             document_id: Submitted version identifier.
             payload: Lifecycle reason; other transition fields are not used here.
-            actor: Login that must equal the assigned clinical reviewer.
+            actor: Assigned clinical reviewer; neither content editor nor submitter.
 
         Returns:
             Version in clinical review, after audit recording.
 
         Raises:
             AppError: With status 404 for a missing version or 409 for a different
-                reviewer or refused lifecycle transition.
+                reviewer, self-review, or refused lifecycle transition.
         """
         document = self._document(document_id)
         if document.review.clinical_reviewer != actor:
             raise api_error(409, "This clinical review is assigned to another user")
+        if actor in {document.updated_by, document.review.submitted_by}:
+            raise api_error(409, "The editor or submitter cannot review this version")
         result = self._transition(
             document_id,
             expected_revision=document.revision,
@@ -1059,7 +1068,7 @@ class ClinicalRuleAuthoringService:
         Args:
             document_id: Version currently in clinical review.
             payload: Decision and reason, plus an eligible publisher for approval.
-            actor: Assigned reviewer login; the latest editor is rejected for either decision.
+            actor: Assigned reviewer login; editor and submitter cannot record either decision.
 
         Returns:
             Approved or rejected version with decision metadata.
@@ -1069,10 +1078,11 @@ class ClinicalRuleAuthoringService:
                 publisher, or 409 for editor/reviewer, assignee, or state conflicts.
 
         Notes:
-            Approval notifies the publisher; rejection notifies the draft creator.
+            Both outcomes notify the submitter, falling back to the draft creator.
+            Approval also requests publication from the assigned publisher.
         """
         document = self._document(document_id)
-        if document.updated_by == actor:
+        if actor in {document.updated_by, document.review.submitted_by}:
             raise api_error(409, "The latest content editor cannot clinically approve this version")
         if document.review.clinical_reviewer != actor:
             raise api_error(409, "This clinical review is assigned to another user")
@@ -1097,22 +1107,27 @@ class ClinicalRuleAuthoringService:
                 "review.publisher": publisher,
             },
         )
-        if payload.approve:
-            approved = ClinicalRuleSetDoc.model_validate(result)
+        decided = ClinicalRuleSetDoc.model_validate(result)
+        author = document.review.submitted_by or document.created_by
+        self._notify(
+            recipient=author,
+            title="Clinical rule review approved"
+            if payload.approve
+            else "Clinical rule review rejected",
+            message=(
+                f"{actor} {'approved' if payload.approve else 'rejected'} '{decided.name}'. "
+                f"{payload.reason}"
+                + (" You are assigned to publish this version." if publisher == author else "")
+            ),
+            document=decided,
+            actor=actor,
+        )
+        if payload.approve and publisher != author:
             self._notify(
                 recipient=publisher,
                 title="Clinical rule publication requested",
-                message=f"{actor} clinically approved '{approved.name}' and assigned it for publication.",
-                document=approved,
-                actor=actor,
-            )
-        else:
-            rejected = ClinicalRuleSetDoc.model_validate(result)
-            self._notify(
-                recipient=document.created_by,
-                title="Clinical rule review rejected",
-                message=f"{actor} rejected '{rejected.name}'. {payload.reason}",
-                document=rejected,
+                message=f"{actor} clinically approved '{decided.name}' and assigned it for publication.",
+                document=decided,
                 actor=actor,
             )
         return result

@@ -7,6 +7,9 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Reporting-rule review actions are visible only to the assigned independent
+  reviewer. Review decisions notify the submitter, and workflow notifications
+  queue email when application email delivery is configured.
 - Bulk tier-text templates expose the full biological group tree and selected
   transcript/consequence/OncoKB context, with hierarchy choices in conditions and
   synthetic previews. Parent matching preserves the annotation's exact scope.

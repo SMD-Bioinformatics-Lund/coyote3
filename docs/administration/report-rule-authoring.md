@@ -317,6 +317,15 @@ preserved as authored data; missing or stale cases do not block the workflow or
 produce test-setup warnings. Independent clinical review remains required.
 Review requests and outcomes arrive as **Application** notifications with source
 **Clinical reporting rules** and a link to the relevant rule set.
+Only the assigned independent reviewer sees **Start review**, **Approve** and
+**Reject**. The latest content editor and the submitter cannot review that version,
+including through direct API requests. Submitting sends a notification to the
+assigned reviewer. Approval or rejection notifies the submitter (or the creator
+when no submitter is recorded); approval also notifies the assigned publisher.
+These workflow notifications queue email through the existing delivery worker when
+SMTP and the public application URL are configured. Delivery requires an active
+recipient account with an email address. Email links to the notification inbox
+without including the clinical rule content.
 
 Submitted versions and versions already under clinical review can be withdrawn
 using **Recall and edit**. Approved, unpublished versions use **Edit again**. Both

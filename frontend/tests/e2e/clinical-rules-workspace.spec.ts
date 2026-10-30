@@ -84,6 +84,31 @@ for (const theme of ["light", "dark"] as const) {
       })
     }
 
+    test(`review actions respect assignment: ${theme}, ${width}px`, async ({ page }) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      let username = "author"
+      const saved = { ...structuredClone(ruleSet), status: "in_clinical_review", updated_by: "author", review: { submitted_by: "author", clinical_reviewer: "reviewer" } }
+      await installApiFixtures(page, path => {
+        if (path.endsWith("/auth/whoami")) return { json: { username, roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:clinical_review"] } }
+        if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [], publishers: [{ username: "publisher", name: "Publisher" }] } }
+        if (path.endsWith("/facts")) return { json: { items: [] } }
+      })
+      for (const actor of ["author", "other", "reviewer"]) {
+        username = actor
+        await page.goto("/admin/clinical-rules")
+        await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+        await expect(page.getByLabel("Clinical rule name")).toBeDisabled()
+        for (const name of ["Approve", "Reject"]) {
+          await expect(page.getByRole("button", { name, exact: true })).toHaveCount(actor === "reviewer" ? 1 : 0)
+        }
+        await expect(page.getByLabel("Assign publisher")).toHaveCount(actor === "reviewer" ? 1 : 0)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+      }
+    })
+
     test(`bulk annotation workspace: ${theme}, ${width}px`, async ({ page }, testInfo) => {
       await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
       await page.setViewportSize({ width, height: 1000 })
