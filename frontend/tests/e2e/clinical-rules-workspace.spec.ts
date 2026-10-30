@@ -38,6 +38,52 @@ const ruleSet = {
 
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
+    test(`existing rules can be reordered: ${theme}, ${width}px`, async ({ page }) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      let saved = structuredClone(ruleSet)
+      const originalRules = ["First", "Second", "Third"].map((name, index) => ({
+        ...structuredClone(ruleSet.blocks[0].rules[0]),
+        rule_id: name.toLowerCase(), name, order: (index + 1) * 100,
+        output: [{ type: "text", value: `${name} sentence.` }],
+      }))
+      saved.blocks[0].rules = structuredClone(originalRules)
+      await installApiFixtures(page, (path, _url, route) => {
+        if (path.endsWith("/auth/whoami")) return { json: { username: "admin", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:draft"] } }
+        if (path.endsWith("/drafts/rule-version-1")) {
+          saved = { ...saved, ...route.request().postDataJSON(), revision: saved.revision + 1 }
+          return { json: saved }
+        }
+        if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [] } }
+        if (path.endsWith("/facts")) return { json: { items: [] } }
+      })
+      await page.goto("/admin/clinical-rules")
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      const up = page.getByRole("button", { name: "Move rule up", exact: true })
+      const down = page.getByRole("button", { name: "Move rule down", exact: true })
+      await expect(up).toBeDisabled()
+      await down.focus()
+      await page.keyboard.press("Enter")
+      await expect(page.getByLabel("Clinical rule name")).toHaveValue("First")
+      await expect.poll(() => saved.blocks[0].rules.map(item => item.rule_id)).toEqual(["second", "first", "third"])
+      await expect(page.getByLabel("Section rules").getByRole("button", { name: "First", exact: true })).toHaveAttribute("aria-pressed", "true")
+      await down.click()
+      await expect(down).toBeDisabled()
+      await expect.poll(() => saved.blocks[0].rules.map(item => item.order)).toEqual([10, 20, 30])
+      await expect.poll(() => saved.blocks[0].rules.map(item => item.rule_id)).toEqual(["second", "third", "first"])
+      for (const original of originalRules) {
+        expect(saved.blocks[0].rules.find(item => item.rule_id === original.rule_id)).toEqual({ ...original, order: saved.blocks[0].rules.find(item => item.rule_id === original.rule_id)?.order })
+      }
+      await up.click()
+      await expect.poll(() => saved.blocks[0].rules.map(item => item.rule_id)).toEqual(["second", "first", "third"])
+      await page.reload()
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      await expect(page.getByLabel("Section rules").getByRole("button").filter({ hasText: /^(First|Second|Third)$/ })).toHaveText(["Second", "First", "Third"])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    })
+
     test(`rule Markdown keeps dynamic values: ${theme}, ${width}px`, async ({ page }, testInfo) => {
       await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
       await page.setViewportSize({ width, height: 1000 })

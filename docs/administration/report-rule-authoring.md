@@ -76,6 +76,10 @@ can omit its heading while keeping its text. **Add section** creates a custom
 section. Header suffix and clinical question remain separate output destinations.
 Use **Move section up/down** to arrange introduction, analysis text and closing
 wording in report order; moving a section preserves its identifiers and rules.
+Select a rule and use **Move rule up/down** to change its position within the
+section. Moving preserves the rule's identifier, conditions and wording. Changes
+use the existing draft autosave. This order also determines precedence for
+**First match** sections.
 
 The rule-set ID stays `assay__diagnosis__language`, for example
 `hema_gmsv1__base__sv`; content versions and revisions are separate fields.

@@ -7,6 +7,8 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Existing draft rules can move up or down within a section without recreating
+  their conditions or wording; saved order also controls first-match precedence.
 - Panel-DNA reporting rules count only panel-covered selected genes, matching the
   analysed scope while preserving complete source gene-list definitions.
 - Rule prose uses the shared Markdown editor and preview, including dynamic report

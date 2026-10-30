@@ -34,6 +34,7 @@ vi.mock("@/lib/access-control", async (importOriginal) => {
 })
 
 import { ClinicalRulesPage } from "./ClinicalRulesPage"
+import { newRuleBlock } from "./clinical-rule-authoring"
 
 const existingDraft = {
   _id: "rule-version-1",
@@ -337,6 +338,23 @@ describe("ClinicalRulesPage", () => {
     await user.click(screen.getByRole("button", { name: "Move section up" }))
     expect(screen.getByLabelText("Section identifier")).toHaveValue(identifier)
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("CNV text")
+  })
+
+  it.each(["published", "submitted", "draft"])("does not offer rule reordering for a read-only %s version", async status => {
+    mocks.permissions = ["clinical_rules:view"]
+    const document = { ...existingDraft, status, blocks: [newRuleBlock([])] }
+    mocks.get.mockImplementation((path: string) => {
+      if (path === "/admin/clinical-rule-sets/facts") return Promise.resolve({ data: { items: [] } })
+      if (path === "/admin/clinical-rule-sets/authoring-options") return Promise.resolve({ data: { assays: [] } })
+      if (path === "/admin/clinical-rule-sets/versions/rule-version-1") return Promise.resolve({ data: document })
+      return Promise.resolve({ data: { items: [document], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    expect(await screen.findByText("Read-only")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Move rule up" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Move rule down" })).not.toBeInTheDocument()
+    expect(mocks.patch).not.toHaveBeenCalled()
   })
 
   it("generates editable section and clinical rule identifiers", async () => {

@@ -363,6 +363,18 @@ export function ClinicalRulesPage() {
                     ))}
                     {editableDraft && <Button className="clinical-rule-action shrink-0 rounded-full" data-action="rule" variant="outline" size="sm" onClick={() => mutateDraft((document) => { const currentBlock = document.blocks[selectedBlock]; const allRuleIds = document.blocks.flatMap((item) => item.rules.map((itemRule) => itemRule.rule_id)); currentBlock.rules.push(newRule(currentBlock, allRuleIds)); setSelectedRule(currentBlock.rules.length - 1) })}><icon.plus /> Add rule</Button>}
                   </div>
+                  {editableDraft && rule && <div className="flex flex-wrap items-center gap-2" aria-label="Rule order">
+                    <span className="text-sm text-muted-foreground">Rule {selectedRule + 1} of {block.rules.length}</span>
+                    {([-1, 1] as const).map(direction => <Button key={direction} type="button" variant="outline" size="sm" disabled={selectedRule + direction < 0 || selectedRule + direction >= block.rules.length} onClick={() => mutateDraft(document => {
+                      const rules = document.blocks[selectedBlock].rules
+                      const destination = selectedRule + direction
+                      const [moved] = rules.splice(selectedRule, 1)
+                      rules.splice(destination, 0, moved)
+                      rules.forEach((item, index) => { item.order = (index + 1) * 10 })
+                      setSelectedRule(destination)
+                    })}>Move rule {direction === -1 ? "up" : "down"}</Button>)}
+                    <p className="w-full type-meta text-muted-foreground">Rule order controls sentence order and precedence when using First match.</p>
+                  </div>}
                 </div>}
                 {rule && block ? <fieldset disabled={!editableDraft}><RuleEditor readOnly={!editableDraft} rule={rule} block={block} facts={facts} controlledValues={controlledValues} terminology={draft.terminology} sentenceTerminology={optionsQuery.data?.sentence_terminology?.[draft.scope.language]} useTierSentences={() => {
                   setTextError("")
