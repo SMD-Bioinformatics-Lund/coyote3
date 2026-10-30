@@ -7,7 +7,7 @@ report_logo = "region-skane"
 # Optional center-owned SVG/PNG/JPEG. Printed only for assays with accredited = true.
 # An absolute host path is copied into logos/ by the Compose wrapper before container creation.
 # The wrapper rewrites this setting to the copied file's relative path.
-# Example artwork uses XXXX; replace with the center's issued symbol for clinical reports.
+# Artwork contains Ackred. nr 1309, Provning, ISO 15189; review for the deploying center.
 accreditation_logo = "logos/swedac-iso-15189-example.svg"
 # Optional postal address and center telephone printed in modern report headers.
 address = ""

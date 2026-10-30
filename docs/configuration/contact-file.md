@@ -111,14 +111,14 @@ organization's symbol with its number and standard. Store that original inside
 the external center directory and select it using `organization.accreditation_logo`.
 See [Swedac's symbol guidance](https://www.swedac.se/tjanster/ackreditering/ackreditering-sa-fungerar-det/ackrediteringssymbolen/).
 
-The medical-laboratory example in Annex 1 contains, in order:
+The configured artwork follows the medical-laboratory layout in Annex 1, in order:
 
 1. The circular Swedac accreditation mark.
-2. `Ackred. nr. XXXX`, with the organization's assigned number.
+2. `Ackred. nr 1309`, with the center's assigned accreditation number.
 3. `Provning`.
 4. `ISO 15189`.
 
-This order and wording come from
+The layout and standard wording come from
 [STAFS 2020:1, consolidated 2026-10-01, Annex 1](https://regelverk.swedac.se/foreskrifter/swedac/stafs-2020-1-konsol.html).
 Section 14 permits the specified blue/yellow colors, black or white against a
 contrasting background. Section 13 requires the accredited organization's name,
@@ -141,11 +141,12 @@ PDF at its actual printed size.
 The [example SVG](../assets/examples/reporting/swedac-iso-15189-example.svg) has a
 compact 24 mm by 28 mm canvas and uses Swedac's published vector paths in black.
 These dimensions are a layout choice, not a prescribed minimum. The information
-lines sit directly below the circular mark; `XXXX` remains a placeholder.
-The example center configuration selects a copy under `logos/`. Replace this
-placeholder artwork with the center's issued symbol for clinical reports.
+lines sit directly below the circular mark and display `Ackred. nr 1309`,
+`Provning` and `ISO 15189`. The example center configuration selects an identical
+copy under `logos/`. Review the accreditation number for the deploying center and
+use the center's issued symbol for clinical reports.
 
-![Swedac ISO 15189 layout example with placeholder accreditation number](../assets/examples/reporting/swedac-iso-15189-example.svg)
+![Swedac ISO 15189 artwork with accreditation number 1309](../assets/examples/reporting/swedac-iso-15189-example.svg)
 
 The modern report footer provides a 28 mm high image area, limited to 32 mm wide,
 and preserves the artwork's proportions. The example renders at 24 mm by 28 mm.

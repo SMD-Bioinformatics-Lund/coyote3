@@ -534,8 +534,43 @@ def test_assigned_review_and_publication_cannot_be_taken_by_another_user():
         )
 
 
+def test_submission_cannot_assign_the_latest_editor_even_when_someone_else_submits():
+    """Delegating submission does not allow the editor to review their own content."""
+    document = _document(status="draft")
+    document.updated_by = "reviewer"
+    service = governed_service(Repository(document))
+    with pytest.raises(AppError, match="latest content editor"):
+        service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    assert service.repository.document["status"] == "draft"
+
+
+@pytest.mark.parametrize("self_role", ["updated_by", "submitted_by"])
+def test_preexisting_self_assignments_cannot_start_review_or_record_a_decision(self_role):
+    """Stored self-assignments cannot bypass independence through direct API requests."""
+    document = _document(status="submitted")
+    document.review.clinical_reviewer = "reviewer"
+    if self_role == "updated_by":
+        document.updated_by = "reviewer"
+    else:
+        document.review.submitted_by = "reviewer"
+    service = governed_service(Repository(document))
+    with pytest.raises(AppError, match="editor or submitter"):
+        service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    document.status = ClinicalRuleStatus.IN_CLINICAL_REVIEW
+    service = governed_service(Repository(document))
+    for approve in (True, False):
+        with pytest.raises(AppError, match="cannot clinically approve"):
+            service.clinical_decision(
+                "id",
+                ClinicalRuleDecision(approve=approve, publisher="publisher", reason="Decision"),
+                actor="reviewer",
+            )
+    assert service.repository.document["status"] == "in_clinical_review"
+
+
 @pytest.mark.parametrize("approve", [True, False])
-def test_lifecycle_notifications_use_the_real_notification_contract(approve):
+@pytest.mark.parametrize("email_configured", [True, False])
+def test_lifecycle_notifications_use_the_real_notification_contract(approve, email_configured):
     """Review outcomes deliver notifications accepted by the actual notification service."""
     from coyote3.application.notifications.service import NotificationService
 
@@ -550,6 +585,7 @@ def test_lifecycle_notifications_use_the_real_notification_contract(approve):
         ),
         user_repository=UserRepository(),
         retention_days=30,
+        email_sender=(lambda **_: True) if email_configured else None,
     )
     service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
     service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
@@ -564,8 +600,16 @@ def test_lifecycle_notifications_use_the_real_notification_contract(approve):
         result = service.publish("id", ClinicalRuleTransition(), actor="publisher")
     assert result["status"] == ("published" if approve else "rejected")
     assert [notification["recipients"] for notification in delivered] == (
-        [["reviewer"], ["publisher"], ["author"]] if approve else [["reviewer"], ["author"]]
+        [["reviewer"], ["author"], ["publisher"], ["author"]]
+        if approve
+        else [["reviewer"], ["author"]]
     )
+    for notification in delivered:
+        assert notification["email_deliveries"] == (
+            [{"username": notification["recipients"][0], "state": "pending", "attempts": 0}]
+            if email_configured
+            else []
+        )
     assert all(notification["category"] == "application" for notification in delivered)
     assert all(notification["source"] == "Clinical reporting rules" for notification in delivered)
     assert all(
@@ -592,7 +636,33 @@ def test_notifications_include_review_rejection_and_creator_publication():
     assert (
         service.publish("id", ClinicalRuleTransition(), actor="publisher")["status"] == "published"
     )
-    assert len(calls) == 2
+    assert len(calls) == 3
+
+
+@pytest.mark.parametrize("approve", [True, False])
+def test_review_decision_notifies_the_submitter_instead_of_an_unrelated_original_creator(approve):
+    """The person requesting review receives its outcome, including a publication assignment."""
+    document = _document(status="in_clinical_review")
+    document.created_by = "original_creator"
+    document.updated_by = "editor"
+    document.review.submitted_by = "publisher"
+    document.review.clinical_reviewer = "reviewer"
+    service = governed_service(Repository(document))
+    calls = []
+    service.notification_service = SimpleNamespace(
+        create_notification=lambda **kwargs: calls.append(kwargs)
+    )
+    service.clinical_decision(
+        "id",
+        ClinicalRuleDecision(approve=approve, publisher="publisher", reason="Decision"),
+        actor="reviewer",
+    )
+    assert len(calls) == 1
+    assert calls[0]["recipients"] == ["publisher"]
+    assert calls[0]["title"] == (
+        "Clinical rule review approved" if approve else "Clinical rule review rejected"
+    )
+    assert ("assigned to publish" in calls[0]["message"]) == approve
 
 
 def test_from_store_list_versions_and_get() -> None:

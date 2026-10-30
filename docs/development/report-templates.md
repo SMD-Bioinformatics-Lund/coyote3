@@ -125,6 +125,8 @@ and full-width question and report-identifier fields. Findings use consistent ta
 the conclusion has a distinct bordered panel unless it contains a table. Conclusion tables
 use the full content width, compact cells and plain borders, with long text wrapping.
 Only the classification cell of a Tier 1 SNV summary row is semibold.
+Table cells use compact padding and smaller text than report prose: standard
+finding cells use 9 pt, patient values use 8 pt on screen and 7 pt in the PDF header.
 Supporting descriptions and classification references use
 the same typography, with smaller text than the main results.
 

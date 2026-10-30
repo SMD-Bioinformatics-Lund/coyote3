@@ -101,7 +101,7 @@ describe("ClinicalRulesPage", () => {
     ["in_clinical_review", "clinical_rules:clinical_review", "Reject", "clinical-review"],
   ])("executes the authorized %s transition", async (status, permission, button, action) => {
     mocks.permissions = ["clinical_rules:view", permission]
-    const version = { ...existingDraft, status }
+    const version = { ...existingDraft, status, updated_by: "author", review: { clinical_reviewer: "admin", submitted_by: "author" } }
     mocks.get.mockImplementation((path: string) => {
       if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
       if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [], publishers: [{ username: "publisher", name: "Publisher" }] } })
@@ -122,6 +122,30 @@ describe("ClinicalRulesPage", () => {
         : button === "Reject" ? { approve: false, reason: "Clinical changes required" }
           : { reason: "Workflow transition" }, {}
     )
+  })
+
+  it.each([
+    ["submitted", "author", "admin", "admin"],
+    ["in_clinical_review", "author", "admin", "admin"],
+    ["in_clinical_review", "admin", "admin", "other"],
+    ["in_clinical_review", "admin", "author", "admin"],
+    ["in_clinical_review", "other", "author", "author"],
+  ])("hides review actions for an unassigned reviewer, editor or submitter (%s)", async (status, reviewer, editor, submitter) => {
+    mocks.permissions = ["clinical_rules:view", "clinical_rules:clinical_review"]
+    const version = { ...existingDraft, status, updated_by: editor, review: { clinical_reviewer: reviewer, submitted_by: submitter } }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: version })
+      return Promise.resolve({ data: { items: [version], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await screen.findByText(/revision 1/)
+    for (const name of ["Start review", "Approve", "Reject"]) {
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument()
+    }
+    expect(screen.queryByLabelText("Assign publisher")).not.toBeInTheDocument()
   })
 
   it("selects an installed assay and derives its analyte", async () => {

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24mm" height="28mm"
      viewBox="0 0 240 280" role="img" aria-labelledby="title description">
   <title id="title">Swedac ISO 15189</title>
-  <desc id="description">Black Swedac mark with accreditation number placeholder XXXX,
+  <desc id="description">Black Swedac mark with accreditation number 1309,
     Provning and ISO 15189.</desc>
   <metadata>Mark source: https://regelverk.swedac.se/foreskrifter/swedac/stafs-2020-1_ackmarke.svg
     Layout reference: STAFS 2020:1 consolidated 2026-10-01, Annex 1.
@@ -135,7 +135,7 @@
     </g>
 </svg>
   <g fill="black" text-anchor="middle" font-family="Arial, sans-serif" font-size="20">
-    <text x="120" y="216">Ackred. nr. XXXX</text>
+    <text x="120" y="216">Ackred. nr 1309</text>
     <text x="120" y="240">Provning</text>
     <text x="120" y="264">ISO 15189</text>
   </g>
