@@ -556,6 +556,22 @@ def test_report_save_retains_snapshot_receipt_and_authenticated_author(sdk):
     assert isinstance(values["resolution_snapshot"], dict)
 
 
+def test_clinical_rule_reopen_requires_draft_permission(sdk):
+    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleReopenRequest
+
+    service = Mock()
+    service.reopen_draft.return_value = {"status": "draft"}
+    rules = ClinicalRules(sdk.runtime, lambda: service, Mock())
+    request = ClinicalRuleReopenRequest(revision=3)
+    with pytest.raises(AppError) as denied:
+        rules.reopen("version", request)
+    assert denied.value.status_code == 403
+    service.reopen_draft.assert_not_called()
+    sdk.grants.add("clinical_rules:draft")
+    assert rules.reopen("version", request) == {"status": "draft"}
+    service.reopen_draft.assert_called_once_with("version", request, actor=sdk.actor.username)
+
+
 def test_clinical_rule_publication_requires_grant_and_retains_reviewer_checks(sdk):
     service = Mock()
     rules = ClinicalRules(sdk.runtime, lambda: service, Mock())

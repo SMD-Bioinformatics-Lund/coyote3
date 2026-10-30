@@ -31,7 +31,7 @@ export function RuleSetPreview({ draft, facts, saved, canTest }: {
     staleTime: Infinity,
   })
   return <section aria-label="Complete rule-set preview" className="space-y-3">
-    <div className="flex items-center gap-2"><h2 className="type-section-title">Complete report text</h2><RuleHelp label="Composition or actual sample result">Without a sample, this panel shows all enabled alternatives and placeholder values, not a final report. Choose an authorized sample to evaluate the complete saved rule set. Disabled rules are excluded. Live preview does not create the embedded cases required for publication.</RuleHelp></div>
+    <div className="flex items-center gap-2"><h2 className="type-section-title">Complete report text</h2><RuleHelp label="Composition or actual sample result">Without a sample, this panel shows all enabled alternatives and placeholder values, not a final report. Choose an authorized sample to evaluate the complete saved rule set. Disabled rules are excluded. Live preview does not save a report. Independent review is required before publication.</RuleHelp></div>
     {canTest ? <div className="space-y-2">
       <Input aria-label="Find preview sample" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a sample for actual values…" />
       <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={matchDiagnosis} onChange={event => { setMatchDiagnosis(event.target.checked); setSampleId("") }} /> Match rule-set diagnosis only</label>

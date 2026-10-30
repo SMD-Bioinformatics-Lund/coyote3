@@ -105,8 +105,9 @@ MSI can produce two items. Rules that distinguish single and paired measurements
 must check `item.method`. Missing measurements produce an empty collection. A
 rule using a component absent from an item receives a missing-fact result.
 
-Clinical thresholds and narrative require reviewed rule definitions and embedded
-test cases. The application does not supply universal high/low cutoffs.
+Clinical thresholds and narrative require reviewed rule definitions. Embedded
+cases are not a publication prerequisite. The application does not supply universal
+high/low cutoffs.
 
 The modern report groups the assigned values in **Kliniskt relevanta biomarkörer**,
 using **Ej bedömd** for an unset assessment. Detailed numeric HRD/MSI/TMB tables

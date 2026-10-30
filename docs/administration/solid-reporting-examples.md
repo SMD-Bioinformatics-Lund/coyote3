@@ -303,8 +303,7 @@ terminology. Remove or replace statements that do not apply to the breast workfl
 
 Use the same **Once per report**, **SNV**, **Exactly one** section settings and
 the two complementary **Has tiered SNVs** predicates from A4/A5. The rule IDs can
-be named `solid_breast_snv_positive` and `solid_breast_snv_negative`. If copied
-rule IDs are renamed, update the embedded cases' expected IDs too. IDs must be
+be named `solid_breast_snv_positive` and `solid_breast_snv_negative`. IDs must be
 unique within the new rule set; copying does not require inventing new clinical
 conditions.
 
@@ -424,12 +423,11 @@ normal runtime source selection.
 | More than one matching alternative in a strict block | Evaluation failure, not silently selected conflicting prose |
 | Another reporting language | No silent cross-language fallback |
 
-Retain synthetic embedded cases with exact expected rule IDs and section text
-for both Base and breast drafts. Updating a copied scope requires changing the
-case facts to the correct assay/diagnosis/configuration identities. Recheck
-counts, matched rules, formatting and full output after any wording or placement
-change. Live sample preview does not create embedded cases; see the
-[embedded-case prerequisite](hematology-base-reporting.md#publication-prerequisite-embedded-cases).
+Embedded cases are not required or executed during review or publication and do
+not need updating after wording or scope changes. When samples are available,
+optional previews can check counts, matched rules, formatting and full output.
+Existing case data is preserved; see the
+[optional embedded-case reference](hematology-base-reporting.md#optional-embedded-cases).
 
 Validate, assign an independent clinical reviewer, submit, obtain approval, and
 publish with the permitted publisher account. Check a normal report preview for

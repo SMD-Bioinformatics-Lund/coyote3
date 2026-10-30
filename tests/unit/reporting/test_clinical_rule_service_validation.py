@@ -262,7 +262,7 @@ def test_validation_embedded_case_handles_invalid_facts_and_rule_mismatch() -> N
         )
     ]
     parsed = type(document).model_validate(document.model_dump(mode="python", by_alias=True))
-    result = validate_rule_set(parsed)
+    result = validate_rule_set(parsed, require_tests=True)
     assert any("could not be evaluated" in error for error in result.errors)
 
     document.test_cases = [
@@ -277,7 +277,7 @@ def test_validation_embedded_case_handles_invalid_facts_and_rule_mismatch() -> N
         )
     ]
     parsed = type(document).model_validate(document.model_dump(mode="python", by_alias=True))
-    result = validate_rule_set(parsed)
+    result = validate_rule_set(parsed, require_tests=True)
     assert any("matched" in error for error in result.errors)
     assert any("unexpected report text" in error for error in result.errors)
 

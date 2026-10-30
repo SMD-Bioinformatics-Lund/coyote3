@@ -541,7 +541,7 @@ def test_conflict_failure_in_embedded_case_blocks_validation():
             expected_sections={},
         )
     ]
-    validation = validate_rule_set(document)
+    validation = validate_rule_set(document, require_tests=True)
     assert not validation.valid
     assert any("Conflict group" in error for error in validation.errors)
 

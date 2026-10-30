@@ -589,6 +589,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "PATCH /admin/clinical-rule-sets/drafts/:documentId",
       "POST /admin/clinical-rule-sets/drafts/:documentId/validate",
       "POST /admin/clinical-rule-sets/drafts/:documentId/submit",
+      "POST /admin/clinical-rule-sets/drafts/:documentId/reopen",
       "POST /admin/clinical-rule-sets/drafts/:documentId/start-clinical-review",
       "POST /admin/clinical-rule-sets/drafts/:documentId/clinical-review",
       "POST /admin/clinical-rule-sets/drafts/:documentId/publish",

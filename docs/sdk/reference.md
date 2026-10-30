@@ -1233,6 +1233,23 @@ ClinicalRules.publish(self, identity: 'str', transition: 'ClinicalRuleTransition
 Publish as the assigned publisher with clinical_rules:publish and revision guards.
 ```
 
+#### `ClinicalRules.reopen`
+
+```python
+ClinicalRules.reopen(self, identity: 'str', request: 'ClinicalRuleReopenRequest') -> 'dict[str, Any]'
+```
+
+```text
+Reopen an approved unpublished version under clinical_rules:draft access.
+
+Args:
+    identity: Version to return to draft with its approval cleared.
+    request: Expected revision and audit reason.
+
+Returns:
+    Reopened version; published content cannot be reopened.
+```
+
 #### `ClinicalRules.retire`
 
 ```python
@@ -1300,7 +1317,7 @@ ClinicalRules.submit(self, identity: 'str', transition: 'ClinicalRuleTransition'
 ```
 
 ```text
-Submit a tested revision for independent review with clinical_rules:submit.
+Submit a revision for independent review with clinical_rules:submit.
 ```
 
 #### `ClinicalRules.update`

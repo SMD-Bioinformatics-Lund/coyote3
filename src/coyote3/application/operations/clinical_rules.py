@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         ClinicalRuleDraftCreate,
         ClinicalRuleDraftUpdate,
         ClinicalRuleImportRequest,
+        ClinicalRuleReopenRequest,
         ClinicalRuleTransition,
     )
 
@@ -272,8 +273,28 @@ class ClinicalRules:
             lambda actor, sample: deepcopy(self._service().preview(identity, facts)),
         )
 
+    def reopen(self, identity: str, request: ClinicalRuleReopenRequest) -> dict[str, Any]:
+        """Reopen an approved unpublished version under clinical_rules:draft access.
+
+        Args:
+            identity: Version to return to draft with its approval cleared.
+            request: Expected revision and audit reason.
+
+        Returns:
+            Reopened version; published content cannot be reopened.
+        """
+        return self._runtime.execute(
+            "clinical_rules.reopen",
+            ("clinical_rules:draft",),
+            lambda actor, sample: deepcopy(
+                self._service().reopen_draft(identity, request, actor=actor.username)
+            ),
+            edit_resource=("clinical-rules", identity),
+            editing_session_required=False,
+        )
+
     def submit(self, identity: str, transition: ClinicalRuleTransition) -> dict[str, Any]:
-        """Submit a tested revision for independent review with clinical_rules:submit."""
+        """Submit a revision for independent review with clinical_rules:submit."""
         return self._runtime.execute(
             "clinical_rules.submit",
             ("clinical_rules:submit",),

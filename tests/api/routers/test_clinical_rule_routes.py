@@ -204,6 +204,38 @@ def test_bulk_annotation_preview_http_uses_safe_facts_without_writes(extra_field
     assert repository.document == before
 
 
+@pytest.mark.parametrize("revision,status", [(1, 200), (99, 409), (None, 422)])
+def test_reopen_http_requires_the_current_approved_revision(revision, status):
+    from api.app.main import app_error_handler
+    from coyote3.domain.exceptions import AppError
+    from tests.unit.reporting.test_clinical_rule_authoring_exhaustive import (
+        Repository,
+        governed_service,
+    )
+
+    repository = Repository(_document(status="approved"))
+    service = governed_service(repository)
+    app = FastAPI()
+    app.add_exception_handler(AppError, app_error_handler)
+    app.include_router(rules.router)
+    route = next(route for route in rules.router.routes if route.path.endswith("/reopen"))
+    for dependency in route.dependant.dependencies:
+        if dependency.name == "_user":
+            app.dependency_overrides[dependency.call] = fx.api_user
+        elif dependency.name == "service":
+            app.dependency_overrides[dependency.call] = lambda: _operations(fx.api_user(), service)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/admin/clinical-rule-sets/drafts/version/reopen",
+            json={} if revision is None else {"revision": revision},
+        )
+    assert response.status_code == status
+    assert repository.document["status"] == ("draft" if status == 200 else "approved")
+    if status == 200:
+        assert response.json()["revision"] == 2
+        assert not any(response.json()["review"].values())
+
+
 def test_revision_routes_return_immutable_history(monkeypatch) -> None:
     monkeypatch.setattr(rules, "_serializable", lambda value: value)
     service = SimpleNamespace(

@@ -24,6 +24,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
     ClinicalRuleImportRequest,
+    ClinicalRuleReopenRequest,
     ClinicalRuleSetDoc,
     ClinicalRuleStatus,
     ClinicalRuleTransition,
@@ -353,7 +354,7 @@ class ClinicalRuleAuthoringService:
             audience="users",
             recipients=[recipient],
             tone="info",
-            category="clinical",
+            category="application",
             title=title,
             message=message,
             source="Clinical reporting rules",
@@ -750,7 +751,7 @@ class ClinicalRuleAuthoringService:
             )
 
     def validate(self, document_id: str) -> dict[str, Any]:
-        """Validate a stored version's semantics and embedded cases.
+        """Validate a stored version's structure and semantics without embedded test gates.
 
         Args:
             document_id: Rule version identifier.
@@ -863,10 +864,45 @@ class ClinicalRuleAuthoringService:
         parsed = ClinicalRuleSetDoc.model_validate(updated)
         return parsed.model_dump(mode="python", by_alias=True)
 
+    def reopen_draft(
+        self, document_id: str, payload: ClinicalRuleReopenRequest, *, actor: str
+    ) -> dict[str, Any]:
+        """Return an approved unpublished version to draft and revoke its approval.
+
+        Args:
+            document_id: Approved version to reopen without changing its identity.
+            payload: Revision seen by the editor and an audit reason.
+            actor: Authorized editor recorded as the latest editor.
+
+        Returns:
+            Same content version at its next revision, with review metadata cleared.
+
+        Raises:
+            AppError: Version is absent, protected, stale or no longer approved.
+
+        Notes:
+            Previous approval remains in immutable revision/lifecycle history.
+            The revision and approved-state predicate fence concurrent publication.
+        """
+        document = self._document(document_id)
+        if document.status != ClinicalRuleStatus.APPROVED:
+            raise api_error(409, "Only an approved unpublished version can be reopened")
+        if document.revision != payload.revision:
+            raise api_error(409, "The approved rule set changed. Reload before editing again.")
+        return self._transition(
+            document_id,
+            expected_revision=payload.revision,
+            actor=actor,
+            reason=payload.reason,
+            from_statuses={"approved"},
+            status=ClinicalRuleStatus.DRAFT,
+            extra={"review": {}, "content_hash": None, "active": False, "updated_by": actor},
+        )
+
     def submit(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
     ) -> dict[str, Any]:
-        """Validate a tested draft, assign an independent reviewer, and request review.
+        """Validate a draft, assign an independent reviewer, and request review.
 
         Args:
             document_id: Draft version identifier.
@@ -881,9 +917,8 @@ class ClinicalRuleAuthoringService:
                 400 for no reviewer, or 409 for an invalid assignment or transition.
 
         Notes:
-            Missing embedded cases warn the assigned reviewer without blocking submission.
-            Present cases must pass. The write is fenced by the validated revision so a
-            concurrent edit cannot enter review.
+            Embedded cases are not required or executed. The write is fenced by the
+            validated revision so a concurrent edit cannot enter review.
         """
         document = self._document(document_id)
         self._validate_new_scope(ClinicalRuleDraftCreate(scope=document.scope))
@@ -915,15 +950,7 @@ class ClinicalRuleAuthoringService:
         self._notify(
             recipient=reviewer,
             title="Clinical rule review requested",
-            message=(
-                f"{actor} submitted '{document.name}' for your clinical review."
-                + (
-                    " Warning: No embedded clinical rule test cases are configured. "
-                    "The report wording has not been verified by embedded tests."
-                    if not document.test_cases
-                    else ""
-                )
-            ),
+            message=f"{actor} submitted '{document.name}' for your clinical review.",
             document=document,
             actor=actor,
         )
@@ -1045,10 +1072,11 @@ class ClinicalRuleAuthoringService:
 
         Notes:
             Audits publication and notifies the creator when different from the publisher.
-            Requires passing embedded cases and an unchanged validated revision.
+            Requires valid rule semantics and an unchanged validated revision.
+            Embedded cases are not required or executed.
         """
         document = self._document(document_id)
-        validation = validate_rule_set(document, require_tests=True)
+        validation = validate_rule_set(document)
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         reject_system_managed_change(document.model_dump(), resource="clinical rule set")

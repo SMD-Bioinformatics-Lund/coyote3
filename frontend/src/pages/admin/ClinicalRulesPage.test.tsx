@@ -333,7 +333,7 @@ describe("ClinicalRulesPage", () => {
       if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
       return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
     })
-    mocks.post.mockResolvedValue({ data: { valid, errors: valid ? [] : ["Invalid output fact"], warnings: ["No embedded clinical rule test cases are configured"] } })
+    mocks.post.mockResolvedValue({ data: { valid, errors: valid ? [] : ["Invalid output fact"], warnings: ["First-match fallback precedes a more specific rule"] } })
     renderPage()
     await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
     await userEvent.click(await screen.findByRole("button", { name: "Validate" }))
@@ -411,6 +411,30 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("CNV text")
   })
 
+  it("reopens an approved version before editing and resubmitting it", async () => {
+    const user = userEvent.setup()
+    const approved = { ...existingDraft, status: "approved", blocks: [newRuleBlock([])] }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [], clinical_reviewers: [{ username: "reviewer", name: "Reviewer" }] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: approved })
+      return Promise.resolve({ data: { items: [approved], total: 1 } })
+    })
+    mocks.permissions = ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:submit"]
+    mocks.post.mockResolvedValue({ data: { ...approved, status: "draft", revision: 2, review: {} } })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    expect(await screen.findByLabelText("Clinical rule name")).toBeDisabled()
+    await user.click(screen.getByRole("button", { name: "Edit again" }))
+    await waitFor(() => expect(screen.getByLabelText("Clinical rule name")).toBeEnabled())
+    expect(mocks.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/drafts/rule-version-1/reopen",
+      { revision: 1, reason: "Reopened for editing; previous approval cleared" }, expect.anything())
+    expect(screen.queryByRole("button", { name: "Edit again" })).not.toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText("Assign clinical reviewer"), "reviewer")
+    await user.click(screen.getByRole("button", { name: "Submit" }))
+    expect(mocks.post).toHaveBeenCalledWith("/admin/clinical-rule-sets/drafts/rule-version-1/submit", expect.objectContaining({ assignee: "reviewer" }), expect.anything())
+  })
+
   it.each(["published", "submitted", "draft"])("does not offer rule reordering for a read-only %s version", async status => {
     mocks.permissions = ["clinical_rules:view"]
     const document = { ...existingDraft, status, blocks: [newRuleBlock([])] }
@@ -423,7 +447,7 @@ describe("ClinicalRulesPage", () => {
     renderPage()
     await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
     expect(await screen.findByText("Read-only")).toBeVisible()
-    expect(screen.getByRole("note", { name: "Missing clinical rule tests" })).toHaveTextContent("embedded tests have not verified the output")
+    expect(screen.queryByRole("note", { name: "Missing clinical rule tests" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Move rule up" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Move rule down" })).not.toBeInTheDocument()
     expect(mocks.patch).not.toHaveBeenCalled()

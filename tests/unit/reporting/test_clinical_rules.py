@@ -469,7 +469,7 @@ def test_validation_executes_embedded_exact_output_cases():
     assert validate_rule_set(parsed).valid is True
 
     parsed.test_cases[0].expected_sections["Summary"] = ["Wrong text."]
-    result = validate_rule_set(parsed)
+    result = validate_rule_set(parsed, require_tests=True)
     assert result.valid is False
     assert "unexpected report text" in result.errors[0]
 

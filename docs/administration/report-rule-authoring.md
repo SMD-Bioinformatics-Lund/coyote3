@@ -33,7 +33,7 @@ also makes that scope available without needing to change the ID.
 
 Linking edits the same draft, retaining its document ID, creator and revision
 history. A changed scope receives the next content version in the target scope.
-Review embedded case facts, assay-ID conditions and diagnosis-specific wording
+Review assay-ID conditions and diagnosis-specific wording
 after reassociation; they are not rewritten automatically. Scope changes use the
 same edit lease and revision checks as other edits. Submitted and released
 versions cannot be reassociated. Submission requires an available compatible
@@ -96,7 +96,7 @@ New starter-rule IDs include their section context and purpose, for example
 `hema_gmsv1_base_snv_summary_reportable_snvs_present`. Duplicate starters receive
 unique suffixes. Display-name edits do not regenerate IDs, and existing IDs are
 preserved. Open **Rule details and identifier** to inspect or deliberately edit
-a rule ID; update embedded-case expectations when changing it. Clinical rationale
+a rule ID. Clinical rationale
 is available in its own reviewer-details panel.
 
 ## Compose the introduction without fixed names or counts
@@ -300,14 +300,22 @@ the separate sample-testing and trace workspace. Include paired/unpaired, empty/
 gene lists, missing names and relevant diagnosis scopes in clinical acceptance.
 Then validate, assign the independent clinical reviewer and submit. Section
 starters do not install approved clinical thresholds or publish a rule set.
-Initial configuration can enter review before samples or embedded test cases are
-available. Missing embedded cases produce a warning in the rule workspace and
-the assigned reviewer's notification. Existing cases must pass before submission;
-structural and semantic rule errors still block it.
+Configuration can be reviewed and published without samples or embedded test
+cases. **Validate**, previews, submission and publication check rule structure
+and semantics without requiring or executing embedded cases. Existing cases are
+preserved as authored data; missing or stale cases do not block the workflow or
+produce test-setup warnings. Independent clinical review remains required.
+Review requests and outcomes arrive as **Application** notifications with source
+**Clinical reporting rules** and a link to the relevant rule set.
 
-**Validate** separates blocking errors from warnings. Missing embedded cases do
-not block submission, but publication still requires passing embedded cases.
-These cases use prepared facts and expected text; they do not require a live sample.
+An approved, unpublished version can be edited again. Choose **Edit again** to
+return the same content version to draft, clear its approval and reviewer/publisher
+assignments, and acquire the normal editing session. Make changes and submit for
+independent review again. Previous approval remains in revision history. A stale
+revision or a concurrent publication prevents reopening. Published versions remain
+immutable; create a new draft version to change them.
+
+**Validate** separates structural errors from actionable rule warnings.
 **All matches** intentionally combines independent introduction or closing
 sentences and is not an overlap error. Use **Exactly one** or **At most one** for
 mutually exclusive conclusions. **First match** uses configured numeric rule order;
@@ -350,8 +358,8 @@ control/list sentences. If no preceding rule matches, continuation or line layou
 starts the section normally. A rule that does not match contributes no separator
 or empty list item. Section headings remain controlled separately by **Show section
 heading**. Header suffix and clinical-question outputs retain paragraph placement.
-Changing placement changes the rendered section text. Update the embedded cases'
-expected sections and complete the normal review before publishing that change.
+Changing placement changes the rendered section text. Review the preview and
+complete the normal review before publishing that change.
 
 ## Import and export rule configuration
 

@@ -21,6 +21,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleFactsPayload,
     ClinicalRuleImportRequest,
     ClinicalRulePreviewRequest,
+    ClinicalRuleReopenRequest,
     ClinicalRuleRevisionDoc,
     ClinicalRuleRevisionsPayload,
     ClinicalRuleSamplePreviewPayload,
@@ -492,6 +493,30 @@ def submit_rule_set_draft(
         The service records submission and notifies the assigned reviewer.
     """
     return _serializable(service.submit(document_id, payload))
+
+
+@router.post("/drafts/{document_id}/reopen", response_model=ClinicalRuleSetDoc)
+def reopen_rule_set_draft(
+    document_id: str,
+    payload: ClinicalRuleReopenRequest,
+    _user: ApiUser = Depends(require_access(permission="clinical_rules:draft")),
+    service: ClinicalRules = Depends(get_clinical_rules),
+):
+    """Reopen an approved unpublished version for editing; requires clinical_rules:draft.
+
+    Args:
+        document_id: Approved version identifier; published versions are immutable.
+        payload: Revision seen by the editor and an audit reason.
+        _user: Authenticated editor authorized to create drafts.
+        service: Application service enforcing state, revision and editing guards.
+
+    Returns:
+        Same version in draft with previous approval and assignments cleared.
+
+    Raises:
+        AppError: Version is absent, protected, stale, busy or no longer approved.
+    """
+    return _serializable(service.reopen(document_id, payload))
 
 
 @router.post("/drafts/{document_id}/start-clinical-review", response_model=ClinicalRuleSetDoc)

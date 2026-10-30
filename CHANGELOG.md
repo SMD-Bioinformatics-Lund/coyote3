@@ -7,6 +7,13 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Approved unpublished reporting rules can return to draft with **Edit again**;
+  editing clears approval and requires a new independent review before publication.
+- Reporting-rule workflow notifications use the supported application category,
+  so submission, review decisions and publication deliver without category errors.
+- Rule validation, review and publication no longer require or execute embedded
+  test cases. Missing or stale cases do not prompt test configuration; structural
+  checks, independent review and optional previews remain available.
 - Validation separates warnings from blocking errors and accepts intentional
   additive report text. Imported rule display order matches execution order;
   deleting earlier items preserves selection, and Base annotation previews support
@@ -14,8 +21,6 @@ review, reporting, administration and integrations into one application.
 - Clinical rule sets separate report wording from conditional bulk Tier I–III
   annotation templates, with synthetic previews, bulk confirmation previews and
   persisted template provenance. Version notes group change summaries and history.
-- Initial reporting rules can enter independent review without embedded test cases;
-  the workspace and reviewer notification explicitly warn that tests are missing.
 - Clinical reviewer choices exclude the logged-in user, matching the existing
   server restriction against self-assignment.
 - Existing draft rules can move up or down within a section without recreating

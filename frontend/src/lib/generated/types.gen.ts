@@ -3011,6 +3011,22 @@ export type ClinicalRuleProvenance = {
 };
 
 /**
+ * ClinicalRuleReopenRequest
+ *
+ * Expected approved revision and reason for returning it to draft.
+ */
+export type ClinicalRuleReopenRequest = {
+    /**
+     * Reason
+     */
+    reason?: string;
+    /**
+     * Revision
+     */
+    revision: number;
+};
+
+/**
  * ClinicalRuleReview
  *
  * Submission, reviewer, publisher, and clinical decision metadata.
@@ -11856,6 +11872,62 @@ export type Responses_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPu
 };
 
 export type Response_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPublishPost = Responses_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPublishPost[keyof Responses_publishRuleSetApiV1AdminClinicalRuleSetsDraftsDocumentIdPublishPost];
+
+export type Request_reopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPost = {
+    body: ClinicalRuleReopenRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/clinical-rule-sets/drafts/{document_id}/reopen';
+};
+
+export type ReopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ReopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPostError = ReopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPostErrors[keyof ReopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPostErrors];
+
+export type Responses_reopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPost = {
+    /**
+     * Successful Response
+     */
+    200: ClinicalRuleSetDoc;
+};
+
+export type Response_reopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPost = Responses_reopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPost[keyof Responses_reopenRuleSetDraftApiV1AdminClinicalRuleSetsDraftsDocumentIdReopenPost];
 
 export type Request_startRuleSetClinicalReviewApiV1AdminClinicalRuleSetsDraftsDocumentIdStartClinicalReviewPost = {
     body: ClinicalRuleTransition;

@@ -38,6 +38,49 @@ const ruleSet = {
 
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
+    test(`approved rules can return to review: ${theme}, ${width}px`, async ({ page }) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      let saved = { ...structuredClone(ruleSet), status: "approved" }
+      await installApiFixtures(page, (path, _url, route) => {
+        if (path.endsWith("/auth/whoami")) return { json: { username: "author", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:submit", "clinical_rules:publish"] } }
+        if (path.endsWith("/reopen")) {
+          expect(route.request().postDataJSON().revision).toBe(saved.revision)
+          saved = { ...saved, status: "draft", revision: saved.revision + 1, review: {} }
+          return { json: saved }
+        }
+        if (path.endsWith("/drafts/rule-version-1")) {
+          expect(saved.status).toBe("draft")
+          saved = { ...saved, ...route.request().postDataJSON(), revision: saved.revision + 1 }
+          return { json: saved }
+        }
+        if (path.endsWith("/submit")) {
+          expect(saved.status).toBe("draft")
+          expect(route.request().postDataJSON().assignee).toBe("reviewer")
+          saved = { ...saved, status: "submitted", revision: saved.revision + 1 }
+          return { json: saved }
+        }
+        if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [], clinical_reviewers: [{ username: "reviewer", name: "Reviewer" }] } }
+        if (path.endsWith("/facts")) return { json: { items: [] } }
+      })
+      await page.goto("/admin/clinical-rules")
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      await expect(page.getByLabel("Clinical rule name")).toBeDisabled()
+      await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible()
+      await page.getByRole("button", { name: "Edit again", exact: true }).click()
+      await expect(page.getByLabel("Clinical rule name")).toBeEnabled()
+      await expect(page.getByRole("button", { name: "Publish", exact: true })).toHaveCount(0)
+      await page.getByLabel("Clinical rule name").fill("Changed after approval")
+      await expect.poll(() => saved.blocks[0].rules[0].name).toBe("Changed after approval")
+      await page.getByLabel("Assign clinical reviewer").selectOption("reviewer")
+      await page.getByRole("button", { name: "Submit", exact: true }).click()
+      await expect.poll(() => saved.status).toBe("submitted")
+      await expect(page.getByLabel("Clinical rule name")).toBeDisabled()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    })
+
     test(`bulk annotation workspace: ${theme}, ${width}px`, async ({ page }, testInfo) => {
       await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
       await page.setViewportSize({ width, height: 1000 })
@@ -163,7 +206,7 @@ for (const theme of ["light", "dark"] as const) {
       if (theme === "dark") await expect(page.locator("html")).toHaveClass(/dark/)
       else await expect(page.locator("html")).not.toHaveClass(/dark/)
       const input = page.getByLabel("Report sentence", { exact: true })
-      await expect(page.getByRole("note", { name: "Missing clinical rule tests" })).toContainText("embedded tests have not verified the output")
+      await expect(page.getByRole("note", { name: "Missing clinical rule tests" })).toHaveCount(0)
       await input.fill("**Evidence** for {{asp.display_name}}\n\n- Reviewed scope")
       await expect.poll(() => JSON.stringify(saved.blocks)).toContain('"path":"asp.display_name"')
       await input.locator("..").getByRole("button", { name: "Preview", exact: true }).click()

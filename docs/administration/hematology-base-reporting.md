@@ -518,23 +518,16 @@ Use **Exactly one** only when all expected candidates, including unknown data,
 have one matching branch. Use a conflict group only for competing conclusions,
 not for independent introduction sentences.
 
-## Publication prerequisite: embedded cases
+## Optional embedded cases
 
-The current visual editor preserves `test_cases` but has no dedicated embedded-case
-editor. **Test rules** evaluates live samples; it does not add those cases.
-**Validate**, submission and publication require at least one passing embedded
-case. A draft built only through the visual editor can therefore be blocked even
-after successful live previews.
+Embedded cases are not required or executed during validation, submission or
+publication. You can complete this workflow entirely in the visual editor without
+samples or test configuration. Existing `test_cases` data is preserved when saving,
+but does not need to be maintained after wording changes. **Test rules** remains
+an optional live-sample preview. See the
+[validation and embedded-case reference](../reference/clinical-reporting-rules.md#validation-and-embedded-cases).
 
-Use **Export JSON**, add synthetic `test_cases`, and create the draft using
-**New rule set → Import JSON**. Alternatively start from a reviewed template that
-already includes cases and update them through the supported draft API when
-its conditions or wording change. See the
-[embedded-case contract and publication requirements](../reference/clinical-reporting-rules.md#validation-and-embedded-cases).
-Keep the old draft clearly distinguished from the imported replacement; import
-creates a new version rather than editing the exported document in place.
-
-Each case contains:
+Existing case records have this shape:
 
 | Key | Required content |
 | --- | --- |
@@ -557,7 +550,7 @@ actual values for all matched rules after saving. Without a sample, the panel
 shows the composition and labels conditional alternatives. **Text placement**
 controls paragraph, continuation, line and list formatting for each matching rule.
 
-Use **Validate**, then **Test rules** with authorized samples. Inspect matched
+Use **Validate**. When authorized samples are available, optionally use **Test rules**. Inspect matched
 rule IDs, prepared facts, section text and traces. The bracketed composition view
 does not execute sample conditions.
 

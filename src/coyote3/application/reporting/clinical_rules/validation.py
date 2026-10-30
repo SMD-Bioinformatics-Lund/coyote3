@@ -171,11 +171,12 @@ def _first_match_warnings(rules: list[ClinicalRule], label: str) -> list[str]:
 def validate_rule_set(
     document: ClinicalRuleSetDoc, *, require_tests: bool = False
 ) -> ClinicalRuleValidationResult:
-    """Validate rule semantics and execute embedded cases when structure permits.
+    """Validate rule semantics, executing embedded cases only on explicit request.
 
     Args:
         document: Parsed rule set with blocks, declarations, and optional test cases.
-        require_tests: Reject missing embedded cases when publication requires them.
+        require_tests: Explicitly require and execute embedded cases. False skips them;
+            normal authoring, preview and publication use structural validation only.
 
     Returns:
         Validity, errors, and warnings. Embedded cases compare ordered matched
@@ -320,10 +321,9 @@ def validate_rule_set(
                         validate_fact_path(path, scope="each_finding")
                     except ValueError as exc:
                         errors.append(str(exc))
-    if not document.test_cases:
-        target = errors if require_tests else warnings
-        target.append("No embedded clinical rule test cases are configured")
-    elif not errors:
+    if require_tests and not document.test_cases:
+        errors.append("No embedded clinical rule test cases are configured")
+    elif require_tests and not errors:
         from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
         from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
 

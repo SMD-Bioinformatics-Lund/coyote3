@@ -384,12 +384,11 @@ Groups do not span rule sets, and do not compare different findings or collectio
    filtering or an incorrectly selected assay configuration.
 5. Compose the output, record the clinical rationale and references, and inspect the
    preview. Use conflict groups only for explicitly competing conclusions.
-6. Validate the draft. Resolve errors and review overlap warnings. Use the clinical
-   rule testing workspace with authorized samples and inspect the condition trace,
-   not only the final paragraph. Preserve repeatable cases as embedded test cases
-   through the supported rule definition/import format.
-7. Test boundary, missing-data, negative and overlapping cases before submitting for
-   independent review. Publication does not prove that all possible facts were tested.
+6. Validate the draft. Resolve errors and review actionable warnings. When samples
+   are available, the optional testing workspace can show condition traces as well
+   as the final paragraph. Synthetic annotation preview does not require a sample.
+7. Submit for independent review. Reviewers should consider boundary, missing-data,
+   negative and overlapping scenarios; embedded-case configuration is not required.
 
 ### Worked condition patterns
 
@@ -635,7 +634,13 @@ never changed by the copy or import.
 
 Draft updates use optimistic locking. If another editor saves first, the API rejects the
 stale revision so the newer content must be reloaded and reconciled. The editor cannot
-modify submitted, approved, published, or retired content.
+modify submitted, approved, published, or retired content directly. An editor with
+`clinical_rules:draft` can return an approved unpublished version to draft using
+**Edit again** (`POST /drafts/{document_id}/reopen`, with the expected `revision`).
+Reopening clears the current approval and assignments, preserves prior review in
+history, and requires another independent review before publication. It retains the
+document ID and content version while incrementing its revision. Published or
+retired releases cannot be reopened.
 
 New sections and rules receive readable, collision-free names and identifiers based on their
 section and purpose for named starters, with numeric suffixes for collisions. These are starting values, not locked values: authors can edit the rule-set
@@ -704,24 +709,21 @@ Validation checks the complete rule set before submission and again before publi
 - analysis declarations and enabled block consistency;
 - condition depth, registered fact scope, and type-compatible operators;
 - output fact availability and formatter contracts;
-- consistent heading behavior per report section;
-- every embedded test case against exact matched rule identifiers and rendered sections.
+- consistent heading behavior per report section.
 
-Incomplete drafts can be saved and inspected. The builder's **Validate** action checks
-submission readiness, including the presence of embedded cases. Submission and publication
-require at least one embedded case and rerun every case. Missing cases, structural errors
-and exact-output failures block those transitions. Enabled analyses without blocks remain
-review warnings. Lower-level content validation used outside these readiness gates treats
-missing cases as a warning.
+Incomplete drafts can be saved and inspected. **Validate**, previews, submission
+and publication check structural and semantic readiness. Embedded cases are not
+required or executed by those operations, and missing or stale cases produce no
+test-setup warnings or lifecycle blocks. Structural errors still block submission
+and publication; independent clinical review and publication permissions remain
+required. Enabled analyses without blocks remain review warnings.
 
-Embedded cases travel in the rule-set JSON `test_cases` list; use the JSON import
-workflow to supply synthetic facts, ordered `expected_rule_ids` and exact
-`expected_sections`. The visual builder preserves those cases when saving, but does
-not currently provide a dedicated case editor. Live sample-backed previews are
-read-only and do not create embedded cases or satisfy this publication requirement.
-Do not copy patient identifiers or other sensitive sample data into reusable fixtures.
-One passing case is a minimum gate, not complete coverage: reviewers must include
-negative, boundary, overlap and missing-data cases relevant to the rule set.
+Existing cases travel in the JSON `test_cases` list and are preserved when saving.
+There is no need to configure or maintain them to edit or publish a rule set.
+The lower-level validator can explicitly execute cases for automated verification,
+but the application workflow does not request that mode. Optional sample-backed
+and synthetic annotation previews remain available and never save reports or
+annotations. Do not copy patient information into reusable fixtures.
 
 Lifecycle writes compare the current revision with the revision that was validated
 and authorized. An intervening edit causes HTTP 409 instead of submitting or publishing

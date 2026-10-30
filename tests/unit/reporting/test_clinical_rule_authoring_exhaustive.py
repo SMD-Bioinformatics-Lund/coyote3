@@ -15,6 +15,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleDraftCreate,
     ClinicalRuleDraftUpdate,
     ClinicalRuleImportRequest,
+    ClinicalRuleReopenRequest,
     ClinicalRuleStatus,
     ClinicalRuleTransition,
 )
@@ -215,7 +216,7 @@ def test_publish_rejects_an_assay_no_longer_available():
         service.publish("id", ClinicalRuleTransition(), actor="publisher")
 
 
-def test_submission_without_embedded_tests_warns_assigned_reviewer():
+def test_submission_without_embedded_tests_has_no_test_setup_warning():
     document = _document(status="draft", active=False)
     document.test_cases = []
     service = governed_service(Repository(document))
@@ -225,39 +226,114 @@ def test_submission_without_embedded_tests_warns_assigned_reviewer():
     )
     readiness = service.validate("id")
     assert readiness["valid"] is True
-    assert "No embedded clinical rule test cases are configured" in readiness["warnings"]
+    assert not any("test case" in warning for warning in readiness["warnings"])
     result = service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
     assert result["status"] == "submitted"
     assert result["test_cases"] == []
     assert len(notifications) == 1
     assert notifications[0]["recipients"] == ["reviewer"]
-    assert "No embedded clinical rule test cases" in notifications[0]["message"]
+    assert "test case" not in notifications[0]["message"]
 
 
-def test_publication_requires_embedded_tests():
-    document = _document(status="approved", active=False)
-    document.test_cases = []
-    service = governed_service(Repository(document))
-    with pytest.raises(AppError) as failure:
-        service.publish("id", ClinicalRuleTransition(), actor="publisher")
-    assert failure.value.status_code == 422
-    assert service.repository.document["status"] == "approved"
-
-
-@pytest.mark.parametrize("invalid_case", [False, True])
-def test_submission_still_rejects_rule_errors_and_failing_cases(invalid_case):
-    """Missing cases may warn, but invalid rules and existing failures still block review."""
+@pytest.mark.parametrize("cases", ["missing", "stale"])
+def test_full_review_and_publication_do_not_require_embedded_tests(cases):
+    """Editing clinical wording does not create a second test-maintenance workflow."""
     document = _document(status="draft", active=False)
-    if invalid_case:
-        document.test_cases[0].expected_sections = {"Summary": ["Incorrect output"]}
-    else:
+    if cases == "missing":
         document.test_cases = []
-        document.blocks = []
+    else:
+        document.test_cases[0].facts = {}
+        document.test_cases[0].expected_sections = {"Old wording": ["Outdated text"]}
+    service = governed_service(Repository(document))
+    assert service.validate("id")["valid"]
+    service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    service.clinical_decision(
+        "id",
+        ClinicalRuleDecision(approve=True, publisher="publisher", reason="Reviewed"),
+        actor="reviewer",
+    )
+    result = service.publish("id", ClinicalRuleTransition(), actor="publisher")
+    assert result["status"] == "published"
+    assert result["test_cases"] == document.model_dump(mode="python")["test_cases"]
+
+
+def test_submission_still_rejects_structural_rule_errors():
+    """Removing the test gate does not relax clinical rule syntax or scope validation."""
+    document = _document(status="draft", active=False)
+    document.test_cases = []
+    document.blocks = []
     service = governed_service(Repository(document))
     with pytest.raises(AppError) as failure:
         service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
     assert failure.value.status_code == 422
     assert service.repository.document["status"] == "draft"
+
+
+def test_approved_version_can_be_edited_and_reviewed_again():
+    """Reopening revokes approval, preserves content and identity, and requires a new review."""
+    document = _document(status="approved")
+    document.review.clinical_reviewer = "reviewer"
+    document.review.publisher = "publisher"
+    document.review.clinical_decision_reason = "Previous approval"
+    repository = Repository(document)
+    service = governed_service(repository)
+    reopened = service.reopen_draft("id", ClinicalRuleReopenRequest(revision=1), actor="editor")
+    assert reopened["status"] == "draft"
+    assert reopened["revision"] == 2
+    assert reopened["_id"] == document.id_
+    assert reopened["content_version"] == document.content_version
+    assert reopened["blocks"] == document.model_dump(mode="python")["blocks"]
+    assert reopened["updated_by"] == "editor"
+    assert not any(reopened["review"].values())
+    assert reopened["content_hash"] is None
+    assert reopened["lifecycle"][-1]["actor"] == "editor"
+    with pytest.raises(AppError, match="Clinical approval is required"):
+        service.publish("id", ClinicalRuleTransition(), actor="publisher")
+    service.update_draft(
+        "id", ClinicalRuleDraftUpdate(revision=2, name="Edited wording"), actor="editor"
+    )
+    service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="editor")
+    service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    service.clinical_decision(
+        "id",
+        ClinicalRuleDecision(approve=True, publisher="publisher", reason="Reviewed changes"),
+        actor="reviewer",
+    )
+    assert (
+        service.publish("id", ClinicalRuleTransition(), actor="publisher")["status"] == "published"
+    )
+
+
+@pytest.mark.parametrize(
+    "status", ["draft", "submitted", "in_clinical_review", "rejected", "published", "retired"]
+)
+def test_reopen_rejects_other_lifecycle_states(status):
+    repository = Repository(_document(status=status, active=status == "published"))
+    before = repository.document.copy()
+    with pytest.raises(AppError, match="Only an approved unpublished version"):
+        governed_service(repository).reopen_draft(
+            "id", ClinicalRuleReopenRequest(revision=1), actor="editor"
+        )
+    assert repository.document == before
+
+
+@pytest.mark.parametrize("conflict", ["stale", "concurrent", "protected"])
+def test_reopen_preserves_approval_when_revision_or_protection_guards_fail(conflict):
+    document = _document(status="approved")
+    document.review.publisher = "publisher"
+    if conflict == "protected":
+        document.system_installed = True
+    repository = Repository(document)
+    repository.fail_transition = conflict == "concurrent"
+    before = repository.document.copy()
+    with pytest.raises(AppError):
+        governed_service(repository).reopen_draft(
+            "id",
+            ClinicalRuleReopenRequest(revision=2 if conflict == "stale" else 1),
+            actor="editor",
+        )
+    assert repository.document == before
 
 
 def test_submit_rejects_edit_after_validation(monkeypatch):
@@ -449,6 +525,45 @@ def test_assigned_review_and_publication_cannot_be_taken_by_another_user():
         governed_service(Repository(document)).publish(
             "id", ClinicalRuleTransition(), actor="other"
         )
+
+
+@pytest.mark.parametrize("approve", [True, False])
+def test_lifecycle_notifications_use_the_real_notification_contract(approve):
+    """Review outcomes deliver notifications accepted by the actual notification service."""
+    from coyote3.application.notifications.service import NotificationService
+
+    document = _document(status="draft")
+    document.created_by = "author"
+    repository = Repository(document)
+    service = governed_service(repository)
+    delivered = []
+    service.notification_service = NotificationService(
+        notification_repository=SimpleNamespace(
+            create=lambda notification: delivered.append(notification) or str(len(delivered))
+        ),
+        user_repository=UserRepository(),
+        retention_days=30,
+    )
+    service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    service.start_review("id", ClinicalRuleTransition(), actor="reviewer")
+    result = service.clinical_decision(
+        "id",
+        ClinicalRuleDecision(
+            approve=approve, publisher="publisher" if approve else None, reason="Clinical decision"
+        ),
+        actor="reviewer",
+    )
+    if approve:
+        result = service.publish("id", ClinicalRuleTransition(), actor="publisher")
+    assert result["status"] == ("published" if approve else "rejected")
+    assert [notification["recipients"] for notification in delivered] == (
+        [["reviewer"], ["publisher"], ["author"]] if approve else [["reviewer"], ["author"]]
+    )
+    assert all(notification["category"] == "application" for notification in delivered)
+    assert all(notification["source"] == "Clinical reporting rules" for notification in delivered)
+    assert all(
+        notification["resource"]["type"] == "clinical_rule_set" for notification in delivered
+    )
 
 
 def test_notifications_include_review_rejection_and_creator_publication():
