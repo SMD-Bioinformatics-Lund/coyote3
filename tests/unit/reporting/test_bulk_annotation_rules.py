@@ -1,8 +1,13 @@
 """Clinical regressions for bulk annotation templates, separate from report narration."""
 
+from types import SimpleNamespace
+
 import pytest
 
-from coyote3.application.classification.bulk_annotation_rules import render_bulk_annotation
+from coyote3.application.classification.bulk_annotation_rules import (
+    bulk_annotation_group_options,
+    render_bulk_annotation,
+)
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
 from coyote3.contracts.schemas.clinical_rules import (
@@ -33,6 +38,188 @@ def _rule(**changes):
             ],
             **changes,
         }
+    )
+
+
+def _groups():
+    """Return a synthetic hierarchy with an unrelated branch and a retired ancestor."""
+    return [
+        {"group_id": "leaf", "display_name": "Leaf", "parent_group_id": "parent"},
+        {
+            "group_id": "parent",
+            "display_name": "Parent",
+            "parent_group_id": "root",
+            "is_active": False,
+        },
+        {"group_id": "root", "display_name": "Root"},
+        {"group_id": "other", "display_name": "Other", "parent_group_id": "root"},
+    ]
+
+
+def test_hierarchy_conditions_and_dynamic_values_include_all_ancestors():
+    document = _document()
+    document.bulk_annotation_rules = [
+        _rule(
+            condition={
+                "type": "predicate",
+                "fact": "asp.group_path_ids",
+                "operator": "contains",
+                "value": "parent",
+            },
+            output=[
+                {"type": "fact", "path": "asp.group_name"},
+                {"type": "text", "value": " / "},
+                {"type": "fact", "path": "asp.parent_group_name"},
+                {"type": "text", "value": " / "},
+                {"type": "list", "path": "asp.ancestor_group_ids", "conjunction": "and"},
+                {"type": "text", "value": " / "},
+                {"type": "fact", "path": "asp.root_group_name"},
+            ],
+        )
+    ]
+    assert validate_rule_set(document).valid
+    groups = bulk_annotation_group_options(_groups())
+    result = render_bulk_annotation(
+        document, BulkAnnotationPreviewRequest(tier=2, asp_group="leaf"), groups=groups
+    )
+    assert result.text == "Leaf / Parent / parent and root / Root"
+    assert (
+        render_bulk_annotation(
+            document, BulkAnnotationPreviewRequest(tier=2, asp_group="parent"), groups=groups
+        ).rule_id
+        == "gene_text"
+    )
+    assert (
+        render_bulk_annotation(
+            document, BulkAnnotationPreviewRequest(tier=2, asp_group="other"), groups=groups
+        ).text
+        is None
+    )
+    leaf = next(group for group in groups if group.group_id == "leaf")
+    assert leaf.path_ids == ["leaf", "parent", "root"]
+
+
+@pytest.mark.parametrize(
+    "groups",
+    [
+        [{"group_id": "a", "parent_group_id": "missing"}],
+        [{"group_id": "a", "parent_group_id": "b"}, {"group_id": "b", "parent_group_id": "a"}],
+        [{"group_id": "a"}, {"group_id": "a"}],
+        [{}],
+    ],
+)
+def test_invalid_hierarchies_fail_before_rendering(groups):
+    with pytest.raises(ValueError):
+        bulk_annotation_group_options(groups)
+
+
+def test_authoring_lists_parents_without_assays_and_preview_resolves_assay_group():
+    from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+
+    document = _document()
+    document.bulk_annotation_rules = [
+        _rule(
+            condition={
+                "type": "predicate",
+                "fact": "asp.group_path_ids",
+                "operator": "contains",
+                "value": "root",
+            },
+            output=[{"type": "fact", "path": "asp.parent_group_name"}],
+        )
+    ]
+    service = ClinicalRuleAuthoringService(
+        SimpleNamespace(get=lambda _: document.model_dump(by_alias=True)),
+        assay_group_repository=SimpleNamespace(list=_groups),
+        assay_panel_repository=SimpleNamespace(
+            get_all_asps=lambda **_: [
+                {"asp_id": "assay_1", "asp_group": "leaf", "asp_category": "dna"}
+            ]
+        ),
+        assay_diagnosis_repository=SimpleNamespace(list_for_assay=lambda *_args, **_kwargs: []),
+    )
+    options = service.authoring_options()
+    assert set(options["condition_values"]["asp.group_path_ids"]) == {
+        "root",
+        "parent",
+        "leaf",
+        "other",
+    }
+    assert {group["group_id"] for group in options["bulk_annotation_groups"]} == {
+        "root",
+        "parent",
+        "leaf",
+        "other",
+    }
+    assert (
+        service.preview_bulk_annotation("version", BulkAnnotationPreviewRequest(tier=2))["text"]
+        == "Parent"
+    )
+    with pytest.raises(ValueError, match="not registered"):
+        render_bulk_annotation(
+            document,
+            BulkAnnotationPreviewRequest(tier=2, asp_group="unknown"),
+            groups=bulk_annotation_group_options(_groups()),
+        )
+
+
+def test_annotation_specific_facts_do_not_become_report_facts():
+    document = _document()
+    document.blocks[0].rules[0].output = [
+        _rule(output=[{"type": "fact", "path": "annotation.oncokb_gene_url"}]).output[0]
+    ]
+    validation = validate_rule_set(document)
+    assert not validation.valid
+    assert any("unavailable" in error for error in validation.errors)
+
+
+@pytest.mark.parametrize("present", [True, False, None])
+def test_oncokb_presence_is_distinct_from_missing_context(present):
+    document = _document()
+    document.bulk_annotation_rules = [
+        _rule(
+            condition={
+                "type": "predicate",
+                "fact": "annotation.oncokb_gene_present",
+                "operator": "eq",
+                "value": True,
+            },
+            output=[
+                {"type": "fact", "path": "annotation.consequence_text"},
+                {"type": "text", "value": " / "},
+                {"type": "fact", "path": "finding.transcript"},
+                {"type": "text", "value": " / "},
+                {"type": "fact", "path": "annotation.oncokb_gene_url"},
+            ],
+        ),
+        _rule(
+            rule_id="absent",
+            order=20,
+            condition={
+                "type": "predicate",
+                "fact": "annotation.oncokb_gene_present",
+                "operator": "eq",
+                "value": False,
+            },
+            output=[{"type": "text", "value": "Absent in local knowledgebase"}],
+        ),
+    ]
+    result = render_bulk_annotation(
+        document,
+        BulkAnnotationPreviewRequest(
+            tier=2,
+            gene="GENE_A",
+            transcript="NM_000001.1",
+            consequence=["missense_variant"],
+            oncokb_gene_present=present,
+        ),
+    )
+    assert result.text == (
+        "missense variant / NM_000001.1 / https://www.oncokb.org/gene/GENE_A"
+        if present
+        else "Absent in local knowledgebase"
+        if present is False
+        else None
     )
 
 

@@ -227,6 +227,13 @@ def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
         translocation_repository=repo.translocation_repository,
         assay_panel_repository=repo.assay_panel_repository,
         assay_configuration_repository=repo.assay_configuration_repository,
+        assay_group_repository=SimpleNamespace(
+            list=lambda: [
+                {"group_id": "hematology", "display_name": "Hematology"},
+                {"group_id": "solid", "display_name": "Solid"},
+            ]
+        ),
+        oncokb_repository=repo.oncokb_repository,
     )
 
 
@@ -462,6 +469,83 @@ def test_resource_classification_service_adds_bulk_annotation_template_when_requ
         )
     assert error.value.status_code == 409
     assert repo.annotation_repository.inserted_bulk is None
+
+
+def test_bulk_annotation_uses_registered_parents_and_local_gene_metadata(monkeypatch):
+    """Parent matching changes wording without broadening the persisted annotation scope."""
+    from coyote3.application.reporting.clinical_rules.validation import content_hash
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+    from tests.unit.reporting.test_clinical_rules import _document
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    service.assay_group_repository = SimpleNamespace(
+        list=lambda: [
+            {"group_id": "hematology", "display_name": "Hematology", "parent_group_id": "root"},
+            {"group_id": "root", "display_name": "Root"},
+        ]
+    )
+    service.oncokb_repository = SimpleNamespace(
+        get_oncokb_gene=lambda gene: {"name": gene, "description": "Gene description"}
+    )
+    release = _document(status="published", active=True)
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="parent_gene",
+            name="Parent and gene",
+            tier=3,
+            order=10,
+            condition={
+                "type": "all",
+                "children": [
+                    {
+                        "type": "predicate",
+                        "fact": "asp.group_path_ids",
+                        "operator": "contains",
+                        "value": "root",
+                    },
+                    {
+                        "type": "predicate",
+                        "fact": "annotation.oncokb_gene_present",
+                        "operator": "eq",
+                        "value": True,
+                    },
+                ],
+            },
+            output=[
+                {"type": "fact", "path": "asp.parent_group_name"},
+                {"type": "text", "value": ": "},
+                {"type": "fact", "path": "annotation.consequence_text"},
+                {"type": "text", "value": " "},
+                {"type": "fact", "path": "annotation.oncokb_gene_url"},
+            ],
+        )
+    ]
+    release.content_hash = content_hash(release)
+    service.clinical_rule_service = SimpleNamespace(bulk_annotation_release=lambda **_: release)
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _: {
+            "asp_group": "hematology",
+            "asp_id": "assay",
+            "diagnosis_id": "base",
+            "namespace": "clinical",
+            "configuration": {},
+        },
+    )
+    service.set_tier_bulk(
+        sample={"_id": "S1"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=3,
+        include_automatic_text=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    annotation = repo.annotation_repository.inserted_bulk[1]
+    assert annotation["text"] == "Root: missense variant https://www.oncokb.org/gene/SRSF2"
+    assert annotation["variant_data"]["asp_group"] == "hematology"
 
 
 def test_resource_classification_service_does_not_generate_text_without_opt_in(monkeypatch):

@@ -7,6 +7,9 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Bulk tier-text templates expose the full biological group tree and selected
+  transcript/consequence/OncoKB context, with hierarchy choices in conditions and
+  synthetic previews. Parent matching preserves the annotation's exact scope.
 - Submitted and in-review reporting rules can be withdrawn with **Recall and edit**;
   the review is cleared and editing requires a fresh submission for approval.
 - Approved unpublished reporting rules can return to draft with **Edit again**;

@@ -22,6 +22,7 @@ import { Link } from "react-router-dom"
 import { ANALYSES, clone, emptyRuleSetScope, generatedRuleSetName, newRule, newRuleBlock, orderedRuleSet, ruleSectionLabel, SECTION_STARTERS, sectionStarter, type CreationMode, type NewRuleSetScope } from "./clinical-rule-authoring"
 import type {
   ClinicalRuleAssayOption,
+  BulkAnnotationGroupOption,
   ClinicalRuleReviewerOption,
   ClinicalRuleRevision,
   ClinicalRuleSet,
@@ -82,7 +83,7 @@ export function ClinicalRulesPage() {
   const listQuery = useQuery({ queryKey: ["clinical-rule-sets", search, status], queryFn: () => api.get<{ items: ClinicalRuleSet[] }>(`/admin/clinical-rule-sets?q=${encodeURIComponent(search)}${status ? `&status=${status}` : ""}`).then((response) => response.data) })
   const templateQuery = useQuery({ queryKey: ["clinical-rule-templates"], enabled: creating, queryFn: () => api.get<{ items: ClinicalRuleSet[] }>("/admin/clinical-rule-sets?status=published&per_page=200").then((response) => response.data) })
   const factsQuery = useQuery({ queryKey: ["clinical-rule-facts"], queryFn: () => api.get<{ items: FactDefinition[] }>("/admin/clinical-rule-sets/facts").then((response) => response.data) })
-  const optionsQuery = useQuery({ queryKey: ["clinical-rule-authoring-options"], queryFn: () => api.get<{ bulk_annotation_fact_paths?: string[]; assays: ClinicalRuleAssayOption[]; condition_values: Record<string, string[]>; clinical_reviewers: ClinicalRuleReviewerOption[]; publishers: ClinicalRuleReviewerOption[]; sentence_terminology: Record<string, Record<string, unknown>> }>("/admin/clinical-rule-sets/authoring-options").then((response) => response.data) })
+  const optionsQuery = useQuery({ queryKey: ["clinical-rule-authoring-options"], queryFn: () => api.get<{ bulk_annotation_fact_paths?: string[]; bulk_annotation_groups?: BulkAnnotationGroupOption[]; assays: ClinicalRuleAssayOption[]; condition_values: Record<string, string[]>; clinical_reviewers: ClinicalRuleReviewerOption[]; publishers: ClinicalRuleReviewerOption[]; sentence_terminology: Record<string, Record<string, unknown>> }>("/admin/clinical-rule-sets/authoring-options").then((response) => response.data) })
   const versionQuery = useQuery({ queryKey: ["clinical-rule-set", selectedId], enabled: Boolean(selectedId), queryFn: () => api.get<ClinicalRuleSet>(`/admin/clinical-rule-sets/versions/${selectedId}`).then((response) => response.data) })
   const revisionsQuery = useQuery({ queryKey: ["clinical-rule-revisions", selectedId], enabled: Boolean(selectedId) && historyOpen, queryFn: () => api.get<{ items: ClinicalRuleRevision[] }>(`/admin/clinical-rule-sets/versions/${selectedId}/revisions`).then((response) => response.data) })
   useEffect(() => {
@@ -96,6 +97,13 @@ export function ClinicalRulesPage() {
   }, [selectedId, versionQuery.data])
   const facts = useMemo(() => factsQuery.data?.items || [], [factsQuery.data?.items])
   const controlledValues = useMemo(() => optionsQuery.data?.condition_values || {}, [optionsQuery.data?.condition_values])
+  const annotationGroups = useMemo(() => optionsQuery.data?.bulk_annotation_groups || [], [optionsQuery.data?.bulk_annotation_groups])
+  const annotationFacts = useMemo(() => {
+    const labels = Object.fromEntries(annotationGroups.map(group => [group.group_id,
+      `${[...group.path_names].reverse().join(" › ")} (${group.group_id})${group.is_active ? "" : " · inactive"}`]))
+    return facts.filter(fact => optionsQuery.data?.bulk_annotation_fact_paths?.includes(fact.path))
+      .map(fact => fact.group === "Biological group" ? { ...fact, value_labels: labels } : fact)
+  }, [facts, annotationGroups, optionsQuery.data?.bulk_annotation_fact_paths])
   useEffect(() => { if (draft?.scope.analyte !== "dna") setWorkspaceTab("report") }, [draft?.scope.analyte])
   const conditionProblem = [...(draft?.blocks.flatMap(item => item.rules) || []), ...(draft?.bulk_annotation_rules || [])].map(item => conditionError(item.condition, facts, controlledValues)).find(Boolean) || ""
   const localProblem = textError || conditionProblem
@@ -324,7 +332,7 @@ export function ClinicalRulesPage() {
               {([['report', 'Report wording'], ['annotation', 'Bulk annotation text']] as const).filter(([value]) => value === "report" || draft.scope.analyte === "dna").map(([value, label]) => <Button key={value} id={`rule-tab-${value}`} type="button" role="tab" tabIndex={workspaceTab === value ? 0 : -1} onKeyDown={event => { if (draft.scope.analyte === "dna" && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) { event.preventDefault(); const nextTab = event.key === "Home" ? "report" : event.key === "End" ? "annotation" : workspaceTab === "report" ? "annotation" : "report"; setWorkspaceTab(nextTab); document.getElementById(`rule-tab-${nextTab}`)?.focus() } }} aria-selected={workspaceTab === value} aria-controls={`rule-panel-${value}`} variant={workspaceTab === value ? "secondary" : "ghost"} onClick={() => { setWorkspaceTab(value) }}>{label}</Button>)}
             </div>
             <div role="tabpanel" id="rule-panel-annotation" aria-labelledby="rule-tab-annotation" className="min-h-0 overflow-y-auto" hidden={workspaceTab !== "annotation"} style={{ "--sections-width": `${sectionsWidth}px` } as CSSProperties}>
-              <BulkAnnotationEditor key={draft._id} sectionsWidth={sectionsWidth} setSectionsWidth={setSectionsWidth} rules={draft.bulk_annotation_rules || []} facts={facts.filter(item => optionsQuery.data?.bulk_annotation_fact_paths?.includes(item.path))} controlledValues={controlledValues} editable={Boolean(editableDraft)} tier={annotationTier} setTier={setAnnotationTier} ruleIds={[...draft.blocks.flatMap(item => item.rules.map(rule => rule.rule_id)), ...(draft.bulk_annotation_rules || []).map(rule => rule.rule_id)]} onTextError={setTextError} onChange={rules => mutateDraft(document => { document.bulk_annotation_rules = rules })} />
+              <BulkAnnotationEditor key={draft._id} sectionsWidth={sectionsWidth} setSectionsWidth={setSectionsWidth} rules={draft.bulk_annotation_rules || []} facts={annotationFacts} controlledValues={controlledValues} editable={Boolean(editableDraft)} tier={annotationTier} setTier={setAnnotationTier} ruleIds={[...draft.blocks.flatMap(item => item.rules.map(rule => rule.rule_id)), ...(draft.bulk_annotation_rules || []).map(rule => rule.rule_id)]} onTextError={setTextError} onChange={rules => mutateDraft(document => { document.bulk_annotation_rules = rules })} />
             </div>
             <div role="tabpanel" id="rule-panel-report" aria-labelledby="rule-tab-report" className="min-h-0 overflow-y-auto" hidden={workspaceTab !== "report"}>
             <div className={cn("clinical-rules-editor-layout min-h-0", sectionsCollapsed && "is-sections-collapsed")} style={{ "--sections-width": `${sectionsWidth}px` } as CSSProperties}>
@@ -428,7 +436,7 @@ export function ClinicalRulesPage() {
         </main>
         <ResizeDivider label="Resize text preview" width={previewWidth} setWidth={setPreviewWidth} min={280} max={720} direction={-1} />
         <aside className="min-h-0 min-w-0 overflow-y-auto bg-muted/10 p-4">
-          {draft ? <><div hidden={workspaceTab !== "report"}><RuleSetPreview key={draft._id} draft={draft} facts={facts} saved={workflowReady} canTest={can("clinical_rules:test")} /></div><div hidden={workspaceTab !== "annotation"}><BulkAnnotationPreview key={draft._id} documentId={draft._id} scopeDiagnosis={draft.scope.diagnosis_id} revision={draft.revision} saved={workflowReady} tier={annotationTier} /></div></> : <p className="type-body-sm text-muted-foreground">Select a rule set to preview its complete report wording.</p>}
+          {draft ? <><div hidden={workspaceTab !== "report"}><RuleSetPreview key={draft._id} draft={draft} facts={facts} saved={workflowReady} canTest={can("clinical_rules:test")} /></div><div hidden={workspaceTab !== "annotation"}><BulkAnnotationPreview groups={annotationGroups} key={draft._id} documentId={draft._id} scopeDiagnosis={draft.scope.diagnosis_id} revision={draft.revision} saved={workflowReady} tier={annotationTier} /></div></> : <p className="type-body-sm text-muted-foreground">Select a rule set to preview its complete report wording.</p>}
           {editableDraft && workspaceTab === "report" && <section className="mt-5 border-t border-border pt-4"><h2 className="type-section-title">Report analyses</h2><div className="mt-2 space-y-2">{ANALYSES[draft.scope.analyte].map((analysis) => <label key={analysis} className="flex items-center justify-between gap-3 text-sm"><span>{analysis}</span><select className="paper-inset rounded-lg p-1.5 text-xs" value={draft.analysis_declarations[analysis]?.narrative || "undeclared"} onChange={(event) => mutateDraft((document) => { if (event.target.value === "undeclared") delete document.analysis_declarations[analysis]; else document.analysis_declarations[analysis] = { narrative: event.target.value as "enabled" | "none" } })}><option value="undeclared">Not declared</option><option value="enabled">Generate text</option><option value="none">No narrative</option></select></label>)}</div></section>}
         </aside>
       </div>

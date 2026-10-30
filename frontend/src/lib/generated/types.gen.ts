@@ -1620,11 +1620,47 @@ export type BulkAnnotationFindingPreview = {
 };
 
 /**
+ * BulkAnnotationGroupOption
+ *
+ * Registered biological group and its complete leaf-to-root hierarchy.
+ */
+export type BulkAnnotationGroupOption = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Parent Group Id
+     */
+    parent_group_id?: string | null;
+    /**
+     * Path Ids
+     */
+    path_ids: Array<string>;
+    /**
+     * Path Names
+     */
+    path_names: Array<string>;
+};
+
+/**
  * BulkAnnotationPreviewRequest
  *
  * Synthetic finding facts for testing annotation wording without a sample.
  */
 export type BulkAnnotationPreviewRequest = {
+    /**
+     * Asp Group
+     */
+    asp_group?: string | null;
     /**
      * Consequence
      */
@@ -1646,9 +1682,25 @@ export type BulkAnnotationPreviewRequest = {
      */
     hgvsp?: string | null;
     /**
+     * Oncokb Gene Description
+     */
+    oncokb_gene_description?: string | null;
+    /**
+     * Oncokb Gene Present
+     */
+    oncokb_gene_present?: boolean | null;
+    /**
      * Tier
      */
     tier: 1 | 2 | 3;
+    /**
+     * Transcript
+     */
+    transcript?: string | null;
+    /**
+     * Variant Type
+     */
+    variant_type?: string | null;
 };
 
 /**
@@ -2392,6 +2444,10 @@ export type ClinicalRuleAuthoringOptionsPayload = {
      * Bulk Annotation Fact Paths
      */
     bulk_annotation_fact_paths?: Array<string>;
+    /**
+     * Bulk Annotation Groups
+     */
+    bulk_annotation_groups?: Array<BulkAnnotationGroupOption>;
     /**
      * Clinical Reviewers
      */

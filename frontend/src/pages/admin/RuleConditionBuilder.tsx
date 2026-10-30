@@ -123,7 +123,7 @@ export function PredicateEditor({ value, facts, controlledValues, onChange }: { 
             ? Array.from(event.target.selectedOptions, option => fact?.kind === "boolean" ? option.value === "true" : ["integer", "number"].includes(fact?.kind || "") ? Number(option.value) : option.value)
             : event.target.value })}>
           {!["in", "not_in", "overlaps"].includes(value.operator) && <option value="">Select value</option>}
-          {options.map((option) => <option key={option} value={option}>{option}</option>)}
+          {options.map((option) => <option key={option} value={option}>{fact?.value_labels?.[option] || option}</option>)}
         </select>
       ) : (
         <div className="relative"><ConditionTextInput key={`${value.fact}:${value.operator}`} value={value.value} error={error} change={text => { const parsed = parseValue(text, value.operator, fact); onChange({ ...value, value: parsed }); return parsed }} />{fact?.unit && <span className="absolute right-2 top-2 text-xs text-muted-foreground">{fact.unit}</span>}{error && <span className="mt-1 block text-xs text-destructive">{error}</span>}</div>

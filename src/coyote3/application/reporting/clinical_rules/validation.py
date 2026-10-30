@@ -308,7 +308,7 @@ def validate_rule_set(
             errors.append(f"Enabled annotation rule '{rule.rule_id}' has empty text")
         _validate_annotation_condition(rule.condition, errors)
         if rule.condition is not None:
-            _validate_condition(rule.condition, scope="each_finding", depth=0, errors=errors)
+            _validate_condition(rule.condition, scope="bulk_annotation", depth=0, errors=errors)
         for node in rule.output:
             if isinstance(node, ClinicalRendererOutput):
                 errors.append("Bulk annotations cannot use report sentence renderers")
@@ -318,7 +318,7 @@ def validate_rule_set(
                     errors.append(f"Bulk annotations cannot use fact '{path}'")
                 else:
                     try:
-                        validate_fact_path(path, scope="each_finding")
+                        validate_fact_path(path, scope="bulk_annotation")
                     except ValueError as exc:
                         errors.append(str(exc))
     if require_tests and not document.test_cases:

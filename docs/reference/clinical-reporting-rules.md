@@ -46,7 +46,7 @@ fallback, so place it after more specific templates.
 
 | Property | Requirement or behavior |
 | --- | --- |
-| Values | Gene, consequence list, HGVS c/p, target tier, assay and diagnosis. No sample measurements or patient identifiers. |
+| Values | Gene, transcript, variant class, raw/readable consequences, HGVS c/p, tier, assay, diagnosis, biological hierarchy and local OncoKB gene presence/description/link. No sample measurements or patient identifiers. |
 | Scope | Current published DNA rules for the sample's assay and diagnosis, with assay Base fallback and the configured reporting language. |
 | Inheritance | Templates come from the selected release as a whole. An exact diagnosis release with no templates does not borrow them from Base. |
 | Language | Authored wording uses the release language; there is no fixed Swedish sentence generator. |
@@ -65,6 +65,41 @@ Preview the resulting annotations before confirming. Each saved generated annota
 records its rule ID, content version, revision and hash; the application sets actor
 and time. Individual tiering does not invoke these templates. See the
 [system role catalog](../administration/system-role-catalog.md) for reporting-rule roles.
+
+## Biological hierarchy and annotation values
+
+The bulk annotation editor's condition and inline-value selectors include these
+facts. Biological group choices show the complete root-to-leaf display path and
+store the registry ID, including parent/root groups with no assay directly assigned.
+
+| Fact | Meaning |
+| --- | --- |
+| `asp.asp_group`, `asp.group_name` | Exact biological group ID and display name |
+| `asp.parent_group_id`, `asp.parent_group_name` | Immediate parent; unknown for a root |
+| `asp.ancestor_group_ids`, `asp.ancestor_group_names` | All ancestors, nearest parent first; excludes the exact group |
+| `asp.group_path_ids`, `asp.group_path_names` | Exact group followed by all ancestors |
+| `asp.root_group_id`, `asp.root_group_name` | Root of the complete registered tree |
+| `finding.transcript`, `finding.variant_type` | Selected transcript and its VEP variant class |
+| `annotation.consequence_text` | First consequence with underscores replaced by spaces |
+| `annotation.consequence_labels` | All consequences in that readable form |
+| `annotation.oncokb_gene_present` | Presence in the local gene index; unknown when no lookup is available |
+| `annotation.oncokb_gene_url` | Public gene-page link when locally present |
+| `annotation.oncokb_gene_description` | Local gene description when available |
+
+To include descendants, choose **Biological group or descendant of**, operator
+**contains**, and the parent/root group. For exact matching choose **Biological
+group: exact ID**. Ancestor conditions only choose wording: saved annotations keep
+the sample's exact group, assay and diagnosis. They do not acquire a broader scope
+or determine the tier. Inactive registry nodes remain visible for historical
+hierarchies; broken parent links and cycles reject generation rather than producing
+an incomplete path.
+
+Synthetic preview offers the same group tree and simulated OncoKB status. A blank
+group selection uses the rule-set assay's group. Actual bulk preview and assignment
+resolve group context from the sample configuration and read the local knowledgebase;
+they do not accept simulated annotation facts from the client. OncoKB presence is
+distinct from oncogenicity, clinical evidence or tier selection. These annotation-only
+facts cannot be used in report sections without a corresponding reporting fact.
 
 ## Report metadata outputs
 

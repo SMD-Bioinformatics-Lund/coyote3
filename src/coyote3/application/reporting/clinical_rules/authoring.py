@@ -6,7 +6,10 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
-from coyote3.application.classification.bulk_annotation_rules import render_bulk_annotation
+from coyote3.application.classification.bulk_annotation_rules import (
+    bulk_annotation_group_options,
+    render_bulk_annotation,
+)
 from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
@@ -18,6 +21,7 @@ from coyote3.application.reporting.clinical_rules.validation import (
 from coyote3.application.resources.availability import require_active_group
 from coyote3.config.constants import DIAGNOSIS_BASE_ID, ENVIRONMENT_OPTIONS
 from coyote3.contracts.schemas.clinical_rules import (
+    BulkAnnotationGroupOption,
     BulkAnnotationPreviewRequest,
     ClinicalRuleConfiguration,
     ClinicalRuleDecision,
@@ -98,6 +102,7 @@ class ClinicalRuleAuthoringService:
             assay_panel_repository=store.assay_panel_repository,
             assay_diagnosis_repository=store.assay_diagnosis_repository,
             assay_setup_repository=getattr(store, "assay_setup_repository", None),
+            assay_group_repository=getattr(store, "assay_group_repository", None),
             user_repository=getattr(store, "user_repository", None),
             role_repository=getattr(store, "roles_repository", None),
         )
@@ -110,6 +115,7 @@ class ClinicalRuleAuthoringService:
         assay_panel_repository: Any | None = None,
         assay_diagnosis_repository: Any | None = None,
         assay_setup_repository: Any | None = None,
+        assay_group_repository: Any | None = None,
         user_repository: Any | None = None,
         role_repository: Any | None = None,
         notification_service: Any | None = None,
@@ -122,6 +128,7 @@ class ClinicalRuleAuthoringService:
             assay_panel_repository: Optional active-assay validation and option source.
             assay_diagnosis_repository: Registered scopes; required when validating an assay.
             assay_setup_repository: Unpublished setup scopes available only to rule authoring.
+            assay_group_repository: Registered biological hierarchy for annotation options.
             user_repository: Optional active-user lookup for assignments.
             role_repository: Optional permission-to-role lookup for assignments.
             notification_service: Optional sender of review and publication requests.
@@ -131,12 +138,29 @@ class ClinicalRuleAuthoringService:
         self.assay_panel_repository = assay_panel_repository
         self.assay_diagnosis_repository = assay_diagnosis_repository
         self.assay_setup_repository = assay_setup_repository
+        self.assay_group_repository = assay_group_repository
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.notification_service = notification_service
 
     def authoring_options(self) -> dict[str, Any]:
         """Return authoring scopes and optional sentence wording for explicit draft insertion."""
+        group_options = self._annotation_group_options()
+        group_ids = [group.group_id for group in group_options]
+        group_values = (
+            {
+                path: group_ids
+                for path in (
+                    "asp.asp_group",
+                    "asp.parent_group_id",
+                    "asp.ancestor_group_ids",
+                    "asp.group_path_ids",
+                    "asp.root_group_id",
+                )
+            }
+            if group_ids
+            else {}
+        )
         sentence_terminology = {
             "sv": {
                 "tier_summary": {
@@ -149,9 +173,12 @@ class ClinicalRuleAuthoringService:
         if self.assay_panel_repository is None:
             return {
                 "assays": [],
-                "condition_values": {},
+                "condition_values": group_values,
                 "sentence_terminology": sentence_terminology,
                 "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
+                "bulk_annotation_groups": [
+                    group.model_dump(mode="python") for group in group_options
+                ],
                 **self.reviewer_options(),
             }
         assays = []
@@ -186,15 +213,35 @@ class ClinicalRuleAuthoringService:
         return {
             "sentence_terminology": sentence_terminology,
             "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
+            "bulk_annotation_groups": [group.model_dump(mode="python") for group in group_options],
             "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
             "condition_values": {
                 "sample.asp_id": [item["asp_id"] for item in assays],
                 "sample.diagnosis_id": diagnoses,
                 "sample.environment": list(ENVIRONMENT_OPTIONS),
                 "asp.asp_group": groups,
+                **group_values,
             },
             **self.reviewer_options(),
         }
+
+    def _annotation_group_options(self) -> list[BulkAnnotationGroupOption]:
+        """Read the full registered biological tree without exposing private audit fields.
+
+        Returns:
+            Complete group paths, or an empty list without a group repository.
+
+        Raises:
+            AppError: A registry hierarchy is incomplete or cyclic.
+        """
+        try:
+            return (
+                bulk_annotation_group_options(self.assay_group_repository.list())
+                if self.assay_group_repository is not None
+                else []
+            )
+        except ValueError as exc:
+            raise api_error(422, "Biological group hierarchy is invalid", str(exc)) from exc
 
     def _authoring_panels(self) -> list[dict[str, Any]]:
         """Combine active assays with reserved setup drafts, without changing runtime lookup."""
@@ -784,7 +831,20 @@ class ClinicalRuleAuthoringService:
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         try:
-            return render_bulk_annotation(document, facts).model_dump(mode="python")
+            if facts.asp_group is None and self.assay_panel_repository is not None:
+                panel = next(
+                    (
+                        panel
+                        for panel in self._authoring_panels()
+                        if panel.get("asp_id") == document.scope.asp_id
+                    ),
+                    None,
+                )
+                if panel and panel.get("asp_group"):
+                    facts = facts.model_copy(update={"asp_group": panel["asp_group"]})
+            return render_bulk_annotation(
+                document, facts, groups=self._annotation_group_options()
+            ).model_dump(mode="python")
         except ValueError as exc:
             raise api_error(422, "Annotation preview failed", str(exc)) from exc
 

@@ -5,7 +5,10 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from coyote3.application.classification.bulk_annotation_rules import render_bulk_annotation
+from coyote3.application.classification.bulk_annotation_rules import (
+    bulk_annotation_group_options,
+    render_bulk_annotation,
+)
 from coyote3.application.common.assay_config import get_formatted_assay_config
 from coyote3.application.common.finding_access import require_sample_finding
 from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
@@ -31,6 +34,8 @@ class ResourceClassificationService:
             translocation_repository=store.translocation_repository,
             assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
+            assay_group_repository=store.assay_group_repository,
+            oncokb_repository=store.oncokb_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
@@ -44,6 +49,8 @@ class ResourceClassificationService:
         translocation_repository: Any,
         assay_panel_repository: Any,
         assay_configuration_repository: Any,
+        assay_group_repository: Any,
+        oncokb_repository: Any,
         clinical_rule_service: ClinicalRuleService | None = None,
     ) -> None:
         """Build the classification service with explicit persistence dependencies."""
@@ -54,6 +61,8 @@ class ResourceClassificationService:
         self.translocation_repository = translocation_repository
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
+        self.assay_group_repository = assay_group_repository
+        self.oncokb_repository = oncokb_repository
         self.clinical_rule_service = clinical_rule_service
 
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
@@ -170,6 +179,7 @@ class ResourceClassificationService:
                 "automatic_text_context": {
                     "gene": gene,
                     "consequence": selected_csq.get("Consequence"),
+                    "variant_type": selected_csq.get("VARIANT_CLASS"),
                 },
                 "variant_data": {
                     **base_context,
@@ -282,6 +292,8 @@ class ResourceClassificationService:
         classification_context = self.classification_context(sample)
         normalized_type = self.normalize_resource_type(resource_type)
         release = None
+        groups = []
+        oncokb_genes: dict[str, dict | None] = {}
         previews = []
         if preview_only and not (apply and include_automatic_text):
             raise api_error(422, "Annotation preview requires a bulk assignment with text")
@@ -290,6 +302,10 @@ class ResourceClassificationService:
                 raise api_error(
                     422, "Bulk annotation templates support small-variant Tier I–III assignments"
                 )
+            try:
+                groups = bulk_annotation_group_options(self.assay_group_repository.list())
+            except ValueError as error:
+                raise api_error(422, "Biological group hierarchy is invalid", str(error)) from error
             try:
                 if self.clinical_rule_service is not None:
                     release = self.clinical_rule_service.bulk_annotation_release(
@@ -323,17 +339,32 @@ class ResourceClassificationService:
             rule_source = None
             if release is not None:
                 text_context = identity["automatic_text_context"]
+                gene = str(text_context.get("gene") or "").strip()
+                if gene and self.oncokb_repository is not None and gene not in oncokb_genes:
+                    oncokb_genes[gene] = self.oncokb_repository.get_oncokb_gene(gene)
+                oncokb_gene = oncokb_genes.get(gene)
+                description = oncokb_gene.get("description") if oncokb_gene else None
                 try:
                     rendered = render_bulk_annotation(
                         release,
                         BulkAnnotationPreviewRequest(
                             tier=class_num,
+                            asp_group=classification_context["asp_group"] or None,
                             gene=text_context.get("gene"),
                             consequence=self._consequence_list(text_context.get("consequence")),
                             hgvsc=identity["variant_data"].get("hgvsc"),
                             hgvsp=identity["variant_data"].get("hgvsp"),
+                            transcript=identity["variant_data"].get("transcript"),
+                            variant_type=text_context.get("variant_type"),
+                            oncokb_gene_present=bool(oncokb_gene)
+                            if gene and self.oncokb_repository is not None
+                            else None,
+                            oncokb_gene_description=description
+                            if isinstance(description, str)
+                            else None,
                         ),
                         diagnosis_id=classification_context["diagnosis_id"],
+                        groups=groups,
                     )
                 except ValueError as error:
                     raise api_error(

@@ -763,6 +763,7 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
         "publishers": [],
         "sentence_terminology": options["sentence_terminology"],
         "bulk_annotation_fact_paths": options["bulk_annotation_fact_paths"],
+        "bulk_annotation_groups": [],
     }
 
 

@@ -99,15 +99,26 @@ for (const theme of ["light", "dark"] as const) {
           return { json: saved }
         }
         if (path.endsWith("/bulk-annotations/preview")) {
-          const facts = route.request().postDataJSON() as { gene: string; tier: number }
+          const facts = route.request().postDataJSON() as { gene: string; tier: number; asp_group: string; oncokb_gene_present: boolean }
+          expect(facts.asp_group).toBe("leaf")
+          expect(facts.oncokb_gene_present).toBe(true)
           return { json: facts.gene === "GENE_A" && facts.tier === 2
             ? { rule_id: "gene_annotation", text: "**Reviewed** GENE_A" }
             : { rule_id: null, text: null } }
         }
         if (path.endsWith("/versions/rule-version-1")) return { json: saved }
         if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
-        if (path.endsWith("/authoring-options")) return { json: { assays: [], bulk_annotation_fact_paths: ["finding.gene"] } }
-        if (path.endsWith("/facts")) return { json: { items: [{ path: "finding.gene", label: "Gene", kind: "string", group: "Finding", operators: ["eq", "in"], scopes: ["each_finding"] }] } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [], bulk_annotation_fact_paths: ["finding.gene", "asp.group_path_ids", "annotation.consequence_text"],
+          condition_values: { "asp.group_path_ids": ["root", "leaf"] }, bulk_annotation_groups: [
+            { group_id: "root", display_name: "Root", parent_group_id: null, path_ids: ["root"], path_names: ["Root"], is_active: true },
+            { group_id: "leaf", display_name: "Leaf", parent_group_id: "root", path_ids: ["leaf", "root"], path_names: ["Leaf", "Root"], is_active: true },
+          ],
+        } }
+        if (path.endsWith("/facts")) return { json: { items: [
+          { path: "finding.gene", label: "Gene", kind: "string", group: "Finding", operators: ["eq", "in"], scopes: ["each_finding"] },
+          { path: "asp.group_path_ids", label: "Biological group or descendant of", kind: "string_list", group: "Biological group", operators: ["contains"], scopes: ["bulk_annotation"] },
+          { path: "annotation.consequence_text", label: "First consequence: readable text", kind: "string", group: "Annotation", operators: ["eq"], scopes: ["bulk_annotation"] },
+        ] } }
       })
       await page.goto("/admin/clinical-rules")
       await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
@@ -117,10 +128,17 @@ for (const theme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Tier II", exact: true }).click()
       await expect(page.getByLabel("Annotation template name")).toHaveValue("Gene annotation")
       await expect(page.getByRole("option", { name: "Find in collection", exact: true })).toHaveCount(0)
+      await page.getByLabel("Condition fact").selectOption("asp.group_path_ids")
+      await page.getByLabel("Condition value").selectOption("root")
+      await expect(page.getByLabel("Condition value")).toHaveValue("root")
+      await expect(page.getByLabel("Condition value").getByRole("option", { name: "Root (root)", exact: true })).toHaveAttribute("value", "root")
+      await expect.poll(() => saved.bulk_annotation_rules[0].condition.value).toBe("root")
       const sentence = page.getByLabel("Annotation sentence", { exact: true })
-      await sentence.fill("**Reviewed** {{finding.gene}}")
+      await sentence.fill("**Reviewed** {{finding.gene}} {{annotation.consequence_text}}")
       await expect.poll(() => JSON.stringify(saved.bulk_annotation_rules)).toContain('"path":"finding.gene"')
       await page.getByLabel("Annotation preview Gene", { exact: true }).fill("GENE_A")
+      await page.getByLabel("Annotation preview Biological group", { exact: true }).selectOption("leaf")
+      await page.getByLabel("Annotation preview OncoKB status", { exact: true }).selectOption("present")
       await expect(page.getByLabel("Annotation preview Diagnosis", { exact: true })).toHaveValue("base")
       await page.getByLabel("Annotation preview Diagnosis", { exact: true }).fill("scope_a")
       const previewRequest = page.waitForRequest(request => request.url().endsWith("/bulk-annotations/preview"))
@@ -133,7 +151,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.getByRole("tab", { name: "Report wording" }).click()
       await expect(page.getByLabel("Clinical rule name")).toHaveValue("Summary")
       await page.getByRole("tab", { name: "Bulk annotation text" }).click()
-      await expect(sentence).toHaveValue("**Reviewed** {{finding.gene}}")
+      await expect(sentence).toHaveValue("**Reviewed** {{finding.gene}} {{annotation.consequence_text}}")
       await page.getByText("Version notes", { exact: true }).click()
       await page.getByLabel("Change summary", { exact: true }).fill("Reviewed gene-specific bulk wording.")
       await expect.poll(() => saved.change_summary).toBe("Reviewed gene-specific bulk wording.")

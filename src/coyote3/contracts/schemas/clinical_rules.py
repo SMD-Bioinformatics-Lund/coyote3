@@ -283,10 +283,26 @@ class BulkAnnotationPreviewRequest(_StrictModel):
 
     tier: Literal[1, 2, 3]
     diagnosis_id: str | None = Field(default=None, min_length=1)
+    asp_group: str | None = Field(default=None, min_length=1)
     gene: str | None = None
     consequence: list[str] = Field(default_factory=list)
     hgvsc: str | None = None
     hgvsp: str | None = None
+    transcript: str | None = None
+    variant_type: str | None = None
+    oncokb_gene_present: bool | None = None
+    oncokb_gene_description: str | None = None
+
+
+class BulkAnnotationGroupOption(_StrictModel):
+    """Registered biological group and its complete leaf-to-root hierarchy."""
+
+    group_id: str
+    display_name: str
+    parent_group_id: str | None = None
+    path_ids: list[str]
+    path_names: list[str]
+    is_active: bool = True
 
 
 class BulkAnnotationPreviewResult(_StrictModel):
@@ -752,6 +768,7 @@ class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
     publishers: list[dict[str, str]] = Field(default_factory=list)
     sentence_terminology: dict[str, dict[str, Any]] = Field(default_factory=dict)
     bulk_annotation_fact_paths: list[str] = Field(default_factory=list)
+    bulk_annotation_groups: list[BulkAnnotationGroupOption] = Field(default_factory=list)
 
 
 class ClinicalRuleTestSample(_StrictModel):

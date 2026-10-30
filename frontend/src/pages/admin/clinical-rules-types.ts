@@ -17,6 +17,7 @@ export type FactDefinition = {
   unit?: string | null
   description?: string
   value_options?: string[]
+  value_labels?: Record<string, string>
   value_format?: "gene" | "integer" | "number" | "text"
 }
 
@@ -29,6 +30,11 @@ export type ClinicalRuleAssayOption = {
 }
 
 export type ClinicalRuleReviewerOption = { username: string; name: string }
+
+export type BulkAnnotationGroupOption = {
+  group_id: string; display_name: string; parent_group_id: string | null;
+  path_ids: string[]; path_names: string[]; is_active: boolean
+}
 
 export type PredicateCondition = {
   type: "predicate"

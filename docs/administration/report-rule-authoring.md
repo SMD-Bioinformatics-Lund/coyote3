@@ -51,6 +51,16 @@ bulk tiering, not report prose. Switching tabs preserves edits and selection.
 history. The change summary explains edits for reviewers and never enters report
 or annotation text.
 
+In **Bulk annotation text**, biological group conditions offer the complete
+registered tree, including immediate parents, ancestors and roots without an assay
+of their own. Choose **Biological group or descendant of → contains → group** to
+match a subtree; choose **Biological group: exact ID** for only that node. Dropdowns
+show the full tree path while saving the stable ID. The inline values also include
+group names/path, selected transcript, variant class, readable consequence, and
+local OncoKB gene presence, description and link. Synthetic preview lets you choose
+the group and simulate OncoKB presence/absence; persisted bulk annotations always
+use server-resolved configuration and local knowledgebase values.
+
 The normal path is **choose when → write the sentence → include and preview**.
 Circular question-mark buttons explain each choice; hover, focus, or click to
 read a hint, and press Escape to close it. Use **Section settings** only when you

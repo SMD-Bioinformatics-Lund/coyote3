@@ -8,7 +8,7 @@ import { api } from "@/lib/api"
 import { ResizeDivider } from "@/components/admin/RuleWorkspaceDivider"
 import { ConditionBuilder } from "./RuleConditionBuilder"
 import { SentenceOutputEditor } from "./SentenceOutputEditor"
-import type { BulkAnnotationRule, FactDefinition } from "./clinical-rules-types"
+import type { BulkAnnotationGroupOption, BulkAnnotationRule, FactDefinition } from "./clinical-rules-types"
 
 type Tier = 1 | 2 | 3
 const tierNames = { 1: "I", 2: "II", 3: "III" }
@@ -76,8 +76,9 @@ export function BulkAnnotationEditor({ rules, facts, controlledValues, editable,
   </div>
 }
 
-export function BulkAnnotationPreview({ documentId, revision, saved, tier, scopeDiagnosis }: {
-  documentId: string; revision: number; saved: boolean; tier: Tier; scopeDiagnosis: string
+export function BulkAnnotationPreview({ documentId, revision, saved, tier, scopeDiagnosis, groups }: {
+  documentId: string; revision: number; saved: boolean; tier: Tier; scopeDiagnosis: string;
+  groups: BulkAnnotationGroupOption[]
 }) {
   const [diagnosis, setDiagnosis] = useState(scopeDiagnosis)
   useEffect(() => { setDiagnosis(scopeDiagnosis) }, [scopeDiagnosis])
@@ -85,17 +86,27 @@ export function BulkAnnotationPreview({ documentId, revision, saved, tier, scope
   const [consequence, setConsequence] = useState("")
   const [hgvsc, setHgvsc] = useState("")
   const [hgvsp, setHgvsp] = useState("")
+  const [group, setGroup] = useState("")
+  const [transcript, setTranscript] = useState("")
+  const [variantType, setVariantType] = useState("")
+  const [oncokb, setOncokb] = useState("unknown")
+  const [oncokbDescription, setOncokbDescription] = useState("")
   const preview = useMutation({ mutationFn: () => api.post<{ rule_id: string | null; text: string | null }>(
     `/admin/clinical-rule-sets/versions/${documentId}/bulk-annotations/preview`,
-    { tier, diagnosis_id: diagnosis.trim() || null, gene: gene || null, consequence: consequence.split(/[,&]/).map(item => item.trim()).filter(Boolean), hgvsc: hgvsc || null, hgvsp: hgvsp || null },
+    { tier, diagnosis_id: diagnosis.trim() || null, asp_group: group || null, gene: gene || null, consequence: consequence.split(/[,&]/).map(item => item.trim()).filter(Boolean), hgvsc: hgvsc || null, hgvsp: hgvsp || null,
+      transcript: transcript || null, variant_type: variantType || null,
+      oncokb_gene_present: oncokb === "unknown" ? null : oncokb === "present", oncokb_gene_description: oncokbDescription || null },
     { errorNotice: "inline" },
   ).then(response => response.data) })
   const reset = preview.reset
-  useEffect(() => { reset() }, [documentId, revision, tier, diagnosis, gene, consequence, hgvsc, hgvsp, reset])
+  useEffect(() => { reset() }, [documentId, revision, tier, diagnosis, gene, consequence, hgvsc, hgvsp, group, transcript, variantType, oncokb, oncokbDescription, reset])
   return <section aria-label="Bulk annotation preview" className="space-y-3">
     <h2 className="type-section-title">Annotation preview · Tier {tierNames[tier]}</h2>
     <p className="type-body-sm text-muted-foreground">Enter synthetic finding values to check matching and wording. No sample or annotation is created.</p>
-    {([["Diagnosis", diagnosis, setDiagnosis], ["Gene", gene, setGene], ["Consequence", consequence, setConsequence], ["HGVS c", hgvsc, setHgvsc], ["HGVS p", hgvsp, setHgvsp]] as const).map(([label, value, setValue]) => <label key={label} className="type-label block">{label}<Input className="mt-1" aria-label={`Annotation preview ${label}`} value={value} onChange={event => setValue(event.target.value)} /></label>)}
+    <label className="type-label block">Biological group<select aria-label="Annotation preview Biological group" className="paper-inset mt-1 w-full rounded-lg p-2 type-body" value={group} onChange={event => setGroup(event.target.value)}><option value="">Use assay biological group</option>{groups.map(item => <option key={item.group_id} value={item.group_id}>{[...item.path_names].reverse().join(" › ")} ({item.group_id}){item.is_active ? "" : " · inactive"}</option>)}</select></label>
+    {([["Diagnosis", diagnosis, setDiagnosis], ["Gene", gene, setGene], ["Consequence", consequence, setConsequence], ["HGVS c", hgvsc, setHgvsc], ["HGVS p", hgvsp, setHgvsp], ["Selected transcript", transcript, setTranscript], ["Variant class", variantType, setVariantType], ["OncoKB gene description", oncokbDescription, setOncokbDescription]] as const).map(([label, value, setValue]) => <label key={label} className="type-label block">{label}<Input className="mt-1" aria-label={`Annotation preview ${label}`} value={value} onChange={event => setValue(event.target.value)} /></label>)}
+    <label className="type-label block">Simulated OncoKB status<select aria-label="Annotation preview OncoKB status" className="paper-inset mt-1 w-full rounded-lg p-2 type-body" value={oncokb} onChange={event => setOncokb(event.target.value)}><option value="unknown">Unknown</option><option value="present">Gene present</option><option value="absent">Gene absent</option></select></label>
+    <p className="type-meta text-muted-foreground">OncoKB values here are simulated. Bulk actions read the local knowledgebase.</p>
     <Button type="button" variant="outline" disabled={!saved || preview.isPending} onClick={() => preview.mutate()}>Preview annotation</Button>
     {!saved && <p role="status" className="type-meta text-muted-foreground">Waiting for valid edits to save.</p>}
     {preview.error && <p role="alert" className="type-body-sm text-destructive">{preview.error instanceof Error ? preview.error.message : "Annotation preview failed."}</p>}

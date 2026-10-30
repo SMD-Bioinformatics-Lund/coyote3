@@ -16,6 +16,16 @@ const geneFact: FactDefinition = {
 }
 
 describe("clinical rule condition editor", () => {
+  it("shows biological tree labels while storing canonical group identifiers", async () => {
+    const user = userEvent.setup()
+    const change = vi.fn()
+    const fact: FactDefinition = { path: "asp.group_path_ids", label: "Biological group or descendant of", group: "Biological group", kind: "string_list", operators: ["contains"], scopes: ["bulk_annotation"], value_labels: { root: "Root (root)", parent: "Root › Parent (parent)" } }
+    render(<PredicateEditor facts={[fact]} controlledValues={{ "asp.group_path_ids": ["root", "parent"] }} value={{ type: "predicate", fact: fact.path, operator: "contains", value: "" }} onChange={change} />)
+    expect(screen.getByRole("option", { name: "Root › Parent (parent)" })).toHaveValue("parent")
+    await user.selectOptions(screen.getByLabelText("Condition value"), "parent")
+    expect(change).toHaveBeenCalledWith({ type: "predicate", fact: "asp.group_path_ids", operator: "contains", value: "parent" })
+  })
+
   it("keeps commas while typing a numeric range and emits a numeric list", async () => {
     const changed = vi.fn()
     const fact: FactDefinition = { ...geneFact, path: "finding.case_vaf_percent", kind: "number", value_format: "number", operators: ["between", "exists"] }
