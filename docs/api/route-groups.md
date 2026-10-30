@@ -184,11 +184,13 @@ only when applying Tier III to small variants.
 }
 ```
 
-When that flag is true, the service stores the Tier III classification and a
-separate annotation produced by `create_annotation_text_from_gene`. Omitting
-the flag or setting it to false stores only the classification. The flag has no
-effect for Tier I, II, or IV, or for a finding type other than `small_variant`.
-The generator does not read ASPC report wording or published clinical rule sets.
+For small-variant Tier I, II and III assignments, that flag evaluates the published
+`bulk_annotation_rules` and saves matching text as a separate annotation with its
+rule-version provenance. Omitting the flag stores only the classification.
+Automatic text is rejected for removal, Tier IV and other finding families.
+`POST /api/v1/samples/{sample_id}/classifications/tier/preview` accepts the same
+typed assignment and returns matched text per finding without writes, under the
+same ownership and assignment permissions.
 
 > **Info: Export route ownership**
 >

@@ -215,20 +215,49 @@ def test_publish_rejects_an_assay_no_longer_available():
         service.publish("id", ClinicalRuleTransition(), actor="publisher")
 
 
-@pytest.mark.parametrize("operation,status", [("submit", "draft"), ("publish", "approved")])
-def test_review_gates_require_embedded_tests(operation, status):
-    document = _document(status=status, active=False)
+def test_submission_without_embedded_tests_warns_assigned_reviewer():
+    document = _document(status="draft", active=False)
     document.test_cases = []
     service = governed_service(Repository(document))
+    notifications = []
+    service.notification_service = SimpleNamespace(
+        create_notification=lambda **kwargs: notifications.append(kwargs)
+    )
     readiness = service.validate("id")
-    assert readiness["valid"] is False
-    assert "No embedded clinical rule test cases are configured" in readiness["errors"]
+    assert readiness["valid"] is True
+    assert "No embedded clinical rule test cases are configured" in readiness["warnings"]
+    result = service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    assert result["status"] == "submitted"
+    assert result["test_cases"] == []
+    assert len(notifications) == 1
+    assert notifications[0]["recipients"] == ["reviewer"]
+    assert "No embedded clinical rule test cases" in notifications[0]["message"]
+
+
+def test_publication_requires_embedded_tests():
+    document = _document(status="approved", active=False)
+    document.test_cases = []
+    service = governed_service(Repository(document))
     with pytest.raises(AppError) as failure:
-        getattr(service, operation)(
-            "id", ClinicalRuleTransition(assignee="reviewer"), actor="author"
-        )
+        service.publish("id", ClinicalRuleTransition(), actor="publisher")
     assert failure.value.status_code == 422
-    assert service.repository.document["status"] == status
+    assert service.repository.document["status"] == "approved"
+
+
+@pytest.mark.parametrize("invalid_case", [False, True])
+def test_submission_still_rejects_rule_errors_and_failing_cases(invalid_case):
+    """Missing cases may warn, but invalid rules and existing failures still block review."""
+    document = _document(status="draft", active=False)
+    if invalid_case:
+        document.test_cases[0].expected_sections = {"Summary": ["Incorrect output"]}
+    else:
+        document.test_cases = []
+        document.blocks = []
+    service = governed_service(Repository(document))
+    with pytest.raises(AppError) as failure:
+        service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
+    assert failure.value.status_code == 422
+    assert service.repository.document["status"] == "draft"
 
 
 def test_submit_rejects_edit_after_validation(monkeypatch):
@@ -604,6 +633,17 @@ def test_import_creates_a_new_draft_with_canonical_provenance() -> None:
 def test_export_import_round_trip_assigns_new_application_metadata(include_metadata):
     """Both export forms preserve authored content while import allocates a fresh draft."""
     source = _document(status="published", active=True)
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+
+    source.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="annotation",
+            name="Annotation",
+            tier=2,
+            order=10,
+            output=[{"type": "text", "value": "Reviewed template."}],
+        )
+    ]
     repository = Repository(source)
     service = ClinicalRuleAuthoringService(repository)
     exported = service.export("source", include_metadata=include_metadata)

@@ -95,15 +95,15 @@ the current annotation contract before lifecycle writes are enabled.
 ### Bulk classification text
 
 Bulk classification always stores the requested Tier I-IV classification.
-For Tier III small variants, the confirmation dialog also offers **Include
-automatic text**. When selected, the backend calls
-`create_annotation_text_from_gene` and stores its result as a separate text
-annotation for each eligible variant. The generator uses the selected
-consequence, gene, assay group, and local OncoKB gene status.
+For Tier I–III small variants, the confirmation dialog offers **Include automatic
+text**, unchecked by default. Preview matching published annotation templates
+before confirming. Findings with no matching template receive the chosen tier
+without generated text. Matching text is saved as a separate annotation with its
+rule-version provenance. Sample measurements are not inserted into reusable text.
 
-The option is unavailable for CNVs, fusions, and translocations, and for Tier
-I, II, and IV. Those actions store the classification only. ASPC reporting
-fields and published clinical report rules are not inputs to this annotation generator.
+The option is unavailable for CNVs, fusions, translocations and Tier IV.
+Individual tiering does not generate annotation text. Configure the templates in
+the clinical rule editor's **Bulk annotation text** tab.
 
 ## RNA Interpretation Actions
 

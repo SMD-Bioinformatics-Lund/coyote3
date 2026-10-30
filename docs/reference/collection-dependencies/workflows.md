@@ -111,7 +111,7 @@ One draft or immutable released version of a clinical rule scope.
 
 rule_set_id is the stable rule identity, content_version the clinical release, revision the save counter, and _id one content-version document. None are interchangeable. The published document is immutable; reference dependencies are resolution by full scope, not merely matching the display name.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `schema_version`, `scope`, `name`, `analysis_declarations`, `terminology`, `blocks`, `test_cases`, `references`, `rule_set_id`, `content_version`, `revision`, `status`, `active`, `provenance`, `change_summary`, `review`, `lifecycle`, `created_at`, `updated_at`, `published_at`, `published_by`, `effective_from`, `retired_at`, `retired_by`, `content_hash`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `schema_version`, `scope`, `name`, `analysis_declarations`, `terminology`, `blocks`, `bulk_annotation_rules`, `test_cases`, `references`, `rule_set_id`, `content_version`, `revision`, `status`, `active`, `provenance`, `change_summary`, `review`, `lifecycle`, `created_at`, `updated_at`, `published_at`, `published_by`, `effective_from`, `retired_at`, `retired_by`, `content_hash`.
 
 [Field types and validation](../mongodb-collections.md#clinical_rule_sets). `_id` may also be retained by an open collection model.
 

@@ -10,6 +10,18 @@ from coyote3.config.loaders.filter_flags import filter_flag_options
 
 FactKind = Literal["boolean", "integer", "number", "string", "string_list", "object_list"]
 
+BULK_ANNOTATION_FACT_PATHS = frozenset(
+    {
+        "finding.gene",
+        "finding.consequence",
+        "finding.tier",
+        "finding.hgvsc",
+        "finding.hgvsp",
+        "sample.asp_id",
+        "sample.diagnosis_id",
+    }
+)
+
 
 class ClinicalFactDefinition(BaseModel):
     """Immutable fact metadata defining rule operators, scopes, and editor hints."""

@@ -49,6 +49,7 @@ class TierChange(BaseModel):
     tier: int = Field(ge=1, le=4)
     apply: bool = True
     include_automatic_text: bool = False
+    annotation_rule_hash: str | None = None
     deactivation_scope: Literal["diagnosis", "group"] = "diagnosis"
 
     @model_validator(mode="after")

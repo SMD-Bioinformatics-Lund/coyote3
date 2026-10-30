@@ -278,6 +278,41 @@ def test_tiering_prevalidates_ownership_and_retains_clinical_workflow(sdk):
     assert sdk.classifier.set_tier_bulk.call_args.kwargs["class_num"] == 2
 
 
+def test_annotation_preview_keeps_assignment_permissions_and_ownership_checks(sdk):
+    """A read-only preview cannot bypass tier assignment grants or sample ownership."""
+    change = TierChange(
+        resource_type="small_variant",
+        resource_ids=["finding-1"],
+        tier=2,
+        include_automatic_text=True,
+    )
+    sdk.grants.remove("tier:assign")
+    with pytest.raises(AppError):
+        sdk.samples.ref("demo").set_tiers(change, preview=True)
+    sdk.classifier.set_tier_bulk.assert_not_called()
+    sdk.grants.add("tier:assign")
+    sdk.classifier.set_tier_bulk.return_value = [{"resource_id": "finding-1", "text": None}]
+    result = sdk.samples.ref("demo").set_tiers(change, preview=True)
+    assert result == [{"resource_id": "finding-1", "text": None}]
+    sdk.classifier.require_resource_for_sample.assert_called_once()
+    assert sdk.classifier.set_tier_bulk.call_args.kwargs["preview_only"] is True
+
+
+def test_annotation_template_preview_requires_rule_view_permission(sdk):
+    """Synthetic previews still require permission to inspect the rule version."""
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationPreviewRequest
+
+    service = Mock()
+    service.preview_bulk_annotation.return_value = {"rule_id": None, "text": None}
+    rules = ClinicalRules(sdk.runtime, lambda: service, Mock())
+    facts = BulkAnnotationPreviewRequest(tier=2, gene="GENE_A")
+    with pytest.raises(AppError):
+        rules.preview_bulk_annotation("version", facts)
+    service.preview_bulk_annotation.assert_not_called()
+    sdk.grants.add("clinical_rules:view")
+    assert rules.preview_bulk_annotation("version", facts) == {"rule_id": None, "text": None}
+
+
 def test_group_deactivation_requires_global_removal_grant(sdk):
     change = TierChange(
         resource_type="small_variant",

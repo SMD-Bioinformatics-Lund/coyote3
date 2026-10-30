@@ -189,7 +189,7 @@ def test_automatic_variant_annotation_rejects_rna_configuration() -> None:
     configuration = _configuration(document)
     configuration["asp_category"] = "rna"
     with pytest.raises(ValueError, match="requires a DNA configuration"):
-        ClinicalRuleService(None).annotation_tumor_type(
+        ClinicalRuleService(None).bulk_annotation_release(
             aspc=configuration, sample={"asp_category": "rna"}
         )
 

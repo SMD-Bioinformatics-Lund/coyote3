@@ -7,6 +7,17 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Validation separates warnings from blocking errors and accepts intentional
+  additive report text. Imported rule display order matches execution order;
+  deleting earlier items preserves selection, and Base annotation previews support
+  named diagnosis conditions.
+- Clinical rule sets separate report wording from conditional bulk Tier I–III
+  annotation templates, with synthetic previews, bulk confirmation previews and
+  persisted template provenance. Version notes group change summaries and history.
+- Initial reporting rules can enter independent review without embedded test cases;
+  the workspace and reviewer notification explicitly warn that tests are missing.
+- Clinical reviewer choices exclude the logged-in user, matching the existing
+  server restriction against self-assignment.
 - Existing draft rules can move up or down within a section without recreating
   their conditions or wording; saved order also controls first-match precedence.
 - Panel-DNA reporting rules count only panel-covered selected genes, matching the

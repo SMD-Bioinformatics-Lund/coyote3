@@ -5,10 +5,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from coyote3.application.classification.bulk_annotation_rules import render_bulk_annotation
 from coyote3.application.common.assay_config import get_formatted_assay_config
 from coyote3.application.common.finding_access import require_sample_finding
-from coyote3.application.interpretation.report_summary import create_annotation_text_from_gene
 from coyote3.application.reporting.clinical_rules.service import ClinicalRuleService
+from coyote3.contracts.schemas.clinical_rules import BulkAnnotationPreviewRequest
 from coyote3.domain.annotation_identity import primary_small_variant_identity
 from coyote3.domain.annotation_scope import annotation_namespace
 from coyote3.domain.common.errors import api_error
@@ -30,7 +31,6 @@ class ResourceClassificationService:
             translocation_repository=store.translocation_repository,
             assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
-            oncokb_repository=store.oncokb_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
         )
 
@@ -44,7 +44,6 @@ class ResourceClassificationService:
         translocation_repository: Any,
         assay_panel_repository: Any,
         assay_configuration_repository: Any,
-        oncokb_repository: Any,
         clinical_rule_service: ClinicalRuleService | None = None,
     ) -> None:
         """Build the classification service with explicit persistence dependencies."""
@@ -55,7 +54,6 @@ class ResourceClassificationService:
         self.translocation_repository = translocation_repository
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
-        self.oncokb_repository = oncokb_repository
         self.clinical_rule_service = clinical_rule_service
 
     def classification_context(self, sample: dict[str, Any]) -> dict[str, Any]:
@@ -255,7 +253,9 @@ class ResourceClassificationService:
         create_classified_variant_doc_fn,
         include_automatic_text: bool = False,
         deactivation_scope: str = "diagnosis",
-    ) -> None:
+        preview_only: bool = False,
+        annotation_rule_hash: str | None = None,
+    ) -> list[dict[str, Any]] | None:
         """Assign tiers or deactivate matching annotations in bulk.
 
         Args:
@@ -268,6 +268,11 @@ class ResourceClassificationService:
             include_automatic_text: Whether to add supported application-generated text.
             deactivation_scope: Diagnosis limits deactivation to the current assay/diagnosis/tier;
                 group retires all finding annotations across assays and diagnoses in the group.
+            preview_only: Return generated text per finding without any writes.
+            annotation_rule_hash: Optional previewed release hash; reject a changed release.
+
+        Returns:
+            Preview rows when requested; None after a persisted action.
         """
         if deactivation_scope not in {"diagnosis", "group"} or (
             apply and deactivation_scope == "group"
@@ -276,29 +281,33 @@ class ResourceClassificationService:
         bulk_docs: list[dict[str, Any]] = []
         classification_context = self.classification_context(sample)
         normalized_type = self.normalize_resource_type(resource_type)
-        tumor_type = None
-        if (
-            class_num == 3
-            and normalized_type == "small_variant"
-            and (include_automatic_text or not apply)
-        ):
+        release = None
+        previews = []
+        if preview_only and not (apply and include_automatic_text):
+            raise api_error(422, "Annotation preview requires a bulk assignment with text")
+        if include_automatic_text:
+            if not apply or class_num not in {1, 2, 3} or normalized_type != "small_variant":
+                raise api_error(
+                    422, "Bulk annotation templates support small-variant Tier I–III assignments"
+                )
             try:
                 if self.clinical_rule_service is not None:
-                    tumor_type = self.clinical_rule_service.annotation_tumor_type(
+                    release = self.clinical_rule_service.bulk_annotation_release(
                         aspc=classification_context["configuration"],
                         sample=sample,
                     )
             except ValueError as error:
-                if include_automatic_text and apply:
-                    raise api_error(
-                        422,
-                        "Automatic annotation requires valid published reporting rules",
-                        str(error),
-                    ) from error
-            if include_automatic_text and apply and not tumor_type:
+                raise api_error(
+                    422, "Automatic annotation requires valid published reporting rules", str(error)
+                ) from error
+            if release is None:
                 raise api_error(
                     422,
-                    "Configure automatic annotation tumor-type wording in the published reporting rules",
+                    "Publish bulk annotation rules for this assay and diagnosis first",
+                )
+            if annotation_rule_hash is not None and release.content_hash != annotation_rule_hash:
+                raise api_error(
+                    409, "Annotation rules changed after preview. Preview the text again."
                 )
         for resource_id in resource_ids:
             identity = self._load_resource_identity(
@@ -311,18 +320,45 @@ class ResourceClassificationService:
                 continue
 
             automatic_text = None
-            if class_num == 3 and normalized_type == "small_variant" and tumor_type:
+            rule_source = None
+            if release is not None:
                 text_context = identity["automatic_text_context"]
-                gene = str(text_context.get("gene") or "").strip()
-                if gene:
-                    consequence = self._consequence_list(text_context.get("consequence"))
-                    if consequence:
-                        automatic_text = create_annotation_text_from_gene(
-                            gene,
-                            consequence,
-                            tumor_type,
-                            gene_oncokb=self.oncokb_repository.get_oncokb_gene(gene),
-                        )
+                try:
+                    rendered = render_bulk_annotation(
+                        release,
+                        BulkAnnotationPreviewRequest(
+                            tier=class_num,
+                            gene=text_context.get("gene"),
+                            consequence=self._consequence_list(text_context.get("consequence")),
+                            hgvsc=identity["variant_data"].get("hgvsc"),
+                            hgvsp=identity["variant_data"].get("hgvsp"),
+                        ),
+                        diagnosis_id=classification_context["diagnosis_id"],
+                    )
+                except ValueError as error:
+                    raise api_error(
+                        422, "Bulk annotation text could not be generated", str(error)
+                    ) from error
+                automatic_text = rendered.text
+                if rendered.rule_id:
+                    rule_source = {
+                        "rule_set_id": release.rule_set_id,
+                        "content_version": release.content_version,
+                        "revision": release.revision,
+                        "content_hash": release.content_hash,
+                        "rule_id": rendered.rule_id,
+                        "tier": class_num,
+                    }
+                previews.append(
+                    {
+                        "resource_id": str(resource_id),
+                        "content_hash": release.content_hash,
+                        "gene": text_context.get("gene"),
+                        **rendered.model_dump(),
+                    }
+                )
+            if preview_only:
+                continue
 
             if not apply:
                 self.annotation_repository.deactivate_classified_variant(
@@ -346,17 +382,19 @@ class ResourceClassificationService:
                 )
             )
             if include_automatic_text and automatic_text:
-                bulk_docs.append(
-                    deepcopy(
-                        create_classified_variant_doc_fn(
-                            variant=identity["variant"],
-                            nomenclature=identity["nomenclature"],
-                            class_num=class_num,
-                            variant_data=identity["variant_data"],
-                            text=automatic_text,
-                        )
+                annotation = deepcopy(
+                    create_classified_variant_doc_fn(
+                        variant=identity["variant"],
+                        nomenclature=identity["nomenclature"],
+                        class_num=class_num,
+                        variant_data=identity["variant_data"],
+                        text=automatic_text,
                     )
                 )
+                annotation["rule_source"] = rule_source
+                bulk_docs.append(annotation)
+        if preview_only:
+            return previews
         if bulk_docs:
             self.annotation_repository.insert_annotation_bulk(bulk_docs)
 

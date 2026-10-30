@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
     from coyote3.application.reporting.clinical_rules.testing import ClinicalRuleTestingService
     from coyote3.contracts.schemas.clinical_rules import (
+        BulkAnnotationPreviewRequest,
         ClinicalRuleDecision,
         ClinicalRuleDraftCreate,
         ClinicalRuleDraftUpdate,
@@ -243,6 +244,24 @@ class ClinicalRules:
             "clinical_rules.validate",
             ("clinical_rules:draft",),
             lambda actor, sample: deepcopy(self._service().validate(identity)),
+        )
+
+    def preview_bulk_annotation(
+        self, identity: str, facts: BulkAnnotationPreviewRequest
+    ) -> dict[str, Any]:
+        """Preview synthetic annotation wording under clinical-rule view access.
+
+        Args:
+            identity: Saved rule version identifier.
+            facts: Finding values supplied without patient or sample identifiers.
+
+        Returns:
+            Matching template and text without writes.
+        """
+        return self._runtime.execute(
+            "clinical_rules.preview_bulk_annotation",
+            ("clinical_rules:view",),
+            lambda actor, sample: self._service().preview_bulk_annotation(identity, facts),
         )
 
     def preview(self, identity: str, facts: dict[str, Any]) -> dict[str, Any]:

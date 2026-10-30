@@ -87,6 +87,8 @@ export type RuleBlock = {
   rules: ClinicalRule[]
 }
 
+export type BulkAnnotationRule = ClinicalRule & { tier: 1 | 2 | 3 }
+
 export type ClinicalRuleSet = {
   _id: string
   rule_set_id: string
@@ -100,6 +102,7 @@ export type ClinicalRuleSet = {
   analysis_declarations: Record<string, { narrative: "enabled" | "none" }>
   terminology: Record<string, unknown>
   blocks: RuleBlock[]
+  bulk_annotation_rules?: BulkAnnotationRule[]
   test_cases: unknown[]
   references: Record<string, unknown>[]
   change_summary: string

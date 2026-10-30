@@ -158,6 +158,52 @@ def test_export_http_omits_metadata_unless_requested(include_metadata):
         assert "review" not in payload and "lifecycle" not in payload
 
 
+@pytest.mark.parametrize("extra_field", [False, True])
+def test_bulk_annotation_preview_http_uses_safe_facts_without_writes(extra_field):
+    """Synthetic previews return rendered Markdown and reject sample-specific inputs."""
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+    from tests.unit.reporting.test_clinical_rule_authoring_exhaustive import Repository
+
+    document = _document(status="draft")
+    document.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="gene_text",
+            name="Gene text",
+            tier=2,
+            order=10,
+            output=[
+                {"type": "text", "value": "**Reviewed** "},
+                {"type": "fact", "path": "finding.gene"},
+            ],
+        )
+    ]
+    repository = Repository(document)
+    before = repository.document.copy()
+    service = ClinicalRuleAuthoringService(repository)
+    app = FastAPI()
+    app.include_router(rules.router)
+    route = next(
+        route for route in rules.router.routes if route.path.endswith("/bulk-annotations/preview")
+    )
+    for dependency in route.dependant.dependencies:
+        if dependency.name == "_user":
+            app.dependency_overrides[dependency.call] = fx.api_user
+        elif dependency.name == "service":
+            app.dependency_overrides[dependency.call] = lambda: _operations(fx.api_user(), service)
+    payload = {"tier": 2, "gene": "GENE_A"}
+    if extra_field:
+        payload["sample_name"] = "synthetic"
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/admin/clinical-rule-sets/versions/source/bulk-annotations/preview",
+            json=payload,
+        )
+    assert response.status_code == (422 if extra_field else 200)
+    if not extra_field:
+        assert response.json() == {"rule_id": "gene_text", "text": "**Reviewed** GENE_A"}
+    assert repository.document == before
+
+
 def test_revision_routes_return_immutable_history(monkeypatch) -> None:
     monkeypatch.setattr(rules, "_serializable", lambda value: value)
     service = SimpleNamespace(

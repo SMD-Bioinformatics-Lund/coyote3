@@ -16,11 +16,13 @@ export function useBulkFindingAction(sampleId: string, resourceType: FindingReso
       action,
       resourceIds,
       includeAutomaticText,
+      annotationRuleHash,
     }: {
       action: FindingAction
       resourceIds: string[]
       includeAutomaticText?: boolean
-    }) => applyFindingAction({ sampleId, resourceType, action, resourceIds, includeAutomaticText }),
+      annotationRuleHash?: string
+    }) => applyFindingAction({ sampleId, resourceType, action, resourceIds, includeAutomaticText, annotationRuleHash }),
     onSuccess: (_result, variables) => {
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })

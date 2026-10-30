@@ -608,10 +608,10 @@ permissions, retirement, persistence and existing-installation setup.
 
 ### Annotation vocabulary and sample profiles
 
-`terminology.automatic_annotation_tumor_type` in the published clinical reporting
-rule set supplies tumor-type wording for automatic Tier III annotations. Configure
-it through the reporting-rule editor and publish a reviewed version; no restart
-is required. See [annotation terminology](../reference/clinical-reporting-rules.md#automatic-tier-iii-annotation-terminology).
+`bulk_annotation_rules` in the published clinical rule set supplies conditional
+Tier I–III annotation templates. Configure them in **Bulk annotation text** and
+publish a reviewed version; no restart is required. See
+[bulk annotation templates](../reference/clinical-reporting-rules.md#bulk-annotation-templates).
 
 Sample catalog requests default to the deployed environment. The frontend explicitly
 sends `profile_scope`; `all` selects all authorized profiles, never bypassing user

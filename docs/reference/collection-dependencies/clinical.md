@@ -52,7 +52,7 @@ Classification or text annotation with nomenclature-specific finding identity.
 
 New annotations record optional source_sample_id and source_finding_id provenance; older records may have neither. Reusable interpretation matching still uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Deactivation retains records with is_active false; missing is_active means active. Preserve namespace, assay scope, author, timestamps, source links and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`, `is_active`, `deactivated_at`, `deactivated_by`, `source_sample_id`, `source_finding_id`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`, `rule_source`, `is_active`, `deactivated_at`, `deactivated_by`, `source_sample_id`, `source_finding_id`.
 
 [Field types and validation](../mongodb-collections.md#annotation). `_id` may also be retained by an open collection model.
 

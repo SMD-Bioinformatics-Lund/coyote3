@@ -112,7 +112,6 @@ def _classification_service() -> ResourceClassificationService:
         translocation_repository=store.translocation_repository,
         assay_panel_repository=assay_panel_repository,
         assay_configuration_repository=assay_configuration_repository,
-        oncokb_repository=store.oncokb_repository,
     )
 
 

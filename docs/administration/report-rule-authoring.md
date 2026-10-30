@@ -42,6 +42,15 @@ supply report wording.
 
 ## Start with named sections
 
+The **Report wording** and **Bulk annotation text** tabs share the current draft
+and review lifecycle. Report wording retains section/rule editing and report
+preview. Bulk annotation text uses Tier I–III navigation, ordered conditional
+templates and a synthetic finding preview; it saves annotations during opted-in
+bulk tiering, not report prose. Switching tabs preserves edits and selection.
+**Version notes** groups the change summary, governance details and revision
+history. The change summary explains edits for reviewers and never enters report
+or annotation text.
+
 The normal path is **choose when → write the sentence → include and preview**.
 Circular question-mark buttons explain each choice; hover, focus, or click to
 read a hint, and press Escape to close it. Use **Section settings** only when you
@@ -291,6 +300,22 @@ the separate sample-testing and trace workspace. Include paired/unpaired, empty/
 gene lists, missing names and relevant diagnosis scopes in clinical acceptance.
 Then validate, assign the independent clinical reviewer and submit. Section
 starters do not install approved clinical thresholds or publish a rule set.
+Initial configuration can enter review before samples or embedded test cases are
+available. Missing embedded cases produce a warning in the rule workspace and
+the assigned reviewer's notification. Existing cases must pass before submission;
+structural and semantic rule errors still block it.
+
+**Validate** separates blocking errors from warnings. Missing embedded cases do
+not block submission, but publication still requires passing embedded cases.
+These cases use prepared facts and expected text; they do not require a live sample.
+**All matches** intentionally combines independent introduction or closing
+sentences and is not an overlap error. Use **Exactly one** or **At most one** for
+mutually exclusive conclusions. **First match** uses configured numeric rule order;
+validation warns when an earlier unconditional or identical rule makes a later
+rule unreachable. The editor shows imported sections and rules in evaluation order.
+Header suffix and clinical question each permit one value; validation still warns
+when their **All matches** configuration could produce several values. Deleting
+an earlier section or rule preserves the current selection when it still exists.
 
 For a once-per-report SNV rule, **Use grouped SNV sentences** replaces that rule's
 output with grouped tier/gene/VAF prose and adds missing Swedish terminology

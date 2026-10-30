@@ -58,29 +58,35 @@ class Sample:
 
         return self._runtime.execute("sample.read", ("sample:view",), read, sample_id=self.id)
 
-    def set_tiers(self, change: TierChange) -> None:
+    def set_tiers(
+        self, change: TierChange, *, preview: bool = False
+    ) -> list[dict[str, Any]] | None:
         """Assign tiers or deactivate annotations with curation and publication grants.
 
         Args:
             change: Tier, finding family, identifiers and assignment/deactivation intent.
                 Group deactivation additionally requires tier:remove:global.
+            preview: Render bulk annotation text without writing clinical state.
+
+        Returns:
+            Finding preview rows when requested; None after applying a change.
 
         Raises:
             AppError: Access, ownership or existing clinical configuration checks fail.
         """
         change = TierChange.model_validate(change.model_dump())
 
-        def write(actor: Any, record: dict[str, Any] | None) -> None:
+        def write(actor: Any, record: dict[str, Any] | None) -> list[dict[str, Any]] | None:
             """Validate all ownership and publication requirements before writing."""
             sample = _sample(record)
             if not change.resource_ids:
-                return
+                return [] if preview else None
             service = self._services.classification()
             for resource_id in change.resource_ids:
                 service.require_resource_for_sample(
                     sample=sample, resource_type=change.resource_type, resource_id=resource_id
                 )
-            service.set_tier_bulk(
+            result = service.set_tier_bulk(
                 sample=sample,
                 resource_type=change.resource_type,
                 resource_ids=change.resource_ids,
@@ -89,10 +95,17 @@ class Sample:
                 include_automatic_text=change.include_automatic_text,
                 create_classified_variant_doc_fn=self._services.classification_document,
                 deactivation_scope=change.deactivation_scope,
+                **({"preview_only": True} if preview else {}),
+                **(
+                    {"annotation_rule_hash": change.annotation_rule_hash}
+                    if change.annotation_rule_hash is not None
+                    else {}
+                ),
             )
+            return cast(list[dict[str, Any]] | None, result)
 
-        self._runtime.execute(
-            "sample.set_tiers",
+        return self._runtime.execute(
+            "sample.preview_tier_annotations" if preview else "sample.set_tiers",
             (
                 "snv:manage",
                 "tier:assign"

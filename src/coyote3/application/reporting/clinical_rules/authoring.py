@@ -6,9 +6,11 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
+from coyote3.application.classification.bulk_annotation_rules import render_bulk_annotation
 from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
+from coyote3.application.reporting.clinical_rules.registry import BULK_ANNOTATION_FACT_PATHS
 from coyote3.application.reporting.clinical_rules.validation import (
     content_hash,
     validate_rule_set,
@@ -16,6 +18,7 @@ from coyote3.application.reporting.clinical_rules.validation import (
 from coyote3.application.resources.availability import require_active_group
 from coyote3.config.constants import DIAGNOSIS_BASE_ID, ENVIRONMENT_OPTIONS
 from coyote3.contracts.schemas.clinical_rules import (
+    BulkAnnotationPreviewRequest,
     ClinicalRuleConfiguration,
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
@@ -147,6 +150,7 @@ class ClinicalRuleAuthoringService:
                 "assays": [],
                 "condition_values": {},
                 "sentence_terminology": sentence_terminology,
+                "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
                 **self.reviewer_options(),
             }
         assays = []
@@ -180,6 +184,7 @@ class ClinicalRuleAuthoringService:
         )
         return {
             "sentence_terminology": sentence_terminology,
+            "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
             "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
             "condition_values": {
                 "sample.asp_id": [item["asp_id"] for item in assays],
@@ -756,9 +761,31 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 when the version is absent.
         """
-        return validate_rule_set(self._document(document_id), require_tests=True).model_dump(
-            mode="python"
-        )
+        return validate_rule_set(self._document(document_id)).model_dump(mode="python")
+
+    def preview_bulk_annotation(
+        self, document_id: str, facts: BulkAnnotationPreviewRequest
+    ) -> dict[str, Any]:
+        """Preview annotation wording against synthetic facts without database writes.
+
+        Args:
+            document_id: Saved version to evaluate, including an unpublished draft.
+            facts: Safe finding values and explicitly selected tier.
+
+        Returns:
+            Matching rule ID and text, or null values for no match.
+
+        Raises:
+            AppError: Version is absent or its rules or output are invalid.
+        """
+        document = self._document(document_id)
+        validation = validate_rule_set(document)
+        if not validation.valid:
+            raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
+        try:
+            return render_bulk_annotation(document, facts).model_dump(mode="python")
+        except ValueError as exc:
+            raise api_error(422, "Annotation preview failed", str(exc)) from exc
 
     def preview(self, document_id: str, facts: dict[str, Any]) -> dict[str, Any]:
         """Evaluate supplied facts against a version without persisting a report.
@@ -854,12 +881,13 @@ class ClinicalRuleAuthoringService:
                 400 for no reviewer, or 409 for an invalid assignment or transition.
 
         Notes:
-            At least one passing embedded case is required. The write is fenced
-            by the validated revision so a concurrent edit cannot enter review.
+            Missing embedded cases warn the assigned reviewer without blocking submission.
+            Present cases must pass. The write is fenced by the validated revision so a
+            concurrent edit cannot enter review.
         """
         document = self._document(document_id)
         self._validate_new_scope(ClinicalRuleDraftCreate(scope=document.scope))
-        validation = validate_rule_set(document, require_tests=True)
+        validation = validate_rule_set(document)
         reject_system_managed_change(document.model_dump(), resource="clinical rule set")
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
@@ -887,7 +915,15 @@ class ClinicalRuleAuthoringService:
         self._notify(
             recipient=reviewer,
             title="Clinical rule review requested",
-            message=f"{actor} submitted '{document.name}' for your clinical review.",
+            message=(
+                f"{actor} submitted '{document.name}' for your clinical review."
+                + (
+                    " Warning: No embedded clinical rule test cases are configured. "
+                    "The report wording has not been verified by embedded tests."
+                    if not document.test_cases
+                    else ""
+                )
+            ),
             document=document,
             actor=actor,
         )

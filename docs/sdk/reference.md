@@ -1188,6 +1188,23 @@ ClinicalRules.preview(self, identity: 'str', facts: 'dict[str, Any]') -> 'dict[s
 Evaluate supplied facts without loading sample records; requires clinical_rules:draft.
 ```
 
+#### `ClinicalRules.preview_bulk_annotation`
+
+```python
+ClinicalRules.preview_bulk_annotation(self, identity: 'str', facts: 'BulkAnnotationPreviewRequest') -> 'dict[str, Any]'
+```
+
+```text
+Preview synthetic annotation wording under clinical-rule view access.
+
+Args:
+    identity: Saved rule version identifier.
+    facts: Finding values supplied without patient or sample identifiers.
+
+Returns:
+    Matching template and text without writes.
+```
+
 #### `ClinicalRules.preview_sample`
 
 ```python
@@ -4678,7 +4695,7 @@ Change sample-comment visibility after authorizing the owning sample.
 #### `Sample.set_tiers`
 
 ```python
-Sample.set_tiers(self, change: 'TierChange') -> 'None'
+Sample.set_tiers(self, change: 'TierChange', *, preview: 'bool' = False) -> 'list[dict[str, Any]] | None'
 ```
 
 ```text
@@ -4687,6 +4704,10 @@ Assign tiers or deactivate annotations with curation and publication grants.
 Args:
     change: Tier, finding family, identifiers and assignment/deactivation intent.
         Group deactivation additionally requires tier:remove:global.
+    preview: Render bulk annotation text without writing clinical state.
+
+Returns:
+    Finding preview rows when requested; None after applying a change.
 
 Raises:
     AppError: Access, ownership or existing clinical configuration checks fail.
@@ -5020,7 +5041,7 @@ Returns:
 ### `TierChange`
 
 ```python
-TierChange(*, resource_type: Literal['small_variant', 'cnv', 'fusion', 'translocation'], resource_ids: Annotated[list[str], MaxLen(max_length=10000)], tier: Annotated[int, Ge(ge=1), Le(le=4)], apply: bool = True, include_automatic_text: bool = False, deactivation_scope: Literal['diagnosis', 'group'] = 'diagnosis') -> None
+TierChange(*, resource_type: Literal['small_variant', 'cnv', 'fusion', 'translocation'], resource_ids: Annotated[list[str], MaxLen(max_length=10000)], tier: Annotated[int, Ge(ge=1), Le(le=4)], apply: bool = True, include_automatic_text: bool = False, annotation_rule_hash: str | None = None, deactivation_scope: Literal['diagnosis', 'group'] = 'diagnosis') -> None
 ```
 
 ```text
@@ -5570,7 +5591,7 @@ Draft creation inputs for a new scope or a copied source version.
 ### `ClinicalRuleDraftUpdate`
 
 ```python
-ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, test_cases: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
+ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, bulk_annotation_rules: list[coyote3.contracts.schemas.clinical_rules.BulkAnnotationRule] | None = None, test_cases: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
 ```
 
 ```text

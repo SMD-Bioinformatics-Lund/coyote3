@@ -32,29 +32,38 @@ subsequent matching requests; saved reports retain their original rule content.
 
 > **Important: classification annotations are separate**
 >
-> Rule blocks produce report narrative. Bulk Tier III classification uses a separate
-> application sentence generator, with tumor-type wording from the published rule
-> set's terminology. Publishing rules does not classify findings or rewrite annotations.
+> Rule blocks produce report narrative. Bulk annotation templates produce stored
+> annotation text. Publishing rules does not classify findings or rewrite annotations.
 
-## Automatic Tier III annotation terminology
+## Bulk annotation templates
 
-In **Administration → Clinical reporting rules**, open a DNA draft and set
-**Automatic Tier III annotation → Tumor-type wording**. The field is stored as
-`terminology.automatic_annotation_tumor_type`; for example, `hematologiska` or
-`solida` completes the existing Swedish sentence before “maligniteter”.
+In **Administration → Clinical reporting rules**, open a DNA draft and select
+**Bulk annotation text**. Select Tier I, II or III, add a template, define its
+conditions and Markdown text, then explicitly enable it. Templates are stored in
+`bulk_annotation_rules`, separately from report sections. The first enabled matching
+template for the chosen tier supplies the text. No condition means an explicit
+fallback, so place it after more specific templates.
 
 | Property | Requirement or behavior |
 | --- | --- |
-| Value | Optional trimmed text, 1–120 characters when supplied. Clear the field to omit it. |
+| Values | Gene, consequence list, HGVS c/p, target tier, assay and diagnosis. No sample measurements or patient identifiers. |
 | Scope | Current published DNA rules for the sample's assay and diagnosis, with assay Base fallback and the configured reporting language. |
-| Inheritance | Terminology comes from the selected release as a whole. An exact diagnosis release with no term does not borrow a term from Base. |
-| Language | Automatic sentence generation currently supports `sv` only. |
+| Inheritance | Templates come from the selected release as a whole. An exact diagnosis release with no templates does not borrow them from Base. |
+| Language | Authored wording uses the release language; there is no fixed Swedish sentence generator. |
 | Governance | Included in the content hash, draft revision, independent review and publication lifecycle, using existing clinical-rule permissions. |
-| Missing wording or invalid release | An explicit request for automatic text fails before classifications are written. Ordinary classification remains available. |
+| No match | The finding receives the selected tier with no generated text; preview identifies unmatched findings. |
+| Invalid release or required value | Generation fails before any classification or annotation is written. |
 | Existing annotations | Preserved. Publication does not rewrite or translate stored text. |
 
-This field supplies one phrase; it is not a free-form annotation template and does not
-change query filters, transcript selection or tier assignment. See the
+Preview synthetic values without a sample in the right panel. The preview
+diagnosis defaults to the release scope. Set a named diagnosis when
+testing diagnosis-specific conditions on Base templates. Actual bulk actions use
+the sample's server-resolved diagnosis, regardless of synthetic preview input.
+In the finding table,
+bulk Tier I–III actions offer **Include automatic text**, unchecked by default.
+Preview the resulting annotations before confirming. Each saved generated annotation
+records its rule ID, content version, revision and hash; the application sets actor
+and time. Individual tiering does not invoke these templates. See the
 [system role catalog](../administration/system-role-catalog.md) for reporting-rule roles.
 
 ## Report metadata outputs

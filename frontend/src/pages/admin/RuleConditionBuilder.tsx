@@ -21,6 +21,7 @@ export function ConditionBuilder({
   onRemove,
   depth = 0,
   controlledValues = {},
+  allowCollections = true,
 }: {
   value: Condition
   facts: FactDefinition[]
@@ -29,6 +30,7 @@ export function ConditionBuilder({
   onRemove?: () => void
   depth?: number
   controlledValues?: Record<string, string[]>
+  allowCollections?: boolean
 }) {
   const replaceType = (type: Condition["type"]) => {
     if (type === "predicate") onChange(newPredicate(facts))
@@ -44,7 +46,7 @@ export function ConditionBuilder({
           <option value="all">Match all</option>
           <option value="any">Match any</option>
           <option value="not">Exclude when</option>
-          <option value="collection_match">Find in collection</option>
+          {allowCollections && <option value="collection_match">Find in collection</option>}
         </select>
         <RuleHelp label="Combine conditions">Condition checks one value. Match all requires every child condition. Match any accepts at least one. Exclude when reverses a condition. Find in collection checks individual findings, selected gene lists or measurements; put related checks inside the same item match.</RuleHelp>
         {onRemove && <Button type="button" variant="ghost" size="icon-sm" title="Remove condition" onClick={onRemove}><icon.trash2 /></Button>}
@@ -56,6 +58,7 @@ export function ConditionBuilder({
         <div className="mt-2 space-y-2">
           {value.children.map((child, index) => (
             <ConditionBuilder
+              allowCollections={allowCollections}
               key={index}
               value={child}
               facts={facts}
@@ -69,7 +72,7 @@ export function ConditionBuilder({
           <Button type="button" className="clinical-rule-action" data-action="condition" variant="outline" size="sm" onClick={() => onChange({ ...value, children: [...value.children, newPredicate(facts)] })}><icon.plus /> Add condition</Button>
         </div>
       )}
-      {value.type === "not" && <ConditionBuilder value={value.child} facts={facts} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(child) => onChange({ ...value, child })} />}
+      {value.type === "not" && <ConditionBuilder allowCollections={allowCollections} value={value.child} facts={facts} allFacts={allFacts} depth={depth + 1} controlledValues={controlledValues} onChange={(child) => onChange({ ...value, child })} />}
       {value.type === "collection_match" && (
         <div className="mt-2 space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">

@@ -272,6 +272,38 @@ class ClinicalRule(_StrictModel):
         return value
 
 
+class BulkAnnotationRule(ClinicalRule):
+    """Ordered text template for an explicitly selected bulk Tier I, II or III action."""
+
+    tier: Literal[1, 2, 3]
+
+
+class BulkAnnotationPreviewRequest(_StrictModel):
+    """Synthetic finding facts for testing annotation wording without a sample."""
+
+    tier: Literal[1, 2, 3]
+    diagnosis_id: str | None = Field(default=None, min_length=1)
+    gene: str | None = None
+    consequence: list[str] = Field(default_factory=list)
+    hgvsc: str | None = None
+    hgvsp: str | None = None
+
+
+class BulkAnnotationPreviewResult(_StrictModel):
+    """First matching annotation template and rendered text, without persistence."""
+
+    rule_id: str | None = None
+    text: str | None = None
+
+
+class BulkAnnotationFindingPreview(BulkAnnotationPreviewResult):
+    """Generated text for one owned selected finding, without an annotation write."""
+
+    resource_id: str
+    content_hash: str
+    gene: str | None = None
+
+
 class ClinicalRuleEvaluationScope(_StrictModel):
     """Select evaluation once, per finding, or per named collection item."""
 
@@ -421,27 +453,6 @@ class ClinicalRuleTestCase(_StrictModel):
     expected_sections: dict[str, list[str]] = Field(default_factory=dict)
 
 
-def validate_reporting_terminology(value: dict | None) -> dict | None:
-    """Validate the reserved automatic-annotation term without restricting other terminology.
-
-    Args:
-        value: Rule terminology mapping; None means no draft update.
-
-    Returns:
-        Unchanged mapping after checking the optional tumor-type wording.
-
-    Raises:
-        ValueError: The reserved term is blank, non-text, too long or not trimmed.
-    """
-    if value is not None and "automatic_annotation_tumor_type" in value:
-        term = value["automatic_annotation_tumor_type"]
-        if not isinstance(term, str) or not term.strip() or term != term.strip() or len(term) > 120:
-            raise ValueError(
-                "automatic_annotation_tumor_type must be trimmed nonempty text up to 120 characters"
-            )
-    return value
-
-
 class ClinicalRuleConfiguration(_StrictModel):
     """Portable authored rules without application-managed identity or audit metadata."""
 
@@ -451,10 +462,11 @@ class ClinicalRuleConfiguration(_StrictModel):
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] = Field(default_factory=dict)
     terminology: dict[str, Any] = Field(default_factory=dict)
     blocks: list[ClinicalRuleBlock] = Field(default_factory=list)
+    bulk_annotation_rules: list[BulkAnnotationRule] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     test_cases: list[ClinicalRuleTestCase] = Field(default_factory=list)
     references: list[dict[str, Any]] = Field(default_factory=list)
-
-    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
 
     @model_validator(mode="after")
     def _unique_identifiers(self) -> "ClinicalRuleConfiguration":
@@ -470,8 +482,13 @@ class ClinicalRuleConfiguration(_StrictModel):
         if len(block_ids) != len(set(block_ids)):
             raise ValueError("block IDs must be unique")
         rule_ids = [rule.rule_id for block in self.blocks for rule in block.rules]
+        rule_ids.extend(rule.rule_id for rule in self.bulk_annotation_rules)
         if len(rule_ids) != len(set(rule_ids)):
             raise ValueError("rule IDs must be unique across the rule set")
+        for tier in (1, 2, 3):
+            orders = [rule.order for rule in self.bulk_annotation_rules if rule.tier == tier]
+            if len(orders) != len(set(orders)):
+                raise ValueError(f"Tier {tier} annotation rule orders must be unique")
         return self
 
 
@@ -632,11 +649,10 @@ class ClinicalRuleDraftUpdate(_StrictModel):
     analysis_declarations: dict[str, ClinicalAnalysisDeclaration] | None = None
     terminology: dict[str, Any] | None = None
     blocks: list[ClinicalRuleBlock] | None = None
+    bulk_annotation_rules: list[BulkAnnotationRule] | None = None
     test_cases: list[ClinicalRuleTestCase] | None = None
     references: list[dict[str, Any]] | None = None
     change_summary: str | None = None
-
-    _validate_terminology = field_validator("terminology")(validate_reporting_terminology)
 
 
 class ClinicalRuleDecision(_StrictModel):
@@ -728,6 +744,7 @@ class ClinicalRuleAuthoringOptionsPayload(_StrictModel):
     clinical_reviewers: list[dict[str, str]] = Field(default_factory=list)
     publishers: list[dict[str, str]] = Field(default_factory=list)
     sentence_terminology: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    bulk_annotation_fact_paths: list[str] = Field(default_factory=list)
 
 
 class ClinicalRuleTestSample(_StrictModel):

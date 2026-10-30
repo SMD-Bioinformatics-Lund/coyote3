@@ -1592,6 +1592,198 @@ export type BodyIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleU
 };
 
 /**
+ * BulkAnnotationFindingPreview
+ *
+ * Generated text for one owned selected finding, without an annotation write.
+ */
+export type BulkAnnotationFindingPreview = {
+    /**
+     * Content Hash
+     */
+    content_hash: string;
+    /**
+     * Gene
+     */
+    gene?: string | null;
+    /**
+     * Resource Id
+     */
+    resource_id: string;
+    /**
+     * Rule Id
+     */
+    rule_id?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+};
+
+/**
+ * BulkAnnotationPreviewRequest
+ *
+ * Synthetic finding facts for testing annotation wording without a sample.
+ */
+export type BulkAnnotationPreviewRequest = {
+    /**
+     * Consequence
+     */
+    consequence?: Array<string>;
+    /**
+     * Diagnosis Id
+     */
+    diagnosis_id?: string | null;
+    /**
+     * Gene
+     */
+    gene?: string | null;
+    /**
+     * Hgvsc
+     */
+    hgvsc?: string | null;
+    /**
+     * Hgvsp
+     */
+    hgvsp?: string | null;
+    /**
+     * Tier
+     */
+    tier: 1 | 2 | 3;
+};
+
+/**
+ * BulkAnnotationPreviewResult
+ *
+ * First matching annotation template and rendered text, without persistence.
+ */
+export type BulkAnnotationPreviewResult = {
+    /**
+     * Rule Id
+     */
+    rule_id?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+};
+
+/**
+ * BulkAnnotationRule
+ *
+ * Ordered text template for an explicitly selected bulk Tier I, II or III action.
+ */
+export type BulkAnnotationRuleInput = {
+    /**
+     * Condition
+     */
+    condition?: ({
+        type: 'predicate';
+    } & ClinicalRulePredicate) | ({
+        type: 'all';
+    } & ClinicalRuleAllInput) | ({
+        type: 'any';
+    } & ClinicalRuleAnyInput) | ({
+        type: 'not';
+    } & ClinicalRuleNotInput) | ({
+        type: 'collection_match';
+    } & ClinicalRuleCollectionMatchInput) | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Order
+     */
+    order: number;
+    /**
+     * Output
+     */
+    output: Array<ClinicalTextOutput | ClinicalFactOutput | ClinicalListOutput | ClinicalNumberOutput | ClinicalMessageOutput | ClinicalRendererOutput | ClinicalParagraphBreakOutput>;
+    /**
+     * Presentation
+     */
+    presentation?: 'paragraph' | 'continue' | 'line' | 'bullet' | 'numbered';
+    /**
+     * Rationale
+     */
+    rationale?: string | null;
+    /**
+     * References
+     */
+    references?: Array<string>;
+    /**
+     * Rule Id
+     */
+    rule_id: string;
+    /**
+     * Tier
+     */
+    tier: 1 | 2 | 3;
+};
+
+/**
+ * BulkAnnotationRule
+ *
+ * Ordered text template for an explicitly selected bulk Tier I, II or III action.
+ */
+export type BulkAnnotationRuleOutput = {
+    /**
+     * Condition
+     */
+    condition?: ({
+        type: 'predicate';
+    } & ClinicalRulePredicate) | ({
+        type: 'all';
+    } & ClinicalRuleAllOutput) | ({
+        type: 'any';
+    } & ClinicalRuleAnyOutput) | ({
+        type: 'not';
+    } & ClinicalRuleNotOutput) | ({
+        type: 'collection_match';
+    } & ClinicalRuleCollectionMatchOutput) | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Order
+     */
+    order: number;
+    /**
+     * Output
+     */
+    output: Array<ClinicalTextOutput | ClinicalFactOutput | ClinicalListOutput | ClinicalNumberOutput | ClinicalMessageOutput | ClinicalRendererOutput | ClinicalParagraphBreakOutput>;
+    /**
+     * Presentation
+     */
+    presentation?: 'paragraph' | 'continue' | 'line' | 'bullet' | 'numbered';
+    /**
+     * Rationale
+     */
+    rationale?: string | null;
+    /**
+     * References
+     */
+    references?: Array<string>;
+    /**
+     * Rule Id
+     */
+    rule_id: string;
+    /**
+     * Tier
+     */
+    tier: 1 | 2 | 3;
+};
+
+/**
  * CancerGeneCensusSummaryPayload
  *
  * Represent non-clinical aggregate Cancer Gene Census information.
@@ -2197,6 +2389,10 @@ export type ClinicalRuleAuthoringOptionsPayload = {
      */
     assays: Array<ClinicalRuleAssayOption>;
     /**
+     * Bulk Annotation Fact Paths
+     */
+    bulk_annotation_fact_paths?: Array<string>;
+    /**
      * Clinical Reviewers
      */
     clinical_reviewers?: Array<{
@@ -2409,6 +2605,10 @@ export type ClinicalRuleConfiguration = {
      */
     blocks?: Array<ClinicalRuleBlockOutput>;
     /**
+     * Bulk Annotation Rules
+     */
+    bulk_annotation_rules?: Array<BulkAnnotationRuleOutput>;
+    /**
      * Name
      */
     name: string;
@@ -2508,6 +2708,10 @@ export type ClinicalRuleDraftUpdate = {
      * Blocks
      */
     blocks?: Array<ClinicalRuleBlockInput> | null;
+    /**
+     * Bulk Annotation Rules
+     */
+    bulk_annotation_rules?: Array<BulkAnnotationRuleInput> | null;
     /**
      * Change Summary
      */
@@ -2996,6 +3200,10 @@ export type ClinicalRuleSetDoc = {
      * Blocks
      */
     blocks?: Array<ClinicalRuleBlockOutput>;
+    /**
+     * Bulk Annotation Rules
+     */
+    bulk_annotation_rules?: Array<BulkAnnotationRuleOutput>;
     /**
      * Change Summary
      */
@@ -9545,6 +9753,42 @@ export type SomaticRnaFiltersDoc = {
 };
 
 /**
+ * TierChange
+ *
+ * Explicit tier assignment or removal, retaining existing clinical validation.
+ */
+export type TierChange = {
+    /**
+     * Annotation Rule Hash
+     */
+    annotation_rule_hash?: string | null;
+    /**
+     * Apply
+     */
+    apply?: boolean;
+    /**
+     * Deactivation Scope
+     */
+    deactivation_scope?: 'diagnosis' | 'group';
+    /**
+     * Include Automatic Text
+     */
+    include_automatic_text?: boolean;
+    /**
+     * Resource Ids
+     */
+    resource_ids: Array<string>;
+    /**
+     * Resource Type
+     */
+    resource_type: 'small_variant' | 'cnv' | 'fusion' | 'translocation';
+    /**
+     * Tier
+     */
+    tier: number;
+};
+
+/**
  * TranslocationFiltersDoc
  *
  * Gene scope for DNA fusion/translocation review.
@@ -11938,6 +12182,62 @@ export type Responses_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumen
 };
 
 export type Response_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdGet = Responses_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdGet[keyof Responses_getRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdGet];
+
+export type Request_previewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPost = {
+    body: BulkAnnotationPreviewRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/clinical-rule-sets/versions/{document_id}/bulk-annotations/preview';
+};
+
+export type PreviewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type PreviewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPostError = PreviewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPostErrors[keyof PreviewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPostErrors];
+
+export type Responses_previewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPost = {
+    /**
+     * Successful Response
+     */
+    200: BulkAnnotationPreviewResult;
+};
+
+export type Response_previewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPost = Responses_previewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPost[keyof Responses_previewBulkAnnotationApiV1AdminClinicalRuleSetsVersionsDocumentIdBulkAnnotationsPreviewPost];
 
 export type Request_exportRuleSetVersionApiV1AdminClinicalRuleSetsVersionsDocumentIdExportGet = {
     body?: never;
@@ -21278,6 +21578,64 @@ export type Responses_setResourceTierBulkApiV1SamplesSampleIdClassificationsTier
 };
 
 export type Response_setResourceTierBulkApiV1SamplesSampleIdClassificationsTierPatch = Responses_setResourceTierBulkApiV1SamplesSampleIdClassificationsTierPatch[keyof Responses_setResourceTierBulkApiV1SamplesSampleIdClassificationsTierPatch];
+
+export type Request_previewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPost = {
+    body: TierChange;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/samples/{sample_id}/classifications/tier/preview';
+};
+
+export type PreviewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type PreviewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPostError = PreviewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPostErrors[keyof PreviewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPostErrors];
+
+export type Responses_previewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPost = {
+    /**
+     * Response Preview Tier Annotations Api V1 Samples  Sample Id  Classifications Tier Preview Post
+     *
+     * Successful Response
+     */
+    200: Array<BulkAnnotationFindingPreview>;
+};
+
+export type Response_previewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPost = Responses_previewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPost[keyof Responses_previewTierAnnotationsApiV1SamplesSampleIdClassificationsTierPreviewPost];
 
 export type Request_listDnaCnvsApiV1SamplesSampleIdCnvsGet = {
     body?: never;

@@ -12,6 +12,7 @@ from coyote3.application.common.change_payload import change_payload
 from coyote3.application.operations.models import TierChange
 from coyote3.application.operations.samples import Sample
 from coyote3.contracts.samples import SampleChangePayload
+from coyote3.contracts.schemas.clinical_rules import BulkAnnotationFindingPreview
 from coyote3.domain.common.errors import api_error
 
 router = APIRouter(tags=[TAG_KNOWLEDGEBASE])
@@ -51,6 +52,7 @@ def set_resource_tier_bulk(
             tier=tier,
             apply=bool(payload.get("apply", True)),
             include_automatic_text=bool(payload.get("include_automatic_text", False)),
+            annotation_rule_hash=payload.get("annotation_rule_hash"),
             deactivation_scope=scope,
         )
     )
@@ -62,6 +64,30 @@ def set_resource_tier_bulk(
             action="set_tier_bulk",
         )
     )
+
+
+@router.post(
+    "/api/v1/samples/{sample_id}/classifications/tier/preview",
+    response_model=list[BulkAnnotationFindingPreview],
+)
+def preview_tier_annotations(
+    sample_id: str,
+    payload: TierChange,
+    user: ApiUser = Depends(require_access(permission="snv:manage")),
+    service: Sample = Depends(get_sample),
+):
+    """Preview bulk annotation text under the same ownership and grants as assignment.
+
+    Args:
+        sample_id: Sample whose selected findings are inspected.
+        payload: Bulk assignment with automatic text enabled.
+        user: Caller with finding-management access.
+        service: Sample-scoped application service enforcing tier and publication grants.
+
+    Returns:
+        Matched template/text or null values per selected finding, without writes.
+    """
+    return service.set_tiers(payload, preview=True) or []
 
 
 @router.post(

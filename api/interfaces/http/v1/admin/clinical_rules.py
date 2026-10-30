@@ -10,6 +10,8 @@ from api.interfaces.http.tags import TAG_CLINICAL_RULES
 from api.security.access import ApiUser, require_access
 from coyote3.application.operations import ClinicalRules
 from coyote3.contracts.schemas.clinical_rules import (
+    BulkAnnotationPreviewRequest,
+    BulkAnnotationPreviewResult,
     ClinicalRuleAuthoringOptionsPayload,
     ClinicalRuleConfiguration,
     ClinicalRuleDecision,
@@ -248,6 +250,30 @@ def export_rule_set_version(
         AppError: The caller lacks access or the requested version is absent.
     """
     return _serializable(service.export(document_id, include_metadata=include_metadata))
+
+
+@router.post(
+    "/versions/{document_id}/bulk-annotations/preview",
+    response_model=BulkAnnotationPreviewResult,
+)
+def preview_bulk_annotation(
+    document_id: str,
+    payload: BulkAnnotationPreviewRequest,
+    _user: ApiUser = Depends(require_access(permission="clinical_rules:view")),
+    service: ClinicalRules = Depends(get_clinical_rules),
+):
+    """Preview a saved annotation template using synthetic finding facts; requires view access.
+
+    Args:
+        document_id: Saved version identifier, including drafts.
+        payload: Finding-level facts with no patient or sample identifiers.
+        _user: Authenticated caller authorized to inspect rules.
+        service: Authenticated clinical-rule application service.
+
+    Returns:
+        Matching template ID and text, or null values when no template matches.
+    """
+    return service.preview_bulk_annotation(document_id, payload)
 
 
 @router.get(

@@ -114,6 +114,8 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     api: [
       "GET /samples/:id/edit-context",
       "GET /samples/:id/small-variants",
+      "PATCH /samples/:id/classifications/tier",
+      "POST /samples/:id/classifications/tier/preview",
       "GET /samples/:id/cnvs",
       "GET /public/filter-flags/metadata",
       "GET /samples/:id/fusions",
@@ -578,6 +580,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /admin/clinical-rule-sets/authoring-options",
       "GET /admin/clinical-rule-sets/versions/:documentId",
       "GET /admin/clinical-rule-sets/versions/:documentId/export",
+      "POST /admin/clinical-rule-sets/versions/:documentId/bulk-annotations/preview",
       "GET /admin/clinical-rule-sets/versions/:documentId/revisions",
       "GET /admin/clinical-rule-sets/versions/:documentId/test-samples",
       "POST /admin/clinical-rule-sets/versions/:documentId/test-samples/:sampleId/preview",

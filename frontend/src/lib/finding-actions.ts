@@ -153,6 +153,17 @@ export function findingQueryKeys(sampleId: string, resourceType: FindingResource
   return keys
 }
 
+export type AnnotationPreviewRow = { resource_id: string; content_hash: string; gene: string | null; rule_id: string | null; text: string | null }
+
+export async function previewBulkAnnotationText(sampleId: string, action: FindingAction, resourceIds: string[]): Promise<AnnotationPreviewRow[]> {
+  const tier = Number(action.replace("tier_", ""))
+  if (![1, 2, 3].includes(tier)) throw new Error("Annotation templates support Tier I–III assignments")
+  return (await api.post<AnnotationPreviewRow[]>(`/samples/${sampleId}/classifications/tier/preview`, {
+    resource_type: "small_variant", resource_ids: resourceIds,
+    tier, apply: true, include_automatic_text: true,
+  }, { errorNotice: "inline" })).data
+}
+
 async function setTierBulk({
   sampleId,
   resourceType,
@@ -160,6 +171,7 @@ async function setTierBulk({
   tier,
   apply,
   includeAutomaticText = false,
+  annotationRuleHash,
 }: {
   sampleId: string
   resourceType: FindingResourceType
@@ -167,6 +179,7 @@ async function setTierBulk({
   tier: number
   apply: boolean
   includeAutomaticText?: boolean
+  annotationRuleHash?: string
 }) {
   return api.patch(`/samples/${sampleId}/classifications/tier`, {
     resource_type: resourceType,
@@ -174,6 +187,7 @@ async function setTierBulk({
     tier,
     apply,
     ...(includeAutomaticText ? { include_automatic_text: true } : {}),
+    ...(annotationRuleHash ? { annotation_rule_hash: annotationRuleHash } : {}),
   })
 }
 
@@ -235,12 +249,14 @@ export async function applyFindingAction({
   action,
   resourceIds,
   includeAutomaticText = false,
+  annotationRuleHash,
 }: {
   sampleId: string
   resourceType: FindingResourceType
   action: FindingAction
   resourceIds: string[]
   includeAutomaticText?: boolean
+  annotationRuleHash?: string
 }) {
   const ids = resourceIds.filter(Boolean)
   if (ids.length === 0) return
@@ -254,6 +270,7 @@ export async function applyFindingAction({
       tier: Number(tierMatch[2]),
       apply: !tierMatch[1],
       includeAutomaticText,
+      annotationRuleHash,
     })
   }
 

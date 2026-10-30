@@ -235,7 +235,7 @@ describe("ClinicalRulesPage", () => {
     } finally { create.mockRestore(); revoke.mockRestore(); click.mockRestore() }
   })
 
-  it("saves automatic annotation wording with the governed draft", async () => {
+  it("saves bulk annotation templates separately and preserves them when switching tabs", async () => {
     mocks.get.mockImplementation((path: string) => {
       if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
       if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
@@ -244,12 +244,20 @@ describe("ClinicalRulesPage", () => {
     })
     renderPage()
     await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
-    await waitFor(() => expect(screen.getByLabelText("Tumor-type wording")).toBeEnabled())
-    fireEvent.change(screen.getByLabelText("Tumor-type wording"), { target: { value: "solida" } })
+    await userEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+    await userEvent.click(screen.getByRole("button", { name: "Add annotation template" }))
+    const panel = within(screen.getByRole("tabpanel", { name: "Bulk annotation text" }))
+    fireEvent.change(panel.getByLabelText("Annotation template name"), { target: { value: "Reviewed gene text" } })
+    fireEvent.change(panel.getByLabelText("Annotation sentence"), { target: { value: "Reviewed annotation wording." } })
+    await userEvent.click(panel.getByLabelText("Enable this annotation template"))
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
       "/admin/clinical-rule-sets/drafts/rule-version-1",
-      expect.objectContaining({ terminology: { automatic_annotation_tumor_type: "solida" } }), editSessionOptions
+      expect.objectContaining({ bulk_annotation_rules: [expect.objectContaining({ tier: 1, name: "Reviewed gene text", enabled: true, output: [{ type: "text", value: "Reviewed annotation wording." }] })], blocks: [] }), editSessionOptions
     ))
+    await userEvent.click(screen.getByRole("tab", { name: "Report wording" }))
+    await userEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+    expect(panel.getByLabelText("Annotation template name")).toHaveValue("Reviewed gene text")
+    expect(screen.queryByText("Automatic Tier III annotation")).not.toBeInTheDocument()
   })
 
   it("generates an editable rule-set name from the assay and diagnosis", async () => {
@@ -318,6 +326,69 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByRole("textbox", { name: "Rule-set name" })).toHaveValue("Existing solid rules")
   })
 
+  it.each([true, false])("separates validation warnings from blocking errors (valid=%s)", async valid => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    mocks.post.mockResolvedValue({ data: { valid, errors: valid ? [] : ["Invalid output fact"], warnings: ["No embedded clinical rule test cases are configured"] } })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await userEvent.click(await screen.findByRole("button", { name: "Validate" }))
+    const result = await screen.findByRole("status", { name: "Rule validation result" })
+    expect(result).toHaveTextContent(valid ? "Valid for review with warnings" : "Validation errors")
+    expect(result).toHaveTextContent("Warnings")
+    if (!valid) expect(result).toHaveTextContent("Invalid output fact")
+  })
+
+  it.each(["section", "rule"])("preserves the selected rule when removing an earlier %s", async removed => {
+    const first = newRuleBlock([])
+    const second = newRuleBlock([first])
+    second.section = "Second section"
+    const rule = second.rules[0]
+    second.rules = [{ ...rule, rule_id: "earlier", name: "Earlier rule", order: 10 }, { ...rule, rule_id: "selected", name: "Last selected", order: 20 }, { ...rule, rule_id: "after", name: "After selected", order: 30 }]
+    const document = { ...existingDraft, blocks: [first, second] }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: document })
+      return Promise.resolve({ data: { items: [document], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await userEvent.click(await screen.findByRole("button", { name: /Second section/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Last selected" }))
+    if (removed === "section") await userEvent.click(screen.getAllByTitle("Remove section")[0])
+    else await userEvent.click(within(screen.getByLabelText("Section rules")).getAllByTitle("Remove rule")[0])
+    expect(screen.getByLabelText("Section")).toHaveValue("Second section")
+    expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Last selected")
+  })
+
+  it("opens imported sections and rules in their evaluation order", async () => {
+    const first = newRuleBlock([])
+    first.block_id = "first_block"
+    first.section = "First section"
+    first.section_order = 10
+    const rule = first.rules[0]
+    first.rules = [{ ...rule, rule_id: "later", name: "Later rule", order: 90 }, { ...rule, rule_id: "earlier", name: "Earlier rule", order: 10 }]
+    const later = { ...newRuleBlock([first]), block_id: "later_block", section: "Later section", section_order: 100 }
+    const document = { ...existingDraft, blocks: [later, first] }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: document })
+      return Promise.resolve({ data: { items: [document], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    expect(await screen.findByLabelText("Section")).toHaveValue("First section")
+    expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Earlier rule")
+    expect(document.blocks[0].block_id).toBe("later_block")
+    expect(first.rules[0].rule_id).toBe("later")
+  })
+
   it("adds named sections, enables the analysis and reorders without losing rules", async () => {
     const user = userEvent.setup()
     mocks.get.mockImplementation((path: string) => {
@@ -352,9 +423,34 @@ describe("ClinicalRulesPage", () => {
     renderPage()
     await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
     expect(await screen.findByText("Read-only")).toBeVisible()
+    expect(screen.getByRole("note", { name: "Missing clinical rule tests" })).toHaveTextContent("embedded tests have not verified the output")
     expect(screen.queryByRole("button", { name: "Move rule up" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Move rule down" })).not.toBeInTheDocument()
     expect(mocks.patch).not.toHaveBeenCalled()
+  })
+
+  it("excludes the logged-in user from clinical reviewer choices", async () => {
+    const user = userEvent.setup()
+    mocks.permissions = ["clinical_rules:view", "clinical_rules:draft", "clinical_rules:submit"]
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: {
+        assays: [], clinical_reviewers: [
+          { username: " ADMIN ", name: "Current administrator" },
+          { username: "reviewer", name: "Independent reviewer" },
+        ],
+      } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    const reviewers = await screen.findByLabelText("Assign clinical reviewer")
+    expect(within(reviewers).queryByRole("option", { name: /Current administrator/ })).not.toBeInTheDocument()
+    expect(within(reviewers).getByRole("option", { name: /Independent reviewer/ })).toHaveValue("reviewer")
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled()
+    await user.selectOptions(reviewers, "reviewer")
+    expect(screen.getByRole("button", { name: "Submit" })).toBeEnabled()
   })
 
   it("generates editable section and clinical rule identifiers", async () => {
@@ -524,6 +620,7 @@ describe("ClinicalRulesPage", () => {
     renderPage()
 
     await user.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await user.click(screen.getByText("Version notes", { selector: "summary" }))
     await user.click(await screen.findByRole("button", { name: /Revision history/ }))
 
     expect(await screen.findByText("draft created")).toBeVisible()

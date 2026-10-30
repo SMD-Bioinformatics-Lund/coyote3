@@ -84,10 +84,20 @@ def test_default_presentation_preserves_existing_publication_hashes():
     assert content_hash(document) == before
 
 
-def test_annotation_terminology_is_scoped_published_and_integrity_checked():
-    """Automatic wording resolves the published DNA scope without reading ASPC snapshots."""
+def test_annotation_templates_are_scoped_published_and_integrity_checked():
+    """Bulk text uses the published DNA scope without reading ASPC snapshots."""
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+
     doc = _document(status="published", active=True)
-    doc.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
+    doc.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="annotation",
+            name="Annotation",
+            tier=3,
+            order=10,
+            output=[{"type": "text", "value": "Reviewed annotation."}],
+        )
+    ]
     doc.content_hash = content_hash(doc)
     configuration = _configuration(doc)
     sample = {"asp_id": "assay_1", "asp_category": "dna", "diagnosis_id": "base"}
@@ -98,41 +108,49 @@ def test_annotation_terminology_is_scoped_published_and_integrity_checked():
             ]
         )
     )
-    assert service.annotation_tumor_type(aspc=configuration, sample=sample) == "hematologiska"
-    doc.terminology["automatic_annotation_tumor_type"] = "solida"
+    assert service.bulk_annotation_release(aspc=configuration, sample=sample) == doc
+    doc.bulk_annotation_rules[0].name = "Changed"
     with pytest.raises(ValueError, match="integrity"):
-        service.annotation_tumor_type(aspc=configuration, sample=sample)
+        service.bulk_annotation_release(aspc=configuration, sample=sample)
     doc.content_hash = content_hash(doc)
-    configuration = _configuration(doc)
     configuration["reporting"]["language"] = "en"
-    assert service.annotation_tumor_type(aspc=configuration, sample=sample) is None
+    assert service.bulk_annotation_release(aspc=configuration, sample=sample) is None
 
 
-def test_automatic_swedish_sentence_is_rejected_for_published_english_release():
+def test_annotation_templates_support_the_published_language():
     document = _document(status="published", active=True)
     document.scope.language = "en"
     document.rule_set_id = "assay_1__base__en"
-    document.terminology = {"automatic_annotation_tumor_type": "hematologiska"}
     document.content_hash = content_hash(document)
     service = ClinicalRuleService(
         SimpleNamespace(
             list_active_for_assay=lambda *args, **kwargs: [document.model_dump(by_alias=True)]
         )
     )
-    with pytest.raises(ValueError, match="requires Swedish"):
-        configuration = _configuration(document)
-        configuration["reporting"]["language"] = "en"
-        service.annotation_tumor_type(
+    configuration = _configuration(document)
+    configuration["reporting"]["language"] = "en"
+    assert (
+        service.bulk_annotation_release(
             aspc=configuration, sample={"asp_id": "assay_1", "asp_category": "dna"}
         )
+        == document
+    )
 
 
-@pytest.mark.parametrize("value", ["", " padded ", 7, "x" * 121])
-def test_automatic_annotation_term_rejects_invalid_values(value):
-    """The optional phrase must be usable as a bounded piece of clinical text."""
-    with pytest.raises(ValueError, match="automatic_annotation_tumor_type"):
+@pytest.mark.parametrize("tier", [0, 4, 7, "x"])
+def test_bulk_annotation_templates_reject_unsupported_tiers(tier):
+    with pytest.raises(ValueError):
         ClinicalRuleDraftUpdate(
-            expected_revision=1, terminology={"automatic_annotation_tumor_type": value}
+            revision=1,
+            bulk_annotation_rules=[
+                {
+                    "rule_id": "annotation",
+                    "name": "Annotation",
+                    "tier": tier,
+                    "order": 10,
+                    "output": [{"type": "text", "value": "Reviewed annotation."}],
+                }
+            ],
         )
 
 
@@ -744,6 +762,7 @@ def test_authoring_options_are_active_assay_backed_and_sorted():
         "clinical_reviewers": [],
         "publishers": [],
         "sentence_terminology": options["sentence_terminology"],
+        "bulk_annotation_fact_paths": options["bulk_annotation_fact_paths"],
     }
 
 

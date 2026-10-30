@@ -64,15 +64,13 @@ documents. Solid-tumor retrieval additionally constrains the classification by
 diagnosis. Clients do not supply authoritative assay context; the API derives it
 from the sample's recorded ASPC revision.
 
-Classification and report narration are independent workflows. A bulk Tier
-III classification can optionally create an accompanying text annotation for
-a small variant by calling `create_annotation_text_from_gene`. Its inputs are
-the selected transcript consequence, gene, sample assay group, and locally
-stored OncoKB gene status. Its tumor-type terminology is resolved from the published
-DNA clinical-rule release for the sample's assay, diagnosis and language. The existing
-automatic sentence requires Swedish terminology. Tier I, II and IV classifications
-are stored without generated text. Classification does not execute the report's
-section-narrative evaluation.
+Classification and report narration are independent workflows. Bulk small-variant
+Tier I, II and III assignments can optionally render the first matching enabled
+annotation template from the published DNA clinical-rule release for the sample's
+assay, diagnosis and language. Safe inputs include the selected transcript's gene,
+consequences and HGVS values. The generated text is stored with the source rule ID,
+version and content hash. Individual tiering does not evaluate annotation templates.
+Classification does not execute report section narration.
 
 ## 3. Filter and logic domains
 

@@ -5,35 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from coyote3.application.common.execution_context import current_username
-from coyote3.config.knowledgebase_sources import oncokb_gene_url
 from coyote3.domain.annotation_identity import (
     annotation_context_fields,
     annotation_identity_fields,
 )
 from coyote3.domain.common.reporting import utc_now
-
-
-def create_annotation_text_from_gene(gene: str, csq: list, tumor_type: str, **kwargs) -> str:
-    """Build Swedish Tier III text using terminology from the published reporting rules.
-
-    Args:
-        gene: Selected transcript's gene symbol.
-        csq: Nonempty consequence list; the first value supplies the sentence description.
-        tumor_type: Approved tumor-type wording from the sample's reporting-rule release.
-        **kwargs: ``gene_oncokb`` selects the existing knowledgebase suffix.
-
-    Returns:
-        Established annotation text with the governed terminology inserted.
-    """
-    consequence = str(csq[0]).replace("_", " ")
-
-    text = (
-        f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då "
-        f"mutationer i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
-    )
-    if kwargs.get("gene_oncokb"):
-        return f"{text} För ytterligare information om {gene} se {oncokb_gene_url(gene)}."
-    return f"{text} {gene} finns ej beskriven i https://www.oncokb.org."
 
 
 def create_comment_doc(

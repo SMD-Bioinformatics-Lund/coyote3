@@ -171,7 +171,7 @@ def test_annotation_rejects_a_non_dna_release_from_the_resolver(monkeypatch):
         service_module, "resolve_published_rule_set", lambda *_a, **_k: incompatible
     )
     with pytest.raises(ValueError, match="requires a DNA configuration"):
-        ClinicalRuleService(None).annotation_tumor_type(
+        ClinicalRuleService(None).bulk_annotation_release(
             aspc={"reporting": {"language": "sv"}},
             sample={"asp_id": "assay_1", "asp_category": "dna"},
         )

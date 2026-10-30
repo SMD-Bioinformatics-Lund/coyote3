@@ -204,7 +204,7 @@ Before upgrading a deployment that has older center files:
    retaining `fusion.description_terms`. Remove the entire `reporting` section:
    transcript priority is application-owned. Preserve any annotation descriptors in
    the deployment record and configure them in approved reporting-rule successors
-   under `terminology.automatic_annotation_tumor_type` before using automatic Tier III text.
+   under `bulk_annotation_rules` as complete reviewed templates before using bulk annotation text.
 4. Archive any older center `clinical_query_policy.toml` outside the active bundle.
    It is no longer loaded. Compare its criteria with the installed database rules;
    preserve required center differences through reviewed query-rule publications

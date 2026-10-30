@@ -6,7 +6,10 @@ import hashlib
 import json
 from typing import Any
 
-from coyote3.application.reporting.clinical_rules.registry import validate_fact_path
+from coyote3.application.reporting.clinical_rules.registry import (
+    BULK_ANNOTATION_FACT_PATHS,
+    validate_fact_path,
+)
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalCondition,
@@ -14,6 +17,9 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalListOutput,
     ClinicalMessageOutput,
     ClinicalNumberOutput,
+    ClinicalParagraphBreakOutput,
+    ClinicalRendererOutput,
+    ClinicalRule,
     ClinicalRuleAll,
     ClinicalRuleAny,
     ClinicalRuleCollectionMatch,
@@ -21,6 +27,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRulePredicate,
     ClinicalRuleSetDoc,
     ClinicalRuleValidationResult,
+    ClinicalTextOutput,
 )
 
 REPORT_METADATA_SECTIONS = frozenset({"report_header_suffix", "clinical_question"})
@@ -40,6 +47,7 @@ def canonical_content(document: ClinicalRuleSetDoc) -> dict[str, Any]:
             "analysis_declarations",
             "terminology",
             "blocks",
+            "bulk_annotation_rules",
             "test_cases",
             "references",
         },
@@ -103,6 +111,63 @@ def _validate_condition(
     errors.append(f"Unsupported clinical condition node: {type(condition).__name__}")
 
 
+def _validate_annotation_condition(
+    condition: ClinicalCondition | None, errors: list[str], depth: int = 0
+) -> None:
+    """Reject sample measurements and collection conditions in reusable annotation text.
+
+    Args:
+        condition: Authored condition; None is an explicit fallback.
+        errors: Validation messages populated in place.
+        depth: Current nested-condition depth, starting at zero.
+    """
+    if condition is None:
+        return
+    if depth > MAX_CONDITION_DEPTH:
+        errors.append(f"Condition nesting exceeds {MAX_CONDITION_DEPTH} levels")
+        return
+    if isinstance(condition, ClinicalRulePredicate):
+        if condition.fact not in BULK_ANNOTATION_FACT_PATHS:
+            errors.append(f"Bulk annotations cannot use fact '{condition.fact}'")
+    elif isinstance(condition, (ClinicalRuleAll, ClinicalRuleAny)):
+        for child in condition.children:
+            _validate_annotation_condition(child, errors, depth + 1)
+    elif isinstance(condition, ClinicalRuleNot):
+        _validate_annotation_condition(condition.child, errors, depth + 1)
+    else:
+        errors.append("Bulk annotations cannot use report collections")
+
+
+def _first_match_warnings(rules: list[ClinicalRule], label: str) -> list[str]:
+    """Identify enabled templates that an earlier unconditional or identical rule shadows.
+
+    Args:
+        rules: Ordered alternatives, including disabled rules to ignore.
+        label: Section or tier label shown to the rule author.
+
+    Returns:
+        Actionable warnings naming alternatives that can never be reached.
+    """
+    enabled = sorted((rule for rule in rules if rule.enabled), key=lambda rule: rule.order)
+    warnings = []
+    for index, rule in enumerate(enabled):
+        shadow = next(
+            (
+                earlier
+                for earlier in enabled[:index]
+                if earlier.condition is None or earlier.condition == rule.condition
+            ),
+            None,
+        )
+        if shadow is not None:
+            warnings.append(
+                f"{label}: rule '{rule.rule_id}' is unreachable because earlier rule "
+                f"'{shadow.rule_id}' always matches or has the same condition. "
+                "Move the fallback last or refine the conditions."
+            )
+    return warnings
+
+
 def validate_rule_set(
     document: ClinicalRuleSetDoc, *, require_tests: bool = False
 ) -> ClinicalRuleValidationResult:
@@ -110,7 +175,7 @@ def validate_rule_set(
 
     Args:
         document: Parsed rule set with blocks, declarations, and optional test cases.
-        require_tests: Reject missing embedded cases at submission and publication.
+        require_tests: Reject missing embedded cases when publication requires them.
 
     Returns:
         Validity, errors, and warnings. Embedded cases compare ordered matched
@@ -128,7 +193,7 @@ def validate_rule_set(
         block.analysis in {"BIOMARKER", "LOH"} for block in document.blocks
     ):
         errors.append("Declare HRD, MSI, or TMB individually; BIOMARKER and LOH are not supported")
-    if not document.blocks:
+    if not document.blocks and not document.bulk_annotation_rules:
         errors.append("At least one rule block is required")
     enabled_analyses = {
         block.analysis
@@ -166,10 +231,16 @@ def validate_rule_set(
             rule.presentation != "paragraph" for rule in block.rules
         ):
             errors.append(f"Section '{block.section}' requires paragraph presentation")
-        if block.match_strategy in {"first_match", "all_matches"} and len(enabled_rules) > 1:
+        if block.match_strategy == "first_match":
+            warnings.extend(_first_match_warnings(block.rules, f"Block '{block.block_id}'"))
+        if (
+            block.section in REPORT_METADATA_SECTIONS
+            and block.match_strategy == "all_matches"
+            and len(enabled_rules) > 1
+        ):
             warnings.append(
-                f"Block '{block.block_id}' allows overlapping conditions: "
-                f"{block.match_strategy}. Use a strict match strategy for alternative conclusions."
+                f"Block '{block.block_id}' allows overlapping conditions for a single-value "
+                "report field. Use exactly_one or at_most_one for alternative values."
             )
         if block.match_strategy in {"exactly_one", "at_most_one"}:
             for index, rule in enumerate(enabled_rules):
@@ -211,6 +282,42 @@ def validate_rule_set(
                 if path:
                     try:
                         validate_fact_path(path, scope=block.evaluation.mode)
+                    except ValueError as exc:
+                        errors.append(str(exc))
+    for tier in (1, 2, 3):
+        warnings.extend(
+            _first_match_warnings(
+                [rule for rule in document.bulk_annotation_rules if rule.tier == tier],
+                f"Bulk annotation Tier {tier}",
+            )
+        )
+    for rule in document.bulk_annotation_rules:
+        if document.scope.analyte != "dna":
+            errors.append("Bulk annotation templates require DNA small variants")
+        if (
+            rule.enabled
+            and all(
+                isinstance(node, (ClinicalTextOutput, ClinicalParagraphBreakOutput))
+                for node in rule.output
+            )
+            and not any(
+                isinstance(node, ClinicalTextOutput) and node.value.strip() for node in rule.output
+            )
+        ):
+            errors.append(f"Enabled annotation rule '{rule.rule_id}' has empty text")
+        _validate_annotation_condition(rule.condition, errors)
+        if rule.condition is not None:
+            _validate_condition(rule.condition, scope="each_finding", depth=0, errors=errors)
+        for node in rule.output:
+            if isinstance(node, ClinicalRendererOutput):
+                errors.append("Bulk annotations cannot use report sentence renderers")
+            path = getattr(node, "path", getattr(node, "count_path", None))
+            if path is not None:
+                if path not in BULK_ANNOTATION_FACT_PATHS:
+                    errors.append(f"Bulk annotations cannot use fact '{path}'")
+                else:
+                    try:
+                        validate_fact_path(path, scope="each_finding")
                     except ValueError as exc:
                         errors.append(str(exc))
     if not document.test_cases:

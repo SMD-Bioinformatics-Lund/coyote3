@@ -92,13 +92,14 @@ describe("finding actions", () => {
     )
   })
 
-  it("requests the established automatic text only when selected", async () => {
+  it("sends opted-in annotation text with the previewed rule version", async () => {
     await applyFindingAction({
       sampleId: "sample-1",
       resourceType: "small_variant",
       action: "tier_3",
       resourceIds: ["variant-1"],
       includeAutomaticText: true,
+      annotationRuleHash: "reviewed-hash",
     })
     expect(apiMock.patch).toHaveBeenCalledWith("/samples/sample-1/classifications/tier", {
       resource_type: "small_variant",
@@ -106,6 +107,7 @@ describe("finding actions", () => {
       tier: 3,
       apply: true,
       include_automatic_text: true,
+      annotation_rule_hash: "reviewed-hash",
     })
   })
 

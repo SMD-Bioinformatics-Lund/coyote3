@@ -1,6 +1,7 @@
 import type {
   ClinicalRule,
   ClinicalRuleAssayOption,
+  ClinicalRuleSet,
   OutputNode,
   RuleBlock
 } from "./clinical-rules-types"
@@ -12,6 +13,13 @@ export const ANALYSES = {
 } as const
 
 export const clone = <T,>(value: T): T => structuredClone(value)
+
+export function orderedRuleSet(document: ClinicalRuleSet): ClinicalRuleSet {
+  const ordered = clone(document)
+  ordered.blocks.sort((a, b) => a.section_order - b.section_order || a.block_order - b.block_order)
+  ordered.blocks.forEach(block => block.rules.sort((a, b) => a.order - b.order))
+  return ordered
+}
 
 export const ruleSectionLabel = (section: string): string =>
   section === "analysis_description" ? "Analysis description" : section

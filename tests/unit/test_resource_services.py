@@ -227,7 +227,6 @@ def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
         translocation_repository=repo.translocation_repository,
         assay_panel_repository=repo.assay_panel_repository,
         assay_configuration_repository=repo.assay_configuration_repository,
-        oncokb_repository=repo.oncokb_repository,
     )
 
 
@@ -369,14 +368,34 @@ def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(mo
     assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis_id"] == "lung"
 
 
-def test_resource_classification_service_adds_automatic_tier_three_text_when_requested(
+@pytest.mark.parametrize("tier", [1, 2, 3])
+def test_resource_classification_service_adds_bulk_annotation_template_when_requested(
     monkeypatch,
+    tier,
 ):
-    """Bulk tiering optionally adds the established Tier III annotation."""
+    """Bulk tiers use a published template and capture its provenance."""
+    from coyote3.application.reporting.clinical_rules.validation import content_hash
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+    from tests.unit.reporting.test_clinical_rules import _document
+
+    release = _document(status="published", active=True)
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="reviewed_text",
+            name="Reviewed text",
+            tier=tier,
+            order=10,
+            output=[
+                {"type": "text", "value": "Reviewed "},
+                {"type": "fact", "path": "finding.gene"},
+            ],
+        )
+    ]
+    release.content_hash = content_hash(release)
     repo = _RepoStub()
     service = _classification_service(repo)
     service.clinical_rule_service = SimpleNamespace(
-        annotation_tumor_type=lambda **kwargs: "hematologiska"
+        bulk_annotation_release=lambda **kwargs: release
     )
     monkeypatch.setattr(
         service,
@@ -395,7 +414,7 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
-        class_num=3,
+        class_num=tier,
         include_automatic_text=True,
         create_classified_variant_doc_fn=_classification_doc,
     )
@@ -403,14 +422,50 @@ def test_resource_classification_service_adds_automatic_tier_three_text_when_req
     assert repo.annotation_repository.inserted_bulk is not None
     assert [doc["text"] for doc in repo.annotation_repository.inserted_bulk] == [
         None,
-        "Analysen påvisar en missense variant. Mutationen är klassad som Tier III då "
-        "mutationer i SRSF2 är sällsynta men förekommer i hematologiska maligniteter. "
-        "För ytterligare information om SRSF2 se https://www.oncokb.org/gene/SRSF2.",
+        "Reviewed SRSF2",
     ]
+    assert repo.annotation_repository.inserted_bulk[1]["rule_source"] == {
+        "rule_set_id": release.rule_set_id,
+        "content_version": release.content_version,
+        "revision": release.revision,
+        "content_hash": release.content_hash,
+        "rule_id": "reviewed_text",
+        "tier": tier,
+    }
+
+    repo.annotation_repository.inserted_bulk = None
+    preview = service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=tier,
+        include_automatic_text=True,
+        preview_only=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    assert preview[0]["text"] == "Reviewed SRSF2"
+    assert preview[0]["content_hash"] == release.content_hash
+    assert repo.annotation_repository.inserted_bulk is None
+    from coyote3.domain.exceptions import AppError
+
+    with pytest.raises(AppError) as error:
+        service.set_tier_bulk(
+            sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+            resource_type="small_variant",
+            resource_ids=["var-1"],
+            apply=True,
+            class_num=tier,
+            include_automatic_text=True,
+            annotation_rule_hash="outdated",
+            create_classified_variant_doc_fn=_classification_doc,
+        )
+    assert error.value.status_code == 409
+    assert repo.annotation_repository.inserted_bulk is None
 
 
-def test_resource_classification_service_does_not_generate_text_for_other_tiers(monkeypatch):
-    """Only Tier III has an established automatic annotation generator."""
+def test_resource_classification_service_does_not_generate_text_without_opt_in(monkeypatch):
+    """Ordinary bulk assignment never executes annotation templates."""
     repo = _RepoStub()
     service = _classification_service(repo)
     monkeypatch.setattr(
@@ -430,7 +485,7 @@ def test_resource_classification_service_does_not_generate_text_for_other_tiers(
         resource_ids=["var-1"],
         apply=True,
         class_num=2,
-        include_automatic_text=True,
+        include_automatic_text=False,
         create_classified_variant_doc_fn=_classification_doc,
     )
 

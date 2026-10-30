@@ -38,6 +38,65 @@ const ruleSet = {
 
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
+    test(`bulk annotation workspace: ${theme}, ${width}px`, async ({ page }, testInfo) => {
+      await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+      await page.setViewportSize({ width, height: 1000 })
+      let saved = { ...structuredClone(ruleSet), bulk_annotation_rules: [{
+        rule_id: "gene_annotation", name: "Gene annotation", tier: 2, order: 10,
+        enabled: true, condition: { type: "predicate", fact: "finding.gene", operator: "eq", value: "GENE_A" },
+        output: [{ type: "text", value: "Reviewed gene annotation." }], references: [],
+      }] }
+      await installApiFixtures(page, (path, _url, route) => {
+        if (path.endsWith("/auth/whoami")) return { json: { username: "admin", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:draft"] } }
+        if (path.endsWith("/drafts/rule-version-1")) {
+          saved = { ...saved, ...route.request().postDataJSON(), revision: saved.revision + 1 }
+          return { json: saved }
+        }
+        if (path.endsWith("/bulk-annotations/preview")) {
+          const facts = route.request().postDataJSON() as { gene: string; tier: number }
+          return { json: facts.gene === "GENE_A" && facts.tier === 2
+            ? { rule_id: "gene_annotation", text: "**Reviewed** GENE_A" }
+            : { rule_id: null, text: null } }
+        }
+        if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+        if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+        if (path.endsWith("/authoring-options")) return { json: { assays: [], bulk_annotation_fact_paths: ["finding.gene"] } }
+        if (path.endsWith("/facts")) return { json: { items: [{ path: "finding.gene", label: "Gene", kind: "string", group: "Finding", operators: ["eq", "in"], scopes: ["each_finding"] }] } }
+      })
+      await page.goto("/admin/clinical-rules")
+      await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+      await page.getByRole("tab", { name: "Report wording" }).focus()
+      await page.keyboard.press("ArrowRight")
+      await expect(page.getByRole("tab", { name: "Bulk annotation text" })).toHaveAttribute("aria-selected", "true")
+      await page.getByRole("button", { name: "Tier II", exact: true }).click()
+      await expect(page.getByLabel("Annotation template name")).toHaveValue("Gene annotation")
+      await expect(page.getByRole("option", { name: "Find in collection", exact: true })).toHaveCount(0)
+      const sentence = page.getByLabel("Annotation sentence", { exact: true })
+      await sentence.fill("**Reviewed** {{finding.gene}}")
+      await expect.poll(() => JSON.stringify(saved.bulk_annotation_rules)).toContain('"path":"finding.gene"')
+      await page.getByLabel("Annotation preview Gene", { exact: true }).fill("GENE_A")
+      await expect(page.getByLabel("Annotation preview Diagnosis", { exact: true })).toHaveValue("base")
+      await page.getByLabel("Annotation preview Diagnosis", { exact: true }).fill("scope_a")
+      const previewRequest = page.waitForRequest(request => request.url().endsWith("/bulk-annotations/preview"))
+      await page.getByRole("button", { name: "Preview annotation", exact: true }).click()
+      expect((await previewRequest).postDataJSON().diagnosis_id).toBe("scope_a")
+      await expect(page.getByRole("region", { name: "Bulk annotation preview" }).locator("strong")).toHaveText("Reviewed")
+      await page.getByLabel("Annotation preview Gene", { exact: true }).fill("GENE_B")
+      await page.getByRole("button", { name: "Preview annotation", exact: true }).click()
+      await expect(page.getByText(/No enabled template matched/)).toBeVisible()
+      await page.getByRole("tab", { name: "Report wording" }).click()
+      await expect(page.getByLabel("Clinical rule name")).toHaveValue("Summary")
+      await page.getByRole("tab", { name: "Bulk annotation text" }).click()
+      await expect(sentence).toHaveValue("**Reviewed** {{finding.gene}}")
+      await page.getByText("Version notes", { exact: true }).click()
+      await page.getByLabel("Change summary", { exact: true }).fill("Reviewed gene-specific bulk wording.")
+      await expect.poll(() => saved.change_summary).toBe("Reviewed gene-specific bulk wording.")
+      await page.getByText("Version notes", { exact: true }).click()
+      await page.getByRole("tab", { name: "Bulk annotation text" }).scrollIntoViewIfNeeded()
+      await page.screenshot({ path: testInfo.outputPath("bulk-annotation-workspace.png"), fullPage: true })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    })
+
     test(`existing rules can be reordered: ${theme}, ${width}px`, async ({ page }) => {
       await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
       await page.setViewportSize({ width, height: 1000 })
@@ -104,6 +163,7 @@ for (const theme of ["light", "dark"] as const) {
       if (theme === "dark") await expect(page.locator("html")).toHaveClass(/dark/)
       else await expect(page.locator("html")).not.toHaveClass(/dark/)
       const input = page.getByLabel("Report sentence", { exact: true })
+      await expect(page.getByRole("note", { name: "Missing clinical rule tests" })).toContainText("embedded tests have not verified the output")
       await input.fill("**Evidence** for {{asp.display_name}}\n\n- Reviewed scope")
       await expect.poll(() => JSON.stringify(saved.blocks)).toContain('"path":"asp.display_name"')
       await input.locator("..").getByRole("button", { name: "Preview", exact: true }).click()
@@ -238,9 +298,11 @@ test("clinical rule panes fill the workspace and reflow into selectable rails", 
   await expect(page.getByRole("heading", { name: "Complete report text" })).toBeVisible()
   await page.setViewportSize({ width: 1600, height: 1050 })
   await page.screenshot({ path: "test-results/clinical-rule-sentence-desktop.png", fullPage: true })
+  await page.getByText("Version notes", { exact: true }).click()
   await page.getByRole("button", { name: /Revision history/ }).click()
   await expect(page.getByText("draft created")).toBeVisible()
   await expect(page.getByText("First preserved revision")).toBeVisible()
+  await page.getByText("Version notes", { exact: true }).click()
   await page.getByText("Section settings", { exact: true }).click()
   await page.getByLabel("Output destination").selectOption("analysis_description")
   await expect(page.getByLabel("Section", { exact: true })).toHaveValue("Analysis description")

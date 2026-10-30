@@ -12,7 +12,7 @@ import { icon } from "@/lib/assets"
 import { AnalysisIntentBadge, ConsequenceBadges, FallbackTierBadge, FilterFlagBadges, StatusBadges, TierBadge } from "@/lib/variant-ui";
 import { filterFlags, findingRowClass, statusLabels, tierValue } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
-import { findingBulkActionOptions } from "@/lib/finding-actions";
+import { findingBulkActionOptions, previewBulkAnnotationText } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge";
 import { igvAlignmentLinks } from "@/lib/external-links";
@@ -491,14 +491,18 @@ export function VariantsTab({
             ? (table) => (
                 <>
                   <BulkActionDropdown
+                    key={table.getSelectedRowModel().rows.map(row => String(row.original._id)).sort().join(",")}
                     selectedCount={Object.keys(table.getState().rowSelection).length}
                     actions={variantBulkActions}
                     isPending={bulkAction.isPending}
                     automaticTextAvailable
+                    onPreviewAutomaticText={action => previewBulkAnnotationText(sampleId, action,
+                      table.getSelectedRowModel().rows.map(row => String(row.original._id)))}
                     onAction={(action, options) =>
                       bulkAction.mutateAsync({
                         action,
                         includeAutomaticText: options?.includeAutomaticText,
+                        annotationRuleHash: options?.annotationRuleHash,
                         resourceIds: table
                           .getSelectedRowModel()
                           .rows.map((row: any) => String(row.original._id)),

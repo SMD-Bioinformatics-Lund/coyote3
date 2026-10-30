@@ -239,9 +239,9 @@ that option automatically.
 RefSeq/NCBI sources before their Ensembl equivalents. Within a selector, VEP impact
 is ordered HIGH, MODERATE, LOW, then MODIFIER.
 
-Tumor-type wording for automatic Tier III annotations belongs to published
-[reporting rules](../reference/clinical-reporting-rules.md), under
-`terminology.automatic_annotation_tumor_type`. It is not vocabulary configuration.
+Conditional bulk Tier I–III annotation templates belong to published
+[clinical rules](../reference/clinical-reporting-rules.md#bulk-annotation-templates),
+under `bulk_annotation_rules`. They are not vocabulary configuration.
 
 | Selector | Stored source fields and collections | Candidate requirement | Default position | Notes |
 | --- | --- | --- | --- | --- |

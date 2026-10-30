@@ -312,10 +312,11 @@ sample scopes after startup.
 > a group named `tumwgs` alone does not select it. Verify WGS assay metadata during
 > upgrade validation.
 
-For automatic Tier III annotations, move previous tumor-type descriptors into
-`terminology.automatic_annotation_tumor_type` on reviewed reporting-rule successors.
-Do not edit published documents or their hashes directly. Automatic text remains
-unavailable until suitable wording is published; ordinary classification is unaffected.
+For automatic annotations, author complete conditional templates under
+`bulk_annotation_rules` on reviewed reporting-rule successors. The single
+tumor-type descriptor and fixed Tier III sentence generator are retired; there is
+no automatic conversion. Do not edit published documents or their hashes directly.
+Previously saved annotations are preserved; ordinary classification is unaffected.
 
 ## 7. Replace services and verify
 

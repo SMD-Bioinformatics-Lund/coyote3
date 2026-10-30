@@ -106,19 +106,18 @@ class ClinicalRuleService:
         )
         return ClinicalRuleSetDoc.model_validate(configuration["clinical_rule_release"])
 
-    def annotation_tumor_type(self, *, aspc: dict, sample: dict) -> str | None:
-        """Read automatic-annotation terminology from the current scoped DNA publication.
+    def bulk_annotation_release(self, *, aspc: dict, sample: dict) -> ClinicalRuleSetDoc | None:
+        """Resolve the published DNA rule version used for bulk annotation templates.
 
         Args:
             aspc: Sample configuration supplying the reporting language.
             sample: Sample supplying the assay, diagnosis and analyte scope.
 
         Returns:
-            Configured tumor-type wording, or None when automatic annotation is not configured.
+            Validated published version, or None when no publication is configured.
 
         Raises:
-            ValueError: Release resolution/integrity fails or automatic Swedish text
-                is requested for another reporting language.
+            ValueError: Release resolution/integrity fails or the sample is not DNA.
         """
         if sample.get("asp_category") != "dna":
             raise ValueError("Automatic variant annotation requires a DNA configuration")
@@ -134,13 +133,7 @@ class ClinicalRuleService:
             return None
         if release.scope.analyte != "dna":
             raise ValueError("Automatic variant annotation requires a DNA configuration")
-        language = release.scope.language
-        value = release.terminology.get("automatic_annotation_tumor_type")
-        if value and language != "sv":
-            raise ValueError(
-                "Automatic Tier III sentence generation currently requires Swedish reporting rules"
-            )
-        return value
+        return release
 
     @staticmethod
     def _report_sections(context: PreparedReportContext) -> set[str]:
