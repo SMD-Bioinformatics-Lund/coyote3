@@ -58,6 +58,9 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Scoped service and personal ingestion tokens support one-time secrets, hashed
+  storage, expiry, revocation and token-specific audit attribution. Personal tokens
+  remain bounded by current account permissions; administrators can revoke both kinds.
 - Administration configuration imports accept content without audit or version
   fields. JSON exports omit application-managed metadata by default, with an
   explicit option to include it; imports use fresh application-managed metadata.
@@ -84,6 +87,9 @@ review, reporting, administration and integrations into one application.
 
 ### Integrations and operations
 
+- Background ingestion and token-owned job polling recheck managed credentials
+  before worker execution. The upload helper accepts token arguments or files and
+  resumes saved background submissions with `--async --wait` without reuploading.
 - Analysis descriptions are authored, tested and published through clinical rules
   with dynamic values and assay Base inheritance. ASPCs no longer store description text.
 - Dedicated Admin ingestion audit with outcome filters, sample links and correlated

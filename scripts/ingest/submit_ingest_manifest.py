@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload an analysis-server manifest and apply its terminal API acknowledgement.
+"""Submit an analysis-server manifest and apply only a saved terminal API acknowledgement.
 
 Requires Python 3.10+ and curl, plus SSH/SCP for remote inputs. No application
 imports or database access are used.
@@ -11,16 +11,18 @@ import argparse
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 
 @contextmanager
@@ -136,8 +138,52 @@ def streamed_upload(command: list[str], config: str) -> subprocess.CompletedProc
     )
 
 
+def load_token(args: argparse.Namespace) -> str:
+    """Read an explicit token, token file, or the selected authentication environment variable.
+
+    Args:
+        args: Parsed authentication arguments. Explicit sources take precedence over environment.
+
+    Returns:
+        One validated header-safe secret; callers must never persist or print it.
+
+    Raises:
+        ValueError: The credential is absent, oversized or contains unsafe header characters.
+        OSError: The selected token file cannot be read.
+    """
+    if args.token is not None:
+        token = args.token
+    elif args.token_file is not None:
+        with Path(args.token_file).expanduser().open() as stream:
+            token = stream.read(16385)
+    else:
+        variable = {
+            "internal": "INTERNAL_API_TOKEN",
+            "bearer": "API_BEARER_TOKEN",
+            "ingest": "COYOTE3_INGEST_TOKEN",
+        }[args.auth]
+        token = os.environ.get(variable, "")
+    token = token.strip()
+    if not token or len(token) > 16384 or any(char in token for char in '\r\n"\\'):
+        raise ValueError(
+            "Supply a valid token using --token, --token-file or the authentication environment variable"
+        )
+    return token
+
+
+def authorization_config(args: argparse.Namespace, token: str) -> str:
+    """Build curl's stdin-only credential configuration without exposing it in curl arguments."""
+    header = {
+        "internal": "X-Coyote-Internal-Token",
+        "ingest": "X-Coyote-Ingest-Token",
+        "bearer": "Authorization",
+    }[args.auth]
+    value = "Bearer " + token if args.auth == "bearer" else token
+    return f'header = "{header}: {value}"\n'
+
+
 def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
-    """Stream multipart files to the API and require a terminal acknowledgement.
+    """Upload multipart files and require terminal evidence or durable background acceptance.
 
     Raises:
         ValueError: Transport, HTTP, or response validation fails; outcome is unconfirmed.
@@ -157,13 +203,14 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         "--form",
         form_file("yaml_file", manifest, "text/yaml"),
         "--form",
-        "acknowledge=true",
-        "--form",
         f"update_existing={str(args.update_existing).lower()}",
         "--form",
         f"increment={str(args.increment).lower()}",
     ]
-    if getattr(args, "verbose", False):
+    if not args.asynchronous:
+        command.extend(["--form", "acknowledge=true"])
+    streaming = getattr(args, "verbose", False) and not args.asynchronous
+    if streaming:
         command.extend(["--no-buffer", "--form", "verbose=true"])
     if args.archive:
         archive = Path(args.archive).expanduser().resolve(strict=True)
@@ -172,17 +219,13 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         command.extend(["--form", form_file("data_archive", archive, "application/zip")])
     if args.ca_bundle:
         command.extend(["--cacert", args.ca_bundle])
-    command.append(args.base_url + "/api/v1/internal/ingest/sample-bundle/upload")
-    # Keep credentials out of process arguments and shell history.
-    header = (
-        f"X-Coyote-Internal-Token: {token}"
-        if args.auth == "internal"
-        else f"Authorization: Bearer {token}"
+    command.append(
+        args.base_url
+        + "/api/v1/internal/ingest/sample-bundle/upload"
+        + ("/async" if args.asynchronous else "")
     )
-    if args.auth == "ingest":
-        header = f"X-Coyote-Ingest-Token: {token}"
-    config = f'header = "{header}"\n'
-    if getattr(args, "verbose", False):
+    config = authorization_config(args, token)
+    if streaming:
         result = streamed_upload(command, config)
     else:
         result = subprocess.run(
@@ -210,6 +253,17 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         acknowledgement = json.loads(body)
     except ValueError as exc:
         raise ValueError("API response is not JSON; ingest outcome is unconfirmed") from exc
+    if args.asynchronous:
+        if (
+            not isinstance(acknowledgement, dict)
+            or acknowledgement.get("status") != "accepted"
+            or not isinstance(acknowledgement.get("task_id"), str)
+            or not acknowledgement["task_id"]
+        ):
+            raise ValueError(
+                "API response is not a durable job acceptance; reconcile before resubmitting"
+            )
+        return acknowledgement
     if (
         not isinstance(acknowledgement, dict)
         or acknowledgement.get("status") not in {"ok", "failed"}
@@ -223,6 +277,98 @@ def upload(args: argparse.Namespace, manifest: Path, token: str) -> dict:
         for warning in result_payload.get("warnings", []):
             print(f"Warning: {warning}", file=sys.stderr)
     return acknowledgement
+
+
+def fetch_job_status(args: argparse.Namespace, task_id: str, token: str, *, timeout: float) -> dict:
+    """Read one owned job through the same verified API and credential used for submission."""
+    command = [
+        "curl",
+        "--silent",
+        "--show-error",
+        "--config",
+        "-",
+        "--connect-timeout",
+        "15",
+        "--max-time",
+        str(timeout),
+        "--write-out",
+        "\n%{http_code}",
+    ]
+    if args.ca_bundle:
+        command.extend(["--cacert", args.ca_bundle])
+    command.append(args.base_url + "/api/v1/internal/tasks/" + quote(task_id, safe=""))
+    response = subprocess.run(
+        command,
+        input=authorization_config(args, token),
+        text=True,
+        stdout=subprocess.PIPE,
+        check=False,
+    )
+    body, _, code = response.stdout.rpartition("\n")
+    if response.returncode or code != "200":
+        raise ValueError(
+            f"Unable to read accepted job status (HTTP {code or 'unknown'}); the saved job can be polled again"
+        )
+    try:
+        status = json.loads(body)
+    except ValueError as exc:
+        raise ValueError("Job status is not JSON; keep the accepted receipt") from exc
+    if (
+        not isinstance(status, dict)
+        or status.get("task_id") != task_id
+        or status.get("state") not in {"PENDING", "STARTED", "SUCCESS", "FAILURE"}
+    ):
+        raise ValueError("Invalid job status; keep the accepted receipt")
+    return status
+
+
+def finish_accepted(
+    args: argparse.Namespace, receipt: dict, receipt_path: Path, token: str
+) -> dict:
+    """Optionally poll a durably accepted job; persist terminal evidence before renaming inputs.
+
+    A timeout or authentication failure retains the accepted job ID. Re-running with
+    --async --wait resumes that job rather than submitting another upload.
+    """
+    if not args.wait:
+        return receipt
+    deadline = time.monotonic() + args.wait_timeout
+    task_id = receipt["acknowledgement"]["task_id"]
+    last_state = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError("Wait timed out; rerun with --async --wait to resume the saved job")
+        status = fetch_job_status(args, task_id, token, timeout=min(args.timeout, remaining))
+        if getattr(args, "verbose", False) and status["state"] != last_state:
+            print(f"Job {task_id}: {status['state']}", file=sys.stderr, flush=True)
+            last_state = status["state"]
+        if status["state"] in {"SUCCESS", "FAILURE"}:
+            result = status.get("result") or {}
+            if status["state"] == "SUCCESS" and (
+                not isinstance(result, dict) or not result.get("sample_id")
+            ):
+                raise ValueError("Successful job has no sample ID; reconcile the accepted job")
+            if not isinstance(result, dict):
+                result = {}
+            acknowledgement = {
+                "status": "ok" if status["state"] == "SUCCESS" else "failed",
+                "sample_id": result.get("sample_id"),
+                "sample_name": result.get("sample_name"),
+                "message": "Background sample ingestion completed"
+                if status["state"] == "SUCCESS"
+                else str(status.get("error") or "Background ingestion failed"),
+                "result": result,
+            }
+            receipt = {
+                **receipt,
+                "state": "terminal",
+                "acknowledgement": acknowledgement,
+                "task_id": task_id,
+            }
+            save_receipt(receipt_path, receipt)
+            return receipt
+        time.sleep(min(args.poll_interval, max(0, deadline - time.monotonic())))
 
 
 def save_receipt(path: Path, receipt: dict) -> None:
@@ -251,7 +397,7 @@ def save_receipt(path: Path, receipt: dict) -> None:
 def upload_once(
     args: argparse.Namespace, manifest: Path, receipt_path: Path, identity: dict
 ) -> dict:
-    """Upload once under the caller's lock, or recover a saved terminal result.
+    """Upload once under the caller's lock, or recover/resume saved job evidence.
 
     Args:
         args: Upload options including authentication mode and the local ZIP path.
@@ -260,7 +406,7 @@ def upload_once(
         identity: Manifest hash, API URL, submission options, and remote source if used.
 
     Returns:
-        Saved or newly received terminal acknowledgement with its source identity.
+        Saved acknowledgement with source identity; accepted jobs remain nonterminal until polled.
 
     Raises:
         ValueError: The journal conflicts, an outcome is unknown, or credentials are missing.
@@ -284,6 +430,15 @@ def upload_once(
         ):
             raise ValueError("Saved submission differs; reconcile and archive its receipt first")
         acknowledgement = receipt.get("acknowledgement")
+        if (
+            receipt.get("state") == "accepted"
+            and isinstance(acknowledgement, dict)
+            and acknowledgement.get("status") == "accepted"
+            and acknowledgement.get("task_id")
+        ):
+            return finish_accepted(
+                args, receipt, receipt_path, load_token(args) if args.wait else ""
+            )
         if not isinstance(acknowledgement, dict) or acknowledgement.get("status") not in {
             "ok",
             "failed",
@@ -294,16 +449,13 @@ def upload_once(
         if acknowledgement["status"] == "ok" and not acknowledgement.get("sample_id"):
             raise ValueError("Saved successful acknowledgement has no sample_id; reconcile first")
         return receipt
-    token_variable = {
-        "internal": "INTERNAL_API_TOKEN",
-        "bearer": "API_BEARER_TOKEN",
-        "ingest": "COYOTE3_INGEST_TOKEN",
-    }[args.auth]
-    token = os.environ.get(token_variable, "").strip()
-    if not token or any(char in token for char in '\r\n"\\'):
-        raise ValueError(f"Set {token_variable} to a valid {args.auth} token")
+    token = load_token(args)
     save_receipt(receipt_path, {**identity, "state": "pending"})
     acknowledgement = upload(args, manifest, token)
+    if acknowledgement.get("status") == "accepted":
+        receipt = {**identity, "state": "accepted", "acknowledgement": acknowledgement}
+        save_receipt(receipt_path, receipt)
+        return finish_accepted(args, receipt, receipt_path, token)
     receipt = {**identity, "state": "terminal", "acknowledgement": acknowledgement}
     save_receipt(receipt_path, receipt)
     return receipt
@@ -400,6 +552,7 @@ def submission_options(args: argparse.Namespace) -> dict:
         "increment": args.increment,
         "update_existing": args.update_existing,
         "archive": str(args.archive) if args.archive else None,
+        **({"async": True} if args.asynchronous else {}),
     }
 
 
@@ -444,6 +597,11 @@ def submit_remote(args: argparse.Namespace) -> int:
             }
             receipt = upload_once(local_args, manifest, receipt_path, identity)
         print(f"Acknowledgement saved: {receipt_path}", flush=True)
+        if receipt["state"] == "accepted":
+            print(
+                f"Accepted job: {receipt['acknowledgement']['task_id']}; rerun with --async --wait to finish"
+            )
+            return 0
         return finalize_remote(args, receipt)
 
 
@@ -478,6 +636,11 @@ def submit(args: argparse.Namespace) -> int:
                 "options": submission_options(args),
             },
         )
+        if receipt["state"] == "accepted":
+            print(
+                f"Accepted job: {receipt['acknowledgement']['task_id']}\nReceipt: {receipt_path}\nRerun with --async --wait to finish"
+            )
+            return 0
         acknowledgement = receipt["acknowledgement"]
         if fingerprint(manifest) != digest:
             raise ValueError(
@@ -529,6 +692,38 @@ def main(argv: list[str] | None = None) -> int:
         default=os.environ.get("COYOTE3_BASE_URL"),
         help="Application URL including its prefix, e.g. https://host/coyote3_dev",
     )
+    token_source = parser.add_mutually_exclusive_group()
+    token_source.add_argument(
+        "--token",
+        help="Explicit credential; literal arguments may appear in shell history and process listings",
+    )
+    token_source.add_argument(
+        "--token-file",
+        help="Read the credential from a local file instead of an environment variable",
+    )
+    parser.add_argument(
+        "--async",
+        dest="asynchronous",
+        action="store_true",
+        help="Submit a durable background job without renaming the manifest",
+    )
+    parser.add_argument(
+        "--wait",
+        action="store_true",
+        help="With --async, wait for or resume the saved job and apply its terminal acknowledgement",
+    )
+    parser.add_argument(
+        "--wait-timeout",
+        type=int,
+        default=1800,
+        help="Maximum job-polling time in seconds (default: 1800)",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        type=float,
+        default=5,
+        help="Seconds between job-status requests (default: 5)",
+    )
     parser.add_argument(
         "--archive", help="Optional ZIP; remote path when --remote-host is supplied"
     )
@@ -546,7 +741,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Show live server-side ingest logs for this submission",
+        help="Show live synchronous ingest logs or background job state changes",
     )
     args = parser.parse_args(argv)
     args.base_url = str(args.base_url or "").rstrip("/")
@@ -564,6 +759,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.wait and not args.asynchronous:
+        parser.error("--wait requires --async")
+    if args.asynchronous and args.auth != "bearer":
+        parser.error(
+            "--async requires --auth bearer with an authorized session, service or personal token"
+        )
+    if args.wait_timeout <= 0 or not math.isfinite(args.poll_interval) or args.poll_interval <= 0:
+        parser.error("--wait-timeout and --poll-interval must be positive")
     if not 1 <= args.ssh_port <= 65535:
         parser.error("--ssh-port must be between 1 and 65535")
     try:

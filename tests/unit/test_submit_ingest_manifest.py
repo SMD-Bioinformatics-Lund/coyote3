@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -136,6 +137,167 @@ def test_remote_rename_failure_recovers_without_another_upload(remote_args, monk
     assert len(calls) == 0
 
 
+@pytest.mark.parametrize("source", ["argument", "file", "environment"])
+def test_token_sources_never_enter_curl_arguments_or_receipts(args, tmp_path, monkeypatch, source):
+    """The explicit credential sources share header validation and private stdin transport."""
+    token = "synthetic-private-token"
+    monkeypatch.setenv("API_BEARER_TOKEN", token)
+    if source == "argument":
+        args.token = token
+    elif source == "file":
+        path = tmp_path / "token.txt"
+        path.write_text(token + "\n")
+        args.token_file = str(path)
+        monkeypatch.delenv("API_BEARER_TOKEN")
+
+    def run(command, **kwargs):
+        assert token not in str(command)
+        assert "Bearer " + token in kwargs["input"]
+        return SimpleNamespace(
+            returncode=0, stdout='{"status":"ok","sample_id":"synthetic","message":"done"}\n200'
+        )
+
+    monkeypatch.setattr(client.subprocess, "run", run)
+    assert client.submit(args) == 0
+    assert token not in Path(args.yaml + ".ack.json").read_text()
+
+
+@pytest.mark.parametrize("value", ["", "x\ny", "x\ry", 'x"y', "x\\y", "x" * 16385])
+def test_unsafe_explicit_tokens_are_rejected_without_echoing_the_value(args, value):
+    args.token = value
+    with pytest.raises(ValueError, match="Supply a valid token") as error:
+        client.load_token(args)
+    if value:
+        assert value not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "state,exit_code,suffix", [("SUCCESS", 0, ".done"), ("FAILURE", 1, ".failed")]
+)
+def test_async_acceptance_resumes_without_reupload_or_early_rename(
+    args, monkeypatch, state, exit_code, suffix
+):
+    args.asynchronous = True
+    uploads = Mock(return_value={"status": "accepted", "task_id": "synthetic-job"})
+    monkeypatch.setattr(client, "upload", uploads)
+    assert client.submit(args) == 0
+    assert Path(args.yaml).exists()
+    receipt_path = Path(args.yaml + ".ack.json")
+    assert json.loads(receipt_path.read_text())["state"] == "accepted"
+    args.wait = True
+    statuses = iter(
+        [
+            {"state": "STARTED"},
+            {
+                "state": state,
+                "result": {"sample_id": "synthetic", "sample_name": "synthetic"},
+                "error": "Synthetic rejection",
+            },
+        ]
+    )
+    monkeypatch.setattr(client, "fetch_job_status", lambda *a, **kw: next(statuses))
+    monkeypatch.setattr(client.time, "sleep", lambda _: None)
+    assert client.submit(args) == exit_code
+    assert uploads.call_count == 1
+    assert Path(args.yaml + suffix).exists()
+    assert not Path(args.yaml).exists()
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["state"] == "terminal"
+    assert receipt["task_id"] == "synthetic-job"
+
+
+def test_async_wait_interruption_keeps_accepted_receipt_for_resume(args, monkeypatch):
+    args.asynchronous = True
+    args.wait = True
+    upload = Mock(return_value={"status": "accepted", "task_id": "synthetic-job"})
+    monkeypatch.setattr(client, "upload", upload)
+
+    def interrupted(*a, **kw):
+        raise ValueError("Connection interrupted")
+
+    monkeypatch.setattr(client, "fetch_job_status", interrupted)
+    with pytest.raises(ValueError, match="Connection interrupted"):
+        client.submit(args)
+    assert Path(args.yaml).exists()
+    assert json.loads(Path(args.yaml + ".ack.json").read_text())["state"] == "accepted"
+    monkeypatch.setattr(
+        client,
+        "fetch_job_status",
+        lambda *a, **kw: {"state": "SUCCESS", "result": {"sample_id": "synthetic"}},
+    )
+    assert client.submit(args) == 0
+    assert upload.call_count == 1
+
+
+def test_async_upload_uses_the_existing_endpoint_and_private_bearer_header(args, monkeypatch):
+    args.asynchronous = True
+
+    def run(command, **kwargs):
+        assert command[-1].endswith("/sample-bundle/upload/async")
+        assert "synthetic-token" not in str(command)
+        return SimpleNamespace(
+            returncode=0, stdout='{"status":"accepted","task_id":"synthetic-job"}\n202'
+        )
+
+    monkeypatch.setattr(client.subprocess, "run", run)
+    assert client.upload(args, Path(args.yaml), "synthetic-token")["status"] == "accepted"
+
+
+def test_async_wait_timeout_retains_job_and_does_not_rename(args, monkeypatch):
+    args.asynchronous = True
+    args.wait = True
+    args.wait_timeout = 1
+    monkeypatch.setattr(
+        client, "upload", lambda *a: {"status": "accepted", "task_id": "synthetic-job"}
+    )
+    monkeypatch.setattr(client, "fetch_job_status", lambda *a, **kw: {"state": "STARTED"})
+    clock = iter([0, 0, 1, 2])
+    monkeypatch.setattr(
+        client, "time", SimpleNamespace(monotonic=lambda: next(clock), sleep=lambda _: None)
+    )
+    with pytest.raises(ValueError, match="Wait timed out"):
+        client.submit(args)
+    assert Path(args.yaml).exists()
+    assert (
+        json.loads(Path(args.yaml + ".ack.json").read_text())["acknowledgement"]["task_id"]
+        == "synthetic-job"
+    )
+
+
+@pytest.mark.parametrize("failure", [None, "wrong_id", "unauthorized", "invalid_json"])
+def test_job_polling_preserves_prefix_and_does_not_leak_secrets(args, monkeypatch, failure):
+    response = {
+        "status": "ok",
+        "task_id": "synthetic-job",
+        "state": "SUCCESS",
+        "ready": True,
+        "successful": True,
+        "result": {"sample_id": "synthetic"},
+    }
+    if failure == "wrong_id":
+        response["task_id"] = "other-job"
+
+    def run(command, **kwargs):
+        assert command[-1] == "https://example.test/coyote3_dev/api/v1/internal/tasks/synthetic-job"
+        assert "synthetic-secret" not in str(command)
+        assert "Bearer synthetic-secret" in kwargs["input"]
+        body = "not json" if failure == "invalid_json" else json.dumps(response)
+        return SimpleNamespace(
+            returncode=0, stdout=body + ("\n401" if failure == "unauthorized" else "\n200")
+        )
+
+    monkeypatch.setattr(client.subprocess, "run", run)
+    if failure:
+        with pytest.raises(ValueError) as error:
+            client.fetch_job_status(args, "synthetic-job", "synthetic-secret", timeout=5)
+        assert "synthetic-secret" not in str(error.value)
+    else:
+        assert (
+            client.fetch_job_status(args, "synthetic-job", "synthetic-secret", timeout=5)["ready"]
+            is True
+        )
+
+
 def test_changed_remote_manifest_is_left_in_place(remote_args, monkeypatch):
     def upload(*a):
         Path(remote_args.yaml).write_text("name: changed\n")
@@ -194,6 +356,12 @@ def args(tmp_path, monkeypatch):
         ca_bundle=None,
         update_existing=False,
         increment=False,
+        token=None,
+        token_file=None,
+        asynchronous=False,
+        wait=False,
+        wait_timeout=60,
+        poll_interval=0.01,
     )
 
 
@@ -263,6 +431,7 @@ def test_saved_receipt_finishes_rename_without_resubmission(args, monkeypatch):
             "base_url": args.base_url,
             "options": client.submission_options(args),
             "archive_sha256": None,
+            "state": "terminal",
             "acknowledgement": {"status": "ok", "sample_id": "synthetic", "message": "done"},
         },
     )

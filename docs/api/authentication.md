@@ -5,6 +5,15 @@ successful login creates an opaque API session token in MongoDB. The token is
 returned to the caller as an HTTP cookie and can also be sent as a bearer token
 by scripts, notebooks, and command-line clients.
 
+For unattended ingestion, administrators can also create individually revocable
+**Service tokens** under **Administration → Service tokens**. These credentials
+authenticate a named automation identity without an interactive login. They accept
+only explicitly selected sample-ingestion/job-status operations, assays and
+clinical environments. Users can create **Personal tokens** under
+**Profile → Access tokens**, bounded by their current account permissions and scopes.
+Neither token type can create a session or use other application APIs.
+See [managed service credentials](sample-ingestion.md#managed-service-credentials).
+
 ## Login request fields
 
 `POST /api/v1/auth/sessions` accepts a JSON object with these fields:

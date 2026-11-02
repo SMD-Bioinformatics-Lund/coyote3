@@ -38,6 +38,11 @@ administration, arbitrary collection ingestion, asynchronous submission, or task
 status routes. Missing/invalid tokens fail authentication; browser user sessions
 retain their existing RBAC and assay scope checks.
 
+Managed service and personal tokens use `Authorization: Bearer <token>` and can
+select synchronous ingestion, background ingestion and token-owned job-status access
+independently. These capabilities do not extend the signed/static internal tokens.
+See [managed credentials](#managed-service-credentials).
+
 Direct identity and clinical collection imports are superuser-only because raw
 inserts and replacements bypass the dedicated account and clinical workflows.
 This restriction applies to synchronous, uploaded, bulk, and queued operations.
@@ -265,6 +270,108 @@ options. Multipart request bytes may already have been received by the HTTP serv
 this check avoids ingestion processing, not network transfer. Final name and
 database constraints still apply if another request creates a sample concurrently.
 
+### Managed service credentials
+
+Users with `ingest.token:issue` can open **Administration → Service tokens** to
+create, list and revoke credentials for unattended sample ingestion. Select an
+active owner, explicit assays and clinical environments, and selected operations:
+
+| Operation | Method and path |
+| --- | --- |
+| Submit a sample manifest | `POST /api/v1/internal/ingest/sample-bundle` |
+| Upload a sample bundle | `POST /api/v1/internal/ingest/sample-bundle/upload` |
+| Submit a background sample manifest | `POST /api/v1/internal/ingest/sample-bundle/async` |
+| Upload a background sample bundle | `POST /api/v1/internal/ingest/sample-bundle/upload/async` |
+| Read this token's job status/results | `GET /api/v1/internal/tasks/{task_id}` |
+
+The secret appears once after creation. Store it in the pipeline's secret store
+and send it using `Authorization: Bearer <token>`. The application stores only
+its SHA-256 digest. Tokens expire after the selected lifetime (default 720 hours,
+maximum 8760 hours); wildcard assay and environment scopes are rejected.
+
+The submission helper accepts these credentials with `--auth bearer` and either
+`--token-file /secure/path/token` or `--token '<token>'`. Explicit arguments take
+precedence over `API_BEARER_TOKEN`, which remains supported. A literal `--token`
+can appear in shell history and process listings; a protected token file avoids
+putting the secret in command arguments. Credentials are passed to curl through
+stdin and are never written to submission receipts. No password or interactive
+login is required for the pipeline.
+The general Python client's session-resume flow validates an interactive session
+and does not accept service or personal tokens; use the upload helper or direct HTTP requests.
+
+Each operation rechecks expiry, revocation, deployment audience and whether the
+owner is active. Revocation blocks future operations; work already executing may
+complete. Clinical assay/environment checks use the parsed manifest before writes.
+Collection imports, report access, clinical approval and token
+administration are unavailable to service credentials. Existing sample update and
+increment options retain their normal scope and validation requirements.
+
+Queued jobs retain the public token ID, accountable owner, selected operation and
+manifest scope. Before execution, workers recheck expiry, revocation, owner activation,
+the operation and the saved assay/environment. Revoking a credential prevents its
+queued work from executing. Status access is restricted to jobs submitted using
+that exact token, including for personal tokens owned by the same user. Completion
+retains the authorization scope after source-payload cleanup.
+
+Ingest provenance records `service-token-<token_id>` as the submitting identity.
+Ingestion audit events also include the public token ID and accountable owner.
+Token creation and revocation are audited without secrets or credential hashes.
+Metadata lists retain revoked and expired tokens and show at most the latest 500.
+
+Management endpoints require a user session with `ingest.token:issue`:
+`GET` and `POST /api/v1/admin/service-tokens`,
+`GET /api/v1/admin/service-tokens/options`, and
+`DELETE /api/v1/admin/service-tokens/{token_id}`. Browser mutations also require
+the normal CSRF protection. Creation responses use `Cache-Control: no-store`.
+
+### Personal ingestion tokens
+
+Open **Profile → Access tokens** to create and revoke personal credentials. The
+owner is always the authenticated account; callers cannot supply another owner.
+Personal tokens use the same explicit operations, scopes, expiry, hash storage and
+one-time disclosure as service tokens. Their effective access is the intersection
+of token selections and the account's current permissions and assay/environment
+scope. Submit operations require `internal.ingest:manage` and `sample:edit:own`;
+job-status access requires `internal.task:view`. Account and role changes take
+effect on subsequent token operations and before queued work executes.
+
+Personal ingestion records the username as submitter and the token ID in audit
+metadata. Session-authenticated users can list/create their own credentials at
+`/api/v1/auth/personal-tokens`, read scoped choices at its `/options` endpoint,
+and revoke their own token with `DELETE /api/v1/auth/personal-tokens/{token_id}`.
+These management actions do not require `ingest.token:issue`; issuing still checks
+the selected ingestion permissions. Users cannot list or revoke another account's
+credentials. Administrators with `ingest.token:issue` can inspect metadata and
+revoke either token type through **Administration → Service tokens**.
+
+### Background submission from the helper
+
+Select **Upload a background sample bundle** and **Read status and results of
+jobs submitted with this token**, then run:
+
+```bash
+.venv/bin/python scripts/ingest/submit_ingest_manifest.py \
+  /path/to/sample.yaml --base-url https://coyote.example.org \
+  --auth bearer --token-file /secure/path/coyote-token --async --wait
+```
+
+`--async` submits to the existing queue and saves the accepted job ID before
+returning exit 0. It leaves the YAML filename unchanged. Adding `--wait` polls that
+job until completion and then applies the usual `.done` or `.failed` acknowledgement.
+The defaults are `--wait-timeout 1800` seconds and `--poll-interval 5` seconds.
+The HTTP upload timeout remains controlled by `--timeout`.
+
+After a polling timeout or lost connection, the accepted receipt remains. Re-run
+the same command with `--async --wait` and the same still-valid token to resume
+polling without another upload. Expired or revoked tokens cannot poll; reconcile
+their saved jobs using an authorized user session or administrator rather than
+resubmitting. A changed source or conflicting submission options require
+reconciliation. If the initial upload disconnects
+before its job ID is received, the pending receipt still blocks blind resubmission.
+Both local and `--remote-host` workflows preserve these rules; renaming occurs
+only after a saved terminal result. A terminal background failure exits 1;
+an unconfirmed upload or interrupted wait exits 2.
+
 ### Expiring credentials for unattended uploads
 
 An authenticated user with `ingest.token:issue` can call
@@ -394,7 +501,7 @@ input path in the YAML is already readable inside the API container. A YAML
 upload alone does not transfer its referenced data. ZIP entries must match the
 manifest paths or have unique matching basenames, as for the UI upload.
 
-The script uses the synchronous endpoint below and appends the outcome to the
+By default, the script uses the synchronous endpoint below and appends the outcome to the
 original filename: `sample.yaml.done` for `status=ok`, or `sample.yaml.failed`
 for `status=failed`. In remote mode, it saves the full reason/result in a hashed
 `.ack.json` file under `~/.local/state/coyote3-ingest` on the deployment server
