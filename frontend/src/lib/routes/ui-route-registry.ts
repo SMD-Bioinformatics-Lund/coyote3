@@ -24,6 +24,21 @@ export function routeErrorState(route: UiRouteAudit): string {
 
 export const uiRouteRegistry: UiRouteAudit[] = [
   {
+    path: "/profile/access-tokens",
+    page: "ServiceTokensPage",
+    area: "account",
+    api: ["GET /auth/personal-tokens", "GET /auth/personal-tokens/options", "POST /auth/personal-tokens", "DELETE /auth/personal-tokens/:token_id"],
+    dataUsed: ["own personal token metadata", "current account scopes", "one-time secret"],
+  },
+  {
+    path: "/admin/service-tokens",
+    page: "ServiceTokensPage",
+    area: "admin",
+    api: ["GET /admin/service-tokens", "GET /admin/service-tokens/options", "POST /admin/service-tokens", "DELETE /admin/service-tokens/:token_id"],
+    dataUsed: ["token lifecycle metadata", "active owners", "registered assays", "selected operations", "one-time secret"],
+    notes: "The raw credential is shown once in component memory; lists and exports contain metadata only.",
+  },
+  {
     path: "/admin/configuration-profiles",
     page: "ConfigurationProfilesPage",
     area: "admin",

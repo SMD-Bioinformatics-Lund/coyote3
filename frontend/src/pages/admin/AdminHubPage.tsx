@@ -26,6 +26,13 @@ const resourceIcons: Record<string, ComponentType<{ className?: string }>> = {
 
 const utilityModules = [
   {
+    title: "Service tokens",
+    description: "Issue scoped ingestion credentials and revoke pipeline access.",
+    href: "/admin/service-tokens",
+    icon: icon.keyRound,
+    permission: ADMIN_UTILITY_PERMISSIONS.serviceTokensManage,
+  },
+  {
     title: "Query Rule Testing",
     description: "Compare query-rule versions against authorized samples without changing findings.",
     href: "/admin/query-rules/testing",

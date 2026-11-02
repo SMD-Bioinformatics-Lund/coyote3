@@ -34,6 +34,7 @@ const GeneListEditorPage = lazy(() => import("./pages/admin/gene-lists/GeneListE
 const GeneListsPage = lazy(() => import("./pages/admin/gene-lists/GeneListsPage").then((module) => ({ default: module.GeneListsPage })))
 const UserEditorPage = lazy(() => import("./pages/admin/users/UserEditorPage").then((module) => ({ default: module.UserEditorPage })))
 const UsersPage = lazy(() => import("./pages/admin/users/UsersPage").then((module) => ({ default: module.UsersPage })))
+const ServiceTokensPage = lazy(() => import("./pages/admin/ServiceTokensPage").then((module) => ({ default: module.ServiceTokensPage })))
 const RoleEditorPage = lazy(() => import("./pages/admin/roles/RoleEditorPage").then((module) => ({ default: module.RoleEditorPage })))
 const RolesPage = lazy(() => import("./pages/admin/roles/RolesPage").then((module) => ({ default: module.RolesPage })))
 const PermissionEditorPage = lazy(() => import("./pages/admin/permissions/PermissionEditorPage").then((module) => ({ default: module.PermissionEditorPage })))
@@ -172,6 +173,7 @@ export default function App() {
             <Route path="/admin" element={withRouteLoader(<AdminHub />)} />
             <Route path="/admin/audit" element={withAdminPermission(<AdminAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
             <Route path="/admin/ingestion-audit" element={withAdminPermission(<AdminIngestionAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
+            <Route path="/admin/service-tokens" element={withAdminPermission(<ServiceTokensPage key="service" />, ADMIN_UTILITY_PERMISSIONS.serviceTokensManage)} />
             <Route path="/admin/controls" element={withAdminPermission(<AdminControlsPage />, ADMIN_UTILITY_PERMISSIONS.controlsView)} />
             <Route path="/admin/ingest" element={withModule(
               <AdminPermissionBoundary permission={ADMIN_UTILITY_PERMISSIONS.ingestManage}><AdminIngestPage /></AdminPermissionBoundary>,
@@ -220,6 +222,7 @@ export default function App() {
             <Route path="/admin/samples/:id/edit" element={withRouteLoader(<AdminSampleEditorPage mode="edit" />)} />
             <Route path="/admin/samples" element={withRouteLoader(<AdminSamplesPage />)} />
             <Route path="/profile" element={withRouteLoader(<Profile />)} />
+            <Route path="/profile/access-tokens" element={withRouteLoader(<ServiceTokensPage key="personal" personal />)} />
             <Route path="*" element={withRouteLoader(<NotFoundPage />)} />
           </Route>
         </Routes>

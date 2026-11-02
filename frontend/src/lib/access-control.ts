@@ -26,6 +26,7 @@ export const ADMIN_UTILITY_PERMISSIONS = {
   maintenanceRun: "app.maintenance:run",
   auditView: "audit_log:view",
   ingestManage: "internal.ingest:manage",
+  serviceTokensManage: "ingest.token:issue",
   demoInstall: "demo:install",
   schemasView: "schema:list",
   uiRouteAuditView: "ui.route_audit:view",

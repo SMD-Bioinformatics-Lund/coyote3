@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon as appIcon } from "@/lib/assets"
 import { api } from "@/lib/api"
@@ -72,6 +73,7 @@ export function Profile() {
     <PageShell
       eyebrow="Account"
       title="Profile"
+      actions={<Link to="/profile/access-tokens" className="paper-raised-control rounded-lg px-3 py-2 type-body">Access tokens</Link>}
       description="View your active session and manage your profile, interface settings, and local password."
     >
       {isLoading ? (
