@@ -11,6 +11,7 @@ class OperationalCollectionContract:
     """Names for internal collections that are part of the software contract."""
 
     api_sessions: str = "api_sessions"
+    service_tokens: str = "service_tokens"
     audit_events: str = "audit_events"
     operational_audit_events: str = "operational_audit_events"
     audit_chain_heads: str = "audit_chain_heads"

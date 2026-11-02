@@ -120,6 +120,26 @@
   },
   "edges": [
     {
+      "source": "identity.service_tokens",
+      "field": "owner / created_by / revoked_by",
+      "target": "identity.users",
+      "target_field": "username",
+      "kind": "account ownership and historical attribution",
+      "cardinality": "many → current or historical account",
+      "notes": "Owner activation is rechecked during use. Personal grants also intersect current account access. Issuer/revoker are retained history; never export raw secrets or use the stored digest as a credential.",
+      "evidence": "src/coyote3/application/accounts/service_tokens.py"
+    },
+    {
+      "source": "primary.ingest_jobs",
+      "field": "credential_id",
+      "target": "identity.service_tokens",
+      "target_field": "token_id",
+      "kind": "public credential reference",
+      "cardinality": "0..1 credential per job",
+      "notes": "Managed sample jobs retain credential_owner, credential_operation and credential_scope. Workers revalidate current token authority before writes; completion retains the scope for status checks. Raw credentials are never stored in jobs.",
+      "evidence": "src/coyote3/contracts/schemas/ingest_jobs.py"
+    },
+    {
       "source": "primary.annotation",
       "field": "source_sample_id",
       "target": "primary.samples",
@@ -1696,7 +1716,7 @@
       "target_field": "username",
       "kind": "historical actor",
       "cardinality": "many → one",
-      "notes": "Actor provenance for durable ingestion; source_payload/result/error are workflow records, not arbitrary live foreign keys.",
+      "notes": "Session and personal jobs retain the username. Service identities use service-token-<token_id> and resolve through credential_id rather than a user account. Preserve attribution; source_payload/result/error are workflow records, not arbitrary live foreign keys.",
       "evidence": "src/coyote3/contracts/schemas/ingest_jobs.py"
     },
     {

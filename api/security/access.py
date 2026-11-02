@@ -16,7 +16,7 @@ from api.app.deps.repositories import (
     get_roles_repository,
     get_sample_repository,
 )
-from api.app.deps.services import get_api_session_repository
+from api.app.deps.services import get_api_session_repository, get_service_tokens
 from api.app.runtime_state import app as runtime_app
 from api.app.runtime_state import reset_current_user, set_current_user
 from api.config.security import (
@@ -41,6 +41,7 @@ from api.security.tokens import constant_time_equal
 from coyote3.application.common.access import enforce_access, sample_scope_allowed
 from coyote3.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
 from coyote3.config.policy import get_runtime_environment
+from coyote3.contracts.service_tokens import SERVICE_TOKEN_PREFIX
 from coyote3.domain.exceptions import AppError
 
 PUBLIC_API_EXACT_PATHS = {
@@ -109,6 +110,19 @@ class ApiUser:
 
 class InternalIngestPrincipal(ApiUser):
     """Identify an authenticated machine caller with fixed sample-ingest grants."""
+
+
+@dataclass
+class ServiceTokenPrincipal(ApiUser):
+    """Identify a verified managed credential with explicit assay/environment restrictions."""
+
+    service_token_id: str = ""
+    service_token_owner: str = ""
+    credential_operation: str = ""
+    personal_token: bool = False
+    personal_permission_check: Callable[[str | None, dict[str, Any] | None], bool] | None = field(
+        default=None, repr=False
+    )
 
 
 def _api_error(
@@ -413,15 +427,23 @@ def _enforce_access(
         permission: Required permission, when applicable.
         context: Resource attributes for ABAC scope checks.
     """
+    from api.infra.security.ingest_policy import SampleIngestPolicy
+
     try:
         enforce_access(
             user,
             permission=permission,
             context=context,
-            policy_factory=lambda actor: build_access_policy(
-                user=actor,
-                roles_repository=get_roles_repository(),
-                permissions_repository=get_permissions_repository(),
+            policy_factory=lambda actor: (
+                SampleIngestPolicy(
+                    InternalIngestPrincipal, scoped_principal_type=ServiceTokenPrincipal
+                )
+                if isinstance(actor, ServiceTokenPrincipal)
+                else build_access_policy(
+                    user=actor,
+                    roles_repository=get_roles_repository(),
+                    permissions_repository=get_permissions_repository(),
+                )
             ),
             internal_ingest=isinstance(user, InternalIngestPrincipal),
         )
@@ -568,19 +590,116 @@ def require_access(
 
 
 def require_sample_ingest_access(request: Request) -> Generator[ApiUser, None, None]:
+    """Authenticate sample ingestion against current session or selected managed-token access."""
+    yield from _require_ingestion_access(request, session_permission="internal.ingest:manage")
+
+
+def require_ingest_job_access(request: Request) -> Generator[ApiUser, None, None]:
+    """Authenticate job status without granting machine credentials broad task visibility."""
+    yield from _require_ingestion_access(request, session_permission="internal.task:view")
+
+
+def _require_ingestion_access(
+    request: Request, *, session_permission: str
+) -> Generator[ApiUser, None, None]:
     """Authenticate a synchronous sample-ingest caller without granting administration.
 
     Args:
-        request: Request carrying an internal token or the existing user credentials.
+        request: Request carrying a managed service bearer token, an internal token,
+            or the existing user-session credentials.
 
     Yields:
-        A user identity, or the internal-ingest machine principal scoped to this
-        deployment's environment. No identity database account is created.
+        A session user, fixed-audience internal machine, or service-token identity with
+        explicit assay/environment grants. No interactive account is created for a token.
 
     Notes:
         Only dedicated sample-ingest routes use this dependency. Other internal
         routes retain their own authorization requirements.
     """
+    bearer = (request.headers.get("Authorization") or "").split()
+    if (
+        len(bearer) == 2
+        and bearer[0].lower() == "bearer"
+        and bearer[1].startswith(SERVICE_TOKEN_PREFIX)
+    ):
+        if {"x-coyote-ingest-token", "x-coyote-internal-token"} & set(request.headers):
+            raise _api_error(401, "Use one authentication credential per request")
+        tokens = get_service_tokens()
+        credential = tokens.resolve(bearer[1])
+        if credential is None:
+            raise _api_error(401, "Invalid, expired or revoked service token")
+        path = request.scope["path"].removeprefix(request.scope.get("root_path", ""))
+        operation = {
+            "/api/v1/internal/ingest/sample-bundle": "sample_bundle",
+            "/api/v1/internal/ingest/sample-bundle/upload": "sample_upload",
+            "/api/v1/internal/ingest/sample-bundle/async": "sample_bundle_async",
+            "/api/v1/internal/ingest/sample-bundle/upload/async": "sample_upload_async",
+        }.get(path)
+        if (
+            request.method == "GET"
+            and path.startswith("/api/v1/internal/tasks/")
+            and "/" not in path.removeprefix("/api/v1/internal/tasks/")
+            and path.removeprefix("/api/v1/internal/tasks/")
+        ):
+            operation = "job_status"
+        elif request.method != "POST":
+            operation = None
+        if operation is None or operation not in credential.operations:
+            raise _api_error(
+                403, "This service token does not allow the requested ingestion operation"
+            )
+        delegated_actor = (
+            tokens.personal_actor(credential) if credential.kind == "personal" else None
+        )
+        identity = (
+            credential.owner
+            if delegated_actor is not None
+            else "service-token-" + credential.token_id
+        )
+        permissions = []
+        if any(item != "job_status" for item in credential.operations):
+            permissions.extend(["internal.ingest:manage", "sample:edit:own"])
+        if "job_status" in credential.operations:
+            permissions.append("internal.task:view")
+        user: ApiUser = ServiceTokenPrincipal(
+            id=identity,
+            username=identity,
+            fullname=delegated_actor.fullname if delegated_actor is not None else credential.name,
+            email="",
+            roles=[],
+            role="",
+            access_level=0,
+            permissions=permissions,
+            asp_ids=credential.asp_ids,
+            asp_groups=["*"],
+            asp_map={},
+            envs=credential.environments,
+            auth_type=["personal_token" if delegated_actor is not None else "service_token"],
+            service_token_id=credential.token_id,
+            service_token_owner=credential.owner,
+            credential_operation=operation,
+            personal_token=delegated_actor is not None,
+            personal_permission_check=(
+                lambda permission, context: tokens.personal_allowed(
+                    delegated_actor, permission, context
+                )
+            )
+            if delegated_actor is not None
+            else None,
+        )
+        _enforce_access(user, permission=session_permission)
+        context_token = set_current_user(user)
+        try:
+            yield user
+        finally:
+            reset_current_user(context_token)
+        return
+    if request.scope["path"].removeprefix(request.scope.get("root_path", "")) not in {
+        "/api/v1/internal/ingest/sample-bundle",
+        "/api/v1/internal/ingest/sample-bundle/upload",
+    }:
+        yield from require_access(permission=session_permission)(request)
+        return
     machine_id = "internal-ingest"
     if "X-Coyote-Ingest-Token" in request.headers:
         from api.security.ingest_tokens import verify_token
@@ -595,7 +714,7 @@ def require_sample_ingest_access(request: Request) -> Generator[ApiUser, None, N
             raise _api_error(403, "Invalid or expired ingestion token", category="auth") from None
         machine_id = "ingest-token-" + claims["id"]
     elif "X-Coyote-Internal-Token" not in request.headers:
-        yield from require_access(permission="internal.ingest:manage")(request)
+        yield from require_access(permission=session_permission)(request)
         return
     else:
         _require_internal_token(request)

@@ -132,7 +132,7 @@ Durable ingest job with source payload, lease, attempts, and completion result.
 
 source_payload contains the accepted submission, and result is a workflow receipt. SAMPLE_ID references belong to the resulting clinical documents, not an inferred job._id foreign key. Reconcile in-flight jobs and staging directories before replaying an import.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `kind`, `state`, `source_payload`, `update_existing`, `increment`, `staging_dir`, `created_at`, `updated_at`, `lease_until`, `lease_token`, `attempts`, `result`, `error`, `submitted_by`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `kind`, `state`, `source_payload`, `update_existing`, `increment`, `staging_dir`, `created_at`, `updated_at`, `lease_until`, `lease_token`, `attempts`, `result`, `error`, `submitted_by`, `credential_id`, `credential_owner`, `credential_operation`, `credential_scope`.
 
 [Field types and validation](../mongodb-collections.md#ingest_jobs). `_id` may also be retained by an open collection model.
 
@@ -144,7 +144,8 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.ingest_jobs](operations.md#primary-ingest-jobs): `submitted_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → one | Actor provenance for durable ingestion; source_payload/result/error are workflow records, not arbitrary live foreign keys. | [S8](#s8) |
+| [primary.ingest_jobs](operations.md#primary-ingest-jobs): `credential_id` | [identity.service_tokens](identity.md#identity-service-tokens): `token_id` | public credential reference; 0..1 credential per job | Managed sample jobs retain credential_owner, credential_operation and credential_scope. Workers revalidate current token authority before writes; completion retains the scope for status checks. Raw credentials are never stored in jobs. | [S8](#s8) |
+| [primary.ingest_jobs](operations.md#primary-ingest-jobs): `submitted_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → one | Session and personal jobs retain the username. Service identities use service-token-<token_id> and resolve through credential_id rather than a user account. Preserve attribution; source_payload/result/error are workflow records, not arbitrary live foreign keys. | [S8](#s8) |
 | [primary.ingest_jobs](operations.md#primary-ingest-jobs): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S9](#s9) |
 
 ### Incoming references and migration impact

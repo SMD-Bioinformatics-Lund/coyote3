@@ -6763,6 +6763,34 @@ export type NotificationResourcePayload = {
 };
 
 /**
+ * PersonalTokenCreate
+ *
+ * Request a token for the authenticated user; owner cannot be supplied by the caller.
+ */
+export type PersonalTokenCreate = {
+    /**
+     * Asp Ids
+     */
+    asp_ids: Array<string>;
+    /**
+     * Environments
+     */
+    environments: Array<string>;
+    /**
+     * Expires Hours
+     */
+    expires_hours?: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operations
+     */
+    operations: Array<'sample_bundle' | 'sample_upload' | 'sample_bundle_async' | 'sample_upload_async' | 'job_status'>;
+};
+
+/**
  * ProfilePublication
  *
  * Require the reviewer to identify the exact content reviewed.
@@ -9695,6 +9723,155 @@ export type SamplesDoc = {
      */
     version?: number;
     [key: string]: unknown;
+};
+
+/**
+ * ServiceTokenCreate
+ *
+ * Request an administrator-managed token for an explicitly selected owner.
+ */
+export type ServiceTokenCreate = {
+    /**
+     * Asp Ids
+     */
+    asp_ids: Array<string>;
+    /**
+     * Environments
+     */
+    environments: Array<string>;
+    /**
+     * Expires Hours
+     */
+    expires_hours?: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operations
+     */
+    operations: Array<'sample_bundle' | 'sample_upload' | 'sample_bundle_async' | 'sample_upload_async' | 'job_status'>;
+    /**
+     * Owner
+     */
+    owner: string;
+};
+
+/**
+ * ServiceTokenIssued
+ *
+ * One-time credential response paired with its nonsecret metadata.
+ */
+export type ServiceTokenIssued = {
+    metadata: ServiceTokenMetadata;
+    /**
+     * Token
+     */
+    token: string;
+};
+
+/**
+ * ServiceTokenList
+ *
+ * Bounded list of managed service-token metadata.
+ */
+export type ServiceTokenList = {
+    /**
+     * Items
+     */
+    items: Array<ServiceTokenMetadata>;
+};
+
+/**
+ * ServiceTokenMetadata
+ *
+ * Public credential identity and lifecycle fields without its credential hash.
+ */
+export type ServiceTokenMetadata = {
+    /**
+     * Asp Ids
+     */
+    asp_ids: Array<string>;
+    /**
+     * Audience
+     */
+    audience: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Created By
+     */
+    created_by: string;
+    /**
+     * Environments
+     */
+    environments: Array<string>;
+    /**
+     * Expires At
+     */
+    expires_at: string;
+    /**
+     * Kind
+     */
+    kind: 'service' | 'personal';
+    /**
+     * Last Used At
+     */
+    last_used_at?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operations
+     */
+    operations: Array<'sample_bundle' | 'sample_upload' | 'sample_bundle_async' | 'sample_upload_async' | 'job_status'>;
+    /**
+     * Owner
+     */
+    owner: string;
+    /**
+     * Revoked At
+     */
+    revoked_at?: string | null;
+    /**
+     * Revoked By
+     */
+    revoked_by?: string | null;
+    /**
+     * Token Id
+     */
+    token_id: string;
+};
+
+/**
+ * ServiceTokenOptions
+ *
+ * Actual active owners, assays and configured clinical environment choices.
+ */
+export type ServiceTokenOptions = {
+    /**
+     * Assays
+     */
+    assays: Array<{
+        [key: string]: string;
+    }>;
+    /**
+     * Environments
+     */
+    environments: Array<string>;
+    /**
+     * Operations
+     */
+    operations: Array<'sample_bundle' | 'sample_upload' | 'sample_bundle_async' | 'sample_upload_async' | 'job_status'>;
+    /**
+     * Owners
+     */
+    owners: Array<{
+        [key: string]: string;
+    }>;
 };
 
 /**
@@ -13898,6 +14075,215 @@ export type Responses_adminSchemasReadApiV1AdminSchemasGet = {
 
 export type Response_adminSchemasReadApiV1AdminSchemasGet = Responses_adminSchemasReadApiV1AdminSchemasGet[keyof Responses_adminSchemasReadApiV1AdminSchemasGet];
 
+export type Request_listTokensApiV1AdminServiceTokensGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/service-tokens';
+};
+
+export type ListTokensApiV1AdminServiceTokensGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ListTokensApiV1AdminServiceTokensGetError = ListTokensApiV1AdminServiceTokensGetErrors[keyof ListTokensApiV1AdminServiceTokensGetErrors];
+
+export type Responses_listTokensApiV1AdminServiceTokensGet = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenList;
+};
+
+export type Response_listTokensApiV1AdminServiceTokensGet = Responses_listTokensApiV1AdminServiceTokensGet[keyof Responses_listTokensApiV1AdminServiceTokensGet];
+
+export type Request_createTokenApiV1AdminServiceTokensPost = {
+    body: ServiceTokenCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/service-tokens';
+};
+
+export type CreateTokenApiV1AdminServiceTokensPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type CreateTokenApiV1AdminServiceTokensPostError = CreateTokenApiV1AdminServiceTokensPostErrors[keyof CreateTokenApiV1AdminServiceTokensPostErrors];
+
+export type Responses_createTokenApiV1AdminServiceTokensPost = {
+    /**
+     * Successful Response
+     */
+    201: ServiceTokenIssued;
+};
+
+export type Response_createTokenApiV1AdminServiceTokensPost = Responses_createTokenApiV1AdminServiceTokensPost[keyof Responses_createTokenApiV1AdminServiceTokensPost];
+
+export type Request_revokeTokenApiV1AdminServiceTokensTokenIdDelete = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Token Id
+         */
+        token_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/service-tokens/{token_id}';
+};
+
+export type RevokeTokenApiV1AdminServiceTokensTokenIdDeleteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type RevokeTokenApiV1AdminServiceTokensTokenIdDeleteError = RevokeTokenApiV1AdminServiceTokensTokenIdDeleteErrors[keyof RevokeTokenApiV1AdminServiceTokensTokenIdDeleteErrors];
+
+export type Responses_revokeTokenApiV1AdminServiceTokensTokenIdDelete = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenMetadata;
+};
+
+export type Response_revokeTokenApiV1AdminServiceTokensTokenIdDelete = Responses_revokeTokenApiV1AdminServiceTokensTokenIdDelete[keyof Responses_revokeTokenApiV1AdminServiceTokensTokenIdDelete];
+
+export type Request_tokenOptionsApiV1AdminServiceTokensOptionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/service-tokens/options';
+};
+
+export type TokenOptionsApiV1AdminServiceTokensOptionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type TokenOptionsApiV1AdminServiceTokensOptionsGetError = TokenOptionsApiV1AdminServiceTokensOptionsGetErrors[keyof TokenOptionsApiV1AdminServiceTokensOptionsGetErrors];
+
+export type Responses_tokenOptionsApiV1AdminServiceTokensOptionsGet = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenOptions;
+};
+
+export type Response_tokenOptionsApiV1AdminServiceTokensOptionsGet = Responses_tokenOptionsApiV1AdminServiceTokensOptionsGet[keyof Responses_tokenOptionsApiV1AdminServiceTokensOptionsGet];
+
 export type Request_changePasswordApiV1AuthPasswordChangePost = {
     body: ApiPasswordChangeRequest;
     headers?: {
@@ -14022,6 +14408,215 @@ export type Responses_requestPasswordResetApiV1AuthPasswordResetRequestPost = {
 };
 
 export type Response_requestPasswordResetApiV1AuthPasswordResetRequestPost = Responses_requestPasswordResetApiV1AuthPasswordResetRequestPost[keyof Responses_requestPasswordResetApiV1AuthPasswordResetRequestPost];
+
+export type Request_listPersonalTokensApiV1AuthPersonalTokensGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/personal-tokens';
+};
+
+export type ListPersonalTokensApiV1AuthPersonalTokensGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ListPersonalTokensApiV1AuthPersonalTokensGetError = ListPersonalTokensApiV1AuthPersonalTokensGetErrors[keyof ListPersonalTokensApiV1AuthPersonalTokensGetErrors];
+
+export type Responses_listPersonalTokensApiV1AuthPersonalTokensGet = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenList;
+};
+
+export type Response_listPersonalTokensApiV1AuthPersonalTokensGet = Responses_listPersonalTokensApiV1AuthPersonalTokensGet[keyof Responses_listPersonalTokensApiV1AuthPersonalTokensGet];
+
+export type Request_createPersonalTokenApiV1AuthPersonalTokensPost = {
+    body: PersonalTokenCreate;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/personal-tokens';
+};
+
+export type CreatePersonalTokenApiV1AuthPersonalTokensPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type CreatePersonalTokenApiV1AuthPersonalTokensPostError = CreatePersonalTokenApiV1AuthPersonalTokensPostErrors[keyof CreatePersonalTokenApiV1AuthPersonalTokensPostErrors];
+
+export type Responses_createPersonalTokenApiV1AuthPersonalTokensPost = {
+    /**
+     * Successful Response
+     */
+    201: ServiceTokenIssued;
+};
+
+export type Response_createPersonalTokenApiV1AuthPersonalTokensPost = Responses_createPersonalTokenApiV1AuthPersonalTokensPost[keyof Responses_createPersonalTokenApiV1AuthPersonalTokensPost];
+
+export type Request_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Token Id
+         */
+        token_id: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/personal-tokens/{token_id}';
+};
+
+export type RevokePersonalTokenApiV1AuthPersonalTokensTokenIdDeleteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type RevokePersonalTokenApiV1AuthPersonalTokensTokenIdDeleteError = RevokePersonalTokenApiV1AuthPersonalTokensTokenIdDeleteErrors[keyof RevokePersonalTokenApiV1AuthPersonalTokensTokenIdDeleteErrors];
+
+export type Responses_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenMetadata;
+};
+
+export type Response_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete = Responses_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete[keyof Responses_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete];
+
+export type Request_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/personal-tokens/options';
+};
+
+export type PersonalTokenOptionsApiV1AuthPersonalTokensOptionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type PersonalTokenOptionsApiV1AuthPersonalTokensOptionsGetError = PersonalTokenOptionsApiV1AuthPersonalTokensOptionsGetErrors[keyof PersonalTokenOptionsApiV1AuthPersonalTokensOptionsGetErrors];
+
+export type Responses_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet = {
+    /**
+     * Successful Response
+     */
+    200: ServiceTokenOptions;
+};
+
+export type Response_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet = Responses_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet[keyof Responses_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet];
 
 export type Request_updateCurrentProfileApiV1AuthProfilePatch = {
     body: ApiProfileUpdateRequest;
@@ -15228,12 +15823,6 @@ export type Response_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePo
 
 export type Request_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleBundleAsyncPost = {
     body: InternalIngestSampleBundleRequest;
-    headers?: {
-        /**
-         * X-Edit-Session
-         */
-        'x-edit-session'?: string | null;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/async';
@@ -15326,12 +15915,6 @@ export type Response_ingestSampleBundleUploadInternalApiV1InternalIngestSampleBu
 
 export type Request_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost = {
     body: BodyEnqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost;
-    headers?: {
-        /**
-         * X-Edit-Session
-         */
-        'x-edit-session'?: string | null;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/upload/async';
@@ -15377,12 +15960,6 @@ export type Response_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestS
 
 export type Request_getInternalTaskStatusApiV1InternalTasksTaskIdGet = {
     body?: never;
-    headers?: {
-        /**
-         * X-Edit-Session
-         */
-        'x-edit-session'?: string | null;
-    };
     path: {
         /**
          * Task Id

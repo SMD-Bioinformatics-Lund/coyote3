@@ -21,6 +21,7 @@ from api.interfaces.http.v1.admin.resources.assay_setup import router as assay_s
 from api.interfaces.http.v1.admin.resources.genelists import router as resource_genelists_router
 from api.interfaces.http.v1.admin.resources.samples import router as resource_samples_router
 from api.interfaces.http.v1.admin.roles import router as roles_router
+from api.interfaces.http.v1.admin.service_tokens import router as service_tokens_router
 from api.interfaces.http.v1.admin.users import router as users_router
 from api.interfaces.http.v1.clinical.dna.biomarkers import router as biomarkers_router
 from api.interfaces.http.v1.clinical.dna.classifications import router as classifications_router
@@ -43,6 +44,7 @@ from api.interfaces.http.v1.operations.editing import router as editing_router
 from api.interfaces.http.v1.operations.health import router as health_router
 from api.interfaces.http.v1.operations.internal import router as internal_router
 from api.interfaces.http.v1.operations.notifications import router as notifications_router
+from api.interfaces.http.v1.operations.personal_tokens import router as personal_tokens_router
 from api.interfaces.http.v1.public.routes import router as public_router
 
 
@@ -55,6 +57,8 @@ class RouterRegistration:
 
 
 ROUTERS = (
+    RouterRegistration(personal_tokens_router),
+    RouterRegistration(service_tokens_router),
     RouterRegistration(editing_router),
     RouterRegistration(health_router, include_in_schema=False),
     RouterRegistration(client_errors_router, include_in_schema=False),

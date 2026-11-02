@@ -11,7 +11,11 @@ from api.app.application_factory import (
     open_public_application,
     open_sample_ingestion,
 )
-from api.security.access import get_request_api_session, require_sample_ingest_access
+from api.security.access import (
+    get_request_api_session,
+    require_ingest_job_access,
+    require_sample_ingest_access,
+)
 from api.services.installation import Installation
 from api.services.public_pages import PublicPages
 from coyote3.application.common.execution_context import current_request_id
@@ -51,6 +55,7 @@ from coyote3.application.operations.system import (
     Dashboard,
     Traceability,
 )
+from coyote3.contracts.service_tokens import SERVICE_TOKEN_PREFIX
 
 
 def get_application(
@@ -284,18 +289,32 @@ def get_ingestion(application: CoyoteApplication = Depends(get_application)) -> 
 
 def get_sample_ingestion(request: Request) -> Ingestion:
     """Bind synchronous ingestion to a current session or the restricted machine audience."""
-    if not ({"x-coyote-ingest-token", "x-coyote-internal-token"} & set(request.headers)):
+    bearer = (request.headers.get("Authorization") or "").split()
+    managed_token = (
+        len(bearer) == 2
+        and bearer[0].lower() == "bearer"
+        and bearer[1].startswith(SERVICE_TOKEN_PREFIX)
+    )
+    if not managed_token and not (
+        {"x-coyote-ingest-token", "x-coyote-internal-token"} & set(request.headers)
+    ):
         return get_application(request).ingest
 
     def authenticate() -> Any:
         """Reverify signature, expiry and environment before each SDK operation."""
-        verifier = require_sample_ingest_access(request)
+        verifier = (
+            require_ingest_job_access(request)
+            if request.method == "GET"
+            else require_sample_ingest_access(request)
+        )
         try:
             return next(verifier)
         finally:
             verifier.close()
 
-    return open_sample_ingestion(authenticate, correlation_id=current_request_id())
+    return open_sample_ingestion(
+        authenticate, correlation_id=current_request_id(), managed=managed_token
+    )
 
 
 def get_internal_references(request: Request) -> InternalReferences:

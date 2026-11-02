@@ -60,6 +60,9 @@ class IngestionAuditAttempt:
             return
         result = result or {}
         metadata = {**self.metadata, "stage": stage}
+        if getattr(self.actor, "service_token_id", None):
+            metadata["service_token_id"] = self.actor.service_token_id
+            metadata["service_token_owner"] = self.actor.service_token_owner
         if stage != "started":
             metadata["duration_ms"] = round((monotonic() - self.started) * 1000)
         if error is not None:

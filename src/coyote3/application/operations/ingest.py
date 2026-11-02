@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
+from coyote3.application.common.access import enforce_access
 from coyote3.application.ingest.jobs import job_status_payload, submit_ingest_job
 from coyote3.application.operations.ingest_permissions import (
     enforce_collection_permission,
@@ -448,6 +449,17 @@ class Ingestion:
         self, actor: Any, kind: str, payload: dict[str, Any], **options: Any
     ) -> dict[str, Any]:
         """Persist acceptance before broker delivery; retain recovery when the broker fails."""
+        credential_id = getattr(actor, "service_token_id", None)
+        if credential_id:
+            options.update(
+                credential_id=credential_id,
+                credential_owner=actor.service_token_owner,
+                credential_operation=actor.credential_operation,
+                credential_scope={
+                    "asp_id": str(payload["asp_id"]).lower(),
+                    "environment": str(payload["environment"]).lower(),
+                },
+            )
         identity = submit_ingest_job(
             self._submission.jobs(),
             lambda job_id: self._submission.publish(kind, job_id),
@@ -487,8 +499,23 @@ class Ingestion:
             job = self._submission.jobs().get(job_id)
             if job is None:
                 raise api_error(404, "Ingest job not found")
+            credential_id = getattr(actor, "service_token_id", None)
+            if credential_id and job.get("credential_id") != credential_id:
+                raise api_error(404, "Ingest job not found")
             if not actor.is_superuser and job["submitted_by"] != actor.username:
                 raise api_error(403, "This ingest job belongs to another user")
+            if credential_id:
+                if job["kind"] != "sample_bundle":
+                    raise api_error(404, "Ingest job not found")
+                scope = job.get("credential_scope")
+                if not scope or not scope.get("asp_id") or not scope.get("environment"):
+                    raise api_error(403, "Ingest job has no authorized credential scope")
+                enforce_access(
+                    actor,
+                    permission="internal.task:view",
+                    context=scope,
+                    policy_factory=self._runtime.policy_factory,
+                )
             return dict(job_status_payload(job))
 
         return self._runtime.execute("ingest.job_status", ("internal.task:view",), read)

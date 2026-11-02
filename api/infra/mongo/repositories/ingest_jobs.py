@@ -38,6 +38,10 @@ class IngestJobsRepository(BaseRepository):
         submitted_by,
         job_id=None,
         kind="sample_bundle",
+        credential_id=None,
+        credential_owner=None,
+        credential_operation=None,
+        credential_scope=None,
     ) -> str:
         """Insert a pending delivery if its job ID is not already recorded.
 
@@ -50,6 +54,10 @@ class IngestJobsRepository(BaseRepository):
             job_id: Stable delivery ID for deduplication; falsey values generate a UUID.
             kind: Job kind: sample_bundle, insert_document, insert_documents, or
                 upsert_document; defaults to sample_bundle.
+            credential_id: Public managed-token ID, or None for a session/worker submission.
+            credential_owner: Accountable token owner; required with a credential ID.
+            credential_operation: Selected asynchronous token capability; required with an ID.
+            credential_scope: Manifest assay/environment retained after payload cleanup.
 
         Returns:
             Delivery ID, including when an existing job is left unchanged.
@@ -72,6 +80,10 @@ class IngestJobsRepository(BaseRepository):
             updated_at=now,
             submitted_by=submitted_by,
             kind=kind,
+            credential_id=credential_id,
+            credential_owner=credential_owner,
+            credential_operation=credential_operation,
+            credential_scope=credential_scope,
         ).model_dump(by_alias=True)
         self.get_collection().with_options(
             write_concern=WriteConcern("majority", j=True)

@@ -41,7 +41,8 @@ def ingest_job_executor(
 
     Notes:
         Only a trusted worker host calls this factory. Stored submitter metadata is
-        attribution, not an authentication credential or a permission grant.
+        attribution, not a permission grant. Managed jobs revalidate their public
+        credential reference against current token and account access before execution.
     """
     from api.infra.security.worker_policy import IngestWorkerIdentity, IngestWorkerPolicy
     from coyote3.application.operations.jobs import IngestJobExecution
@@ -54,7 +55,22 @@ def ingest_job_executor(
         assay_loader=lambda identity: None,
         audit_access=audit_access,
     )
-    return IngestJobExecution(runtime, service)
+    from api.app.deps.services import get_service_tokens
+
+    def authorize_job(job: dict[str, Any]) -> None:
+        """Recheck managed credential state before queued work reaches ingestion writes."""
+        if any(
+            job.get(key)
+            for key in (
+                "credential_id",
+                "credential_owner",
+                "credential_operation",
+                "credential_scope",
+            )
+        ):
+            get_service_tokens().authorize_job(job)
+
+    return IngestJobExecution(runtime, service, authorize_job=authorize_job)
 
 
 def application_services() -> ApplicationServices:
@@ -100,6 +116,7 @@ def application_services() -> ApplicationServices:
         get_rna_service,
         get_rna_workflow_service,
         get_sample_catalog_service,
+        get_service_tokens,
     )
     from api.app.http import get_formatted_assay_config
     from api.app.runtime_state import app
@@ -124,6 +141,7 @@ def application_services() -> ApplicationServices:
             enqueue=enqueue_operation,
             issue_token=issue_ingest_credential,
             schemas=COLLECTION_MODEL_ADAPTERS,
+            service_tokens=get_service_tokens,
         ),
         knowledgebase=get_common_query_service,
         knowledgebase_search_limit=int(app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)),
@@ -421,26 +439,31 @@ def publish_ingest_job(kind: str, identity: str) -> None:
 
 
 def open_sample_ingestion(
-    authenticate: Callable[[], Any], *, correlation_id: str | None = None
+    authenticate: Callable[[], Any], *, correlation_id: str | None = None, managed: bool = False
 ) -> "Ingestion":
-    """Bind a verified, expiring machine credential to synchronous sample ingestion only.
+    """Bind a verified ingestion credential to its designated SDK operation audience.
 
     Args:
         authenticate: Trusted transport verifier rerun before every operation.
         correlation_id: Host correlation identifier; None allocates one per operation.
+        managed: Trusted HTTP composition selected a managed credential; enables its
+            independently authorized sample-job operations. Fixed machine credentials stay synchronous.
 
     Returns:
-        Ingestion operations whose runtime rejects collection writes and asynchronous jobs.
+        Ingestion operations whose runtime rejects collection writes and restricts job capabilities.
     """
     from api.app.deps.services import get_internal_ingest_service
     from api.infra.mongo.records import application_result
     from api.infra.security.ingest_policy import SampleIngestPolicy
-    from api.security.access import InternalIngestPrincipal
+    from api.security.access import InternalIngestPrincipal, ServiceTokenPrincipal
     from coyote3.application.operations.ingest import Ingestion
 
     runtime = ApplicationRuntime(
         authenticate=authenticate,
-        policy_factory=lambda actor: SampleIngestPolicy(InternalIngestPrincipal),
+        policy_factory=lambda actor: SampleIngestPolicy(
+            InternalIngestPrincipal,
+            scoped_principal_type=ServiceTokenPrincipal if managed else None,
+        ),
         sample_loader=lambda identity: None,
         assay_loader=lambda identity: None,
         audit_access=record_application_access,
@@ -454,6 +477,7 @@ def open_sample_ingestion(
                 "ingest.prepare_upload",
                 "ingest.manifest",
             }
+            | ({"ingest.enqueue_sample_bundle", "ingest.job_status"} if managed else set())
         ),
     )
     return Ingestion(runtime, get_internal_ingest_service, ingest_submission_services())

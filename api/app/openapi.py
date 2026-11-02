@@ -63,7 +63,10 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "opaque",
-        "description": "Opaque API session token. Access is limited by the user's permissions.",
+        "description": (
+            "Opaque API session token, limited by the user's permissions. Managed service "
+            "and personal tokens are accepted only by selected sample-ingestion and token-owned job-status routes."
+        ),
     }
     for name, header, description in (
         (

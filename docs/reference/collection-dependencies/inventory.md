@@ -17,6 +17,7 @@ is listed below. Database labels are logical services, not deployment database n
 | `identity.operational_audit_events` | [identity.operational_audit_events](identity.md#identity-operational-audit-events) | `OPERATIONAL_COLLECTIONS.operational_audit_events` |
 | `identity.permissions` | [identity.permissions](identity.md#identity-permissions) | `permissions_collection` |
 | `identity.roles` | [identity.roles](identity.md#identity-roles) | `roles_collection` |
+| `identity.service_tokens` | [identity.service_tokens](identity.md#identity-service-tokens) | `OPERATIONAL_COLLECTIONS.service_tokens` |
 | `identity.users` | [identity.users](identity.md#identity-users) | `users_collection` |
 | `knowledgebase.brcaexchange` | [knowledgebase.brcaexchange](knowledgebase.md#knowledgebase-brcaexchange) | `brcaexchange_collection` |
 | `knowledgebase.civic_genes` | [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes) | `civic_gene_collection` |

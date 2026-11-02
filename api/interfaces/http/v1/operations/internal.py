@@ -45,6 +45,7 @@ from api.security.access import (
     ApiUser,
     _require_internal_token,
     require_access,
+    require_ingest_job_access,
     require_sample_ingest_access,
 )
 from coyote3.application.operations.ingest import Ingestion
@@ -364,8 +365,8 @@ def _execute_sample_bundle_upload(
 )
 def enqueue_ingest_sample_bundle_internal(
     payload: InternalIngestSampleBundleRequest,
-    user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
-    ingest_service: Ingestion = Depends(get_ingestion),
+    user: ApiUser = Depends(require_sample_ingest_access),
+    ingest_service: Ingestion = Depends(get_sample_ingestion),
 ):
     """Enqueue sample-bundle ingestion on the Celery ingest queue."""
     try:
@@ -390,8 +391,8 @@ def enqueue_ingest_sample_bundle_upload_internal(
     data_archive: UploadFile | None = File(None),
     update_existing: bool = Form(False),
     increment: bool = Form(False),
-    user: ApiUser = Depends(require_access(permission="internal.ingest:manage")),
-    ingest_service: Ingestion = Depends(get_ingestion),
+    user: ApiUser = Depends(require_sample_ingest_access),
+    ingest_service: Ingestion = Depends(get_sample_ingestion),
 ):
     """Upload a YAML + optional ZIP archive, stage it durably, and queue ingest."""
     if not yaml_file.filename:
@@ -658,8 +659,8 @@ def list_supported_ingest_collections_internal(
 )
 def get_internal_task_status(
     task_id: str,
-    _user: ApiUser = Depends(require_access(permission="internal.task:view")),
-    ingest_service: Ingestion = Depends(get_ingestion),
+    _user: ApiUser = Depends(require_ingest_job_access),
+    ingest_service: Ingestion = Depends(get_sample_ingestion),
 ):
     """Return ingest status to its submitter or a superuser with internal.task:view."""
     return ingest_service.job_status(task_id)

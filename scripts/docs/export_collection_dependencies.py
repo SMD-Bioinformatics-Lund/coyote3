@@ -42,7 +42,13 @@ def inventory() -> dict[str, dict]:
         database = (
             "identity"
             if field
-            in {"api_sessions", "audit_events", "operational_audit_events", "audit_chain_heads"}
+            in {
+                "api_sessions",
+                "service_tokens",
+                "audit_events",
+                "operational_audit_events",
+                "audit_chain_heads",
+            }
             else "primary"
         )
         result.setdefault(f"{database}.{name}", {"binding": f"OPERATIONAL_COLLECTIONS.{field}"})

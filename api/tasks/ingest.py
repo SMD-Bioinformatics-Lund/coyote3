@@ -410,7 +410,13 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
         actor=job.get("submitted_by"),
         resource_type="ingest",
         resource_id=job_id,
-        metadata={"task_id": job_id, "attempt": job.get("attempts"), "source": "celery"},
+        metadata={
+            "task_id": job_id,
+            "attempt": job.get("attempts"),
+            "source": "celery",
+            "credential_id": job.get("credential_id"),
+            "credential_owner": job.get("credential_owner"),
+        },
     )
     try:
         with timed_operation("ingest.sample_bundle", observer=observe_operation, task_id=job_id):
@@ -470,7 +476,7 @@ def _execute_ingest_job(job_id: str) -> dict[str, Any]:
                 try:
                     get_notification_service().create_notification(
                         audience="users",
-                        recipients=[job["submitted_by"]],
+                        recipients=[job.get("credential_owner") or job["submitted_by"]],
                         tone="error",
                         category="application",
                         title="Ingest failed",

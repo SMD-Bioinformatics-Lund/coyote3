@@ -393,6 +393,30 @@ roles after initialization.
 
 ![Local account invitation and password recovery](../assets/diagrams/local-password-lifecycle.svg)
 
+## Managed service tokens
+
+Managed service tokens are a separate ingestion-only credential family. The
+`service_tokens` operational collection in `IDENTITY_DB` stores unique SHA-256
+digests, explicit operations/assays/clinical environments, deployment audience,
+accountable owner, expiry and revocation metadata. It retains expired/revoked
+records rather than relying on TTL deletion. Only selected sample-ingestion and
+token-owned job-status adapters accept these credentials; they cannot become interactive sessions.
+The application reloads credential state and owner activation before each ingestion
+operation. See [managed service credentials](../api/sample-ingestion.md#managed-service-credentials).
+
+The same collection stores personal credentials with a distinct `kind`. Their
+owner is assigned from the current session, and current account role/scope checks
+further restrict every selected operation. Personal tokens do not carry superuser
+status. Queued jobs store public credential references and scopes, never raw
+secrets; workers revalidate them before execution. Completed job status remains
+restricted by token ownership and the user's current scope after payload cleanup.
+
+Deploy the API and ingestion workers from the same revision when enabling managed
+background jobs. Older workers do not revalidate managed credential references.
+Before rolling workers back, finish or reconcile queued managed-token jobs; retain
+their credential and job records for traceability. The identity collection's unique
+token-ID and digest indexes belong to the existing security index setup.
+
 ## API session transport
 
 The login endpoint `POST /api/v1/auth/sessions` creates an opaque API session

@@ -8,9 +8,11 @@ from typing import TYPE_CHECKING, Any
 from coyote3.application.dashboard.cache import DASHBOARD_METRICS
 from coyote3.application.operations.runtime import ApplicationRuntime
 from coyote3.config.contracts.application import APP_CONTROLS_ID
+from coyote3.contracts.service_tokens import PersonalTokenCreate, ServiceTokenCreate
 from coyote3.domain.common.errors import api_error
 
 if TYPE_CHECKING:
+    from coyote3.application.accounts.service_tokens import ServiceTokens
     from coyote3.application.admin.app_controls import AppControlsService
     from coyote3.application.audit.service import AuditService
     from coyote3.application.dashboard.analytics import DashboardService
@@ -28,6 +30,7 @@ class OperationsServices:
         enqueue: Callable[[str, dict[str, Any]], str],
         issue_token: Callable[[Any, int], dict[str, Any]],
         schemas: Mapping[str, Any],
+        service_tokens: Callable[[], ServiceTokens],
     ) -> None:
         """Bind service factories, task submission, credential issuance and schema contracts.
 
@@ -38,10 +41,12 @@ class OperationsServices:
             enqueue: Publishes an allowlisted operational task and returns its identifier.
             issue_token: Issues and audits a credential for the verified actor and hours.
             schemas: Authoritative collection contract adapters used for inspection.
+            service_tokens: Managed, revocable ingestion-credential implementation.
         """
         self.dashboard, self.controls = dashboard, controls
         self.audit = audit
         self.enqueue, self.issue_token, self.schemas = enqueue, issue_token, schemas
+        self.service_tokens = service_tokens
 
 
 class Dashboard:
@@ -257,6 +262,133 @@ class Credentials:
     def __init__(self, runtime: ApplicationRuntime, services: OperationsServices) -> None:
         """Bind permission checks and the host's audited credential issuer."""
         self._runtime, self._services = runtime, services
+
+    def personal_token_options(self) -> dict[str, Any]:
+        """Return the current account's registered scopes without exposing other owners."""
+        return self._runtime.execute(
+            "credentials.personal_token_options",
+            None,
+            lambda actor, sample: (
+                self._services.service_tokens().personal_options(actor=actor).model_dump()
+            ),
+        )
+
+    def personal_tokens(self) -> dict[str, Any]:
+        """List only the authenticated user's own personal credential metadata."""
+        return self._runtime.execute(
+            "credentials.personal_tokens",
+            None,
+            lambda actor, sample: {
+                "items": [
+                    row.model_dump()
+                    for row in self._services.service_tokens().list_metadata(
+                        owner=actor.username, kind="personal"
+                    )
+                ]
+            },
+        )
+
+    def create_personal_token(self, payload: PersonalTokenCreate) -> dict[str, Any]:
+        """Create a personal ingestion credential within current account access.
+
+        Args:
+            payload: Selected operations, explicit assay/environment scopes and expiry.
+
+        Returns:
+            One-time secret and metadata owned by the authenticated account.
+
+        Raises:
+            AppError: A selection exceeds current account permission or scope.
+        """
+        return self._runtime.execute(
+            "credentials.create_personal_token",
+            None,
+            lambda actor, sample: (
+                self._services.service_tokens().issue_personal(payload, actor=actor).model_dump()
+            ),
+        )
+
+    def revoke_personal_token(self, token_id: str) -> dict[str, Any]:
+        """Revoke one personal token belonging to the current account.
+
+        Args:
+            token_id: Public personal-token identifier; another owner's identifier is hidden.
+
+        Returns:
+            Public revoked metadata, retaining the first revocation actor and time.
+
+        Raises:
+            AppError: The token is absent, is not personal or belongs to another account.
+        """
+        return self._runtime.execute(
+            "credentials.revoke_personal_token",
+            None,
+            lambda actor, sample: (
+                self._services.service_tokens()
+                .revoke(token_id, actor=actor, personal_only=True)
+                .model_dump()
+            ),
+        )
+
+    def service_token_options(self) -> dict[str, Any]:
+        """List active credential owners and scopes with ingest.token:issue."""
+        return self._runtime.execute(
+            "credentials.service_token_options",
+            ("ingest.token:issue",),
+            lambda actor, sample: self._services.service_tokens().options().model_dump(),
+        )
+
+    def service_tokens(self) -> dict[str, Any]:
+        """List public credential metadata with ingest.token:issue; no secrets or hashes."""
+        return self._runtime.execute(
+            "credentials.service_tokens",
+            ("ingest.token:issue",),
+            lambda actor, sample: {
+                "items": [
+                    row.model_dump() for row in self._services.service_tokens().list_metadata()
+                ]
+            },
+        )
+
+    def create_service_token(self, payload: ServiceTokenCreate) -> dict[str, Any]:
+        """Issue an explicitly scoped credential once with ingest.token:issue.
+
+        Args:
+            payload: Registered owner, selected ingestion operations and bounded scopes/lifetime.
+
+        Returns:
+            Raw secret and metadata; only this creation response includes the secret.
+
+        Raises:
+            AppError: The current actor lacks permission or the selected scope is invalid.
+        """
+        return self._runtime.execute(
+            "credentials.create_service_token",
+            ("ingest.token:issue",),
+            lambda actor, sample: (
+                self._services.service_tokens().issue(payload, actor=actor).model_dump()
+            ),
+        )
+
+    def revoke_service_token(self, token_id: str) -> dict[str, Any]:
+        """Revoke a credential with ingest.token:issue, retaining its lifecycle history.
+
+        Args:
+            token_id: Public identifier returned on creation or in the metadata list.
+
+        Returns:
+            Revoked public metadata; repeated calls preserve the original revocation identity.
+
+        Raises:
+            AppError: The actor lacks permission or the identifier does not exist.
+        """
+        return self._runtime.execute(
+            "credentials.revoke_service_token",
+            ("ingest.token:issue",),
+            lambda actor, sample: (
+                self._services.service_tokens().revoke(token_id, actor=actor).model_dump()
+            ),
+        )
 
     def issue_ingest_token(self, hours: int) -> dict[str, Any]:
         """Issue and audit an expiring ingestion credential with ingest.token:issue.

@@ -24,6 +24,7 @@ from api.services.provisioning.demo_installation import DemoInstallationService
 from api.services.provisioning.deployment_data import DeploymentDataService
 from coyote3.application.accounts.permissions import PermissionManagementService
 from coyote3.application.accounts.roles import RoleManagementService
+from coyote3.application.accounts.service_tokens import ServiceTokens
 from coyote3.application.accounts.users import UserManagementService
 from coyote3.application.admin.app_controls import (
     AppControlsService,
@@ -313,6 +314,57 @@ def get_demo_installation_service() -> DemoInstallationService:
         get_internal_ingest_service(),
         bundle=DEMO_WORKFLOW_BUNDLE_PATH,
         identifier_factory=DemoInstallationRepository.identifier,
+    )
+
+
+def get_service_tokens() -> ServiceTokens:
+    """Bind managed service credentials to identity storage and current deployment registries."""
+    from api.config.operational_collections import OPERATIONAL_COLLECTIONS
+    from api.infra.mongo.repositories.service_tokens import MongoServiceTokenRepository
+    from api.security.access import api_user_from_user_doc
+    from api.security.policy import build_access_policy
+    from coyote3.config.policy import get_runtime_environment
+
+    store = get_store()
+
+    def load_user(username: str):
+        """Reload the current active owner without retaining session permission claims."""
+        document = store.user_repository.user_with_id(username)
+        return (
+            api_user_from_user_doc(document)
+            if document and document.get("is_active", True)
+            else None
+        )
+
+    def check_permission(actor, permission, context):
+        """Use current role policies and authoritative assay groups for personal delegation."""
+        context = dict(context or {})
+        if context.get("asp_id"):
+            panel = store.assay_panel_repository.get_asp(context["asp_id"])
+            if not panel or not panel.get("is_active", True):
+                return False
+            context["asp_group"] = panel.get("asp_group") or ""
+        if actor.is_superuser:
+            return True
+        policy = build_access_policy(
+            user=actor,
+            roles_repository=store.roles_repository,
+            permissions_repository=store.permissions_repository,
+        )
+        return (
+            policy.permission_allowed(actor, permission, context=context)
+            if permission
+            else policy.scope_allowed(actor, context)
+        )
+
+    return ServiceTokens(
+        MongoServiceTokenRepository(store.identity_db[OPERATIONAL_COLLECTIONS.service_tokens]),
+        users=store.user_repository,
+        assays=store.assay_panel_repository,
+        audience=get_runtime_environment(runtime_app.config),
+        audit=get_audit_service(),
+        user_loader=load_user,
+        permission_check=check_permission,
     )
 
 

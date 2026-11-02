@@ -1591,6 +1591,44 @@ Credentials(runtime: 'ApplicationRuntime', services: 'OperationsServices') -> 'N
 Issue fixed-audience ingestion credentials for an authorized current identity.
 ```
 
+#### `Credentials.create_personal_token`
+
+```python
+Credentials.create_personal_token(self, payload: 'PersonalTokenCreate') -> 'dict[str, Any]'
+```
+
+```text
+Create a personal ingestion credential within current account access.
+
+Args:
+    payload: Selected operations, explicit assay/environment scopes and expiry.
+
+Returns:
+    One-time secret and metadata owned by the authenticated account.
+
+Raises:
+    AppError: A selection exceeds current account permission or scope.
+```
+
+#### `Credentials.create_service_token`
+
+```python
+Credentials.create_service_token(self, payload: 'ServiceTokenCreate') -> 'dict[str, Any]'
+```
+
+```text
+Issue an explicitly scoped credential once with ingest.token:issue.
+
+Args:
+    payload: Registered owner, selected ingestion operations and bounded scopes/lifetime.
+
+Returns:
+    Raw secret and metadata; only this creation response includes the secret.
+
+Raises:
+    AppError: The current actor lacks permission or the selected scope is invalid.
+```
+
 #### `Credentials.issue_ingest_token`
 
 ```python
@@ -1608,6 +1646,84 @@ Returns:
 
 Raises:
     AppError: Permission is denied or credential issuance is unavailable.
+```
+
+#### `Credentials.personal_token_options`
+
+```python
+Credentials.personal_token_options(self) -> 'dict[str, Any]'
+```
+
+```text
+Return the current account's registered scopes without exposing other owners.
+```
+
+#### `Credentials.personal_tokens`
+
+```python
+Credentials.personal_tokens(self) -> 'dict[str, Any]'
+```
+
+```text
+List only the authenticated user's own personal credential metadata.
+```
+
+#### `Credentials.revoke_personal_token`
+
+```python
+Credentials.revoke_personal_token(self, token_id: 'str') -> 'dict[str, Any]'
+```
+
+```text
+Revoke one personal token belonging to the current account.
+
+Args:
+    token_id: Public personal-token identifier; another owner's identifier is hidden.
+
+Returns:
+    Public revoked metadata, retaining the first revocation actor and time.
+
+Raises:
+    AppError: The token is absent, is not personal or belongs to another account.
+```
+
+#### `Credentials.revoke_service_token`
+
+```python
+Credentials.revoke_service_token(self, token_id: 'str') -> 'dict[str, Any]'
+```
+
+```text
+Revoke a credential with ingest.token:issue, retaining its lifecycle history.
+
+Args:
+    token_id: Public identifier returned on creation or in the metadata list.
+
+Returns:
+    Revoked public metadata; repeated calls preserve the original revocation identity.
+
+Raises:
+    AppError: The actor lacks permission or the identifier does not exist.
+```
+
+#### `Credentials.service_token_options`
+
+```python
+Credentials.service_token_options(self) -> 'dict[str, Any]'
+```
+
+```text
+List active credential owners and scopes with ingest.token:issue.
+```
+
+#### `Credentials.service_tokens`
+
+```python
+Credentials.service_tokens(self) -> 'dict[str, Any]'
+```
+
+```text
+List public credential metadata with ingest.token:issue; no secrets or hashes.
 ```
 
 ### `CsvExport`
@@ -3388,7 +3504,7 @@ Return a compact JSON-safe representation.
 ### `OperationsServices`
 
 ```python
-OperationsServices(*, dashboard: 'Callable[[], DashboardService]', controls: 'Callable[[], AppControlsService]', audit: 'Callable[[], AuditService]', enqueue: 'Callable[[str, dict[str, Any]], str]', issue_token: 'Callable[[Any, int], dict[str, Any]]', schemas: 'Mapping[str, Any]') -> 'None'
+OperationsServices(*, dashboard: 'Callable[[], DashboardService]', controls: 'Callable[[], AppControlsService]', audit: 'Callable[[], AuditService]', enqueue: 'Callable[[str, dict[str, Any]], str]', issue_token: 'Callable[[Any, int], dict[str, Any]]', schemas: 'Mapping[str, Any]', service_tokens: 'Callable[[], ServiceTokens]') -> 'None'
 ```
 
 ```text

@@ -69,9 +69,17 @@ export type ApiOperations = {
   "POST /admin/query-rule-sets/{identifier}/retire": { request: T.Request_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost; response: T.Response_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost }
   "GET /admin/query-rule-sets/{identifier}/revisions": { request: T.Request_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet; response: T.Response_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet }
   "GET /admin/schemas": { request: T.Request_adminSchemasReadApiV1AdminSchemasGet; response: T.Response_adminSchemasReadApiV1AdminSchemasGet }
+  "GET /admin/service-tokens": { request: T.Request_listTokensApiV1AdminServiceTokensGet; response: T.Response_listTokensApiV1AdminServiceTokensGet }
+  "POST /admin/service-tokens": { request: T.Request_createTokenApiV1AdminServiceTokensPost; response: T.Response_createTokenApiV1AdminServiceTokensPost }
+  "GET /admin/service-tokens/options": { request: T.Request_tokenOptionsApiV1AdminServiceTokensOptionsGet; response: T.Response_tokenOptionsApiV1AdminServiceTokensOptionsGet }
+  "DELETE /admin/service-tokens/{token_id}": { request: T.Request_revokeTokenApiV1AdminServiceTokensTokenIdDelete; response: T.Response_revokeTokenApiV1AdminServiceTokensTokenIdDelete }
   "POST /auth/password/change": { request: T.Request_changePasswordApiV1AuthPasswordChangePost; response: T.Response_changePasswordApiV1AuthPasswordChangePost }
   "POST /auth/password/reset/confirm": { request: T.Request_confirmPasswordResetApiV1AuthPasswordResetConfirmPost; response: T.Response_confirmPasswordResetApiV1AuthPasswordResetConfirmPost }
   "POST /auth/password/reset/request": { request: T.Request_requestPasswordResetApiV1AuthPasswordResetRequestPost; response: T.Response_requestPasswordResetApiV1AuthPasswordResetRequestPost }
+  "GET /auth/personal-tokens": { request: T.Request_listPersonalTokensApiV1AuthPersonalTokensGet; response: T.Response_listPersonalTokensApiV1AuthPersonalTokensGet }
+  "POST /auth/personal-tokens": { request: T.Request_createPersonalTokenApiV1AuthPersonalTokensPost; response: T.Response_createPersonalTokenApiV1AuthPersonalTokensPost }
+  "GET /auth/personal-tokens/options": { request: T.Request_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet; response: T.Response_personalTokenOptionsApiV1AuthPersonalTokensOptionsGet }
+  "DELETE /auth/personal-tokens/{token_id}": { request: T.Request_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete; response: T.Response_revokePersonalTokenApiV1AuthPersonalTokensTokenIdDelete }
   "PATCH /auth/profile": { request: T.Request_updateCurrentProfileApiV1AuthProfilePatch; response: T.Response_updateCurrentProfileApiV1AuthProfilePatch }
   "GET /auth/providers": { request: T.Request_authProvidersReadApiV1AuthProvidersGet; response: T.Response_authProvidersReadApiV1AuthProvidersGet }
   "GET /auth/session": { request: T.Request_authSessionApiV1AuthSessionGet; response: T.Response_authSessionApiV1AuthSessionGet }

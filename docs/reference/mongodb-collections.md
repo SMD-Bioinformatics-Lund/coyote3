@@ -1006,6 +1006,10 @@ Optional keys:
 - `attempts` (int)
 - `result` (dict[str, Any] | None)
 - `error` (str | None)
+- `credential_id` (str | None)
+- `credential_owner` (str | None)
+- `credential_operation` (Literal['sample_bundle_async', 'sample_upload_async'] | None)
+- `credential_scope` (coyote3.contracts.schemas.ingest_jobs.IngestCredentialScope | None)
 
 ## `insilico_genelists`
 

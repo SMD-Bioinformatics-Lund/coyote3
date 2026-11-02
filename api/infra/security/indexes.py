@@ -33,6 +33,20 @@ def security_index_contracts(config: dict[str, Any]) -> tuple[SecurityIndexContr
     audit = get_audit_events_collection_name(config)
     contracts = (
         SecurityIndexContract(
+            OPERATIONAL_COLLECTIONS.service_tokens,
+            "identity",
+            (("token_hash", ASCENDING),),
+            "idx_service_tokens_hash",
+            {"unique": True},
+        ),
+        SecurityIndexContract(
+            OPERATIONAL_COLLECTIONS.service_tokens,
+            "identity",
+            (("token_id", ASCENDING),),
+            "idx_service_tokens_id",
+            {"unique": True},
+        ),
+        SecurityIndexContract(
             OPERATIONAL_COLLECTIONS.report_artifact_erasure,
             "primary",
             (("route", ASCENDING), ("last_attempt", ASCENDING)),

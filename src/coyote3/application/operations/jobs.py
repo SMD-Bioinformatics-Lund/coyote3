@@ -15,9 +15,23 @@ if TYPE_CHECKING:
 class IngestJobExecution:
     """Execute stored jobs under a worker identity while retaining original attribution."""
 
-    def __init__(self, runtime: ApplicationRuntime, service: InternalIngestService) -> None:
-        """Bind worker authentication and the existing transactional ingest workflow."""
+    def __init__(
+        self,
+        runtime: ApplicationRuntime,
+        service: InternalIngestService,
+        *,
+        authorize_job: Callable[[dict[str, Any]], None],
+    ) -> None:
+        """Bind worker authentication and the existing transactional ingest workflow.
+
+        Args:
+            runtime: Worker-only SDK authentication and operation authorization.
+            service: Existing ingestion implementation owning the write transaction.
+            authorize_job: Host check of any stored managed-token reference before execution;
+                ordinary session jobs do not require a token reference.
+        """
         self._runtime, self._service = runtime, service
+        self._authorize_job = authorize_job
 
     def execute(
         self, job: dict[str, Any], *, record_completion: Callable[..., None]
@@ -39,6 +53,7 @@ class IngestJobExecution:
 
         def run(actor: Any, sample: dict[str, Any] | None) -> dict[str, Any]:
             """Dispatch only supported stored job kinds, retaining their original service arguments."""
+            self._authorize_job(job)
             payload = dict(job["source_payload"])
             if job["kind"] == "sample_bundle":
                 payload.pop("_ingest_warnings", None)
