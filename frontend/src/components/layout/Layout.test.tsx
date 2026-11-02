@@ -225,6 +225,7 @@ describe("Layout", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Avery/i }))
     expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile")
+    expect(screen.getByRole("link", { name: "Access tokens" })).toHaveAttribute("href", "/profile/access-tokens")
     expect(screen.getByRole("link", { name: "Report a Bug" })).toHaveAttribute(
       "href",
       "https://example.test/bug",

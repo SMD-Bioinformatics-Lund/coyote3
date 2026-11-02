@@ -326,8 +326,9 @@ the normal CSRF protection. Creation responses use `Cache-Control: no-store`.
 
 ### Personal ingestion tokens
 
-Open **Profile → Access tokens** to create and revoke personal credentials. The
-owner is always the authenticated account; callers cannot supply another owner.
+Open the **user menu → Access tokens**, or **Profile → Access tokens**, to create
+and revoke personal credentials. The owner is always the authenticated account;
+callers cannot supply another owner.
 Personal tokens use the same explicit operations, scopes, expiry, hash storage and
 one-time disclosure as service tokens. Their effective access is the intersection
 of token selections and the account's current permissions and assay/environment

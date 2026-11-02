@@ -58,6 +58,8 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Service tokens appear in Administration's Identity and access section, and the
+  user menu links directly to personal Access tokens.
 - Scoped service and personal ingestion tokens support one-time secrets, hashed
   storage, expiry, revocation and token-specific audit attribution. Personal tokens
   remain bounded by current account permissions; administrators can revoke both kinds.

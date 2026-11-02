@@ -16,6 +16,17 @@ vi.mock("@/lib/app-module-state", () => ({
 describe("Admin navigation permissions", () => {
   beforeEach(() => { state.permissions = []; state.roles = []; state.loading = false; state.ingest = true; state.error = false; state.modulesError = false; state.retry.mockClear() })
   const show = () => render(<MemoryRouter><AdminHubPage /></MemoryRouter>)
+  it("shows service tokens under Identity and access for token issuers", () => {
+    state.permissions = ["ingest.token:issue"]
+    show()
+    const section = screen.getByRole("region", { name: "Identity and access" })
+    expect(within(section).getByRole("link", { name: /Service tokens/ })).toHaveAttribute("href", "/admin/service-tokens")
+  })
+  it("hides service tokens without the issuing permission", () => {
+    state.permissions = ["user:list"]
+    show()
+    expect(screen.queryByRole("link", { name: /Service tokens/ })).not.toBeInTheDocument()
+  })
   it("distinguishes failed authorization from missing permission", () => {
     state.error = true
     show()
@@ -34,7 +45,7 @@ describe("Admin navigation permissions", () => {
     state.roles = ["superuser"]
     show()
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
-    expect(screen.getAllByRole("link")).toHaveLength(22)
+    expect(screen.getAllByRole("link")).toHaveLength(23)
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: " testing " } })
     expect(screen.getAllByRole("link")).toHaveLength(2)
     expect(screen.getByRole("link", { name: /Clinical Rule Testing/ })).toBeVisible()
@@ -42,7 +53,7 @@ describe("Admin navigation permissions", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: "no match" } })
     expect(screen.queryAllByRole("link")).toHaveLength(0)
     fireEvent.click(screen.getAllByRole("button", { name: "Clear search" })[1])
-    expect(screen.getAllByRole("link")).toHaveLength(22)
+    expect(screen.getAllByRole("link")).toHaveLength(23)
   })
   it("does not expose links without permission", () => {
     show()
@@ -89,7 +100,7 @@ describe("Admin navigation permissions", () => {
     expect(screen.getByRole("region", { name: "Identity and access" })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Application operations" })).toBeInTheDocument()
     const destinations = screen.getAllByRole("link").map((link) => link.getAttribute("href"))
-    expect(destinations).toHaveLength(22)
+    expect(destinations).toHaveLength(23)
     expect(new Set(destinations).size).toBe(destinations.length)
   })
   it("omits empty sections for limited access", () => {

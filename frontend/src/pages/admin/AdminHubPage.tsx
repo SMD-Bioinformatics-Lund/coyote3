@@ -149,7 +149,7 @@ const utilityModules = [
 const adminSections = [
   { id: "assays", title: "Assays and diagnoses", icon: icon.dna, paths: ["assay-groups", "assay-setups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
   { id: "reporting", title: "Clinical rules and catalog", icon: icon.bookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
-  { id: "access", title: "Identity and access", icon: icon.usersRound, paths: ["users", "roles", "permissions"] },
+  { id: "access", title: "Identity and access", icon: icon.usersRound, paths: ["users", "roles", "permissions", "service-tokens"] },
   { id: "operations", title: "Application operations", icon: icon.settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
 ] as const
 

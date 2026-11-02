@@ -25,7 +25,9 @@ for (const theme of ["light", "dark"] as const) {
           return { json: { items: saved ? [saved] : [] } }
         }
       })
-      await page.goto("/profile/access-tokens")
+      await page.goto("/profile")
+      await page.getByRole("button", { name: "User menu for owner" }).click()
+      await page.locator(".paper-menu").getByRole("link", { name: "Access tokens", exact: true }).click()
       await expect(page.getByRole("heading", { name: "Access tokens", exact: true })).toBeVisible()
       await expect(page.getByLabel("Owner", { exact: true })).toHaveCount(0)
       await page.getByLabel("Name", { exact: true }).fill("Personal pipeline")
@@ -66,7 +68,8 @@ for (const theme of ["light", "dark"] as const) {
           return { json: { items: saved ? [saved] : [] } }
         }
       })
-      await page.goto("/admin/service-tokens")
+      await page.goto("/admin")
+      await page.getByRole("region", { name: "Identity and access" }).getByRole("link", { name: /Service tokens/ }).click()
       await expect(page.getByRole("heading", { name: "Service tokens", exact: true })).toBeVisible()
       await expect(page.getByRole("button", { name: "Create token", exact: true })).toBeDisabled()
       await page.getByLabel("Name", { exact: true }).fill("Synthetic pipeline")

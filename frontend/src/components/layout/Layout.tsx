@@ -441,6 +441,7 @@ export function Layout() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                aria-label={`User menu for ${userDisplayName}`}
                 className="flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1.5 hover:bg-[var(--chrome-control-hover)]"
               >
                 <div className="brand-gradient-fill flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-primary-foreground shadow-md">
@@ -457,6 +458,9 @@ export function Layout() {
                 <div className="paper-menu absolute right-0 top-full z-50 mt-2 w-60 rounded-lg py-1">
               <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <icon.user className="mr-3 h-4 w-4 text-primary" /> Profile
+                  </Link>
+                  <Link to="/profile/access-tokens" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                    <icon.keyRound className="mr-3 h-4 w-4 text-primary" /> Access tokens
                   </Link>
                   <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <span className="flex items-center">
