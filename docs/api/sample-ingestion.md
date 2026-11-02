@@ -276,6 +276,11 @@ Users with `ingest.token:issue` can open **Administration → Service tokens** t
 create, list and revoke credentials for unattended sample ingestion. Select an
 active owner, explicit assays and clinical environments, and selected operations:
 
+The form groups token identity, allowed operations and access scopes. Search assays
+by name or ID; filtering the list preserves selections. Selection counts show the
+chosen scope before creation. The token list displays status, expiry and last use;
+revocation requires confirmation.
+
 | Operation | Method and path |
 | --- | --- |
 | Submit a sample manifest | `POST /api/v1/internal/ingest/sample-bundle` |

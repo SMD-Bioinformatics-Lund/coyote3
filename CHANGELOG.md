@@ -58,6 +58,10 @@ review, reporting, administration and integrations into one application.
 
 ### Administration and security
 
+- Service and personal token pages group identity, operations and access scopes,
+  with searchable assay choices, selection counts and clearer credential status.
+- Session-expiry responses arriving on Login no longer produce generic request-error
+  toasts; protected requests retain their sign-in redirect and clear stale CSRF state.
 - Service tokens appear in Administration's Identity and access section, and the
   user menu links directly to personal Access tokens.
 - Scoped service and personal ingestion tokens support one-time secrets, hashed

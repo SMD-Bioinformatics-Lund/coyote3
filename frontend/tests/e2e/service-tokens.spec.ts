@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
+const assayChoices = [
+  { asp_id: "assay_a", name: "Assay A" },
+  ...Array.from({ length: 15 }, (_, index) => ({
+    asp_id: `synthetic_sequencing_panel_${index + 1}`,
+    name: `Synthetic sequencing panel ${index + 1}`,
+  })),
+]
+
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
     test(`personal access tokens: ${theme}, ${width}px`, async ({ page }, testInfo) => {
@@ -11,7 +19,7 @@ for (const theme of ["light", "dark"] as const) {
       await installApiFixtures(page, (path, _url, route) => {
         if (path.endsWith("/auth/whoami")) return { json: { username: "owner", roles: ["user"], permissions: ["internal.ingest:manage", "sample:edit:own", "internal.task:view"], ui_settings: { theme } } }
         if (path.endsWith("/auth/session")) return { json: { user: { username: "owner", roles: ["user"], auth_type: ["local"], permissions: ["internal.ingest:manage", "sample:edit:own", "internal.task:view"], asp_ids: ["assay_a"] } } }
-        if (path.endsWith("/personal-tokens/options")) return { json: { owners: [], assays: [{ asp_id: "assay_a", name: "Assay A" }], environments: ["testing"], operations: ["sample_upload_async", "job_status"] } }
+        if (path.endsWith("/personal-tokens/options")) return { json: { owners: [], assays: assayChoices, environments: ["testing"], operations: ["sample_upload_async", "job_status"] } }
         if (path.endsWith("/personal-tokens/personal-id") && route.request().method() === "DELETE") {
           saved = { ...saved, revoked_at: new Date().toISOString() }
           return { json: saved }
@@ -30,6 +38,8 @@ for (const theme of ["light", "dark"] as const) {
       await page.locator(".paper-menu").getByRole("link", { name: "Access tokens", exact: true }).click()
       await expect(page.getByRole("heading", { name: "Access tokens", exact: true })).toBeVisible()
       await expect(page.getByLabel("Owner", { exact: true })).toHaveCount(0)
+      await expect(page.getByLabel("Assay A (assay_a)")).toBeVisible()
+      await page.screenshot({ path: testInfo.outputPath(`personal-token-form-${theme}-${width}.png`), fullPage: true })
       await page.getByLabel("Name", { exact: true }).fill("Personal pipeline")
       await page.getByLabel("Upload a background sample bundle", { exact: true }).check()
       await page.getByLabel("Read status and results of jobs submitted with this token").check()
@@ -54,7 +64,7 @@ for (const theme of ["light", "dark"] as const) {
       let saved: Record<string, unknown> | null = null
       await installApiFixtures(page, (path, _url, route) => {
         if (path.endsWith("/auth/whoami")) return { json: { username: "issuer", roles: ["sysadmin"], permissions: ["ingest.token:issue"], ui_settings: { theme } } }
-        if (path.endsWith("/service-tokens/options")) return { json: { owners: [{ username: "owner", name: "Pipeline Owner" }], assays: [{ asp_id: "assay_a", name: "Assay A" }], environments: ["testing", "production"], operations: ["sample_bundle", "sample_upload", "sample_bundle_async", "sample_upload_async", "job_status"] } }
+        if (path.endsWith("/service-tokens/options")) return { json: { owners: [{ username: "owner", name: "Pipeline Owner" }], assays: assayChoices, environments: ["testing", "production"], operations: ["sample_bundle", "sample_upload", "sample_bundle_async", "sample_upload_async", "job_status"] } }
         if (path.endsWith("/service-tokens/synthetic-id") && route.request().method() === "DELETE") {
           saved = { ...saved, revoked_at: new Date().toISOString(), revoked_by: "issuer" }
           return { json: saved }
@@ -72,9 +82,13 @@ for (const theme of ["light", "dark"] as const) {
       await page.getByRole("region", { name: "Identity and access" }).getByRole("link", { name: /Service tokens/ }).click()
       await expect(page.getByRole("heading", { name: "Service tokens", exact: true })).toBeVisible()
       await expect(page.getByRole("button", { name: "Create token", exact: true })).toBeDisabled()
+      await expect(page.getByLabel("Assay A (assay_a)")).toBeVisible()
+      await page.screenshot({ path: testInfo.outputPath(`service-token-form-${theme}-${width}.png`), fullPage: true })
       await page.getByLabel("Name", { exact: true }).fill("Synthetic pipeline")
       await page.getByLabel("Owner", { exact: true }).selectOption("owner")
-      await page.getByLabel("Assay A (assay_a)", { exact: true }).check()
+      await page.getByRole("textbox", { name: "Search allowed assays" }).fill("assay_a")
+      await page.getByLabel("Assay A (assay_a)", { exact: true }).focus()
+      await page.keyboard.press("Space")
       await page.getByLabel("testing", { exact: true }).check()
       await page.getByRole("button", { name: "Create token", exact: true }).click()
       await expect(page.getByLabel("New service token")).toHaveValue(secret)
