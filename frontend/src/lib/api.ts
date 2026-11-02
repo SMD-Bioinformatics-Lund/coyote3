@@ -97,8 +97,10 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
   // Global 401 interceptor
   if (response.status === 401) {
     setCsrfToken(null)
-    if (redirectOnUnauthorized && window.location.pathname !== appPath("/login")) {
-      window.location.href = appPath("/login")
+    if (redirectOnUnauthorized) {
+      if (window.location.pathname !== appPath("/login")) {
+        window.location.href = appPath("/login")
+      }
       throw new ApiClientError("Unauthorized", 401, endpoint)
     }
   }

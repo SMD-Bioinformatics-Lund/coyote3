@@ -140,6 +140,14 @@ describe("typed API client", () => {
     expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).has("X-CSRF-Token")).toBe(false)
   })
 
+  it.each(["/samples", "/login"])("handles rejected sessions from %s without generic error toasts", async pathname => {
+    vi.stubGlobal("window", { location: { pathname, href: pathname } })
+    vi.mocked(fetch).mockResolvedValueOnce(response('{"error":"Login required"}', 401, "Unauthorized"))
+    await expect(api.get("/auth/whoami")).rejects.toMatchObject({ status: 401 })
+    expect(window.location.href).toBe("/login")
+    expect(notifyMock).not.toHaveBeenCalled()
+  })
+
   it.each([
     [403, '{"error":"Review must be performed by another user"}', "Review must be performed by another user", "warning"],
     [404, '{"error":"Sample not found"}', "Sample not found", "warning"],
