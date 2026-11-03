@@ -101,6 +101,15 @@ export function translocationInfo(translocation: any) {
   return info && typeof info === "object" ? info : {}
 }
 
+/** Display stored split/paired counts for each sample without estimating support. */
+export function translocationReadSupport(finding: { GT?: unknown }) {
+  if (!Array.isArray(finding.GT)) return "-"
+  const count = (value: unknown) => Array.isArray(value) ? value.join("/") : String(value ?? "-")
+  return finding.GT.map((row: Record<string, unknown>) =>
+    `${row.type || row.sample || "Sample"}: ${count(row.SR)} / ${count(row.PR)}`,
+  ).join("; ") || "-"
+}
+
 export function translocationGenes(translocation: any) {
   if (Array.isArray(translocation?.genes) && translocation.genes.length > 0) {
     return translocation.genes.map((gene: unknown) => String(gene || "").trim()).filter(Boolean)

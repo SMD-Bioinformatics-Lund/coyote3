@@ -123,7 +123,7 @@ describe("sample analysis table tabs", () => {
     mount(<VariantsTab sampleId="S1" intent="somatic" />, "/samples/S1?tab=snvs")
     expect(await screen.findByText("Table with 201 rows")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith(expect.stringMatching(
-      /^\/samples\/S1\/small-variants\?page=1&per_page=50&intent=somatic$/,
+      /^\/samples\/S1\/small-variants\?page=1&per_page=200&intent=somatic$/,
     ))
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       rowLabel: "variants", totalCount: 201, hasNext: true, hasPrevious: false,
@@ -160,7 +160,7 @@ describe("sample analysis table tabs", () => {
     expect(screen.getByText("CNV Profile")).toBeVisible()
     expect(screen.getByRole("img", { name: "CNV profile for S3" })).toBeVisible()
     expect(screen.getByLabelText("COSMIC Cancer Gene Census: TP53")).toBeVisible()
-    expect(mocks.get).toHaveBeenCalledWith("/samples/S3/cnvs?page=1&per_page=50")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/S3/cnvs?page=1&per_page=200")
   })
 
   it("uses the whole table width when no CNV profile exists", async () => {
@@ -190,7 +190,7 @@ describe("sample analysis table tabs", () => {
     mount(<FusionsTab sampleId="RNA_1" />, "/samples/RNA_1?tab=fusions&fusion_page=2")
 
     expect(await screen.findByText("Table with 71 rows")).toBeVisible()
-    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_1/fusions?page=2&per_page=50")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_1/fusions?page=2&per_page=200")
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       rowLabel: "fusions",
       totalCount: 71,
@@ -229,7 +229,7 @@ describe("sample analysis table tabs", () => {
     expect(typeBadge).toBeVisible()
     fireEvent.mouseEnter(typeBadge)
     expect(await screen.findByText("A transcript altered by a structural gene fusion.")).toBeVisible()
-    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_1/translocations?page=1&per_page=50")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_1/translocations?page=1&per_page=200")
     expect(mocks.dataTable).toHaveBeenLastCalledWith(expect.objectContaining({
       rowLabel: "translocations",
       filename: "translocations_DNA_1.csv",

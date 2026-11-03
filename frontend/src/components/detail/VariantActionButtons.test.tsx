@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -25,6 +25,23 @@ describe("VariantActionButtons", () => {
     mutateAsync.mockReset().mockResolvedValue(undefined)
     vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} } as never)
     vi.mocked(useSingleFindingFlag).mockClear()
+  })
+
+  it("explains that removing structural report selection retains tier-driven eligibility", async () => {
+    const user = userEvent.setup()
+    renderActions({
+      sampleId: "SYNTHETIC_CASE", resourceType: "cnv",
+      variant: { _id: "synthetic-cnv", interesting: true, classification: { class: 2 } },
+      controls: ["interesting"],
+    })
+    await user.click(screen.getByTitle("Remove report flag"))
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "An eligible tier can still include the finding in the report.",
+    )
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove report flag" }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({
+      resourceId: "synthetic-cnv", flag: "interesting", apply: false,
+    }))
   })
 
   it("confirms and applies a false-positive state transition", async () => {

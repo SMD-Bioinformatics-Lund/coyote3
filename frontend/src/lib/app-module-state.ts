@@ -27,9 +27,9 @@ export type TieringResourceKey = "small_variant" | "cnv" | "fusion" | "transloca
 
 const DEFAULT_TIERING_AVAILABILITY: Record<TieringResourceKey, boolean> = {
   small_variant: true,
-  cnv: false,
+  cnv: true,
   fusion: true,
-  translocation: false,
+  translocation: true,
 }
 
 export const APPLICATION_MODULES_QUERY_KEY = ["application-modules"] as const

@@ -201,13 +201,13 @@ The default **Classic** layout shows the live and reported worklists on the same
 
 The layout preferences and default table page size are available from the authenticated user's **Profile** page. Administrators with user-view or user-edit access can inspect or update the same preferences in the **Users** resource under **User settings**. These controls update the structured `ui_settings` object; administrators do not need to edit JSON.
 
-`users.ui_settings.table_page_size` controls the default page size for application tables. The supported values are `25`, `50`, `100`, and `200`; the default is `50`. Changing a page-size selector in a table also saves the new account preference. Local tables paginate their filtered rows in the browser, while clinical result tables request the selected page from the API. CSV export is not restricted to the visible browser page when the full filtered result is already available locally.
+`users.ui_settings.table_page_size` controls the default page size for application tables. The supported values are `25`, `50`, `100`, and `200`; the default is `200`. Existing account preferences and explicit URL page sizes remain in effect. Changing a page-size selector in a table also saves the new account preference. Local tables paginate their filtered rows in the browser, while clinical result tables request the selected page from the API. CSV export is not restricted to the visible browser page when the full filtered result is already available locally.
 
 | User setting | Allowed values | Default | Effect |
 | --- | --- | --- | --- |
 | `analysis_layout` | `classic`, `modern` | `classic` | Uses the combined Findings workspace or separate analysis tabs. |
 | `sample_list_layout` | `classic`, `modern` | `classic` | Uses the combined samples worklist or separate Live and Reported tabs. |
-| `table_page_size` | `25`, `50`, `100`, `200` | `50` | Sets the account-wide default number of rows per table page. |
+| `table_page_size` | `25`, `50`, `100`, `200` | `200` | Sets the account-wide default number of rows per table page. |
 | `analysis_modern_view_tried` | `true`, `false` | `false` | Records whether the analysis-layout introduction has been acknowledged. |
 | `sample_list_modern_view_tried` | `true`, `false` | `false` | Records whether the samples-layout introduction has been acknowledged. |
 
@@ -330,10 +330,11 @@ The CNV tab lists copy-number events and opens CNV detail pages.
 | Artefact | One badge for each caller-supplied `AFRQ_*` field. Hovering shows the frequency and its matching `ACOUNT_*` reference-case count. These values are upstream evidence, not frequencies calculated by Coyote. |
 | Unlabeled detail column | Opens the CNV detail page. Review-state and report-inclusion actions are available through the permitted bulk actions and detail controls. |
 
-The CNV bulk-action menu is limited to CNV review operations: mark or unmark
-false positive, include or exclude from the report, and mark or unmark
-noteworthy. Small-variant tier, relevance, and blacklist operations are not
-shown in this menu.
+The CNV bulk-action menu supports tier assignment/deactivation when tiering is
+enabled, false-positive flags, explicit report selection and noteworthy flags.
+CNV tiering is enabled by default. Removing an explicit report flag does not
+exclude a finding that still has an allowed, usable tier. Report filters and
+false-positive exclusions remain effective.
 
 SNV and CNV gene-list scopes are independent. `ISGL.list_type` determines the
 selectors in which a list is available; the saved target-specific selection
@@ -361,7 +362,7 @@ calls remain available on the fusion detail page and may be selected there.
 | --- | --- |
 | Select | Checkbox for permitted bulk actions. |
 | Info | Review flags, comments, and knowledgebase indicators when available. |
-| Gene 1 / Gene 2 | Fusion partners. |
+| Fusion | Fusion partners displayed as `Gene1::Gene2`, with a separate link for each gene. |
 | Effect | Caller-reported frame context. A normalized value exactly equal to `in-frame` is shown as in-frame; every other non-empty effect is shown as out-of-frame. The tooltip identifies this as caller output rather than a DNA VEP consequence. |
 | SP | Spanning-pair count from the selected call. |
 | Unique SR | Unique spanning-read count from the selected call. |
@@ -458,15 +459,17 @@ The translocations tab lists structural rearrangements.
 | Positions | Breakpoint positions or BND positions. |
 | Type | Structural variant type. |
 | HGVS | Structural HGVS or notation when available. |
+| SR / PR | Stored split-read and paired-read evidence for each available sample genotype. Zero counts are retained. |
 | Panel | Matching panel/gene-list context. |
 | Tier | Structural variant tier. |
 | Filter flags | Caller-aware filter metadata from the structural finding. |
 | Unlabeled detail column | Opens the structural finding detail page. False-positive and report-inclusion changes use the permitted bulk actions and detail controls. |
 
-The translocation bulk-action menu contains only structural-event review
-operations: mark or unmark false positive and include or exclude from the
-report. Small-variant tier, relevance, noteworthy, and blacklist operations are
-not shown in this menu.
+The translocation bulk-action menu supports tier assignment/deactivation when
+tiering is enabled, false-positive flags and explicit report selection.
+Translocation tiering is enabled by default. Report inclusion accepts either an
+allowed usable tier or the explicit report flag, subject to report filters and
+review exclusions. Removing the report flag alone does not remove a tiered event.
 
 ### Coverage Tab
 
@@ -546,7 +549,9 @@ Detail pages put the review decision, comments, and evidence around the finding.
 | Add comment or annotation | Markdown editor. Detail pages use an explicit preview button. |
 | Sample comments | Comments attached to this sample/finding context. |
 | Global annotations | Reusable annotations for the same biological finding across samples. Clicking an existing annotation can load it as a draft. |
-| Identity | Gene, transcript, HGVS, chromosome coordinate, variant class, and normalized HGNC context. |
+| Identity | Compact shared summary of gene, transcript, HGVS, chromosome coordinate, variant class, and normalized HGNC context. Small variants include per-sample frequency as `VAF (alternate reads / total depth)`. Translocations include per-sample paired/split-read support and percentages. |
+| Sample genotype | Stored small-variant genotype calls, such as `0/1` or `0/0`, by case/control sample. Missing calls display `-`; frequency and read depth appear in the identity summary. |
+| RNA fusion identity | The same compact summary format includes spanning pairs, spanning reads and longest anchor from the selected fusion call. Alternative caller evidence remains in the fusion-call table. |
 | Genotype/evidence | Case/control VAF, depth, read support, callers, and quality evidence. |
 | Transcript consequences | Selected and alternative transcripts, transcript provenance badges, canonical-source status, cDNA/protein notation, consequence, exon/intron, impact, and the newest tier for the exact transcript in the current assay scope. Alternate rows can be promoted to the primary display transcript when the selected transcript better represents the clinical review. |
 | Prediction cards | SIFT, PolyPhen, and other configured prediction signals. |

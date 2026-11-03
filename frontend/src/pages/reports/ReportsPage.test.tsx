@@ -58,7 +58,7 @@ describe("ReportsPage", () => {
     expect(screen.getByRole("heading", { name: "Saved Reports" })).toBeVisible()
     expect(screen.queryByRole("button", { name: /finalize/i })).not.toBeInTheDocument()
     expect(await screen.findByTestId("reports-table")).toHaveTextContent("1 reports")
-    expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=50")
+    expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=200")
     expect(mocks.table).toHaveBeenCalledWith(expect.objectContaining({
       data: payload.reports,
       totalCount: 1,
@@ -79,9 +79,9 @@ describe("ReportsPage", () => {
     await screen.findByTestId("reports-table")
     let props = mocks.table.mock.calls.at(-1)![0]
     act(() => props.onPageChange(3))
-    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=3&per_page=50"))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=3&per_page=200"))
     props = mocks.table.mock.calls.at(-1)![0]
     act(() => props.onSearchChange(" TP53 "))
-    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=50&search=TP53"))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/reports?page=1&per_page=200&search=TP53"))
   })
 })

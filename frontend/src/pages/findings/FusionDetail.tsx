@@ -11,7 +11,6 @@ import { FusionCallerBadges, FusionEffectBadge, FusionEvidenceBadges } from "@/l
 import { fusionCallers, fusionGenes, fusionTierUnavailableReason, selectedFusionCall } from "@/lib/variant-helpers"
 import {
   DetailDataTable,
-  DetailMetricTable,
   EvidenceBadge,
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
@@ -33,7 +32,7 @@ import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail
 
 function fusionName(fusion: any) {
   const genes = fusionGenes(fusion)
-  if (genes.length >= 2) return `${genes[0]}--${genes[1]}`
+  if (genes.length >= 2) return `${genes[0]}::${genes[1]}`
   return fusion?.fusion_name || fusion?.name || "Unknown Fusion"
 }
 
@@ -103,6 +102,7 @@ export function FusionDetail() {
       <FindingDetailHero
         backTo={previousSampleHref}
         genes={genes}
+        geneSeparator="::"
         identity={`${fusionName(fusion)}${selectedCall ? ` · ${fusionBreakpoint(selectedCall)}` : ""}`}
         sampleHref={sampleHref}
         sampleName={sample?.name || id}
@@ -134,6 +134,9 @@ export function FusionDetail() {
                 <DetailField label="Effect"><FusionEffectBadge effect={selectedCall?.effect} /></DetailField>
                 <DetailField label="Caller"><FusionCallerBadges callers={selectedCall?.caller || fusionCallers(fusion)} /></DetailField>
                 <DetailField label="Evidence"><FusionEvidenceBadges description={selectedCall?.desc || fusion?.desc} metadata={data.fusion_annotation_metadata} /></DetailField>
+                <DetailField label="Spanning pairs">{displayValue(selectedCall?.spanpairs)}</DetailField>
+                <DetailField label="Spanning reads">{displayValue(selectedCall?.spanreads)}</DetailField>
+                <DetailField label="Longest anchor">{displayValue(selectedCall?.longestanchor)}</DetailField>
                 <DetailField label="Status">
                   <div className="flex flex-wrap gap-1">
                     <StatusBadges finding={fusion} />
@@ -199,17 +202,6 @@ export function FusionDetail() {
               resourceId={String(fusion?._id || "")}
               onUpdate={() => refetch()}
             />
-
-            <DetailCard title="Read Support" tone="success">
-              <DetailMetricTable
-                metrics={[
-                  { label: "Spanning pairs", value: selectedCall?.spanpairs, monospace: true },
-                  { label: "Spanning reads", value: selectedCall?.spanreads, monospace: true },
-                  { label: "Longest anchor", value: selectedCall?.longestanchor, monospace: true },
-                ]}
-                dense
-              />
-            </DetailCard>
 
             <ExternalLinksCard
               links={[

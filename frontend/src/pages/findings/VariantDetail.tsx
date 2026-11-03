@@ -90,6 +90,7 @@ export function VariantDetail() {
   }
 
   const { variant, sample, latest_classification } = data
+  const genotypes: { type?: string; sample?: string; GT?: string; AF?: number; VD?: number; DP?: number }[] = variant?.GT || []
   const sampleRouteKey = sampleUrlKey(sample, id)
   const sampleHref = sampleDetailTabPath(sample, id, "snvs")
   const previousSampleHref = typeof location.state === "object" && location.state && "from" in location.state
@@ -161,6 +162,9 @@ export function VariantDetail() {
                 <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
                 <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
                 <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
+                {genotypes.map((gt, index) => <DetailField key={index} label={`${gt.type || gt.sample || "Sample"} frequency (alt / depth)`}>
+                  {percentValue(gt.AF, 1)} ({displayValue(gt.VD)} / {displayValue(gt.DP)})
+                </DetailField>)}
               </FindingIdentityCard>
 
               <FindingCommentComposer
@@ -225,22 +229,18 @@ export function VariantDetail() {
 
             <DetailCard title="Sample Genotype" tone="success">
               <div className="space-y-2">
-                {variant?.GT?.map((gt: any, i: number) => (
+                {genotypes.map((gt, i) => (
                   <div
                     key={i}
-                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border border-border/70 bg-background/55 px-3 py-2"
+                    className="paper-inset flex min-w-0 items-center justify-between gap-3 rounded-lg px-3 py-1.5"
                   >
                     <div className="min-w-0">
-                      <span className="detail-field-label">Genotype</span>
+                      <span className="detail-field-label">Sample</span>
                       <EvidenceBadge tone="info">{gt.type || "Unknown"}</EvidenceBadge>
                     </div>
                     <div className="text-right">
-                      <span className="detail-field-label">VAF</span>
-                      <span className="type-allele-frequency block">{percentValue(gt.AF, 1)}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="detail-field-label">Alt / depth</span>
-                      <span className="type-body-sm font-semibold text-foreground">{displayValue(gt.VD)} / {displayValue(gt.DP)}</span>
+                      <span className="detail-field-label">Genotype</span>
+                      <span className="type-body-sm font-semibold text-foreground">{displayValue(gt.GT)}</span>
                     </div>
                   </div>
                 ))}

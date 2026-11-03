@@ -121,7 +121,7 @@ describe("DataTable", () => {
 
   it("paginates local result sets without dropping rows from the result count", async () => {
     const user = userEvent.setup()
-    const rows = Array.from({ length: 55 }, (_, index) => ({
+    const rows = Array.from({ length: 205 }, (_, index) => ({
       gene: `GENE${index + 1}`,
       tier: (index % 4) + 1,
       note: `row ${index + 1}`,
@@ -129,13 +129,13 @@ describe("DataTable", () => {
     render(<DataTable columns={columns} data={rows} hideExport />)
 
     expect(screen.getByText("GENE1")).toBeVisible()
-    expect(screen.queryByText("GENE51")).not.toBeInTheDocument()
-    expect(screen.getByText("Showing 1-50 of 55 row(s)")).toBeVisible()
+    expect(screen.queryByText("GENE201")).not.toBeInTheDocument()
+    expect(screen.getByText("Showing 1-200 of 205 row(s)")).toBeVisible()
 
     await user.click(screen.getByRole("button", { name: "Next" }))
-    expect(screen.getByText("GENE51")).toBeVisible()
+    expect(screen.getByText("GENE201")).toBeVisible()
     expect(screen.queryByText("GENE1")).not.toBeInTheDocument()
-    expect(screen.getByText("Showing 51-55 of 55 row(s)")).toBeVisible()
+    expect(screen.getByText("Showing 201-205 of 205 row(s)")).toBeVisible()
   })
 
   it("exports visible values and excludes action columns", () => {

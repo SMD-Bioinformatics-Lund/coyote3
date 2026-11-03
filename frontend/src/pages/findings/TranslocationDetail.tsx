@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { Fragment, useEffect } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
@@ -13,7 +13,6 @@ import { selectedTranslocationAnnotation, translocationGenes, translocationPosit
 import {
   DetailDataTable,
   DetailMetricTable,
-  EvidenceBadge,
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { displayValue, percentValue } from "@/lib/detail-formatters"
@@ -112,6 +111,7 @@ export function TranslocationDetail() {
       <FindingDetailHero
         backTo={previousSampleHref}
         genes={genes}
+        geneSeparator="::"
         identity={`Translocation · ${position}`}
         sampleHref={sampleHref}
         sampleName={sample?.name || id}
@@ -137,13 +137,24 @@ export function TranslocationDetail() {
           <>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <FindingIdentityCard title="Translocation Identity">
-                <DetailField label="Genes">{genes.join(" - ") || "-"}</DetailField>
+                <DetailField label="Genes">{genes.join("::") || "-"}</DetailField>
                 <DetailField label="Position" valueClassName="text-primary/80">{position}</DetailField>
                 <DetailField label="Type" valueClassName="uppercase">{translocation?.INFO?.SVTYPE || "-"}</DetailField>
                 <DetailField label="Quality">{translocation?.QUAL ?? "-"}</DetailField>
                 <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
                 <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
                 <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
+                {readEvidence.map((row: { type?: string; sample?: string; PR?: unknown; SR?: unknown; prPct: number; srPct: number }, index: number) => <Fragment key={index}>
+                  <DetailField label={`${row.type || row.sample || "Sample"} paired reads`}>
+                    <span>{Array.isArray(row.PR) ? row.PR.join("/") : displayValue(row.PR)}</span>
+                    <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.prPct, 1)}</span>
+                  </DetailField>
+                  <DetailField label={`${row.type || row.sample || "Sample"} split reads`}>
+                    <span>{Array.isArray(row.SR) ? row.SR.join("/") : displayValue(row.SR)}</span>
+                    <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.srPct, 1)}</span>
+                  </DetailField>
+                </Fragment>)}
+                {!readEvidence.length && <DetailField label="Read evidence">No genotype read evidence available.</DetailField>}
               </FindingIdentityCard>
 
               <FindingCommentComposer
@@ -220,35 +231,6 @@ export function TranslocationDetail() {
                 ]}
                 dense
               />
-            </DetailCard>
-
-            <DetailCard title="Sample Read Evidence" tone="info">
-              <div className="space-y-2">
-                {readEvidence.map((row: any, index: number) => (
-                  <div key={index} className="rounded-lg border border-border/70 bg-background/55 p-2.5">
-                    <EvidenceBadge tone="info">{row.type || row.sample || "Sample"}</EvidenceBadge>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="detail-field-label">Paired reads</span>
-                        <span className="type-body-sm font-semibold text-foreground">
-                          {Array.isArray(row.PR) ? row.PR.join("/") : displayValue(row.PR)}
-                        </span>
-                        <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.prPct, 1)}</span>
-                      </div>
-                      <div>
-                        <span className="detail-field-label">Split reads</span>
-                        <span className="type-body-sm font-semibold text-foreground">
-                          {Array.isArray(row.SR) ? row.SR.join("/") : displayValue(row.SR)}
-                        </span>
-                        <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.srPct, 1)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {!readEvidence.length ? (
-                  <p className="type-body-sm text-muted-foreground">No genotype read evidence available.</p>
-                ) : null}
-              </div>
             </DetailCard>
 
             <ExternalLinksCard

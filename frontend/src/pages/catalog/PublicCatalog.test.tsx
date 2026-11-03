@@ -210,7 +210,7 @@ describe("PublicCatalogMatrix", () => {
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith(
-        "/public/assay-catalog-matrix/context?page=1&per_page=50&gene=TP53",
+        "/public/assay-catalog-matrix/context?page=1&per_page=200&gene=TP53",
       )
     })
     expect((await screen.findAllByText(/1 visible catalog column\(s\) for "TP53"/))[0]).toBeVisible()
@@ -218,7 +218,7 @@ describe("PublicCatalogMatrix", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }))
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=50")
+      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=200")
     })
   })
 
@@ -228,12 +228,12 @@ describe("PublicCatalogMatrix", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }))
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=2&per_page=50")
+      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=2&per_page=200")
     })
 
-    fireEvent.change(await screen.findByLabelText("Rows"), { target: { value: "200" } })
+    fireEvent.change(await screen.findByLabelText("Rows"), { target: { value: "100" } })
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=200")
+      expect(api.get).toHaveBeenCalledWith("/public/assay-catalog-matrix/context?page=1&per_page=100")
     })
   })
 

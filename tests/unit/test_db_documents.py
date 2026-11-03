@@ -546,7 +546,7 @@ def test_users_doc_validates_one_global_analysis_layout_preference():
     assert UsersDoc.model_validate(payload).ui_settings.sample_list_layout == "classic"
     assert UsersDoc.model_validate(payload).ui_settings.analysis_modern_view_tried is False
     assert UsersDoc.model_validate(payload).ui_settings.sample_list_modern_view_tried is False
-    assert UsersDoc.model_validate(payload).ui_settings.table_page_size == 50
+    assert UsersDoc.model_validate(payload).ui_settings.table_page_size == 200
     with pytest.raises(ValueError, match="analysis_layout must be one of"):
         UsersDoc.model_validate({**payload, "ui_settings": {"analysis_layout": "dna_tabs"}})
     with pytest.raises(ValueError, match="sample_list_layout must be one of"):

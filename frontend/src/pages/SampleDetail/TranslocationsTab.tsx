@@ -22,6 +22,7 @@ import {
   translocationHgvs,
   translocationPanelStatus,
   translocationPositionLabel,
+  translocationReadSupport,
   translocationType,
 } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
@@ -183,6 +184,13 @@ export function TranslocationsTab({
           </div>
         );
       },
+    },
+    {
+      id: "read_support",
+      header: "SR / PR",
+      accessorFn: translocationReadSupport,
+      enableSorting: false,
+      cell: ({ row }) => <span className="type-table-value">{translocationReadSupport(row.original)}</span>,
     },
     {
       id: "panel",

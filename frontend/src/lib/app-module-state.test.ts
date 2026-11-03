@@ -6,8 +6,8 @@ describe("tieringIsEnabled", () => {
   it("uses clinically conservative defaults when runtime controls are unavailable", () => {
     expect(tieringIsEnabled(undefined, "small_variant")).toBe(true)
     expect(tieringIsEnabled(undefined, "fusion")).toBe(true)
-    expect(tieringIsEnabled(undefined, "cnv")).toBe(false)
-    expect(tieringIsEnabled(undefined, "translocation")).toBe(false)
+    expect(tieringIsEnabled(undefined, "cnv")).toBe(true)
+    expect(tieringIsEnabled(undefined, "translocation")).toBe(true)
   })
 
   it("uses the database-backed runtime setting when supplied", () => {

@@ -189,26 +189,28 @@ export function VariantActionButtons({
           onClick={() => setPendingFlagAction({
             title: !interestingControlsReport
               ? (isInteresting ? "Remove interesting flag?" : "Mark finding as interesting?")
-              : (isInteresting ? "Exclude finding from report?" : "Include finding in report?"),
+              : (isInteresting ? "Remove explicit report selection?" : "Include finding in report?"),
             description: !interestingControlsReport
               ? "This changes the finding's clinical review state."
-              : `This will ${isInteresting ? "remove the finding from" : "add the finding to"} the reportable set.`,
+              : isInteresting
+                ? "This removes the explicit report flag. An eligible tier can still include the finding in the report."
+                : "This selects the finding for reporting, subject to report filters and review exclusions.",
             confirmLabel: !interestingControlsReport
               ? (isInteresting ? "Remove flag" : "Mark interesting")
-              : (isInteresting ? "Exclude from report" : "Include in report"),
+              : (isInteresting ? "Remove report flag" : "Include in report"),
             flag: "interesting",
             apply: !isInteresting,
           })}
           disabled={flagMutation.isPending}
           className={`${interestingButtonBase} ${isInteresting ? 'border-pass/40 bg-pass/15 text-pass' : 'border-border bg-background hover:bg-pass/10 hover:text-pass'}`}
-          title={!interestingControlsReport ? "Toggle interesting" : isInteresting ? "Exclude from report" : "Include in report"}
+          title={!interestingControlsReport ? "Toggle interesting" : isInteresting ? "Remove report flag" : "Include in report"}
         >
           {!interestingControlsReport ? (
             <icon.alertCircle className={iconClassName} />
           ) : (
             <icon.fileCheck2 className={iconClassName} />
           )}
-          {(!compact || labeledCompactAction) && (!interestingControlsReport ? "Interesting" : isInteresting ? "Exclude" : "Report")}
+          {(!compact || labeledCompactAction) && (!interestingControlsReport ? "Interesting" : isInteresting ? "Remove report flag" : "Report")}
         </button>
       )}
       {supportsNoteworthy && showsControl("noteworthy") && (

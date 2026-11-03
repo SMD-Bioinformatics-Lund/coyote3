@@ -1532,7 +1532,7 @@
       );
   }
   .detail-identity-card .detail-section-title {
-    @apply mb-1 pb-2.5;
+    @apply mb-1 pb-1.5;
   }
   .detail-identity-icon {
     @apply inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary;
@@ -1543,23 +1543,22 @@
     @apply gap-0 px-1;
   }
   .detail-identity-card .detail-field-grid > div {
-    @apply py-2.5;
+    @apply py-1.5;
     border-bottom: 1px solid color-mix(in srgb, var(--paper-edge) 82%, transparent);
   }
   .detail-identity-card .detail-field-label {
-    @apply mb-1 font-semibold;
+    @apply mb-0.5 font-semibold;
     font-size: 0.625rem;
   }
   .detail-identity-card .detail-field-value {
-    @apply font-medium leading-snug;
-    font-size: 0.9375rem;
+    @apply type-body-sm font-medium leading-snug;
   }
   @media (min-width: 640px) {
     .detail-identity-card .detail-field-grid > div:nth-child(odd) {
-      @apply pr-3;
+      @apply pr-2;
     }
     .detail-identity-card .detail-field-grid > div:nth-child(even) {
-      @apply pl-3;
+      @apply pl-2;
       border-left: 1px solid color-mix(in srgb, var(--paper-edge) 82%, transparent);
     }
   }

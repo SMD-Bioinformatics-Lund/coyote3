@@ -216,7 +216,9 @@ export function TieredVariantSearch() {
     {
       id: "genes",
       header: "Gene(s)",
-      accessorFn: (row) => (row.genes || [row.gene, row.gene1, row.gene2].filter(Boolean)).join(" / ") || "-",
+      accessorFn: (row) => (row.genes || [row.gene, row.gene1, row.gene2].filter(Boolean)).join(
+        ["FUSION", "TRANSLOCATION"].includes(String(row.analysis_type || "").toUpperCase()) ? "::" : " / ",
+      ) || "-",
       cell: ({ row }) => {
         const genes = Array.from(new Set(
           (row.original.genes || [row.original.gene, row.original.gene1, row.original.gene2])
@@ -228,7 +230,9 @@ export function TieredVariantSearch() {
           <div className="flex flex-wrap items-center gap-x-1">
             {genes.map((gene, index) => (
               <span key={gene} className="inline-flex items-center gap-x-1">
-                {index > 0 && <span className="text-muted-foreground">/</span>}
+                {index > 0 && <span className="text-muted-foreground">{
+                  ["FUSION", "TRANSLOCATION"].includes(String(row.original.analysis_type || "").toUpperCase()) ? "::" : "/"
+                }</span>}
                 <Link to={`/public/gene/${encodeURIComponent(gene)}/info`} className="link-text font-semibold">
                   {gene}
                 </Link>

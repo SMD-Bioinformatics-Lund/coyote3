@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -76,7 +76,7 @@ describe("structural finding detail pages", () => {
       fusion: {
         _id: "F1", genes: ["BCR", "ABL1"], gene1: "BCR", gene2: "ABL1", callers: ["ARRIBA", "STARFUSION"],
         calls: [
-          { selected: true, caller: "ARRIBA", breakpoint1: "22:100", breakpoint2: "9:200", spanpairs: 12, spanreads: 7, effect: "in-frame" },
+          { selected: true, caller: "ARRIBA", breakpoint1: "22:100", breakpoint2: "9:200", spanpairs: 12, spanreads: 7, longestanchor: 0, effect: "in-frame" },
           { selected: false, caller: "STARFUSION", breakpoint1: "22:101", breakpoint2: "9:201", spanpairs: 10, spanreads: 6 },
         ],
       },
@@ -85,11 +85,16 @@ describe("structural finding detail pages", () => {
 
     mount("/samples/RNA_001/fusion/F1", "/samples/:id/fusion/:varId", <FusionDetail />)
 
-    expect(await screen.findByRole("heading", { name: /^BCR--ABL1/ })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: /^BCR::ABL1/ })).toBeVisible()
     expect(screen.getAllByText(/22:100 \| 9:200/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText("arriba").length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText("starfusion").length).toBeGreaterThanOrEqual(2)
     expect(screen.getByRole("button", { name: "Pick" })).toBeEnabled()
+    const identity = within(screen.getByText("Fusion Identity").closest("section")!)
+    expect(identity.getByText("12")).toBeVisible()
+    expect(identity.getByText("7")).toBeVisible()
+    expect(identity.getByText("0")).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Read Support" })).not.toBeInTheDocument()
     expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_001/fusions/F1")
   })
 
@@ -117,6 +122,12 @@ describe("structural finding detail pages", () => {
     expect(screen.getAllByText("Transcript ablation").length).toBeGreaterThan(0)
     expect(screen.getByText("100/20")).toBeVisible()
     expect(screen.getByText("50/15")).toBeVisible()
+    const identity = within(screen.getByText("Translocation Identity").closest("section")!)
+    expect(identity.getByText("100/20")).toBeVisible()
+    expect(identity.getByText("50/15")).toBeVisible()
+    expect(identity.getByText("16.7%")).toBeVisible()
+    expect(identity.getByText("23.1%")).toBeVisible()
+    expect(screen.queryByText("Sample Read Evidence")).not.toBeInTheDocument()
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_002/translocations/T1")
   })
 

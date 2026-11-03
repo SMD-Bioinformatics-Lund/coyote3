@@ -362,4 +362,4 @@ def required_file_keys(
 # User-selectable table sizes are bounded to protect browser rendering and
 # database queries while still supporting compact and high-density workflows.
 TABLE_PAGE_SIZE_OPTIONS: tuple[int, ...] = (25, 50, 100, 200)
-DEFAULT_TABLE_PAGE_SIZE = 50
+DEFAULT_TABLE_PAGE_SIZE = 200

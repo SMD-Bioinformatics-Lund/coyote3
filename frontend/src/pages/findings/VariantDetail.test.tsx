@@ -53,7 +53,10 @@ const detailPayload = {
     variant_class: "SNV",
     callers: ["freebayes"],
     hotspots: [{ lu: ["HS1", "COSV51794834", "COSV66102297"] }],
-    GT: [{ type: "case", AF: 0.123, AO: 123, DP: 1000 }],
+    GT: [
+      { type: "case", sample: "CASE_001", GT: "0/1", AF: 0.123, VD: 123, DP: 1000 },
+      { type: "control", sample: "CONTROL_001", GT: "0/0", AF: 0, VD: 0, DP: 200 },
+    ],
     INFO: {
       selected_CSQ: {
         SYMBOL: "SRSF2",
@@ -178,6 +181,14 @@ describe("VariantDetail", () => {
     expect(screen.getAllByText("SRSF2").length).toBeGreaterThan(0)
     expect(screen.getAllByText("17:76736896 T>C").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Latest tier 2")).toBeVisible()
+    const identity = within(screen.getByText("Variant Identity").closest("section")!)
+    expect(identity.getByText("12.3% (123 / 1000)")).toBeVisible()
+    expect(identity.getByText("0.0% (0 / 200)")).toBeVisible()
+    const genotype = within(screen.getByText("Sample Genotype").closest("section")!)
+    expect(genotype.getByText("0/1")).toBeVisible()
+    expect(genotype.getByText("0/0")).toBeVisible()
+    expect(genotype.queryByText("VAF")).not.toBeInTheDocument()
+    expect(genotype.queryByText("Alt / depth")).not.toBeInTheDocument()
     expect(screen.getByText("Actions for CASE_001")).toBeVisible()
     expect(screen.getByLabelText("Known hotspot")).toBeVisible()
     const otherSampleRow = screen.getByText("OTHER_CASE").closest("tr")!

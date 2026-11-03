@@ -98,11 +98,11 @@ const RESOURCE_ACTION_LABELS: Partial<
 > = {
   cnv: {
     interesting: "Include in report",
-    uninteresting: "Exclude from report",
+    uninteresting: "Remove report flag",
   },
   translocation: {
     interesting: "Include in report",
-    uninteresting: "Exclude from report",
+    uninteresting: "Remove report flag",
   },
 }
 

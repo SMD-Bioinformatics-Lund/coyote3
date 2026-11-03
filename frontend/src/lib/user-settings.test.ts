@@ -45,9 +45,9 @@ describe("analysisLayoutForUser", () => {
   })
 
   it("normalizes and resolves the persisted table page size", () => {
-    expect(normalizeUserUiSettings(undefined).table_page_size).toBe(50)
-    expect(tablePageSizeForUser(undefined)).toBe(50)
+    expect(normalizeUserUiSettings(undefined).table_page_size).toBe(200)
+    expect(tablePageSizeForUser(undefined)).toBe(200)
     expect(tablePageSizeForUser({ ui_settings: { table_page_size: 100 } } as never)).toBe(100)
-    expect(tablePageSizeForUser({ ui_settings: { table_page_size: 500 } } as never)).toBe(50)
+    expect(tablePageSizeForUser({ ui_settings: { table_page_size: 500 } } as never)).toBe(200)
   })
 })

@@ -7,7 +7,13 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Finding identity summaries use compact shared spacing. Small variants show
+  case/control frequency with alternate reads and depth, while the genotype panel
+  shows genotype calls. Translocation read support appears in the identity summary.
+  RNA fusion summaries also include the selected call's read support and longest anchor.
 - Modern DNA/RNA report tables use slightly smaller fonts and tighter cell padding.
+- Analysis tables default to 200 rows, DNA translocations expose SR/PR evidence,
+  fusion names use `Gene1::Gene2`, and finding details group OncoKB evidence together.
 - Swedac report artwork displays Ackred. nr 1309, Provning and ISO 15189.
 - Reporting-rule review actions are visible only to the assigned independent
   reviewer. Review decisions notify the submitter, and workflow notifications

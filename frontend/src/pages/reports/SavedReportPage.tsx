@@ -35,6 +35,7 @@ function findingIdentity(finding: ReportFinding) {
 }
 
 function findingGenes(finding: ReportFinding) {
+  if (finding.gene1 && finding.gene2) return `${finding.gene1}::${finding.gene2}`
   const additionalGenes = Array.isArray(finding.genes)
     ? finding.genes
     : finding.genes

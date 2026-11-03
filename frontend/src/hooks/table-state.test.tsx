@@ -64,7 +64,7 @@ describe("clinical table state", () => {
     const { result } = renderHook(() => useClinicalTableState({ prefix: "snv" }), {
       wrapper: router("/samples/CASE?snv_q=%20TP53%20&snv_page=2"),
     })
-    expect(result.current.queryKeyState).toEqual([2, 50, "TP53", ""])
+    expect(result.current.queryKeyState).toEqual([2, 200, "TP53", ""])
   })
 
   it("debounces trimmed searches and exposes stable server query state", () => {
@@ -75,7 +75,7 @@ describe("clinical table state", () => {
     expect(result.current.debouncedSearchText).toBe("")
     act(() => vi.advanceTimersByTime(200))
     expect(result.current.debouncedSearchText).toBe("TP53")
-    expect(result.current.queryKeyState).toEqual([1, 50, "TP53", ""])
+    expect(result.current.queryKeyState).toEqual([1, 200, "TP53", ""])
   })
 
   it("resets the page when page size or sorting changes", () => {

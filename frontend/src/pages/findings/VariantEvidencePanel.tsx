@@ -154,6 +154,7 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
           />
         </VariantKnowledgeBlock>
 
+        <section aria-label="OncoKB evidence" className="col-span-full space-y-3">
         <VariantKnowledgeBlock
           source="oncokb"
           title="OncoKB public cache"
@@ -259,6 +260,7 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
           ) : null}
         </VariantKnowledgeBlock>
 
+        </section>
         <VariantKnowledgeBlock
           source="clinpgx"
           title="ClinPGx"

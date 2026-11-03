@@ -114,40 +114,16 @@ export function FusionsTab({
     },
     {
       id: "gene1",
-      header: "Gene 1",
-      accessorFn: (row) => fusionGenes(row)[0] || "-",
+      header: "Fusion",
+      accessorFn: (row) => fusionGenes(row).filter(Boolean).join("::") || "-",
       cell: ({ row }) => {
         const genes = fusionGenes(row.original);
-        const gene = genes[0];
-        return gene ? (
-          <Link
-            to={tieredVariantSearchPath(gene, assayGroup)}
-            className="type-table-value-emphasis link-text"
-          >
-            {gene}
-          </Link>
-        ) : (
-          <span className="type-table-value">-</span>
-        );
-      },
-    },
-    {
-      id: "gene2",
-      header: "Gene 2",
-      accessorFn: (row) => fusionGenes(row)[1] || "-",
-      cell: ({ row }) => {
-        const genes = fusionGenes(row.original);
-        const gene = genes[1];
-        return gene ? (
-          <Link
-            to={tieredVariantSearchPath(gene, assayGroup)}
-            className="type-table-value-emphasis link-text"
-          >
-            {gene}
-          </Link>
-        ) : (
-          <span className="type-table-value">-</span>
-        );
+        return <span className="type-table-value-emphasis">{genes.filter(Boolean).map((gene: string, index: number) => (
+          <span key={`${gene}-${index}`}>
+            {index > 0 && "::"}
+            <Link to={tieredVariantSearchPath(gene, assayGroup)} className="link-text">{gene}</Link>
+          </span>
+        ))}</span>;
       },
     },
     {

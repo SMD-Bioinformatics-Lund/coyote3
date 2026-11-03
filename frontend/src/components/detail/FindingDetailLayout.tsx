@@ -140,6 +140,7 @@ export function DetailHeroSubtitle({
 export function FindingDetailHero({
   backTo,
   genes,
+  geneSeparator = "/",
   identity,
   sampleHref,
   sampleName,
@@ -150,6 +151,7 @@ export function FindingDetailHero({
 }: {
   backTo: string
   genes: string[]
+  geneSeparator?: string
   identity: string
   sampleHref: string
   sampleName: ReactNode
@@ -176,7 +178,7 @@ export function FindingDetailHero({
             {(visibleGenes.length ? visibleGenes : ["Intergenic finding"]).map((gene, index) => (
               visibleGenes.length ? (
                 <span key={`${gene}-${index}`} className="inline-flex items-center gap-2">
-                  {index > 0 && <span className="text-muted-foreground">/</span>}
+                  {index > 0 && <span className="text-muted-foreground">{geneSeparator}</span>}
                   <Link
                     to={`/public/gene/${encodeURIComponent(gene)}/info`}
                     className="brand-gradient-text interaction-transition hover:opacity-80 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

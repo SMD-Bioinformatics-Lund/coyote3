@@ -17,6 +17,7 @@ import {
   translocationGenes,
   translocationHgvs,
   translocationInfo,
+  translocationReadSupport,
   translocationPanelStatus,
   translocationPositionLabel,
   translocationType,
@@ -123,5 +124,13 @@ describe("variant display normalization", () => {
       "1:10 2:20",
     )
     expect(translocationPositionLabel({ POS: 10 })).toBe("10")
+  })
+
+  it("shows stored SR/PR evidence without treating zero as missing", () => {
+    expect(translocationReadSupport({ GT: [{ type: "case", SR: [0, 0], PR: "10,2" }] }))
+      .toBe("case: 0/0 / 10,2")
+    expect(translocationReadSupport({ GT: [{ sample: "SYNTHETIC", SR: null }] }))
+      .toBe("SYNTHETIC: - / -")
+    expect(translocationReadSupport({})).toBe("-")
   })
 })
