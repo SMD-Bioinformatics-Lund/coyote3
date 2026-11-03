@@ -337,20 +337,21 @@ export function VariantsTab({
           <span className="inline-flex flex-wrap gap-1">
             {igvLinks.map((link) => (
               <a
+                data-slot="table-badge"
                 key={link.href}
                 href={link.href}
                 title={link.label}
                 aria-label={`${link.label}: ${loc}`}
                 target="_blank"
                 rel="noreferrer"
-                className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-sm transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60"
+                className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-[var(--material-badge-shadow)] transition-colors hover:bg-muted/80 hover:text-foreground dark:bg-muted/60"
               >
                 {loc}
               </a>
             ))}
           </span>
         ) : (
-          <span className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground">
+          <span data-slot="table-badge" className="type-table-value inline-block whitespace-nowrap rounded border border-border bg-muted px-0.5 py-0 text-muted-foreground shadow-[var(--material-badge-shadow)]">
             {loc}
           </span>
         );

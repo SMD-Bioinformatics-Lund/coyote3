@@ -40,7 +40,7 @@ export function VariantTooltipBadge({
   const [position, setPosition] = useState<TooltipPosition | null>(null)
   const badgeClass = cn(
     !textBadge && "h-5 w-5 rounded-full p-0",
-    "interaction-transition inline-flex cursor-help items-center justify-center border shadow-sm outline-none ring-offset-background hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
+    "interaction-transition inline-flex cursor-help items-center justify-center border shadow-[var(--material-badge-shadow)] outline-none ring-offset-background hover:-translate-y-0.5 hover:shadow-md focus:ring-2 focus:ring-ring/40",
     appearanceClassName || badgeSeverityClass(severity),
     className,
   )
@@ -65,7 +65,7 @@ export function VariantTooltipBadge({
       {children}
     </TextBadge>
   ) : (
-    <span className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
+    <span data-slot="table-badge" className={badgeClass} aria-label={ariaLabel} tabIndex={0} {...handlers}>
       {children}
     </span>
   )

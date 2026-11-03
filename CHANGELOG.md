@@ -7,6 +7,8 @@ review, reporting, administration and integrations into one application.
 
 ### Clinical review and reporting
 
+- Compact finding badges and genomic-position labels share the raised badge
+  treatment, including consequence, tier, filter and INFO markers.
 - Finding identity summaries use compact shared spacing. Small variants show
   case/control frequency with alternate reads and depth, while the genotype panel
   shows genotype calls. Translocation read support appears in the identity summary.
