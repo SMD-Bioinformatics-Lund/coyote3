@@ -607,7 +607,7 @@
   .glass-card {
     border: 1px solid var(--paper-edge);
     background: var(--paper-raised);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--material-card-shadow);
   }
   .surface-panel {
     @apply relative overflow-hidden;
@@ -1391,7 +1391,7 @@
     @apply relative overflow-hidden p-3;
     border: 1px solid var(--paper-edge);
     background: var(--paper-surface);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--panel-shadow);
   }
   .detail-hero-subtitle {
     @apply text-lg font-medium leading-snug text-muted-foreground;

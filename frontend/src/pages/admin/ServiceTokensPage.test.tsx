@@ -90,7 +90,7 @@ it.each([false, true])("retains explicit assay scope while searching (personal=%
   await user.click(screen.getByLabelText("testing"))
   const search = screen.getByRole("textbox", { name: "Search allowed assays" })
   await user.type(search, "not-a-matching-assay")
-  expect(screen.getByText("No matching scopes. Try another name or ID.")).toBeVisible()
+  expect(screen.getByText("No matching options. Try another name or ID.")).toBeVisible()
   expect(screen.queryByLabelText("Assay A (assay_a)")).not.toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Create token" })).toBeEnabled()
   await user.clear(search)

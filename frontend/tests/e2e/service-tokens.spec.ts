@@ -19,7 +19,7 @@ for (const theme of ["light", "dark"] as const) {
       await installApiFixtures(page, (path, _url, route) => {
         if (path.endsWith("/auth/whoami")) return { json: { username: "owner", roles: ["user"], permissions: ["internal.ingest:manage", "sample:edit:own", "internal.task:view"], ui_settings: { theme } } }
         if (path.endsWith("/auth/session")) return { json: { user: { username: "owner", roles: ["user"], auth_type: ["local"], permissions: ["internal.ingest:manage", "sample:edit:own", "internal.task:view"], asp_ids: ["assay_a"] } } }
-        if (path.endsWith("/personal-tokens/options")) return { json: { owners: [], assays: assayChoices, environments: ["testing"], operations: ["sample_upload_async", "job_status"] } }
+        if (path.endsWith("/personal-tokens/options")) return { json: { owners: [], assays: assayChoices, environments: ["testing", "production", "development", "validation"], operations: ["sample_upload_async", "job_status"] } }
         if (path.endsWith("/personal-tokens/personal-id") && route.request().method() === "DELETE") {
           saved = { ...saved, revoked_at: new Date().toISOString() }
           return { json: saved }
@@ -64,7 +64,7 @@ for (const theme of ["light", "dark"] as const) {
       let saved: Record<string, unknown> | null = null
       await installApiFixtures(page, (path, _url, route) => {
         if (path.endsWith("/auth/whoami")) return { json: { username: "issuer", roles: ["sysadmin"], permissions: ["ingest.token:issue"], ui_settings: { theme } } }
-        if (path.endsWith("/service-tokens/options")) return { json: { owners: [{ username: "owner", name: "Pipeline Owner" }], assays: assayChoices, environments: ["testing", "production"], operations: ["sample_bundle", "sample_upload", "sample_bundle_async", "sample_upload_async", "job_status"] } }
+        if (path.endsWith("/service-tokens/options")) return { json: { owners: [{ username: "owner", name: "Pipeline Owner" }], assays: assayChoices, environments: ["testing", "production", "development", "validation"], operations: ["sample_bundle", "sample_upload", "sample_bundle_async", "sample_upload_async", "job_status"] } }
         if (path.endsWith("/service-tokens/synthetic-id") && route.request().method() === "DELETE") {
           saved = { ...saved, revoked_at: new Date().toISOString(), revoked_by: "issuer" }
           return { json: saved }

@@ -60,6 +60,8 @@ for (const theme of ["light", "dark"] as const) {
         }),
         disabled: getComputedStyle(form.querySelector("[disabled]")!).backgroundColor,
         readonly: getComputedStyle(form.querySelector("[readonly]")!).backgroundColor,
+        disabledShadow: getComputedStyle(form.querySelector("[disabled]")!).boxShadow,
+        readonlyShadow: getComputedStyle(form.querySelector("[readonly]")!).boxShadow,
         invalidBorder: getComputedStyle(form.querySelector("[aria-invalid]")!).borderTopColor,
         checkboxShadow: getComputedStyle(form.querySelector("[type=checkbox]")!).boxShadow,
         hiddenDisplay: getComputedStyle(form.querySelector("[type=hidden]")!).display,
@@ -77,6 +79,8 @@ for (const theme of ["light", "dark"] as const) {
     }
     expect(results.disabled).toBe(results.muted)
     expect(results.readonly).toBe(results.muted)
+    expect(results.disabledShadow).toContain("inset")
+    expect(results.readonlyShadow).toContain("inset")
     expect(results.invalidBorder).toBe(results.invalid)
     expect(results.checkboxShadow).not.toContain("inset")
     expect(results.hiddenDisplay).toBe("none")

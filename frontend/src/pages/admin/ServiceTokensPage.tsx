@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { Input } from "@/components/ui/input"
-import { SearchInput } from "@/components/ui/search-input"
+import { ChoiceGroup } from "@/components/ui/choice-group"
 import { icon } from "@/lib/assets"
 import { api } from "@/lib/api"
 import type { PersonalTokenCreate, ServiceTokenCreate, ServiceTokenIssued, ServiceTokenList, ServiceTokenMetadata, ServiceTokenOptions } from "@/lib/generated"
@@ -32,32 +32,6 @@ const operationDescriptions: Record<Operation, string> = {
   sample_bundle_async: "Queue a JSON sample manifest for background processing.",
   sample_upload_async: "Queue an uploaded sample bundle for background processing.",
   job_status: "Check progress and retrieve results for this token’s jobs.",
-}
-
-function ScopePicker({ title, items, selected, onChange, searchable = false }: {
-  title: string
-  items: { value: string; label: string; detail?: string }[]
-  selected: string[]
-  onChange: (values: string[]) => void
-  searchable?: boolean
-}) {
-  const [search, setSearch] = useState("")
-  const visible = items.filter(item => `${item.label} ${item.value}`.toLowerCase().includes(search.toLowerCase()))
-  return <fieldset className="paper-inset min-w-0 rounded-xl border border-border/60 p-4">
-    <legend className="px-1 type-label">{title}</legend>
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <span className="type-body-sm text-muted-foreground">Choose the scope this token can access.</span>
-      <Badge variant="secondary">{selected.length} selected</Badge>
-    </div>
-    {searchable && <SearchInput aria-label={`Search ${title.toLowerCase()}`} placeholder="Search by name or ID…" value={search} onChange={event => setSearch(event.target.value)} className="mb-3 max-w-none" />}
-    <div className="max-h-60 space-y-1 overflow-y-auto overscroll-contain p-1">
-      {visible.map(item => <label key={item.value} className={cn("flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-ring", selected.includes(item.value) ? "border-primary/40 bg-primary/5" : "border-transparent hover:bg-muted/60")}>
-        <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-primary" aria-label={item.detail ? `${item.label} (${item.detail})` : item.label} checked={selected.includes(item.value)} onChange={event => onChange(event.target.checked ? [...selected, item.value] : selected.filter(value => value !== item.value))} />
-        <span className="min-w-0 type-body-sm"><span className="block break-words text-foreground">{item.label}</span>{item.detail && <span className="block break-all type-meta text-muted-foreground">{item.detail}</span>}</span>
-      </label>)}
-      {!visible.length && <p className="py-3 type-body-sm text-muted-foreground">{search ? "No matching scopes. Try another name or ID." : "No scopes available for this account."}</p>}
-    </div>
-  </fieldset>
 }
 
 export function ServiceTokensPage({ personal = false }: { personal?: boolean }) {
@@ -134,13 +108,10 @@ export function ServiceTokensPage({ personal = false }: { personal?: boolean }) 
         <div><label htmlFor="token-hours" className="mb-2 block type-label">Lifetime (hours)</label><Input id="token-hours" required type="number" min={1} max={8760} value={hours} onChange={event => setHours(Number(event.target.value))} /><p className="mt-2 type-meta text-muted-foreground">Expires automatically. Up to 8,760 hours (one year).</p></div>
       </div>
       <div className="grid items-start gap-5 lg:grid-cols-2">
-        <fieldset className="min-w-0 space-y-3"><legend className="mb-1 type-label">Allowed operations</legend><p className="type-body-sm text-muted-foreground">Enable only the requests this integration needs.</p>{options.data?.operations.map(operation => <label key={operation} className={cn("paper-inset flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors focus-within:ring-2 focus-within:ring-ring", operations.includes(operation) ? "border-primary/40 bg-primary/5" : "border-border/60 hover:border-primary/30")}>
-          <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-primary" aria-label={operationLabels[operation]} checked={operations.includes(operation)} onChange={event => setOperations(current => event.target.checked ? [...current, operation] : current.filter(value => value !== operation))} />
-          <span className="min-w-0"><span className="block type-body-sm font-medium">{operationLabels[operation]}</span><span className="mt-1 block type-meta text-muted-foreground">{operationDescriptions[operation]}</span></span>
-        </label>)}</fieldset>
+        <ChoiceGroup title="Allowed operations" description="Enable only the requests this integration needs." layout="list" options={options.data?.operations.map(operation => ({ value: operation, label: operationLabels[operation], description: operationDescriptions[operation] })) || []} value={operations} onValueChange={values => setOperations(values.filter((value): value is Operation => value in operationLabels))} />
         <div className="min-w-0 space-y-4">
-          <ScopePicker title="Allowed assays" searchable items={options.data?.assays.map(assay => ({ value: assay.asp_id, label: assay.name, detail: assay.asp_id })) || []} selected={assays} onChange={setAssays} />
-          <ScopePicker title="Allowed clinical environments" items={options.data?.environments.map(environment => ({ value: environment, label: environment })) || []} selected={environments} onChange={setEnvironments} />
+          <ChoiceGroup title="Allowed assays" searchable options={options.data?.assays.map(assay => ({ value: assay.asp_id, label: assay.name, description: assay.asp_id, ariaLabel: `${assay.name} (${assay.asp_id})` })) || []} value={assays} onValueChange={setAssays} />
+          <ChoiceGroup title="Allowed clinical environments" layout="inline" options={options.data?.environments.map(environment => ({ value: environment, label: environment })) || []} value={environments} onValueChange={setEnvironments} />
         </div>
       </div>
       <div className="paper-inset flex items-start gap-3 rounded-xl border border-border/60 p-4 type-body-sm text-muted-foreground"><icon.shield className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><p>{personal ? "Personal tokens remain limited by your current permissions and scopes. " : "Service tokens use the selected owner account. "}Tokens cannot access reports, perform clinical review or import collections. Disabling the owner also disables their tokens.</p></div>

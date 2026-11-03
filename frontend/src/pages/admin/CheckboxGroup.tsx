@@ -7,6 +7,7 @@ import {
 } from "@/pages/admin/resource-list"
 import type { FormField } from "@/pages/admin/resource-specs"
 import { useEffect, useMemo } from "react"
+import { ChoiceOption } from "@/components/ui/choice-group"
 
 
 export function CheckboxGroup({
@@ -110,22 +111,15 @@ export function CheckboxGroup({
                 const value = optionValue(option)
                 const label = optionLabel(option) || value
                 return (
-                  <label key={value} className="form-option flex min-w-0 items-center gap-2 px-3 py-2 type-body-sm" title={value}>
-                    <input
-                      type="checkbox"
-                      checked={visibleSelected.has(value)}
-                      disabled={disabled || !allowed.has(value)}
-                      onChange={(event) => {
+                  <ChoiceOption key={value} option={{ value, label }}
+                    checked={visibleSelected.has(value)}
+                    disabled={disabled || !allowed.has(value)}
+                    onCheckedChange={(checked) => {
                         const next = new Set(visibleSelected)
-                        if (event.target.checked) next.add(value)
+                        if (checked) next.add(value)
                         else next.delete(value)
                         onChange([...next])
-                      }}
-                    />
-                    <span className="min-w-0 flex-1 truncate font-semibold">
-                      {label}
-                    </span>
-                  </label>
+                    }} />
                 )
               })}
             </div>
@@ -142,24 +136,15 @@ export function CheckboxGroup({
           const label = optionLabel(option) || value
           const description = optionDescription(option)
           return (
-            <label key={value} className="form-option flex min-w-0 items-start gap-2 px-3 py-2 type-body-sm">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={visibleSelected.has(value)}
-                disabled={disabled || !allowed.has(value)}
-                onChange={(event) => {
+            <ChoiceOption key={value} option={{ value, label, description: description || undefined }}
+              checked={visibleSelected.has(value)}
+              disabled={disabled || !allowed.has(value)}
+              onCheckedChange={(checked) => {
                   const next = new Set(visibleSelected)
-                  if (event.target.checked) next.add(value)
+                  if (checked) next.add(value)
                   else next.delete(value)
                   onChange([...next])
-                }}
-              />
-              <span className="min-w-0">
-                <span className="block truncate font-semibold" title={label}>{label}</span>
-                {description && <span className="block truncate type-label text-muted-foreground" title={description}>{description}</span>}
-              </span>
-            </label>
+              }} />
           )
         })}
       </div>

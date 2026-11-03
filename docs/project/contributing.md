@@ -114,6 +114,39 @@ configuration formats, clinical-rule revisions, and patient report numbers have
 separate meanings; review their compatibility without treating them as substitutes
 for software or template versions.
 
+## Shared frontend controls
+
+Use `ChoiceGroup` and `ChoiceOption` from
+`frontend/src/components/ui/choice-group.tsx` for checkbox selections. The shared
+admin form builder also uses `ChoiceOption`. Keep option loading, dependency
+filtering and permission decisions in their existing feature owners.
+
+Selection groups use the raised card background and `--inner-card-shadow`;
+individual choices use inset control surfaces. Their selected, disabled, keyboard
+focus and forced-colors states belong to `frontend/src/styles/form-controls.css`.
+Use the shared layout variants for lists, grids and inline choices instead of
+adding page-specific card backgrounds or shadows. Page headings and outer panels
+retain their existing `PageShell` and card treatments.
+
+Apply the same elevation hierarchy to every UI surface, using the shared owners
+below. Depth follows the role and nesting of the surface. Text and icons inherit
+the depth of their containing control or surface.
+
+| Surface role | Shared owner | Depth token |
+| --- | --- | --- |
+| Page headings and grouping panels | `PageShell`, `SurfacePanel`, `.surface-panel` | `--panel-shadow` |
+| Content cards and selection groups | `Card`, `.glass-card`, `.form-option-group` | `--material-card-shadow`, `--inner-card-shadow` |
+| Raised buttons and controls | `Button`, `.paper-raised-control` | `--shadow-sm` |
+| Fields, selected tracks and recessed controls | `Input`, `.form-control`, `.paper-inset` | `--inset-shadow` |
+| Badges and small counters | `Badge`, `TableBadge` | `--material-badge-shadow` |
+| Floating menus and dialogs | Shared popup/dialog components | Shared menu treatment and `--shadow-lg` |
+
+Disabled and read-only fields retain recessed depth. Selection and keyboard focus
+remain distinguishable through the shared border and focus treatments. Preserve
+forced-colors shadow removal and the continuous application chrome. Reuse these
+owners when adding pages; introduce a role-specific treatment in the shared theme
+only when the hierarchy requires it.
+
 ## Shared editor settings
 
 The tracked `.vscode/settings.json` file contains only

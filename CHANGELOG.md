@@ -59,7 +59,12 @@ review, reporting, administration and integrations into one application.
 ### Administration and security
 
 - Service and personal token pages group identity, operations and access scopes,
-  with searchable assay choices, selection counts and clearer credential status.
+  with searchable assay choices, compact environment controls, selection counts
+  and clearer credential status.
+- Token selections and admin form checkboxes share reusable choice controls and
+  the standard raised-group and inset-control depth, including theme and focus states.
+- Shared cards, detail headings and form fields use the common elevation hierarchy;
+  disabled and read-only fields retain recessed depth.
 - Session-expiry responses arriving on Login no longer produce generic request-error
   toasts; protected requests retain their sign-in redirect and clear stale CSRF state.
 - Service tokens appear in Administration's Identity and access section, and the
