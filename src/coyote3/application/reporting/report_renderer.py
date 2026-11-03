@@ -17,14 +17,15 @@ from coyote3.application.reporting.report_service import (
     template_content_hash,
 )
 from coyote3.domain.common.errors import api_error
-from coyote3.domain.common.reporting import TIER_NAME
+from coyote3.domain.common.reporting import TIER_NAME, TIER_SHORT_DESC
+from coyote3.domain.dna.cnv_metrics import copy_number_from_log2
 
 
 def _environment(*, modern: bool = False) -> Environment:
     """Return report filters and the selected layout's component lookup order.
 
     Args:
-        modern: Prefer modern presentation components while retaining the shared clinical body.
+        modern: Prefer modern presentation components for the selected versioned body.
 
     Returns:
         An escaping Jinja environment independent of the current working directory.
@@ -41,7 +42,29 @@ def _environment(*, modern: bool = False) -> Environment:
     env.filters["format_comment"] = _format_comment
     env.filters["sanitize_report_html"] = _sanitize_report_html
     env.filters["format_tier"] = _format_tier
+    env.filters["format_classification"] = _format_classification
+    env.filters["copy_number"] = _copy_number
     return env
+
+
+def _copy_number(value: Any) -> str:
+    """Format a finite log2-derived diploid copy estimate, or a missing-value marker.
+
+    Args:
+        value: Numeric log2 ratio. Missing, nonnumeric or overflowing values are unknown.
+
+    Returns:
+        Two-decimal copy-number estimate, or a dash for unusable input.
+    """
+    import math
+
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return "-"
+    try:
+        estimate = copy_number_from_log2(value)
+    except OverflowError:
+        return "-"
+    return f"{estimate:.2f}" if math.isfinite(estimate) else "-"
 
 
 def _perc_no_dec(value: Any) -> str:
@@ -59,12 +82,44 @@ def _unesc(value: Any) -> str:
     return str(value or "")
 
 
-def _format_tier(value: Any) -> str:
-    """Format a numeric tier using clinical report wording."""
+def _format_tier(value: Any, include_label: bool = True) -> str:
+    """Format a tier as a Roman numeral, optionally prefixed with its clinical label.
+
+    Args:
+        value: Numeric tier; unsupported numeric values display a dash.
+        include_label: Include ``Tier`` for detailed wording; false gives a compact numeral.
+
+    Returns:
+        Clinical tier label or compact Roman numeral, with a dash for missing values.
+    """
     try:
-        return f"Tier {TIER_NAME.get(int(value), int(value))}"
+        tier = int(value)
+        if tier not in TIER_NAME:
+            return "-"
+        return f"Tier {TIER_NAME[tier]}" if include_label else TIER_NAME[tier]
     except (TypeError, ValueError):
         return str(value or "-")
+
+
+def _format_classification(value: Any, description: Any = None) -> str:
+    """Render a known tier and optional description, or one plain missing-value hyphen.
+
+    Args:
+        value: Numeric classification tier; missing, zero and unclassified values are unknown.
+        description: Optional clinical wording. Empty wording or a hyphen is omitted.
+
+    Returns:
+        A tier with a plain hyphen separator, or exactly ``-`` for an unknown tier.
+    """
+    try:
+        tier = int(value)
+    except (TypeError, ValueError):
+        return "-"
+    if isinstance(value, bool) or tier not in TIER_NAME:
+        return "-"
+    label = f"Tier {TIER_NAME[tier]}"
+    wording = str(description or "").strip()
+    return f"{label} - {wording}" if wording and wording != "-" else label
 
 
 def _format_comment(value: Any) -> str:
@@ -181,13 +236,33 @@ def render_report_html(
     selected_layout = layout or configured_layout
     if selected_layout not in {"legacy", "modern"}:
         raise ValueError("Report layout must be legacy or modern")
-    context["legacy_template"] = leaf
+    context["report_body_template"] = (
+        REPORT_TEMPLATES[
+            "modern/dna_report.html" if analyte == "dna" else "modern/report_fusion.html"
+        ][1]
+        if selected_layout == "modern"
+        else leaf
+    )
     context.update(report_analyte=analyte, branding=branding or {})
     context["assay_accredited"] = (
         (context["assay_config"].get("assay_resource_release") or {}).get("content") or {}
     ).get("accredited") is True
     if selected_layout == "modern":
         context["report_template_version"] = modern_template_version(analyte)
+        context.setdefault("class_desc_short", TIER_SHORT_DESC)
+        sections = dict(context.get("report_sections_data") or {})
+        for key in ("snvs", "germline_snvs"):
+            if key in sections:
+                sections[key] = [
+                    {
+                        **row,
+                        "summary_variant": row.get("variant"),
+                        "variant": (row.get("protein_changes") or [row.get("variant")])[-1],
+                        "protein_changes": (row.get("protein_changes") or [])[-1:],
+                    }
+                    for row in sections[key]
+                ]
+        context["report_sections_data"] = sections
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )

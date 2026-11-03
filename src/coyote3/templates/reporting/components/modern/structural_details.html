@@ -1,0 +1,29 @@
+{% if 'CNV' in report_sections and report_sections_data.get('cnvs') %}
+<span class="report_header">Detekterade kopietalsförändringar</span>
+{% for cnv in report_sections_data.cnvs %}{% set classification = cnv.get('classification') or {} %}
+<div class="report_div"><table class="report_variant">
+  <tr><th class="report_variant_header" colspan="6">{{ cnv.genes|map(attribute='gene')|join(', ') }}</th></tr>
+  <tr><td class="report_key">Kromosom</td><td>{{ cnv.chr }}</td><td class="report_key">Region</td><td>{{ cnv.start }}-{{ cnv.end }}</td><td class="report_key">Storlek</td><td>{{ cnv.size }} bp</td></tr>
+  <tr><td class="report_key">Typ</td><td>{{ cnv.type or '-' }}</td><td class="report_key">Kopietal</td><td>{{ cnv.ratio|copy_number }}</td><td class="report_key">Prober</td><td>{{ cnv.nprobes }}</td></tr>
+  {% if cnv.get('PR') is not none or cnv.get('SR') is not none %}<tr><td class="report_key">Paired reads (PR)</td><td colspan="2">{{ cnv.get('PR', '-') }}</td><td class="report_key">Split reads (SR)</td><td colspan="2">{{ cnv.get('SR', '-') }}</td></tr>{% endif %}
+  <tr><td class="report_key">Klassificering</td><td class="report_annotation" colspan="5">{{ classification.get('class')|format_classification(class_desc_short.get(classification.get('class'))) }}</td></tr>
+  {% if cnv.get('global_annotations') %}{% set annotations = cnv.global_annotations|sort(attribute='time_created', reverse=true) %}<tr><td class="report_key">Kommentar</td><td class="report_comment" colspan="5">{{ annotations[0].text|format_comment|safe }}</td></tr>{% endif %}
+</table></div>
+{% endfor %}{% endif %}
+{% if 'TRANSLOCATION' in report_sections and report_sections_data.get('translocs') %}
+<span class="report_header">Detekterade fusioner (DNA)</span>
+{% for tl in report_sections_data.translocs %}
+{% set ann = tl.INFO.get('MANE_ANN') or (tl.INFO.get('ANN') or [{}])[0] %}
+{% set classification = tl.get('classification') or {} %}
+<div class="report_div"><table class="report_variant">
+  <tr><th class="report_variant_header" colspan="6">{{ (ann.Gene_Name or '')|replace('&', '::') or '-' }}</th></tr>
+  <tr><td class="report_key">Position</td><td>{{ tl.CHROM }}:{{ tl.POS }}</td><td class="report_key">Allele</td><td>{{ tl.ALT }}</td><td class="report_key">Exon</td><td>{{ ann.Rank or ann.EXON or '-' }}</td></tr>
+  {% for gt in tl.get('GT', []) %}<tr>
+    <td class="report_key">Prov</td><td>{{ gt.type or gt.sample or '-' }}</td>
+    <td class="report_key">Paired reads (PR)</td><td>{{ (gt.PR if gt.PR is string else gt.PR|join('/')) if gt.get('PR') is not none else '-' }}</td>
+    <td class="report_key">Split reads (SR)</td><td>{{ (gt.SR if gt.SR is string else gt.SR|join('/')) if gt.get('SR') is not none else '-' }}</td>
+  </tr>{% endfor %}
+  <tr><td class="report_key">Klassificering</td><td class="report_annotation" colspan="5">{{ classification.get('class')|format_classification(class_desc_short.get(classification.get('class'))) }}</td></tr>
+  {% if tl.get('global_annotations') %}{% set annotations = tl.global_annotations|sort(attribute='time_created', reverse=true) %}<tr><td class="report_key">Kommentar</td><td class="report_comment" colspan="5">{{ annotations[0].text|format_comment|safe }}</td></tr>{% endif %}
+</table></div>
+{% endfor %}{% endif %}

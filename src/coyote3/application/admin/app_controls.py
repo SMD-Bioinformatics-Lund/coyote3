@@ -119,9 +119,9 @@ def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc
         curation={
             "tiering": {
                 "small_variant_enabled": True,
-                "cnv_enabled": False,
+                "cnv_enabled": True,
                 "fusion_enabled": True,
-                "translocation_enabled": False,
+                "translocation_enabled": True,
             }
         },
     )

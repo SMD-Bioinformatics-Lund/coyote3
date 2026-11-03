@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 REPORT_TEMPLATES = {
     "dna_report.html": ("dna", "legacy/dna.html", "legacy"),
     "report_fusion.html": ("rna", "legacy/rna.html", "legacy"),
-    "modern/dna_report.html": ("dna", "legacy/dna.html", "modern"),
+    "modern/dna_report.html": ("dna", "modern/dna.html", "modern"),
     "modern/report_fusion.html": ("rna", "legacy/rna.html", "modern"),
 }
 _INCLUDE = re.compile(r"{% include ['\"]([^'\"]+)['\"] %}")
@@ -136,7 +136,7 @@ def select_report_template(template_name: str, analyte: str) -> tuple[str, str]:
         analyte: DNA or RNA clinical workflow supplying the report data.
 
     Returns:
-        Legacy body template and selected layout name.
+        Versioned body template and selected layout name.
 
     Raises:
         ValueError: The identifier is unregistered or incompatible with the analyte.

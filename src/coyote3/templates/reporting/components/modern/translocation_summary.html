@@ -1,0 +1,11 @@
+<table class="variant_table" data-analysis="translocation">
+  <thead><tr><th>Fusion</th><th>Lokus</th><th>Exon</th><th>Tier</th><th>Klassificering</th></tr></thead>
+  <tbody>{% for tl in translocs %}
+    {% set ann = tl.INFO.get('MANE_ANN') or (tl.INFO.get('ANN') or [{}])[0] %}
+    {% set classification = tl.get('classification') or {} %}
+    <tr><td>{{ (ann.Gene_Name or '')|replace('&', '::') or '-' }}</td>
+      <td>{{ tl.CHROM }}:{{ tl.POS }} {{ tl.ALT }}</td><td>{{ ann.Rank or ann.EXON or '-' }}</td>
+      <td>{{ classification.get('class')|format_tier(false) }}</td><td>{{ class_desc_short.get(classification.get('class'), '-') if classification.get('class') in [1, 2, 3, 4] else '-' }}</td>
+    </tr>
+  {% endfor %}</tbody>
+</table>

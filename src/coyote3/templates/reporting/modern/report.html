@@ -1,4 +1,4 @@
-{% extends legacy_template %}
+{% extends report_body_template %}
 {# Shared clinical blocks emit one header row; explicit sections repeat it in paginated PDFs. #}
 {% macro result_table(content) -%}
   {{ content|replace('<tr>', '<thead><tr>'|safe, 1)|replace('</tr>', '</tr></thead><tbody>'|safe, 1)|replace('</table>', '</tbody></table>'|safe, 1) }}
@@ -6,10 +6,10 @@
 {% block format_head %}{% include "components/header.html" %}{% endblock %}
 {% block format_notice %}
 <div class="report-page-header">
-  {% include "components/modern/brand_header.html" %}
+  {% with brand_instance='print' %}{% include "components/modern/brand_header.html" %}{% endwith %}
   {% with compact_metadata=true %}{% include "components/modern/sample_information.html" %}{% endwith %}
 </div>
-<div class="report-screen-brand">{% include "components/modern/brand_header.html" %}</div>
+<div class="report-screen-brand">{% with brand_instance='screen' %}{% include "components/modern/brand_header.html" %}{% endwith %}</div>
 <div class="report-page-footer">
   {% if assay_accredited and branding.accreditation_logo %}<img class="report-accreditation-logo" src="{{ branding.accreditation_logo }}" alt="Ackreditering">{% endif %}
 </div>
@@ -29,12 +29,15 @@
 </main>{% endblock %}
 {% block snv_table %}{% if variants %}{% include "components/modern/snv_summary.html" %}{% else %}<p class="report-empty-result">{{ empty_result_messages.SNV }}</p>{% endif %}{% endblock %}
 {% block germline_snv_table %}{% if germline_variants %}{% with variants=germline_variants %}{% include "components/modern/snv_summary.html" %}{% endwith %}{% else %}<p class="report-empty-result">{{ empty_result_messages.GERMLINE_SNV }}</p>{% endif %}{% endblock %}
-{% block cnv_table %}{% if cnvs %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.CNV }}</p>{% endif %}{% endblock %}
-{% block translocation_table %}{% if translocs %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.TRANSLOCATION }}</p>{% endif %}{% endblock %}
+{% block cnv_table %}{% if cnvs %}{% include "components/modern/cnv_summary.html" %}{% else %}<p class="report-empty-result">{{ empty_result_messages.CNV }}</p>{% endif %}{% endblock %}
+{% block translocation_table %}{% if translocs %}{% include "components/modern/translocation_summary.html" %}{% else %}<p class="report-empty-result">{{ empty_result_messages.TRANSLOCATION }}</p>{% endif %}{% endblock %}
 {% block biomarker_table %}{% if biomarkers %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages[analysis] }}</p>{% endif %}{% endblock %}
 {% block biomarker_results %}{% include "components/modern/biomarker_summary.html" %}{% endblock %}
-{% block biomarker_details %}{% include "components/modern/biomarker_details.html" %}{% endblock %}
-{% block report_summary %}<section class="report-summary">{{ super() }}</section>{% endblock %}
+{% block biomarker_details %}{% include "components/modern/structural_details.html" %}{% include "components/modern/biomarker_details.html" %}{% endblock %}
+{% block report_summary %}<section class="report-summary"><span class="report_header">Slutsats</span>
+  {% if report_scope_label %}<h2 class="report-summary-scope">{{ report_scope_label }}</h2>{% endif %}
+  <div class="conclusion"><div class="results_summary">{% if latest_sample_comment_text %}{{ latest_sample_comment_text|format_comment|safe }}{% endif %}</div></div>
+</section>{% endblock %}
 {% block pgx_table %}{% if (report_sections_data.pgx if report_analyte == 'dna' else pgx) %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.PGX }}</p>{% endif %}{% endblock %}
-{% block fusion_table %}{% if fusions %}{{ result_table(super()) }}{% else %}<p class="report-empty-result">{{ empty_result_messages.FUSION }}</p>{% endif %}{% endblock %}
-{% block fusion_details %}{% if fusions %}{{ super() }}{% endif %}{% endblock %}
+{% block fusion_table %}{% if fusions %}{% include "components/modern/fusion_summary.html" %}{% else %}<p class="report-empty-result">{{ empty_result_messages.FUSION }}</p>{% endif %}{% endblock %}
+{% block fusion_details %}{% include "components/modern/fusion_details.html" %}{% endblock %}

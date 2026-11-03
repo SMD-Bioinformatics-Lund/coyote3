@@ -132,15 +132,22 @@ results outside accreditation.
 
 ### Dimensions and example SVG
 
-The cited current Swedac rules do not specify a numeric minimum width, height or
-clear-space distance for the Swedac symbol. The 20 mm print / 75 px digital minimum
-in DOC 20:1 concerns the separate IAF MLA mark. Do not apply it as a Swedac minimum.
-Preserve the supplied artwork's proportions and verify all wording in the final
-PDF at its actual printed size.
+Swedac's supplied **Information om ackrediteringssymbol**, SWEDAC INFO 17:5,
+version 3.0, page 3 specifies a minimum width of **25 mm** for SVG artwork.
+The modern report footer renders the complete symbol at that width and preserves
+its proportions. Do not crop, recolor, retype or reconstruct the issued artwork.
+Verify all wording in the final PDF at its actual printed size.
+
+The guide permits the supplied blue/yellow, black and white versions, with good
+contrast against the background. The original black SVG is suitable for the white
+report paper and avoids dependence on CMYK/ICC rendering. The blue/yellow SVG can
+also be selected for digital output. Preserve its supplied color values; the
+report's purple/orange theme must not recolor the accreditation symbol.
 
 The [example SVG](../assets/examples/reporting/swedac-iso-15189-example.svg) has a
 compact 24 mm by 28 mm canvas and uses Swedac's published vector paths in black.
-These dimensions are a layout choice, not a prescribed minimum. The information
+Those are the example's intrinsic dimensions; the footer scales it to 25 mm wide.
+The information
 lines sit directly below the circular mark and display `Ackred. nr 1309`,
 `Provning` and `ISO 15189`. The example center configuration selects an identical
 copy under `logos/`. Review the accreditation number for the deploying center and
@@ -148,8 +155,11 @@ use the center's issued symbol for clinical reports.
 
 ![Swedac ISO 15189 artwork with accreditation number 1309](../assets/examples/reporting/swedac-iso-15189-example.svg)
 
-The modern report footer provides a 28 mm high image area, limited to 32 mm wide,
-and preserves the artwork's proportions. The example renders at 24 mm by 28 mm.
+The modern report footer uses a 25 mm wide image area with proportional height.
+The example renders at approximately 25 mm by 29.17 mm; an issued 184 × 209 SVG
+renders at approximately 25 mm by 28.40 mm. Self-contained WOFF2 fonts in supplied
+SVG stylesheets are supported and remain embedded. External font/image references,
+scripts and active SVG content remain prohibited.
 Reports displaying an accreditation logo reserve a 38 mm bottom margin; other
 reports retain a 22 mm margin. Check the center's complete symbol and its wording
 at 100% print scale when selecting the artwork.

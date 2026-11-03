@@ -1,0 +1,11 @@
+<table class="variant_table" data-analysis="cnv">
+  <thead><tr><th>Gen</th><th>Kromosom</th><th>Typ (CN)</th><th>Storlek</th><th>Tier</th><th>Klassificering</th></tr></thead>
+  <tbody>{% for cnv in cnvs %}{% set classification = cnv.get('classification') or {} %}
+    {% set panel_genes = cnv.genes|selectattr('class')|list %}
+    {% set other_count = cnv.genes|length - panel_genes|length %}
+    <tr><td>{{ panel_genes|map(attribute='gene')|join(', ') }}{% if other_count %} + {{ other_count }} other genes{% endif %}</td><td>{{ cnv.chr }}</td>
+      <td>{{ cnv.type or '-' }} ({{ cnv.ratio|copy_number }})</td><td>{{ cnv.size }} bp</td>
+      <td>{{ classification.get('class')|format_tier(false) }}</td><td>{{ class_desc_short.get(classification.get('class'), '-') if classification.get('class') in [1, 2, 3, 4] else '-' }}</td>
+    </tr>
+  {% endfor %}</tbody>
+</table>

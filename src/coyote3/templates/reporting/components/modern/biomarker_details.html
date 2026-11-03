@@ -1,4 +1,4 @@
-{% for analysis, methods in [("HRD", ["HRD"]), ("MSI", ["MSIS", "MSIP"]), ("TMB", ["TMB"])] %}
+{% for analysis, methods in [("HRD", ["HRD"]), ("MSI", ["MSIP"] if sample.get('paired') else ["MSIS"]), ("TMB", ["TMB"])] %}
   {% if analysis in report_sections and report_sections_data[analysis|lower] %}
   <span class="report_header">{{ analysis }} - detaljerade resultat</span>
   {% for biomarker in report_sections_data[analysis|lower] %}

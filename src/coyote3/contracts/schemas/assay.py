@@ -64,14 +64,16 @@ class AssayPanelToAssayGroupMappingDoc(_CollectionDocBase):
 class ReportableTiersDoc(_StrictDocBase):
     """Allowed tiers for findings whose report inclusion is classification-driven.
 
-    Empty lists exclude all findings of that type. Structural review selections
-    and biomarkers are not tier-driven and are not configured here.
+    Empty lists exclude tier-driven inclusion for that type. Explicit structural
+    report selections remain available independently of tier inclusion.
     """
 
     SNV: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
     FUSION: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
+    CNV: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
+    TRANSLOCATION: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
 
-    @field_validator("SNV", "FUSION", mode="before")
+    @field_validator("SNV", "FUSION", "CNV", "TRANSLOCATION", mode="before")
     @classmethod
     def unique_tiers(cls, values: object) -> list[int]:
         """Accept integer tiers or form selections, rejecting booleans and fractions."""

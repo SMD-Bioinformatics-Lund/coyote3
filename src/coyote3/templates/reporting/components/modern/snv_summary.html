@@ -1,10 +1,11 @@
 <table class="variant_table" data-analysis="snv">
-  <thead><tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr></thead>
+  <thead><tr><th>Gen</th><th>Kromosom</th><th>Exon</th><th>HGVS</th><th>VAF</th><th>Tier</th><th>Klassificering</th></tr></thead>
   <tbody>{% for var in variants %}
     <tr{% if var.class == 1 %} class="report-tier-one"{% endif %}>
       <td>{{ var.symbol }}</td>
-      <td>{% if var.indel_size > 20 %}{{ var.cdna }}{% else %}{{ var.variant|unesc }}{% endif %}</td>
-      <td>{{ var.af|perc_no_dec }}</td><td>{{ var.class_short_desc }}</td>
+      <td>{{ var.chr }}</td><td>{{ var.exon[0] if var.exon else '-' }}</td>
+      <td>{% if var.indel_size > 20 %}{{ var.cdna }}{% else %}{{ var.summary_variant|unesc }}{% endif %}</td>
+      <td>{{ var.af|perc_no_dec }}</td><td>{{ var.class|format_tier(false) }}</td><td>{{ var.class_short_desc if var.class in [1, 2, 3, 4] else '-' }}</td>
     </tr>
   {% endfor %}</tbody>
 </table>

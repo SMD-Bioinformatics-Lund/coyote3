@@ -64,9 +64,9 @@ class TieringControlDoc(BaseModel):
     """Runtime availability of tier mutations by finding resource."""
 
     small_variant_enabled: bool = True
-    cnv_enabled: bool = False
+    cnv_enabled: bool = True
     fusion_enabled: bool = True
-    translocation_enabled: bool = False
+    translocation_enabled: bool = True
 
 
 class CurationControlDoc(BaseModel):

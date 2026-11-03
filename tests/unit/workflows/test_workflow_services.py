@@ -58,6 +58,9 @@ def _dna_workflow() -> dna_workflow.DNAWorkflowService:
         variant_repository=stub,
         blacklist_repository=stub,
         sample_repository=stub,
+        diagnosis_repository=SimpleNamespace(
+            get_current=lambda *args: {"display_name": "Synthetic diagnosis"}
+        ),
         copy_number_variant_repository=stub,
         biomarker_repository=stub,
         translocation_repository=stub,
@@ -85,6 +88,9 @@ def _rna_workflow(
     stub = SimpleNamespace()
     return rna_workflow.RNAWorkflowService(
         sample_repository=sample_repository or stub,
+        diagnosis_repository=SimpleNamespace(
+            get_current=lambda *args: {"display_name": "Synthetic diagnosis"}
+        ),
         gene_list_repository=gene_list_repository or stub,
         rna_expression_repository=rna_expression_repository or stub,
         rna_classification_repository=rna_classification_repository or stub,
@@ -211,12 +217,13 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                 add_blacklist_data=lambda rows, group, *, asp_id: rows
             ),
             sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
-            copy_number_variant_repository=SimpleNamespace(
-                get_interesting_sample_cnvs=lambda sample_id: []
+            diagnosis_repository=SimpleNamespace(
+                get_current=lambda *args: {"display_name": "Synthetic diagnosis"}
             ),
+            copy_number_variant_repository=SimpleNamespace(get_sample_cnvs=lambda selection: []),
             biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
             translocation_repository=SimpleNamespace(
-                get_interesting_sample_translocations=lambda sample_id: []
+                get_sample_translocations=lambda sample_id: []
             ),
             vep_metadata_repository=SimpleNamespace(
                 get_consequence_group_map=lambda version: {},
@@ -299,8 +306,11 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             add_blacklist_data=lambda rows, group, *, asp_id: rows
         ),
         sample_repository=SimpleNamespace(get_latest_sample_comment=lambda sample_id: None),
+        diagnosis_repository=SimpleNamespace(
+            get_current=lambda *args: {"display_name": "Synthetic diagnosis"}
+        ),
         copy_number_variant_repository=SimpleNamespace(
-            get_interesting_sample_cnvs=lambda sample_id: [
+            get_sample_cnvs=lambda selection: [
                 {
                     "_id": "cnv1",
                     "genes": [{"gene": "TP53", "class": 1}],
@@ -316,14 +326,15 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             ]
         ),
         biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
-        translocation_repository=SimpleNamespace(
-            get_interesting_sample_translocations=lambda sample_id: []
-        ),
+        translocation_repository=SimpleNamespace(get_sample_translocations=lambda sample_id: []),
         vep_metadata_repository=SimpleNamespace(
             get_consequence_group_map=lambda version: {"missense": ["missense_variant"]},
             get_variant_class_translations=lambda version: {},
         ),
-        annotation_repository=SimpleNamespace(),
+        annotation_repository=SimpleNamespace(
+            get_global_annotations=lambda *args, **kwargs: ([], {"class": 3}, [], {}),
+            get_additional_classifications=lambda *args, **kwargs: [],
+        ),
         include_snapshot=True,
     )
 
@@ -331,6 +342,7 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
     assert len(snapshot_rows) == 1
     assert snapshot_rows[0]["analysis_type"] == "CNV"
     assert snapshot_rows[0]["var_oid"] == "cnv3"
+    assert snapshot_rows[0]["classification"] == 3
     assert [cnv["_id"] for cnv in context["report_sections_data"]["cnvs"]] == ["cnv3"]
 
 
@@ -367,6 +379,9 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
             add_blacklist_data=lambda rows, group, *, asp_id: rows
         ),
         sample_repository=SimpleNamespace(get_latest_sample_comment=unexpected),
+        diagnosis_repository=SimpleNamespace(
+            get_current=lambda *args: {"display_name": "Synthetic diagnosis"}
+        ),
         copy_number_variant_repository=SimpleNamespace(),
         biomarker_repository=SimpleNamespace(),
         translocation_repository=SimpleNamespace(),

@@ -9,9 +9,298 @@ from weasyprint.formatting_structure.boxes import TableCellBox, TableRowBox, Tex
 
 from api.config import report_presentation
 from api.presentation.reports.branding import render_branded_report_html
+from coyote3.application.reporting.dna_report_payload import sort_by_class_and_af
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_renderer import render_report_html
 from tests.unit.reporting.test_external_report_templates import context
+
+
+def structural_context():
+    """Supply synthetic findings for compact summary and detailed evidence checks."""
+    inputs = empty_context()
+    inputs["sample"]["paired"] = True
+    inputs["report_scope_label"] = "Synthetic diagnosis · parad analys"
+    inputs["latest_sample_comment_text"] = "Synthetic reviewed conclusion."
+    inputs["report_sections"] = ["SNV", "CNV", "TRANSLOCATION"]
+    inputs["report_sections_data"].update(
+        snvs=[
+            {
+                "symbol": "TP53",
+                "chr": "17",
+                "pos": 10001,
+                "class_type": "Somatisk",
+                "variant_class": "SNV",
+                "var_type": "snv",
+                "feature": "ENST_SYNTHETIC_001",
+                "consequence": "missense",
+                "exon": ["4/11"],
+                "variant": "p.(K4E)",
+                "cdna": "c.10A>G",
+                "af": 0.4,
+                "indel_size": 0,
+                "class": 1,
+                "class_short_desc": "Synthetic clinical significance",
+                "class_long_desc": "Synthetic interpretation",
+                "protein_changes": ["p.(K4E)", "p.(Lys4Glu)"],
+                "global_annotations": [],
+                "annotations_interesting": {},
+            }
+        ],
+        cnvs=[
+            {
+                "genes": [{"gene": "MYC", "class": 1}],
+                "chr": "8",
+                "start": 10001,
+                "end": 20000,
+                "size": 10000,
+                "type": "DUP",
+                "ratio": 1,
+                "nprobes": 20,
+                "classification": {"class": 2},
+                "global_annotations": [],
+            }
+        ],
+        translocs=[
+            {
+                "CHROM": "22",
+                "POS": 10001,
+                "ALT": "N[9:20001[",
+                "INFO": {"ANN": [{"Gene_Name": "BCR&ABL1", "Rank": "2/10"}]},
+                "GT": [{"type": "case", "PR": [100, 20], "SR": [50, 0]}],
+                "classification": {"class": 1},
+                "global_annotations": [],
+            }
+        ],
+    )
+    return inputs
+
+
+def test_modern_structural_tables_preserve_tiers_copy_numbers_and_zero_reads():
+    """New tables render clinical fields and retain zero-valued structural evidence."""
+    inputs = structural_context()
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=html).etree_element
+    expected_headers = {
+        "snv": ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"],
+        "cnv": ["Gen", "Kromosom", "Typ (CN)", "Storlek", "Tier", "Klassificering"],
+        "translocation": ["Fusion", "Lokus", "Exon", "Tier", "Klassificering"],
+    }
+    for analysis, labels in expected_headers.items():
+        table = root.find(f'.//table[@data-analysis="{analysis}"]')
+        assert [cell.text for cell in table.findall("./thead/tr/th")] == labels
+    cnv = root.find('.//table[@data-analysis="cnv"]')
+    assert "DUP (4.00)" in " ".join(cnv.itertext())
+    assert cnv.findall("./tbody/tr/td")[4].text == "II"
+    translocation = root.find('.//table[@data-analysis="translocation"]')
+    assert translocation.findall("./tbody/tr/td")[3].text == "I"
+    read_row = next(
+        row
+        for table in root.findall('.//table[@class="report_variant"]')
+        for row in table.findall(".//tr")
+        if row.find("td") is not None and row.find("td").text == "Prov"
+    )
+    assert [cell.text for cell in read_row.findall("td")] == [
+        "Prov",
+        "case",
+        "Paired reads (PR)",
+        "100/20",
+        "Split reads (SR)",
+        "50/0",
+    ]
+    assert all("colspan" not in cell.attrib for cell in read_row.findall("td"))
+    snv = root.find('.//table[@data-analysis="snv"]')
+    cells = snv.findall("./tbody/tr/td")
+    assert ["".join(cell.itertext()).strip() for cell in cells] == [
+        "TP53",
+        "17",
+        "4/11",
+        "p.(K4E)",
+        "40%",
+        "I",
+        "Synthetic clinical significance",
+    ]
+    detail_text = " ".join(
+        text
+        for table in root.findall('.//table[@class="report_variant"]')
+        for text in table.itertext()
+    )
+    for value in [
+        "MYC",
+        "BCR::ABL1",
+        "100/20",
+        "50/0",
+        "p.(Lys4Glu)",
+        "Somatisk SNV",
+        "ENST_SYNTHETIC_001",
+        "missense",
+        "10001",
+        "Tier I",
+        "Gen",
+        "Typ",
+        "Transkript",
+        "Konsekvens",
+        "cDNA-förändring",
+        "Proteinförändring",
+        "Kromosom",
+        "Position (hg38)",
+        "Frekvens",
+        "Exon",
+        "Intron",
+        "Klassificering",
+    ]:
+        assert value in detail_text
+    assert "p.(K4E)" not in detail_text
+    assert inputs["report_sections_data"]["snvs"][0]["protein_changes"] == [
+        "p.(K4E)",
+        "p.(Lys4Glu)",
+    ]
+    assert "Synthetic diagnosis · parad analys" in html
+
+
+@pytest.mark.parametrize(
+    "exon,intron,expected_exon,expected_intron",
+    [(["4", "11"], [], "4/11", "-"), ([], ["3", "10"], "-", "3/10"), ([], [], "-", "-")],
+)
+def test_detail_exon_and_intron_have_separate_cells(exon, intron, expected_exon, expected_intron):
+    """Transcript identifiers remain separate from recorded exon and intron ranks."""
+    inputs = structural_context()
+    inputs["report_sections_data"]["snvs"][0].update(exon=exon, intron=intron)
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=html).etree_element
+    table = root.find('.//table[@data-analysis="snv-detail"]')
+    fields = {}
+    for row in table.findall(".//tr"):
+        cells = row.findall("td")
+        for index, cell in enumerate(cells[:-1]):
+            if cell.get("class") == "report_key":
+                fields[cell.text] = "".join(cells[index + 1].itertext()).strip()
+    assert fields["Transkript"] == "ENST_SYNTHETIC_001"
+    assert fields["Exon"] == expected_exon
+    assert fields["Intron"] == expected_intron
+
+
+@pytest.mark.parametrize("tier,numeral", [(1, "I"), (2, "II"), (3, "III"), (4, "IV")])
+def test_rna_summary_uses_roman_tiers_and_details_keep_labels(tier, numeral):
+    """RNA summary tiers are compact while the detailed classification keeps Tier."""
+    inputs = empty_context("rna")
+    inputs["class_desc"] = {tier: "Synthetic interpretation"}
+    inputs["fusions"] = [
+        {
+            "gene1": "BCR",
+            "gene2": "ABL1",
+            "classification": {"class": tier},
+            "global_annotations": [],
+            "calls": [
+                {
+                    "selected": 1,
+                    "spanpairs": 12,
+                    "spanreads": 7,
+                    "breakpoint1": "22:10001",
+                    "breakpoint2": "9:20001",
+                }
+            ],
+        }
+    ]
+    html = render_report_html(
+        template_name="report_fusion.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="rna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=html).etree_element
+    summary = root.find('.//table[@data-analysis="fusion"]')
+    assert summary.findall("./tbody/tr/td")[3].text == numeral
+    detail = root.find('.//table[@class="report_variant"]')
+    assert f"Tier {numeral}" in " ".join(detail.itertext())
+
+
+@pytest.mark.parametrize("classification", [None, {}, {"class": 0}, {"class": 999}])
+def test_missing_detail_classification_is_one_plain_hyphen(classification):
+    """Unknown structural classifications do not render repeated missing-value separators."""
+    inputs = structural_context()
+    inputs["report_sections_data"]["cnvs"][0]["classification"] = classification
+    inputs["report_sections_data"]["translocs"][0]["classification"] = classification
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=html).etree_element
+    classifications = []
+    for table in root.findall('.//table[@class="report_variant"]'):
+        heading = "".join(table.find(".//th").itertext()).strip()
+        if heading in {"MYC", "BCR::ABL1"}:
+            cell = table.find('.//td[@class="report_annotation"]')
+            classifications.append("".join(cell.itertext()).strip())
+    assert classifications == ["-", "-"]
+    for analysis in ["cnv", "translocation"]:
+        summary = root.find(f'.//table[@data-analysis="{analysis}"]')
+        assert summary.findall("./tbody/tr/td")[-1].text == "-"
+    assert "—" not in html and "–" not in html
+
+
+@pytest.mark.parametrize("section", ["snvs", "germline_snvs"])
+def test_snv_summary_keeps_compact_tiers_and_protein_notation_in_clinical_order(section):
+    """Both SNV summaries retain tier/VAF ordering and short amino-acid notation."""
+    inputs = structural_context()
+    original = inputs["report_sections_data"]["snvs"][0]
+    rows = [
+        {**original, "symbol": name, "class": tier, "af": af}
+        for name, tier, af in [
+            ("SYNTHETIC_II", 2, 0.9),
+            ("SYNTHETIC_I_LOW", 1, 0.1),
+            ("SYNTHETIC_IV", 4, 0.5),
+            ("SYNTHETIC_I_HIGH", 1, 0.8),
+            ("SYNTHETIC_III", 3, 0.7),
+            ("SYNTHETIC_I_UNKNOWN", 1, None),
+        ]
+    ]
+    inputs["report_sections_data"]["snvs"] = []
+    inputs["report_sections_data"][section] = sort_by_class_and_af(rows)
+    html = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=html).etree_element
+    table = root.find('.//table[@data-analysis="snv"]')
+    cells = [
+        ["".join(cell.itertext()).strip() for cell in row.findall("td")]
+        for row in table.findall("./tbody/tr")
+    ]
+    assert [row[0] for row in cells] == [
+        "SYNTHETIC_I_HIGH",
+        "SYNTHETIC_I_LOW",
+        "SYNTHETIC_I_UNKNOWN",
+        "SYNTHETIC_II",
+        "SYNTHETIC_III",
+        "SYNTHETIC_IV",
+    ]
+    assert [row[5] for row in cells] == ["I", "I", "I", "II", "III", "IV"]
+    assert all(row[3] == "p.(K4E)" for row in cells)
+    assert original["variant"] == "p.(K4E)"
 
 
 def empty_context(analyte="dna"):
@@ -227,7 +516,9 @@ def test_manual_assessments_are_separate_and_only_tier_one_classification_is_sem
     html = HTML(string=output)
     summary = html.etree_element.find('.//table[@class="variant_table report-biomarker-summary"]')
     text = " ".join(summary.itertext())
-    assert all(value in text for value in ["MSIS", "MSIP", "HIGH", "LOW", "Ej bedömd"])
+    assert all(value in text for value in ["MSIS", "HIGH", "Ej bedömd"])
+    assert "MSIP" not in text and "LOW" not in text
+    assert "source" not in text
     assert "mut/Mb" not in text
     assert output.index('report-biomarker-detail"') > output.index("Detekterade mutationer")
     detail = html.etree_element.findall('.//table[@class="report-biomarker-detail"]')[-1]
@@ -244,9 +535,43 @@ def test_manual_assessments_are_separate_and_only_tier_one_classification_is_sem
         for box in page._page_box.descendants()
         if isinstance(box, TableCellBox) and box.element in summary_cells
     ]
-    assert len(rendered_cells) == 8
+    assert len(rendered_cells) == 14
     for box in rendered_cells:
         assert box.style["font_weight"] == (600 if box.element is emphasized_cell else 400)
+
+
+@pytest.mark.parametrize(
+    "paired,method,excluded", [(False, "MSIS", "MSIP"), (True, "MSIP", "MSIS")]
+)
+def test_msi_report_uses_pairing_method_without_sample_name_column(paired, method, excluded):
+    inputs = empty_context()
+    inputs["sample"]["paired"] = paired
+    inputs["report_sections"] = ["MSI"]
+    inputs["report_sections_data"]["msi"] = [
+        {
+            "name": "SYNTHETIC_SOURCE_NAME",
+            "MSIS": {"per": 0, "som": 0, "tot": 100},
+            "MSIP": {"per": 5, "som": 5, "tot": 100},
+        }
+    ]
+    output = render_report_html(
+        template_name="dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+        layout="modern",
+    )
+    root = HTML(string=output).etree_element
+    summary = root.find('.//table[@class="variant_table report-biomarker-summary"]')
+    assert len(summary.findall(".//thead/tr/th")) == 2
+    text = " ".join(summary.itertext())
+    assert method in text and excluded not in text
+    assert "SYNTHETIC_SOURCE_NAME" not in text
+    details = root.findall('.//table[@class="report-biomarker-detail"]')
+    assert len(details) == 1
+    detail_text = " ".join(details[0].itertext())
+    assert method in detail_text and excluded not in detail_text
 
 
 def test_populated_dna_sections_retain_every_finding_table():
@@ -258,7 +583,8 @@ def test_populated_dna_sections_retain_every_finding_table():
         "af": 0.5,
         "indel_size": 0,
         "class_short_desc": "Synthetic class",
-        "class": 999,
+        "class_long_desc": "Synthetic interpretation",
+        "class": 2,
         "global_annotations": [],
         "protein_changes": [],
     }
@@ -305,7 +631,19 @@ def test_populated_dna_sections_retain_every_finding_table():
             assert len(details) == 4
             assert "Synthetic biomarker" in "".join(details[-1].itertext())
             assert "mut/Mb" in "".join(details[2].itertext())
-    assert outputs["modern"] == outputs["legacy"][:4] + outputs["legacy"][-1:]
+    assert outputs["modern"][0][:7] == [
+        "Gen",
+        "Kromosom",
+        "Exon",
+        "HGVS",
+        "VAF",
+        "Tier",
+        "Klassificering",
+    ]
+    assert "SYNTHETIC_GENE" in outputs["modern"][0]
+    assert "Synthetic class" in outputs["modern"][0]
+    assert "SYNTHETIC_A::SYNTHETIC_B" in outputs["modern"][3]
+    assert outputs["modern"][-1] == outputs["legacy"][-1]
 
 
 def test_center_wording_is_optional_and_reloaded_without_aspc_edits(monkeypatch, tmp_path):
@@ -439,7 +777,12 @@ def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
         box.text for box in document.pages[1]._page_box.descendants() if isinstance(box, TextBox)
     )
     assert "SYNTHETIC_CONCLUSION" in second_page_text
-    assert "Detekterade mutationer" in second_page_text
+    assert "Detekterade mutationer" not in second_page_text
+    third_page_text = " ".join(
+        box.text for box in document.pages[2]._page_box.descendants() if isinstance(box, TextBox)
+    )
+    assert "Detekterade mutationer" in third_page_text
+    assert "SYNTHETIC_CONCLUSION" not in third_page_text
     table = html.etree_element.find('.//table[@class="variant_table"]')
     rows = set(table.findall(".//tr"))
     rendered_rows = [
@@ -449,4 +792,13 @@ def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
         if isinstance(box, TableRowBox) and box.element in rows
     ]
     assert len(rendered_rows) == 2
-    assert all(row.height < 26 for row in rendered_rows)
+    # Seven-column summaries can wrap gene names. Compactness is governed by
+    # cell padding rather than requiring clinical text to fit on a single line.
+    cells = [
+        cell for row in rendered_rows for cell in row.children if isinstance(cell, TableCellBox)
+    ]
+    assert len(cells) == 14
+    assert all(
+        cell.style["padding_top"].value <= 2 and cell.style["padding_bottom"].value <= 2
+        for cell in cells
+    )

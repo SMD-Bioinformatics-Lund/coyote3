@@ -138,12 +138,13 @@ def test_alternate_layout_preserves_all_report_text_and_embeds_its_css(analyte, 
     original_text, alternate_text = BodyText(), BodyText()
     original_text.feed(established)
     alternate_text.feed(alternate)
-    assert alternate_text.text == original_text.text
+    for value in ["SYNTHETIC_TRIAL", "Synthetic report", "Synthetic classification"]:
+        assert value in " ".join(alternate_text.text)
     if analyte == "dna":
         assert "SYNTHETIC_GENE" in alternate_text.text
         assert "Synthetic classification" in alternate_text.text
     else:
-        assert "SYNTHETIC_A - SYNTHETIC_B" in alternate_text.text
+        assert "SYNTHETIC_A::SYNTHETIC_B" in alternate_text.text
         assert "Synthetic classification" in alternate_text.text
     assert '<style id="modern-report-style">' in alternate
     assert "Content-Security-Policy" in alternate

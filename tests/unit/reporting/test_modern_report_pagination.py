@@ -7,7 +7,7 @@ from io import BytesIO
 import pytest
 from PIL import Image
 from weasyprint import CSS, HTML
-from weasyprint.formatting_structure.boxes import MarginBox, ReplacedBox, TextBox
+from weasyprint.formatting_structure.boxes import MarginBox, ReplacedBox, TableCellBox, TextBox
 
 from coyote3.application.reporting.report_renderer import render_report_html
 from coyote3.application.reporting.report_service import modern_template_version
@@ -201,9 +201,19 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
     findings = []
     for page in document.pages:
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        for label in ["Gen", "Mutation", "Variantfrekvens", "Klassificering"]:
+        for label in ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"]:
             assert label in words
-        findings.extend(word for word in words if word.startswith("SYNTHETIC_"))
+        for box in page._page_box.descendants():
+            if (
+                isinstance(box, TableCellBox)
+                and box.element is not None
+                and box.element.tag == "td"
+            ):
+                value = "".join(
+                    child.text for child in box.descendants() if isinstance(child, TextBox)
+                )
+                if value.startswith("SYNTHETIC_"):
+                    findings.append(value)
     assert findings == [f"SYNTHETIC_{index:03d}" for index in range(100)]
 
 

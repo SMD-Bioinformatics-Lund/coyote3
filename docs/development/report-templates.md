@@ -10,7 +10,8 @@ Jinja's package loader resolves files independently of the working directory.
 | `assets/report.css` | Existing report styles, included inside the HTML style element. |
 | `assets/modern.css` | Modern layout overrides, embedded in the same document. |
 | `legacy/report.html` | Legacy inheritance entry point. |
-| `legacy/dna.html`, `legacy/rna.html` | Modality-specific body composition. |
+| `legacy/dna.html`, `legacy/rna.html` | Historical modality-specific body composition. |
+| `modern/dna.html` | Modern DNA body, including independently labelled exon/intron detail cells. |
 | `components/dna/`, `components/rna/` | Sample information, finding tables and classification wording; distinct markup remains distinct. |
 | `modern/components/dna/`, `modern/components/rna/` | Modern sample-information overrides; the legacy components retain their original markup. |
 | `components/modern/` | Branded report header and labeled sample-details layout. |

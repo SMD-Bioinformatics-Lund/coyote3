@@ -244,7 +244,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         fields["analysis_types"]["help"] = (
             "Available analyses depend on the assay expected input files."
         )
-        tier_analysis = "FUSION" if spec.key == "aspc_rna" else "SNV"
+        tier_analyses = ["FUSION"] if spec.key == "aspc_rna" else ["SNV", "CNV", "TRANSLOCATION"]
         fields["reporting"]["groups"].append(
             {
                 "title": "Reportable tiers",
@@ -255,8 +255,13 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
                         "type": "checkbox-group",
                         "options": ["1", "2", "3", "4"],
                         "default": [1, 2, 3],
-                        "help": "No selected tiers excludes all findings of this type.",
+                        "help": (
+                            "No selected tiers disables tier-based inclusion; explicitly selected findings can still be included."
+                            if tier_analysis in {"CNV", "TRANSLOCATION"}
+                            else "No selected tiers excludes all findings of this type."
+                        ),
                     }
+                    for tier_analysis in tier_analyses
                 ],
             }
         )

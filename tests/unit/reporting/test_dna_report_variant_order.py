@@ -26,10 +26,12 @@ def test_tiered_flt3_structural_finding_can_be_sorted_for_report_preview():
         "POS": 100,
         "REF": "A",
         "ALT": "AT",
+        "variant_class": "insertion",
         "INFO": {"SVTYPE": "INS", "SVLEN": 1, "selected_CSQ": {"SYMBOL": "FLT3"}},
         "classification": {"class": 1},
         "GT": [{"type": "case", "AF": 0.25}],
     }
     rows = get_simple_variants_for_report([finding], {})
     assert rows[0]["af"] == "N/A"
+    assert rows[0]["variant_class"] == "insertion"
     assert sort_by_class_and_af(rows) == rows

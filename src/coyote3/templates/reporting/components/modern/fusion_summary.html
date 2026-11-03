@@ -1,0 +1,9 @@
+<table class="variant_table" data-analysis="fusion">
+  <thead><tr><th>Fusion</th><th>Lokus</th><th>Exon</th><th>Tier</th><th>Klassificering</th></tr></thead>
+  <tbody>{% for var in fusions|sort(attribute='classification.class') %}
+    {% set call = var.report_selected_calls[0] %}
+    <tr><td>{{ var.gene1 }}::{{ var.gene2 }}</td><td>{{ call.breakpoint1 }} | {{ call.breakpoint2 }}</td>
+      <td>-</td><td>{{ var.classification.class|format_tier(false) }}</td><td>{{ class_desc_short.get(var.classification.class, '-') if var.classification.class in [1, 2, 3, 4] else '-' }}</td>
+    </tr>
+  {% endfor %}</tbody>
+</table>

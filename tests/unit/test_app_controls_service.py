@@ -131,9 +131,9 @@ def test_public_module_payload_exposes_only_module_availability_metadata():
     assert "control_field" not in payload["modules"]["reports"]
     assert payload["curation"]["tiering"] == {
         "small_variant": True,
-        "cnv": False,
+        "cnv": True,
         "fusion": True,
-        "translocation": False,
+        "translocation": True,
     }
     validated = PublicModulesPayload.model_validate(payload).model_dump()
     assert validated["curation"] == payload["curation"]

@@ -67,7 +67,7 @@ the actual rules used; no ASPC update is needed to adopt a new rule publication.
 | Field within `reporting` | Required / default | Effect |
 | --- | --- | --- |
 | `report_sections` | Optional; `[]` | Selected analysis sections, constrained by enabled analyses. |
-| `reportable_tiers.SNV`, `reportable_tiers.FUSION` | Optional; each `[1, 2, 3]` | Accepted values 1–4. Explicit `[]` excludes that type; it does not restore defaults. |
+| `reportable_tiers.SNV`, `reportable_tiers.FUSION`, `reportable_tiers.CNV`, `reportable_tiers.TRANSLOCATION` | Optional; each `[1, 2, 3]` | Accepted values 1–4. Explicit `[]` disables tier-based inclusion. CNV/translocation findings can also be explicitly marked for report inclusion; false-positive and irrelevant findings remain excluded. |
 | `language` | Optional; `sv` | Normalized language tag, 2–16 characters; selects compatible published rules. |
 | `report_header`, `report_method` | Required, nonempty | Approved report metadata; not generated from an assay's name. Analysis description text belongs to clinical reporting rules. |
 | `plots_path`, `report_folder` | Required, nonempty | Report locations; saving additionally constrains the output folder to the report root. |

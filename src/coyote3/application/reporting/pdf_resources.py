@@ -7,8 +7,30 @@ from xml.etree import ElementTree
 from weasyprint import URLFetcher
 
 
+def _local_svg_reference(reference: str, *, allow_embedded_font: bool) -> bool:
+    """Allow SVG fragments and validated self-contained WOFF2 stylesheet fonts.
+
+    Args:
+        reference: CSS URL, optionally surrounded by whitespace and quotes.
+        allow_embedded_font: Whether the URL belongs to an SVG style element.
+
+    Returns:
+        True for a fragment or permitted WOFF2 data URL; false for other references.
+    """
+    reference = reference.strip(" \t\r\n'\"")
+    if reference.startswith("#"):
+        return True
+    if not allow_embedded_font or not reference.startswith("data:font/woff2;base64,"):
+        return False
+    try:
+        content = base64.b64decode(reference.partition(",")[2], validate=True)
+    except ValueError:
+        return False
+    return content.startswith(b"wOF2")
+
+
 def validate_report_svg(content: bytes) -> None:
-    """Reject active content and external references in an embedded report logo.
+    """Reject active/external SVG content while allowing embedded WOFF2 fonts.
 
     Args:
         content: SVG XML, limited to one megabyte before parsing.
@@ -34,7 +56,7 @@ def validate_report_svg(content: bytes) -> None:
                 raise ValueError("Report SVG cannot reference external content")
         css = " ".join([element.text or "", *element.attrib.values()])
         if "@import" in css.lower() or any(
-            not reference.strip(" \t\r\n'\"").startswith("#")
+            not _local_svg_reference(reference, allow_embedded_font=tag == "style")
             for reference in re.findall(r"url\s*\((.*?)\)", css, re.I | re.S)
         ):
             raise ValueError("Report SVG cannot reference external content")

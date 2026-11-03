@@ -37,6 +37,53 @@ HTML is escaped and is displayed as text.
 
 ## Rendering and deployment
 
+### Modern report layout
+
+DNA and RNA presentation version 1.0.2 uses Source Sans 3 with 9.25 pt body text,
+8.5 pt screen tables and 8.25 pt compact print values, with 7.5 pt printed labels.
+Summary cells use 4 px × 10 px padding on screen and 2 px × 8 px in print;
+detailed cells use 2 px × 4 px. Summary tables have thin gray horizontal rules
+without vertical column borders. Detail and patient-information tables retain
+complete grids, including the detail heading row, without a colored left accent.
+Table headers and the patient-information heading are black on pale purple tints;
+section headings and branding retain purple/orange accents. Body text is black.
+Heading separators are omitted.
+The conclusion starts on its own page, with a page break after its text. Its
+subheading uses the registered diagnosis display name, or the captured panel
+display name for base/NA diagnoses, followed by paired/unpaired analysis context.
+The document title remains the ASPC `reporting.report_header`, followed by any
+clinical-rule `report_header_suffix`.
+
+SNV summaries contain gene, chromosome, exon, HGVS, VAF, tier and clinical
+significance description. CNV summaries contain genes, chromosome, type with
+copy-number estimate, size, tier and clinical significance. DNA/RNA fusion
+summaries use `Gene1::Gene2`, breakpoint locus, exon when recorded, tier and
+clinical significance. Cytogenetic arm notation is not inferred from breakend
+coordinates. RNA exon annotations are unavailable in the current caller contract
+and display `-`.
+
+Detailed tables include CNVs and DNA translocations, with stored paired/split
+read evidence where available. DNA translocation sample, paired-read and split-read
+values occupy separate bordered label/value cells. RNA details retain caller read support.
+SNV summaries use one-letter protein notation. All finding summaries use compact
+Roman tier numerals; detail tables retain the `Tier I`–`Tier IV` labels and
+three-letter SNV protein notation. SNV exon and intron ranks have their own labelled
+cells, separate from the transcript identifier.
+Missing classifications display exactly `-`. Generated classification separators
+and genomic ranges use plain hyphens.
+Summary rows are ordered by ascending tier, then descending numeric VAF, with
+missing VAF last within its tier. Table headers and field labels use pale purple
+tints; orange accents remain restrained, with black clinical values.
+MSI uses `MSIS` for unpaired samples and `MSIP` for paired samples; biomarker
+summary tables omit sample names.
+
+CNV and translocation tiering is enabled by default. Existing explicit application
+control overrides remain effective. Structural report inclusion accepts an allowed,
+usable tier or an explicit report flag, then applies existing review exclusions
+and gene-list restrictions. Issued HTML/PDF files and their snapshots are unchanged.
+Configurations pinned to a previous modern template hash require a new reviewed
+ASPC revision capturing the installed template before using the new presentation.
+
 An enabled empty section displays its configured message under the section
 heading, without an empty table. Sections with findings retain their tables;
 disabled sections do not gain a message. An RNA report emits the empty-fusion

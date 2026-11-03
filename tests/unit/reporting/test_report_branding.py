@@ -99,8 +99,8 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         assert page_number.position_x + page_number.width == pytest.approx(content_right, abs=1)
         assert page.height - (page_number.position_y + page_number.height) >= 8 * 96 / 25.4
         for logo in logos:
-            assert logo.height == pytest.approx(28 * 96 / 25.4)
-            assert logo.width == pytest.approx(24 * 96 / 25.4)
+            assert logo.height == pytest.approx((25 * 28 / 24) * 96 / 25.4)
+            assert logo.width == pytest.approx(25 * 96 / 25.4)
             assert logo.position_y >= page._page_box.content_box_y() + page._page_box.height
             assert page.height - (logo.position_y + logo.height) >= 5 * 96 / 25.4
             assert logo.position_x == pytest.approx(page._page_box.content_box_x(), abs=1)
@@ -153,7 +153,7 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
     assert "SYNTHETIC CENTER" in html
     assert "Synthetic reviewer" in html
     document = HTML(string=html).render()
-    assert len(document.pages) <= 2
+    assert len(document.pages) == 3  # Results, isolated conclusion, and analysis description.
     first_page = document.pages[0]._page_box
     center = next(
         box
@@ -169,7 +169,7 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
     title = next(
         box
         for box in first_page.descendants()
-        if isinstance(box, TextBox) and box.text == "COYOTE3"
+        if isinstance(box, ReplacedBox) and box.element.get("aria-label") == "COYOTE3"
     )
     assert logo.height == pytest.approx(coyote.height)
     assert 0 <= title.position_x - (coyote.border_box_x() + coyote.width) <= 12
@@ -285,6 +285,30 @@ def test_report_font_resource_rejects_content_without_woff2_signature(content):
         ReportResourceFetcher()("data:font/woff2;base64," + b64encode(content).decode())
 
 
+def test_self_contained_svg_font_is_preserved_and_embedded_in_pdf(tmp_path, monkeypatch):
+    """Supplied logo-style WOFF2 text renders offline without rewriting the SVG."""
+    fonts_css = Path("src/coyote3/templates/reporting/assets/fonts.css").read_text()
+    font_url = re.search(r"data:font/woff2;base64,[A-Za-z0-9+/=]+", fonts_css).group()
+    artwork = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="184" height="209" '
+        'viewBox="0 0 184 209"><defs><style>'
+        "@font-face {font-family: 'SyntheticLogo'; src: url('" + font_url + "');}"
+        '</style></defs><text x="5" y="100" font-family="SyntheticLogo" '
+        'font-size="18">Synthetic accreditation</text></svg>'
+    ).encode()
+    (tmp_path / "logo.svg").write_bytes(artwork)
+    monkeypatch.setattr(branding, "CENTER_CONFIG_DIR", tmp_path)
+    logos = branding.load_report_branding(
+        {"CONTACT": {"organization": {"accreditation_logo": "logo.svg"}}}
+    )
+    expected = "data:image/svg+xml;base64," + b64encode(artwork).decode()
+    assert logos["accreditation_logo"] == expected
+    html = f'<html><body><img src="{expected}"></body></html>'
+    document = HTML(string=html, url_fetcher=ReportResourceFetcher()).render()
+    assert document.write_pdf().startswith(b"%PDF-")
+    assert "SyntheticLogo" in {font.family for font in document.fonts.values()}
+
+
 @pytest.mark.parametrize(
     "body",
     [
@@ -294,6 +318,11 @@ def test_report_font_resource_rejects_content_without_woff2_signature(content):
         '<path onload="alert(1)"/>',
         '<style>@import "https://example.invalid/style.css";</style>',
         '<path style="fill:url(https://example.invalid/image.svg)"/>',
+        "<style>@font-face {src: url(https://example.invalid/font.woff2)}</style>",
+        "<style>@font-face {src: url(file:///private/font.woff2)}</style>",
+        "<style>@font-face {src: url(data:font/woff2;base64,bm90IGEgZm9udA==)}</style>",
+        "<style>@font-face {src: url(data:font/woff2;base64,invalid!)}</style>",
+        "<style>@font-face {src: url(data:image/svg+xml;base64,d09GMg==)}</style>",
         "<foreignObject><div>content</div></foreignObject>",
     ],
 )

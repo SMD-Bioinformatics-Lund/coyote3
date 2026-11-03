@@ -1,7 +1,8 @@
 <header class="report-brand-header">
   <div class="report-product-brand">
     <div class="report-logo-identity">{% if branding.coyote_logo %}<img class="report-coyote-logo" src="{{ branding.coyote_logo }}" alt="Coyote3">{% endif %}</div>
-    <div><strong>COYOTE3</strong></div>
+    {% set gradient_id = 'report-brand-gradient-' ~ (brand_instance|default('default')) %}
+    <div><strong><svg width="140" height="28" viewBox="0 0 140 28" role="img" aria-label="COYOTE3"><defs><linearGradient id="{{ gradient_id }}"><stop offset="0" stop-color="#80569f"/><stop offset="1" stop-color="#c47b4c"/></linearGradient></defs><text x="0" y="21" font-family="Source Sans 3, sans-serif" font-size="22" font-weight="400" letter-spacing="1.5" fill="url(#{{ gradient_id }})">COYOTE3</text></svg></strong></div>
   </div>
   {% if branding.center_logo or organization_name or branding.center_address or branding.center_phone %}<div class="report-center-brand">
     {% if branding.center_logo %}<img class="report-center-logo" src="{{ branding.center_logo }}" alt="{{ organization_name or 'Center' }}">{% endif %}

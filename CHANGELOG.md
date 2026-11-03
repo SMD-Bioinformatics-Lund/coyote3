@@ -11,10 +11,26 @@ review, reporting, administration and integrations into one application.
   case/control frequency with alternate reads and depth, while the genotype panel
   shows genotype calls. Translocation read support appears in the identity summary.
   RNA fusion summaries also include the selected call's read support and longest anchor.
-- Modern DNA/RNA report tables use slightly smaller fonts and tighter cell padding.
+- Modern DNA/RNA reports use compact Source Sans 3 tables, black body text and
+  purple/orange branding. Conclusions occupy a separate page and identify the
+  diagnosis or panel display name and pairing context. Summary tables separate
+  tier and clinical significance; CNVs and DNA translocations have detailed tables.
+  SNV summaries retain one-letter protein notation and compact Roman tier numerals;
+  details use three-letter notation and populated variant-class fields.
+  Finding summaries share compact Roman tiers. Detail tables separate transcript,
+  exon, intron and DNA read-support fields and use complete thin gray grids without
+  colored side borders. Every detail label and value receives the same cell border.
+  Summaries use horizontal rules only; table and patient-information headings are black.
+  Missing classifications display one plain hyphen; generated separators use hyphens.
+  MSI reporting selects MSIS for unpaired samples and MSIP for paired samples.
+- CNV and DNA-translocation tiering is enabled by default; reports accept explicit
+  report selection or an allowed usable tier, preserving existing review exclusions.
 - Analysis tables default to 200 rows, DNA translocations expose SR/PR evidence,
   fusion names use `Gene1::Gene2`, and finding details group OncoKB evidence together.
 - Swedac report artwork displays Ackred. nr 1309, Provning and ISO 15189.
+- Swedac footer symbols render at the supplied guide's 25 mm minimum width and
+  preserve original proportions. Original SVG artwork can retain its embedded
+  WOFF2 typography while external resources and active SVG content remain blocked.
 - Reporting-rule review actions are visible only to the assigned independent
   reviewer. Review decisions notify the submitter, and workflow notifications
   queue email when application email delivery is configured.

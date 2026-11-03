@@ -38,6 +38,7 @@ class DNAWorkflowService:
             variant_repository=store.variant_repository,
             blacklist_repository=store.blacklist_repository,
             sample_repository=store.sample_repository,
+            diagnosis_repository=store.assay_diagnosis_repository,
             copy_number_variant_repository=store.copy_number_variant_repository,
             biomarker_repository=store.biomarker_repository,
             translocation_repository=store.translocation_repository,
@@ -59,6 +60,7 @@ class DNAWorkflowService:
         variant_repository,
         blacklist_repository,
         sample_repository,
+        diagnosis_repository,
         copy_number_variant_repository,
         biomarker_repository,
         translocation_repository,
@@ -79,6 +81,7 @@ class DNAWorkflowService:
             variant_repository: Small-variant reads and review state.
             blacklist_repository: Exclusion annotations for clinical findings.
             sample_repository: Sample metadata and atomic report persistence.
+            diagnosis_repository: Registered diagnosis display names for report headings.
             copy_number_variant_repository: Copy-number findings and review state.
             biomarker_repository: Sample biomarker measurements.
             translocation_repository: Structural rearrangement findings.
@@ -96,6 +99,7 @@ class DNAWorkflowService:
         self.variant_repository = variant_repository
         self.blacklist_repository = blacklist_repository
         self.sample_repository = sample_repository
+        self.diagnosis_repository = diagnosis_repository
         self.copy_number_variant_repository = copy_number_variant_repository
         self.biomarker_repository = biomarker_repository
         self.translocation_repository = translocation_repository
@@ -151,6 +155,7 @@ class DNAWorkflowService:
             variant_repository=self.variant_repository,
             blacklist_repository=self.blacklist_repository,
             sample_repository=self.sample_repository,
+            diagnosis_repository=self.diagnosis_repository,
             copy_number_variant_repository=self.copy_number_variant_repository,
             biomarker_repository=self.biomarker_repository,
             translocation_repository=self.translocation_repository,

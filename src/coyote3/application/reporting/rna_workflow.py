@@ -15,6 +15,7 @@ from coyote3.application.reporting.persistence import (
 from coyote3.application.reporting.persistence import (
     prepare_report_output as prepare_shared_report_output,
 )
+from coyote3.application.reporting.report_context import report_scope_label
 from coyote3.application.reporting.report_paths import build_report_file_location
 from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote3.domain.common.assay_filters import (
@@ -53,6 +54,7 @@ class RNAWorkflowService:
         """Build the workflow service from the runtime store."""
         return cls(
             sample_repository=store.sample_repository,
+            diagnosis_repository=store.assay_diagnosis_repository,
             gene_list_repository=store.gene_list_repository,
             rna_expression_repository=store.rna_expression_repository,
             rna_classification_repository=store.rna_classification_repository,
@@ -70,6 +72,7 @@ class RNAWorkflowService:
         self,
         *,
         sample_repository,
+        diagnosis_repository,
         gene_list_repository,
         rna_expression_repository,
         rna_classification_repository,
@@ -84,6 +87,7 @@ class RNAWorkflowService:
     ) -> None:
         """Create the workflow service with explicit injected repositories."""
         self.sample_repository = sample_repository
+        self.diagnosis_repository = diagnosis_repository
         self.gene_list_repository = gene_list_repository
         self.rna_expression_repository = rna_expression_repository
         self.rna_classification_repository = rna_classification_repository
@@ -385,7 +389,7 @@ class RNAWorkflowService:
                     "nomenclature": "f",
                     "variant": f"{gene1}::{gene2}",
                     "tier": tier,
-                    "gene": f"{gene1}-{gene2}",
+                    "gene": f"{gene1}::{gene2}",
                     "genes": [gene1, gene2],
                     "fusion": f"{gene1}::{gene2}",
                     "gene1": gene1,
@@ -512,6 +516,9 @@ class RNAWorkflowService:
         )
 
         template_context = {
+            "report_scope_label": report_scope_label(
+                sample, assay_config, self.diagnosis_repository
+            ),
             "asp_id": assay,
             "assay_config": assay_config,
             "report_sections": report_sections,

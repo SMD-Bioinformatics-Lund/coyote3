@@ -14,7 +14,12 @@ from coyote3.application.interpretation.annotation_enrichment import (
 )
 from coyote3.application.query_rules.service import effective_policy
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
-from coyote3.application.reporting.eligibility import classification_is_usable, reportable_tiers
+from coyote3.application.reporting.eligibility import (
+    classification_is_usable,
+    reportable_tiers,
+    structural_report_inclusion,
+)
+from coyote3.application.reporting.report_context import report_scope_label
 from coyote3.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
@@ -59,7 +64,7 @@ from coyote3.domain.dna.varqueries import build_query
 from coyote3.domain.reporting.report_paths import (
     get_report_timestamp as shared_get_report_timestamp,
 )
-from coyote3.domain.selection import Operator, Selection
+from coyote3.domain.selection import Operator, RecordField, Selection
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +283,7 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
                 "hotspot": var.get("INFO", {}).get("HOTSPOT"),
                 "var_type": var_type,
                 "class_type": class_type,
-                "var_class": var.get("variant_class", ""),
+                "variant_class": var.get("variant_class", ""),
                 "feature": selected_csq.get("Feature", ""),
                 "consequence": consequence,
                 "cdna": cdna,
@@ -539,6 +544,7 @@ def build_dna_report_payload(
     variant_repository,
     blacklist_repository,
     sample_repository,
+    diagnosis_repository,
     copy_number_variant_repository,
     biomarker_repository,
     translocation_repository,
@@ -703,12 +709,22 @@ def build_dna_report_payload(
             assay_panel_doc,
             assay_config=assay_config,
         )
-        interesting_cnvs = list(
-            copy_number_variant_repository.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+        structural_cnvs = list(
+            copy_number_variant_repository.get_sample_cnvs(
+                Selection(criteria={RecordField.SAMPLE: str(sample["_id"])})
+            )
             or []
         )
+        structural_cnvs, _ = shared_add_global_annotations(
+            structural_cnvs,
+            assay_group,
+            diagnosis,
+            annotation_repository=annotation_repository,
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
+        cnv_tiers = reportable_tiers(assay_config["reporting"], "CNV")
         report_sections_data["cnvs"] = _filter_cnvs_for_report(
-            interesting_cnvs,
+            [row for row in structural_cnvs if structural_report_inclusion(row, cnv_tiers)],
             sample_filters=sample_filters,
             filter_genes=cnv_filter_genes,
             restricted=True,
@@ -742,14 +758,23 @@ def build_dna_report_payload(
             assay_panel_doc,
             assay_config=assay_config,
         )
-        interesting_translocations = list(
-            translocation_repository.get_interesting_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
-            or []
+        structural_translocations = list(
+            translocation_repository.get_sample_translocations(str(sample["_id"])) or []
         )
+        structural_translocations, _ = shared_add_global_annotations(
+            structural_translocations,
+            assay_group,
+            diagnosis,
+            annotation_repository=annotation_repository,
+            sample_context=assay_config["aspc_resolution"]["context"],
+        )
+        translocation_tiers = reportable_tiers(assay_config["reporting"], "TRANSLOCATION")
         report_sections_data["translocs"] = _filter_translocations_for_report(
-            interesting_translocations,
+            [
+                row
+                for row in structural_translocations
+                if structural_report_inclusion(row, translocation_tiers)
+            ],
             filter_genes=translocation_filter_genes,
             restricted=True,
             policy=effective_policy(
@@ -845,6 +870,7 @@ def build_dna_report_payload(
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()
     template_context: Dict[str, Any] = {
+        "report_scope_label": report_scope_label(sample, assay_config, diagnosis_repository),
         "assay_config": assay_config,
         "report_sections": report_sections,
         "report_sections_data": report_sections_data,
