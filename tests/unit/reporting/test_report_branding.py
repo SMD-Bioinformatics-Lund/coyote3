@@ -169,7 +169,7 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
     title = next(
         box
         for box in first_page.descendants()
-        if isinstance(box, ReplacedBox) and box.element.get("aria-label") == "COYOTE3"
+        if isinstance(box, ReplacedBox) and box.element.get("aria-label") == "COYOT3"
     )
     assert logo.height == pytest.approx(coyote.height)
     assert 0 <= title.position_x - (coyote.border_box_x() + coyote.width) <= 12

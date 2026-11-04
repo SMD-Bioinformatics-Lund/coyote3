@@ -329,7 +329,7 @@ export function Layout() {
               <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-7 w-11 shrink-0 brightness-0 invert" />
             </div>
             <div className="hidden sm:flex flex-col leading-tight">
-              <BrandWordmark className="text-chrome-foreground" />
+              <BrandWordmark variant="chrome" />
             </div>
           </Link>
 
@@ -506,7 +506,7 @@ export function Layout() {
       <div className="z-10 flex min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
-            "app-chrome-surface hidden md:flex flex-col flex-shrink-0 rounded-none border-0 text-chrome-foreground transition-[width] duration-150 ease-out",
+            "app-chrome-surface app-chrome-sidebar hidden md:flex flex-col flex-shrink-0 rounded-none border-0 text-chrome-foreground transition-[width] duration-150 ease-out",
             isCollapsed ? "w-[52px]" : "w-[180px]"
           )}
         >

@@ -74,6 +74,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-chrome-foreground: var(--chrome-foreground);
+  --color-chrome-brand-foreground: var(--chrome-brand-foreground);
   --color-chrome-muted-foreground: var(--chrome-muted-foreground);
   --color-surface-hover: var(--surface-hover);
   --color-surface-active: var(--surface-active);
@@ -721,17 +722,18 @@
   --brand-start: oklch(0.5 0.115 302);
   --brand-end: oklch(0.66 0.13 58);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
-  --chrome-top: linear-gradient(
-    105deg,
-    color-mix(in srgb, var(--brand-start) 82%, #2d2535),
-    color-mix(in srgb, var(--brand-end) 68%, var(--brand-start))
-  );
+  --chrome-top:
+    linear-gradient(105deg, transparent 95%, rgb(255 255 255 / 5%) 100%),
+    linear-gradient(105deg, oklch(0.19 0.018 302), oklch(0.32 0.085 302) 48%, oklch(0.15 0.014 302) 95%);
   --chrome-side: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--brand-start) 76%, #2d2535),
-    color-mix(in srgb, var(--brand-start) 58%, #25212b)
+    transparent max(6rem, 12%),
+    oklch(0.34 0.1 48) 52%,
+    oklch(0.15 0.014 302) 95%,
+    color-mix(in srgb, oklch(0.15 0.014 302) 95%, white) 100%
   );
   --chrome-foreground: oklch(0.97 0.006 75);
+  --chrome-brand-foreground: #ffffff;
   --chrome-muted-foreground: oklch(0.84 0.018 75);
   --chrome-border: rgb(255 255 255 / 18%);
   --chrome-control: rgb(255 255 255 / 8%);
@@ -933,9 +935,15 @@
   --brand-end: oklch(0.69 0.12 62);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
   --chrome-top:
-    linear-gradient(180deg, rgb(255 255 255 / 5%), transparent 55%),
-    linear-gradient(105deg, oklch(0.405 0.105 302), oklch(0.38 0.082 330) 48%, oklch(0.425 0.085 48));
-  --chrome-side: linear-gradient(180deg, oklch(0.35 0.078 302), oklch(0.285 0.052 302));
+    linear-gradient(105deg, transparent 95%, rgb(255 255 255 / 5%) 100%),
+    linear-gradient(105deg, oklch(0.16 0.018 302), oklch(0.28 0.075 302) 48%, oklch(0.12 0.014 302) 95%);
+  --chrome-side: linear-gradient(
+    180deg,
+    transparent max(6rem, 12%),
+    oklch(0.29 0.085 48) 52%,
+    oklch(0.12 0.014 302) 95%,
+    color-mix(in srgb, oklch(0.12 0.014 302) 95%, white) 100%
+  );
   --chrome-foreground: oklch(0.97 0.008 75);
   --chrome-muted-foreground: oklch(0.87 0.016 75);
   --chrome-border: rgb(255 255 255 / 22%);

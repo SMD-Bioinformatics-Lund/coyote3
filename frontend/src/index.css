@@ -574,10 +574,13 @@
   .detail-navigation-button:active {
     transform: translateX(1px) scale(0.96);
   }
-  /* One viewport-aligned gradient joins the header and sidebar without a seam. */
+  /* A viewport-aligned base joins the header and sidebar beneath its warm overlay. */
   .app-chrome-surface {
     background: var(--chrome-top);
     background-attachment: fixed;
+  }
+  .app-chrome-sidebar {
+    background-image: var(--chrome-side), var(--chrome-top);
   }
   .app-tooltip-surface {
     background:
