@@ -208,7 +208,8 @@
       <th>HGVS.p</th>
     </tr>
     {% for tl in transloc %}
-      {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+      {% set selected_ann = tl.INFO.ANN|selectattr("selected", "equalto", 1)|first %}
+      {% set sel_ann = selected_ann or tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
       {% set genes = sel_ann.Gene_Name.split('&') %}
       <tr>
         <td>{{ genes[0] }}::{{ genes[1] }}</td>
