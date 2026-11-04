@@ -9,6 +9,7 @@ import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
+from api.app.container import MongoStore
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
 from api.infra.mongo.repositories.assay_setup import (
@@ -104,7 +105,7 @@ def setup_service(monkeypatch):
                 db.rules.find({"scope.asp_id": key, "active": True})
             ),
         ),
-        role_repository=SimpleNamespace(
+        roles_repository=SimpleNamespace(
             get_all_roles_plus_permissions=lambda: [
                 {
                     "role_id": "setup-reviewer",
@@ -190,6 +191,22 @@ def test_review_compilation_retains_resource_hashes_across_actors(setup_service)
     assert author_bundle["panel"]["created_by"] == "author"
     assert reviewer_bundle["panel"]["created_by"] == "author"
     assert author_bundle["panel"]["created_on"] == reviewer_bundle["panel"]["created_on"]
+
+
+def test_saved_setup_context_uses_runtime_repository_bindings(setup_service):
+    """Opening a saved setup resolves reviewers through the actual store surface."""
+    service, _db = setup_service
+    runtime_store = MongoStore()
+    for name, repository in vars(service.store).items():
+        setattr(runtime_store, name, repository)
+    service.store = runtime_store
+    draft = service.save(content(), actor="author")
+
+    context = service.context(str(draft["_id"]), actor="author")
+
+    assert context["setup"]["_id"] == draft["_id"]
+    assert context["reviewers"] == [{"username": "reviewer", "name": "Synthetic reviewer"}]
+    assert context["readiness"]["ready"]
 
 
 def test_setup_listing_includes_names_without_configuration_payloads(setup_service):
@@ -417,8 +434,8 @@ def test_inactive_or_underprivileged_roles_cannot_receive_setup_review(setup_ser
     """Reviewer selection requires current grants, including visibility of the setup."""
     service, _ = setup_service
     draft = service.save(content(), actor="author")
-    roles = service.store.role_repository.get_all_roles_plus_permissions()
-    service.store.role_repository.get_all_roles_plus_permissions = lambda: roles
+    roles = service.store.roles_repository.get_all_roles_plus_permissions()
+    service.store.roles_repository.get_all_roles_plus_permissions = lambda: roles
     roles[0]["permissions"].remove("assay.panel:view")
     assert service.reviewer_options(draft, actor="author") == []
     roles[0]["permissions"].append("assay.panel:view")

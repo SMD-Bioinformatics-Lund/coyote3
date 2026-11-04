@@ -21,6 +21,7 @@ Version 4 replaces Flask with FastAPI and React.
   Assay activation requires only Base/production; configurations can be copied from
   saved records or setup drafts into new scopes. Setup review is optional;
   authorized users can publish directly or assign a colleague for optional review.
+  Fixed saved setup pages failing to load their reviewer choices.
 - Permission-scoped personal and service tokens with expiry, revocation,
   one-time secrets and audit attribution; retained clinical audit history.
 - Resumable background ingestion with credential rechecks, retry safeguards and

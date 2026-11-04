@@ -306,7 +306,7 @@ class AssaySetupService:
             required.add("gene_list.insilico:edit")
         roles = {
             role["role_id"]: set(role.get("permissions") or [])
-            for role in self.store.role_repository.get_all_roles_plus_permissions()
+            for role in self.store.roles_repository.get_all_roles_plus_permissions()
             if role.get("is_active", True)
         }
         excluded = {str(value).strip().lower() for value in [actor, *document["content_editors"]]}
