@@ -1760,7 +1760,7 @@ class AssaySetups:
         )
 
     def submit_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
-        """Validate every selected scope/environment and freeze the setup for review.
+        """Require Base/production, validate staged resources and freeze the setup for review.
 
         Args:
             identifier: Saved setup or catalog-version identifier.

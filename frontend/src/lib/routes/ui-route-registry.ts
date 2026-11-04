@@ -335,7 +335,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/aspc",
     page: "AssayConfigurationsPage",
     area: "admin",
-    api: ["GET /resources/aspc","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
+    api: ["GET /resources/aspc","GET /resources/aspc/:id/context","GET /admin/assay-setups","GET /admin/assay-setups/{identifier}/context","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {

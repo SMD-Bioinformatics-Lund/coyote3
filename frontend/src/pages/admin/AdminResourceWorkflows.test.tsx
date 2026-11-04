@@ -425,6 +425,75 @@ describe("Managed admin resource workflows", () => {
     },
   )
 
+  it("copies a saved ASPC from its full context into the create form", async () => {
+    mocks.get.mockImplementation(async (url: string) => ({ data: url.includes("create_context") ? { form: { fields: {
+      aspc_id: { label: "Identifier", display_type: "input" },
+      display_name: { label: "Display name", display_type: "input" },
+    } } } : url.endsWith("/context") ? { assay_config: { aspc_id: "source_base_production", display_name: "Full configuration", asp_category: "DNA" } } : { assay_configs: [{ aspc_id: "source_base_production", asp_id: "source" }] } }))
+    renderResource("aspc", <AssayConfigurationEditorPage mode="create" />)
+    fireEvent.click(await screen.findByRole("button", { name: "Copy source_base_production as new" }))
+    await waitFor(() => expect(screen.getByLabelText("Display name")).toHaveValue("Full configuration"))
+    expect(screen.getByLabelText("Identifier")).toHaveValue("")
+    expect(mocks.get).toHaveBeenCalledWith("/resources/aspc/source_base_production/context")
+    expect(mocks.post).not.toHaveBeenCalled()
+  })
+
+  it("copies a staged RNA configuration without saving or changing the source draft", async () => {
+    mocks.get.mockImplementation(async (url: string) => ({ data:
+      url === "/admin/assay-setups" ? { items: [{ _id: "setup-1", asp_id: "rna-assay", status: "draft" }, { _id: "published", asp_id: "old-assay", status: "published" }] } :
+      url === "/admin/assay-setups/setup-1/context" ? { setup: { status: "draft", content: { panel: { asp_id: "rna-assay", asp_category: "rna" }, configurations: [{ display_name: "Staged fusion", diagnosis_id: "base", environment: "production", aspc_id: "old-id", verification_samples: { synthetic: [123] } }] } } } :
+      url.includes("create_context") ? { form: { fields: { aspc_id: { label: "Identifier", display_type: "input" }, display_name: { label: "Display name", display_type: "input" } } } } : { assay_configs: [] } }))
+    const user = userEvent.setup()
+    renderResource("aspc", <AssayConfigurationEditorPage mode="create" />)
+    await user.click(screen.getByRole("button", { name: "Copy from setup draft" }))
+    await user.click(await screen.findByRole("combobox", { name: "Source setup draft" }))
+    expect(screen.queryByRole("option", { name: "old-assay" })).not.toBeInTheDocument()
+    await user.click(await screen.findByRole("option", { name: "rna-assay" }))
+    await user.click(await screen.findByRole("combobox", { name: "Source staged configuration" }))
+    await user.click(await screen.findByRole("option", { name: "Staged fusion · base / production" }))
+    await user.click(screen.getByRole("link", { name: "Copy staged configuration as new" }))
+    await waitFor(() => expect(screen.getByLabelText("Display name")).toHaveValue("Staged fusion"))
+    expect(screen.getByLabelText("Identifier")).toHaveValue("")
+    expect(mocks.get).toHaveBeenCalledWith("/resources/aspc/create_context?category=RNA")
+    expect(mocks.post).not.toHaveBeenCalled()
+    expect(mocks.put).not.toHaveBeenCalled()
+  })
+
+  it("does not read setup drafts without assay panel permissions", async () => {
+    mocks.access.data = { username: "config-author", roles: [], permissions: ["assay.config:list", "assay.config:view", "assay.config:create"] }
+    mocks.get.mockResolvedValue({ data: { assay_configs: [] } })
+    renderResource("aspc")
+    expect(await screen.findByRole("link", { name: "Create" })).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Copy from setup draft" })).not.toBeInTheDocument()
+    expect(mocks.get).not.toHaveBeenCalledWith("/admin/assay-setups")
+  })
+
+  it("offers retry after setup draft loading fails and handles an empty result", async () => {
+    let failed = false
+    mocks.get.mockImplementation(async (url: string) => {
+      if (url === "/admin/assay-setups") {
+        if (!failed) { failed = true; throw new Error("Unavailable") }
+        return { data: { items: [] } }
+      }
+      return { data: { assay_configs: [] } }
+    })
+    renderResource("aspc")
+    fireEvent.click(screen.getByRole("button", { name: "Copy from setup draft" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Retry drafts" }))
+    expect(await screen.findByText("No setup drafts available.")).toBeVisible()
+    expect(screen.queryByRole("link", { name: "Copy staged configuration as new" })).not.toBeInTheDocument()
+    expect(mocks.post).not.toHaveBeenCalled()
+  })
+
+  it("does not offer copying without configuration create permission", async () => {
+    mocks.access.data = { username: "viewer", roles: [], permissions: ["assay.config:list", "assay.config:view", "assay.panel:list", "assay.panel:view"] }
+    mocks.get.mockResolvedValue({ data: { assay_configs: [{ aspc_id: "source_base_production" }] } })
+    renderResource("aspc")
+    await screen.findByText("source_base_production")
+    expect(screen.queryByRole("button", { name: /Copy/ })).not.toBeInTheDocument()
+    expect(mocks.get).not.toHaveBeenCalledWith("/admin/assay-setups")
+  })
+
   it("selects reporting language without a manual rule binding when diagnosis changes", async () => {
     mocks.get.mockResolvedValue({
       data: {

@@ -603,7 +603,7 @@ AssaySetups.submit_setup(self, *, identifier: 'str', payload: 'AssaySetupAction'
 ```
 
 ```text
-Validate every selected scope/environment and freeze the setup for review.
+Require Base/production, validate staged resources and freeze the setup for review.
 
 Args:
     identifier: Saved setup or catalog-version identifier.
@@ -5615,7 +5615,7 @@ AssaySetupContent(*, panel: coyote3.contracts.schemas.assay.AssaySpecificPanelsD
 ```
 
 ```text
-Assay definition and staged resources; Base is always an implicit scope.
+Assay definition and staged resources with implicit Base and production selections.
 ```
 
 #### `AssaySetupContent.canonical_environments`
@@ -5625,7 +5625,16 @@ AssaySetupContent.canonical_environments(values: list[str]) -> list[str]
 ```
 
 ```text
-Validate and deduplicate the environments selected for activation.
+Include production once and validate optional configuration environments.
+
+Args:
+    values: Selected clinical configuration environments; empty selects production.
+
+Returns:
+    Production followed by normalized, unique optional environments.
+
+Raises:
+    ValueError: A selected environment is unsupported.
 ```
 
 #### `AssaySetupContent.canonical_gene_list_ids`

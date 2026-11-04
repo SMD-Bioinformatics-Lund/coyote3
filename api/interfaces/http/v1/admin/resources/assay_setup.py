@@ -120,7 +120,7 @@ def submit_setup(
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
     service: AssaySetups = Depends(get_assay_setups),
 ) -> dict[str, Any]:
-    """Validate every selected scope/environment and freeze the setup for review."""
+    """Require Base/production, validate staged resources and freeze the setup for review."""
     return _response(
         request,
         service.submit_setup(identifier=identifier, payload=payload),

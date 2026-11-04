@@ -12,7 +12,7 @@ vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof 
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 const setup = { _id: "setup-1", asp_id: "assay_1", status: "submitted", revision: 3, content_editors: ["author"], created_by: "author", content: { panel: { asp_id: "assay_1", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["development"], gene_lists: [], configurations: [] } }
-const context = { setup, panel_form: { fields: { asp_id: { data_type: "str", label: "Assay identifier" }, display_name: { data_type: "str", label: "Display name" } } }, diagnoses: [], environments: ["development"], readiness: { ready: true, issues: [] }, history: [], rules: [] }
+const context = { setup, panel_form: { fields: { asp_id: { data_type: "str", label: "Assay identifier" }, display_name: { data_type: "str", label: "Display name" } } }, diagnoses: [], environments: ["production", "development"], readiness: { ready: true, issues: [] }, history: [], rules: [] }
 beforeEach(() => {
   vi.resetAllMocks()
   access.username = "reviewer"
@@ -97,6 +97,17 @@ it("preserves the reserved assay identifier when saving the assay form", async (
   fireEvent.change(await screen.findByLabelText("Display name"), { target: { value: "Updated display name" } })
   fireEvent.click(screen.getByRole("button", { name: "Save and continue" }))
   await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) }), editSessionOptions))
+})
+it("keeps production selected and saves other environments as optional choices", async () => {
+  setup.status = "draft"
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "2. Diagnoses" }))
+  const production = screen.getByRole("checkbox", { name: /production/ })
+  expect(production).toBeChecked()
+  expect(production).toBeDisabled()
+  fireEvent.click(screen.getByRole("checkbox", { name: "development" }))
+  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }))
+  await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ content: expect.objectContaining({ environments: ["production"] }) }), editSessionOptions))
 })
 it("keeps gene lists and configurations in named workspaces with explicit empty states", async () => {
   setup.status = "draft"

@@ -16,6 +16,8 @@ Version 4 replaces Flask with FastAPI and React.
 - Consistent light/dark themes, clearer navigation and raised cards and badges.
 - Central assay, diagnosis, gene-list and configuration management, with validated
   imports/exports, editing leases, revision checks and protected system records.
+  Assay activation requires only Base/production; configurations can be copied from
+  saved records or setup drafts into new scopes.
 - Permission-scoped personal and service tokens with expiry, revocation,
   one-time secrets and audit attribution; retained clinical audit history.
 - Resumable background ingestion with credential rechecks, retry safeguards and

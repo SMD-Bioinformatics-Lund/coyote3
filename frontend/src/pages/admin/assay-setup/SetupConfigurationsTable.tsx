@@ -14,6 +14,7 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
 }) {
   const [requestedPage, setPage] = useState(1)
   const slots = new Map<string, { scope: string; environment: string }>()
+  slots.set("base::production", { scope: "base", environment: "production" })
   for (const scope of scopes) for (const environment of environments) {
     slots.set(`${scope}::${environment}`, { scope, environment })
   }
@@ -32,9 +33,10 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
         <thead className="bg-muted/60 type-label"><tr>{["Scope", "Environment", "Status", "Saved configuration", "Actions"].map(label => <th key={label} scope="col" className="p-3">{label}</th>)}</tr></thead>
         <tbody className="divide-y divide-border">{rows.slice((page - 1) * 10, page * 10).map(({ scope, environment }) => {
           const matches = records.map((record, index) => ({ record, index })).filter(({ record }) => (record.diagnosis_id || "base") === scope && record.environment === environment)
+          const required = scope === "base" && environment === "production"
           return <tr key={`${scope}::${environment}`}>
             <th scope="row" className="p-3 font-medium">{scope}</th><td className="p-3">{environment}</td>
-            <td className="p-3"><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : "border-warning/30 bg-warning/10"}>{matches.length ? <icon.check /> : <icon.circleAlert />}{matches.length ? "Configured" : "Missing"}</Badge></td>
+            <td className="p-3"><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : required ? "border-warning/30 bg-warning/10" : "text-muted-foreground"}>{matches.length ? <icon.check /> : required ? <icon.circleAlert /> : null}{matches.length ? "Configured" : required ? "Missing required" : "Optional"}</Badge></td>
             <td className="p-3">{matches.length ? matches.map(({ record, index }) => <div key={index} className="break-words font-medium">{String(record.display_name || record.name || record.aspc_id || `${scope} / ${environment}`)}</div>) : <span className="type-body-sm text-muted-foreground">Not saved yet</span>}</td>
             <td className="p-3"><div className="flex flex-wrap gap-2">{matches.length ? matches.map(({ index }) => <div key={index} className="flex gap-1">
               <Button variant="outline" size="sm" disabled={!formAvailable || pending} onClick={() => onEdit(index)} aria-label={`${readonly ? "View" : "Edit"} ${scope} ${environment}`}><icon.edit />{readonly ? "View" : "Edit"}</Button>

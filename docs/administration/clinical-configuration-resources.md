@@ -44,14 +44,14 @@ assay-specific. Reusing the same diagnosis across two assays does not share thei
 thresholds, report language or configuration revision.
 
 One active ASPC serves an `(asp_id, diagnosis_id, environment)` combination.
-For example, two scopes in two environments need four configurations in assay
-setup. Unselected scopes/environments do not block setup activation.
+Assay setup requires only Base / production. Other scope/environment combinations
+are optional and can be added later from **Assay Configurations**.
 
 Ingest and sample configuration resolution first look for the requested named
 scope and then may fall back to Base in the **same environment**. Resolution records
 the requested/resolved scope and a warning when that fallback is used. A development
-ASPC does not substitute for a production ASPC. Assay setup is stricter than this
-runtime fallback: it requires an explicit ASPC for every selected combination.
+ASPC does not substitute for a production ASPC. Optional configurations supplied
+during setup must still pass validation before activation.
 
 The sample's `current_aspc_id` references one exact configuration revision.
 That release captures the assay revision, biological group, category, family,

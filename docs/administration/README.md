@@ -20,7 +20,7 @@ You do not need to read every reference before starting.
 | Understand which findings will be retrieved | [Application base queries](query-rules.md#application-base-queries-by-analysis), then [installed group policies](installed-defaults.md#published-set-identifiers). |
 | Change finding selection in the UI | [Query-rule scope and inheritance](query-rules.md#scope-and-inheritance), then [create and activate a policy](query-rules.md#create-and-activate-a-policy). |
 | Prepare reporting | [Optional setup step 5](assay-setup.md#5-optionally-publish-reporting-rules) and the [reporting-rule reference](../reference/clinical-reporting-rules.md). Query rules select findings; reporting rules generate clinical report content. |
-| Complete configurations and activate | Continue from [setup step 6](assay-setup.md#6-complete-one-aspc-for-each-selected-combination), including independent review and validation. |
+| Complete Base / production and activate | Continue from [setup step 6](assay-setup.md#6-complete-the-base-production-aspc), including independent review and validation. |
 | Resolve a blocked step | [Missing prerequisites and their effects](clinical-configuration-resources.md#missing-prerequisites-and-their-effects). |
 
 ## Other administration tasks

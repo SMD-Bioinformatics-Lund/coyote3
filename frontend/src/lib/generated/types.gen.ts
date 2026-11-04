@@ -1173,7 +1173,7 @@ export type AssaySetupAction = {
 /**
  * AssaySetupContent
  *
- * Assay definition and staged resources; Base is always an implicit scope.
+ * Assay definition and staged resources with implicit Base and production selections.
  */
 export type AssaySetupContent = {
     /**

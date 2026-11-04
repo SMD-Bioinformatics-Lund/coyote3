@@ -16,3 +16,10 @@ it("limits scope rows to ten and offers edit or create for the selected scope", 
   expect(create).toHaveBeenCalledWith("lung", "validation")
   expect(screen.getByRole("button", { name: "Next configurations" })).toBeDisabled()
 })
+
+it("requires only Base production and labels other missing configurations optional", () => {
+  render(<SetupConfigurationsTable scopes={["base", "lung"]} environments={["development", "production"]} records={[]} readonly={false} pending={false} formAvailable onEdit={() => {}} onCreate={() => {}} onRemove={() => {}} />)
+  expect(screen.getAllByText("Missing required")).toHaveLength(1)
+  expect(screen.getAllByText("Optional")).toHaveLength(3)
+  expect(within(screen.getAllByRole("row")[1]).getByRole("button", { name: "Add configuration base production" })).toBeEnabled()
+})

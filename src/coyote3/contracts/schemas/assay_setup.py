@@ -17,11 +17,11 @@ from coyote3.domain.common.configuration_transfer import configuration_content
 
 
 class AssaySetupContent(_StrictDocBase):
-    """Assay definition and staged resources; Base is always an implicit scope."""
+    """Assay definition and staged resources with implicit Base and production selections."""
 
     panel: AssaySpecificPanelsDoc
     scopes: list[str] = Field(default_factory=lambda: [DIAGNOSIS_BASE_ID], max_length=100)
-    environments: list[str] = Field(default_factory=list, max_length=20)
+    environments: list[str] = Field(default_factory=lambda: ["production"], max_length=20)
     gene_lists: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     existing_gene_list_ids: list[str] = Field(default_factory=list, max_length=100)
     configurations: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
@@ -93,8 +93,18 @@ class AssaySetupContent(_StrictDocBase):
     @field_validator("environments")
     @classmethod
     def canonical_environments(cls, values: list[str]) -> list[str]:
-        """Validate and deduplicate the environments selected for activation."""
-        return list(dict.fromkeys(normalize_environment(v) for v in values))
+        """Include production once and validate optional configuration environments.
+
+        Args:
+            values: Selected clinical configuration environments; empty selects production.
+
+        Returns:
+            Production followed by normalized, unique optional environments.
+
+        Raises:
+            ValueError: A selected environment is unsupported.
+        """
+        return list(dict.fromkeys(["production", *(normalize_environment(v) for v in values)]))
 
 
 class AssaySetupUpdate(_StrictDocBase):

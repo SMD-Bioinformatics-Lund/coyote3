@@ -349,15 +349,20 @@ class AssaySetupService:
         return result
 
     def bundle(self, document: dict, *, actor: str) -> dict:
-        """Validate every selected scope/environment and prepare operational documents.
+        """Require Base/production and validate all staged operational documents.
+
+        Args:
+            document: Saved setup snapshot containing assay, scopes and staged resources.
+            actor: Username used to validate and attribute compiled resources.
+
+        Returns:
+            Validated activation bundle without writing operational resources.
 
         Raises:
             AppError: Configuration is incomplete, resolves an invalid rule,
                 duplicates an identity or includes an unselected scope/environment.
         """
         content = AssaySetupContent.model_validate(document["content"])
-        if not content.environments:
-            raise api_error(422, "Select at least one environment")
         workspace = self._workspace(document, actor)
         _, configs = workspace.services(self.common_util)
         expected = {(scope, env) for scope in content.scopes for env in content.environments}
@@ -369,7 +374,7 @@ class AssaySetupService:
             config["asp_id"] = content.panel.asp_id
             key = (config.get("diagnosis_id") or "base", config.get("environment"))
             if key not in expected or key in actual:
-                raise api_error(422, "Each selected scope/environment needs exactly one ASPC")
+                raise api_error(422, "ASPCs must use selected scopes/environments and be unique")
             configs.create(payload={"config": config}, actor_username=actor)
             actual.add(key)
             reporting = workspace.configurations[-1]["reporting"]
@@ -387,11 +392,8 @@ class AssaySetupService:
             except ValueError as exc:
                 raise api_error(409, str(exc)) from exc
             rules[rule.rule_set_id] = rule.model_dump(mode="python", by_alias=True)
-        missing = expected - actual
-        if missing:
-            raise api_error(
-                422, "Missing ASPCs: " + ", ".join(f"{s}/{e}" for s, e in sorted(missing))
-            )
+        if ("base", "production") not in actual:
+            raise api_error(422, "Missing required ASPC: base/production")
         return {
             "panel": workspace.panel,
             "gene_lists": workspace.gene_lists,

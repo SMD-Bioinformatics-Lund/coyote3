@@ -191,11 +191,11 @@ def content(**overrides):
                 display_name="Synthetic assay",
                 expected_files=["vcf_files"],
             ),
-            "environments": ["development"],
+            "environments": ["production"],
             "configurations": [
                 dict(
                     diagnosis_id="base",
-                    environment="development",
+                    environment="production",
                     display_name="Synthetic configuration",
                     analysis_types=["SNV"],
                     filters={"somatic": {"snv": {"min_alt_reads": 5}}},
@@ -218,6 +218,24 @@ def test_base_is_default_and_cannot_be_removed():
     assert content().scopes == ["base"]
     assert content(scopes=[]).scopes == ["base"]
     assert content(scopes=["base", "Myeloid", "myeloid"]).scopes == ["base", "myeloid"]
+
+
+def test_production_is_default_and_cannot_be_removed():
+    assert content(environments=[]).environments == ["production"]
+    assert content(environments=["development", "production"]).environments == [
+        "production",
+        "development",
+    ]
+
+
+def test_base_development_does_not_replace_required_production_configuration(setup_service):
+    service, _ = setup_service
+    selected = content(environments=["development"])
+    selected.configurations[0]["environment"] = "development"
+    draft = service.save(selected, actor="author")
+    assert service.readiness(draft, actor="author")["issues"] == [
+        "Missing required ASPC: base/production"
+    ]
 
 
 def test_setup_registration_rejects_repeated_separator_in_assay_id(setup_service):
@@ -346,7 +364,7 @@ def test_stale_edits_and_submitted_edits_are_rejected(setup_service):
 
 @pytest.mark.parametrize(
     "changes, message",
-    [({"environments": []}, "environment"), ({"configurations": []}, "Missing ASPCs")],
+    [({"configurations": []}, "Missing required ASPC: base/production")],
 )
 def test_incomplete_setup_remains_draft(setup_service, changes, message):
     service, db = setup_service
@@ -357,7 +375,7 @@ def test_incomplete_setup_remains_draft(setup_service, changes, message):
     assert db.asp.count_documents({}) == 0
 
 
-def test_additional_scope_requires_its_own_aspc_but_can_reuse_base_rules(setup_service):
+def test_optional_scopes_and_environments_can_activate_with_only_base_production(setup_service):
     service, db = setup_service
     db.diagnoses.insert_one(
         dict(
@@ -371,18 +389,30 @@ def test_additional_scope_requires_its_own_aspc_but_can_reuse_base_rules(setup_s
             updated_on=datetime.now(timezone.utc),
         )
     )
-    selected = content(scopes=["myeloid"])
+    selected = content(scopes=["myeloid"], environments=["development", "testing", "validation"])
     draft = service.save(selected, actor="author")
-    assert "myeloid/development" in service.readiness(draft, actor="author")["issues"][0]
+    assert service.readiness(draft, actor="author")["ready"]
+    service.transition(str(draft["_id"]), 1, "submit", actor="author")
+    service.transition(str(draft["_id"]), 2, "publish", actor="reviewer")
+    assert db.aspc.count_documents({}) == 1
+    assert db.associations.find_one()["diagnosis_id"] == "myeloid"
+
+
+def test_optional_configuration_is_validated_and_can_reuse_base_rules(setup_service):
+    service, db = setup_service
+    selected = content(environments=["development"])
     extra = deepcopy(selected.configurations[0])
-    extra["diagnosis_id"] = "myeloid"
+    extra["environment"] = "development"
+    extra["analysis_types"] = ["invalid"]
     selected.configurations.append(extra)
+    draft = service.save(selected, actor="author")
+    assert not service.readiness(draft, actor="author")["ready"]
+    extra["analysis_types"] = ["SNV"]
     draft = service.save(selected, actor="author", identifier=str(draft["_id"]), revision=1)
     assert service.readiness(draft, actor="author")["ready"]
     service.transition(str(draft["_id"]), 2, "submit", actor="author")
     service.transition(str(draft["_id"]), 3, "publish", actor="reviewer")
-    assert db.associations.count_documents({}) == 1
-    assert db.associations.find_one()["diagnosis_id"] == "myeloid"
+    assert db.aspc.count_documents({}) == 2
 
 
 def test_changed_rule_release_requires_resubmission(setup_service):

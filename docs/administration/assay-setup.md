@@ -35,6 +35,13 @@ be edited. Use **Copy as new** to create another scope. Resolution selects the n
 diagnosis configuration first, then Base for the same assay and environment when
 no named configuration exists. Base fallback records a warning on the sample.
 
+On **Assay Configurations**, each saved configuration has a **Copy as new** action.
+To reuse a staged configuration, select **Copy from setup draft**, choose the draft
+and configuration, then **Copy staged configuration as new**. Both open the create
+form for review without saving or changing the source. Select a new target scope;
+the target assay must already be activated. Draft sources require assay list/view
+permissions in addition to configuration create permission.
+
 Analysis intents use checkboxes alongside enabled analyses. DNA supports somatic
 and germline SNV review; RNA supports somatic analysis. Gene lists contain one
 curated gene set. Their germline subset is resolved from its intersection with the
@@ -187,9 +194,9 @@ and diagnosis. Ad-hoc lists remain excluded from standard configuration choices.
 ### 3. Select scopes and environments
 
 **Base is always selected** and needs no diagnosis registry document. For a
-base-only assay, leave named diagnoses unselected. Choose at least one target
-environment; this is the clinical configuration environment, not a separate
-application deployment.
+base-only assay, leave named diagnoses unselected. **Production is always selected**;
+other environments are optional. These are clinical configuration environments,
+not separate application deployments.
 
 For each required named scope, reuse an active shared diagnosis or select
 **Manage diagnosis definitions** to register it. An unassigned definition can exist
@@ -197,10 +204,10 @@ before the assay. Return to setup and select **Refresh diagnosis definitions**,
 then select the scope. Activation creates the draft assay's association; a shared
 definition by itself does not configure every assay.
 
-The selected scopes and environments determine the required ASPC combinations.
-Base plus Myeloid in development and production requires four ASPCs. Base alone
-in production requires one. Do not select speculative combinations: every selected
-combination must be complete before the setup can be approved.
+Only **Base / production** requires an ASPC before approval. Selecting additional
+diagnoses or environments does not require every combination to be configured.
+You can add these configurations later from **Assay Configurations**. Any optional
+configurations included in the setup must still pass validation before approval.
 
 ### 4. Prepare the gene lists that filters will select
 
@@ -235,11 +242,12 @@ will be available without an automatically generated summary. Existing published
 rules must pass integrity and compatibility checks. Individual ASPC creation and
 editing do not require a rule publication.
 
-### 6. Complete one ASPC for each selected combination
+### 6. Complete the Base / production ASPC
 
-In **Configurations**, save one configuration for each scope/environment pair.
+In **Configurations**, save the required **Base / production** configuration.
+Other scope/environment pairs are marked **Optional** until configured.
 The coverage table includes each saved configuration's name and Edit/View action;
-missing combinations have an Add action that preselects that scope and environment.
+empty combinations have an Add action that preselects that scope and environment.
 The table shows 10 combinations per page. Saving an ASPC is available at both the
 top and bottom of its editor. Displayed reporting defaults are included when saving,
 including when only the report method is changed.
