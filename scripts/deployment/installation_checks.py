@@ -178,13 +178,23 @@ def check_indexes(*, require_present: bool = False, scope: str = "application") 
 
 
 def check_redis() -> None:
-    """Verify authenticated Redis access from the application container.
+    """Verify the Celery Redis transport and authenticated application Redis access.
 
     Raises:
-        ValueError: A required Redis URL is missing or its PING fails. Messages
-            identify the setting and exception type without disclosing credentials.
+        ValueError: The Redis transport cannot load, a required URL is missing or
+            PING fails. Messages identify dependencies or settings without credentials.
     """
     import redis
+
+    try:
+        from kombu.transport import get_transport_cls
+
+        get_transport_cls("redis")
+    except ImportError as error:
+        raise ValueError(
+            f"Celery Redis transport cannot load (missing {error.name or 'dependency'}). "
+            "Install the API dependencies with celery[redis] and rebuild the API image."
+        ) from None
 
     for key in ("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"):
         url = os.environ.get(key)

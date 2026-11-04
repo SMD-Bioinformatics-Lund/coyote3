@@ -71,6 +71,21 @@ def test_redis_gate_redacts_driver_details(monkeypatch):
     assert "private" not in str(error.value)
 
 
+def test_redis_gate_rejects_missing_celery_transport_dependency_before_ping(monkeypatch):
+    """A Redis client PING cannot hide a broken Celery Redis transport installation."""
+    factory = Mock()
+    monkeypatch.setattr("redis.Redis.from_url", factory)
+    monkeypatch.setattr(
+        "kombu.transport.get_transport_cls",
+        Mock(side_effect=ModuleNotFoundError("No module named 'packaging'", name="packaging")),
+    )
+    with pytest.raises(
+        ValueError, match=r"Celery Redis transport cannot load \(missing packaging\)"
+    ):
+        check_redis()
+    factory.assert_not_called()
+
+
 def test_redis_failure_stops_before_bootstrap_or_application_start(fake_installation):
     """A healthy Redis container alone cannot authorize installation writes or startup."""
     command, env, log = fake_installation

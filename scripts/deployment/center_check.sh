@@ -134,7 +134,7 @@ token = os.environ["COYOTE_CENTER_CHECK_TOKEN"]
 if any(char in token for char in '\r\n"\\'):
     raise SystemExit("Invalid API token")
 options = SimpleNamespace(base_url=sys.argv[1].rstrip("/"), archive=sys.argv[3] or None,
-                          timeout=1800, update_existing=False, increment=True,
+                          timeout=1800, update_existing=False, increment=True, asynchronous=False,
                           auth="bearer", ca_bundle=None)
 result = upload(options, Path(sys.argv[2]), token)
 print(json.dumps(result, indent=2))
