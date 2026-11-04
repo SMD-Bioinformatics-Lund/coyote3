@@ -1,8 +1,13 @@
 import { sanitizeRichText } from "@/lib/safe-html"
-import { sequencingValueClasses } from "@/lib/badge-colors"
+import { configuredValueClasses } from "@/lib/badge-colors"
 import { cn } from "@/lib/utils"
 import { type ReactNode } from "react"
 import { asArray, FIRST_CLASS_CATALOG_FIELDS, formatScalar } from "./catalog-values"
+
+const materialTones: Record<string, string> = {
+  blood: "blood", "bone marrow": "marrow", fresh: "fresh", "fresh frozen": "frozen",
+  ffpe: "ffpe", "other neoplastic tissue": "tissue", "tumor tissue": "tissue",
+}
 
 export function HtmlText({ html, className }: { html: unknown; className?: string }) {
   const text = String(html ?? "").trim()
@@ -68,11 +73,13 @@ export function BadgeList({
   empty = "-",
   tone = "default",
   compact = false,
+  kind,
 }: {
   values: unknown
   empty?: string
   tone?: "default" | "primary" | "secondary" | "success"
   compact?: boolean
+  kind?: "material"
 }) {
   const list = asArray(values)
   if (!list.length) {
@@ -89,7 +96,8 @@ export function BadgeList({
       {list.map((item) => (
         <span
           key={item}
-          className={`catalog-value-badge ${sequencingValueClasses[item.toLowerCase()] || toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 text-xs"} font-semibold`}
+          data-material={kind === "material" ? materialTones[item.trim().toLowerCase()] : undefined}
+          className={`catalog-value-badge ${configuredValueClasses[item] || configuredValueClasses[item.toLowerCase()] || configuredValueClasses[item.toUpperCase()] || toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 type-body-sm"} font-semibold shadow-[var(--material-badge-shadow)] forced-colors:shadow-none`}
         >
           {item}
         </span>

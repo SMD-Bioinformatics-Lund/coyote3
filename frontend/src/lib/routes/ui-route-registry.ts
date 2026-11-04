@@ -231,6 +231,13 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["catalog panels", "gene list rows", "download CSV payload"],
   },
   {
+    path: "/public/catalog/compare",
+    page: "PublicCatalogCompare",
+    area: "public",
+    api: ["GET /public/assay-catalog/offerings"],
+    dataUsed: ["reviewed assay and diagnosis service details", "published effective gene counts"],
+  },
+  {
     path: "/public/matrix",
     page: "PublicCatalogMatrix",
     area: "public",

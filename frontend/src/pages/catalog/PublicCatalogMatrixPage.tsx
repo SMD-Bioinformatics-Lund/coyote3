@@ -23,13 +23,14 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
   const { data, isLoading, error } = useQuery({
     queryKey: previewDocument ? ["catalog-preview-matrix", previewDocument, page, perPage, appliedGeneSearch]
       : ["public-catalog-matrix", page, perPage, appliedGeneSearch],
+    ...(previewDocument ? { retry: false, refetchOnWindowFocus: false } : {}),
     queryFn: () => {
       const params = new URLSearchParams()
       params.set("page", String(page))
       params.set("per_page", String(perPage))
       if (appliedGeneSearch.trim()) params.set("gene", appliedGeneSearch.trim())
       return previewDocument
-        ? api.post(`/admin/assay-catalog/preview/matrix?${params.toString()}`, { document: previewDocument }).then((res) => res.data)
+        ? api.post(`/admin/assay-catalog/preview/matrix?${params.toString()}`, { document: previewDocument }, { errorNotice: "inline" }).then((res) => res.data)
         : api.get(`/public/assay-catalog-matrix/context?${params.toString()}`).then((res) => res.data)
     },
   })

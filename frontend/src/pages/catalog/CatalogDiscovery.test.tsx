@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "@/lib/api"
 import { PublicCatalog } from "./PublicCatalogPage"
-import type { Offering } from "./offering-types"
+import type { CatalogNavigationNode, Discovery, Offering } from "./offering-types"
 
 vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 vi.mock("@/components/data-table/DataTable", () => ({
@@ -12,8 +12,8 @@ vi.mock("@/components/data-table/DataTable", () => ({
 }))
 
 const panel: Offering = {
-  offering_id: "breast-panel", title: "Breast panel", group_id: "solid", group_label: "Solid",
-  diagnosis_id: "breast", diagnosis_label: "Breast", modality: "dna", family: "panel-dna",
+  offering_id: "breast-panel", title: "Hematology MPN panel", group_id: "hematology", group_label: "Hematology",
+  diagnosis_id: "mpn", diagnosis_label: "MPN", modality: "dna", family: "panel-dna",
   assay_id: "solid_GMSv3", assay_label: "Solid GMSv3", description: "Validated targeted service",
   analysis: ["SNV", "CNV"], price: { amount: "100.00", currency: "EUR", kind: "fixed", conditions: "" },
   pricing_message: "Contact for pricing", turnaround: "14 days", input_material: ["DNA"],
@@ -21,149 +21,229 @@ const panel: Offering = {
   ordering_information: "Contact the center", gene_scopes: [{ list_id: "breast", label: "Breast genes",
     revision: 2, analysis: "SNV", genes: ["BRCA1"], excluded_gene_count: 1 }],
 }
-const wgs: Offering = { ...panel, offering_id: "breast-wgs", title: "Breast WGS", family: "wgs",
-  assay_id: "solid_wgs", assay_label: "Solid WGS", price: { ...panel.price!, amount: "400.00" },
-  gene_scopes: [{ ...panel.gene_scopes[0], genes: ["TP53"], excluded_gene_count: 1 }],
+
+const node = (node_id: string, label: string, parent_id: string | null = null,
+  overrides: Partial<CatalogNavigationNode> = {}): CatalogNavigationNode => ({
+  node_id, parent_id, offering_id: null, label, title: label, description: "",
+  subheading: "", input_material: [], sample_modes: [], analysis: [], turnaround: "",
+  report_deliverables: [], clinical_indications: [], limitations: "", public_notes: "",
+  methodology: "", ordering_information: "", ...overrides,
+})
+const publication: Discovery = {
+  version: 3, header: "Genomic test catalog", description: "Published service introduction",
+  offerings: [panel],
+  navigation: [
+    node("dna", "DNA", null, { description: "DNA overview" }),
+    node("panels", "Panels", "dna", { description: "Panel overview" }),
+    node("hematology", "Hematology", "panels", { description: "Parent hematology information" }),
+    node("mpn", "MPN", "hematology", { offering_id: panel.offering_id }),
+    node("rna", "RNA", null, { description: "RNA overview" }),
+  ],
 }
 
-function show(offerings = [panel, wgs], preview = false) {
-  const data = { version: 3, header: "Genomic test catalog", description: "", offerings }
-  vi.mocked(api.get).mockResolvedValue({ data, status: 200 })
+function show({ data = publication, preview = false, path = "/", failOnce = false }: {
+  data?: Discovery; preview?: boolean; path?: string; failOnce?: boolean
+} = {}) {
+  vi.mocked(api.get).mockImplementation(async url => ({ data: String(url).includes("/asp/")
+    ? { gene_details: [] } : data, status: 200 }))
   vi.mocked(api.post).mockResolvedValue({ data, status: 200 })
+  if (failOnce) vi.mocked(api.get).mockRejectedValueOnce(new Error("Temporarily unavailable"))
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <MemoryRouter><PublicCatalog previewDocument={preview ? { header: "Preview", description: "", layout: { order: [] }, modalities: {} } : undefined} /></MemoryRouter>
+    <MemoryRouter initialEntries={[path]}><PublicCatalog previewDocument={preview
+      ? { header: "Preview", description: "", layout: { order: [] }, modalities: {} } : undefined} /></MemoryRouter>
   </QueryClientProvider>)
 }
+const browse = () => within(screen.getByRole("navigation", { name: "Test categories" }))
+const mpnPath = `/?node=${encodeURIComponent(JSON.stringify(["dna", "panel-dna", "hematology", "mpn"]))}`
+const hematologyPath = `/?node=${encodeURIComponent(JSON.stringify(["dna", "panel-dna", "hematology"]))}`
+beforeEach(() => vi.clearAllMocks())
 
-describe("Published offering discovery", () => {
-  it("preserves assay filtering alongside the sidebar hierarchy", async () => {
-    show([{ ...panel, assay_label: "SG3", assay_display_name: "Solid Tumor Panel GMS version 3" }, wgs])
-    expect(await screen.findByText("2 available tests · publication 3")).toBeVisible()
-    fireEvent.click(screen.getByText("Additional filters"))
-    expect(screen.getByRole("option", { name: /^SG3$/ })).toBeVisible()
-    expect(screen.getByText("Solid Tumor Panel GMS version 3")).toBeVisible()
-    expect(screen.getByRole("heading", { name: "Solid Tumor Panel GMS version 3" })).toBeVisible()
-    expect(screen.queryByRole("heading", { name: "Breast panel" })).not.toBeInTheDocument()
-    expect(screen.getAllByRole("article")).toHaveLength(2)
-    fireEvent.change(screen.getByLabelText("Assay", { exact: true }), { target: { value: "solid_GMSv3" } })
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-  })
-
-  it("retains expanded branches and highlights the selected hierarchy without changing other scopes", async () => {
-    const lung = { ...panel, offering_id: "lung", title: "Lung panel", diagnosis_id: "lung", diagnosis_label: "Lung" }
-    const hema = { ...panel, offering_id: "hema", title: "Hematology panel", group_id: "hema", group_label: "Hematology", diagnosis_id: "breast", diagnosis_label: "Shared diagnosis" }
-    const rna = { ...panel, offering_id: "rna", title: "RNA panel", modality: "rna" as const, family: "panel-rna" }
-    show([panel, wgs, lung, hema, rna])
-    await screen.findByText("5 available tests · publication 3")
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels" }))
-    expect(screen.getAllByRole("article")).toHaveLength(3)
-    const solid = screen.getByRole("button", { name: "DNA Panels / Solid" })
-    expect(solid).toHaveTextContent("2")
-    fireEvent.click(solid)
-    expect(screen.getAllByRole("article")).toHaveLength(2)
-    expect(screen.queryByRole("button", { name: "DNA Panels / Solid / Shared diagnosis" })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    expect(screen.getByRole("heading", { name: "Breast panel" })).toBeVisible()
-    for (const name of ["DNA", "DNA Panels", "DNA Panels / Solid"]) {
-      expect(screen.getByRole("button", { name })).toHaveAttribute("data-ancestor", "true")
-      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false")
+describe("Published catalog hierarchy", () => {
+  it("keeps the introduction and modality pages brief without aggregating service details", async () => {
+    const rna: Offering = { ...panel, offering_id: "rna", modality: "rna", family: "wts",
+      description: "RNA assay internal service detail" }
+    show({ data: { ...publication, offerings: [panel, rna], navigation: [...publication.navigation,
+      node("rna-service", "RNA service", "rna", { offering_id: rna.offering_id }),
+    ] } })
+    const overview = await screen.findByRole("region", { name: "Catalog overview" })
+    expect(within(overview).getByText("Published service introduction")).toBeVisible()
+    expect(within(overview).getByText(/analysis of somatic alterations in cancer/)).toBeVisible()
+    for (const modality of ["DNA", "RNA"]) {
+      fireEvent.click(browse().getByRole("button", { name: modality }))
+      const content = screen.getByRole("region", { name: "Catalog overview" })
+      expect(within(content).getByText(`${modality} overview`)).toBeVisible()
+      expect(within(content).getByText(/sequencing services/)).toBeVisible()
+      expect(screen.queryByRole("region", { name: "Service information" })).not.toBeInTheDocument()
+      for (const text of ["Price", "Turnaround (TAT)", "Platform", "14 days", panel.description, rna.description, panel.assay_label]) {
+        expect(within(content).queryByText(text, { exact: true })).not.toBeInTheDocument()
+      }
     }
-    expect(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" })).toHaveAttribute("aria-pressed", "true")
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels / Solid" }))
+  })
+
+  it("keeps price, TAT, samples and reviewed gene counts in the service panel", async () => {
+    show({ path: mpnPath })
+    const information = await screen.findByRole("region", { name: "Service information" })
+    for (const label of ["Price", "Turnaround (TAT)", "Sample types / input material", "Sample modes", "Available analyses", "Published covered genes"]) {
+      expect(within(information).getByText(label)).toBeVisible()
+    }
+    expect(within(information).getByText(/100/)).toBeVisible()
+    expect(within(information).getByText("14 days")).toBeVisible()
+    expect(within(information).getByText("1 unique gene in the published scope")).toBeVisible()
+    expect(screen.queryByText("Service pricing:")).not.toBeInTheDocument()
+    expect(screen.queryByRole("navigation", { name: "Entries in this section" })).not.toBeInTheDocument()
+  })
+
+  it("uses the immediate parent's missing service fields while retaining diagnosis overrides", async () => {
+    const data: Discovery = { ...publication,
+      offerings: [{ ...panel, description: "", turnaround: "", input_material: [], price: null }],
+      navigation: publication.navigation.map(value => value.node_id === "hematology" ? {
+        ...value, description: "Parent service wording", turnaround: "21 days", input_material: ["Bone marrow"],
+        sample_modes: ["Tumor-normal"], price: { amount: "450.00", currency: "SEK", kind: "fixed", conditions: "" },
+      } : value.node_id === "mpn" ? { ...value, description: "", turnaround: "", input_material: [] } : value),
+    }
+    show({ data, path: mpnPath })
+    const information = await screen.findByRole("region", { name: "Service information" })
+    expect(within(information).getByText("Parent service wording")).toBeVisible()
+    expect(within(information).getByText("21 days")).toBeVisible()
+    expect(within(information).getByText("Bone marrow")).toBeVisible()
+    expect(within(information).getByText("Tumor-normal")).toBeVisible()
+    expect(within(information).getByText(/450/)).toBeVisible()
+    expect(within(information).getByText("SNV")).toBeVisible()
+  })
+
+  it("shows configured parent defaults and lets diagnosis-specific TAT and pricing override them", async () => {
+    const data = { ...publication, navigation: publication.navigation.map(value => value.node_id === "hematology" ? {
+      ...value, turnaround: "21 days", price: { amount: "450.00", currency: "SEK", kind: "fixed" as const, conditions: "" },
+    } : value) }
+    show({ data, path: hematologyPath })
+    const information = await screen.findByRole("region", { name: "Service information" })
+    expect(within(information).getByText("21 days")).toBeVisible()
+    expect(within(information).getByText(/450/)).toBeVisible()
+    fireEvent.click(browse().getByRole("button", { name: "MPN" }))
+    const diagnosis = screen.getByRole("region", { name: "Service information" })
+    expect(within(diagnosis).getByText("14 days")).toBeVisible()
+    expect(within(diagnosis).queryByText("21 days")).not.toBeInTheDocument()
+    expect(within(diagnosis).getByText(/100/)).toBeVisible()
+    expect(within(diagnosis).queryByText(/450/)).not.toBeInTheDocument()
+  })
+
+  it("restores the method, group and diagnosis levels for flat published entries", async () => {
+    const flat: Discovery = { ...publication, navigation: [
+      node("dna", "DNA", null, { description: "DNA overview" }),
+      node("raw-entry", "demo-hematology_gmsv1 (synthetic) / MPN", "dna", {
+        offering_id: panel.offering_id, description: "MPN clinical service",
+      }),
+    ] }
+    show({ data: flat })
+    await screen.findByText("Published service introduction")
+    expect(browse().getByRole("button", { name: "Panels" })).toBeVisible()
+    expect(browse().queryByRole("button", { name: /demo-hematology/ })).not.toBeInTheDocument()
+    fireEvent.click(browse().getByRole("button", { name: "Panels" }))
+    fireEvent.click(browse().getByRole("button", { name: "Hematology" }))
+    expect(screen.getByRole("heading", { name: "Hematology" })).toBeVisible()
+    expect(screen.getByText("14 days")).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Clinical gene scope" })).not.toBeInTheDocument()
+    fireEvent.click(browse().getByRole("button", { name: "MPN" }))
+    expect(screen.getByRole("heading", { name: "MPN" })).toBeVisible()
+    expect(screen.getByText("Validated targeted service")).toBeVisible()
+    expect(screen.getByRole("navigation", { name: "Catalog location" })).toHaveTextContent("DNA/Panels/Hematology/MPN")
+  })
+
+  it("shows only exact branch matches when a diagnosis has several assays", async () => {
+    const second = { ...panel, offering_id: "second-panel", title: "Second MPN panel", description: "Second exact match" }
+    const otherMethod = { ...panel, offering_id: "wgs", family: "wgs", description: "Other method" }
+    const otherGroup = { ...panel, offering_id: "other-group", group_id: "myeloid", group_label: "Myeloid", description: "Other group" }
+    const otherDiagnosis = { ...panel, offering_id: "cll", diagnosis_id: "cll", diagnosis_label: "CLL", description: "Other diagnosis" }
+    const otherModality: Offering = { ...panel, offering_id: "rna-mpn", modality: "rna", family: "panel-rna", description: "Other modality" }
+    const items = [panel, second, otherMethod, otherGroup, otherDiagnosis, otherModality]
+    const data: Discovery = { ...publication, offerings: items,
+      navigation: [node("dna", "DNA"), node("rna", "RNA"), ...items
+        .map(item => node(item.offering_id, item.title, item.modality, { offering_id: item.offering_id }))] }
+    show({ data, path: mpnPath })
+    expect(await screen.findByText("Validated targeted service")).toBeVisible()
+    expect(screen.getByText("Second exact match")).toBeVisible()
     expect(screen.getAllByRole("article")).toHaveLength(2)
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels / Hematology" }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    expect(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "DNA Panels / Hematology / Shared diagnosis" })).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "RNA Panels" }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    expect(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "DNA" })).not.toHaveAttribute("data-ancestor")
-    fireEvent.click(screen.getByRole("button", { name: "All tests" }))
-    expect(screen.getAllByRole("article")).toHaveLength(5)
-    fireEvent.click(screen.getByRole("button", { name: "Collapse DNA Panels" }))
-    expect(screen.queryByRole("button", { name: "DNA Panels / Solid" })).not.toBeInTheDocument()
-    expect(screen.getAllByRole("article")).toHaveLength(5)
-    fireEvent.click(screen.getByRole("button", { name: "Expand DNA Panels" }))
-    expect(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" })).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "DNA Panels / Solid / Breast" }))
-    fireEvent.click(screen.getByRole("button", { name: "View details" }))
-    fireEvent.click(await screen.findByRole("button", { name: "Back to available tests" }))
-    expect(screen.getByRole("button", { name: "DNA Panels / Hematology / Shared diagnosis" })).toBeVisible()
-    expect(screen.getByRole("button", { name: "Collapse RNA Panels" })).toBeVisible()
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    expect(screen.queryByRole("combobox", { name: "Biological group" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("combobox", { name: "Diagnosis" })).not.toBeInTheDocument()
-  })
-
-  it("searches effective gene scopes without assuming WGS coverage", async () => {
-    show()
-    await screen.findByText("2 available tests · publication 3")
-    fireEvent.change(screen.getByLabelText("Search diagnoses, genes and assays"), { target: { value: "BRCA1" } })
-    expect(screen.getByRole("heading", { name: "Breast panel" })).toBeVisible()
-    expect(screen.queryByRole("heading", { name: "Breast WGS" })).not.toBeInTheDocument()
-    expect(screen.getByText("Matched: Published gene scope")).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "View details" }))
-    expect(screen.getByText(/1 list genes outside validated assay coverage/)).toBeVisible()
-    expect(screen.getByText("BRCA1")).toBeVisible()
-  })
-
-  it("compares independently priced offerings and capabilities", async () => {
-    show()
-    await screen.findByText("2 available tests · publication 3")
-    fireEvent.click(screen.getByLabelText("Compare Breast panel"))
-    fireEvent.click(screen.getByLabelText("Compare Breast WGS"))
-    const table = screen.getByRole("table")
-    expect(within(table).getByText(/100/)).toBeVisible()
-    expect(within(table).getByText(/400/)).toBeVisible()
-    const analysisRow = within(table).getByRole("rowheader", { name: "Analysis" }).closest("tr")!
-    expect(within(analysisRow).getAllByText("SNV")).toHaveLength(2)
-    expect(within(analysisRow).getAllByText("CNV")).toHaveLength(2)
-    expect(screen.queryByRole("option", { name: "No diagnosis / General testing" })).not.toBeInTheDocument()
-  })
-
-  it("previews through the authenticated endpoint and handles no public services", async () => {
-    show([], true)
-    expect(await screen.findByRole("heading", { name: "No published services" })).toBeVisible()
-    expect(api.post).toHaveBeenCalledWith("/admin/assay-catalog/preview/offerings", expect.objectContaining({ document: expect.any(Object) }))
-  })
-
-  it("defaults to test-name ordering and filters with the DNA/RNA method sidebar", async () => {
-    const rna = { ...panel, offering_id: "rna", title: "RNA test", modality: "rna" as const, family: "wts" }
-    show([wgs, rna, panel])
-    await screen.findByText("3 available tests · publication 3")
-    expect(screen.getAllByRole("article").map(card => within(card).getByRole("heading").textContent))
-      .toEqual(["Breast panel", "Breast WGS", "RNA test"])
-    expect(screen.getByText("Additional filters").closest("details")).not.toHaveAttribute("open")
-    fireEvent.click(screen.getByRole("button", { name: "DNA WGS" }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
-    expect(screen.getByRole("heading", { name: "Breast WGS" })).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "RNA WTS" }))
-    expect(screen.getByRole("heading", { name: "RNA test" })).toBeVisible()
-    fireEvent.click(screen.getByRole("button", { name: "All tests" }))
-    expect(screen.getAllByRole("article")).toHaveLength(3)
-  })
-
-  it("counts unique pasted genes and exposes unmatched symbols on cards and comparison", async () => {
-    show()
-    await screen.findByText("2 available tests · publication 3")
-    fireEvent.change(screen.getByLabelText("Requested genes"), { target: { value: "brca1, TP53\nBRCA1\nNOTPUBLISHED" } })
-    expect(screen.getAllByText("1 / 3 requested genes matched")).toHaveLength(2)
-    fireEvent.click(screen.getAllByRole("button", { name: "View unmatched genes (2)" })[0])
-    const dialog = await screen.findByRole("dialog")
-    expect(within(dialog).getByText("NOTPUBLISHED")).toBeVisible()
-    expect(within(dialog).queryByText("BRCA1")).not.toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }))
-    fireEvent.click(screen.getByLabelText("Compare Breast panel"))
-    fireEvent.click(screen.getByLabelText("Compare Breast WGS"))
-    const table = screen.getByRole("table")
-    expect(within(table).getAllByText("1 / 3 requested genes matched")).toHaveLength(2)
-    expect(within(table).getAllByRole("button", { name: "View unmatched genes (2)" })).toHaveLength(2)
-    fireEvent.change(screen.getByLabelText("Requested genes"), { target: { value: "NOTPUBLISHED" } })
+    for (const text of ["Other method", "Other group", "Other diagnosis", "Other modality"]) {
+      expect(screen.queryByText(text)).not.toBeInTheDocument()
+    }
+    expect(screen.getByRole("heading", { name: "MPN", level: 2 })).toBeVisible()
+    fireEvent.click(browse().getByRole("button", { name: "Hematology" }))
     expect(screen.queryAllByRole("article")).toHaveLength(0)
-    expect(screen.getByText(/No tests match the selected categories/)).toBeVisible()
+    expect(screen.getByRole("heading", { name: "Hematology" })).toBeVisible()
+  })
+
+  it("shows the selected level directly and keeps parent information separate", async () => {
+    show()
+    await screen.findByText("Published service introduction")
+    fireEvent.click(browse().getByRole("button", { name: "DNA" }))
+    expect(screen.getByText("DNA overview")).toBeVisible()
+    fireEvent.click(browse().getByRole("button", { name: "Panels" }))
+    expect(screen.getByText("Panel overview")).toBeVisible()
+    fireEvent.click(browse().getByRole("button", { name: "Hematology" }))
+    expect(screen.getByText("Parent hematology information")).toBeVisible()
+    expect(screen.getByText("14 days")).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Clinical gene scope" })).not.toBeInTheDocument()
+    fireEvent.click(browse().getByRole("button", { name: "MPN" }))
+    expect(screen.getByRole("heading", { name: "MPN" })).toBeVisible()
+    expect(screen.getByText("Validated targeted service")).toBeVisible()
+    expect(screen.getByText("Targeted sequencing")).toBeVisible()
+    expect(screen.getByText("Contact the center")).toBeVisible()
+    expect(screen.getByText("BRCA1")).toBeVisible()
+    const service = screen.getByRole("region", { name: "Service information" })
+    const genes = screen.getByRole("heading", { name: "Clinical gene scope" })
+    expect(service.compareDocumentPosition(genes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(browse().getByRole("button", { name: "Hematology" }))
+    expect(screen.getByText("Parent hematology information")).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Clinical gene scope" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "View details" })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Requested genes")).not.toBeInTheDocument()
+  })
+
+  it("expands branches independently, preserves selection and supports keyboard tree controls", async () => {
+    show({ path: mpnPath })
+    await screen.findByRole("heading", { name: "MPN" })
+    fireEvent.click(browse().getByRole("button", { name: "Collapse Panels" }))
+    expect(browse().queryByRole("button", { name: "MPN" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "MPN" })).toBeVisible()
+    fireEvent.click(browse().getByRole("button", { name: "Expand Panels" }))
+    expect(browse().getByRole("button", { name: "MPN" })).toHaveAttribute("aria-current", "page")
+    fireEvent.click(browse().getByRole("button", { name: "DNA" }))
+    expect(screen.getByText("DNA overview")).toBeVisible()
+    expect(browse().getByRole("button", { name: "MPN" })).toBeVisible()
+  })
+
+  it("continues to open existing offering links with the hierarchy alongside", async () => {
+    show({ path: "/?offering=breast-panel" })
+    expect(await screen.findByRole("heading", { name: "MPN" })).toBeVisible()
+    expect(browse().getByRole("button", { name: "MPN" })).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("navigation", { name: "Catalog location" })).toHaveTextContent("DNA/Panels/Hematology/MPN")
+  })
+
+  it.each(["/?node=withdrawn", "/?node=withdrawn&offering=breast-panel"])("reports unavailable selections without displaying another diagnosis: %s", async path => {
+    show({ path })
+    expect(await screen.findByText("This selection is not part of the current publication.")).toBeVisible()
+    expect(screen.queryByText("Validated targeted service")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Browse available tests" }))
+    expect(screen.getByText("Published service introduction")).toBeVisible()
+  })
+
+  it("gives the selected parent precedence over an offering left in the URL", async () => {
+    show({ path: `${hematologyPath}&offering=breast-panel` })
+    expect(await screen.findByText("Parent hematology information")).toBeVisible()
+    expect(screen.getByRole("heading", { name: "Hematology" })).toBeVisible()
+    expect(screen.queryByRole("heading", { name: "Clinical gene scope" })).not.toBeInTheDocument()
+  })
+
+  it("previews authenticated content and handles an empty publication", async () => {
+    show({ data: { ...publication, offerings: [], navigation: [] }, preview: true })
+    expect(await screen.findByRole("heading", { name: "No published services" })).toBeVisible()
+    expect(api.post).toHaveBeenCalledWith("/admin/assay-catalog/preview/offerings", expect.objectContaining({ document: expect.any(Object) }), { errorNotice: "inline" })
+  })
+
+  it("allows retry after the publication fails to load", async () => {
+    show({ failOnce: true })
+    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load published services.")
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+    expect(await screen.findByText("Published service introduction")).toBeVisible()
   })
 })

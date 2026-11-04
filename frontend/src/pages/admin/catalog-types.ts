@@ -11,14 +11,14 @@ export type Presentation = {
   clinical_indications?: string[]
   limitations?: string
   public_notes?: string
-}
-export type GeneEntry = Presentation & { key?: string; isgl_id?: string; diagnosis_id?: string }
-export type Category = Presentation & {
   price?: { amount: string; currency: string; kind: "fixed" | "starting" | "estimated"; conditions: string } | null
   pricing_message?: string
   methodology?: string
   ordering_information?: string
   report_deliverables?: string[]
+}
+export type GeneEntry = Presentation & { key?: string; isgl_id?: string; diagnosis_id?: string }
+export type Category = Presentation & {
   parent_key?: string | null
   node_kind?: "entry" | "folder"
   clear_fields?: string[]
@@ -44,8 +44,8 @@ export type Version = {
   lifecycle: { action: string; actor: string; occurred_at: string; reason?: string }[]
 }
 export type SourceOptions = {
-  asps: { asp_id: string; label: string; category?: string; group?: string }[]
-  aspcs: { aspc_id: string; asp_id: string; diagnosis_id?: string }[]
+  asps: { asp_id: string; label: string; category?: string; family?: string; group?: string; group_label?: string }[]
+  aspcs: { aspc_id: string; asp_id: string; diagnosis_id?: string; diagnosis_label?: string }[]
   gene_lists: { isgl_id: string; label: string; asp_ids: string[]; asp_groups?: string[]; diagnosis: string[]; list_type?: string[] }[]
 }
 export type Workspace = {

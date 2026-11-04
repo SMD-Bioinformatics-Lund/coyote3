@@ -28,7 +28,7 @@ function show() {
   </QueryClientProvider>)
 }
 
-it("annotates only published genes, combines memberships and isolates each analysis", async () => {
+it("annotates unique published genes and isolates each analysis without a list column", async () => {
   vi.mocked(api.get).mockResolvedValue({ status: 200, data: { gene_details: [
     { hgnc_symbol: "TP53", hgnc_id: "HGNC:11998", gene_name: "tumor protein p53", chromosome: "17",
       refseq_mane_plus_clinical: ["NM_000546.6"], ensembl_mane_select: "ENST00000269305.9" },
@@ -45,8 +45,9 @@ it("annotates only published genes, combines memberships and isolates each analy
   expect(within(panel).queryByText("Not in the published offering")).not.toBeInTheDocument()
   expect(within(panel).queryByRole("link", { name: "MYC" })).not.toBeInTheDocument()
   const tp53Row = within(panel).getByRole("link", { name: "TP53" }).closest("tr")!
-  expect(within(tp53Row).getByText("SNV A")).toBeVisible()
-  expect(within(tp53Row).getByText("SNV B")).toBeVisible()
+  expect(within(panel).queryByRole("columnheader", { name: /Published gene lists/ })).not.toBeInTheDocument()
+  expect(within(panel).getByRole("heading", { name: "SNV A" })).toBeVisible()
+  expect(within(panel).getByRole("heading", { name: "SNV B" })).toBeVisible()
   expect(within(tp53Row).getByText("NM_000546.6")).toBeVisible()
   expect(within(tp53Row).getByLabelText("RefSeq MANE Plus Clinical")).toHaveTextContent("RS MC+")
   expect(within(tp53Row).queryByText("ENST00000269305.9")).not.toBeInTheDocument()

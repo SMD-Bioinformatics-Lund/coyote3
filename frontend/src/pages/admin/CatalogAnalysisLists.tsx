@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react"
 import { SearchInput } from "@/components/ui/search-input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { icon } from "@/lib/assets"
+import { valueBadgeClass } from "@/lib/badge-colors"
 import type { Category, SourceOptions } from "./catalog-types"
 
 export function CatalogAnalysisLists({ entry, sources, onChange }: {
@@ -18,11 +22,47 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
     const existing = genes.find((list) => (list.isgl_id || list.key) === id)
     const selected = existing?.analysis?.includes(analysis)
     const source = eligible.find((list) => list.isgl_id === id)!
-    const next = { ...existing, isgl_id: id, key: id, label: existing?.label || source.label,
+    const next = { ...existing, isgl_id: id, key: id, label: existing?.label || source?.label || id,
       analysis: selected ? existing!.analysis!.filter((item) => item !== analysis)
         : [...(existing?.analysis || []), analysis] }
     onChange({ ...entry, no_gene_list: (entry.no_gene_list || []).filter((item) => item !== analysis),
       gene_lists: [...genes.filter((list) => (list.isgl_id || list.key) !== id), ...(next.analysis.length ? [next] : [])] })
+  }
+  const picker = (analysis?: string) => {
+    const selected = analysis ? genes.filter(list => list.analysis?.includes(analysis)) : genes
+    const options = (analysis ? visible.filter(list => list.list_type?.includes(analysis.toLowerCase())) : visible)
+      .filter(list => !selected.some(gene => (gene.isgl_id || gene.key) === list.isgl_id))
+    return <div className="space-y-3">
+      <label className="grid gap-1 type-label">{analysis ? `Add gene list for ${analysis}` : "Add gene list"}
+        <select aria-label={analysis ? `Add gene list for ${analysis}` : "Add gene list"} value=""
+          className="form-control w-full rounded-lg p-2 type-body" disabled={!options.length}
+          onChange={event => {
+            const id = event.target.value
+            if (!id) return
+            if (analysis) toggle(analysis, id)
+            else {
+              const source = eligible.find(list => list.isgl_id === id)
+              if (source) onChange({ ...entry, gene_lists: [...genes,
+                { isgl_id: id, key: id, label: source.label, analysis: [] }] })
+            }
+          }}>
+          <option value="">{options.length ? "Select gene list" : "No additional matching gene lists"}</option>
+          {options.map(list => <option key={list.isgl_id} value={list.isgl_id}>{list.label}</option>)}
+        </select>
+      </label>
+      <div className="flex flex-wrap gap-2">{selected.map(list => {
+        const id = list.isgl_id || list.key || ""
+        const name = list.label || id
+        return <Badge key={id} variant="outline" className={`max-w-full whitespace-normal ${analysis ? valueBadgeClass(analysis) : ""}`}>
+          <span className="min-w-0 break-words">{name}</span>
+          <Button variant="ghost" size="icon-xs" aria-label={`Remove ${name}${analysis ? ` from ${analysis}` : ""}`}
+            onClick={() => analysis ? toggle(analysis, id)
+              : onChange({ ...entry, gene_lists: genes.filter(gene => (gene.isgl_id || gene.key) !== id) })}>
+            <icon.x className="size-3" />
+          </Button>
+        </Badge>
+      })}</div>
+    </div>
   }
   return <section aria-label="Gene lists by analysis" className="space-y-3 border-t border-border pt-4">
     <div><h3 className="type-body font-semibold">Gene lists by analysis</h3>
@@ -33,18 +73,12 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
     {!entry.analysis?.length && <fieldset className="space-y-2 rounded-lg border border-border p-3">
       <legend className="type-label">General gene lists</legend>
       <p className="type-body-sm text-muted-foreground">Used when this entry and its parents define no analyses. Child entries inherit these references unless overridden.</p>
-      {visible.map((list) => <label key={list.isgl_id} className="flex gap-2 type-body-sm">
-        <input type="checkbox" checked={genes.some((gene) => (gene.isgl_id || gene.key) === list.isgl_id)} onChange={(event) =>
-          onChange({ ...entry, gene_lists: event.target.checked
-            ? [...genes, { isgl_id: list.isgl_id, key: list.isgl_id, label: list.label, analysis: [] }]
-            : genes.filter((gene) => (gene.isgl_id || gene.key) !== list.isgl_id) })} />{list.label}
-      </label>)}
+      {picker()}
     </fieldset>}
     <div className="grid gap-3 lg:grid-cols-2">
       {(entry.analysis || []).map((analysis) => {
         const selected = genes.filter((list) => list.analysis?.includes(analysis))
         const none = entry.no_gene_list?.includes(analysis) || false
-        const typedLists = visible.filter((list) => list.list_type?.includes(analysis.toLowerCase()))
         return <fieldset key={analysis} className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-3">
           <legend className="px-1 type-label">{analysis}</legend>
           <div className="flex flex-wrap items-center justify-between gap-2 type-body-sm">
@@ -59,13 +93,7 @@ export function CatalogAnalysisLists({ entry, sources, onChange }: {
                 }),
               })} />No gene list for {analysis}</label>
           </div>
-          {!none && <div className="max-h-52 space-y-1 overflow-y-auto">
-            {typedLists.map((list) => <label key={list.isgl_id} className="flex cursor-pointer items-start gap-2 rounded-lg p-2 type-body-sm hover:bg-muted">
-              <input type="checkbox" className="mt-1" checked={selected.some((item) => (item.isgl_id || item.key) === list.isgl_id)} onChange={() => toggle(analysis, list.isgl_id)} />
-              <span className="min-w-0"><span className="block break-words">{list.label}</span><span className="type-meta text-muted-foreground">{list.isgl_id}</span></span>
-            </label>)}
-            {!typedLists.length && <p className="type-body-sm text-muted-foreground">No matching public gene lists for this analysis, assay, group and diagnosis.</p>}
-          </div>}
+          {!none && picker(analysis)}
           {!none && !selected.length && <p className="type-body-sm text-muted-foreground">Choose a list or No gene list before submitting.</p>}
         </fieldset>
       })}

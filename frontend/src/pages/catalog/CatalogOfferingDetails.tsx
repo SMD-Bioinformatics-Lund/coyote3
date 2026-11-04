@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { icon as appIcon } from "@/lib/assets"
-import { useId, useMemo, useState, type ReactNode } from "react"
-import { BadgeList, HtmlText } from "./catalog-presentation"
-import { familyLabels, offeringPrice, type Offering } from "./offering-types"
+import { useId, useMemo, useState } from "react"
+import { CatalogInformation } from "./CatalogInformation"
+import { type CatalogNavigationNode, type Offering } from "./offering-types"
+import { offeringInformation } from "./catalog-information"
 import { catalogGeneTranscript, type GeneTranscriptMetadata } from "./gene-transcript"
 
 type GeneMetadata = GeneTranscriptMetadata & {
@@ -22,9 +23,7 @@ type GeneMetadata = GeneTranscriptMetadata & {
   locus?: string
   knowledgebase_markers?: KnowledgebaseGeneMarkers
 }
-type GeneRow = GeneMetadata & { lists: string[] }
-
-const geneColumns: ColumnDef<GeneRow>[] = [
+const geneColumns: ColumnDef<GeneMetadata>[] = [
   { accessorKey: "hgnc_symbol", header: "HGNC symbol", cell: ({ row }) =>
     <GeneWithOncoKbBadge gene={row.original.hgnc_symbol} displayGene={row.original.display_symbol}
       hgncId={row.original.hgnc_id} markers={row.original.knowledgebase_markers} showOncoKbBadge={false} /> },
@@ -42,33 +41,21 @@ const geneColumns: ColumnDef<GeneRow>[] = [
           aria-label={transcript.description}>{transcript.badge}</Badge>
       </span> : <span className="text-muted-foreground">-</span>
     },
-    meta: { exportValue: (row: GeneRow) => {
+    meta: { exportValue: (row: GeneMetadata) => {
       const transcript = catalogGeneTranscript(row)
       return transcript ? `${transcript.id} (${transcript.description})` : ""
     } },
   },
-  { id: "lists", header: "Published gene lists", accessorFn: row => row.lists.join(", "),
-    cell: ({ row }) => <BadgeList values={row.original.lists} /> },
 ]
 
-function DetailCard({ title, icon: Icon, children }: {
-  title: string; icon: typeof appIcon.fileText; children: ReactNode
-}) {
-  return <section className="paper-surface min-w-0 space-y-3 rounded-xl p-4">
-    <h3 className="type-section-title flex items-center gap-2"><Icon className="size-4 text-primary" />{title}</h3>
-    <div className="type-body-sm leading-relaxed">{children}</div>
-  </section>
-}
-
-export function CatalogOfferingDetails({ offering: item, onBack }: {
-  offering: Offering; onBack?: () => void
+export function CatalogOfferingDetails({ offering: item, information, showInformation = true }: {
+  offering: Offering; information?: CatalogNavigationNode; showInformation?: boolean
 }) {
   const id = useId()
   const analyses = [...new Set([...item.analysis, ...item.gene_scopes.map(scope => scope.analysis)])]
   const [chosenAnalysis, setChosenAnalysis] = useState("SNV")
   const analysis = analyses.includes(chosenAnalysis) ? chosenAnalysis : analyses[0] || ""
   const scopes = item.gene_scopes.filter(scope => scope.analysis === analysis)
-  const uniqueGenes = new Set(item.gene_scopes.flatMap(scope => scope.genes))
   const { data, isLoading, error } = useQuery<{ gene_details: GeneMetadata[] }>({
     queryKey: ["public-asp-genes", item.assay_id],
     queryFn: () => api.get(`/public/asp/${encodeURIComponent(item.assay_id)}/genes`).then(res => res.data),
@@ -81,53 +68,21 @@ export function CatalogOfferingDetails({ offering: item, onBack }: {
       metadata.set(gene.hgnc_symbol, gene)
       if (gene.display_symbol) metadata.set(gene.display_symbol, gene)
     }
-    const memberships = new Map<string, string[]>()
-    for (const scope of item.gene_scopes.filter(scope => scope.analysis === analysis)) {
-      for (const symbol of new Set(scope.genes)) {
-        const labels = memberships.get(symbol) || []
-        if (!labels.includes(scope.label)) labels.push(scope.label)
-        memberships.set(symbol, labels)
-      }
-    }
-    return [...memberships].sort(([a], [b]) => a.localeCompare(b)).map(([symbol, lists]) => ({
+    const symbols = new Set(item.gene_scopes.filter(scope => scope.analysis === analysis)
+      .flatMap(scope => scope.genes))
+    return [...symbols].sort((a, b) => a.localeCompare(b)).map(symbol => ({
       ...metadata.get(symbol), hgnc_symbol: metadata.get(symbol)?.hgnc_symbol || symbol,
-      display_symbol: symbol, lists,
+      display_symbol: symbol,
     }))
   }, [data, item.gene_scopes, analysis])
 
   return <article className="min-w-0 space-y-5">
-    <header data-modality={item.modality} data-family={item.family} className="surface-panel catalog-service-card space-y-5 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {onBack && <Button variant="outline" size="icon"
-              aria-label="Back to available tests" title="Back to available tests" onClick={onBack}>
-              <appIcon.arrowLeft className="size-4" aria-hidden="true" />
-            </Button>}
-            <Badge variant="outline" className={valueBadgeClass(item.modality)}>{item.modality === "dna" ? <appIcon.dna /> : <appIcon.flaskConical />}{item.modality.toUpperCase()}</Badge>
-            <Badge variant="outline" className={valueBadgeClass(item.family)}>{familyLabels[item.family] || item.family}</Badge>
-            <span className="type-body-sm text-muted-foreground">{item.group_label} · {item.diagnosis_label}</span>
-          </div>
-          <h2 className="type-page-title break-words">{item.assay_display_name || item.title}</h2>
-          {item.assay_display_name && item.assay_display_name !== item.title && <p className="type-body-sm text-muted-foreground">{item.title}</p>}
-        </div>
-        <div className="paper-surface max-w-full rounded-lg p-4">
-          <p className="type-label mb-1 text-muted-foreground">Service pricing</p>
-          <p className="type-title font-semibold">{offeringPrice(item)}</p>
-          {item.price?.conditions && <p className="mt-1 type-body-sm">{item.price.conditions}</p>}
-        </div>
-      </div>
-      <HtmlText html={item.description} className="type-body leading-relaxed" />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <DetailCard title="Turnaround" icon={appIcon.clock3}>{item.turnaround || "Contact the service"}</DetailCard>
-        <DetailCard title="Published genes" icon={appIcon.dna}><strong className="type-title">{uniqueGenes.size}</strong> unique genes across published analyses</DetailCard>
-        <DetailCard title="Available analyses" icon={appIcon.microscope}><BadgeList values={item.analysis} /></DetailCard>
-      </div>
-      {item.diagnosis_id === "base" && <p className="type-body-sm text-muted-foreground">General testing uses the published Base scope, without a named diagnosis.</p>}
-    </header>
+    {showInformation && <CatalogInformation information={offeringInformation(item, information)} offerings={[item]} />}
 
-    <section className="surface-panel min-w-0 space-y-4 p-5" aria-labelledby={`${id}-scope`}>
+    <section className="surface-panel catalog-service-card catalog-information min-w-0 space-y-4 p-5"
+      data-modality={item.modality} data-family={item.family} aria-labelledby={`${id}-scope`}>
       <div className="space-y-2">
+        {!showInformation && <p className="type-section-title">{item.assay_display_name || item.assay_label} · {item.diagnosis_label}</p>}
         <h3 id={`${id}-scope`} className="type-section-title flex items-center gap-2"><appIcon.layers className="size-4 text-primary" />Clinical gene scope</h3>
         <p className="type-body-sm text-muted-foreground">Choose an analysis to explore its published genes and HGNC reference information. Gene scope is limited to the published lists and validated assay coverage.</p>
       </div>
@@ -158,7 +113,7 @@ export function CatalogOfferingDetails({ offering: item, onBack }: {
           </div>)}
         </div>
         {isLoading && <p role="status" className="type-body-sm text-muted-foreground">Loading HGNC reference information…</p>}
-        {error && <p role="status" className="type-body-sm text-muted-foreground">HGNC reference information is unavailable. Published gene symbols and list memberships are still shown.</p>}
+        {error && <p role="status" className="type-body-sm text-muted-foreground">HGNC reference information is unavailable. Published gene symbols are still shown.</p>}
         {rows.length ? <DataTable key={`${item.offering_id}:${analysis}`} columns={geneColumns} data={rows}
           filename={`${item.offering_id}_${analysis.toLowerCase()}_genes.csv`} />
           : <p className="paper-inset rounded-lg p-4 type-body-sm text-muted-foreground">No public gene list is published for {analysis || "this offering"}.</p>}
@@ -166,12 +121,5 @@ export function CatalogOfferingDetails({ offering: item, onBack }: {
       </div>
     </section>
 
-    <div className="grid gap-4 md:grid-cols-2">
-      <DetailCard title="Reporting" icon={appIcon.fileText}><BadgeList values={item.report_deliverables} empty="Contact the service for report deliverables." /></DetailCard>
-      <DetailCard title="Specimen requirements" icon={appIcon.package}><BadgeList values={item.input_material} empty="Contact the service for specimen requirements." /></DetailCard>
-      <DetailCard title="Methodology" icon={appIcon.microscope}>{item.methodology || familyLabels[item.family] || item.family}</DetailCard>
-      <DetailCard title="Analytical limitations" icon={appIcon.shieldCheck}>{item.limitations ? <HtmlText html={item.limitations} /> : "Contact the service for analytical limitations."}</DetailCard>
-    </div>
-    <DetailCard title="Ordering information" icon={appIcon.fileText}><p className="whitespace-pre-wrap">{item.ordering_information || "Contact the center for eligibility and submission instructions."}</p></DetailCard>
   </article>
 }

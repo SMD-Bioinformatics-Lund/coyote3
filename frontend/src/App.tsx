@@ -49,6 +49,7 @@ const AdminIngestPage = lazy(() => import("./pages/admin/AdminIngestPage").then(
 const AdminSchemasPage = lazy(() => import("./pages/admin/AdminSchemasPage"))
 const DemoInstallationPage = lazy(() => import("./pages/admin/DemoInstallationPage"))
 const PublicCatalog = lazy(() => import("./pages/catalog/PublicCatalogPage").then((module) => ({ default: module.PublicCatalog })))
+const PublicCatalogCompare = lazy(() => import("./pages/catalog/PublicCatalogComparePage").then((module) => ({ default: module.PublicCatalogCompare })))
 const PublicCatalogMatrix = lazy(() => import("./pages/catalog/PublicCatalogMatrixPage").then((module) => ({ default: module.PublicCatalogMatrix })))
 const TieredVariantContext = lazy(() => import("./pages/search/TieredVariantContext").then((module) => ({ default: module.TieredVariantContext })))
 const TieredVariantSearch = lazy(() => import("./pages/search/TieredVariantSearch").then((module) => ({ default: module.TieredVariantSearch })))
@@ -165,6 +166,7 @@ export default function App() {
             <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
             <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
             <Route path="/public/catalog" element={withModule(<PublicCatalog />, "assay_catalog")} />
+            <Route path="/public/catalog/compare" element={withModule(<PublicCatalogCompare />, "assay_catalog")} />
             <Route path="/public/matrix" element={withModule(<PublicCatalogMatrix />, "assay_catalog")} />
             <Route path="/public/genelists/:genelistId/view" element={withModule(<PublicGenelistPage />, "assay_catalog")} />
             <Route path="/public/asp/:aspId/genes" element={withModule(<PublicAspGenesPage />, "assay_catalog")} />
