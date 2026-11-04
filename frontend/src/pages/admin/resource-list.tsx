@@ -277,12 +277,20 @@ export function fieldLabel(key: string, field?: FormField) {
   return field?.label || titleize(key)
 }
 
-export function parseCellValue(value: string) {
+/** Decode complete JSON containers while preserving unfinished cell text for editing. */
+export function parseCellValue(value: string): unknown {
   const trimmed = value.trim()
   if (!trimmed) return ""
   if (trimmed === "true") return true
   if (trimmed === "false") return false
   if (!Number.isNaN(Number(trimmed)) && /^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed)
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed) as unknown
+    } catch {
+      return trimmed
+    }
+  }
   return trimmed
 }
 

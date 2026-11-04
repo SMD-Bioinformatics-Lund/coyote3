@@ -4,9 +4,42 @@ import { useState } from "react"
 import userEvent from "@testing-library/user-event"
 import { AdminManagedForm } from "./AdminManagedForm"
 import { FormControl } from "./FormControl"
+import { parseCellValue, submitPayload } from "./resource-list"
 import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it.each([
+    { text: "[101, 202]", value: [101, 202] },
+    { text: "[]", value: [] },
+    { text: '{"positions":[101,202]}', value: { positions: [101, 202] } },
+    { text: "[101,", value: "[101," },
+    { text: "{unfinished", value: "{unfinished" },
+    { text: "Reference text", value: "Reference text" },
+    { text: "true", value: true },
+    { text: "0.05", value: 0.05 },
+  ])("preserves JSON cell types and unfinished text: $text", ({ text, value }) => {
+    expect(parseCellValue(text)).toEqual(value)
+  })
+
+  it("submits pasted verification positions as integer lists while retaining other samples", () => {
+    const field: FormField = { label: "Verification Samples", data_type: "json", display_type: "jsoneditor" }
+    const form: FormSpec = { fields: { verification_samples: field } }
+    let submitted: unknown
+    function VerificationForm() {
+      const [values, setValues] = useState<Record<string, unknown>>({
+        verification_samples: { SYNTHETIC_A: [101, 202], SYNTHETIC_B: [303] },
+      })
+      return <><FormControl name="verification_samples" field={field}
+        value={values.verification_samples} mode="edit"
+        onChange={next => setValues({ verification_samples: next })} />
+        <button onClick={() => { submitted = submitPayload(form, values, "edit") }}>Save sample lists</button></>
+    }
+    render(<VerificationForm />)
+    fireEvent.change(screen.getAllByPlaceholderText("Value")[0], { target: { value: "[404, 505]" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save sample lists" }))
+    expect(submitted).toEqual({ verification_samples: { SYNTHETIC_A: [404, 505], SYNTHETIC_B: [303] } })
+  })
+
   it.each([
     { type: "int", value: 5, step: undefined, next: 6 },
     { type: "int", value: 100, step: undefined, next: 101 },

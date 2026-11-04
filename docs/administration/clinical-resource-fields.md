@@ -57,10 +57,14 @@ the actual rules used; no ASPC update is needed to adopt a new rule publication.
 | `filters` | Required; no universal filter object | [DNA/RNA field defaults](../reference/filter-profile-fields.md); initializes sample filters at ingest. |
 | `reporting` | Required | Report content configuration; detailed below. |
 | `use_diagnosis_genelist` | Optional; `false` | Enables the diagnosis-dependent gene-list behavior. |
-| `verification_samples` | Optional; `{}` | Configured verification references; an empty map supplies none. |
+| `verification_samples` | Optional mapping of sample names to lists of integer positions; `{}` | Configured verification references; an empty map supplies none. |
 | `description`, `reference_genome`, `platform` | Optional; null | Configuration metadata; applicable vocabulary and compatibility checks remain enforced. |
 | `catalog.is_public` | Defaults to `true` | Visibility eligibility only; does not publish a catalog entry. |
 | `is_active` | Contract default `true` | Active configuration must satisfy the relevant workflow checks. |
+
+In **Verification Samples**, enter the sample name in the key cell and a JSON list
+of integer genomic positions in its value cell, for example `[101, 202]`. Enter
+the list without surrounding quotation marks. Each sample has its own row.
 
 ### Reporting fields
 
