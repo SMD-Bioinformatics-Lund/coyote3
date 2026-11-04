@@ -41,6 +41,8 @@ and configuration, then **Copy staged configuration as new**. Both open the crea
 form for review without saving or changing the source. Select a new target scope;
 the target assay must already be activated. Draft sources require assay list/view
 permissions in addition to configuration create permission.
+If the source draft changes while selecting a configuration, select it again
+before copying; a saved selection cannot silently switch to another entry.
 
 Analysis intents use checkboxes alongside enabled analyses. DNA supports somatic
 and germline SNV review; RNA supports somatic analysis. Gene lists contain one
@@ -49,7 +51,7 @@ sample's pinned assay germline genes.
 
 ![Assay setup and resource dependencies](../assets/diagrams/assay-configuration-relationships.svg)
 
-The diagram separates shared definitions, operational configuration, setup approval,
+The diagram separates shared definitions, operational configuration, setup activation,
 and catalog publication. Follow the steps below to create a new assay.
 
 For the meaning, requirements and defaults of individual ASP, ASPC and ISGL fields,
@@ -132,7 +134,8 @@ shared resources may be reused when their scope and clinical content are suitabl
 
 ### 1. Confirm authors, reviewers and the active group
 
-Have an authorized setup author and a different qualified reviewer available.
+Have an authorized setup author available. If requesting optional review, choose
+a different qualified colleague who has not edited the setup.
 Use the permissions table below; a clinical-rule reviewer/publisher also needs the
 permissions for that separate workflow. Assign role permissions and assay/group/
 environment access separately. A role name alone does not grant clinical scope.
@@ -154,6 +157,10 @@ must reject ingest. Select only implemented file/analysis combinations.
 family. It is read-only; for example, `panel-dna` determines `dna`.
 Saving diagnoses and environments advances to **Gene lists**. Use **Next** for
 the remaining steps after saving any open gene-list or configuration editor.
+Step changes, saved-setup changes, in-app links, browser Back/Forward and editor cancellation prompt before discarding
+unsaved form edits. Browser reload/close prompts while an edited form is unsaved.
+The setup refreshes after acquiring its edit session, then keeps the loaded form
+when browser focus changes. A failed load has a **Retry loading setup** action.
 
 This saved draft reserves the assay identity and makes it available to the rule
 builder. It is not yet an operational ASP; creating it does not enable ingest.
@@ -168,11 +175,16 @@ named diagnoses have been associated with the assay.
 In the setup's **Gene lists** step, **Existing gene lists** searches the full
 registry, including unassigned lists. Link suitable active, center-owned lists
 or create new lists in the staged workspace. Existing-list selections are saved
-in `existing_gene_list_ids`; they do not alter operational lists until independent
-approval and activation. Activation updates each selected list's `asp_ids` and
+in `existing_gene_list_ids`; they do not alter operational lists until
+activation. Activation updates each selected list's `asp_ids` and
 `asp_groups` in the same transaction as the new assay and configurations. The old
 list revision remains in history; genes and original creation attribution are retained.
-If a selected list changes after submission, the setup requires a new review.
+If a selected list changes after submission, return the setup to draft and recheck it.
+Selected list identifiers have removal controls even when a list is absent from
+the current search results or has become inactive. Removing a selection only
+updates the setup draft; it does not delete or modify the operational list.
+**Clear selected lists** removes all staged links, including when the editor lacks
+permission to modify operational gene lists.
 
 For an already registered assay, open **Admin > Assays > Edit > Existing gene lists**
 to link or unlink a list. You can also edit **Assays** on the gene-list page.
@@ -204,10 +216,10 @@ before the assay. Return to setup and select **Refresh diagnosis definitions**,
 then select the scope. Activation creates the draft assay's association; a shared
 definition by itself does not configure every assay.
 
-Only **Base / production** requires an ASPC before approval. Selecting additional
+Only **Base / production** requires an ASPC before activation. Selecting additional
 diagnoses or environments does not require every combination to be configured.
 You can add these configurations later from **Assay Configurations**. Any optional
-configurations included in the setup must still pass validation before approval.
+configurations included in the setup must still pass validation before activation.
 
 ### 4. Prepare the gene lists that filters will select
 
@@ -263,15 +275,24 @@ The configuration cannot substitute for an absent file declaration or publish a 
 
 ### 7. Review, submit and activate
 
-Open **Review**, resolve every readiness error, and select **Submit for review**.
-A qualified reviewer who did not edit the setup reviews its content and chooses
-**Approve and activate**, or **Return for changes** with a reason. Saving or
-submitting the draft alone does not activate it.
+Open **Review**, resolve every readiness error, and select **Publish and activate**.
+Review is optional: an authorized content editor may activate a valid setup directly,
+including one already submitted. To ask a colleague to check it first, select
+**Reviewer for optional review**, then **Submit for review**. The selector lists
+active users whose active roles grant setup visibility and activation permissions,
+including shared-list edit permission when needed; content editors are excluded.
+Saving or submitting alone does not activate the assay. Submitted setups show
+their assigned reviewer in **Saved setups**. A linked in-app review request is
+delivered to that user through the committed audit/activity pipeline. Delivery can
+be delayed when the maintenance queue is unavailable; it does not undo submission.
 
 Activation rechecks dependency versions and atomically creates the ASP, named
 diagnosis associations, staged ISGLs and ASPCs. If a dependency changed after
-submission, return the setup, review the new values and submit again. Rule
-publication remains a separate operation; setup approval does not publish rules.
+submission, return the setup to draft and recheck the new values before publishing
+or submitting again. Rule publication remains a separate operation; setup activation
+does not publish rules.
+After publication, use **View activated assay** or **Manage assay configurations**
+to continue maintenance and add optional configurations, subject to permissions.
 
 ### 8. Verify with a representative validation sample
 
@@ -321,7 +342,7 @@ and use **Refresh reporting rules**.
 
 Clinical rules use their own approval/publication process. They may be published
 before or after setup activation; missing rules produce a warning rather than
-blocking activation. Setup approval does not publish or modify clinical-rule content.
+blocking activation. Setup activation does not publish or modify clinical-rule content.
 An ASPC supplies the reporting language. Its exact diagnosis release is selected
 automatically, with assay Base used only when no exact published release exists.
 The analyte and declared analyses must match the configuration. Publishing a new
@@ -334,19 +355,24 @@ activation; only the catalog workflow controls public presentation and publicati
 
 1. Complete and save the selected configurations.
 2. Open **Review** and resolve readiness errors.
-3. Choose **Submit for review**. Submitted content becomes read-only.
-4. A qualified user who has not edited the content opens the saved setup.
-5. The reviewer selects **Approve and activate**, or enters review notes and
-   selects **Return for changes**.
+3. Choose **Publish and activate** to activate directly, or **Submit for review**
+   after selecting a reviewer for an optional colleague review. Submitted content becomes read-only.
+4. The assigned colleague can open the saved setup, review it,
+   and select **Approve and activate**, or **Return for changes** with a reason.
+   Content editors can also **Publish and activate**, or **Return to draft** with a reason.
 
 Returning a setup restores draft editing and preserves the submitted revision.
-Content editors, including the creator, cannot approve that setup. Published
-setup snapshots cannot be edited. Subsequent changes use the individual resource
+Review and author/reviewer independence are not prerequisites for assay activation.
+The assigned colleague is recorded in `reviewed_by` only when they activate the
+submitted setup. Other authorized publication is recorded as **Published without review**.
+Returning to draft clears the assignment; its previous value remains in revision history.
+Published setup snapshots cannot be edited. Subsequent changes use the individual resource
 administration pages.
 
 Activation revalidates configurations and checks the versions of published rules,
-shared diagnoses and available shared gene lists against the submitted review.
-A dependency change requires returning the setup and submitting it again.
+shared diagnoses and available shared gene lists. For submitted setups it also
+checks the dependency snapshot taken at submission. A dependency change requires
+returning the setup to draft and rechecking before publication or resubmission.
 Stale saves and concurrent publication attempts return a conflict.
 
 The ASP, named diagnosis associations, newly staged gene lists, ASPCs, published
@@ -368,15 +394,18 @@ publication commits cannot leave a partially activated setup.
 | Inspect a setup | `assay.panel:view` |
 | Open a new form | `assay.panel:create` |
 | Create a draft | `assay.panel:create`, `assay.config:create`, `gene_list.insilico:create` |
-| Save, submit, approve and activate | All three creation permissions plus `assay.panel:edit` |
-| Return for changes | `assay.panel:edit` and independence from content editors |
+| Save, submit, publish and activate | All three creation permissions plus `assay.panel:edit` |
+| Return to draft / return for changes | `assay.panel:edit` |
 
 The UI requires assay list and view access. Editing requires the creation
 permissions and assay edit permission. Clinical-rule actions retain their own
 permissions.
+Activating a setup that links existing shared gene lists additionally requires
+`gene_list.insilico:edit`; saving a draft that retains those links requires it too.
+The UI explains this and keeps those edits and activation disabled without it.
 
-An independent reviewer with `assay.panel:edit` can return a submitted setup
-with a reason even without the creation permissions. Approval and activation
+A user with `assay.panel:edit` can return a submitted setup
+with a reason even without the creation permissions. Publication and activation
 require all the creation permissions as well. Review notes are specific to the
 selected setup and are cleared when switching workspaces.
 
@@ -397,6 +426,9 @@ PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 
 Apply indexes before starting an API configured to verify index contracts. No
 existing ASP backfill or clinical data migration is required.
+The optional-review request now requires `assignee` on submission. Existing submitted
+setups without an assignment can still be published directly, or returned to draft
+to select a reviewer. Optional `reviewer` and `reviewed_by` fields need no backfill.
 
 Mutations attach traceability audit metadata with the setup identifier, assay
 identifier and revision. The workspace displays revision history; full historical

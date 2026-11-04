@@ -63,16 +63,20 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
         const protectedList = row.system_installed || row.system_managed
         return <li key={row.isgl_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
           <span title={row.displayname}><span className="block font-semibold">{row.name || row.displayname || row.isgl_id}</span><span className="type-meta text-muted-foreground">{row.isgl_id}</span></span>
-          <Button size="sm" variant="outline" disabled={!canEdit || pending || mutation.isPending || !row.is_active || protectedList}
+          <Button size="sm" variant="outline" disabled={!canEdit || pending || mutation.isPending || ((!row.is_active || protectedList) && !(onChange && linked))}
             onClick={() => onChange ? onChange(linked ? (selected || []).filter((id) => id !== row.isgl_id) : [...(selected || []), row.isgl_id]) : mutation.mutate(row)}>
-            {protectedList ? "System managed" : !row.is_active ? "Inactive" : linked ? "Unlink" : "Link"}
+            {onChange && linked ? "Unlink" : protectedList ? "System managed" : !row.is_active ? "Inactive" : linked ? "Unlink" : "Link"}
           </Button>
         </li>
       })}</ul>
-      {selected && selected.length > 0 && <p className="type-body-sm">Selected: {selected.join(", ")}</p>}
       <div className="flex items-center gap-2"><Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous lists</Button>
         <span className="type-meta">Page {page}</span><Button variant="ghost" size="sm" disabled={!registry.data?.pagination.has_next} onClick={() => setPage(page + 1)}>Next lists</Button></div>
       {hasPermission(access.data, "gene_list.insilico:list") && <Link className="type-body-sm text-primary underline" to="/admin/genelists">Manage gene lists</Link>}
     </>}
+    {selected && selected.length > 0 && <div className="space-y-2">
+      <p className="type-body-sm">Selected: {selected.join(", ")}</p>
+      {onChange && <Button size="sm" variant="outline" disabled={readonly || pending || mutation.isPending} onClick={() => onChange([])}>Clear selected lists</Button>}
+      {onChange && <div className="flex flex-wrap gap-2">{selected.map(id => <Button key={id} size="sm" variant="outline" className="h-auto min-h-7 min-w-0 max-w-full whitespace-normal" disabled={!canEdit || pending || mutation.isPending} aria-label={`Remove selected gene list ${id}`} onClick={() => onChange(selected.filter(value => value !== id))}><span className="min-w-0 break-all">{id}</span> ×</Button>)}</div>}
+    </div>}
   </section>
 }

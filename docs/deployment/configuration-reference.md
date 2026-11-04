@@ -599,7 +599,7 @@ clinical logic.
 
 Use **Admin > Assay setup** for a new assay. Base is selected by default; named
 scopes are optional. The [setup workflow](../administration/assay-setup.md) stages
-the ASP, gene lists and configurations for independent review before activation.
+the ASP, gene lists and configurations for validation and optional review before activation.
 
 Create shared scopes under **Admin > Diagnosis definitions**, then manage each
 assay's availability under **Admin > Assay diagnosis associations**. See

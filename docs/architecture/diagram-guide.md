@@ -26,7 +26,7 @@ are lookup aids; use the focused diagrams above while following a procedure.
 | Diagram | Explains | Detailed reference |
 | --- | --- | --- |
 | [Clinical resources](../assets/diagrams/collection-relationships.svg) | ASP, ASPC, optional ISGLs, samples, findings, review state, and saved reports. | [Resource relationships](resource-relationships.md) |
-| [Assay configuration](../assets/diagrams/assay-configuration-relationships.svg) | Groups, shared diagnoses, assay associations, setup approval, and catalog publication. | [Assay setup](../administration/assay-setup.md) |
+| [Assay configuration](../assets/diagrams/assay-configuration-relationships.svg) | Groups, shared diagnoses, assay associations, setup activation, and catalog publication. | [Assay setup](../administration/assay-setup.md) |
 | [Identity and access](../assets/diagrams/identity-access-relationships.svg) | Users, roles, permissions, sessions, user scope, audit, and notifications. | [Security model](security-model.md) |
 | [Database resource map](../assets/diagrams/database-resource-map.svg) | All configured collection families across primary, identity, knowledgebase, and BAM services. | [MongoDB topology](mongodb-topology.md) |
 | [Runtime topology](../assets/diagrams/runtime-topology.svg) | Proxy, frontend, API, workers, Redis, storage, and integrations. | [Application architecture](application-architecture.md) |

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { Outlet, useParams } from "react-router-dom"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("./lib/runtime-paths", () => ({ APP_BASENAME: "" }))
 vi.mock("./components/layout/Layout", () => ({ Layout: () => <main data-testid="layout"><Outlet /></main> }))
@@ -46,12 +46,17 @@ vi.mock("./pages/static/NotFoundPage", () => ({
   NotFoundPage: () => <div>Not found page</div>,
 }))
 
-import App from "./App"
+import App, { createAppRouter } from "./App"
 import { ADMIN_UTILITY_PERMISSIONS } from "./lib/access-control"
+
+const routers: ReturnType<typeof createAppRouter>[] = []
+afterEach(() => { for (const router of routers.splice(0)) router.dispose() })
 
 function navigate(path: string) {
   window.history.replaceState({}, "", path)
-  return render(<App />)
+  const router = createAppRouter()
+  routers.push(router)
+  return render(<App router={router} />)
 }
 
 describe("App route wiring", () => {

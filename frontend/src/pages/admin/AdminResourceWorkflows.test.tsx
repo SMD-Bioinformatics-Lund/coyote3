@@ -81,7 +81,7 @@ function renderResource(resource: string, children?: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/admin/${resource}`]}>
         <Routes>
@@ -91,6 +91,7 @@ function renderResource(resource: string, children?: ReactNode) {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, queryClient }
 }
 
 function renderEditor(resource: string, mode: "create" | "edit" | "view", id = "", copiedDocument?: Record<string, unknown>) {
@@ -441,7 +442,7 @@ describe("Managed admin resource workflows", () => {
   it("copies a staged RNA configuration without saving or changing the source draft", async () => {
     mocks.get.mockImplementation(async (url: string) => ({ data:
       url === "/admin/assay-setups" ? { items: [{ _id: "setup-1", asp_id: "rna-assay", status: "draft" }, { _id: "published", asp_id: "old-assay", status: "published" }] } :
-      url === "/admin/assay-setups/setup-1/context" ? { setup: { status: "draft", content: { panel: { asp_id: "rna-assay", asp_category: "rna" }, configurations: [{ display_name: "Staged fusion", diagnosis_id: "base", environment: "production", aspc_id: "old-id", verification_samples: { synthetic: [123] } }] } } } :
+      url === "/admin/assay-setups/setup-1/context" ? { setup: { status: "draft", revision: 1, content: { panel: { asp_id: "rna-assay", asp_category: "rna" }, configurations: [{ display_name: "Staged fusion", diagnosis_id: "base", environment: "production", aspc_id: "old-id", verification_samples: { synthetic: [123] } }] } } } :
       url.includes("create_context") ? { form: { fields: { aspc_id: { label: "Identifier", display_type: "input" }, display_name: { label: "Display name", display_type: "input" } } } } : { assay_configs: [] } }))
     const user = userEvent.setup()
     renderResource("aspc", <AssayConfigurationEditorPage mode="create" />)
@@ -466,6 +467,23 @@ describe("Managed admin resource workflows", () => {
     expect(await screen.findByRole("link", { name: "Create" })).toBeVisible()
     expect(screen.queryByRole("button", { name: "Copy from setup draft" })).not.toBeInTheDocument()
     expect(mocks.get).not.toHaveBeenCalledWith("/admin/assay-setups")
+  })
+
+  it("requires selecting a configuration again if the source draft revision changes", async () => {
+    const original = { setup: { status: "draft", revision: 1, content: { panel: { asp_id: "synthetic" }, configurations: [{ display_name: "Original", environment: "production" }] } } }
+    mocks.get.mockImplementation(async (url: string) => ({ data: url === "/admin/assay-setups" ? { items: [{ _id: "setup-1", asp_id: "synthetic", status: "draft" }] } : url === "/admin/assay-setups/setup-1/context" ? original : { assay_configs: [] } }))
+    const user = userEvent.setup()
+    const { queryClient } = renderResource("aspc")
+    await user.click(screen.getByRole("button", { name: "Copy from setup draft" }))
+    await user.click(await screen.findByRole("combobox", { name: "Source setup draft" }))
+    await user.click(await screen.findByRole("option", { name: "synthetic" }))
+    await user.click(await screen.findByRole("combobox", { name: "Source staged configuration" }))
+    await user.click(await screen.findByRole("option", { name: "Original · base / production" }))
+    expect(screen.getByRole("link", { name: "Copy staged configuration as new" })).toBeVisible()
+    await act(async () => { queryClient.setQueryData(["assay-setup-context", "setup-1"], { setup: { ...original.setup, revision: 2, content: { ...original.setup.content, configurations: [{ display_name: "Different configuration", environment: "testing" }] } } }) })
+    await waitFor(() => expect(screen.queryByRole("link", { name: "Copy staged configuration as new" })).not.toBeInTheDocument())
+    expect(screen.getByRole("combobox", { name: "Source staged configuration" })).toHaveTextContent("Choose a configuration")
+    expect(screen.getByText("The source draft changed. Choose a configuration again.")).toBeVisible()
   })
 
   it("offers retry after setup draft loading fails and handles an empty result", async () => {

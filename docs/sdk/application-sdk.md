@@ -71,7 +71,7 @@ API majors have separate ownership; there is no extra interface-generation count
 | `application.users`, `application.roles`, `application.permissions` | Account/access administration, form context, identity checks and lifecycle changes. Account assignment changes require their dedicated grants. |
 | `application.assays`, `application.assay_groups`, `application.diagnoses` | Assay definitions, biological groups, shared diagnoses and assay associations. |
 | `application.assay_configurations`, `application.gene_lists` | Configuration and gene-list authoring, inspection and lifecycle changes. |
-| `application.assay_setups` | Draft setup, validation, submission, independent publication and unpublished deletion. |
+| `application.assay_setups` | Draft setup, validation, optional review submission, publication and unpublished deletion. |
 | `application.editing` | Acquire, renew and release [document editing sessions](../administration/document-editing.md) before changing existing records. |
 | `application.catalog_authoring` | Catalog workspace, revisions, previews, drafts, assignment, review and publication. |
 | `application.sample_administration` | Privileged sample catalog, edit context, updates and deletion. |

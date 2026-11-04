@@ -80,7 +80,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.
 <rect x="32" y="648" width="4" height="104" rx="2" fill="var(--purple)"/>
 <text x="52" y="664" class="heading">Activate the assay setup</text>
 <text x="52" y="695" class="body">Validate configurations and required resources.</text>
-<text x="52" y="720" class="body">Independent review precedes activation.</text>
+<text x="52" y="720" class="body">Review is optional before activation.</text>
 <text x="52" y="745" class="body">Reporting-rule publication is optional.</text>
 </g>
 <g>

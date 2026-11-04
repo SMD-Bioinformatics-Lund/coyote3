@@ -611,14 +611,14 @@ ISGL means an analysis-specific in-silico gene list.
 
 | Order | Action in the application | Required result before continuing |
 | --- | --- | --- |
-| 1 | Assign the setup author, independent reviewer and clinical-rule roles/scopes. | Distinct eligible people can author and approve the setup and rules. A user cannot approve setup content they edited. |
+| 1 | Assign setup administration and clinical-rule roles/scopes. | Setup review is optional; authorized authors can activate directly. Clinical-rule publication retains its independent review requirements. |
 | 2 | Create or select an active assay group. | The assay's parent group exists and is available. Reuse an existing suitable group. |
 | 3 | Create and save the **Assay** step in Assay setup. | Stable ASP ID, group, DNA/RNA category, family, covered genes and expected/required input files are defined. This is a draft, not an ingest-ready ASP. |
 | 4 | Select **Scopes** and target environments. | Base is included automatically. Register/reuse any active named diagnosis definitions, refresh them and select the needed scopes. Their assay associations are created at activation. |
 | 5 | Prepare **Gene lists** if filters will select them. | Each selected ISGL has the correct type, genes and assay/group/scope bindings. Leave this step empty if no list is required. |
 | 6 (optional) | Use **Open rule builder** to author, test, review and publish automatic report wording. | If publishing, use a compatible assay/scope/analyte/language release and refresh rules in setup. If omitted, reports remain available without automatic summary text, with a warning. |
 | 7 | Save the **Base / production** configuration. Other combinations are optional. | Each supplied ASPC must have supported analyses, valid filters, eligible selected lists and compatible report settings. Other configurations can be added later from **Assay Configurations**. |
-| 8 | Resolve **Review** readiness errors and submit. Have the independent reviewer approve and activate. | Operational ASP, associations, staged ISGLs and ASPCs are committed together. Merely saving/submitting a draft does not enable ingest. |
+| 8 | Resolve **Review** readiness errors and **Publish and activate**, or submit for optional colleague review. | Operational ASP, associations, staged ISGLs and ASPCs are committed together. Merely saving/submitting a draft does not enable ingest. |
 | 9 | Verify user access and ingest an approved validation sample. | The intended ASPC resolves; evidence, tabs, gene filters, report preview, saved report and audit records behave as approved. Review any Base-fallback warning. |
 | 10 | Publish public assay catalog content if needed. | The separate catalog approval workflow exposes the offering. It is not required to activate the assay or review its samples. |
 

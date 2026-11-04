@@ -157,7 +157,7 @@ The individual resource pages remain available for existing assays.
 3. Stage gene lists and prepare compatible published reporting rules for the intended scope.
 4. Stage each required ASPC. Both its diagnosis selector and the clinical-rule creation selector
    offer Base by default and list active definitions belonging to the selected ASP.
-5. Submit the setup for independent review and activation, then configure public
+5. Validate and activate the setup, with optional review, then configure public
    catalog presentation through its separate publication workflow.
 
 Registering a diagnosis does not create gene lists, clinical rules, an ASPC, or public

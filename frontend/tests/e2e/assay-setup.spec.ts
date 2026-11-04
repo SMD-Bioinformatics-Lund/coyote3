@@ -94,7 +94,7 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
         return { json: { assay_configs: [] } }
       }
       if (path === "/api/v1/admin/assay-setups") return { json: { items: [{ _id: "setup-1", asp_id: "synthetic", status: "draft" }] } }
-      if (path === "/api/v1/admin/assay-setups/setup-1/context") return { json: { setup: { status: "draft", content: {
+      if (path === "/api/v1/admin/assay-setups/setup-1/context") return { json: { setup: { status: "draft", revision: 1, content: {
         panel: { asp_id: "synthetic", asp_category: "rna" },
         configurations: [{ aspc_id: "old", display_name: "Synthetic fusion", diagnosis_id: "base", environment: "production", verification_samples: { SYNTHETIC_A: [101, 202] } }],
       } } } }
@@ -123,5 +123,134 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
     await page.getByLabel("Environment", { exact: true }).fill("testing")
     await page.getByRole("button", { name: "Save", exact: true }).first().click()
     await expect.poll(() => writes).toEqual([{ config: { asp_id: "synthetic", diagnosis_id: "base", environment: "testing", display_name: "Synthetic fusion", verification_samples: { SYNTHETIC_A: [101, 202] } } }])
+  })
+}
+
+for (const [theme, width, initialStatus] of [["light", 1440, "draft"], ["dark", 390, "draft"], ["light", 1024, "submitted"]] as const) {
+  test(`author activates ${initialStatus} without mandatory review in ${theme} at ${width}px`, async ({ page }, testInfo) => {
+    const actions: string[] = []
+    let setup = {
+      _id: "setup-1", asp_id: "synthetic", status: initialStatus as string, revision: 1,
+      created_by: "synthetic-author", content_editors: ["synthetic-author"],
+      content: { panel: { asp_id: "synthetic", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["production"], gene_lists: [], configurations: [{ diagnosis_id: "base", environment: "production", display_name: "Synthetic production" }] },
+    }
+    await installApiFixtures(page, (path, _url, route) => {
+      if (path.endsWith("/auth/whoami")) return { json: { username: "synthetic-author", roles: ["superuser"], permissions: [], ui_settings: { theme } } }
+      if (path === "/api/v1/admin/assay-setups") return { json: { items: [setup] } }
+      if (path === "/api/v1/admin/assay-setups/setup-1/context") return { json: {
+        setup, panel_form: { fields: { display_name: { label: "Display name", display_type: "input" } } },
+        diagnoses: [], environments: ["production"], history: [], readiness: { ready: true, issues: [] },
+      } }
+      if (path.startsWith("/api/v1/admin/assay-setups/setup-1/") && route.request().method() === "POST") {
+        actions.push(path.split("/").at(-1)!)
+        expect(route.request().postDataJSON()).toEqual({ revision: 1, reason: "" })
+        setup = { ...setup, status: "published", revision: 2 }
+        return { json: setup }
+      }
+    })
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto("/admin/assay-setups?setup=setup-1")
+    if (initialStatus === "draft") {
+      const field = page.getByLabel("Display name", { exact: true })
+      await expect(field).toBeEditable()
+      await field.fill("Unsaved synthetic name")
+      await page.getByRole("button", { name: "6. Review", exact: true }).click()
+      const discard = page.getByRole("alertdialog", { name: "Discard unsaved changes?" })
+      await expect(discard).toBeVisible()
+      await page.screenshot({ path: testInfo.outputPath(`unsaved-dialog-${theme}-${width}.png`), fullPage: true })
+      await discard.getByRole("button", { name: "Keep editing" }).click()
+      await expect(field).toHaveValue("Unsaved synthetic name")
+      await page.getByRole("button", { name: "6. Review", exact: true }).click()
+      await discard.getByRole("button", { name: "Discard changes" }).click()
+    } else {
+      await page.getByRole("button", { name: "6. Review", exact: true }).click()
+    }
+    await expect(page.getByText("Ready for activation", { exact: true })).toBeVisible()
+    const publish = page.getByRole("button", { name: "Publish and activate", exact: true })
+    await expect(publish).toBeEnabled()
+    if (initialStatus === "draft") await expect(page.getByRole("button", { name: "Submit for review", exact: true })).toBeDisabled()
+    expect(actions).toEqual([])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    await page.screenshot({ path: testInfo.outputPath(`optional-review-${initialStatus}-${theme}-${width}.png`), fullPage: true })
+    await publish.focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByText("Assay setup published. Manage subsequent changes from the individual resource pages.", { exact: true })).toBeVisible()
+    expect(actions).toEqual(["publish"])
+    await expect(publish).toHaveCount(0)
+  })
+}
+
+for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
+  test(`history protection and assigned review complete in ${theme} at ${width}px`, async ({ page }, testInfo) => {
+    let actor = "synthetic-author"
+    const actions: string[] = []
+    let setup = {
+      _id: "setup-1", asp_id: "synthetic", revision: 1, status: "draft",
+      created_by: "synthetic-author", content_editors: ["synthetic-author"],
+      reviewer: null as string | null, reviewed_by: null as string | null,
+      published_by: null as string | null,
+      content: { panel: { asp_id: "synthetic", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["production"], existing_gene_list_ids: [], gene_lists: [], configurations: [] },
+    }
+    const panelForm = { fields: { display_name: { label: "Display name", display_type: "input" } } }
+    await installApiFixtures(page, (path, _url, route) => {
+      if (path.endsWith("/auth/whoami")) return { json: { username: actor, roles: ["superuser"], permissions: [], ui_settings: { theme } } }
+      if (path === "/api/v1/admin/assay-setups") return { json: { items: [setup] } }
+      if (path === "/api/v1/admin/assay-setups/context") return { json: { panel_form: panelForm, diagnoses: [], environments: ["production"] } }
+      if (path === "/api/v1/admin/assay-setups/setup-1/context") return { json: { setup, panel_form: panelForm, diagnoses: [], environments: ["production"], reviewers: [{ username: "colleague", name: "Synthetic reviewer" }], readiness: { ready: true, issues: [] }, history: [] } }
+      if (path === "/api/v1/admin/assay-setups/setup-1/submit") {
+        expect(route.request().postDataJSON()).toEqual({ revision: 1, reason: "", assignee: "colleague" })
+        actions.push("submit")
+        setup = { ...setup, revision: 2, status: "submitted", reviewer: "colleague" }
+        return { json: setup }
+      }
+      if (path === "/api/v1/admin/assay-setups/setup-1/publish") {
+        expect(route.request().postDataJSON()).toEqual({ revision: 2, reason: "" })
+        actions.push("publish")
+        setup = { ...setup, revision: 3, status: "published", reviewed_by: actor, published_by: actor }
+        return { json: setup }
+      }
+    })
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto("/admin/assay-setups?setup=setup-1")
+    await expect(page.getByLabel("Display name", { exact: true })).toBeEditable()
+    await page.getByRole("button", { name: "New assay setup", exact: true }).click()
+    await expect(page).toHaveURL(/setup=new$/)
+    await page.getByLabel("Display name", { exact: true }).fill("Unsaved new assay")
+    const dialog = page.getByRole("alertdialog", { name: "Discard unsaved changes?" })
+    await page.goBack()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "Keep editing" }).click()
+    await expect(page).toHaveURL(/setup=new$/)
+    await expect(page.getByLabel("Display name", { exact: true })).toHaveValue("Unsaved new assay")
+    await page.goBack()
+    await dialog.getByRole("button", { name: "Discard changes" }).click()
+    await expect(page).toHaveURL(/setup=setup-1$/)
+    await expect(page.getByLabel("Display name", { exact: true })).toBeEditable()
+    await page.getByLabel("Display name", { exact: true }).fill("Unsaved saved assay")
+    await page.goForward()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "Keep editing" }).click()
+    await expect(page).toHaveURL(/setup=setup-1$/)
+    await expect(page.getByLabel("Display name", { exact: true })).toHaveValue("Unsaved saved assay")
+    await page.goForward()
+    await dialog.getByRole("button", { name: "Discard changes" }).click()
+    await expect(page).toHaveURL(/setup=new$/)
+    await page.goBack()
+    await expect(page).toHaveURL(/setup=setup-1$/)
+    expect(actions).toEqual([])
+    await page.getByRole("button", { name: "6. Review", exact: true }).click()
+    await expect(page.getByRole("button", { name: "Submit for review", exact: true })).toBeDisabled()
+    await page.getByRole("combobox", { name: "Reviewer for optional review" }).click()
+    await page.getByRole("option", { name: "Synthetic reviewer (colleague)" }).click()
+    await page.getByRole("button", { name: "Submit for review", exact: true }).click()
+    await expect(page.getByText("Assigned reviewer:", { exact: false })).toContainText("colleague")
+    await page.screenshot({ path: testInfo.outputPath(`assigned-review-${theme}-${width}.png`), fullPage: true })
+    actor = "colleague"
+    await page.reload()
+    await page.getByRole("button", { name: "6. Review", exact: true }).click()
+    await page.getByRole("button", { name: "Approve and activate", exact: true }).click()
+    await expect(page.getByText("Reviewed by colleague", { exact: false })).toBeVisible()
+    expect(actions).toEqual(["submit", "publish"])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
   })
 }

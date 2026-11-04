@@ -70,7 +70,7 @@ administrator cannot compensate for a missing parent by entering an arbitrary id
 | 4 | ASP or saved assay setup draft | Active parent group | Assay identity, family, file policy and scopes. A saved setup draft can support rule authoring without an operational ASP. |
 | 5 | Named diagnosis scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
 | 6 | ISGLs and optional clinical rules | Eligible assay/group/scope for lists; rule drafts may use a planned assay ID, with a compatible registered scope before submission | These can be prepared in either order. Lists are optional unless selected; reporting rules can be added after setup. |
-| 7 | ASPCs and setup activation | One valid ASPC per selected scope/environment, eligible selected lists and independent setup review | Operational assay use. Missing report rules warn and omit automatic narrative; they do not block activation. |
+| 7 | ASPCs and setup activation | Required Base/production ASPC, valid supplied optional configurations and eligible selected lists; setup review is optional | Operational assay use. Missing report rules warn and omit automatic narrative; they do not block activation. |
 | 8 | Sample | Available assay/group, resolvable active ASPC and required files | Findings and clinical review. A missing named ASPC can resolve to Base in the same environment with a warning. |
 | 9 | Saved report | Ready sample, prepared findings and report permission; compatible published rules when automatic narrative is required | Historical report review and reported-finding cohort searches. Missing narrative does not remove result tables. |
 

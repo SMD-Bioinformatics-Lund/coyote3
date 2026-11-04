@@ -53,7 +53,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.
 <rect class="panel" x="160" y="550" width="800" height="110" rx="14" fill="var(--purple-soft)"/>
 <rect x="160" y="568" width="4" height="74" rx="2" fill="var(--purple)"/>
 <text x="180" y="584" class="heading">Setup review and activation</text>
-<text x="180" y="615" class="body">Validate required resources; independent review precedes activation.</text>
+<text x="180" y="615" class="body">Validate required resources; review before activation is optional.</text>
 <text x="180" y="640" class="body">Correct missing configuration and consistency errors before ingest.</text>
 </g>
 <path class="edge" d="M282 300 V335"/>

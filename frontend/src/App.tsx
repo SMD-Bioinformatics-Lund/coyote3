@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Suspense, lazy, type ReactNode } from "react"
-import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { createBrowserRouter, createRoutesFromElements, Outlet, Route, RouterProvider, useRouteError } from "react-router-dom"
+import { AppErrorBoundary } from "./components/errors/AppErrorBoundary"
 import { AdminPermissionBoundary } from "./components/admin/AdminPermissionBoundary"
 import { TablePreferencesProvider } from "./components/data-table/TablePreferencesProvider"
 import { AppLoader } from "./components/layout/AppLoader"
@@ -136,99 +137,110 @@ function withClinicalPermission(element: ReactNode, permission: string) {
   )
 }
 
-export default function App() {
+function RouteError(): never {
+  throw useRouteError()
+}
+
+export function createAppRouter() {
+  return createBrowserRouter(createRoutesFromElements(
+    <Route element={<Outlet />} errorElement={<AppErrorBoundary><RouteError /></AppErrorBoundary>}>
+      <Route path="/login" element={<Login />} />
+      <Route path="/change-password" element={withRouteLoader(<ChangePassword />)} />
+      <Route path="/forgot-password" element={withRouteLoader(<ForgotPassword />)} />
+      <Route path="/reset-password" element={withRouteLoader(<ResetPassword />)} />
+      <Route element={<TablePreferencesProvider><Layout /></TablePreferencesProvider>}>
+        <Route path="/" element={withRouteLoader(<Dashboard />)} />
+        <Route path="/samples" element={withClinicalPermission(<Samples />, "sample:view")} />
+        <Route path="/samples/:id" element={withClinicalPermission(<SampleDetail />, "sample:view")} />
+        <Route path="/samples/:id/variant/:varId" element={withClinicalPermission(withModule(<VariantDetail />, "dna_analysis"), "sample:view")} />
+        <Route path="/samples/:id/cnv/:varId" element={withClinicalPermission(withModule(<CNVDetail />, "dna_analysis"), "sample:view")} />
+        <Route path="/samples/:id/fusion/:varId" element={withClinicalPermission(withModule(<FusionDetail />, "rna_analysis"), "sample:view")} />
+        <Route path="/samples/:id/translocation/:varId" element={withClinicalPermission(withModule(<TranslocationDetail />, "dna_analysis"), "sample:view")} />
+        <Route path="/samples/:id/reports/:reportId" element={withClinicalPermission(withModule(<SavedReportPage />, "reports"), "report:view")} />
+        <Route path="/variants" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
+        <Route path="/variants/search" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
+        <Route path="/variants/gene-cohort" element={withClinicalPermission(withModule(<GeneCohortExplorer />, "variant_search"), "gene.annotation:view")} />
+        <Route path="/variants/reported/:variantId/:tier" element={withClinicalPermission(withModule(<TieredVariantContext />, "variant_search"), "gene.annotation:view")} />
+        <Route path="/reports" element={withClinicalPermission(withModule(<ReportsPage />, "reports"), "report:view")} />
+        <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
+        <Route path="/about" element={withRouteLoader(<AboutPage />)} />
+        <Route path="/about/vep" element={withRouteLoader(<VepReferencePage />)} />
+        <Route path="/knowledgebases" element={withModule(<KnowledgebaseDetails />, "knowledgebases")} />
+        <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
+        <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
+        <Route path="/public/catalog" element={withModule(<PublicCatalog />, "assay_catalog")} />
+        <Route path="/public/catalog/compare" element={withModule(<PublicCatalogCompare />, "assay_catalog")} />
+        <Route path="/public/matrix" element={withModule(<PublicCatalogMatrix />, "assay_catalog")} />
+        <Route path="/public/genelists/:genelistId/view" element={withModule(<PublicGenelistPage />, "assay_catalog")} />
+        <Route path="/public/asp/:aspId/genes" element={withModule(<PublicAspGenesPage />, "assay_catalog")} />
+        <Route path="/public/gene/:geneId/info" element={withModule(<GeneInfoPage />, "knowledgebases")} />
+        <Route path="/coverage/blacklisted/:group" element={withModule(<CoverageBlacklistPage />, "dna_analysis")} />
+        <Route path="/admin" element={withRouteLoader(<AdminHub />)} />
+        <Route path="/admin/audit" element={withAdminPermission(<AdminAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
+        <Route path="/admin/ingestion-audit" element={withAdminPermission(<AdminIngestionAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
+        <Route path="/admin/service-tokens" element={withAdminPermission(<ServiceTokensPage key="service" />, ADMIN_UTILITY_PERMISSIONS.serviceTokensManage)} />
+        <Route path="/admin/controls" element={withAdminPermission(<AdminControlsPage />, ADMIN_UTILITY_PERMISSIONS.controlsView)} />
+        <Route path="/admin/ingest" element={withModule(
+          <AdminPermissionBoundary permission={ADMIN_UTILITY_PERMISSIONS.ingestManage}><AdminIngestPage /></AdminPermissionBoundary>,
+          "ingest_workspace",
+        )} />
+        <Route path="/admin/schemas" element={withAdminPermission(<AdminSchemasPage />, ADMIN_UTILITY_PERMISSIONS.schemasView)} />
+        <Route path="/admin/demo-installation" element={withAdminPermission(<DemoInstallationPage />, ADMIN_UTILITY_PERMISSIONS.demoInstall)} />
+        <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
+        <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
+        <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />
+        <Route path="/admin/query-rules" element={withAdminPermission(<QueryRulesPage />, "query_rules:view")} />
+        <Route path="/admin/query-rules/testing" element={withAdminPermission(<QueryRuleTestingPage />, "query_rules:test")} />
+        <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
+        <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
+        <Route path="/admin/diagnoses" element={withAdminPermission(<DiagnosisDefinitionsPage />, "assay.panel:view")} />
+        <Route path="/admin/assay-groups" element={withAdminPermission(<AssayGroupsPage />, "assay.panel:view")} />
+        <Route path="/admin/assay-diagnoses" element={withAdminPermission(<AssayDiagnosesPage />, "assay.panel:view")} />
+        <Route path="/admin/assay-setups" element={withRouteLoader(<AssaySetupPage />)} />
+        <Route path="/admin/configuration-profiles" element={withAdminPermission(<ConfigurationProfilesPage />, "assay.config:list")} />
+        <Route path="/admin/asp/create" element={withRouteLoader(<AssaySetupPage />)} />
+        <Route path="/admin/asp/:id/view" element={withRouteLoader(<AssayEditorPage mode="view" />)} />
+        <Route path="/admin/asp/:id/edit" element={withRouteLoader(<AssayEditorPage mode="edit" />)} />
+        <Route path="/admin/asp" element={withRouteLoader(<AssaysPage />)} />
+        <Route path="/admin/aspc/create" element={withRouteLoader(<AssayConfigurationEditorPage mode="create" />)} />
+        <Route path="/admin/aspc/:id/view" element={withRouteLoader(<AssayConfigurationEditorPage mode="view" />)} />
+        <Route path="/admin/aspc/:id/edit" element={withRouteLoader(<AssayConfigurationEditorPage mode="edit" />)} />
+        <Route path="/admin/aspc" element={withRouteLoader(<AssayConfigurationsPage />)} />
+        <Route path="/admin/genelists/create" element={withRouteLoader(<GeneListEditorPage mode="create" />)} />
+        <Route path="/admin/genelists/:id/view" element={withRouteLoader(<GeneListEditorPage mode="view" />)} />
+        <Route path="/admin/genelists/:id/edit" element={withRouteLoader(<GeneListEditorPage mode="edit" />)} />
+        <Route path="/admin/genelists" element={withRouteLoader(<GeneListsPage />)} />
+        <Route path="/admin/users/create" element={withRouteLoader(<UserEditorPage mode="create" />)} />
+        <Route path="/admin/users/:id/view" element={withRouteLoader(<UserEditorPage mode="view" />)} />
+        <Route path="/admin/users/:id/edit" element={withRouteLoader(<UserEditorPage mode="edit" />)} />
+        <Route path="/admin/users" element={withRouteLoader(<UsersPage />)} />
+        <Route path="/admin/roles/create" element={withRouteLoader(<RoleEditorPage mode="create" />)} />
+        <Route path="/admin/roles/:id/view" element={withRouteLoader(<RoleEditorPage mode="view" />)} />
+        <Route path="/admin/roles/:id/edit" element={withRouteLoader(<RoleEditorPage mode="edit" />)} />
+        <Route path="/admin/roles" element={withRouteLoader(<RolesPage />)} />
+        <Route path="/admin/permissions/create" element={withRouteLoader(<PermissionEditorPage mode="create" />)} />
+        <Route path="/admin/permissions/:id/view" element={withRouteLoader(<PermissionEditorPage mode="view" />)} />
+        <Route path="/admin/permissions/:id/edit" element={withRouteLoader(<PermissionEditorPage mode="edit" />)} />
+        <Route path="/admin/permissions" element={withRouteLoader(<PermissionsPage />)} />
+        <Route path="/admin/samples/create" element={withRouteLoader(<AdminSampleEditorPage mode="create" />)} />
+        <Route path="/admin/samples/:id/view" element={withRouteLoader(<AdminSampleEditorPage mode="view" />)} />
+        <Route path="/admin/samples/:id/edit" element={withRouteLoader(<AdminSampleEditorPage mode="edit" />)} />
+        <Route path="/admin/samples" element={withRouteLoader(<AdminSamplesPage />)} />
+        <Route path="/profile" element={withRouteLoader(<Profile />)} />
+        <Route path="/profile/access-tokens" element={withRouteLoader(<ServiceTokensPage key="personal" personal />)} />
+        <Route path="*" element={withRouteLoader(<NotFoundPage />)} />
+      </Route>
+    </Route>
+  ), { basename: APP_BASENAME || undefined })
+}
+
+let defaultRouter: ReturnType<typeof createAppRouter> | undefined
+
+export default function App({ router }: { router?: ReturnType<typeof createAppRouter> }) {
+  const activeRouter = router ?? (defaultRouter ??= createAppRouter())
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={APP_BASENAME || undefined}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/change-password" element={withRouteLoader(<ChangePassword />)} />
-          <Route path="/forgot-password" element={withRouteLoader(<ForgotPassword />)} />
-          <Route path="/reset-password" element={withRouteLoader(<ResetPassword />)} />
-          <Route element={<TablePreferencesProvider><Layout /></TablePreferencesProvider>}>
-            <Route path="/" element={withRouteLoader(<Dashboard />)} />
-            <Route path="/samples" element={withClinicalPermission(<Samples />, "sample:view")} />
-            <Route path="/samples/:id" element={withClinicalPermission(<SampleDetail />, "sample:view")} />
-            <Route path="/samples/:id/variant/:varId" element={withClinicalPermission(withModule(<VariantDetail />, "dna_analysis"), "sample:view")} />
-            <Route path="/samples/:id/cnv/:varId" element={withClinicalPermission(withModule(<CNVDetail />, "dna_analysis"), "sample:view")} />
-            <Route path="/samples/:id/fusion/:varId" element={withClinicalPermission(withModule(<FusionDetail />, "rna_analysis"), "sample:view")} />
-            <Route path="/samples/:id/translocation/:varId" element={withClinicalPermission(withModule(<TranslocationDetail />, "dna_analysis"), "sample:view")} />
-            <Route path="/samples/:id/reports/:reportId" element={withClinicalPermission(withModule(<SavedReportPage />, "reports"), "report:view")} />
-            <Route path="/variants" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
-            <Route path="/variants/search" element={withClinicalPermission(withModule(<TieredVariantSearch />, "variant_search"), "gene.annotation:view")} />
-            <Route path="/variants/gene-cohort" element={withClinicalPermission(withModule(<GeneCohortExplorer />, "variant_search"), "gene.annotation:view")} />
-            <Route path="/variants/reported/:variantId/:tier" element={withClinicalPermission(withModule(<TieredVariantContext />, "variant_search"), "gene.annotation:view")} />
-            <Route path="/reports" element={withClinicalPermission(withModule(<ReportsPage />, "reports"), "report:view")} />
-            <Route path="/notifications" element={withRouteLoader(<NotificationHistoryPage />)} />
-            <Route path="/about" element={withRouteLoader(<AboutPage />)} />
-            <Route path="/about/vep" element={withRouteLoader(<VepReferencePage />)} />
-            <Route path="/knowledgebases" element={withModule(<KnowledgebaseDetails />, "knowledgebases")} />
-            <Route path="/contact" element={withRouteLoader(<ContactPage />)} />
-            <Route path="/public" element={withModule(<PublicCatalog />, "assay_catalog")} />
-            <Route path="/public/catalog" element={withModule(<PublicCatalog />, "assay_catalog")} />
-            <Route path="/public/catalog/compare" element={withModule(<PublicCatalogCompare />, "assay_catalog")} />
-            <Route path="/public/matrix" element={withModule(<PublicCatalogMatrix />, "assay_catalog")} />
-            <Route path="/public/genelists/:genelistId/view" element={withModule(<PublicGenelistPage />, "assay_catalog")} />
-            <Route path="/public/asp/:aspId/genes" element={withModule(<PublicAspGenesPage />, "assay_catalog")} />
-            <Route path="/public/gene/:geneId/info" element={withModule(<GeneInfoPage />, "knowledgebases")} />
-            <Route path="/coverage/blacklisted/:group" element={withModule(<CoverageBlacklistPage />, "dna_analysis")} />
-            <Route path="/admin" element={withRouteLoader(<AdminHub />)} />
-            <Route path="/admin/audit" element={withAdminPermission(<AdminAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
-            <Route path="/admin/ingestion-audit" element={withAdminPermission(<AdminIngestionAuditPage />, ADMIN_UTILITY_PERMISSIONS.auditView)} />
-            <Route path="/admin/service-tokens" element={withAdminPermission(<ServiceTokensPage key="service" />, ADMIN_UTILITY_PERMISSIONS.serviceTokensManage)} />
-            <Route path="/admin/controls" element={withAdminPermission(<AdminControlsPage />, ADMIN_UTILITY_PERMISSIONS.controlsView)} />
-            <Route path="/admin/ingest" element={withModule(
-              <AdminPermissionBoundary permission={ADMIN_UTILITY_PERMISSIONS.ingestManage}><AdminIngestPage /></AdminPermissionBoundary>,
-              "ingest_workspace",
-            )} />
-            <Route path="/admin/schemas" element={withAdminPermission(<AdminSchemasPage />, ADMIN_UTILITY_PERMISSIONS.schemasView)} />
-            <Route path="/admin/demo-installation" element={withAdminPermission(<DemoInstallationPage />, ADMIN_UTILITY_PERMISSIONS.demoInstall)} />
-            <Route path="/admin/ui-routes" element={withAdminPermission(<UiRouteAuditPage />, ADMIN_UTILITY_PERMISSIONS.uiRouteAuditView)} />
-            <Route path="/admin/notifications" element={withAdminPermission(<AdminNotificationBroadcastPage />, ADMIN_UTILITY_PERMISSIONS.broadcastCreate)} />
-            <Route path="/admin/clinical-rules" element={withAdminPermission(<ClinicalRulesPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesView)} />
-            <Route path="/admin/query-rules" element={withAdminPermission(<QueryRulesPage />, "query_rules:view")} />
-            <Route path="/admin/query-rules/testing" element={withAdminPermission(<QueryRuleTestingPage />, "query_rules:test")} />
-            <Route path="/admin/clinical-rules/testing" element={withAdminPermission(<ClinicalRuleTestingPage />, ADMIN_UTILITY_PERMISSIONS.clinicalRulesTest)} />
-            <Route path="/admin/assay-catalog" element={withAdminPermission(<PublicAssayCatalogPage />, "catalog:view")} />
-            <Route path="/admin/diagnoses" element={withAdminPermission(<DiagnosisDefinitionsPage />, "assay.panel:view")} />
-            <Route path="/admin/assay-groups" element={withAdminPermission(<AssayGroupsPage />, "assay.panel:view")} />
-            <Route path="/admin/assay-diagnoses" element={withAdminPermission(<AssayDiagnosesPage />, "assay.panel:view")} />
-            <Route path="/admin/assay-setups" element={withRouteLoader(<AssaySetupPage />)} />
-            <Route path="/admin/configuration-profiles" element={withAdminPermission(<ConfigurationProfilesPage />, "assay.config:list")} />
-            <Route path="/admin/asp/create" element={withRouteLoader(<AssaySetupPage />)} />
-            <Route path="/admin/asp/:id/view" element={withRouteLoader(<AssayEditorPage mode="view" />)} />
-            <Route path="/admin/asp/:id/edit" element={withRouteLoader(<AssayEditorPage mode="edit" />)} />
-            <Route path="/admin/asp" element={withRouteLoader(<AssaysPage />)} />
-            <Route path="/admin/aspc/create" element={withRouteLoader(<AssayConfigurationEditorPage mode="create" />)} />
-            <Route path="/admin/aspc/:id/view" element={withRouteLoader(<AssayConfigurationEditorPage mode="view" />)} />
-            <Route path="/admin/aspc/:id/edit" element={withRouteLoader(<AssayConfigurationEditorPage mode="edit" />)} />
-            <Route path="/admin/aspc" element={withRouteLoader(<AssayConfigurationsPage />)} />
-            <Route path="/admin/genelists/create" element={withRouteLoader(<GeneListEditorPage mode="create" />)} />
-            <Route path="/admin/genelists/:id/view" element={withRouteLoader(<GeneListEditorPage mode="view" />)} />
-            <Route path="/admin/genelists/:id/edit" element={withRouteLoader(<GeneListEditorPage mode="edit" />)} />
-            <Route path="/admin/genelists" element={withRouteLoader(<GeneListsPage />)} />
-            <Route path="/admin/users/create" element={withRouteLoader(<UserEditorPage mode="create" />)} />
-            <Route path="/admin/users/:id/view" element={withRouteLoader(<UserEditorPage mode="view" />)} />
-            <Route path="/admin/users/:id/edit" element={withRouteLoader(<UserEditorPage mode="edit" />)} />
-            <Route path="/admin/users" element={withRouteLoader(<UsersPage />)} />
-            <Route path="/admin/roles/create" element={withRouteLoader(<RoleEditorPage mode="create" />)} />
-            <Route path="/admin/roles/:id/view" element={withRouteLoader(<RoleEditorPage mode="view" />)} />
-            <Route path="/admin/roles/:id/edit" element={withRouteLoader(<RoleEditorPage mode="edit" />)} />
-            <Route path="/admin/roles" element={withRouteLoader(<RolesPage />)} />
-            <Route path="/admin/permissions/create" element={withRouteLoader(<PermissionEditorPage mode="create" />)} />
-            <Route path="/admin/permissions/:id/view" element={withRouteLoader(<PermissionEditorPage mode="view" />)} />
-            <Route path="/admin/permissions/:id/edit" element={withRouteLoader(<PermissionEditorPage mode="edit" />)} />
-            <Route path="/admin/permissions" element={withRouteLoader(<PermissionsPage />)} />
-            <Route path="/admin/samples/create" element={withRouteLoader(<AdminSampleEditorPage mode="create" />)} />
-            <Route path="/admin/samples/:id/view" element={withRouteLoader(<AdminSampleEditorPage mode="view" />)} />
-            <Route path="/admin/samples/:id/edit" element={withRouteLoader(<AdminSampleEditorPage mode="edit" />)} />
-            <Route path="/admin/samples" element={withRouteLoader(<AdminSamplesPage />)} />
-            <Route path="/profile" element={withRouteLoader(<Profile />)} />
-            <Route path="/profile/access-tokens" element={withRouteLoader(<ServiceTokensPage key="personal" personal />)} />
-            <Route path="*" element={withRouteLoader(<NotFoundPage />)} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={activeRouter} />
     </QueryClientProvider>
   )
 }
