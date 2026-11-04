@@ -23,7 +23,8 @@ RUN . /etc/os-release && \
       sed -i 's|deb http://deb.debian.org/debian-security|deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260901T000000Z|' /etc/apt/sources.list; \
     fi
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -o Acquire::Retries=5 && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
     curl \
     libxml2-dev libxslt1-dev zlib1g-dev libsasl2-dev libldap2-dev \
     build-essential libssl-dev libffi-dev libjpeg-dev libpq-dev \
@@ -35,7 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -o Acquire::Retries=5 && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
     libpangoft2-1.0-0 fonts-dejavu-core && \
     rm -rf /var/lib/apt/lists/*
 
