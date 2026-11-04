@@ -1,5 +1,17 @@
 # Container deployment and reverse proxy
 
+## Legacy build images
+
+Legacy Compose uses `python:3.12-slim-bookworm` for API, development, test and
+documentation builds. Workers and beat use the same API image. Frontend builds
+use Node and Nginx. Build downloads use host networking; runtime services keep
+their configured application network.
+
+Rebuild legacy images when upgrading from the Bullseye base. Private build scripts
+that explicitly pass `PYTHON_BASE_IMAGE=python:3.12-slim-bullseye` must change that
+argument to `python:3.12-slim-bookworm`, including separate documentation builds.
+The Dockerfiles no longer rewrite security sources to a frozen Debian snapshot.
+
 ## Container resource limits
 
 Modern and legacy Compose use these per-container defaults, configurable in the

@@ -1,4 +1,4 @@
-ARG PYTHON_BASE_IMAGE=python:3.12-slim-bullseye
+ARG PYTHON_BASE_IMAGE=python:3.12-slim-bookworm
 FROM ${PYTHON_BASE_IMAGE} AS mkdocs_builder
 
 ENV PIP_PROGRESS_BAR=off

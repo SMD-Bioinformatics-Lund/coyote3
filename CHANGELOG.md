@@ -27,6 +27,7 @@ Version 4 replaces Flask with FastAPI and React.
 - Container deployment, separate workers, backup/recovery tools, offline v2/v3 data
   migration and branded Nginx error pages. Redis transport checks catch missing
   worker dependencies before runtime.
+  Legacy builds retain Python 3.12 on Bookworm and no longer use Bullseye snapshots.
 
 ### Upgrade and compatibility notes
 

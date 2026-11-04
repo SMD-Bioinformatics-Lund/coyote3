@@ -34,6 +34,7 @@ stable.
 ## Runtime baseline
 
 API and development Dockerfiles default to `python:3.14.7-slim-bookworm`.
+Legacy Compose selects `python:3.12-slim-bookworm` for its API and development images.
 The `PYTHON_BASE_IMAGE` build argument can override that image. Shared scripts and
 security tooling retain Python 3.12-compatible syntax; this compatibility target
 is separate from the container runtime. Changes to the runtime image require the

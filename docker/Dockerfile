@@ -17,12 +17,6 @@ ARG COYOTE3_GID=10001
 ENV GIT_COMMIT=${GIT_COMMIT}
 ENV BUILD_TIME=${BUILD_TIME}
 
-# Bullseye LTS ended in August 2026; verify signatures on its frozen security index.
-RUN . /etc/os-release && \
-    if [ "$VERSION_CODENAME" = bullseye ]; then \
-      sed -i 's|deb http://deb.debian.org/debian-security|deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260901T000000Z|' /etc/apt/sources.list; \
-    fi
-
 RUN apt-get update -o Acquire::Retries=5 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
     curl \
