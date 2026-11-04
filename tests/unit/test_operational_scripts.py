@@ -6,8 +6,34 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize(
+    "definition",
+    [
+        "deploy/compose/docker-compose.yml",
+        "deploy/legacy/docker-compose.yml",
+        "deploy/legacy/docker-compose.dev.yml",
+    ],
+)
+def test_proxy_mounts_standalone_error_page_in_every_stack(definition: str) -> None:
+    """Every proxy definition supplies the local page required by its shared Nginx config."""
+    path = REPOSITORY_ROOT / definition
+    proxy = yaml.safe_load(path.read_text())["services"]["proxy"]
+    mounts = [value.split(":") for value in proxy["volumes"] if isinstance(value, str)]
+    page_mounts = [value for value in mounts if value[1] == "/etc/nginx/error-pages"]
+    assert len(page_mounts) == 1
+    source, _, mode = page_mounts[0]
+    assert mode == "ro"
+    assert (path.parent / source).resolve() == (
+        REPOSITORY_ROOT / "deploy/compose/nginx/error-pages"
+    )
+    assert (
+        "Service temporarily unavailable" in (path.parent / source / "unavailable.html").read_text()
+    )
 
 
 @pytest.mark.parametrize(

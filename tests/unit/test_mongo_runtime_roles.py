@@ -4,12 +4,43 @@ import json
 
 import pytest
 
+from api.config.operational_collections import OPERATIONAL_COLLECTIONS
+from api.infra.security.indexes import security_index_contracts
 from api.infra.security.mongo_roles import (
     identity_role,
     runtime_roles,
     verify_runtime_audit_permissions,
 )
 from scripts.database.manage_mongo_roles import POLICY, policy_text, runtime_principal
+
+
+def test_runtime_role_supports_token_resolution_creation_revocation_and_index_inspection():
+    """Token startup checks and credential workflows need explicit collection privileges."""
+    role = identity_role("synthetic_identity")
+    token = next(
+        (
+            item
+            for item in role["privileges"]
+            if item["resource"]["collection"] == OPERATIONAL_COLLECTIONS.service_tokens
+        ),
+        None,
+    )
+    assert token is not None
+    assert token["resource"] == {"db": "synthetic_identity", "collection": "service_tokens"}
+    assert set(token["actions"]) == {"find", "insert", "update", "listIndexes"}
+
+
+def test_runtime_role_can_inspect_every_identity_security_index_contract():
+    """A newly registered identity security collection must not block API startup."""
+    privileges = identity_role("synthetic_identity")["privileges"]
+    for contract in security_index_contracts({}):
+        if contract.database != "identity":
+            continue
+        assert any(
+            item["resource"] == {"db": "synthetic_identity", "collection": contract.collection}
+            and "listIndexes" in item["actions"]
+            for item in privileges
+        ), contract.collection
 
 
 def test_runtime_role_cannot_change_or_drop_clinical_audit_records():

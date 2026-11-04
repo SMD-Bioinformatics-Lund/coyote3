@@ -10,6 +10,9 @@ describe("Resource Form UI", () => {
   it.each([
     { type: "int", value: 5, step: undefined, next: 6 },
     { type: "int", value: 100, step: undefined, next: 101 },
+    { type: "float", value: 0.02, step: undefined, next: 0.021 },
+    { type: "float", value: 0.05, step: undefined, next: 0.051 },
+    { type: "float", value: 0.01, step: undefined, next: 0.011 },
     { type: "float", value: 0.02, step: 0.001, next: 0.021 },
     { type: "float", value: -0.4, step: 0.01, next: -0.39 },
   ])("uses the configured increment for $type filters starting at $value", ({ type, value, step, next }) => {
@@ -17,7 +20,7 @@ describe("Resource Form UI", () => {
       title: "Thresholds", fields: [{ key: "somatic.snv.threshold", label: "Threshold", type, step }],
     }] }} value={{ somatic: { snv: { threshold: value } } }} mode="edit" onChange={vi.fn()} />)
     const input = screen.getByRole("spinbutton", { name: /Threshold$/ }) as HTMLInputElement
-    expect(input).toHaveAttribute("step", String(step ?? 1))
+    expect(input).toHaveAttribute("step", String(step ?? (type === "float" ? 0.001 : 1)))
     input.stepUp()
     expect(input.valueAsNumber).toBe(next)
   })

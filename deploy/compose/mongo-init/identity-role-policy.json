@@ -61,6 +61,18 @@
         "actions": [
           "find",
           "insert",
+          "update",
+          "listIndexes"
+        ],
+        "resource": {
+          "collection": "service_tokens",
+          "db": "identity"
+        }
+      },
+      {
+        "actions": [
+          "find",
+          "insert",
           "update"
         ],
         "resource": {

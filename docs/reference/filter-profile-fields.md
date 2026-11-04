@@ -43,6 +43,11 @@ These numbers are software defaults, not a center's clinically approved threshol
 The actual sample may use different saved values. Fractions such as `0.05` are
 5%, not 0.05%, even when the UI presents percentage controls.
 
+In the administration forms, read-count and depth arrows move by `1`. AF arrows
+move by `0.001` in the stored fraction: for example, `0.02` becomes `0.021`
+(2% to 2.1%). Explicit field increments take precedence; CNV gain/loss cutoffs use
+`0.01`. These increments do not change saved defaults or clinical validation limits.
+
 `exclude_flags` applies separately to `somatic.snv` and `germline.snv`. Values are
 trimmed and deduplicated without changing case; blank or oversized names are
 rejected. Matching is case-sensitive and uses raw stored flags, rather than badge

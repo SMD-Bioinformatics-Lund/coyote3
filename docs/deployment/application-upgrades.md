@@ -255,7 +255,14 @@ For declared knowledgebase index changes, separately plan and apply
 `--scope knowledgebase` with the approved reference-maintenance connection. Keep
 runtime reference credentials unchanged.
 
-When the release adds system permissions or roles, review and apply its bundled
+For changes to MongoDB runtime collection privileges, separately review and apply
+the [restricted identity-role upgrade](../operations/audit-and-logging.md#runtime-database-privileges)
+with a distinct maintenance principal before starting the API. Existing MongoDB
+roles are not updated by rebuilding images or by first-initialization scripts.
+The restricted policy includes token lookup, creation, revocation and index
+inspection on `service_tokens`; missing `listIndexes` can prevent API startup.
+
+When the release adds application permissions or roles, review and apply its bundled
 catalog through the identity maintenance tool:
 
 ```bash

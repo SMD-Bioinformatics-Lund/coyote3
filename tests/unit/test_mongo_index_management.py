@@ -64,6 +64,7 @@ class FakeDatabase(dict):
 def adapter_for(repository: FakeRepository):
     security_collections = {
         "api_sessions": FakeCollection("api_sessions", []),
+        "service_tokens": FakeCollection("service_tokens", []),
         "audit_events": FakeCollection("audit_events", []),
         "operational_audit_events": FakeCollection("operational_audit_events", []),
         "app_controls": FakeCollection("app_controls", []),
@@ -94,6 +95,7 @@ def test_index_plan_reports_present_and_missing_contracts():
         ("updated_on_desc_1", "missing"),
     ]
     assert "ttl_api_session_expiry" in {entry["name"] for entry in plan}
+    assert {"idx_service_tokens_hash", "idx_service_tokens_id"} <= {entry["name"] for entry in plan}
 
 
 def test_index_plan_reports_option_conflicts():

@@ -398,6 +398,10 @@ clinical audit events and inspect their indexes. It cannot update/delete those
 events, drop the collection, change validators, or create/drop indexes. Mutable
 chain heads and expiring operational events have separate collection privileges.
 Replay uses insert-and-handle-duplicate semantics, never an update upsert.
+Service and personal token records share `service_tokens`. The restricted role
+permits `find`, `insert`, `update` and `listIndexes` on that collection, supporting
+credential checks, creation, revocation and API startup inspection. Token removal
+and index creation/deletion require a separately authorized maintenance identity.
 
 Protected audit indexes are installed with maintenance credentials before granting
 the runtime role. Existing indexes can be verified with runtime credentials.

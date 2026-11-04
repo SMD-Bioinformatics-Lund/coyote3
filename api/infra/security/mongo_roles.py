@@ -127,6 +127,8 @@ def identity_role(database: str) -> dict[str, Any]:
     Returns:
         Custom role definition. Clinical events permit find/insert/listIndexes only;
         chain heads are mutable, and operational events can undergo retention cleanup.
+        Token records permit lookup, creation, revocation and index inspection,
+        without token deletion or index administration.
     """
     mapping = load_collection_section("identity")
     mutable = {value for key, value in mapping.items() if key != "audit_events_collection"}
@@ -138,6 +140,7 @@ def identity_role(database: str) -> dict[str, Any]:
         for name in sorted(mutable)
     ]
     for name, actions in (
+        (OPERATIONAL_COLLECTIONS.service_tokens, ["find", "insert", "update", "listIndexes"]),
         (OPERATIONAL_COLLECTIONS.audit_chain_heads, ["find", "insert", "update"]),
         (OPERATIONAL_COLLECTIONS.audit_outbox, ["find", "insert", "remove"]),
         (

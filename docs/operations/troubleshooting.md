@@ -27,7 +27,8 @@ tokens, without external fonts, scripts or stylesheets. Keep these aligned with
 the application theme when changing branding. It follows the browser's light/dark
 preference and supports keyboard focus and forced colors.
 
-The Compose proxy mounts this directory read-only at `/etc/nginx/error-pages`.
+Both modern and legacy Compose proxies mount this directory read-only at
+`/etc/nginx/error-pages`, including the legacy development definition.
 Recreate the proxy during the normal rollout so the new mount is present; reloading
 an existing container alone cannot add the mount. No database or application
 migration is needed. The internal error-page URI cannot be opened directly.
@@ -37,6 +38,27 @@ Proxy regression checks can run locally with
 They require a local Unix Docker socket and an existing `nginx:1.27-alpine` image;
 they skip when those prerequisites are unavailable and never pull an image. Tests
 start isolated loopback containers and remove them afterward.
+
+## Compose blocks frontend or proxy because a container is unhealthy
+
+Both services depend on the API's health check. An image building successfully
+does not establish that the API starts with the deployment's runtime configuration.
+Redis can be healthy while API initialization fails or cannot reach a dependency.
+
+Identify the container reported by Compose and inspect its health-check output:
+
+```bash
+COYOTE_UNHEALTHY_CONTAINER="<container-id-from-compose>"
+docker inspect --format '{{.Name}} {{json .State.Health}}' "$COYOTE_UNHEALTHY_CONTAINER"
+docker logs --tail 100 "$COYOTE_UNHEALTHY_CONTAINER"
+```
+
+The API probe requests `http://127.0.0.1:8001/api/v1/health` inside its container.
+Use its startup exception and probe output to distinguish a connection failure,
+an HTTP error, or a probe timeout. Inspect only the named fields above; the full
+container inspection includes environment variables. Redact credentials and clinical
+identifiers before sharing logs. Resolve the reported initialization failure before
+repeating the deployment's normal start procedure with the same Compose files.
 
 ## First-installation failures
 
@@ -73,13 +95,28 @@ validation target and representative data.
 
 - The API requires read access to inspect index definitions. The explicit
   maintenance command additionally requires index-management privileges.
+- A `listIndexes` denial on `service_tokens` can occur with an older restricted
+  identity role. Token records require `find`, `insert`, `update` and `listIndexes`
+  on that collection. The current bundled role includes those actions without
+  token deletion or index-administration privileges.
 
 **Resolution:**
 
-1. Validate the selected private environment file to ensure the configured `COYOTE3_MONGO_URI` connection string contains the correct authentication credentials.
-2. Confirm the runtime account can list collection indexes. Run `apply` with a
-   separately controlled maintenance identity that can create indexes.
-3. If connecting to a historical volume bootstrapped before authentication was
+1. Identify the endpoint for the failing database. Identity operations use
+   `IDENTITY_MONGO_URI`, falling back to `COYOTE3_MONGO_URI` only when the identity
+   URI is unset; `IDENTITY_DB` selects the database. Check the selected runtime
+   principal without printing credentials.
+2. For an existing restricted identity role, follow the
+   [runtime-role upgrade](audit-and-logging.md#runtime-database-privileges) using
+   the current release's policy and a distinct maintenance principal. Review the
+   plan before applying it: the tool replaces the selected user's role assignments.
+   Rebuilding API images or rerunning first-initialization scripts does not update
+   an existing MongoDB user's role.
+3. Confirm the runtime account can inspect indexes. Plan and apply any missing
+   required indexes with separately controlled maintenance credentials, then use
+   the deployment's normal service-start procedure. Keep the same modern or legacy
+   Compose file selection and private environment file.
+4. If connecting to a historical volume bootstrapped before authentication was
    enabled, initialize the required database identities through the documented
    first-deployment procedure. Do not grant the runtime account broad database
    administration solely to make index maintenance convenient.

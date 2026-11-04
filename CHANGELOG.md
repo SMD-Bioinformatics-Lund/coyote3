@@ -32,6 +32,9 @@ Version 4 replaces Flask with FastAPI and React.
   instead of `coyote3.client`.
 - The application uses the COYOTE3 Free-Use Source-Available License 1.0;
   the independent Python client retains Apache 2.0.
+- Existing authenticated deployments must apply the updated
+  [restricted identity role](docs/operations/audit-and-logging.md#runtime-database-privileges)
+  for token access and startup index inspection.
 - Follow the [upgrade procedure](docs/deployment/application-upgrades.md) for database
   permissions, identity roles, schema/index maintenance and rollback limits.
   Legacy v2/v3 data migration remains a separate operation.

@@ -269,7 +269,7 @@ export function FormControl({
     ) : (
       <input
         type={field.display_type === "password" ? "password" : field.data_type === "int" || field.data_type === "float" ? "number" : "text"}
-        step={field.step ?? (field.data_type === "int" ? 1 : field.data_type === "float" ? "any" : undefined)}
+        step={field.step ?? (field.data_type === "int" ? 1 : field.data_type === "float" ? 0.001 : undefined)}
         value={String(value ?? "")}
         onChange={(event) => onChange(event.target.value)}
         disabled={readOnly}
