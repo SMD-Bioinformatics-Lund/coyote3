@@ -2,15 +2,23 @@
 
 ## Legacy build images
 
-Legacy Compose uses `python:3.12-slim-bookworm` for API, development, test and
-documentation builds. Workers and beat use the same API image. Frontend builds
+Legacy Compose uses Python 3.12 on Bullseye for the existing Ubuntu 16.04 / Docker
+18.09 deployment. API, development and test targets live in
+`docker/Dockerfile.legacy`; docs use `docker/Dockerfile.docs.legacy`. Workers and beat
+share the API image. Modern Dockerfiles keep their Bookworm defaults and do not
+apply the legacy archive configuration.
+
+The legacy API build uses Debian's signed repositories at `archive.debian.org`
+for Bullseye, Bullseye updates and Bullseye security. Frozen metadata expiry checks
+are disabled only for those archive entries; signature verification stays enabled.
+It does not use the timestamped snapshot download service. These archived packages
+are a temporary compatibility baseline until the host is replaced.
+
+Private documentation build commands must select
+`PYTHON_BASE_IMAGE=python:3.12-slim-bullseye` with `docker/Dockerfile.docs.legacy`.
+Rebuild API and docs images after changing the build definitions. Frontend builds
 use Node and Nginx. Build downloads use host networking; runtime services keep
 their configured application network.
-
-Rebuild legacy images when upgrading from the Bullseye base. Private build scripts
-that explicitly pass `PYTHON_BASE_IMAGE=python:3.12-slim-bullseye` must change that
-argument to `python:3.12-slim-bookworm`, including separate documentation builds.
-The Dockerfiles no longer rewrite security sources to a frozen Debian snapshot.
 
 ## Container resource limits
 

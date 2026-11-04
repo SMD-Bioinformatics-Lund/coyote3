@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,53 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize(
+    "definitions,legacy",
+    [
+        (["deploy/legacy/docker-compose.yml"], True),
+        (["deploy/legacy/docker-compose.yml", "deploy/legacy/docker-compose.stage.yml"], True),
+        (["deploy/legacy/docker-compose.yml", "deploy/legacy/docker-compose.test.yml"], True),
+        (["deploy/legacy/docker-compose.dev.yml"], True),
+        (["deploy/compose/docker-compose.yml"], False),
+        (["deploy/compose/docker-compose.yml", "deploy/compose/docker-compose.dev.yml"], False),
+    ],
+)
+def test_old_host_build_compatibility_is_confined_to_legacy_compose(definitions, legacy):
+    """Merged build selections keep Bullseye archives away from modern deployments."""
+    if not shutil.which("docker"):
+        pytest.skip("Docker Compose CLI required; no Docker daemon is used")
+    command = ["docker", "compose", "--profile", "*", "--env-file", "deploy/env/example.env"]
+    for definition in definitions:
+        command.extend(["-f", definition])
+    result = subprocess.run(
+        [*command, "config", "--format", "json"],
+        cwd=ROOT,
+        env={**os.environ, "COYOTE3_IMAGE_TAG": "synthetic-compatibility-test"},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    builds = {
+        name: service["build"]
+        for name, service in json.loads(result.stdout)["services"].items()
+        if service.get("build") and name != "frontend"
+    }
+    assert "api" in builds and "docs" in builds
+    for name, build in builds.items():
+        dockerfile = build["dockerfile"]
+        if legacy:
+            assert dockerfile == (
+                "docker/Dockerfile.docs.legacy" if name == "docs" else "docker/Dockerfile.legacy"
+            )
+            assert build["args"]["PYTHON_BASE_IMAGE"] == "python:3.12-slim-bullseye"
+            assert build["network"] == "host"
+        else:
+            assert ".legacy" not in dockerfile
+            source = (ROOT / dockerfile).read_text()
+            assert "slim-bookworm" in source.splitlines()[0]
+            assert "archive.debian.org" not in source
 
 
 @pytest.mark.parametrize(

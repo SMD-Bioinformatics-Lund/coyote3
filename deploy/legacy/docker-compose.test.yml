@@ -9,29 +9,29 @@ services:
   api:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
-      dockerfile: docker/Dockerfile.dev
+      dockerfile: docker/Dockerfile.legacy
       target: coyote3_dev_api
       network: host
   worker:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.dev
+      dockerfile: docker/Dockerfile.legacy
       target: coyote3_dev_api
       network: host
       args:
-        PYTHON_BASE_IMAGE: python:3.12-slim-bookworm
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
   beat:
     image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.dev
+      dockerfile: docker/Dockerfile.legacy
       target: coyote3_dev_api
       network: host
       args:
-        PYTHON_BASE_IMAGE: python:3.12-slim-bookworm
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
   proxy:
@@ -42,11 +42,11 @@ services:
     profiles: [tests]
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.dev
+      dockerfile: docker/Dockerfile.legacy
       target: coyote3_dev_all
       network: host
       args:
-        PYTHON_BASE_IMAGE: python:3.12-slim-bookworm
+        PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         COYOTE3_UID: ${COYOTE3_UID:-10001}
         COYOTE3_GID: ${COYOTE3_GID:-10001}
     environment:
