@@ -267,6 +267,7 @@ services:
       COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
     volumes:
       - ./nginx/render-config.sh:/etc/nginx/render-config.sh:ro
+      - ./nginx/error-pages:/etc/nginx/error-pages:ro
     depends_on:
       frontend: {condition: service_started}
       api: {condition: service_healthy}
