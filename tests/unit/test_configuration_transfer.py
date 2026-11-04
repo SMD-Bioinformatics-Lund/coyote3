@@ -10,6 +10,8 @@ def test_record_metadata_is_removed_without_traversing_clinical_content():
     source = {
         "version": 8,
         "created_by": "old.author",
+        "reviewer": "old.reviewer",
+        "reviewed_by": "old.reviewer",
         "panel": {"asp_id": "panel", "version": 4},
         "gene_lists": [{"isgl_id": "genes", "version": 7, "genes": ["TP53"]}],
         "configurations": [

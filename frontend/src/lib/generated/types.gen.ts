@@ -1157,9 +1157,13 @@ export type AssayMetadata = {
 /**
  * AssaySetupAction
  *
- * Concurrency precondition and review explanation.
+ * Concurrency precondition, notes and reviewer for optional review submission.
  */
 export type AssaySetupAction = {
+    /**
+     * Assignee
+     */
+    assignee?: string | null;
     /**
      * Reason
      */
@@ -1206,7 +1210,7 @@ export type AssaySetupContent = {
 /**
  * AssaySetupContextPayload
  *
- * Managed forms and readiness for a new or existing setup.
+ * Managed forms, eligible reviewer choices and readiness for assay setup.
  */
 export type AssaySetupContextPayload = {
     /**
@@ -1253,6 +1257,12 @@ export type AssaySetupContextPayload = {
     readiness?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Reviewers
+     */
+    reviewers?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Rules
      */
@@ -1301,6 +1311,14 @@ export type AssaySetupDoc = {
      * Review Reason
      */
     review_reason?: string;
+    /**
+     * Reviewed By
+     */
+    reviewed_by?: string | null;
+    /**
+     * Reviewer
+     */
+    reviewer?: string | null;
     /**
      * Revision
      */

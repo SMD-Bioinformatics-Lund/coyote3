@@ -104,6 +104,32 @@ def setup_service(monkeypatch):
                 db.rules.find({"scope.asp_id": key, "active": True})
             ),
         ),
+        role_repository=SimpleNamespace(
+            get_all_roles_plus_permissions=lambda: [
+                {
+                    "role_id": "setup-reviewer",
+                    "is_active": True,
+                    "permissions": [
+                        "assay.panel:list",
+                        "assay.panel:view",
+                        "assay.panel:edit",
+                        "assay.panel:create",
+                        "assay.config:create",
+                        "gene_list.insilico:create",
+                        "gene_list.insilico:edit",
+                    ],
+                }
+            ]
+        ),
+        user_repository=SimpleNamespace(
+            list_active_users_for_notifications=lambda: [
+                {
+                    "username": "reviewer",
+                    "fullname": "Synthetic reviewer",
+                    "roles": ["setup-reviewer"],
+                }
+            ]
+        ),
         vep_metadata_repository=SimpleNamespace(get_consequence_group_options=lambda: []),
     )
     now = datetime.now(timezone.utc)
@@ -253,7 +279,7 @@ def test_draft_isolation_and_atomic_publication_bundle(setup_service):
     identifier = str(draft["_id"])
     assert db.asp.count_documents({}) == db.aspc.count_documents({}) == 0
     assert service.context(identifier, actor="author")["readiness"]["ready"]
-    submitted = service.transition(identifier, 1, "submit", actor="author")
+    submitted = service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
     assert db.asp.count_documents({}) == 0
     published = service.transition(identifier, submitted["revision"], "publish", actor="reviewer")
     assert published["status"] == "published"
@@ -287,7 +313,9 @@ def test_existing_gene_list_link_is_staged_then_versioned_at_activation(setup_se
     draft = service.save(content(existing_gene_list_ids=["shared", "SHARED"]), actor="author")
     assert draft["content"]["existing_gene_list_ids"] == ["shared"]
     assert db.isgl.find_one({"_id": original_id})["asp_ids"] == []
-    submitted = service.transition(str(draft["_id"]), 1, "submit", actor="author")
+    submitted = service.transition(
+        str(draft["_id"]), 1, "submit", actor="author", assignee="reviewer"
+    )
     assert db.isgl.count_documents({}) == 1
     service.transition(str(draft["_id"]), submitted["revision"], "publish", actor="reviewer")
     linked = db.isgl.find_one({"is_active": True})
@@ -327,20 +355,83 @@ def test_setup_rejects_unavailable_or_protected_gene_list_links(setup_service, c
 
 
 @pytest.mark.parametrize("action", ["publish", "return"])
-def test_content_editors_cannot_approve_their_own_work(setup_service, action):
+def test_content_editors_can_publish_or_reopen_optional_review(setup_service, action):
+    service, db = setup_service
+    draft = service.save(content(), actor="author")
+    identifier = str(draft["_id"])
+    service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
+    result = service.transition(identifier, 2, action, actor="author", reason="Review")
+    assert result["status"] == ("published" if action == "publish" else "draft")
+    assert result["updated_by"] == "author"
+    assert db.asp.count_documents({}) == (1 if action == "publish" else 0)
+    if action == "publish":
+        assert result["reviewed_by"] is None
+
+
+def test_author_can_activate_a_valid_draft_without_submission(setup_service):
+    service, db = setup_service
+    draft = service.save(content(), actor="author")
+    identifier = str(draft["_id"])
+    result = service.transition(identifier, 1, "publish", actor="author")
+    assert result["status"] == "published"
+    assert result["revision"] == 2
+    assert result["published_by"] == "author"
+    assert result["content_editors"] == ["author"]
+    assert result["reviewed_by"] is None
+    assert db.asp.count_documents({}) == db.aspc.count_documents({}) == 1
+    assert [row["action"] for row in service.repository.revisions(identifier)] == [
+        "publish",
+        "created",
+    ]
+    with pytest.raises(AppError, match="state or revision"):
+        service.transition(identifier, 2, "publish", actor="author")
+
+
+@pytest.mark.parametrize("assignee", [None, "author", "unknown"])
+def test_review_submission_requires_an_eligible_independent_assignee(setup_service, assignee):
+    """Optional submission cannot silently enter an unassigned review state."""
+    service, _ = setup_service
+    draft = service.save(content(), actor="author")
+    with pytest.raises(AppError, match="reviewer"):
+        service.transition(str(draft["_id"]), 1, "submit", actor="author", assignee=assignee)
+    assert service.get(str(draft["_id"]))["status"] == "draft"
+
+
+def test_assigned_review_is_recorded_and_direct_publication_is_not_approval(setup_service):
+    """The publisher identity cannot stand in for a named colleague's review."""
     service, _ = setup_service
     draft = service.save(content(), actor="author")
     identifier = str(draft["_id"])
-    service.transition(identifier, 1, "submit", actor="author")
-    with pytest.raises(AppError, match="independent reviewer"):
-        service.transition(identifier, 2, action, actor="author", reason="Review")
+    submitted = service.transition(identifier, 1, "submit", actor="author", assignee=" REVIEWER ")
+    assert submitted["reviewer"] == "reviewer"
+    assert service.list_payload()["items"][0]["reviewer"] == "reviewer"
+    returned = service.transition(identifier, 2, "return", actor="author", reason="Update")
+    assert returned["reviewer"] is None
+    service.transition(identifier, 3, "submit", actor="author", assignee="reviewer")
+    published = service.transition(identifier, 4, "publish", actor="reviewer")
+    assert published["reviewed_by"] == "reviewer"
+    assert published["published_by"] == "reviewer"
+
+
+def test_inactive_or_underprivileged_roles_cannot_receive_setup_review(setup_service):
+    """Reviewer selection requires current grants, including visibility of the setup."""
+    service, _ = setup_service
+    draft = service.save(content(), actor="author")
+    roles = service.store.role_repository.get_all_roles_plus_permissions()
+    service.store.role_repository.get_all_roles_plus_permissions = lambda: roles
+    roles[0]["permissions"].remove("assay.panel:view")
+    assert service.reviewer_options(draft, actor="author") == []
+    roles[0]["permissions"].append("assay.panel:view")
+    roles[0]["is_active"] = False
+    with pytest.raises(AppError, match="eligible reviewer"):
+        service.transition(str(draft["_id"]), 1, "submit", actor="author", assignee="reviewer")
 
 
 def test_group_deactivation_blocks_pending_setup_publication(setup_service):
     service, db = setup_service
     draft = service.save(content(), actor="author")
     identifier = str(draft["_id"])
-    service.transition(identifier, 1, "submit", actor="author")
+    service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
     service.store.assay_panel_repository.group_options = lambda: []
     with pytest.raises(AppError, match="group"):
         service.transition(identifier, 2, "publish", actor="reviewer")
@@ -355,23 +446,24 @@ def test_stale_edits_and_submitted_edits_are_rejected(setup_service):
     service.save(content(), actor="second-editor", identifier=identifier, revision=1)
     with pytest.raises(AppError, match="current draft"):
         service.save(content(), actor="author", identifier=identifier, revision=1)
-    service.transition(identifier, 2, "submit", actor="author")
+    service.transition(identifier, 2, "submit", actor="author", assignee="reviewer")
     with pytest.raises(AppError, match="current draft"):
         service.save(content(), actor="author", identifier=identifier, revision=3)
-    with pytest.raises(AppError, match="independent"):
-        service.transition(identifier, 3, "publish", actor="second-editor")
+    with pytest.raises(AppError, match="state or revision"):
+        service.transition(identifier, 2, "publish", actor="second-editor")
 
 
 @pytest.mark.parametrize(
     "changes, message",
     [({"configurations": []}, "Missing required ASPC: base/production")],
 )
-def test_incomplete_setup_remains_draft(setup_service, changes, message):
+@pytest.mark.parametrize("action", ["submit", "publish"])
+def test_incomplete_setup_remains_draft(setup_service, changes, message, action):
     service, db = setup_service
     draft = service.save(content(**changes), actor="author")
     assert not service.readiness(draft, actor="author")["ready"]
     with pytest.raises(AppError, match=message):
-        service.transition(str(draft["_id"]), 1, "submit", actor="author")
+        service.transition(str(draft["_id"]), 1, action, actor="author", assignee="reviewer")
     assert db.asp.count_documents({}) == 0
 
 
@@ -392,7 +484,7 @@ def test_optional_scopes_and_environments_can_activate_with_only_base_production
     selected = content(scopes=["myeloid"], environments=["development", "testing", "validation"])
     draft = service.save(selected, actor="author")
     assert service.readiness(draft, actor="author")["ready"]
-    service.transition(str(draft["_id"]), 1, "submit", actor="author")
+    service.transition(str(draft["_id"]), 1, "submit", actor="author", assignee="reviewer")
     service.transition(str(draft["_id"]), 2, "publish", actor="reviewer")
     assert db.aspc.count_documents({}) == 1
     assert db.associations.find_one()["diagnosis_id"] == "myeloid"
@@ -410,21 +502,22 @@ def test_optional_configuration_is_validated_and_can_reuse_base_rules(setup_serv
     extra["analysis_types"] = ["SNV"]
     draft = service.save(selected, actor="author", identifier=str(draft["_id"]), revision=1)
     assert service.readiness(draft, actor="author")["ready"]
-    service.transition(str(draft["_id"]), 2, "submit", actor="author")
+    service.transition(str(draft["_id"]), 2, "submit", actor="author", assignee="reviewer")
     service.transition(str(draft["_id"]), 3, "publish", actor="reviewer")
     assert db.aspc.count_documents({}) == 2
 
 
-def test_changed_rule_release_requires_resubmission(setup_service):
+@pytest.mark.parametrize("publisher", ["reviewer", "author"])
+def test_changed_rule_release_requires_rechecking_submitted_content(setup_service, publisher):
     service, db = setup_service
     draft = service.save(content(), actor="author")
     identifier = str(draft["_id"])
-    service.transition(identifier, 1, "submit", actor="author")
+    service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
     db.rules.update_one({}, {"$inc": {"revision": 1}})
     with pytest.raises(AppError, match="dependencies changed"):
-        service.transition(identifier, 2, "publish", actor="reviewer")
+        service.transition(identifier, 2, "publish", actor=publisher)
     returned = service.transition(
-        identifier, 2, "return", actor="reviewer", reason="Review updated rules"
+        identifier, 2, "return", actor=publisher, reason="Review updated rules"
     )
     assert returned["status"] == "draft"
     assert db.asp.count_documents({}) == 0
@@ -445,7 +538,9 @@ def test_duplicate_configurations_block_setup_but_missing_rules_only_warn(setup_
     assert "without an automatically generated summary" in readiness["warnings"][0]
     assert service.bundle(draft, actor="author")["rules"] == []
     identifier = str(draft["_id"])
-    submitted = service.transition(identifier, draft["revision"], "submit", actor="author")
+    submitted = service.transition(
+        identifier, draft["revision"], "submit", actor="author", assignee="reviewer"
+    )
     published = service.transition(identifier, submitted["revision"], "publish", actor="reviewer")
     assert published["status"] == "published"
     assert db.aspc.count_documents({}) == 1
@@ -480,6 +575,55 @@ def test_invalid_gene_list_can_still_be_edited(setup_service):
     assert "genelist_form" in context
     assert "configuration_form" in context
     assert not context["readiness"]["ready"]
+
+
+def test_older_draft_configuration_form_includes_required_production(setup_service):
+    """Persisted pre-default environment choices still allow fixing Base/production."""
+    service, db = setup_service
+    draft = service.save(content(), actor="author")
+    db.assay_setups.update_one(
+        {"_id": draft["_id"]}, {"$set": {"content.environments": ["development"]}}
+    )
+    result = service.context(str(draft["_id"]), actor="author")
+    assert result["configuration_form"]["fields"]["environment"]["options"] == [
+        "production",
+        "development",
+    ]
+
+
+@pytest.mark.parametrize("unavailable", ["retired", "deleted"])
+def test_unavailable_selected_gene_list_can_be_removed_to_restore_readiness(
+    setup_service, unavailable
+):
+    """A changed registry reference does not permanently trap the setup draft."""
+    service, db = setup_service
+    db.isgl.insert_one(
+        dict(
+            isgl_id="shared",
+            name="Shared",
+            displayname="Shared list",
+            genes=["TP53"],
+            list_type=["snv"],
+            diagnosis=["base"],
+            asp_ids=[],
+            asp_groups=[],
+            is_active=True,
+            version=1,
+            created_by="author",
+            created_on=datetime.now(timezone.utc),
+        )
+    )
+    selected = content(existing_gene_list_ids=["shared"])
+    draft = service.save(selected, actor="author")
+    if unavailable == "retired":
+        db.isgl.update_one({"isgl_id": "shared"}, {"$set": {"is_active": False}})
+    else:
+        db.isgl.delete_one({"isgl_id": "shared"})
+    assert not service.readiness(draft, actor="author")["ready"]
+    selected.existing_gene_list_ids = []
+    recovered = service.save(selected, actor="author", identifier=str(draft["_id"]), revision=1)
+    assert service.readiness(recovered, actor="author")["ready"]
+    assert db.asp.count_documents({}) == 0
 
 
 def test_unknown_setup_is_not_found(setup_service):

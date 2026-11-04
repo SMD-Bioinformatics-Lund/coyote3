@@ -1,4 +1,4 @@
-"""Publish shared configuration activity and assay-group report notifications."""
+"""Publish committed configuration, assigned-review and assay-group report notifications."""
 
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -43,6 +43,7 @@ class ActivityNotificationService:
             samples=store.sample_repository,
             environment=get_runtime_environment(config),
             sample_access=sample_access,
+            app_prefix=str(config.get("SCRIPT_NAME") or ""),
         )
 
     def __init__(
@@ -54,6 +55,7 @@ class ActivityNotificationService:
         samples: Any,
         environment: str,
         sample_access: SampleNotificationAccess,
+        app_prefix: str = "",
     ):
         """Configure source readers, recipient resolution and notification persistence.
 
@@ -64,6 +66,7 @@ class ActivityNotificationService:
             samples: Sample repository for resolving report ownership.
             environment: Deployment environment used to select source events.
             sample_access: Current clinical read policy used before addressing a report notice.
+            app_prefix: Deployment URL prefix for linked review requests; empty means root.
         """
         self.activity = activity_repository
         self.notifications = notifications
@@ -71,6 +74,7 @@ class ActivityNotificationService:
         self.samples = samples
         self.environment = environment
         self.sample_access = sample_access
+        self.app_prefix = f"/{app_prefix.strip('/')}" if app_prefix.strip("/") else ""
 
     def deliver(self) -> int:
         """Publish a bounded batch after business commits and audit-outbox delivery.
@@ -101,6 +105,13 @@ class ActivityNotificationService:
                 title = "Sample reported"
                 message = f"Report {metadata.get('report_num', '')} saved for {(sample or {}).get('name', 'sample')}."
                 resource = {"type": "sample", "id": str(metadata.get("sample_oid") or "")}
+            elif event["event_type"] == "assay_setup.submit":
+                reviewer = str(metadata.get("reviewer") or "").strip().lower()
+                audience, recipients = "selected", [reviewer] if reviewer else []
+                title = "Assay setup review requested"
+                message = (
+                    f"Review assay setup {metadata.get('asp_id') or resource.get('id') or ''}."
+                )
             elif resource.get("type") == "knowledgebase":
                 title = "Knowledgebase updated"
                 message += f" {metadata.get('release') or ''}"
@@ -119,6 +130,13 @@ class ActivityNotificationService:
                 message = (
                     f"{label} {resource.get('name') or resource.get('id') or ''} was {action}."
                 )
+            notification_resource = {
+                key: value for key, value in resource.items() if key in {"type", "id", "name"}
+            }
+            if event["event_type"] == "assay_setup.submit":
+                notification_resource["uri"] = (
+                    f"{self.app_prefix}/admin/assay-setups?setup={resource['id']}"
+                )
             self.notifications.create_notification(
                 audience=audience,
                 recipients=recipients,
@@ -128,9 +146,7 @@ class ActivityNotificationService:
                 message=message,
                 source="Application activity",
                 created_by=(event.get("actor") or {}).get("username") or "system",
-                resource={
-                    key: value for key, value in resource.items() if key in {"type", "id", "name"}
-                },
+                resource=notification_resource,
                 event_id=event["_id"],
                 created_at=event.get("occurred_at"),
             )

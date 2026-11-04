@@ -1,4 +1,4 @@
-"""Draft-first assay setup endpoints with independent publication review."""
+"""Draft-first assay setup endpoints with optional review before activation."""
 
 from typing import Any
 
@@ -120,7 +120,7 @@ def submit_setup(
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
     service: AssaySetups = Depends(get_assay_setups),
 ) -> dict[str, Any]:
-    """Require Base/production, validate staged resources and freeze the setup for review."""
+    """Validate the setup and assign optional review to an eligible username in assignee."""
     return _response(
         request,
         service.submit_setup(identifier=identifier, payload=payload),
@@ -136,7 +136,7 @@ def publish_setup(
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
     service: AssaySetups = Depends(get_assay_setups),
 ) -> dict[str, Any]:
-    """Independently approve and atomically activate a complete submitted setup."""
+    """Publish and atomically activate a valid draft or submitted setup; review is optional."""
     return _response(
         request,
         service.publish_setup(identifier=identifier, payload=payload),
@@ -152,7 +152,7 @@ def return_setup(
     user: ApiUser = Depends(require_access(permission="assay.panel:edit")),
     service: AssaySetups = Depends(get_assay_setups),
 ) -> dict[str, Any]:
-    """Return a submitted setup to draft with an independent reviewer's explanation."""
+    """Return a submitted setup to draft with an explanation; requires assay.panel:edit."""
     return _response(
         request,
         service.return_setup(identifier=identifier, payload=payload),

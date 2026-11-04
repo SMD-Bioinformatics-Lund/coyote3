@@ -7,6 +7,7 @@ const metadataFields = new Set([
   "retired_reason", "approved_at", "approved_by", "submitted_at", "submitted_by", "effective_from",
   "supersedes_id", "installed_by", "installed_on", "review_dependencies", "review_reason",
   "base_version", "is_current", "query_id", "scope_key", "rule_set_id", "catalog_key", "change_summary",
+  "reviewer", "reviewed_by",
 ])
 
 const recordChildren = ["panel", "gene_lists", "configurations"] as const

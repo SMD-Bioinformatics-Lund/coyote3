@@ -38,6 +38,7 @@ class AssaySetupRepository(BaseRepository):
                 "asp_id",
                 "status",
                 "revision",
+                "reviewer",
                 "created_by",
                 "created_at",
                 "updated_by",
@@ -270,6 +271,8 @@ class AssaySetupRepository(BaseRepository):
                     "revision": payload["revision"],
                     "asp_id": payload["asp_id"],
                     "status": payload["status"],
+                    "reviewer": payload.get("reviewer"),
+                    "reviewed_by": payload.get("reviewed_by"),
                 },
             )
             return payload

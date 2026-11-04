@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { configurationContent, configurationWithMetadata } from "./configuration-transfer"
 
 it("strips setup record metadata without changing embedded policy values or pinned references", () => {
-  const source = { revision: 9, created_by: "author", panel: { asp_id: "panel", version: 8 },
+  const source = { revision: 9, created_by: "author", reviewer: "old.reviewer", reviewed_by: "old.reviewer", panel: { asp_id: "panel", version: 8 },
     gene_lists: [{ isgl_id: "genes", genes: ["TP53"], created_on: "old", version: 3 }],
     configurations: [{ asp_id: "panel", content_hash: "old", reporting: { rule_binding: { version: 5 } } }],
     content: { condition: { field: "version", value: { version: 7, status: "valid" } } } }

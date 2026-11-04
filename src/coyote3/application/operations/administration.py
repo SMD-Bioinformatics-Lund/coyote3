@@ -1760,11 +1760,11 @@ class AssaySetups:
         )
 
     def submit_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
-        """Require Base/production, validate staged resources and freeze the setup for review.
+        """Validate staged resources and assign optional review to an eligible colleague.
 
         Args:
-            identifier: Saved setup or catalog-version identifier.
-            payload: Authored fields validated against the managed resource contract.
+            identifier: Saved assay setup identifier.
+            payload: Expected revision, eligible reviewer in assignee and optional notes.
 
         Returns:
             Mutation outcome with the affected resource identity and available revision metadata.
@@ -1782,21 +1782,26 @@ class AssaySetups:
                 "gene_list.insilico:create",
             ),
             lambda actor, sample: self._service().transition(
-                identifier, payload.revision, "submit", actor=actor.username
+                identifier,
+                payload.revision,
+                "submit",
+                actor=actor.username,
+                reason=payload.reason,
+                assignee=payload.assignee,
             ),
             edit_resource=("assay-setups", identifier),
             editing_session_required=False,
         )
 
     def publish_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
-        """Independently approve and atomically activate a complete submitted setup.
+        """Publish and atomically activate a complete draft or optionally reviewed setup.
 
         Args:
-            identifier: Saved setup or catalog-version identifier.
-            payload: Authored fields validated against the managed resource contract.
+            identifier: Saved assay setup identifier.
+            payload: Expected revision and optional publication notes.
 
         Returns:
-            Mutation outcome with the affected resource identity and available revision metadata.
+            Published setup snapshot after its resources are activated atomically.
 
         Raises:
             AppError: Authentication, required grants (assay.panel:edit, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
@@ -1821,8 +1826,8 @@ class AssaySetups:
         """Require gene-list edit permission when activation links shared lists.
 
         Args:
-            identifier: Submitted setup identity, checked by the outer operation.
-            payload: Expected revision and review notes.
+            identifier: Draft or submitted setup identity, checked by the outer operation.
+            payload: Expected revision and optional publication notes.
 
         Returns:
             Published setup after atomic activation.
@@ -1865,14 +1870,14 @@ class AssaySetups:
         )
 
     def return_setup(self, *, identifier: str, payload: AssaySetupAction) -> dict[str, Any]:
-        """Return a submitted setup to draft with an independent reviewer's explanation.
+        """Return a submitted setup to draft with the caller's explanation.
 
         Args:
-            identifier: Saved setup or catalog-version identifier.
-            payload: Authored fields validated against the managed resource contract.
+            identifier: Submitted assay setup identifier.
+            payload: Expected revision and required explanation for returning to draft.
 
         Returns:
-            Mutation outcome with the affected resource identity and available revision metadata.
+            Editable draft snapshot at the next revision.
 
         Raises:
             AppError: Authentication, required grants (assay.panel:edit), validation
@@ -2425,7 +2430,7 @@ class AdministrationServices:
             assay_configurations: Scope-bound assay configuration authoring.
             gene_lists: Managed gene-list authoring and inspection.
             sample_administration: Privileged sample editing and deletion workflows.
-            assay_setups: Draft-first setup validation and independent publication.
+            assay_setups: Draft-first setup validation, optional review and atomic activation.
             catalog_authoring: Catalog previews, revisions, assignment and publication.
             reference_data: Permitted fields and metadata for managed reference resources.
         """

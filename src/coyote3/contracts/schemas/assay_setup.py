@@ -115,10 +115,11 @@ class AssaySetupUpdate(_StrictDocBase):
 
 
 class AssaySetupAction(_StrictDocBase):
-    """Concurrency precondition and review explanation."""
+    """Concurrency precondition, notes and reviewer for optional review submission."""
 
     revision: int = Field(ge=1)
     reason: str = Field(default="", max_length=2000)
+    assignee: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class AssaySetupDoc(_StrictCollectionDocBase):
@@ -136,6 +137,8 @@ class AssaySetupDoc(_StrictCollectionDocBase):
     review_reason: str = ""
     published_by: str | None = None
     review_dependencies: str | None = None
+    reviewer: str | None = None
+    reviewed_by: str | None = None
 
 
 class AssaySetupRevisionDoc(_StrictCollectionDocBase):
@@ -154,7 +157,7 @@ class AssaySetupListPayload(_StrictDocBase):
 
 
 class AssaySetupContextPayload(_StrictDocBase):
-    """Managed forms and readiness for a new or existing setup."""
+    """Managed forms, eligible reviewer choices and readiness for assay setup."""
 
     panel_form: dict[str, Any]
     diagnoses: list[dict[str, Any]]
@@ -166,3 +169,4 @@ class AssaySetupContextPayload(_StrictDocBase):
     history: list[dict[str, Any]] = Field(default_factory=list)
     rules: list[dict[str, Any]] = Field(default_factory=list)
     readiness: dict[str, Any] | None = None
+    reviewers: list[dict[str, str]] = Field(default_factory=list)

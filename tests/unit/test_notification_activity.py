@@ -131,6 +131,35 @@ def test_shared_events_reach_every_user_and_replay_preserves_read_state():
     assert not inbox.inbox(user=principal("other.group"))["notifications"][0]["read"]
 
 
+def test_assay_review_request_reaches_only_assignee_and_links_with_deployment_prefix():
+    """Committed assignment events use retry-safe delivery and a scoped inbox audience."""
+    client, delivery, inbox, repo = fixture()
+    delivery.app_prefix = "/coyote3"
+    source = event(
+        "assay_setup.submit",
+        "assay_setup",
+        metadata={"reviewer": "group.reader", "asp_id": "synthetic"},
+    )
+    client.identity.audit.insert_one(source)
+    assert delivery.deliver() == 1
+    notices = inbox.inbox(user=principal("group.reader"))["notifications"]
+    assert len(notices) == 1
+    assert notices[0]["title"] == "Assay setup review requested"
+    assert notices[0]["resource"]["uri"] == "/coyote3/admin/assay-setups?setup=demo"
+    assert inbox.inbox(user=principal("other.group"))["notifications"] == []
+    repo.mark_read(str(source["_id"]), "group.reader")
+    assert delivery.deliver() == 0
+    assert inbox.inbox(user=principal("group.reader"))["notifications"][0]["read"]
+
+
+def test_historical_unassigned_review_request_does_not_broadcast():
+    """Old submission events without an assignee never expand their audience to everyone."""
+    client, delivery, inbox, _ = fixture()
+    client.identity.audit.insert_one(event("assay_setup.submit", "assay_setup", metadata={}))
+    assert delivery.deliver() == 1
+    assert inbox.inbox(user=principal("group.reader"))["notifications"] == []
+
+
 def test_inbox_pagination_keeps_read_messages_and_has_no_duplicate_pages():
     client, _, _, repo = fixture()
     now = datetime.now(timezone.utc)

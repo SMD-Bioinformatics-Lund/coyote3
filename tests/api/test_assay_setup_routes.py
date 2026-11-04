@@ -90,6 +90,38 @@ def test_read_permission_is_not_write_permission(client):
     assert http.post("/api/v1/admin/assay-setups", json=doc["content"]).status_code == 403
 
 
+def test_submit_forwards_the_named_reviewer_and_returns_assignment(client):
+    """The HTTP layer retains the assignee rather than dropping it before the workflow."""
+    http, user, doc = client
+    user.permissions = [
+        "assay.panel:edit",
+        "assay.panel:create",
+        "assay.config:create",
+        "gene_list.insilico:create",
+    ]
+    operations = http.app.dependency_overrides[get_assay_setups]()
+    calls = []
+
+    def submit(*args, **kwargs):
+        """Capture the lifecycle request without using operational storage."""
+        calls.append((args, kwargs))
+        return {**doc, "status": "submitted", "reviewer": kwargs["assignee"], "revision": 2}
+
+    operations._service().transition = submit
+    response = http.post(
+        f"/api/v1/admin/assay-setups/{doc['_id']}/submit",
+        json={"revision": 1, "reason": "Check setup", "assignee": "reviewer"},
+    )
+    assert response.status_code == 200
+    assert response.json()["reviewer"] == "reviewer"
+    assert calls == [
+        (
+            (doc["_id"], 1, "submit"),
+            {"actor": "author", "reason": "Check setup", "assignee": "reviewer"},
+        )
+    ]
+
+
 def test_delete_requires_permission_and_revision(client):
     http, user, doc = client
     path = f"/api/v1/admin/assay-setups/{doc['_id']}"

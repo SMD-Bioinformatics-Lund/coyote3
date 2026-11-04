@@ -190,7 +190,7 @@ class SetupWorkspace:
 
 
 class AssaySetupService:
-    """Manage resumable drafts, readiness, independent review and atomic activation."""
+    """Manage resumable drafts, readiness, optional review and atomic activation."""
 
     def __init__(self, store: Any, *, common_util: Any) -> None:
         """Bind application repositories and managed-form helpers."""
@@ -284,8 +284,60 @@ class AssaySetupService:
                 raise api_error(422, "Gene-list diagnoses must be selected setup scopes")
         return workspace
 
+    def reviewer_options(self, document: dict, *, actor: str) -> list[dict[str, str]]:
+        """List active independent colleagues able to inspect and activate this setup.
+
+        Args:
+            document: Saved setup whose editors and shared-list links determine eligibility.
+            actor: Submitting caller, excluded along with every content editor.
+
+        Returns:
+            Canonical usernames and display names, sorted for the reviewer selector.
+        """
+        required = {
+            "assay.panel:list",
+            "assay.panel:view",
+            "assay.panel:edit",
+            "assay.panel:create",
+            "assay.config:create",
+            "gene_list.insilico:create",
+        }
+        if document["content"].get("existing_gene_list_ids"):
+            required.add("gene_list.insilico:edit")
+        roles = {
+            role["role_id"]: set(role.get("permissions") or [])
+            for role in self.store.role_repository.get_all_roles_plus_permissions()
+            if role.get("is_active", True)
+        }
+        excluded = {str(value).strip().lower() for value in [actor, *document["content_editors"]]}
+        choices = []
+        for user in self.store.user_repository.list_active_users_for_notifications():
+            username = str(user.get("username") or "").strip().lower()
+            user_roles = set(user.get("roles") or []) & roles.keys()
+            permissions = set().union(*(roles[role] for role in user_roles))
+            if (
+                username
+                and username not in excluded
+                and ("superuser" in user_roles or required <= permissions)
+            ):
+                choices.append({"username": username, "name": user.get("fullname") or username})
+        return sorted(choices, key=lambda choice: (choice["name"].lower(), choice["username"]))
+
     def context(self, identifier: str | None, *, actor: str) -> dict:
-        """Return managed forms, scope choices, rule references and saved progress."""
+        """Return managed forms, scope choices, rule references and saved progress.
+
+        Args:
+            identifier: Saved setup identifier, or None for the new assay form.
+            actor: Caller used to build managed forms and validate staged resources.
+
+        Returns:
+            Form specifications and available scopes. Saved setups also include
+            readiness, history and repairable validation errors. Environment choices
+            include implicit production even for older persisted drafts.
+
+        Raises:
+            AppError: The requested saved setup does not exist.
+        """
         result = {
             "panel_form": build_managed_form(managed_resource_spec("asp"), actor_username=actor),
             "diagnoses": self.store.assay_diagnosis_repository.list_definitions(),
@@ -298,6 +350,7 @@ class AssaySetupService:
             return result
         doc = self.get(identifier)
         result["setup"] = doc
+        result["reviewers"] = self.reviewer_options(doc, actor=actor)
         result["history"] = [
             {
                 "revision": r["revision"],
@@ -308,9 +361,8 @@ class AssaySetupService:
             for r in self.repository.revisions(identifier)
         ]
         try:
-            workspace = SetupWorkspace(
-                AssaySetupContent.model_validate(doc["content"]), self.store, actor
-            )
+            content = AssaySetupContent.model_validate(doc["content"])
+            workspace = SetupWorkspace(content, self.store, actor)
             lists, configs = workspace.services(self.common_util)
             result["genelist_form"] = lists.create_context_payload(actor_username=actor)["form"]
             for source in doc["content"]["gene_lists"]:
@@ -333,9 +385,7 @@ class AssaySetupService:
             result["configuration_form"] = configs.create_context_payload(
                 category=workspace.panel["asp_category"], actor_username=actor
             )["form"]
-            result["configuration_form"]["fields"]["environment"]["options"] = doc["content"][
-                "environments"
-            ]
+            result["configuration_form"]["fields"]["environment"]["options"] = content.environments
         except (AppError, ValidationError) as exc:
             result["context_error"] = str(exc)
         result["rules"] = self.store.clinical_rule_set_repository.list_active_for_assay(
@@ -459,26 +509,64 @@ class AssaySetupService:
         return sha256(json.dumps(sorted(identities), default=str).encode()).hexdigest()
 
     def transition(
-        self, identifier: str, revision: int, action: str, *, actor: str, reason: str = ""
+        self,
+        identifier: str,
+        revision: int,
+        action: str,
+        *,
+        actor: str,
+        reason: str = "",
+        assignee: str | None = None,
     ) -> dict:
-        """Submit, return for correction, or independently approve and activate a setup."""
+        """Submit for optional review, return to draft, or publish a complete setup.
+
+        Args:
+            identifier: Saved setup identifier.
+            revision: Revision loaded by the caller; stale requests are rejected.
+            action: Submit a draft, return a submitted setup, or publish either state.
+            actor: Authorized caller's username, retained in revision attribution.
+            reason: Review or publication notes; required when returning to draft.
+            assignee: Eligible colleague's username; required only for submission.
+
+        Returns:
+            Updated setup snapshot; publication atomically activates its resources.
+
+        Raises:
+            AppError: State, revision, validation or submitted dependencies prevent the action.
+        """
         previous = self.get(identifier)
-        required = "draft" if action == "submit" else "submitted"
+        allowed_states = {
+            "submit": {"draft"},
+            "return": {"submitted"},
+            "publish": {"draft", "submitted"},
+        }
         if (
-            action not in {"submit", "return", "publish"}
-            or previous["status"] != required
+            previous["status"] not in allowed_states.get(action, set())
             or previous["revision"] != revision
         ):
             raise api_error(409, "The setup state or revision does not allow this operation")
-        if action in {"publish", "return"} and actor in previous["content_editors"]:
-            raise api_error(403, "An independent reviewer must approve or return the setup")
         if action == "return" and not reason.strip():
             raise api_error(422, "Explain which changes are required")
+        reviewer = previous.get("reviewer")
+        if action == "submit":
+            reviewer = str(assignee or "").strip().lower()
+            if not reviewer:
+                raise api_error(422, "Select a reviewer before submitting")
+            if reviewer not in {
+                user["username"] for user in self.reviewer_options(previous, actor=actor)
+            }:
+                raise api_error(
+                    422, "Select an active eligible reviewer who did not edit this setup"
+                )
         bundle = self.bundle(previous, actor=actor) if action != "return" else None
         digest = self.dependency_hash(bundle) if bundle else None
-        if action == "publish" and digest != previous.get("review_dependencies"):
+        if (
+            action == "publish"
+            and previous["status"] == "submitted"
+            and digest != previous.get("review_dependencies")
+        ):
             raise api_error(
-                409, "Setup dependencies changed after submission; return it for a new review"
+                409, "Setup dependencies changed after submission; return to draft and recheck them"
             )
         values = {
             **previous,
@@ -488,6 +576,8 @@ class AssaySetupService:
             "review_reason": reason,
             "status": {"submit": "submitted", "return": "draft", "publish": "published"}[action],
             "review_dependencies": digest,
+            "reviewer": None if action == "return" else reviewer,
+            "reviewed_by": actor if action == "publish" and actor == reviewer else None,
         }
         if action == "publish":
             values["published_by"] = actor

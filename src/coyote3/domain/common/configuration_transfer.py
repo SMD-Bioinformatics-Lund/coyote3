@@ -43,6 +43,8 @@ CONFIGURATION_METADATA_FIELDS = frozenset(
         "installed_by",
         "installed_on",
         "review_dependencies",
+        "reviewer",
+        "reviewed_by",
         "review_reason",
         "base_version",
         "is_current",

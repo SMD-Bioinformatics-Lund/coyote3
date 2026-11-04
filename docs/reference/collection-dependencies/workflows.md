@@ -45,7 +45,7 @@ Governed setup draft; publication leaves its final content immutable.
 
 Draft content can precede operational resources. Keep original _id, revision and content_editors, created_by/at and updated_by/at. Editing leases live in edit_leases, not in this collection. Published setup revisions are retained.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `asp_id`, `content`, `status`, `revision`, `content_editors`, `created_at`, `updated_at`, `review_reason`, `published_by`, `review_dependencies`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `asp_id`, `content`, `status`, `revision`, `content_editors`, `created_at`, `updated_at`, `review_reason`, `published_by`, `review_dependencies`, `reviewer`, `reviewed_by`.
 
 [Field types and validation](../mongodb-collections.md#assay_setups). `_id` may also be retained by an open collection model.
 

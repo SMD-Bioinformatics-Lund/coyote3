@@ -216,6 +216,8 @@ Optional keys:
 - `review_reason` (str)
 - `published_by` (str | None)
 - `review_dependencies` (str | None)
+- `reviewer` (str | None)
+- `reviewed_by` (str | None)
 
 ## `assay_specific_panels`
 

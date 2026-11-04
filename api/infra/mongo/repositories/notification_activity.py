@@ -146,7 +146,11 @@ class NotificationActivityRepository:
         if event.get("outcome") != "success":
             return False
         kind = event.get("event_type")
-        return kind in {"report.saved", "knowledgebase.oncokb_public.refresh.completed"} or (
+        return kind in {
+            "report.saved",
+            "knowledgebase.oncokb_public.refresh.completed",
+            "assay_setup.submit",
+        } or (
             kind == "api.mutation.succeeded"
             and (event.get("resource") or {}).get("type")
             in {

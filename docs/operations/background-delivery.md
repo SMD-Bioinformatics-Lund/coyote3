@@ -4,6 +4,11 @@ Use this procedure when notifications, audit delivery, error emails or report-fi
 erasure are delayed. For ingest receipts, use [ingest job recovery](ingest-job-recovery.md).
 For SMTP setup, use [email and notifications](email-and-notifications.md).
 
+Optional assay setup review requests use committed `assay_setup.submit` events.
+The selected reviewer receives an in-app notification linked to the saved setup.
+Retries reuse the event identity and preserve read/dismissed state. Historical
+submission events without an assignee do not broadcast a review request.
+
 ## Worker ownership
 
 The base Compose stack runs two Celery workers from the same API image:

@@ -520,14 +520,14 @@ AssaySetups.publish_setup(self, *, identifier: 'str', payload: 'AssaySetupAction
 ```
 
 ```text
-Independently approve and atomically activate a complete submitted setup.
+Publish and atomically activate a complete draft or optionally reviewed setup.
 
 Args:
-    identifier: Saved setup or catalog-version identifier.
-    payload: Authored fields validated against the managed resource contract.
+    identifier: Saved assay setup identifier.
+    payload: Expected revision and optional publication notes.
 
 Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
+    Published setup snapshot after its resources are activated atomically.
 
 Raises:
     AppError: Authentication, required grants (assay.panel:edit, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
@@ -541,14 +541,14 @@ AssaySetups.return_setup(self, *, identifier: 'str', payload: 'AssaySetupAction'
 ```
 
 ```text
-Return a submitted setup to draft with an independent reviewer's explanation.
+Return a submitted setup to draft with the caller's explanation.
 
 Args:
-    identifier: Saved setup or catalog-version identifier.
-    payload: Authored fields validated against the managed resource contract.
+    identifier: Submitted assay setup identifier.
+    payload: Expected revision and required explanation for returning to draft.
 
 Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
+    Editable draft snapshot at the next revision.
 
 Raises:
     AppError: Authentication, required grants (assay.panel:edit), validation
@@ -603,11 +603,11 @@ AssaySetups.submit_setup(self, *, identifier: 'str', payload: 'AssaySetupAction'
 ```
 
 ```text
-Require Base/production, validate staged resources and freeze the setup for review.
+Validate staged resources and assign optional review to an eligible colleague.
 
 Args:
-    identifier: Saved setup or catalog-version identifier.
-    payload: Authored fields validated against the managed resource contract.
+    identifier: Saved assay setup identifier.
+    payload: Expected revision, eligible reviewer in assignee and optional notes.
 
 Returns:
     Mutation outcome with the affected resource identity and available revision metadata.
@@ -5601,11 +5601,11 @@ Reject whitespace-only reasons after trimming.
 ### `AssaySetupAction`
 
 ```python
-AssaySetupAction(*, revision: Annotated[int, Ge(ge=1)], reason: Annotated[str, MaxLen(max_length=2000)] = '') -> None
+AssaySetupAction(*, revision: Annotated[int, Ge(ge=1)], reason: Annotated[str, MaxLen(max_length=2000)] = '', assignee: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=200)] = None) -> None
 ```
 
 ```text
-Concurrency precondition and review explanation.
+Concurrency precondition, notes and reviewer for optional review submission.
 ```
 
 ### `AssaySetupContent`
