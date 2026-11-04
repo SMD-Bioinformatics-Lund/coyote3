@@ -1894,6 +1894,10 @@ export type CatalogDiscoveryDoc = {
      */
     header: string;
     /**
+     * Navigation
+     */
+    navigation?: Array<CatalogNavigationNodeDoc>;
+    /**
      * Offerings
      */
     offerings?: Array<CatalogOfferingDoc>;
@@ -1936,6 +1940,91 @@ export type CatalogGeneScopeDoc = {
 };
 
 /**
+ * CatalogNavigationNodeDoc
+ *
+ * Public presentation for one section, group or diagnosis in the reviewed tree.
+ */
+export type CatalogNavigationNodeDoc = {
+    /**
+     * Analysis
+     */
+    analysis?: Array<string>;
+    /**
+     * Clear Fields
+     */
+    clear_fields?: Array<string>;
+    /**
+     * Clinical Indications
+     */
+    clinical_indications?: Array<string>;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Input Material
+     */
+    input_material?: Array<string>;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Limitations
+     */
+    limitations?: string;
+    /**
+     * Methodology
+     */
+    methodology?: string;
+    /**
+     * Node Id
+     */
+    node_id: string;
+    /**
+     * Offering Id
+     */
+    offering_id?: string | null;
+    /**
+     * Ordering Information
+     */
+    ordering_information?: string;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    price?: CatalogPriceDoc | null;
+    /**
+     * Pricing Message
+     */
+    pricing_message?: string;
+    /**
+     * Public Notes
+     */
+    public_notes?: string;
+    /**
+     * Report Deliverables
+     */
+    report_deliverables?: Array<string>;
+    /**
+     * Sample Modes
+     */
+    sample_modes?: Array<string>;
+    /**
+     * Subheading
+     */
+    subheading?: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Turnaround
+     */
+    turnaround?: string;
+};
+
+/**
  * CatalogOfferingDoc
  *
  * Allowlisted service information independent of operational configuration storage.
@@ -1957,6 +2046,10 @@ export type CatalogOfferingDoc = {
      * Assay Label
      */
     assay_label: string;
+    /**
+     * Covered Gene Count
+     */
+    covered_gene_count?: number | null;
     /**
      * Description
      */
@@ -2009,15 +2102,31 @@ export type CatalogOfferingDoc = {
      * Ordering Information
      */
     ordering_information?: string;
+    /**
+     * Platform
+     */
+    platform?: string;
     price?: CatalogPriceDoc | null;
     /**
      * Pricing Message
      */
     pricing_message?: string;
     /**
+     * Read Length
+     */
+    read_length?: number | null;
+    /**
+     * Read Mode
+     */
+    read_mode?: string;
+    /**
      * Report Deliverables
      */
     report_deliverables?: Array<string>;
+    /**
+     * Sample Modes
+     */
+    sample_modes?: Array<string>;
     /**
      * Title
      */
@@ -7565,9 +7674,26 @@ export type PublicCatalogGeneListDoc = {
      */
     limitations?: string | null;
     /**
+     * Methodology
+     */
+    methodology?: string;
+    /**
+     * Ordering Information
+     */
+    ordering_information?: string;
+    price?: CatalogPriceDoc | null;
+    /**
+     * Pricing Message
+     */
+    pricing_message?: string;
+    /**
      * Public Notes
      */
     public_notes?: string | null;
+    /**
+     * Report Deliverables
+     */
+    report_deliverables?: Array<string>;
     /**
      * Report Sections
      */
@@ -7664,13 +7790,30 @@ export type PublicCatalogModalityDoc = {
      */
     limitations?: string | null;
     /**
+     * Methodology
+     */
+    methodology?: string;
+    /**
      * Omics
      */
     omics?: 'dna' | 'rna' | null;
     /**
+     * Ordering Information
+     */
+    ordering_information?: string;
+    price?: CatalogPriceDoc | null;
+    /**
+     * Pricing Message
+     */
+    pricing_message?: string;
+    /**
      * Public Notes
      */
     public_notes?: string | null;
+    /**
+     * Report Deliverables
+     */
+    report_deliverables?: Array<string>;
     /**
      * Report Sections
      */

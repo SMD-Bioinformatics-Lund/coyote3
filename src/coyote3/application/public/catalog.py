@@ -6,10 +6,10 @@ from typing import Any
 
 from coyote3.application.public.catalog_gene_views import PublicCatalogGeneViewsMixin
 from coyote3.application.public.published_catalog_views import (
+    catalog_discovery,
     publication_context,
     publication_matrix,
 )
-from coyote3.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
 from coyote3.domain.common.errors import api_error
 
 
@@ -63,12 +63,7 @@ class PublicCatalogService(PublicCatalogGeneViewsMixin):
     def published_offerings(self) -> dict:
         """Return only reviewed publication snapshots without consulting live resources."""
         document = self._load_catalog_document()
-        return CatalogDiscoveryDoc(
-            version=document.get("version", 0),
-            header=document.get("header") or "Genomic test catalog",
-            description=document.get("description") or "",
-            offerings=document.get("published_offerings") or [],
-        ).model_dump(mode="json")
+        return catalog_discovery(document)
 
     @classmethod
     def from_store(cls, store: Any) -> "PublicCatalogService":

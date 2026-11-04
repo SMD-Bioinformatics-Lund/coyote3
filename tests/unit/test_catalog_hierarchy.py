@@ -5,6 +5,7 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 
+from coyote3.application.public.published_catalog_views import catalog_discovery
 from coyote3.contracts.schemas.public_catalog import PublicCatalogModalityDoc
 from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
 
@@ -70,3 +71,80 @@ def test_defaulted_contract_fields_still_inherit():
     result = resolve_catalog_categories(section.model_dump())
     assert result["child"]["analysis"] == ["SNV"]
     assert result["child"]["tat"] == "10 days"
+
+
+def test_service_fields_inherit_from_immediate_parent_with_local_overrides():
+    """Prices and descriptive service fields follow the same explicit parent precedence."""
+    section = PublicCatalogModalityDoc.model_validate(
+        {
+            "price": {"amount": "900", "currency": "SEK"},
+            "categories": {
+                "hema": {
+                    "node_kind": "folder",
+                    "price": {"amount": "450", "currency": "SEK"},
+                    "methodology": "Parent method",
+                    "tat": "21 days",
+                    "input_material": ["Bone marrow"],
+                },
+                "mpn": {"parent_key": "hema", "tat": "7 days"},
+                "cll": {"parent_key": "hema", "clear_fields": ["price", "methodology"]},
+            },
+        }
+    )
+    result = resolve_catalog_categories(section.model_dump(mode="json"))
+    assert result["mpn"]["price"]["amount"] == "450.00"
+    assert result["mpn"]["methodology"] == "Parent method"
+    assert result["mpn"]["tat"] == "7 days"
+    assert result["mpn"]["input_material"] == ["Bone marrow"]
+    assert result["cll"]["price"] is None
+    assert result["cll"]["methodology"] == ""
+
+
+def test_public_navigation_keeps_every_levels_wording_and_excludes_private_fields():
+    """Parent content remains selectable without borrowing a child's service information."""
+    document = {
+        "version": 3,
+        "header": "Synthetic catalog",
+        "layout": {"order": ["rna", "dna"]},
+        "resource_revisions": {"private": {"configuration_id": "private"}},
+        "modalities": {
+            "dna": {
+                "label": "DNA",
+                "description": "DNA overview",
+                "tat": "10 days",
+                "categories": {
+                    "panels": {"label": "Panels", "node_kind": "folder"},
+                    "hema": {
+                        "label": "Hematology",
+                        "parent_key": "panels",
+                        "description": "Parent hematology information",
+                        "node_kind": "folder",
+                        "aspc_id": "private",
+                        "extra_private": "not public",
+                    },
+                    "mpn": {
+                        "label": "MPN",
+                        "parent_key": "hema",
+                        "description": "MPN details",
+                        "clear_fields": ["tat"],
+                        "tat": "",
+                        "asp_id": "private",
+                    },
+                },
+            },
+            "rna": {"label": "RNA", "categories": {}},
+        },
+    }
+    original = deepcopy(document)
+    result = catalog_discovery(document)
+    nodes = {node["node_id"]: node for node in result["navigation"]}
+    assert list(nodes)[0] == "section:rna"
+    assert nodes["entry:dna:hema"]["description"] == "Parent hematology information"
+    assert nodes["entry:dna:mpn"]["description"] == "MPN details"
+    assert nodes["entry:dna:mpn"]["parent_id"] == "entry:dna:hema"
+    assert nodes["entry:dna:panels"]["description"] == "DNA overview"
+    assert nodes["entry:dna:hema"]["turnaround"] == "10 days"
+    assert nodes["entry:dna:mpn"]["turnaround"] == ""
+    assert all(not {"aspc_id", "asp_id", "extra_private"} & node.keys() for node in nodes.values())
+    assert "resource_revisions" not in result
+    assert document == original

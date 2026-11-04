@@ -10,6 +10,7 @@ from uuid import uuid4
 from coyote3.application.common.protected_records import reject_system_managed_change
 from coyote3.application.public.offering_snapshots import build_offering_snapshot
 from coyote3.application.public.published_catalog_views import (
+    catalog_discovery,
     publication_context,
     publication_matrix,
 )
@@ -19,7 +20,6 @@ from coyote3.config.constants import (
     DNA_ANALYSIS_TYPE_OPTIONS,
     RNA_ANALYSIS_TYPE_OPTIONS,
 )
-from coyote3.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
 from coyote3.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
     PublicAssayCatalogVersionDoc,
@@ -131,7 +131,13 @@ class PublicAssayCatalogManagementService:
         ).model_dump()
 
     def source_options(self) -> dict[str, list[dict[str, Any]]]:
-        """Expose safe identifiers and labels used by the catalog builder."""
+        """List available source choices with the registered names used by the editor.
+
+        Returns:
+            Assay IDs with modality, family and biological-group labels; active
+            production configuration IDs with diagnosis labels; and eligible public
+            gene-list metadata. Operational filters and gene contents are excluded.
+        """
         panels = (
             available_panels(self.assay_panel_repository) if self.assay_panel_repository else []
         )
@@ -145,6 +151,19 @@ class PublicAssayCatalogManagementService:
             if self.gene_list_repository
             else []
         )
+        groups = {
+            item.get("asp_group"): self.groups.get(item["asp_group"]) or {}
+            for item in panels
+            if self.groups and item.get("asp_group")
+        }
+        diagnoses = {
+            item["asp_id"]: {
+                diagnosis["diagnosis_id"]: diagnosis.get("display_name")
+                for diagnosis in self.diagnoses.list_for_assay(item["asp_id"], active_only=True)
+            }
+            for item in panels
+            if self.diagnoses and item.get("asp_id")
+        }
         return {
             "asps": sorted(
                 [
@@ -154,6 +173,7 @@ class PublicAssayCatalogManagementService:
                         "category": item.get("asp_category"),
                         "family": item.get("asp_family"),
                         "group": item.get("asp_group"),
+                        "group_label": groups.get(item.get("asp_group"), {}).get("display_name"),
                     }
                     for item in panels
                     if isinstance(item, dict) and item.get("asp_id")
@@ -166,6 +186,9 @@ class PublicAssayCatalogManagementService:
                         "aspc_id": item.get("aspc_id"),
                         "asp_id": item.get("asp_id"),
                         "diagnosis_id": item.get("diagnosis_id"),
+                        "diagnosis_label": diagnoses.get(item.get("asp_id"), {}).get(
+                            item.get("diagnosis_id")
+                        ),
                         "environment": item.get("environment"),
                         "is_active": bool(item.get("is_active")),
                     }
@@ -718,23 +741,13 @@ class PublicAssayCatalogManagementService:
         """
         if content.get("resource_revisions") and content.get("published_offerings"):
             try:
-                return CatalogDiscoveryDoc(
-                    version=content.get("version", 0),
-                    header=content.get("header", "Genomic test catalog"),
-                    description=content.get("description", ""),
-                    offerings=content["published_offerings"],
-                ).model_dump(mode="json")
+                return catalog_discovery(content)
             except ValueError as exc:
                 raise api_error(422, "Invalid offering preview snapshot") from exc
         document = self._content(content, actor=actor)
         self.validate_links(document)
         snapshot = self.offering_snapshot(document)
-        return {
-            "version": document["version"],
-            "header": document["header"],
-            "description": document["description"],
-            "offerings": snapshot["published_offerings"],
-        }
+        return catalog_discovery(snapshot)
 
     def delete_unpublished(self, identifier: str, revision: int, *, actor: str) -> dict:
         """Discard a pre-publication catalog version without touching the live publication.

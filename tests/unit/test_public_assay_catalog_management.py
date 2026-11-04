@@ -18,6 +18,18 @@ from coyote3.contracts.public import PublicAssayCatalogAdminPayload
 from coyote3.domain.exceptions import AppError as ApiError
 
 
+def test_editor_source_options_include_registered_hierarchy_labels(service):
+    """The editor can reproduce browse levels from safe resource names and identifiers."""
+    service.diagnoses.list_for_assay = lambda *args, **kwargs: [
+        {"diagnosis_id": "base", "display_name": "General testing"}
+    ]
+    options = service.source_options()
+    assert options["asps"][0]["family"] == "wgs"
+    assert options["asps"][0]["group_label"] == "Demo"
+    assert options["aspcs"][0]["diagnosis_label"] == "General testing"
+    assert "filters" not in options["aspcs"][0]
+
+
 @pytest.mark.parametrize(
     ("short_name", "display_name", "expected"),
     [
@@ -47,6 +59,11 @@ def test_published_assay_labels_prefer_short_name_then_display_name_then_id(
 def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(service):
     """Publication exposes effective genes and price without operational configuration."""
     source = content()
+    source["modalities"]["wgs"]["categories"]["solid"]["sample_modes"] = ["Tumor-normal"]
+    source["modalities"]["wgs"]["categories"]["solid"]["input_material"] = ["Bone marrow"]
+    panels = service.assay_panel_repository.get_all_asps()
+    panels[0].update(platform="Synthetic sequencer", read_length=150, read_mode="paired-end")
+    service.assay_panel_repository.get_all_asps = lambda **kwargs: panels
     source["modalities"]["wgs"]["categories"]["solid"]["price"] = {
         "amount": "123.45",
         "currency": "EUR",
@@ -62,6 +79,10 @@ def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(ser
     assert item["gene_scopes"][0]["genes"] == ["GENE1"]
     assert item["gene_scopes"][0]["excluded_gene_count"] == 1
     assert item["price"]["amount"] == "123.45"
+    assert item["sample_modes"] == ["Tumor-normal"]
+    assert item["input_material"] == ["Bone marrow"]
+    assert item["platform"] == "Synthetic sequencer"
+    assert item["read_length"] == 150
     publication = {"version": 1, "header": "Services", "description": "", "offerings": [item]}
     matrix = publication_matrix(publication)
     assert matrix["genes"] == ["GENE1"]
@@ -92,6 +113,11 @@ def test_reviewed_scope_and_price_are_frozen_and_private_fields_are_separate(ser
         public_assay_catalog_repository=service.repository,
     )
     assert reader.published_offerings()["offerings"] == [item]
+    navigation = reader.published_offerings()["navigation"]
+    leaf = next(node for node in navigation if node["offering_id"] == item["offering_id"])
+    assert leaf["parent_id"] == "section:wgs"
+    assert leaf["title"] == source["modalities"]["wgs"]["categories"]["solid"]["label"]
+    assert service.preview_offerings(doc["catalog"], actor="reviewer")["navigation"] == navigation
     assert "resource_revisions" not in reader.published_offerings()
     assert reader.published_matrix()["genes"] == ["GENE1"]
     assert reader.assay_catalog_gene_symbols_payload("diagnosis") == {"gene_symbols": ["GENE1"]}

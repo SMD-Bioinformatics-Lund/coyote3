@@ -2,7 +2,87 @@
 
 from collections import Counter
 
+from coyote3.contracts.schemas.catalog_offerings import (
+    CatalogDiscoveryDoc,
+    CatalogNavigationNodeDoc,
+)
+from coyote3.domain.catalog_hierarchy import resolve_catalog_categories
 from coyote3.domain.common.errors import api_error
+
+
+def catalog_discovery(document: dict) -> dict:
+    """Expose reviewed hierarchy wording and frozen offerings through an explicit allowlist.
+
+    Args:
+        document: Stored publication or validated private preview snapshot.
+
+    Returns:
+        Discovery payload with resolved parent presentation, excluding configuration
+        identifiers, resource revisions and arbitrary authoring metadata.
+    """
+    nodes = []
+    discovery = CatalogDiscoveryDoc(
+        version=document.get("version", 0),
+        header=document.get("header") or "Genomic test catalog",
+        description=document.get("description") or "",
+        offerings=document.get("published_offerings") or [],
+    )
+    offerings = discovery.model_dump(mode="json")["offerings"]
+    offering_ids = {item["offering_id"] for item in offerings}
+    modalities = document.get("modalities") or {}
+    order = dict.fromkeys([*(document.get("layout", {}).get("order") or []), *modalities])
+    for section_key in order:
+        section = modalities.get(section_key)
+        if section is None:
+            continue
+        section_id = f"section:{section_key}"
+        entries = [(section_id, None, section_key, section)]
+        for key, entry in resolve_catalog_categories(section).items():
+            parent = entry.get("parent_key")
+            entries.append(
+                (
+                    f"entry:{section_key}:{key}",
+                    f"entry:{section_key}:{parent}" if parent else section_id,
+                    key,
+                    entry,
+                )
+            )
+        for node_id, parent_id, key, entry in entries:
+            public = {
+                field: entry.get(field) or default
+                for field, default in (
+                    ("description", ""),
+                    ("subheading", ""),
+                    ("input_material", []),
+                    ("sample_modes", []),
+                    ("analysis", []),
+                    ("clinical_indications", []),
+                    ("limitations", ""),
+                    ("public_notes", ""),
+                    ("methodology", ""),
+                    ("ordering_information", ""),
+                )
+            }
+            offering_id = entry.get("catalog_id")
+            nodes.append(
+                CatalogNavigationNodeDoc(
+                    node_id=node_id,
+                    parent_id=parent_id,
+                    offering_id=offering_id if offering_id in offering_ids else None,
+                    label=entry.get("label") or entry.get("title") or key,
+                    title=entry.get("title") or entry.get("label") or key,
+                    turnaround=entry.get("tat") or "",
+                    report_deliverables=entry.get("report_deliverables")
+                    or entry.get("report_sections")
+                    or [],
+                    **public,
+                    price=entry.get("price"),
+                    pricing_message=entry.get("pricing_message") or "",
+                    clear_fields=entry.get("clear_fields") or [],
+                )
+            )
+    discovery.navigation = nodes
+    return discovery.model_dump(mode="json")
 
 
 def publication_context(

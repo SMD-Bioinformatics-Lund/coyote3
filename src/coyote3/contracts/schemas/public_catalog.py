@@ -102,6 +102,11 @@ class PublicCatalogPresentationDoc(_PublicCatalogTextDoc):
     tat: str = ""
     limitations: str | None = None
     public_notes: str | None = None
+    price: CatalogPriceDoc | None = None
+    pricing_message: str = ""
+    methodology: str = ""
+    ordering_information: str = ""
+    report_deliverables: list[str] = Field(default_factory=list)
 
     @field_validator("tat")
     @classmethod
@@ -142,11 +147,6 @@ class PublicCatalogCategoryDoc(PublicCatalogPresentationDoc):
     """
 
     parent_key: str | None = None
-    price: CatalogPriceDoc | None = None
-    pricing_message: str = "Contact for pricing"
-    methodology: str = ""
-    ordering_information: str = ""
-    report_deliverables: list[str] = Field(default_factory=list)
     node_kind: Literal["entry", "folder"] = "entry"
     clear_fields: list[str] = Field(default_factory=list)
     catalog_id: str | None = None

@@ -53,11 +53,42 @@ class CatalogOfferingDoc(_StrictDocBase):
     pricing_message: str = "Contact for pricing"
     turnaround: str = ""
     input_material: list[str] = Field(default_factory=list)
+    sample_modes: list[str] = Field(default_factory=list)
+    platform: str = ""
+    read_length: int | None = Field(default=None, ge=0)
+    read_mode: str = ""
+    covered_gene_count: int | None = Field(default=None, ge=0)
     report_deliverables: list[str] = Field(default_factory=list)
     methodology: str = ""
     limitations: str = ""
     ordering_information: str = ""
+
     gene_scopes: list[CatalogGeneScopeDoc] = Field(default_factory=list)
+
+
+class CatalogNavigationNodeDoc(_StrictDocBase):
+    """Public presentation for one section, group or diagnosis in the reviewed tree."""
+
+    node_id: str
+    parent_id: str | None = None
+    offering_id: str | None = None
+    label: str
+    title: str
+    description: str = ""
+    subheading: str = ""
+    input_material: list[str] = Field(default_factory=list)
+    sample_modes: list[str] = Field(default_factory=list)
+    analysis: list[str] = Field(default_factory=list)
+    turnaround: str = ""
+    report_deliverables: list[str] = Field(default_factory=list)
+    clinical_indications: list[str] = Field(default_factory=list)
+    limitations: str = ""
+    public_notes: str = ""
+    methodology: str = ""
+    ordering_information: str = ""
+    price: CatalogPriceDoc | None = None
+    pricing_message: str = ""
+    clear_fields: list[str] = Field(default_factory=list)
 
 
 class CatalogDiscoveryDoc(_StrictDocBase):
@@ -67,3 +98,4 @@ class CatalogDiscoveryDoc(_StrictDocBase):
     header: str
     description: str = ""
     offerings: list[CatalogOfferingDoc] = Field(default_factory=list)
+    navigation: list[CatalogNavigationNodeDoc] = Field(default_factory=list)
