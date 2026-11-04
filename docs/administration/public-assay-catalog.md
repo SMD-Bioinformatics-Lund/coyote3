@@ -6,48 +6,50 @@ resources. Editing catalog wording does not change sample analysis or reporting 
 
 ## Find a service
 
-The landing page shows the catalog overview and all published tests, ordered by
-test name. The sidebar groups **DNA → WGS / Panels** and **RNA → WTS / Panels**.
-Select a method to reveal its biological groups, then select a group to reveal
-its diagnoses. Each level filters the cards and shows its published test count.
-Opened branches stay expanded when another item is selected, including after
-viewing a test and returning to the list. Use the separate arrow controls to
-expand or collapse a branch without changing the test selection. The selected
-item uses the theme accent; its parent path uses graduated gray highlights.
-Choose **All tests** to clear the sidebar selection while keeping branches open.
+The catalog uses a navigation tree on the left and the selected level's information
+on the right. Click a section, family, group or diagnosis name to read its own
+description and service information directly. For example, **Panels → Hematology**
+shows the parent hematology information; selecting **MPN** shows the MPN entry.
+The tree highlights parent levels with distinct heading sizes and colors.
+It retains the modality → sequencing method → biological group → diagnosis
+levels: for example, **DNA → Panels → Hematology → MPN**. These levels come from
+the reviewed offerings, including publications whose editable entries are flat.
+Assay names are shown with their service information on the right.
 
-**Additional filters** is initially collapsed. It contains assay, analysis and sort
-controls. Published sequencing families outside WGS, WTS and Panels also appear
-in the sidebar. Sidebar categories are not repeated as dropdowns.
+Use the separate arrows to expand or collapse branches without changing the
+selection. Opened branches remain expanded when another level is selected.
+Draft wording edits preserve collapsed branches. Selecting a different entry opens
+its ancestor branches so the selection is visible.
+The breadcrumb above the information provides links back to its parents.
+**Catalog introduction** returns to the overview. The selection is stored in the
+page URL; existing offering links continue to open their service information.
 
-For example, Solid → Breast can contain a targeted DNA panel and a WGS service.
-Each offering has its own price, capabilities and effective gene scope.
-**No diagnosis / General testing** represents an explicitly configured Base context.
-It appears only when a Base offering has been published. An unselected diagnosis
-filter includes all published contexts and does not select Base.
+Service information appears first: description, specimen requirements, sample
+modes, analyses, turnaround, methodology, limitations, reporting and ordering
+instructions, price, published covered-gene counts, and captured platform/read
+information. These facts share the main information panel. Right-hand panels retain
+the DNA/RNA and sequencing method colors as subtle surface tints and borders with
+shared elevation. Analysis,
+tissue, pricing, turnaround and coverage badges have distinct colors and retain
+their text labels in every theme. Unspecified metadata
+is labelled **Not specified**. Method and group overviews show the published
+services' values and unique gene counts, with different prices and TATs identified
+by assay and diagnosis. The introduction and DNA/RNA pages provide brief explanatory
+overviews and available methods, without aggregating individual service details.
+They do not repeat the sidebar's links.
+The searchable, downloadable gene table appears below that information.
+Analysis tabs keep SNV, CNV and fusion scopes separate. Gene rows are limited to
+the frozen publication's effective scope; WGS sequencing breadth does not imply
+that every gene is assessed or reportable. Current HGNC annotations enrich those
+published symbols without expanding coverage.
 
-Search accepts group names, diagnoses, tests, assay identifiers, modalities,
-technical families and published gene symbols. Results identify which field matched.
-Gene searches include only the effective scope in the publication. WGS sequencing
-breadth does not imply that every gene is assessed or reportable.
-
-Paste comma-separated or newline-separated symbols into **Requested genes**.
-Symbols are matched exactly without case sensitivity; duplicates count once.
-Tests with at least one matching published gene are shown. Each card shows the
-matched count out of the number requested. **View unmatched genes** opens a
-floating dialog listing the remaining symbols. Comparison columns show the same
-counts and dialog, including zero matches for an already-selected comparison.
-
-Select **View details** to open an offering's service information and searchable,
-downloadable gene table. Details include methodology, material requirements,
-turnaround, report deliverables, limitations and ordering instructions when configured.
-The offering identifier is retained in the page URL.
-
-Select **Compare** on two or three offerings to compare methods, enabled analyses,
-gene counts, deliverables, prices and limitations. Price sorting is available only
-when the selected group's published prices share a currency and pricing basis.
-The default order is alphabetical by displayed test name.
-No published offerings produces **No published services**.
+The gene coverage matrix remains available through **Gene coverage matrix**.
+**Compare assays** opens a separate comparison page. Select up to three published
+assay/diagnosis services to compare aligned rows for prices, TAT, analyses, samples,
+gene counts, platform, reporting and limitations. Search narrows the choices without
+clearing selected services. Comparison URLs retain the selected offering IDs.
+The catalog itself uses direct information rather than offering cards or gene matching.
+No published offerings or hierarchy produces **No published services**.
 
 ## Prepare resources
 
@@ -69,7 +71,11 @@ Catalog text cannot enable an unsupported analysis.
 Select **Create first draft**, or **Edit published catalog** for an existing release.
 Choose a section or entry in the editor sidebar. Folders organize presentation;
 they do not create biological groups, diagnoses, assays or configurations.
-An offering's public placement comes from its registered resources.
+The linked resources determine the public modality, method, group and diagnosis
+levels. Named presentation folders can provide wording for the corresponding
+level when their descendant offerings belong to that branch.
+Entries whose configuration belongs to another assay remain editable in their
+source section; they do not define a clinical navigation branch.
 
 Link each entry to its assay and production configuration. Set its display name,
 description, materials, turnaround and analyses. Assign public gene lists per
@@ -79,7 +85,7 @@ references, contradictory assignments and unavailable resources prevent submissi
 SNV, CNV and fusion list bindings must also be selected in their corresponding
 production filter configuration. Effective published genes are the intersection
 of those lists with the assay's validated covered genes. This applies to targeted
-panels and genome-wide families. The detail page reports how many list genes lie
+panels and genome-wide families. The gene scope reports how many list genes lie
 outside that coverage; excluded genes are not advertised as assessed.
 SNV and CNV scopes remain separately identified.
 
@@ -88,13 +94,15 @@ analysis scope. Analyses without an implemented list selector must use **No gene
 
 ### Pricing and service information
 
-Enable **Publish an offering-specific price** and supply an amount, three-letter
+Enable **Set a price at this level** and supply an amount, three-letter
 currency code, and fixed, starting or estimated basis. Add pricing conditions
 where applicable. Amounts are nonnegative with up to two decimal places.
 
-Prices belong to individual offerings and do not inherit from folders or diagnoses.
-Without a price, **Pricing message** supplies the alternative wording; its default
-is **Contact for pricing**.
+Configure general prices and service wording on a section or parent folder.
+Missing child values inherit from the immediate parent; a diagnosis-specific price
+replaces that default. **Pricing message** provides alternative wording where no
+numeric price is configured. If neither is available, the public view displays
+**Contact for pricing**. The comparison does not convert between currencies.
 
 Set report deliverables, methodology and ordering information on each offering.
 These describe the public service; they do not configure report templates,
@@ -105,21 +113,116 @@ clinical rules or order submission.
 Blank descriptions, material requirements, turnaround, analyses, resource references
 and list bindings inherit from their immediate presentation parent. Nonempty values
 replace inherited values. **Suppress inherited details** keeps selected fields empty.
-Labels, entry identity, pricing and the additional offering service fields remain local.
+Prices, pricing messages, methodology, ordering information and report deliverables
+also inherit. Labels and entry identity remain local. A diagnosis's available
+analyses and genes remain bounded by its reviewed operational configuration.
+
+Published gene counts use the union of effective reviewed gene lists. They do not
+expand coverage from current assay resources. New review snapshots also capture
+sample modes, platform, read length/mode and the assay's covered-gene count.
+Older publications retain their stored metadata; publish a newly reviewed version
+to capture these additional assay facts. Missing values are not fetched live.
+Previously submitted or approved versions must be revised and reviewed again if
+their captured facts differ from the current snapshot; publication retains the
+existing source-change check.
 
 Missing parents and cycles are rejected. Resolved references must pass the same
 resource validation as explicit references. Inheritance affects presentation only.
+Creating shared defaults preserves existing service values, including fields
+suppressed by an earlier parent. Those empty fields remain suppressed after the
+entry moves beneath the new defaults.
 
 Turnaround accepts a positive integer or ascending integer range and a unit of days,
-weeks, months or years. Blank means unspecified. Descriptions support restricted HTML;
+weeks, months or years. Blank inherits from the parent unless `tat` is suppressed;
+without an inherited value it is unspecified. Descriptions support restricted HTML;
 executable content, unsafe URLs and event handlers are removed. Display names and
 structured fields remain plain text.
 
 ## Preview, review and publish
 
 **Preview changes** resolves a draft without saving it. **Save draft** records a
-revision and opens its preview. Preview uses the same diagnosis-first discovery,
-offering details and matrix projection as the public service.
+revision and opens its preview. Preview uses the same hierarchy, information view
+and matrix projection as the public service.
+
+The **Review and publication** section above the editor shows the current step
+and the next action. Save and preview the draft, select an independent reviewer,
+then choose **Send for approval**. Submission is disabled while changes are unsaved
+or the editor is open. Only the assigned independent reviewer sees review actions;
+only the assigned independent publisher sees **Publish catalog** after approval.
+Publication requires confirmation.
+
+Select a draft to open it for editing. One tree contains the modality, method,
+group and diagnosis levels, individual assay entries, custom sections and unfinished
+items. Expand a level to use its **Add new entry** action directly beneath it.
+Custom sections keep their children in place after an assay is attached.
+
+For a new section, enter its **Section name** and select **DNA / RNA**. Add an
+entry beneath it, then use **Entry setup** to set the **Entry name**, **Assay**,
+**Diagnosis** and **Analyses**. Diagnosis choices select the corresponding active
+production configuration. When names are duplicated, the configuration identifier
+distinguishes the choices. Selecting an assay makes the item an assay entry; adding
+a child beneath an unbound item makes that parent a section.
+
+Use **Add gene list for SNV**, **CNV**, or another selected analysis to choose
+eligible gene lists from a dropdown. Selected lists remain visible as removable
+badges while searching. **No gene list** remains an explicit per-analysis choice.
+Eligibility still follows the selected assay, group, diagnosis and list type.
+
+The editor uses the public information panel. Select the pencil beside a title,
+description, price, TAT, sample type or other public field to edit it in place.
+The introduction and DNA/RNA sections use the brief overview layout. DNA/RNA
+sections retain their editable technical defaults under **Inherited service defaults**.
+Changes update the draft while typing; **Done** closes that field and **Cancel field
+edit** restores its prior value. Escape also cancels the field. Neither action
+saves or publishes a version. Use **Save draft** to record the document revision.
+Incomplete prices and invalid turnaround ranges must be corrected before selecting
+**Done**. Incomplete prices also disable **Save draft** until corrected or cancelled.
+Background coverage preview pauses for empty sections, unfinished names, source
+links and prices. Other source-validation failures appear inline with **Retry preview**,
+without repeated notification popups. Editing the draft clears the previous preview's
+error while the updated preview is pending. Preview never changes the draft or saved scope.
+Analysis edits temporarily disable their dependent source and gene-list
+controls so cancellation can restore the complete original binding set.
+
+Inherited values identify their immediate parent. **Use parent value** removes the
+local override. Coverage counts and captured assay metadata are computed from the
+private draft preview and remain read-only here; update the linked sources or
+gene-list selections to change them. Coverage refreshes after edits, and is marked
+unavailable while source selections are incomplete.
+
+For a level without its own presentation parent, **Add shared defaults** creates
+editable draft folders within its source section. Existing entry identifiers,
+source links and effective settings are retained. Overviews combining separate
+source sections provide controls to edit each section's defaults separately.
+Registered hierarchy names remain stable when a parent information heading changes.
+
+**Add section** is above the navigation tree. Each expanded level has **Add new
+entry** directly in the tree. Selected parents also have **Add subsection** and
+**Add entry** or **Add child entry** actions. When a public
+level combines several source sections, select the source section before adding
+content. Missing presentation parents are created within that source section while
+preserving existing services' effective settings.
+
+Custom sections and incomplete entries remain in the main tree. **Entry setup**
+keeps assay, diagnosis, analysis and gene-list selection together in one raised
+panel. Parent changes, inheritance suppression, descriptions and reference details
+remain available under the additional entry settings.
+
+Select a draft in the version list to expose **Delete draft** beside **Review and
+publication**. Deletion retains its confirmation, permission, editing-lease and
+revision checks; save or discard unsaved changes first. Published and system-installed
+versions cannot be deleted. **Import and export** in the sidebar contains file
+controls. **History and version options** contains lifecycle history and historical
+revision previews.
+
+The public discovery response includes allowlisted presentation entries from the
+reviewed document. The browser groups the reviewed offerings into the navigation
+levels and uses the corresponding named parent wording where configured. Private
+configuration references and resource revision records are excluded. Hierarchy
+information uses the stored publication and does not read current operational
+configuration. A diagnosis selection shows offerings for that diagnosis within
+the exact modality, method and group branch; it excludes the same diagnosis from
+other branches.
 
 | State | Next operation | Public visibility |
 | --- | --- | --- |
@@ -197,23 +300,22 @@ duplicate list columns. Assay labels prefer `name` (short name), then `display_n
 then `asp_id`. These labels are captured in the reviewed publication; changing an
 assay name requires a new catalog publication before public labels change.
 New publications capture `assay_label` for compact views and `assay_display_name`
-for cards and detail headings. Older publications without a full-name snapshot
-continue to show their reviewed offering title until a new revision is published.
+for service and comparison headings. Views use the captured short label when a
+full-name snapshot is absent.
 Diagnosis headers use the configured diagnosis display name (for example `MPN`
 or `CLL`); diagnoses do not have a separate short-name field. The supplied demo
 assays include compact `name` values. Existing installations must set the assay's
 **Name** and publish a reviewed catalog revision to replace older captured labels.
 
-Public service cards use technical-family colors for their borders and light
-gradients, with explicit DNA/RNA modality badges. Each card emphasizes the test
-name, method, turnaround, published gene count and pricing information. Modality
-is written as text as well as indicated
-by color.
+Public information panels use technical-family colors for their borders and subtle
+gradients, with explicit DNA/RNA modality badges. Large price and turnaround badges
+appear at the top right, wrapping below the heading on narrow screens. They retain
+separate assay/diagnosis labels when values differ between services.
 
-Service details separate pricing, turnaround, specimen requirements, methodology,
-limitations and ordering information into cards. Analysis tabs (such as SNV, CNV
-and Fusion) show that analysis's published gene lists and revisions, with one row
-per unique published gene and its list memberships. Search and CSV export apply
+Specimen requirements, methodology, limitations and ordering information follow
+in the main panel. Analysis tabs (such as SNV, CNV and Fusion) show that analysis's
+published gene lists and revisions above a table with one row per unique published
+gene. The table does not repeat the gene-list name on every row. Search and CSV export apply
 to the selected analysis. HGNC symbols link to the public gene reference page.
 The table adds current HGNC identifiers, names, chromosome, locus and one transcript
 from the public assay reference endpoint where available. Reference annotations

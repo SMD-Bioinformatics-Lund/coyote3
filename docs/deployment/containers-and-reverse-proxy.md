@@ -9,23 +9,26 @@ deployment env file:
 | --- | --- | --- | --- | --- |
 | API | 2 | 2 GiB | `COYOTE3_API_CPU_LIMIT` | `COYOTE3_API_MEM_LIMIT` |
 | Worker | 2 | 2 GiB | `COYOTE3_WORKER_CPU_LIMIT` | `COYOTE3_WORKER_MEM_LIMIT` |
+| Maintenance worker (modern stack) | 1 | 1 GiB | `COYOTE3_MAINTENANCE_CPU_LIMIT` | `COYOTE3_MAINTENANCE_MEM_LIMIT` |
 | Beat | 0.25 | 256 MiB | `COYOTE3_BEAT_CPU_LIMIT` | `COYOTE3_BEAT_MEM_LIMIT` |
 | Monitor | 0.5 | 512 MiB | `COYOTE3_MONITOR_CPU_LIMIT` | `COYOTE3_MONITOR_MEM_LIMIT` |
 
-Worker, beat, and monitor together have a maximum allowance of 2.75 CPU cores
-when running one container of each. These are separate limits, not a shared pool
+The modern stack's worker, maintenance worker, beat and monitor together have a
+maximum allowance of 3.75 CPU cores when running one container of each. The legacy
+stack omits the separate maintenance worker. These are separate limits, not a shared pool
 or reserved resources. Scaling workers multiplies their allowance. All processes
 and threads within each container share its limit. Adjust worker memory and
-`CELERY_WORKER_CONCURRENCY` to the observed ingest workload.
+`CELERY_WORKER_CONCURRENCY` to the observed ingest workload; the modern maintenance
+worker uses `CELERY_MAINTENANCE_CONCURRENCY`.
 
 `COYOTE3_CONTAINER_CPU_LIMIT` and `COYOTE3_CONTAINER_MEM_LIMIT` remain the shared
-defaults for frontend, docs, Redis, and proxy; they do not override the four
+defaults for frontend, docs, Redis, and proxy; they do not override the five
 service-specific limits above. Mongo retains its separate `MONGO_CONTAINER_*`
 settings. Docker CPU usage of 100% represents approximately one core.
 
 Recreate affected containers after changing limits; an image rebuild is not
 required for resource settings. Use the same env and Compose files as the active
-deployment, adding `up -d --no-deps --force-recreate api worker beat monitor`.
+deployment, adding `up -d --no-deps --force-recreate` with the affected service names.
 
 ## Trusted proxy configuration
 
@@ -290,7 +293,7 @@ Production deployments require the production environment file and explicit vers
 The network named by `COYOTE3_APP_NETWORK` must exist before any application
 environment is started. The following `/28` example reserves 16 addresses and
 provides approximately 13 assignable container addresses after Docker reserves
-the network, gateway, and broadcast addresses. This covers the seven application
+the network, gateway, and broadcast addresses. This covers the nine modern application
 services and leaves room for limited worker or API scaling:
 
 ```bash
@@ -370,9 +373,9 @@ The base file explicitly forwards application settings through each service's
 validated values without mounting or naming the host env file inside a
 container.
 
-Service keys are stable in every environment: `frontend`, `docs`, `api`,
-`worker`, `beat`, `redis`, and `proxy`. Compose project names identify the
-environment. For example, the development overlay produces uniform names such
+Modern service keys are stable in every environment: `frontend`, `docs`, `api`,
+`worker`, `maintenance-worker`, `beat`, `monitor`, `redis`, and `proxy`. Compose
+project names identify the environment. For example, the development overlay produces uniform names such
 as `coyote3_dev-api-1` and `coyote3_dev-redis-1`. Avoid explicit
 `container_name` declarations: Compose-managed names prevent collisions and
 retain support for service scaling.
@@ -404,7 +407,10 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 
 ## Safety guardrails
 
-- **Environment Identity**: Production deployment is blocked without a valid `.coyote3_env`.
+- **Environment validation**: Supply the deployment's private file with `--env-file`.
+  The wrapper validates an explicitly supplied file for `up` and `start`; the
+  filename is operator-selected. Omitting that option does not run the wrapper's
+  secret-validation step.
 - **Immutable Versioning**: Use of floating `local` tags is prohibited in production; the compose wrapper injects the application version from `release.toml` for all image resolutions.
 - **Durable Data Protection**: The deployment wrapper rejects destructive volume operations (`down -v`) in every environment. Normal teardown stops and removes containers only; it never removes Compose volumes or the host-mounted MongoDB data directory.
 - **Queue persistence**: Redis uses the `redis-data` volume, AOF with `appendfsync always`, and `noeviction`. Cache, broker, and task results use Redis databases 0, 1, and 2 respectively. MongoDB ingest receipts provide delivery recovery independently of task-result retention. See [transaction and queue deployment requirements](../architecture/transactions-and-ingest-recovery.md#deployment-and-rollout).
@@ -413,8 +419,12 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 
 For upgrades:
 
-1. **Verification**: Validate environment schema and compose integrity using `deployment/validate_env_secrets.sh`.
-2. **Execution**: Update the containerized services with `deployment/compose-with-version.sh`.
+1. **Verification**: Check required non-placeholder secrets with
+   `bash scripts/deployment/validate_env_secrets.sh --env-file <path>` and validate
+   the selected Compose model with `config -q`.
+2. **Execution**: Update the containerized services with
+   `scripts/deployment/compose-with-version.sh` and the same environment and Compose
+   file selection.
 3. **Maintenance**: Run only the RBAC, index, or stored-data procedure named by the release notes.
 4. **Validation**: Execute the established health and functional verification suite.
 

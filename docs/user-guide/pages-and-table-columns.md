@@ -734,39 +734,52 @@ generation is performed while viewing it.
 
 Route: `/public/catalog`
 
-The assay catalog combines center-owned `public_assay_catalog` content with ASP, ASPC, ISGL, and gene metadata from the database. ASPC controls only whether an active configuration is public; titles, descriptions, turnaround times, input material, indications, and other presentation content are managed in **Admin > Public Assay Catalog**.
+The catalog reads reviewed service and gene-scope snapshots from the current
+publication. Later edits to assays, configurations or gene lists do not change
+that publication. Current HGNC metadata enriches the gene table without expanding
+its published scope. Authors manage presentation content and source links in
+**Administration > Assay Catalog**; publication validates active resources,
+production configuration, supported analyses and eligible gene lists.
 
 | Area | Information shown |
 | --- | --- |
-| Modality tree | DNA/RNA, modality section, assay group, assay, diagnosis, and gene list navigation. |
-| Header | Catalog title, subheading, description, and ASP/ASPC/diagnosis identifiers. |
-| Input material | Sample material badges from catalog metadata. |
-| TAT | Turnaround time from catalog metadata. |
-| Sample types | Accepted sample types as badges. |
-| Genes | Covered and germline gene counts. |
-| Available analysis | Analysis types configured for the catalog item. |
-| Reporting sections | Report sections configured for the catalog item. |
+| Navigation tree | DNA/RNA → sequencing method → biological group → diagnosis. |
+| Introduction and DNA/RNA overviews | Explanatory text and available methods. |
+| Service information | Selected level's heading, description and public wording; private configuration references are excluded. |
+| Price and TAT | Published pricing and turnaround badges, labelled by service when values differ. |
+| Sample types and modes | Published input-material and sample-mode badges. |
+| Genes | Unique genes in the published scope, plus the captured assay coverage count when available. |
+| Available analyses | Reviewed analyses supported by the assay and production configuration. |
+| Platform/read length | Captured platform, read length and read mode when available. |
+| Reporting | Published report deliverables. |
 | Clinical indications | Indication badges or text. |
 | Limitations/public notes | User-facing explanatory notes. |
-| Gene table | HGNC ID, symbol, gene name, status, locus, sortable locus, aliases, and other available HGNC fields. |
+| Gene table | HGNC symbol, gene name, HGNC ID, chromosome, locus and one selected reference transcript. Analysis tabs separate the published scopes. |
+
+**Compare assays** opens `/public/catalog/compare`. Choose up to three reviewed
+assay/diagnosis services; selecting at least two displays their service facts side
+by side. See [catalog authoring and publication](../administration/public-assay-catalog.md)
+for source eligibility, inheritance and frozen gene scopes.
 
 ## Assay Catalog Matrix
 
 Route: `/public/matrix`
 
-The matrix shows gene coverage across catalog columns.
+The matrix shows frozen published gene coverage across assay/diagnosis columns.
 
 | Header row | Meaning |
 | --- | --- |
-| Row 1 | Modality or large catalog section such as WGS, WTS, targeted panels, or RNA fusion panel. |
-| Row 2 | Assay group or section within the modality. |
-| Row 3 | Assay, diagnosis, or gene-list column label. |
+| Row 1 | Molecular modality. |
+| Row 2 | Biological group. |
+| Row 3 | Assay, spanning its adjacent diagnosis columns. |
+| Row 4 | Diagnosis. Tooltips and accessible labels include assay, analysis and gene-list names. |
 | Body rows | One row per gene. A tick means the gene is present in that catalog column; `-` means absent. |
 
-Select one **Analysis** (SNV, CNV, fusion, or another available type) to display its
-matrix. SNV is selected initially when available; otherwise the first available
-analysis is selected. Column headers show gene-list names without repeating analysis
-badges. Gene searches preserve the selected analysis.
+Select one analysis in **Gene list type** (SNV, CNV, fusion, or another available
+type) to display its matrix. SNV is selected initially when available; otherwise the first available
+analysis is selected. Column headings show diagnoses; gene-list names and analysis
+types are available in their tooltips. Submitting a gene search preserves the
+selected analysis and clears the other column filters.
 
 Other filters include modality, section, assay, diagnosis, and gene list. Gene search
 returns focused rows; otherwise the matrix is paged to keep loading fast.

@@ -43,8 +43,9 @@ DNA and RNA presentation version 1.0.2 uses Source Sans 3 with 9.25 pt body text
 8.5 pt screen tables and 8.25 pt compact print values, with 7.5 pt printed labels.
 Summary cells use 4 px × 10 px padding on screen and 2 px × 8 px in print;
 detailed cells use 2 px × 4 px. Summary tables have thin gray horizontal rules
-without vertical column borders. Detail and patient-information tables retain
-complete grids, including the detail heading row, without a colored left accent.
+without vertical column borders. Summary body rows are uniformly white beneath
+the pale purple header. Detail and patient-information tables retain complete
+grids, including the detail heading row, without a colored left accent.
 Table headers and the patient-information heading are black on pale purple tints;
 section headings and branding retain purple/orange accents. Body text is black.
 Heading separators are omitted.
@@ -71,7 +72,7 @@ three-letter SNV protein notation. SNV exon and intron ranks have their own labe
 cells, separate from the transcript identifier.
 Missing classifications display exactly `-`. Generated classification separators
 and genomic ranges use plain hyphens.
-Summary rows are ordered by ascending tier, then descending numeric VAF, with
+DNA SNV summary rows are ordered by ascending tier, then descending numeric VAF, with
 missing VAF last within its tier. Table headers and field labels use pale purple
 tints; orange accents remain restrained, with black clinical values.
 MSI uses `MSIS` for unpaired samples and `MSIP` for paired samples; biomarker

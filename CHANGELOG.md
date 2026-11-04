@@ -2,156 +2,39 @@
 
 ## v4.0.0
 
-Version 4 replaces the Flask application with FastAPI and React, bringing clinical
-review, reporting, administration and integrations into one application.
+Version 4 replaces Flask with FastAPI and React.
 
-### Clinical review and reporting
-
-- Compact finding badges and genomic-position labels share the raised badge
-  treatment, including consequence, tier, filter and INFO markers.
-- Finding identity summaries use compact shared spacing. Small variants show
-  case/control frequency with alternate reads and depth, while the genotype panel
-  shows genotype calls. Translocation read support appears in the identity summary.
-  RNA fusion summaries also include the selected call's read support and longest anchor.
-- Modern DNA/RNA reports use compact Source Sans 3 tables, black body text and
-  purple/orange branding. Conclusions occupy a separate page and identify the
-  diagnosis or panel display name and pairing context. Summary tables separate
-  tier and clinical significance; CNVs and DNA translocations have detailed tables.
-  SNV summaries retain one-letter protein notation and compact Roman tier numerals;
-  details use three-letter notation and populated variant-class fields.
-  Finding summaries share compact Roman tiers. Detail tables separate transcript,
-  exon, intron and DNA read-support fields and use complete thin gray grids without
-  colored side borders. Every detail label and value receives the same cell border.
-  Summaries use horizontal rules only; table and patient-information headings are black.
-  Missing classifications display one plain hyphen; generated separators use hyphens.
-  MSI reporting selects MSIS for unpaired samples and MSIP for paired samples.
-- CNV and DNA-translocation tiering is enabled by default; reports accept explicit
-  report selection or an allowed usable tier, preserving existing review exclusions.
-- Analysis tables default to 200 rows, DNA translocations expose SR/PR evidence,
-  fusion names use `Gene1::Gene2`, and finding details group OncoKB evidence together.
-- Swedac report artwork displays Ackred. nr 1309, Provning and ISO 15189.
-- Swedac footer symbols render at the supplied guide's 25 mm minimum width and
-  preserve original proportions. Original SVG artwork can retain its embedded
-  WOFF2 typography while external resources and active SVG content remain blocked.
-- Reporting-rule review actions are visible only to the assigned independent
-  reviewer. Review decisions notify the submitter, and workflow notifications
-  queue email when application email delivery is configured.
-- Bulk tier-text templates expose the full biological group tree and selected
-  transcript/consequence/OncoKB context, with hierarchy choices in conditions and
-  synthetic previews. Parent matching preserves the annotation's exact scope.
-- Submitted and in-review reporting rules can be withdrawn with **Recall and edit**;
-  the review is cleared and editing requires a fresh submission for approval.
-- Approved unpublished reporting rules can return to draft with **Edit again**;
-  editing clears approval and requires a new independent review before publication.
-- Reporting-rule workflow notifications use the supported application category,
-  so submission, review decisions and publication deliver without category errors.
-- Rule validation, review and publication no longer require or execute embedded
-  test cases. Missing or stale cases do not prompt test configuration; structural
-  checks, independent review and optional previews remain available.
-- Validation separates warnings from blocking errors and accepts intentional
-  additive report text. Imported rule display order matches execution order;
-  deleting earlier items preserves selection, and Base annotation previews support
-  named diagnosis conditions.
-- Clinical rule sets separate report wording from conditional bulk Tier I–III
-  annotation templates, with synthetic previews, bulk confirmation previews and
-  persisted template provenance. Version notes group change summaries and history.
-- Clinical reviewer choices exclude the logged-in user, matching the existing
-  server restriction against self-assignment.
-- Existing draft rules can move up or down within a section without recreating
-  their conditions or wording; saved order also controls first-match precedence.
-- Panel-DNA reporting rules count only panel-covered selected genes, matching the
-  analysed scope while preserving complete source gene-list definitions.
-- Rule prose uses the shared Markdown editor and preview, including dynamic report
-  sentences, structured wording and review notes, while preserving typed placeholders.
-- Reporting rules can use calculated CNV copy numbers and paired/split-read
-  percentages as inline values or compose grouped CNV summaries with reviewed wording.
-- Unified DNA and RNA review with assay-aware filtering, reference annotations,
-  coverage, biomarkers and consistent finding identities across workflows.
-  Annotation deactivation preserves classification history and recorded sample links,
-  with explicit warnings for uncertain legacy history. Inactive annotations do not
-  automatically tier new samples during analysis.
-- Governed query policies and reporting rules with visual authoring, sample-backed
-  previews, independent clinical review and controlled publication.
-- Modern branded reports are the primary format, with repeated PDF patient headers,
-  assay-specific accreditation, compact findings and formatted summaries. Manual
-  biomarker assessments retain reviewer history and appear in report summaries.
-  Saved reports retain immutable finding and
-  configuration snapshots; existing issued reports remain unchanged.
-- Consistent light/dark themes and clearer navigation across sample review,
-  reporting, the assay catalog and administration.
-
-### Administration and security
-
-- Service and personal token pages group identity, operations and access scopes,
-  with searchable assay choices, compact environment controls, selection counts
-  and clearer credential status.
-- Token selections and admin form checkboxes share reusable choice controls and
-  the standard raised-group and inset-control depth, including theme and focus states.
-- Shared cards, detail headings and form fields use the common elevation hierarchy;
-  disabled and read-only fields retain recessed depth.
-- Session-expiry responses arriving on Login no longer produce generic request-error
-  toasts; protected requests retain their sign-in redirect and clear stale CSRF state.
-- Service tokens appear in Administration's Identity and access section, and the
-  user menu links directly to personal Access tokens.
-- Scoped service and personal ingestion tokens support one-time secrets, hashed
-  storage, expiry, revocation and token-specific audit attribution. Personal tokens
-  remain bounded by current account permissions; administrators can revoke both kinds.
-- Administration configuration imports accept content without audit or version
-  fields. JSON exports omit application-managed metadata by default, with an
-  explicit option to include it; imports use fresh application-managed metadata.
-- Query rules, reusable profiles and assay setups support reviewed JSON imports
-  and portable exports. Diagnosis, group and assay-association registries provide
-  JSON exports matching their bulk creation workflows. User, role, permission and
-  application-control forms also support configuration transfer without credentials
-  or imported approval state.
-
-- Diagnosis definitions always provide a view action, explain protected records,
-  and offer confirmed availability changes for editable definitions.
-- Updated vulnerable runtime dependencies and the documentation toolchain's RE2JS
-  dependency; corrected the aggregate SDK extra to select SDK version `1.0.0`.
-- Central management of assays, diagnoses, gene lists and configurations, including
-  validated JSON/YAML bulk installation and a public assay catalog with DNA/RNA
-  navigation by sequencing family, biological group and diagnosis, multi-gene
-  matching and test comparison. The gene coverage matrix includes knowledgebase
-  badges and keeps grouped headers aligned when analyses and filters change.
-- Shared editing sessions and revision checks protect concurrent changes. Creator
-  attribution and read-only system records preserve configuration provenance.
-- Permission-based access across the UI and API, with assay and environment scopes,
-  required first-login password changes and retained clinical audit history.
-  Operational audit records have separate retention controls.
-
-### Integrations and operations
-
-- Background ingestion and token-owned job polling recheck managed credentials
-  before worker execution. The upload helper accepts token arguments or files and
-  resumes saved background submissions with `--async --wait` without reuploading.
-- Analysis descriptions are authored, tested and published through clinical rules
-  with dynamic values and assay Base inheritance. ASPCs no longer store description text.
-- Dedicated Admin ingestion audit with outcome filters, sample links and correlated
-  history; synchronous uploads and workers retain attempt outcomes in audit storage.
-- Cron ingestion records pending submissions before upload, recovers terminal
-  acknowledgements without reuploading, and blocks uncertain or conflicting retries.
-- Typed HTTP APIs, generated frontend contracts, and a themed API documentation
-  portal with resource browsing, structured response examples, authentication
-  guidance and searchable endpoints.
-- Independently versioned core SDK and sync/async Python HTTP client, both starting
-  at `1.0.0`, alongside application `4.0.0`.
-- Offline v2/v3 migration workflows for samples, findings, annotations, blacklist
-  records and related data, with scope validation and preserved clinical history.
-- Container deployment, separate ingestion and maintenance workers, backup/restore
-  tooling, optional Redis TLS, and deployment acceptance and recovery procedures.
-- Expanded clinical regression coverage, synthetic integration/load testing, and
-  task-oriented user, developer and operator documentation.
+- Unified DNA/RNA review with assay-aware filters, reference annotations, biomarkers,
+  coverage and traceable classification history.
+- Modern HTML/PDF reports with assay-specific accreditation, detailed findings,
+  reviewer history and immutable snapshots that preserve issued reports.
+- Governed query policies and clinical reporting rules with visual authoring,
+  previews, independent review and controlled publication.
+- Hierarchical assay catalog with service details, inherited pricing and turnaround,
+  reviewed gene scopes, assay comparison and a gene coverage matrix.
+  In-place catalog editing supports sections, source dropdowns and draft management.
+- Consistent light/dark themes, clearer navigation and raised cards and badges.
+- Central assay, diagnosis, gene-list and configuration management, with validated
+  imports/exports, editing leases, revision checks and protected system records.
+- Permission-scoped personal and service tokens with expiry, revocation,
+  one-time secrets and audit attribution; retained clinical audit history.
+- Resumable background ingestion with credential rechecks, retry safeguards and
+  dedicated ingestion audit views.
+- Typed HTTP APIs, generated frontend contracts, API documentation and independently
+  versioned Python SDK and HTTP client, both starting at `1.0.0`.
+- Container deployment, separate workers, backup/recovery tools, offline v2/v3 data
+  migration and branded Nginx error pages. Redis transport checks catch missing
+  worker dependencies before runtime.
 
 ### Upgrade and compatibility notes
 
-- External Python clients now use the independent `coyote3-client` package and
-  import `coyote3_client` instead of `coyote3.client`.
-- The application uses the COYOTE3 Free-Use Source-Available License 1.0; the
-  independent Python client retains Apache 2.0.
-- Review database permissions, identity-role upgrades, schema/index maintenance
-  and rollback limits in the [upgrade procedure](docs/deployment/application-upgrades.md).
-  Legacy v2/v3 data migration is a separate operation, not a routine upgrade step.
+- External Python clients use `coyote3-client` and import `coyote3_client`
+  instead of `coyote3.client`.
+- The application uses the COYOTE3 Free-Use Source-Available License 1.0;
+  the independent Python client retains Apache 2.0.
+- Follow the [upgrade procedure](docs/deployment/application-upgrades.md) for database
+  permissions, identity roles, schema/index maintenance and rollback limits.
+  Legacy v2/v3 data migration remains a separate operation.
 
 ## v3.1.23
 

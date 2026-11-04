@@ -16,7 +16,7 @@ Jinja's package loader resolves files independently of the working directory.
 | `modern/components/dna/`, `modern/components/rna/` | Modern sample-information overrides; the legacy components retain their original markup. |
 | `components/modern/` | Branded report header and labeled sample-details layout. |
 | `modern/report.html` | Modern inheritance and overrides over the same clinical body. |
-| `modern/manifest.toml` | Version of the shared modern DNA/RNA template bundle. |
+| `modern/manifest.toml` | Independent DNA and RNA presentation versions. |
 | `components/header.html`, `components/footer.html` | Modern head metadata/styles and temporary-preview notice. |
 
 `application/reporting/report_context.py` prepares display defaults from already
@@ -85,10 +85,10 @@ Manage the modern reports' independent DNA and RNA versions in
 
 ```toml
 [dna]
-version = "1.0.0"
+version = "1.0.2"
 
 [rna]
-version = "1.0.0"
+version = "1.0.2"
 ```
 
 The manifest is packaged with the HTML, CSS and fonts. The renderer selects the
@@ -119,7 +119,7 @@ reports retain their original artifacts and do not acquire a later template vers
 Modern reports use white paper, neutral text and table fills, purple section headings,
 and a thin purple-to-orange masthead rule. Patient-information and finding-table
 headings use a near-white fill with darker text. The masthead contains Coyote3 and
-center logos, with a black Coyote3 wordmark and no product subtitle.
+center logos, with the purple/orange `COYOT3` wordmark and no product subtitle.
 A separate document heading displays the configured report title and sample name.
 Patient and sample details appear in a compact table with paired labels and values,
 and full-width question and report-identifier fields. Findings use consistent tables;
@@ -127,7 +127,9 @@ the conclusion has a distinct bordered panel unless it contains a table. Conclus
 use the full content width, compact cells and plain borders, with long text wrapping.
 Only the classification cell of a Tier 1 SNV summary row is semibold.
 Table cells use compact padding and smaller text than report prose: standard
-finding cells use 9 pt, patient values use 8 pt on screen and 7 pt in the PDF header.
+finding cells use 8.5 pt on screen and 8.25 pt in print, with 7.5 pt printed
+summary headers and detail labels. Patient values use 8 pt on screen and 7 pt
+in the PDF header.
 Supporting descriptions and classification references use
 the same typography, with smaller text than the main results.
 
@@ -145,36 +147,40 @@ loaded only for the modern layout, and their sources participate in its content 
 The modern stylesheet defines A4 paper, a 65 mm top region for the repeating
 logo line and patient table, 16 mm side and 22 mm bottom margins. When an accredited
 applied assay has a configured accreditation logo, the bottom margin increases to
-38 mm. The footer places the logo on the left in a 28 mm high image area, capped
-at 32 mm wide with its proportions preserved; the template version and Swedish
+38 mm. The footer places the logo on the left at 25 mm wide with proportional
+height; the template version and Swedish
 `Sida X av Y` counter align on the right. HTML uses 14 mm top padding and shows
 the logo line and patient table once.
 Both formats use the same 210 mm paper width, giving both renderers
 178 mm of content width. The preview scrolls horizontally on narrower screens
-instead of changing table columns, font sizes or label placement. Detailed finding
-tables and CNV images use the same layout rules in screen and print media.
+instead of changing table columns, font sizes or label placement. Print preserves
+the table columns while using compact padding, smaller text and lower CNV image
+height limits.
 PDF pagination adds page breaks, continuation references and footers; HTML remains
 a continuous document on the same paper width.
 Patient and specimen information uses two label/value pairs per HTML row and
 three per PDF row. PDF rows use smaller padding and text, with full-width cells for long values.
 Clinical questions and report identifiers use full-width value cells.
-Result tables use 4 px vertical cell padding, with smaller gaps between sections.
+Summary cells use 4 px vertical padding on screen and 2 px in print; detailed
+finding cells use 2 px. Section gaps remain compact.
 Modern summary tables wrap their shared clinical header row in `thead` and finding
 rows in `tbody`, so column headings repeat when a table continues onto another PDF page.
-Detailed finding tables use single neutral rules, with full-height label backgrounds
-for classification and annotation rows.
+Summary tables use horizontal rules and white body rows. Detailed finding tables
+retain complete neutral grids, including their heading rows, with pale purple
+label backgrounds for classification and annotation rows.
 The conclusion uses a pale yellow background and an amber rule. The modern layout
 renders its saved comment through the existing sanitized Markdown formatter. Tables
 have bordered cells, left-aligned headings and light header fills. Lists, headings,
 quotes and code retain their structure with compact spacing in both HTML and PDF.
 These styles are scoped to the conclusion and do not change clinical result tables.
-The PDF starts **Slutsats** on a new page. HTML flows continuously; legacy forced
-page breaks after the conclusion and CNV profile are suppressed. Fixed table layouts and wrapping keep long identifiers
+The PDF starts **Slutsats** on a new page and inserts a page break after the
+conclusion. HTML flows continuously; legacy inline page-break markers are
+suppressed. Fixed table layouts and wrapping keep long identifiers
 within the printable width. Section headings stay with the following content.
 Detail tables that fit on a page stay together; a table moves to the next page
 when there is insufficient space. Longer finding annotations can still flow across
 pages without text loss. The bottom-right footer identifies the analyte and template version,
-for example `DNA template v1.0.0`. The version comes from the
+for example `DNA template v1.0.2`. The version comes from the
 bundle's `modern/manifest.toml` and is independent of the patient report number
 and application release. Below it, Swedish pagination reads `Sida 1 av 2`.
 See [Template bundle releases](#template-bundle-releases)

@@ -3,6 +3,41 @@
 Use the symptom below to identify the failing component and its recovery procedure.
 Keep the deployment's actual environment file and complete Compose overlay list in each command.
 
+## Service temporarily unavailable
+
+The public Nginx proxy serves a branded fallback page for browser-facing 500, 502,
+503 and 504 errors from the application or documentation service. The page and
+embedded logo are served locally by the proxy, so they remain available when the
+frontend and API cannot be reached. The original HTTP status is retained and the
+error page is not cached. API responses, authorization failures and missing pages
+keep their existing response bodies.
+
+The fallback applies only to requests handled by this Nginx proxy. Errors generated
+by an outer ingress proxy use that proxy's error handling; changing the application
+page does not replace those responses.
+
+**Try again** requests the current URL without automatically retrying a failed
+write. If the error continues, inspect the proxy and upstream service logs using
+the existing error-monitoring workflow. The page does not expose request paths,
+upstream addresses or exception details.
+
+The source page is `deploy/compose/nginx/error-pages/unavailable.html`. It embeds
+the application's coyote artwork and uses standalone equivalents of its theme
+tokens, without external fonts, scripts or stylesheets. Keep these aligned with
+the application theme when changing branding. It follows the browser's light/dark
+preference and supports keyboard focus and forced colors.
+
+The Compose proxy mounts this directory read-only at `/etc/nginx/error-pages`.
+Recreate the proxy during the normal rollout so the new mount is present; reloading
+an existing container alone cannot add the mount. No database or application
+migration is needed. The internal error-page URI cannot be opened directly.
+
+Proxy regression checks can run locally with
+`PYTHONPATH=. .venv/bin/pytest -q tests/integration/test_nginx_error_pages.py`.
+They require a local Unix Docker socket and an existing `nginx:1.27-alpine` image;
+they skip when those prerequisites are unavailable and never pull an image. Tests
+start isolated loopback containers and remove them afterward.
+
 ## First-installation failures
 
 Use [first installation](../deployment/first-installation.md) as the ordered
@@ -13,6 +48,7 @@ with new images or rerun bootstrap to repair a UI problem.
 | Error or symptom | Check and next step |
 | --- | --- |
 | `No module named tomllib` in a deployment command | Select Python 3.12+ with `PYTHON_BIN`. The shared selector is used by the installer, Compose wrapper, preflight and center check. Installing a similarly named package does not upgrade Python. |
+| Dashboard metrics fail with `No module named 'packaging'` in `kombu.transport.redis`, or Celery workers fail to start | Rebuild the API image with the current API dependency set, which selects `celery[redis]`, then recreate API, worker and beat services through the normal deployment procedure. Redis PING alone does not verify Celery's transport dependencies. The image build and installer Redis gate now check that transport import. Do not install packages manually into running containers. |
 | `MongoDB connection is unauthenticated; continuing` | This is a warning. Installation continues, with application login and role permissions still enforced. Database-level audit protection needs server authorization and the restricted runtime role; URI changes alone do not enable it. |
 | `Partial or unrecognized installation` | Inspect the selected application/identity database pair and the failed stage. A previous bootstrap may have created governance before failing later. Preserve data; existing complete governance uses authenticated module maintenance. Do not drop or initialize databases to retry. |
 | `Container UID:GID cannot access ...` | Check the mounted source and paths inside the bind mount. Have a host administrator run the documented directory helper when ownership needs provisioning. Private host parents above the bind source need not be readable by the container UID. |
