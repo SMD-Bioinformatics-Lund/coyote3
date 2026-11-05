@@ -27,7 +27,6 @@
 - Default filters now override sample filters only when the sample value is `None`, so falsy values such as `0` and `[]` are kept.
 - Dev/Test config now uses `config/coyote3_collections.toml`. Dev CNV collection is renamed `cnvs_wgs` → `cnvs`.
 - Dev Docker port changed 6815 → 8801. `run.py` reads its port from `PORT_NBR`.
-- 
 
 ## v3.2.0
 - Changed the headers in the reports for CNVs (Kliniskt relevanta genspecifika kopietalsförändringar) and Fusions (removed DNA in the name), diagnosis is fixed as 'Solid tumör' for solid tumors.
