@@ -51,7 +51,7 @@ for (const { width, theme } of [
     await expect(page.getByRole("table").getByText("Unassociated scope")).toHaveCount(0)
     await page.getByRole("button", { name: /Deactivate Myeloid/ }).click()
     await expect(page.getByRole("button", { name: /Activate Myeloid/ })).toBeVisible()
-    await expect(page.getByText("Inactive", { exact: true })).toBeVisible()
+    await expect(page.locator('[data-slot="table-badge"]').filter({ hasText: /^Inactive$/ })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath(`associations-${width}.png`), fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
     expect(definitions).toHaveLength(1)

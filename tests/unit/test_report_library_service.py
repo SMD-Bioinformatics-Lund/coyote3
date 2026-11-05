@@ -3,9 +3,31 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+import mongomock
 from bson import ObjectId
 
+from api.infra.mongo.repositories.reports import ReportRepository
 from coyote3.application.reporting.report_library import ReportLibraryService
+
+
+def test_report_search_matches_environment_without_expanding_access():
+    """Environment search remains intersected with authorized assay and environment scopes."""
+    collection = mongomock.MongoClient().test.reports
+    collection.insert_many(
+        [
+            {"report_id": "allowed", "asp_id": "panel-a", "environment": "testing"},
+            {"report_id": "denied", "asp_id": "panel-b", "environment": "testing"},
+        ]
+    )
+    repository = ReportRepository(SimpleNamespace(reports_collection=collection))
+    rows, total = repository.list_reports_page(
+        asp_ids=["panel-a"], environments=["testing"], search="TESTING"
+    )
+    assert total == 1
+    assert [row["report_id"] for row in rows] == ["allowed"]
+    assert repository.list_reports_page(
+        asp_ids=["panel-a"], environments=["production"], search="testing"
+    ) == ([], 0)
 
 
 class ReportRepositoryStub:

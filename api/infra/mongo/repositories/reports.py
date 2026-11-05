@@ -294,7 +294,19 @@ class ReportRepository(BaseRepository):
         page: int = 1,
         per_page: int = 30,
     ) -> tuple[list[dict[str, Any]], int]:
-        """Return a newest-first page of report metadata within an access scope."""
+        """Return newest-first report metadata matching a scoped literal search.
+
+        Args:
+            asp_ids: Authorized assays; None permits all and an empty list permits none.
+            environments: Authorized environments; None permits all.
+            search: Case-insensitive report/sample identifiers, author, assay, diagnosis
+                or environment text; empty selects all authorized reports.
+            page: One-based result page.
+            per_page: Result count, clamped to 1–200.
+
+        Returns:
+            Matching metadata documents and the authorized total before pagination.
+        """
         query_parts: list[dict[str, Any]] = []
         if asp_ids is not None:
             query_parts.append({"asp_id": {"$in": asp_ids}})
@@ -312,6 +324,7 @@ class ReportRepository(BaseRepository):
                         {"author": expression},
                         {"asp_id": expression},
                         {"diagnosis_id": expression},
+                        {"environment": expression},
                     ]
                 }
             )

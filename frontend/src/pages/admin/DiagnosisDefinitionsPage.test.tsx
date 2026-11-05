@@ -20,6 +20,34 @@ beforeEach(() => {
   vi.mocked(api.post).mockImplementation(async (url) => ({ status: 201, data: url.startsWith("/editing/") ? editLease() : {} }))
   vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} })
 })
+
+it("searches every displayed diagnosis column and combines independent column filters", async () => {
+  const get = vi.mocked(api.get).getMockImplementation()!
+  vi.mocked(api.get).mockImplementation(async (url, options) => url === "/resources/diagnoses"
+    ? { status: 200, data: { diagnoses: [{ ...row, description: "Distinctive molecular description" }, { ...row, diagnosis_id: "other", display_name: "Other", description: "Different", is_active: false, created_by: "other.creator", updated_by: "other.editor", associated_asp_ids: [] }] } }
+    : get(url, options))
+  mount()
+  await screen.findByRole("link", { name: "Panel A" })
+  const search = screen.getByPlaceholderText("Search diagnosis definitions")
+  for (const value of ["molecular", "Full panel A name", "panel-a", "original.creator", "definition.editor", "Available"]) {
+    fireEvent.change(search, { target: { value } })
+    expect(screen.getByText("Myeloid")).toBeVisible()
+    expect(screen.queryByText("Other", { exact: true })).not.toBeInTheDocument()
+  }
+  fireEvent.change(search, { target: { value: "" } })
+  for (const label of ["Diagnosis", "Description", "Associated assays", "Created by", "Updated by"]) {
+    expect(screen.getByLabelText(`Filter ${label}`)).toBeVisible()
+  }
+  fireEvent.change(screen.getByLabelText("Filter Global status"), { target: { value: "Retired" } })
+  expect(screen.getByText("Other", { exact: true })).toBeVisible()
+  expect(screen.queryByText("Myeloid")).not.toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText("Filter Description"), { target: { value: "molecular" } })
+  expect(screen.getByText("No diagnoses found.")).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Clear column filters" }))
+  expect(screen.getByText("Myeloid")).toBeVisible()
+  expect(screen.getByText("Other", { exact: true })).toBeVisible()
+  expect(api.post).not.toHaveBeenCalled()
+})
 function mount() {
   return render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><DiagnosisDefinitionsPage /></QueryClientProvider></MemoryRouter>)
 }

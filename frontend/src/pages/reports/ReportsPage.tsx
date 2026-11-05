@@ -211,7 +211,7 @@ export function ReportsPage() {
               setSearch(value)
               setPage(1)
             }}
-            searchPlaceholder="Search reports, samples, assays, or authors..."
+            searchPlaceholder="Search reports, samples, assays, environments, or authors..."
             stateKey="saved-reports"
           />
         </section>

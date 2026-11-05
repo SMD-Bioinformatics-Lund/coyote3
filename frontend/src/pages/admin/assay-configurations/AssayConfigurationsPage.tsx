@@ -16,7 +16,7 @@ import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../r
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
 
 export function AssayConfigurationsPage() {
-  const state = useAdminList({ spec, filters })
+  const state = useAdminList({ spec, filters, preferredColumns })
   const { data, rows, visibleRows, canCreate } = state
   const navigate = useNavigate()
   const [showDrafts, setShowDrafts] = useState(false)

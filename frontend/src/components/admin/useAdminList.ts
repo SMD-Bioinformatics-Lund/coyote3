@@ -13,11 +13,14 @@ import {
   actionLabels,
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
+import { adminFields, adminSearchValue } from "@/pages/admin/resource-list"
+import { csvCellText } from "@/lib/csv-export"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 
 const NO_INVALIDATIONS: string[][] = []
-export function useAdminList({ spec, filters, serverFilters = false, sampleNotifications = false, invalidateKeys = NO_INVALIDATIONS }: { spec: AdminResourceSpec; filters: ResourceListFilter[]; serverFilters?: boolean; sampleNotifications?: boolean; invalidateKeys?: string[][] }) {
+const NO_COLUMNS: string[] = []
+export function useAdminList({ spec, filters, preferredColumns = NO_COLUMNS, serverFilters = false, sampleNotifications = false, invalidateKeys = NO_INVALIDATIONS }: { spec: AdminResourceSpec; filters: ResourceListFilter[]; preferredColumns?: string[]; serverFilters?: boolean; sampleNotifications?: boolean; invalidateKeys?: string[][] }) {
   const accessQuery = useCurrentUserAccess()
   const user = accessQuery.data
   const canList = hasPermission(user, spec.permissions.list)
@@ -42,19 +45,30 @@ export function useAdminList({ spec, filters, serverFilters = false, sampleNotif
     queryKey: [
       "admin-resource",
       spec.key,
-      q,
+      serverFilters ? q : "",
       serverFilters ? resourceFilters : null,
     ],
-    queryFn: () => {
+    queryFn: async ({ signal }) => {
       const params = new URLSearchParams()
-      if (q) params.set(spec.searchParam ?? "q", q)
+      if (serverFilters && q) params.set(spec.searchParam ?? "q", q)
       if (serverFilters) {
         for (const { field } of filters) {
           if (resourceFilters[field]) params.set(field, resourceFilters[field])
         }
       }
       params.set("per_page", String(Math.max(...TABLE_PAGE_SIZE_OPTIONS)))
-      return api.get(`${spec.endpoint}?${params.toString()}`).then((res) => res.data)
+      const response = await api.get(`${spec.endpoint}?${params.toString()}`, { signal })
+      if (serverFilters) return response.data
+      const records = [...(response.data?.[spec.listKey] || [])]
+      const total = response.data?.pagination?.total ?? records.length
+      for (let page = 2; records.length < total; page++) {
+        params.set("page", String(page))
+        const next = await api.get(`${spec.endpoint}?${params.toString()}`, { signal })
+        const batch = next.data?.[spec.listKey] || []
+        if (!batch.length) throw new Error("Resource list changed; reload before searching")
+        records.push(...batch)
+      }
+      return { ...response.data, [spec.listKey]: records }
     },
     enabled: canList,
   })
@@ -117,8 +131,14 @@ export function useAdminList({ spec, filters, serverFilters = false, sampleNotif
     })) as Record<string, string[]>
   }, [data?.filter_options, listFilterDefinitions, resourceFilters, rows, serverFilters])
   const visibleRows = useMemo(() => {
-    return rows.filter((row) => rowMatchesResourceFilters(row, listFilterDefinitions, resourceFilters))
-  }, [listFilterDefinitions, resourceFilters, rows])
+    // Retain the public metadata previously searched by the resource APIs as well.
+    const fields = [...new Set([...adminFields(preferredColumns, rows),
+      "description", "aliases", "firstname", "lastname", "job_title", "color",
+    ])]
+    const query = q.trim().toLocaleLowerCase()
+    return rows.filter((row) => rowMatchesResourceFilters(row, listFilterDefinitions, resourceFilters)
+      && (serverFilters || !query || fields.some(field => csvCellText(adminSearchValue(field, row)).toLocaleLowerCase().includes(query))))
+  }, [listFilterDefinitions, resourceFilters, rows, q, serverFilters, preferredColumns])
 
   return { accessQuery, canList, canView, canCreate, canEdit, canDelete, data, isLoading, error, rows, visibleRows, q, setQ, resourceFilters, setResourceFilters, listFilterDefinitions, listFilterOptions, pendingAction, setPendingAction, mutate, versionHistory, setVersionHistory }
 }

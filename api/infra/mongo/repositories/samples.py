@@ -805,7 +805,21 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         per_page: int = 30,
         ready_only: bool = True,
     ) -> tuple[list[dict], int]:
-        """Search samples in MongoDB for admin listings with pagination."""
+        """Search administrative sample metadata within explicit access scopes.
+
+        Args:
+            asp_ids: Allowed assays; None is unrestricted and an empty list matches none.
+            environments: Allowed environments; None is unrestricted.
+            diagnosis_id: Optional registered diagnosis scope.
+            search_str: Case-insensitive literal across identifiers, assay metadata,
+                ingest status and author names; empty matches all scoped records.
+            page: One-based result page.
+            per_page: Result count, clamped to 1–200.
+            ready_only: Restrict results to completed ingest records when True.
+
+        Returns:
+            Matching sample documents and the scoped total before pagination.
+        """
         query: dict[str, Any] = {"ingest_status": "ready"} if ready_only else {}
         if asp_ids is not None:
             query["asp_id"] = {"$in": asp_ids}
@@ -822,9 +836,20 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 {"name": {"$regex": pattern, "$options": "i"}},
                 {"case_id": {"$regex": pattern, "$options": "i"}},
                 {"control_id": {"$regex": pattern, "$options": "i"}},
+                {"case_clarity_id": {"$regex": pattern, "$options": "i"}},
+                {"control_clarity_id": {"$regex": pattern, "$options": "i"}},
+                {"case.id": {"$regex": pattern, "$options": "i"}},
+                {"case.clarity_id": {"$regex": pattern, "$options": "i"}},
+                {"control.id": {"$regex": pattern, "$options": "i"}},
+                {"control.clarity_id": {"$regex": pattern, "$options": "i"}},
                 {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"asp_group": {"$regex": pattern, "$options": "i"}},
+                {"asp_category": {"$regex": pattern, "$options": "i"}},
+                {"ingest_status": {"$regex": pattern, "$options": "i"}},
                 {"diagnosis_id": {"$regex": pattern, "$options": "i"}},
                 {"environment": {"$regex": pattern, "$options": "i"}},
+                {"created_by": {"$regex": pattern, "$options": "i"}},
+                {"updated_by": {"$regex": pattern, "$options": "i"}},
             ]
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))

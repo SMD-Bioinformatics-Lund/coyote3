@@ -229,9 +229,9 @@ describe("Managed admin resource workflows", () => {
 
     expect(await screen.findByText("CASE_001")).toBeVisible()
     await user.selectOptions(screen.getByLabelText("Assay group"), "hematology")
-    await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith(expect.stringContaining("asp_group=hematology")))
+    await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith(expect.stringContaining("asp_group=hematology"), expect.objectContaining({ signal: expect.any(AbortSignal) })))
     await user.selectOptions(screen.getByLabelText("Assay"), "hema_gmsv1")
-    await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith(expect.stringContaining("asp_id=hema_gmsv1")))
+    await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith(expect.stringContaining("asp_id=hema_gmsv1"), expect.objectContaining({ signal: expect.any(AbortSignal) })))
   })
 
   it("groups permission policies and limits system permissions to viewing", async () => {
@@ -317,6 +317,33 @@ describe("Managed admin resource workflows", () => {
     mocks.get.mockRejectedValue(new Error("Users service unavailable"))
     renderResource("users")
     expect(await screen.findByText("Users service unavailable")).toBeVisible()
+  })
+
+  it("searches configuration labels, list columns and later pages without narrowing server queries", async () => {
+    mocks.get.mockImplementation(async (path: string) => {
+      if (path.includes("create_context")) return { data: { form: { fields: {} } } }
+      const page = new URL(path, "http://local").searchParams.get("page")
+      return { data: { assay_configs: [{ aspc_id: page === "2" ? "second" : "first", display_name: page === "2" ? "Second configuration" : "First configuration", asp_id: "synthetic", diagnosis_id: "base", environment: "production", asp_category: "dna", analysis_types: page === "2" ? ["CNV"] : ["SNV"], is_active: true, version: 1 }], pagination: { total: 2 } } }
+    })
+    renderResource("aspc")
+    await screen.findByText("Second configuration")
+    const calls = mocks.get.mock.calls.length
+    const search = screen.getByPlaceholderText("Search assay configurations...")
+    fireEvent.change(search, { target: { value: "cnv" } })
+    expect(screen.getByText("Second configuration")).toBeVisible()
+    expect(screen.queryByText("First configuration")).not.toBeInTheDocument()
+    fireEvent.change(search, { target: { value: "First configuration" } })
+    expect(screen.getByText("First configuration")).toBeVisible()
+    expect(screen.queryByText("Second configuration")).not.toBeInTheDocument()
+    expect(mocks.get).toHaveBeenCalledTimes(calls)
+    expect(mocks.get.mock.calls.some(([url]) => String(url).includes("page=2"))).toBe(true)
+  })
+
+  it("reports an interrupted resource listing instead of presenting partial search results", async () => {
+    mocks.get.mockImplementation(async (path: string) => ({ data: { roles: path.includes("page=2") ? [] : [{ role_id: "reviewer", is_active: true }], pagination: { total: 2 } } }))
+    renderResource("roles")
+    expect(await screen.findByText("Resource list changed; reload before searching")).toBeVisible()
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
   })
 
   it("builds a create payload from typed, grouped, conditional, and structured fields", async () => {

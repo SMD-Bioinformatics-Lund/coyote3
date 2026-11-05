@@ -17,6 +17,25 @@ An ASP identifies an assay. A diagnosis has one shared identifier and display
 definition, and can be associated with several assays. Each association can be
 disabled independently. Sharing a diagnosis does not share ASPCs, genes or report rules.
 
+## Search and column filters
+
+The definition table's search covers names and identifiers, descriptions, associated
+assay names and identifiers, global status and author metadata. Search is
+case-insensitive and treats punctuation literally. Each data column also has a
+filter below its heading; status filters use exact selections. Column filters
+combine with each other and with the main search. **Clear column filters** resets
+the column filters without clearing the main search.
+
+The assay association table provides the same column controls for its displayed
+diagnosis, shared/assay status and authors. Action buttons are not searchable.
+Filtering only changes which rows are shown; it does not change assignments or
+availability.
+
+Resource administration lists search their displayed columns across all loaded
+pages, including list-valued fields and readable labels next to identifiers.
+Sample and report searches remain server-scoped; searching never expands the
+assays or environments the user can access.
+
 ## Why associations belong to assays
 
 To create several definitions from a file, see [Bulk installation](bulk-installation.md).

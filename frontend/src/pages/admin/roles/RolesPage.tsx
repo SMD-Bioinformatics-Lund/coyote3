@@ -9,7 +9,7 @@ import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../r
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
 
 export function RolesPage() {
-  const state = useAdminList({ spec, filters })
+  const state = useAdminList({ spec, filters, preferredColumns })
   const { data, rows, visibleRows, canCreate } = state
   const fields = adminFields(preferredColumns, rows)
   const tableColumns: ColumnDef<Record<string, unknown>>[] = [

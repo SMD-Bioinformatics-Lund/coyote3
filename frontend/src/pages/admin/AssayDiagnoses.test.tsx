@@ -69,7 +69,7 @@ describe("Assay associations", () => {
     vi.mocked(api.get).mockResolvedValue({ status: 200, data: { diagnoses: [{ ...row, is_active: false, definition_is_active: false }] } })
     mount()
     expect(await screen.findByRole("button", { name: /Activate/ })).toBeDisabled()
-    expect(screen.getByText("Globally retired")).toBeVisible()
+    expect(screen.getByText("Globally retired", { selector: '[data-slot="table-badge"]' })).toBeVisible()
   })
   it("allows deactivation of a globally retired definition", async () => {
     vi.mocked(api.get).mockResolvedValue({ status: 200, data: { diagnoses: [{ ...row, definition_is_active: false }] } })
@@ -83,6 +83,6 @@ describe("Assay associations", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Deactivate/ }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Association changed")
     expect(screen.getByRole("button", { name: /Deactivate/ })).toBeEnabled()
-    expect(screen.getByText("Active", { exact: true })).toBeVisible()
+    expect(screen.getByText("Active", { exact: true, selector: '[data-slot="table-badge"]' })).toBeVisible()
   })
 })

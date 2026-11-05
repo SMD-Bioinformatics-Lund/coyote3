@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { icon } from "@/lib/assets"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RecordProvenance } from "./RecordProvenance"
+import { provenanceSearchValue } from "./record-provenance"
 import { StatusBadge } from "./resource-list"
 import { DataTable } from "@/components/data-table/DataTable"
 import { TableBadge } from "@/components/ui/table-badge"
@@ -73,7 +74,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
   })
   const loading = associations.isLoading
   const error = associations.error
-  const rows = (associations.data ?? []).filter((row) => `${row.diagnosis_id} ${row.display_name}`.toLowerCase().includes(search.toLowerCase()))
+  const rows = associations.data ?? []
   return <section className="min-w-0 space-y-3" aria-label="Assay diagnosis associations">
     {canEdit && <BulkInstall kind="assay-diagnoses" aspId={aspId} />}
     {associations.data && !error && <ConfigurationTransfer label="assay diagnoses"
@@ -104,16 +105,17 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
       stateKey={`assay-diagnoses-${aspId}`}
       rowLabel="associated diagnoses"
       hideExport
+      showColumnFilters
       emptyMessage={search ? "No associated diagnoses match your search." : "No diagnoses are associated with this assay."}
       searchPlaceholder="Search diagnoses"
       searchValue={search}
       onSearchChange={setSearch}
       columns={[
-        { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-80 break-words"><Link className="font-semibold text-primary underline-offset-4 hover:underline" to={`/admin/diagnoses?diagnosis=${encodeURIComponent(row.original.diagnosis_id)}`}>{row.original.display_name}</Link><div className="type-meta text-muted-foreground">{row.original.diagnosis_id}</div></div> },
-        { accessorKey: "definition_is_active", header: "Shared status", cell: ({ row }) => <TableBadge className={row.original.definition_is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.definition_is_active ? "Available" : "Globally retired"}</TableBadge> },
-        { accessorKey: "is_active", header: "Assay status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
-        { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
-        { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
+        { accessorKey: "display_name", header: "Diagnosis", meta: { searchValue: (row: Association) => [row.display_name, row.diagnosis_id] }, cell: ({ row }) => <div className="max-w-80 break-words"><Link className="font-semibold text-primary underline-offset-4 hover:underline" to={`/admin/diagnoses?diagnosis=${encodeURIComponent(row.original.diagnosis_id)}`}>{row.original.display_name}</Link><div className="type-meta text-muted-foreground">{row.original.diagnosis_id}</div></div> },
+        { accessorKey: "definition_is_active", header: "Shared status", meta: { searchValue: (row: Association) => row.definition_is_active ? "Available" : "Globally retired", filterOptions: ["Available", "Globally retired"] }, cell: ({ row }) => <TableBadge className={row.original.definition_is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.definition_is_active ? "Available" : "Globally retired"}</TableBadge> },
+        { accessorKey: "is_active", header: "Assay status", meta: { searchValue: (row: Association) => row.is_active ? "Active" : "Inactive", filterOptions: ["Active", "Inactive"] }, cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
+        { id: "record_provenance", header: "Created by", meta: { searchValue: provenanceSearchValue }, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+        { accessorKey: "updated_by", header: "Updated by", meta: { searchValue: (row: Association) => provenanceSearchValue(row, "updated") }, cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
         { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
           const association = row.original
           const active = association.is_active

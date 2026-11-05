@@ -6,7 +6,7 @@ import { fullDateTime, shortCount } from "@/lib/detail-formatters"
 import { cn } from "@/lib/utils"
 import type { AdminFormMode, AdminResourceSpec, FormField, FormSpec } from "@/pages/admin/resource-specs"
 import { RecordProvenance } from "./RecordProvenance"
-import { provenanceLabel } from "./record-provenance"
+import { provenanceLabel, provenanceSearchValue } from "./record-provenance"
 import { readFormPath, writeFormPath } from "./form-paths"
 
 export function valueLabel(value: unknown) {
@@ -438,4 +438,11 @@ export function adminExportValue(field: string, row: any) {
   if (Array.isArray(value)) return value.join("; ")
   if (value && typeof value === "object") return JSON.stringify(value)
   return valueLabel(value)
+}
+
+/** Include labels rendered alongside resource identifiers when searching a table column. */
+export function adminSearchValue(field: string, row: Record<string, unknown>) {
+  if (field === "record_provenance") return provenanceSearchValue(row)
+  if (field === "updated_by") return provenanceSearchValue(row, "updated")
+  return [adminExportValue(field, row), ...(identityDisplayFields[field] || []).map(key => row[key])]
 }

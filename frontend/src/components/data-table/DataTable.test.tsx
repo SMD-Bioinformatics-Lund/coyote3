@@ -21,6 +21,43 @@ const data: Row[] = [
 ]
 
 describe("DataTable", () => {
+  it("searches nullable, numeric, list and display-only columns without searching excluded fields", () => {
+    const rows = [{ name: "First", note: null, count: 0, tags: [] }, { name: "Second", note: "unique note", count: 23, tags: ["Fusion"] }]
+    render(<DataTable data={rows} columns={[
+      { accessorKey: "name", header: "Name" }, { accessorKey: "note", header: "Note" },
+      { accessorKey: "count", header: "Count" }, { accessorKey: "tags", header: "Tags" },
+      { id: "label", header: "Label", meta: { searchValue: (row: typeof rows[number]) => row.name === "Second" ? "Published" : "Draft" }, cell: () => null },
+      { id: "private", accessorFn: () => "hidden-secret", enableGlobalFilter: false, cell: () => null },
+      { id: "actions", accessorFn: () => "action-only", cell: () => null },
+    ]} />)
+    const input = screen.getByPlaceholderText("Search all columns...")
+    for (const value of [" UNIQUE NOTE ", "23", "fusion", "published"]) {
+      fireEvent.change(input, { target: { value } })
+      expect(screen.getByText("Second")).toBeVisible()
+      expect(screen.queryByText("First")).not.toBeInTheDocument()
+    }
+    for (const value of ["hidden-secret", "action-only"]) {
+      fireEvent.change(input, { target: { value } })
+      expect(screen.getByText("No results found.")).toBeVisible()
+    }
+  })
+
+  it("combines column filters with global search and matches status options exactly", () => {
+    const rows = [{ name: "First", active: true }, { name: "Second", active: false }]
+    render(<DataTable data={rows} showColumnFilters columns={[
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "active", header: "Status", meta: { searchValue: (row: typeof rows[number]) => row.active ? "Active" : "Inactive", filterOptions: ["Active", "Inactive"] } },
+    ]} />)
+    fireEvent.change(screen.getByLabelText("Filter Status"), { target: { value: "Active" } })
+    expect(screen.getByText("First")).toBeVisible()
+    expect(screen.queryByText("Second")).not.toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText("Search all columns..."), { target: { value: "Second" } })
+    expect(screen.getByText("No results found.")).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Clear column filters" }))
+    expect(screen.getByText("Second")).toBeVisible()
+    expect(screen.queryByText("First")).not.toBeInTheDocument()
+  })
+
   it("selects table density from both available width and column count", () => {
     expect(resolveTableDensity(17, 1700)).toBe("compact")
     expect(resolveTableDensity(17, 2200)).toBe("standard")

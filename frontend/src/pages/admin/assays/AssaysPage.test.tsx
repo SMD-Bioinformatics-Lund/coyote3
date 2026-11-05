@@ -92,7 +92,7 @@ describe("Assays page", () => {
     fireEvent.change(screen.getByLabelText("Assay category"), { target: { value: "rna" } });
     expect(screen.queryByText("demo_dna")).not.toBeInTheDocument();
     expect(screen.getByText("demo_rna")).toBeVisible();
-    expect(mocks.get).toHaveBeenCalledWith("/resources/asp?per_page=200");
+    expect(mocks.get).toHaveBeenCalledWith("/resources/asp?per_page=200", expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
   it("links creation to setup and protects installed assays from deletion", async () => {

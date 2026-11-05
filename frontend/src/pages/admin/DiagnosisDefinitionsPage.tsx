@@ -18,6 +18,7 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import type { DiagnosisDefinition } from "./AssayDiagnoses"
 import { RecordProvenance } from "./RecordProvenance"
+import { provenanceSearchValue } from "./record-provenance"
 import { AdminHomeLink } from "./AdminHomeLink"
 import { BulkInstall } from "@/components/admin/BulkInstall"
 import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
@@ -99,7 +100,7 @@ export function DiagnosisDefinitionsPage() {
     onError: (error) => notifyActionError("Save shared diagnosis", error),
   })
   const validId = editing !== "new" || /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(values.diagnosis_id) && values.diagnosis_id !== "base"
-  const rows = (definitions.data ?? []).filter((row) => `${row.display_name} ${row.diagnosis_id}`.toLowerCase().includes(search.toLowerCase()))
+  const rows = definitions.data ?? []
   return <PageShell eyebrow="Admin" title="Diagnosis definitions" actions={<AdminHomeLink />}>
     <ConfirmationDialog open={Boolean(statusTarget)}
       title={`${statusTarget?.is_active ? "Deactivate" : "Activate"} ${statusTarget?.display_name || "diagnosis"}`}
@@ -124,15 +125,19 @@ export function DiagnosisDefinitionsPage() {
         stateKey="diagnosis-definitions"
         rowLabel="diagnoses"
         hideExport
+        showColumnFilters
         emptyMessage="No diagnoses found."
         searchPlaceholder="Search diagnosis definitions"
         searchValue={search}
         onSearchChange={setSearch}
         renderToolbar={() => canEdit && <Button disabled={mutation.isPending} onClick={() => { setEditing("new"); setValues(empty); setIdEdited(false); setAssaySearch(""); mutation.reset() }}><icon.plus className="h-4 w-4" />Create diagnosis</Button>}
         columns={[
-          { accessorKey: "display_name", header: "Diagnosis", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.diagnosis_id}</span></div> },
+          { accessorKey: "display_name", header: "Diagnosis", meta: { searchValue: (row: DiagnosisDefinition) => [row.display_name, row.diagnosis_id] }, cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><span className="type-meta text-muted-foreground">{row.original.diagnosis_id}</span></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
-          { id: "assays", header: "Associated assays", cell: ({ row }) => <div className="flex max-w-80 flex-wrap gap-2">{row.original.associated_asp_ids?.length ? row.original.associated_asp_ids.map((id) => {
+          { id: "assays", header: "Associated assays", meta: { searchValue: (row: DiagnosisDefinition) => row.associated_asp_ids?.length ? row.associated_asp_ids.map(id => {
+            const assay = assays.data?.find(item => item.asp_id === id)
+            return [id, assay?.name, assay?.display_name].filter(Boolean).join(" ")
+          }) : "None" }, cell: ({ row }) => <div className="flex max-w-80 flex-wrap gap-2">{row.original.associated_asp_ids?.length ? row.original.associated_asp_ids.map((id) => {
             const assay = assays.data?.find(item => item.asp_id === id)
             return <Link key={id} className="inline-flex hover:underline" to={`/admin/assay-diagnoses?assay=${encodeURIComponent(id)}`}>
               <TableBadge className="badge-tone-blue" title={`${assay?.display_name || id} · ${id}`}>
@@ -140,9 +145,9 @@ export function DiagnosisDefinitionsPage() {
               </TableBadge>
             </Link>
           }) : "None"}</div> },
-          { accessorKey: "is_active", header: "Global status", cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
-          { id: "record_provenance", header: "Created by", cell: ({ row }) => <RecordProvenance record={row.original} /> },
-          { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
+          { accessorKey: "is_active", header: "Global status", meta: { searchValue: (row: DiagnosisDefinition) => row.is_active ? "Available" : "Retired", filterOptions: ["Available", "Retired"] }, cell: ({ row }) => <TableBadge className={row.original.is_active ? "border-pass/40 bg-pass/10 text-pass" : "border-muted-foreground/30 bg-muted text-muted-foreground"}>{row.original.is_active ? "Available" : "Retired"}</TableBadge> },
+          { id: "record_provenance", header: "Created by", meta: { searchValue: provenanceSearchValue }, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+          { accessorKey: "updated_by", header: "Updated by", meta: { searchValue: (row: DiagnosisDefinition) => provenanceSearchValue(row, "updated") }, cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row: { original: row } }) => <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" title={`View ${row.display_name}`} aria-label={`View ${row.display_name}`} onClick={() => setViewing(row)}><icon.eye className="h-4 w-4" /></Button>
             {canEdit && !row.system_installed && <>

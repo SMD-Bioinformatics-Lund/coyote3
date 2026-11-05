@@ -162,6 +162,38 @@ def test_get_samples_filters_by_added_utc_range() -> None:
     assert [row["name"] for row in rows] == ["inside-range"]
 
 
+def test_admin_search_includes_displayed_metadata_and_preserves_access_scope() -> None:
+    """Extra searchable columns cannot expand assay or environment permissions."""
+    handler = _handler_with_docs(
+        {
+            "name": "synthetic",
+            "asp_id": "allowed",
+            "environment": "testing",
+            "ingest_status": "ready",
+            "asp_group": "myeloid",
+            "asp_category": "rna",
+            "case": {"clarity_id": "synthetic-lab-id"},
+            "updated_by": "synthetic-editor",
+        },
+        {
+            "name": "restricted",
+            "asp_id": "other",
+            "environment": "production",
+            "ingest_status": "ready",
+            "asp_group": "myeloid",
+            "asp_category": "rna",
+            "case": {"clarity_id": "synthetic-lab-id"},
+            "updated_by": "synthetic-editor",
+        },
+    )
+    for term in ("MYELOID", "rna", "synthetic-lab-id", "synthetic-editor", "ready"):
+        rows, total = handler.search_samples_for_admin(
+            asp_ids=["allowed"], environments=["testing"], search_str=term
+        )
+        assert total == 1
+        assert [row["name"] for row in rows] == ["synthetic"]
+
+
 def test_search_samples_for_admin_returns_only_ready_docs_by_default() -> None:
     handler = _handler_with_docs(
         {

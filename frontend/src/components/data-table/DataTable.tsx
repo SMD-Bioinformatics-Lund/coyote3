@@ -10,13 +10,17 @@ import {
   type PaginationState,
   type OnChangeFn,
   type Table,
+  type FilterFn,
+  type ColumnFiltersState,
+  type Row,
 } from "@tanstack/react-table";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { icon } from "@/lib/assets"
 import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
 import { shortCount } from "@/lib/detail-formatters";
 import { cn } from "@/lib/utils";
-import { escapeCsvCell } from "@/lib/csv-export";
+import { csvCellText, escapeCsvCell } from "@/lib/csv-export";
 import { TableBadge } from "@/components/ui/table-badge";
 import { useTablePreferences } from "@/components/data-table/table-preferences";
 import {
@@ -33,6 +37,8 @@ export interface CsvExportColumn<TData> {
 
 interface DataTableColumnMeta<TData> {
   exportValue?: (row: TData) => unknown;
+  searchValue?: (row: TData) => unknown;
+  filterOptions?: string[];
   headerClassName?: string;
   cellClassName?: string;
 }
@@ -53,6 +59,7 @@ interface DataTableProps<TData, TValue> {
   renderExportButton?: (table: Table<TData>) => ReactNode;
   hideExport?: boolean;
   hideSearch?: boolean;
+  showColumnFilters?: boolean;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -82,6 +89,7 @@ export function DataTable<TData, TValue>({
   renderExportButton,
   hideExport = false,
   hideSearch = false,
+  showColumnFilters = false,
   searchValue,
   onSearchChange,
   searchPlaceholder = "Search all columns...",
@@ -110,6 +118,7 @@ export function DataTable<TData, TValue>({
     }
   });
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [clientPagination, setClientPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -127,9 +136,33 @@ export function DataTable<TData, TValue>({
     setInternalSorting(nextSorting);
   };
 
+  const searchableColumns = useMemo(() => columns.map(column => {
+    const meta = column.meta as DataTableColumnMeta<TData> | undefined;
+    const value = meta?.searchValue ?? meta?.exportValue;
+    return value && !("accessorKey" in column) && !("accessorFn" in column)
+      ? { ...column, accessorFn: value, enableSorting: column.enableSorting ?? false }
+      : column;
+  }), [columns]);
+  const cellSearchText = (row: Row<TData>, columnId: string) => {
+    const column = searchableColumns.find(item => item.id === columnId || ("accessorKey" in item && item.accessorKey === columnId));
+    const meta = column?.meta as DataTableColumnMeta<TData> | undefined;
+    const value = meta?.searchValue ?? meta?.exportValue;
+    return csvCellText(value ? value(row.original) : row.getValue(columnId)).toLocaleLowerCase();
+  };
+  const matchesText: FilterFn<TData> = (row, columnId, query) =>
+    cellSearchText(row, columnId).includes(String(query ?? "").trim().toLocaleLowerCase());
   const table = useReactTable({
     data,
-    columns,
+    columns: searchableColumns,
+    defaultColumn: { filterFn: (row, columnId, query) => {
+      const column = searchableColumns.find(item => item.id === columnId || ("accessorKey" in item && item.accessorKey === columnId));
+      return (column?.meta as DataTableColumnMeta<TData> | undefined)?.filterOptions
+        ? cellSearchText(row, columnId) === String(query ?? "").trim().toLocaleLowerCase()
+        : matchesText(row, columnId, query, () => {});
+    } },
+    globalFilterFn: matchesText,
+    getColumnCanGlobalFilter: column => !["actions", "select"].includes(column.id),
+    manualFiltering: serverPaginated,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     ...(!serverPaginated && enablePagination
@@ -141,12 +174,14 @@ export function DataTable<TData, TValue>({
     isMultiSortEvent: () => true,
     onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setClientPagination,
     manualPagination: serverPaginated,
     state: {
       sorting,
-      globalFilter: controlledSearch ? "" : globalFilter,
+      globalFilter: displayedSearchValue,
+      columnFilters,
       rowSelection,
       pagination: serverPaginated
         ? { pageIndex: Math.max(0, page - 1), pageSize: effectivePageSize }
@@ -254,7 +289,7 @@ export function DataTable<TData, TValue>({
       pageIndex: 0,
       pageSize: serverPaginated ? current.pageSize : preferredPageSize,
     }));
-  }, [data.length, displayedSearchValue, preferredPageSize, serverPaginated, sorting]);
+  }, [data.length, displayedSearchValue, columnFilters, preferredPageSize, serverPaginated, sorting]);
 
   useEffect(() => {
     if (typeof window === "undefined" || sortingState) return;
@@ -293,6 +328,7 @@ export function DataTable<TData, TValue>({
             {shortCount(returnedCount)} {rowLabel}
           </TableBadge>
           {renderToolbar && renderToolbar(table)}
+          {showColumnFilters && columnFilters.length > 0 && <Button variant="outline" size="sm" onClick={() => setColumnFilters([])}>Clear column filters</Button>}
         </div>
         {!hideExport && (
           <div className="ml-auto flex shrink-0 items-center">
@@ -387,6 +423,19 @@ export function DataTable<TData, TValue>({
                   })}
                 </tr>
               ))}
+              {showColumnFilters && !serverPaginated && <tr>
+                {table.getVisibleLeafColumns().map(column => {
+                  const meta = column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
+                  const label = typeof column.columnDef.header === "string" ? column.columnDef.header : column.id;
+                  return <th key={column.id} className="p-2">
+                    {column.getCanFilter() && !["actions", "select"].includes(column.id) && (meta?.filterOptions
+                      ? <select aria-label={`Filter ${label}`} className="paper-inset w-full rounded-md p-2 type-body-sm" value={String(column.getFilterValue() ?? "")} onChange={event => column.setFilterValue(event.target.value)}>
+                        <option value="">All</option>{meta.filterOptions.map(value => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                      : <SearchInput aria-label={`Filter ${label}`} placeholder={`Filter ${label}`} value={String(column.getFilterValue() ?? "")} onChange={event => column.setFilterValue(event.target.value)} />)}
+                  </th>;
+                })}
+              </tr>}
             </thead>
             <tbody>
               {visibleRows.length ? (

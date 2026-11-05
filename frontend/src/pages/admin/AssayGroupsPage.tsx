@@ -14,7 +14,7 @@ import { RecordProvenance } from "./RecordProvenance"
 import { AdminHomeLink } from "./AdminHomeLink"
 import { BulkInstall } from "@/components/admin/BulkInstall"
 import { ConfigurationTransfer } from "@/components/admin/ConfigurationTransfer"
-import type { RecordProvenanceData } from "./record-provenance"
+import { provenanceSearchValue, type RecordProvenanceData } from "./record-provenance"
 
 type Group = RecordProvenanceData & { group_id: string; parent_group_id: string | null; display_name: string; description: string; system_managed: boolean; is_active: boolean; version: number }
 const empty = { group_id: "", parent_group_id: "", display_name: "", description: "" }
@@ -80,7 +80,7 @@ export function AssayGroupsPage() {
     onError: (error) => notifyActionError("Create assay group", error),
   })
   const validId = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(values.group_id)
-  const rows = (groups.data ?? []).filter((group) => `${group.group_id} ${group.display_name} ${group.description}`.toLowerCase().includes(search.toLowerCase()))
+  const rows = groups.data ?? []
   return <PageShell eyebrow="Admin" title="Assay groups" actions={<AdminHomeLink />}>
     <ConfirmationDialog open={Boolean(target)} title={`${target?.is_active ? "Deactivate" : "Activate"} ${target?.display_name ?? "assay group"}`} confirmLabel={target?.is_active ? "Deactivate group" : "Activate group"} isPending={status.isPending}
       confirmDisabled={impact.isFetching || Boolean(impact.error) || !impact.data || impact.data.group.version !== target?.version}
@@ -132,12 +132,12 @@ export function AssayGroupsPage() {
         onSearchChange={setSearch}
         renderToolbar={() => canCreate && !creating && <Button disabled={save.isPending} onClick={() => { setCreating(true); setValues(empty); setIdEdited(false); save.reset() }}><icon.plus className="h-4 w-4" />Create group</Button>}
         columns={[
-          { accessorKey: "display_name", header: "Group", cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><div className="type-meta text-muted-foreground">{row.original.group_id}</div></div> },
+          { accessorKey: "display_name", header: "Group", meta: { searchValue: (row: Group) => [row.display_name, row.group_id] }, cell: ({ row }) => <div className="max-w-64 break-words"><div className="font-semibold">{row.original.display_name}</div><div className="type-meta text-muted-foreground">{row.original.group_id}</div></div> },
           { accessorKey: "description", header: "Description", cell: ({ row }) => <span className="block max-w-96 whitespace-pre-wrap break-words">{row.original.description || "-"}</span> },
-          { accessorKey: "parent_group_id", header: "Biological parent", cell: ({ row }) => row.original.parent_group_id ? (groups.data ?? []).find((group) => group.group_id === row.original.parent_group_id)?.display_name ?? row.original.parent_group_id : "Top-level group" },
-          { accessorKey: "is_active", header: "Status", cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
-          { id: "record_provenance", header: "Created by", enableSorting: false, cell: ({ row }) => <RecordProvenance record={row.original} /> },
-          { accessorKey: "updated_by", header: "Updated by", cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
+          { accessorKey: "parent_group_id", header: "Biological parent", meta: { searchValue: (row: Group) => row.parent_group_id ? [row.parent_group_id, groups.data?.find(group => group.group_id === row.parent_group_id)?.display_name] : "Top-level group" }, cell: ({ row }) => row.original.parent_group_id ? (groups.data ?? []).find((group) => group.group_id === row.original.parent_group_id)?.display_name ?? row.original.parent_group_id : "Top-level group" },
+          { accessorKey: "is_active", header: "Status", meta: { searchValue: (row: Group) => row.is_active ? "Active" : "Inactive" }, cell: ({ row }) => <StatusBadge value={row.original.is_active} /> },
+          { id: "record_provenance", header: "Created by", enableSorting: false, meta: { searchValue: provenanceSearchValue }, cell: ({ row }) => <RecordProvenance record={row.original} /> },
+          { accessorKey: "updated_by", header: "Updated by", meta: { searchValue: (row: Group) => provenanceSearchValue(row, "updated") }, cell: ({ row }) => <RecordProvenance record={row.original} kind="updated" /> },
           { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
             const group = row.original
             return canCreate && !group.system_managed && !group.system_installed && <Button variant="ghost" size="icon" className="text-validation" title={group.is_active ? "Deactivate group" : "Activate group"} aria-label={`${group.is_active ? "Deactivate" : "Activate"} ${group.display_name}`} disabled={status.isPending} onClick={() => { setTarget(group); setReason(""); setReasonError(false); status.reset() }}><icon.power className="h-4 w-4" aria-hidden="true" /></Button>
