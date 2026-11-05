@@ -209,8 +209,6 @@ export function AssaySetupPage() {
   ))
 
   return <PageShell className="min-w-0 [&>*]:min-w-0" eyebrow="Admin" title="Assay setup" actions={canWrite ? <Button disabled={busy || isNew} onClick={() => choose("new")}><icon.plus />New assay setup</Button> : undefined}>
-    <DocumentEditorNotice editor={documentEditor} />
-    {canWrite && !sharedListAccess && setup?.status !== "published" && <p role="alert" className="surface-panel p-3 type-body-sm text-warning">Saving or activating selected shared gene lists requires gene_list.insilico:edit permission. Ask an administrator for access, or clear the staged selections in Gene lists.</p>}
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
       <section aria-label="Assay setup workspace" className="surface-panel min-w-0">
       <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
@@ -257,6 +255,22 @@ export function AssaySetupPage() {
       {!selected && !list.isLoading && !list.error && <div className="p-4 sm:p-6"><SetupEmptyState icon={icon.clipboardCheck} title={list.data?.length ? "No setup selected" : "No saved assay setups"} /></div>}
       {context.isLoading && <AppLoader label="Loading setup" />}
       {context.data && !imported && <>
+        {setup?.status === "published" && <section role="status" className="surface-panel space-y-2 p-3">
+          <p className="type-label">Published setup · read-only</p>
+          <p className="type-body-sm">This is the setup snapshot captured at publication. Make subsequent changes in the individual resource editors; this snapshot stays unchanged.</p>
+          <div className="flex flex-wrap gap-3">
+            {hasPermission(user, "assay.panel:edit") ? <Link className="type-body text-primary underline" to={`/admin/asp/${encodeURIComponent(setup.asp_id)}/edit`}>Edit assay</Link> : hasPermission(user, "assay.panel:view") && <Link className="type-body text-primary underline" to={`/admin/asp/${encodeURIComponent(setup.asp_id)}/view`}>View activated assay</Link>}
+            {hasPermission(user, "assay.config:list") && <Link className="type-body text-primary underline" to="/admin/aspc">Manage assay configurations</Link>}
+          </div>
+        </section>}
+        {setup?.status === "submitted" && <section role="status" className="surface-panel space-y-2 p-3">
+          <p className="type-label">Submitted for review · read-only</p>
+          <p className="type-body-sm">{setup.reviewer ? `Assigned reviewer: ${setup.reviewer}. ` : ""}Return the setup to draft from Review before editing.</p>
+          {reviewAllowed ? <Button variant="outline" disabled={busy} onClick={() => requestChange(() => { setStep(5); setEditing(null) })}>Open review actions</Button> : <p className="type-body-sm text-muted-foreground">An administrator with assay editing permission can return it to draft.</p>}
+        </section>}
+        {setup?.status === "draft" && !canWrite && <p role="status" className="surface-panel p-3 type-body-sm">This draft is read-only because your account lacks required setup permissions: {writePermissions.filter(permission => !hasPermission(user, permission)).join(", ")}. Ask an administrator to grant the required access.</p>}
+        {canWrite && !sharedListAccess && setup?.status !== "published" && <p role="alert" className="surface-panel p-3 type-body-sm text-warning">Saving or activating selected shared gene lists requires gene_list.insilico:edit permission. Ask an administrator for access.</p>}
+        <DocumentEditorNotice editor={documentEditor} />
         <SetupNavigation step={step} isNew={isNew} pending={busy} onChange={(index) => { if (index !== step) requestChange(() => { setStep(index); setEditing(null) }) }} />
         {dirty && <p role="status" className="type-body-sm text-muted-foreground">Unsaved changes. Save this form before activation or changing steps.</p>}
         {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}
@@ -279,7 +293,7 @@ export function AssaySetupPage() {
         </section>}
         {step === 5 && setup && <section className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><h2 className="type-title flex items-center gap-2 border-b border-border pb-4"><icon.clipboardCheck className="size-5 text-primary" />Review and activation</h2><dl className="grid gap-5 type-body sm:grid-cols-2 [&_dd]:mt-1 [&_dd]:break-words [&>div]:min-w-0"><div><dt className="type-label text-muted-foreground">Assay</dt><dd>{String(setup.content.panel.display_name)} ({setup.asp_id})</dd></div><div><dt className="type-label text-muted-foreground">Scopes</dt><dd>{setup.content.scopes.join(", ")}</dd></div><div><dt className="type-label text-muted-foreground">Environments</dt><dd>{setup.content.environments.join(", ") || "None selected"}</dd></div><div><dt className="type-label text-muted-foreground">Created by</dt><dd>{setup.created_by}</dd></div></dl>
           <p className="type-body">Existing gene lists to associate: {setup.content.existing_gene_list_ids?.join(", ") || "None"}</p>
-          {setup.reviewer && <p className="type-body">Assigned reviewer: <span className="font-medium">{setup.reviewer}</span></p>}
+          {setup.reviewer && setup.status !== "submitted" && <p className="type-body">Assigned reviewer: <span className="font-medium">{setup.reviewer}</span></p>}
           {setup.status === "published" && <p className="type-body">Published by: {setup.published_by || "Unknown"} · {setup.reviewed_by ? `Reviewed by ${setup.reviewed_by}` : "Published without review"}</p>}
           {setup.status !== "published" && <div role="status" className={cn("rounded-md border p-3", context.data.readiness?.ready ? "border-pass text-pass" : "border-warning")}>
             <p className="mb-2 flex items-center gap-2 type-body font-medium">{context.data.readiness?.ready ? <icon.check className="size-4 shrink-0" /> : <icon.circleAlert className="size-4 shrink-0 text-warning" />}{context.data.readiness?.ready ? "Ready for activation" : "Setup requires attention"}</p>
@@ -292,10 +306,9 @@ export function AssaySetupPage() {
             <div className="max-w-lg space-y-2"><p className="type-label">Reviewer for optional review</p><Select label="Reviewer for optional review" value={assignee} disabled={busy || !documentEditor.owned} options={[{ value: "", label: "Select a reviewer" }, ...(context.data.reviewers || []).map(reviewer => ({ value: reviewer.username, label: `${reviewer.name} (${reviewer.username})` }))]} onValueChange={setAssignee} />{!context.data.reviewers?.length && <p className="type-body-sm text-muted-foreground">No eligible reviewer is available. Direct publication is still available with the required permissions.</p>}</div>
             <div className="flex flex-wrap gap-3"><Button disabled={!canActivate || readonly || !context.data.readiness?.ready || busy} onClick={() => mutation.mutate({ action: "publish" })}><icon.check />Publish and activate</Button><Button variant="outline" disabled={!assignee || !documentEditor.owned || !context.data.readiness?.ready || busy} onClick={() => mutation.mutate({ action: "submit" })}><icon.clipboardCheck />Submit for review</Button></div>
           </>}
-          {reviewAllowed && <><label className="type-label block">Review notes<textarea className="paper-inset mt-1 min-h-24 w-full rounded-md p-3" value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="flex flex-wrap gap-3">{canWrite && <Button disabled={!canActivate || !context.data.readiness?.ready || busy} onClick={() => mutation.mutate({ action: "publish" })}><icon.check />{isAssignedReviewer ? "Approve and activate" : "Publish and activate"}</Button>}<Button variant="outline" disabled={!reason.trim() || busy} onClick={() => mutation.mutate({ action: "return" })}><icon.arrowLeft />{isAssignedReviewer ? "Return for changes" : "Return to draft"}</Button></div></>}
+          {setup.status === "submitted" && !isAssignedReviewer && <p role="status">Awaiting approval from the assigned reviewer. The author cannot publish a submitted setup.</p>}
+          {reviewAllowed && <><label className="type-label block">Review notes<textarea className="paper-inset mt-1 min-h-24 w-full rounded-md p-3" value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="flex flex-wrap gap-3">{canWrite && isAssignedReviewer && <Button disabled={!canActivate || !context.data.readiness?.ready || busy} onClick={() => mutation.mutate({ action: "publish" })}><icon.check />Approve and activate</Button>}<Button variant="outline" disabled={!reason.trim() || busy} onClick={() => mutation.mutate({ action: "return" })}><icon.arrowLeft />{isAssignedReviewer ? "Return for changes" : "Return to draft"}</Button></div></>}
           {setup.status === "submitted" && !reviewAllowed && <p role="status">Submitted for optional review.</p>}
-          {setup.status === "published" && <p role="status">Assay setup published. Manage subsequent changes from the individual resource pages.</p>}
-          {setup.status === "published" && <div className="flex flex-wrap gap-3">{hasPermission(user, "assay.panel:view") && <Link className="type-body text-primary underline" to={`/admin/asp/${encodeURIComponent(setup.asp_id)}/view`}>View activated assay</Link>}{hasPermission(user, "assay.config:list") && <Link className="type-body text-primary underline" to="/admin/aspc">Manage assay configurations</Link>}</div>}
           <details><summary className="cursor-pointer type-label">Revision history</summary><ul className="mt-3 divide-y divide-border">{context.data.history?.map((entry) => <li key={entry.revision} className="py-2 type-body">r{entry.revision} · {entry.action} · {entry.actor} · {new Date(entry.at).toLocaleString()}</li>)}</ul></details>
         </section>}
         {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || busy} onClick={() => requestChange(() => { setStep(step - 1); setEditing(null) })}><icon.arrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6{!readonly && (step < 2 || editing !== null) && " · Save the form to continue"}</span><Button variant="outline" disabled={step === 5 || busy || (!readonly && (step < 2 || editing !== null))} onClick={() => requestChange(() => { setStep(step + 1); setEditing(null) })}>Next<icon.arrowRight /></Button></footer>}

@@ -27,6 +27,12 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
     })
     await page.goto("/admin/assay-setups?setup=setup-1")
     await expect(page.getByLabel("Display name", { exact: true })).toBeVisible()
+    await expect(page.getByText("Published setup · read-only", { exact: true })).toBeVisible()
+    await expect(page.getByLabel("Display name", { exact: true })).toBeDisabled()
+    await expect(page.getByRole("link", { name: "Edit assay", exact: true })).toHaveAttribute("href", "/admin/asp/synthetic/edit")
+    await page.getByRole("link", { name: "Edit assay", exact: true }).focus()
+    await expect(page.getByRole("link", { name: "Edit assay", exact: true })).toBeFocused()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
     const document = { ...original.content, panel: { asp_id: "imported-assay", display_name: "Imported assay" } }
     await page.getByLabel("Import assay setup JSON", { exact: true }).setInputFiles({ name: "setup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(document)) })
     const editor = page.getByRole("textbox", { name: "Assay setup JSON", exact: true })
@@ -259,6 +265,10 @@ for (const [theme, width, initialStatus] of [["light", 1440, "draft"], ["dark", 
       await discard.getByRole("button", { name: "Discard changes" }).click()
     } else {
       await page.getByRole("button", { name: "6. Review", exact: true }).click()
+      await expect(page.getByRole("button", { name: "Publish and activate", exact: true })).toHaveCount(0)
+      await expect(page.getByText(/Awaiting approval from the assigned reviewer/)).toBeVisible()
+      expect(actions).toEqual([])
+      return
     }
     await expect(page.getByText("Ready for activation", { exact: true })).toBeVisible()
     const publish = page.getByRole("button", { name: "Publish and activate", exact: true })
@@ -269,7 +279,7 @@ for (const [theme, width, initialStatus] of [["light", 1440, "draft"], ["dark", 
     await page.screenshot({ path: testInfo.outputPath(`optional-review-${initialStatus}-${theme}-${width}.png`), fullPage: true })
     await publish.focus()
     await page.keyboard.press("Enter")
-    await expect(page.getByText("Assay setup published. Manage subsequent changes from the individual resource pages.", { exact: true })).toBeVisible()
+    await expect(page.getByText("Published setup · read-only", { exact: true })).toBeVisible()
     expect(actions).toEqual(["publish"])
     await expect(publish).toHaveCount(0)
   })

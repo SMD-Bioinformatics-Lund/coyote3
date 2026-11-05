@@ -391,18 +391,23 @@ def test_setup_rejects_unavailable_or_protected_gene_list_links(setup_service, c
     assert db.assay_setups.count_documents({}) == 0
 
 
-@pytest.mark.parametrize("action", ["publish", "return"])
-def test_content_editors_can_publish_or_reopen_optional_review(setup_service, action):
+@pytest.mark.parametrize("actor", ["author", "unassigned-admin"])
+def test_submitted_setup_requires_assigned_independent_approval(setup_service, actor):
+    """An author or unrelated publisher cannot bypass a requested review."""
     service, db = setup_service
     draft = service.save(content(), actor="author")
     identifier = str(draft["_id"])
     service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
-    result = service.transition(identifier, 2, action, actor="author", reason="Review")
-    assert result["status"] == ("published" if action == "publish" else "draft")
+    with pytest.raises(AppError, match="assigned independent reviewer") as error:
+        service.transition(identifier, 2, "publish", actor=actor)
+    assert error.value.status_code == 403
+    assert service.get(identifier)["status"] == "submitted"
+    assert service.get(identifier)["revision"] == 2
+    assert db.asp.count_documents({}) == 0
+    result = service.transition(identifier, 2, "return", actor="author", reason="Review")
+    assert result["status"] == "draft"
     assert result["updated_by"] == "author"
-    assert db.asp.count_documents({}) == (1 if action == "publish" else 0)
-    if action == "publish":
-        assert result["reviewed_by"] is None
+    assert db.asp.count_documents({}) == 0
 
 
 def test_publication_prunes_only_own_unpublished_snapshots(setup_service, monkeypatch):
@@ -479,6 +484,19 @@ def test_assigned_review_is_recorded_and_direct_publication_is_not_approval(setu
     published = service.transition(identifier, 4, "publish", actor="reviewer")
     assert published["reviewed_by"] == "reviewer"
     assert published["published_by"] == "reviewer"
+
+
+def test_assigned_reviewer_must_remain_eligible_at_publication(setup_service):
+    """Revoked reviewer access blocks approval without activating resources."""
+    service, db = setup_service
+    draft = service.save(content(), actor="author")
+    identifier = str(draft["_id"])
+    service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
+    service.store.user_repository.list_active_users_for_notifications = lambda: []
+    with pytest.raises(AppError, match="assigned independent reviewer"):
+        service.transition(identifier, 2, "publish", actor="reviewer")
+    assert service.get(identifier)["status"] == "submitted"
+    assert db.asp.count_documents({}) == 0
 
 
 def test_inactive_or_underprivileged_roles_cannot_receive_setup_review(setup_service):
@@ -582,7 +600,8 @@ def test_changed_rule_release_requires_rechecking_submitted_content(setup_servic
     identifier = str(draft["_id"])
     service.transition(identifier, 1, "submit", actor="author", assignee="reviewer")
     db.rules.update_one({}, {"$inc": {"revision": 1}})
-    with pytest.raises(AppError, match="dependencies changed"):
+    message = "dependencies changed" if publisher == "reviewer" else "assigned independent reviewer"
+    with pytest.raises(AppError, match=message):
         service.transition(identifier, 2, "publish", actor=publisher)
     returned = service.transition(
         identifier, 2, "return", actor=publisher, reason="Review updated rules"

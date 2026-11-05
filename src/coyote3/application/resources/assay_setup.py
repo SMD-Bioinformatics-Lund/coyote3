@@ -541,7 +541,8 @@ class AssaySetupService:
         Args:
             identifier: Saved setup identifier.
             revision: Revision loaded by the caller; stale requests are rejected.
-            action: Submit a draft, return a submitted setup, or publish either state.
+            action: Submit a draft, return a submitted setup, or publish. Submitted
+                publication requires approval by the assigned independent reviewer.
             actor: Authorized caller's username, retained in revision attribution.
             reason: Review or publication notes; required when returning to draft.
             assignee: Eligible colleague's username; required only for submission.
@@ -566,6 +567,15 @@ class AssaySetupService:
         if action == "return" and not reason.strip():
             raise api_error(422, "Explain which changes are required")
         reviewer = previous.get("reviewer")
+        if action == "publish" and previous["status"] == "submitted":
+            eligible = {
+                user["username"]
+                for user in self.reviewer_options(previous, actor=previous["created_by"])
+            }
+            if actor != reviewer or actor not in eligible:
+                raise api_error(
+                    403, "Only the assigned independent reviewer can approve and publish this setup"
+                )
         if action == "submit":
             reviewer = str(assignee or "").strip().lower()
             if not reviewer:

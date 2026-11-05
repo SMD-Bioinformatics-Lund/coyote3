@@ -32,6 +32,37 @@ function mount(withNavigationLink = false, history?: { entries: string[]; index:
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><RouterProvider router={router} /></QueryClientProvider>)
   return router
 }
+it("explains published snapshots and links to the assay editor from the first step", async () => {
+  setup.status = "published"
+  access.permissions.push("assay.config:list")
+  mount()
+  expect(await screen.findByText("Published setup · read-only")).toBeVisible()
+  expect(screen.getByRole("link", { name: "Edit assay" })).toHaveAttribute("href", "/admin/asp/assay_1/edit")
+  expect(screen.getByRole("link", { name: "Manage assay configurations" })).toHaveAttribute("href", "/admin/aspc")
+  expect(screen.getByLabelText("Display name")).toBeDisabled()
+  expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/acquire"), expect.anything())
+})
+it("offers viewing instead of editing a published assay without edit permission", async () => {
+  setup.status = "published"
+  access.permissions = ["assay.panel:list", "assay.panel:view"]
+  mount()
+  expect(await screen.findByRole("link", { name: "View activated assay" })).toHaveAttribute("href", "/admin/asp/assay_1/view")
+  expect(screen.queryByRole("link", { name: "Edit assay" })).not.toBeInTheDocument()
+})
+it("takes a submitted setup to its existing review actions without changing it", async () => {
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "Open review actions" }))
+  expect(screen.getByLabelText("Review notes")).toBeVisible()
+  expect(screen.getByRole("button", { name: "Return for changes" })).toBeDisabled()
+  expect(api.post).not.toHaveBeenCalled()
+})
+it("explains which permissions prevent editing a draft", async () => {
+  setup.status = "draft"
+  access.permissions = ["assay.panel:list", "assay.panel:view", "assay.panel:edit"]
+  mount()
+  expect(await screen.findByText(/This draft is read-only because/)).toHaveTextContent("assay.config:create")
+  expect(screen.getByLabelText("Display name")).toBeDisabled()
+})
 it("reviews imported setup content before creating an unpublished draft", async () => {
   vi.mocked(api.post).mockResolvedValue({ status: 201, data: { ...setup, _id: "imported-setup" } })
   const router = mount()
@@ -146,13 +177,14 @@ it("preserves unsaved edits when the active row is clicked or the sidebar is col
   fireEvent.click(screen.getByRole("button", { name: "Keep editing" }))
   expect(field).toHaveValue("Unsaved sidebar edit")
 })
-it("allows a content editor to activate a submitted setup without waiting for review", async () => {
+it("prevents an author from activating a submitted setup without review", async () => {
   access.username = "author"
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   expect(screen.queryByRole("button", { name: "Approve and activate" })).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole("button", { name: "Publish and activate" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups/setup-1/publish", { revision: 3, reason: "" }, {}))
+  expect(screen.queryByRole("button", { name: "Publish and activate" })).not.toBeInTheDocument()
+  expect(screen.getByText(/Awaiting approval from the assigned reviewer/)).toBeVisible()
+  expect(api.post).not.toHaveBeenCalled()
 })
 it("offers direct activation and optional submission for a valid draft", async () => {
   access.username = "author"

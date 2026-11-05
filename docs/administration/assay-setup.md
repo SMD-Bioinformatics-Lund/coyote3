@@ -36,6 +36,14 @@ administration pages.
 
 ## Current versions and history
 
+Every setup step explains read-only access. Published setups display the retained
+publication snapshot; **Edit assay** opens the operational assay editor and
+**Manage assay configurations** opens ASPCs, according to your permissions.
+Submitted setups show the assigned reviewer and **Open review actions** for users
+with assay editing permission. Return the setup to draft there, with a reason,
+before editing. Drafts explain missing permissions or an unavailable editing session
+beside the form.
+
 When an assay setup is successfully published, its draft and submitted editing
 snapshots are removed in the publication transaction. The final published snapshot,
 revision number and audit events remain. Failed publication retains the editing
@@ -402,8 +410,9 @@ The configuration cannot substitute for an absent file declaration or publish a 
 ### 7. Review, submit and activate
 
 Open **Review**, resolve every readiness error, and select **Publish and activate**.
-Review is optional: an authorized content editor may activate a valid setup directly,
-including one already submitted. To ask a colleague to check it first, select
+Review is optional for a draft: an authorized content editor may activate it directly.
+Once submitted, only the assigned independent reviewer can approve and activate it.
+To request that review, select
 **Reviewer for optional review**, then **Submit for review**. The selector lists
 active users whose active roles grant setup visibility and activation permissions,
 including shared-list edit permission when needed; content editors are excluded.
@@ -485,12 +494,12 @@ activation; only the catalog workflow controls public presentation and publicati
    after selecting a reviewer for an optional colleague review. Submitted content becomes read-only.
 4. The assigned colleague can open the saved setup, review it,
    and select **Approve and activate**, or **Return for changes** with a reason.
-   Content editors can also **Publish and activate**, or **Return to draft** with a reason.
+   Content editors cannot publish submitted setups. They can **Return to draft** with a reason.
 
 Returning a setup restores draft editing and preserves the submitted revision.
-Review and author/reviewer independence are not prerequisites for assay activation.
-The assigned colleague is recorded in `reviewed_by` only when they activate the
-submitted setup. Other authorized publication is recorded as **Published without review**.
+Direct draft publication is recorded as **Published without review**. Submitted
+publication requires the assigned reviewer to remain active, eligible and independent;
+their approval is recorded in `reviewed_by` when they activate the setup.
 Returning to draft clears the assignment; its previous value remains in revision history.
 Published setup snapshots cannot be edited. Subsequent changes use the individual resource
 administration pages.
