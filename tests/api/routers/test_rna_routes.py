@@ -36,6 +36,7 @@ def _rna_service() -> RnaService:
     return RnaService(
         assay_panel_repository=store.assay_panel_repository,
         gene_list_repository=store.gene_list_repository,
+        diagnosis_repository=store.assay_diagnosis_repository,
         sample_repository=store.sample_repository,
         fusion_repository=store.fusion_repository,
         rna_expression_repository=store.rna_expression_repository,
@@ -54,6 +55,13 @@ def _rna_service() -> RnaService:
             }
         ),
     )
+
+
+def test_rna_runtime_factory_binds_diagnoses_and_governed_queries():
+    """Runtime RNA listing shares the diagnosis and query repositories used by reports."""
+    service = RnaService.from_store(store)
+    assert service.workflow.diagnosis_repository is store.assay_diagnosis_repository
+    assert service.workflow.query_rule_service.repository is store.query_rule_repository
 
 
 def test_change_payload_shape():

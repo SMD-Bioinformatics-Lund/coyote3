@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from coyote3.application.common.assay_config import get_formatted_assay_config
+from coyote3.application.common.release_resources import assay_resource, gene_list_resources
 from coyote3.application.query_rules.service import QueryRuleService
 from coyote3.application.reporting.rna_workflow import RNAWorkflowService
 from coyote3.config.clinical_query_policy import resolved_query_policy
@@ -219,7 +220,7 @@ class QueryRuleTestingService:
             raise api_error(422, "Sample omics layer does not support the selected analysis")
         if scope.intent not in (sample.get("analysis_intents") or ["somatic"]):
             raise api_error(422, "Sample does not enable the selected analysis intent")
-        panel = self.store.assay_panel_repository.get_asp(sample["asp_id"]) or {}
+        panel = assay_resource(config)
         current = self.rules.resolve(scope)
         proposed = self._proposed_service(request).resolve(scope)
         if request.content is not None:
@@ -292,9 +293,7 @@ class QueryRuleTestingService:
                 sample=rna_sample,
                 sample_filters=section,
                 assay_panel_doc=panel,
-                selected_list_docs=self.store.gene_list_repository.get_isgl_by_ids(
-                    section.get("fusionlists", [])
-                ),
+                selected_list_docs=gene_list_resources(config, section.get("fusionlists", [])),
             )
             resolver = SimpleNamespace(policy_for_sample=lambda **kwargs: policy)
             query = workflow.build_fusion_list_query(
@@ -321,7 +320,7 @@ class QueryRuleTestingService:
             list_key = {"snv": "snvlists", "cnv": "cnvlists", "translocation": "fusionlists"}[
                 analysis
             ]
-            lists = self.store.gene_list_repository.get_isgl_by_ids(section.get(list_key, []))
+            lists = gene_list_resources(config, section.get(list_key, []))
             _, genes = get_sample_effective_genes(
                 effective_sample, panel, lists, target=analysis, intent=scope.intent
             )

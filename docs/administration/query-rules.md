@@ -102,6 +102,9 @@ MongoDB predicate. The query-testing preview identifies post-filters separately.
 
 #### RNA fusions
 
+Fusion lists and stored-sample query comparisons resolve published policies using
+the sample's assay, diagnosis and environment.
+
 The ordinary query restricts results to the sample and matches selected genes
 against either fusion partner. When call filters are selected, one entry in
 `calls` must satisfy the combined caller, effect, description and read conditions:
@@ -115,9 +118,11 @@ against either fusion partner. When call filters are selected, one entry in
 - Selected descriptions match comma-delimited description tokens,
   case-insensitively. Selected callers are alternatives within the same call filter.
 
-Missing read thresholds default to zero and add no read-count restriction. With
-no call filters, no call-entry predicate is added. Panel and WTS use the same
-fusion filter contract.
+Absent or null fusion profiles inherit the applied ASPC's fusion settings.
+Existing saved profiles retain explicit values, including zero thresholds and empty
+list selections. Thresholds of zero add no read-count restriction. With no call
+filters, no call-entry predicate is added. Panel and WTS use the same fusion filter
+contract.
 
 #### DNA translocations
 
@@ -276,6 +281,9 @@ Publishing or retiring a policy changes subsequent matching queries without an
 ASPC edit, configuration application or service restart. Draft and approved but
 unpublished versions do not change execution. Refresh an open analysis to request
 the new results; publication does not rewrite saved sample filter values.
+Both publication and retirement check retained published descendants. Retirement
+is refused if revealing an ancestor would duplicate an exception identifier in an
+extending child. Update or retire the conflicting child before retiring its parent.
 
 Report generation resolves each query scope once and records its effective policy
 and exact source lineage in the saved report receipt. A changed publication between
@@ -662,15 +670,19 @@ do not merge across scopes.
 5. Repeat with representative samples before review and publication.
 
 The comparison uses the sample's recorded ASPC, saved filter values, selected gene
-lists, VEP version and application query builders. It includes CNV effect filtering
+lists captured by that ASPC, VEP version and application query builders. Assay
+eligibility also comes from the captured revision. Editing or retiring a live list
+does not change the sample's pinned gene scope; invalid resource hashes fail the
+comparison. It includes CNV effect filtering
 and translocation gene filtering. Counts describe retrieval selection before browser
 text search, classification enrichment and report eligibility; they are not report
 finding counts. The proposed policy is applied at its actual hierarchy level, so
 testing a group rule does not bypass an assay or diagnosis override.
 
 Tests do not save sample filters, findings, reports or rules. Results are hidden when
-the draft changes. Comparisons read current data; rerun if samples, lists or published
-policies change during testing. Each candidate query has a five-second server limit.
+the draft changes. Comparisons read current findings and policies; rerun if sample
+filters, applied configuration, findings or published policies change during testing.
+Each candidate query has a five-second server limit.
 More than 10,000 candidates in either query rejects the comparison instead of
 reporting partial counts. Counts are exact for completed comparisons; the display
 shows at most 100 added and 100 removed finding identities.

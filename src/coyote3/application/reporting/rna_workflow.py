@@ -18,12 +18,9 @@ from coyote3.application.reporting.persistence import (
 from coyote3.application.reporting.report_context import report_scope_label
 from coyote3.application.reporting.report_paths import build_report_file_location
 from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from coyote3.domain.common.assay_filters import (
-    get_sample_effective_genes,
-    merge_sample_settings_with_assay_config,
-)
+from coyote3.domain.common.assay_filters import get_sample_effective_genes
 from coyote3.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, utc_now
-from coyote3.domain.common.sample_filters import sample_filter_section
+from coyote3.domain.common.sample_filters import merge_filter_defaults, sample_filter_section
 from coyote3.domain.filtering.normalization import normalize_rna_filter_keys
 from coyote3.domain.rna.fusion_query_builder import build_fusion_query
 from coyote3.domain.rna.helpers import (
@@ -40,7 +37,6 @@ from coyote3.domain.validation.contracts import (
 
 util = SimpleNamespace(
     common=SimpleNamespace(
-        merge_sample_settings_with_assay_config=merge_sample_settings_with_assay_config,
         get_sample_effective_genes=get_sample_effective_genes,
     )
 )
@@ -108,9 +104,30 @@ class RNAWorkflowService:
     def merge_and_normalize_sample_filters(
         sample: dict, assay_config: dict, sample_id: str, logger
     ) -> tuple[dict, dict]:
-        """Merge assay defaults into the sample and normalize RNA filters."""
-        if sample.get("filters") is None:
-            sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
+        """Complete absent RNA profiles from the applied ASPC and retain saved selections.
+
+        Args:
+            sample: Sample with canonical RNA filters; None or missing profiles inherit defaults.
+            assay_config: Applied configuration revision supplying missing fusion settings.
+            sample_id: Identity used in validation messages if the sample has no name.
+            logger: Logger used by the RNA filter contract validator.
+
+        Returns:
+            A new sample mapping and its validated fusion section, without mutating the input.
+            Explicit saved values, including zero thresholds and empty selections, are retained.
+
+        Raises:
+            ValueError: Filters violate the supported RNA profile contract.
+        """
+        sample = {
+            **sample,
+            "filters": merge_filter_defaults(
+                sample.get("filters"),
+                assay_config.get("filters"),
+                asp_category="rna",
+                analysis_intents=sample.get("analysis_intents"),
+            ),
+        }
         sample_filters = normalize_rna_filter_keys(
             sample_filter_section(
                 sample.get("filters"),

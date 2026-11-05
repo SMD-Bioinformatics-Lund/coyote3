@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -445,17 +447,6 @@ def test_rna_workflow_merge_and_normalize_filters(monkeypatch):
     calls = {}
 
     monkeypatch.setattr(
-        rna_workflow.util,
-        "common",
-        SimpleNamespace(
-            merge_sample_settings_with_assay_config=lambda sample, assay: {
-                "name": "S1",
-                "filters": {},
-            },
-        ),
-        raising=False,
-    )
-    monkeypatch.setattr(
         rna_workflow,
         "validate_rna_filter_inputs",
         lambda logger, sample_name, filters: calls.setdefault(
@@ -473,6 +464,40 @@ def test_rna_workflow_merge_and_normalize_filters(monkeypatch):
     assert merged["name"] == "S1"
     assert normalized == {}
     assert calls["validate"][1] == "S1"
+
+
+@pytest.mark.parametrize("filters", [None, {}, {"somatic": {}}, {"somatic": {"fusion": None}}])
+def test_rna_workflow_fills_missing_fusion_profile_from_pinned_defaults(filters):
+    """An empty saved RNA profile must not discard the applied read thresholds."""
+    sample = {"name": "SYNTHETIC", "asp_category": "rna", "filters": filters}
+    before = deepcopy(sample)
+    config = {
+        "filters": {"somatic": {"fusion": {"min_spanning_reads": 7, "min_spanning_pairs": 3}}}
+    }
+    merged, section = rna_workflow.RNAWorkflowService.merge_and_normalize_sample_filters(
+        sample, config, "sample", logging.getLogger(__name__)
+    )
+    assert section["min_spanning_reads"] == 7
+    assert section["min_spanning_pairs"] == 3
+    assert merged["filters"]["somatic"]["fusion"]["min_spanning_reads"] == 7
+    assert sample == before
+
+
+def test_rna_workflow_retains_explicit_zero_and_empty_filter_selections():
+    """Existing sample selections override ASPC defaults, including explicit zero."""
+    sample = {
+        "name": "SYNTHETIC",
+        "asp_category": "rna",
+        "filters": {"somatic": {"fusion": {"min_spanning_reads": 0, "fusionlists": []}}},
+    }
+    config = {
+        "filters": {"somatic": {"fusion": {"min_spanning_reads": 7, "fusionlists": ["curated"]}}}
+    }
+    _merged, section = rna_workflow.RNAWorkflowService.merge_and_normalize_sample_filters(
+        sample, config, "sample", logging.getLogger(__name__)
+    )
+    assert section["min_spanning_reads"] == 0
+    assert section["fusionlists"] == []
 
 
 def test_rna_workflow_build_context_and_query(monkeypatch):

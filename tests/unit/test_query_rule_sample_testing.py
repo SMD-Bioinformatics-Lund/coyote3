@@ -10,6 +10,7 @@ import pytest
 
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repositories.query_rules import QueryRuleRepository
+from coyote3.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from coyote3.application.query_rules import testing
 from coyote3.contracts.schemas.query_rules import (
     QueryRuleDoc,
@@ -37,9 +38,12 @@ def context(monkeypatch):
         "covered_genes": ["ALK"],
     }
     config = {
+        "asp_id": "example",
         "asp_group": "group",
         "analysis_types": ["SNV", "CNV", "TRANSLOCATION", "FUSION"],
         "filters": {},
+        "assay_resource_release": capture_assay_resource(panel),
+        "gene_list_release": capture_gene_lists([]),
     }
     store = SimpleNamespace(
         **repos,
@@ -245,6 +249,116 @@ def test_group_draft_does_not_override_published_assay_child(context):
     assert proposed.exceptions == []
     assert proposed.lineage[-1]["source"] == scope.key()
     assert db.rules.count_documents({}) == 1
+
+
+@pytest.mark.parametrize("resource", ["assay", "gene_list"])
+def test_sample_comparison_uses_pinned_gene_scope_after_live_resources_change(context, resource):
+    """Policy comparisons must use the same immutable eligibility as sample analysis."""
+    service, db, sample, config = context
+    pinned = {"asp_id": "example", "asp_group": "group", "covered_genes": ["ALK", "BRAF"]}
+    config["assay_resource_release"] = capture_assay_resource(pinned)
+    config["filters"] = {"somatic": {"snv": {"vep_consequences": ["missense"]}}}
+    if resource == "assay":
+        config["assay_resource_release"] = capture_assay_resource(
+            {**pinned, "covered_genes": ["ALK"]}
+        )
+        service.store.assay_panel_repository.get_asp = lambda _key: {
+            **pinned,
+            "covered_genes": ["BRAF"],
+        }
+    else:
+        config["filters"]["somatic"]["snv"]["snvlists"] = ["curated"]
+        config["gene_list_release"] = capture_gene_lists(
+            [{"isgl_id": "curated", "list_type": ["snv"], "genes": ["ALK"], "is_active": True}]
+        )
+        service.store.gene_list_repository.get_isgl_by_ids = lambda _ids: {
+            "curated": {"list_type": ["snv"], "genes": ["BRAF"], "is_active": True}
+        }
+    db.variant.insert_many(
+        [
+            {
+                "_id": gene,
+                "SAMPLE_ID": "sample",
+                "CHROM": str(index),
+                "genes": [gene],
+                "consequence_terms": ["missense_variant"],
+                "GT": [{"type": "case", "AF": 0.2, "DP": 1000, "VD": 200}],
+            }
+            for index, gene in enumerate(["ALK", "BRAF"], start=1)
+        ]
+    )
+    result = preview(service, request("snv", "CHROM", "1"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "ALK"
+
+
+def test_rna_sample_comparison_uses_pinned_lists_without_live_lookup(context, monkeypatch):
+    """Fusion comparisons retain the sample's eligible genes after list edits."""
+    service, db, sample, config = context
+    sample["asp_category"] = "rna"
+    config["filters"] = {"somatic": {"fusion": {"fusionlists": ["curated"]}}}
+    config["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "curated", "list_type": ["fusion"], "genes": ["ALK"], "is_active": True}]
+    )
+    live_lookup = Mock(side_effect=AssertionError("Sample preview must not read live lists"))
+    service.store.gene_list_repository.get_isgl_by_ids = live_lookup
+    monkeypatch.setattr(
+        testing.RNAWorkflowService,
+        "from_store",
+        lambda _store: object.__new__(testing.RNAWorkflowService),
+    )
+    db.fusion.insert_many(
+        [
+            {"_id": gene, "SAMPLE_ID": "sample", "gene1": gene, "gene2": "PARTNER"}
+            for gene in ["ALK", "BRAF"]
+        ]
+    )
+    result = preview(service, request("fusion", "gene1", "ALK"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "ALK"
+    live_lookup.assert_not_called()
+
+
+@pytest.mark.parametrize("filters", [None, {}, {"somatic": {}}])
+def test_rna_comparison_applies_pinned_read_thresholds_to_missing_profiles(
+    context, monkeypatch, filters
+):
+    """Completed RNA defaults must affect actual candidate membership."""
+    service, db, sample, config = context
+    sample.update(asp_category="rna", filters=filters)
+    config["filters"] = {"somatic": {"fusion": {"min_spanning_reads": 7}}}
+    monkeypatch.setattr(
+        testing.RNAWorkflowService,
+        "from_store",
+        lambda _store: object.__new__(testing.RNAWorkflowService),
+    )
+    db.fusion.insert_many(
+        [
+            {
+                "_id": str(reads),
+                "SAMPLE_ID": "sample",
+                "gene1": "ALK",
+                "gene2": "PARTNER",
+                "calls": [{"caller": "arriba", "spanreads": reads}],
+            }
+            for reads in [6, 7]
+        ]
+    )
+    result = preview(service, request("fusion", "gene1", "ALK"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "7"
+
+
+@pytest.mark.parametrize("resource", ["assay_resource_release", "gene_list_release"])
+def test_sample_comparison_rejects_corrupt_pinned_resources(context, resource):
+    """A corrupt receipt cannot silently fall back to mutable registry data."""
+    service, _db, sample, config = context
+    config[resource]["content_hash"] = "corrupted"
+    with pytest.raises(AppError, match="invalid hash"):
+        preview(service, request("snv", "CHROM", "1"), sample)
 
 
 def test_search_intersects_access_and_never_treats_empty_assays_as_unrestricted(context):

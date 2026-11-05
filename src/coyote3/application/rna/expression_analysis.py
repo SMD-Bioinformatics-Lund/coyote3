@@ -22,6 +22,7 @@ from coyote3.application.common.table_state import (
 from coyote3.application.dna.export import export_rows_to_csv, join_tokens, safe_text, yes_no
 from coyote3.application.interpretation.annotation_enrichment import add_global_annotations
 from coyote3.application.knowledgebase.gene_markers import cosmic_cancer_gene_map
+from coyote3.application.query_rules.service import QueryRuleService
 from coyote3.application.reporting.clinical_rules.preparation import prepare_report_context
 from coyote3.application.reporting.clinical_rules.service import (
     ClinicalRuleService,
@@ -219,6 +220,7 @@ class RnaService:
             assay_panel_repository=store.assay_panel_repository,
             assay_configuration_repository=store.assay_configuration_repository,
             gene_list_repository=store.gene_list_repository,
+            diagnosis_repository=store.assay_diagnosis_repository,
             sample_repository=store.sample_repository,
             fusion_repository=store.fusion_repository,
             rna_expression_repository=store.rna_expression_repository,
@@ -229,6 +231,7 @@ class RnaService:
             report_repository=store.report_repository,
             cosmic_repository=store.cosmic_repository,
             clinical_rule_service=ClinicalRuleService.from_store(store),
+            query_rule_service=QueryRuleService.from_store(store),
         )
 
     def __init__(
@@ -238,6 +241,7 @@ class RnaService:
         assay_panel_repository: Any,
         assay_configuration_repository: Any | None = None,
         gene_list_repository: Any,
+        diagnosis_repository: Any,
         sample_repository: Any,
         fusion_repository: Any,
         rna_expression_repository: Any,
@@ -248,8 +252,29 @@ class RnaService:
         report_repository: Any,
         cosmic_repository: Any,
         clinical_rule_service: ClinicalRuleService | None = None,
+        query_rule_service: QueryRuleService | None = None,
     ) -> None:
-        """Create the service with explicit injected repositories."""
+        """Bind RNA listing and detail workflows to the same clinical dependencies as reports.
+
+        Args:
+            page_sorter: Sort and paginate materialized rows; defaults to in-memory sorting.
+            assay_panel_repository: Registered assay definitions and capabilities.
+            assay_configuration_repository: Pinned configuration lookup, or None for callers
+                that supply configurations directly.
+            gene_list_repository: Curated gene-list scope lookup.
+            diagnosis_repository: Registered diagnosis definitions and assay associations.
+            sample_repository: Sample identity and pinned interpretation settings.
+            fusion_repository: Sample-owned fusion evidence.
+            rna_expression_repository: Sample-owned expression evidence.
+            rna_classification_repository: Sample-owned classification evidence.
+            rna_quality_repository: Sample-owned RNA quality metrics.
+            annotation_repository: Reviewed finding annotations.
+            reported_variant_repository: Findings retained by saved reports.
+            report_repository: Saved RNA reports and report numbering.
+            cosmic_repository: Shared fusion knowledgebase evidence.
+            clinical_rule_service: Published report-rule resolution, or None when not used.
+            query_rule_service: Governed finding selection, or None for software defaults.
+        """
         self.page_sorter = page_sorter
         self.assay_panel_repository = assay_panel_repository
         self.assay_configuration_repository = assay_configuration_repository
@@ -264,6 +289,7 @@ class RnaService:
         self.clinical_rule_service = clinical_rule_service
         self.workflow = RNAWorkflowService(
             sample_repository=sample_repository,
+            diagnosis_repository=diagnosis_repository,
             gene_list_repository=gene_list_repository,
             rna_expression_repository=rna_expression_repository,
             rna_classification_repository=rna_classification_repository,
@@ -274,6 +300,7 @@ class RnaService:
             reported_variant_repository=reported_variant_repository,
             report_repository=report_repository,
             clinical_rule_service=clinical_rule_service,
+            query_rule_service=query_rule_service,
         )
 
     def _get_formatted_assay_config(self, sample: dict) -> dict:
