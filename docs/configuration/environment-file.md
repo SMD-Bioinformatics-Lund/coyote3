@@ -20,6 +20,9 @@ COYOTE3_NGINX_PUBLIC_SCHEME='http'
 
 # A directory on the host, not a MongoDB database or browser URL.
 COYOTE3_DATA_HOST_ROOT='/data/coyote3'
+
+# Center files: one host setting for Docker mounts and host-run API/worker commands.
+COYOTE3_CENTER_CONFIG_HOST_DIR='/srv/coyote3/center-config'
 ```
 
 This example opens at `http://localhost:6802/coyote3/`. It is only a fragment:
@@ -42,6 +45,12 @@ with `. "$COYOTE_ENV_FILE"`; that executes shell syntax, so source only a truste
 operator-controlled file. Literal assignments as above work for both Compose and
 these shell commands. Do not print the file or full resolved Compose configuration
 into shared logs: both can contain secrets.
+
+Normally omit `COYOTE3_CENTER_CONFIG_DIR`. Host-run API and worker commands inherit
+`COYOTE3_CENTER_CONFIG_HOST_DIR`; Docker supplies `/app/center-config` inside its
+containers. Set the process variable only when a different location is required.
+A nonblank process override wins. With neither variable set, bundled examples are
+used; a selected directory with missing required files fails startup.
 
 ## Supported keys, requirements and defaults
 

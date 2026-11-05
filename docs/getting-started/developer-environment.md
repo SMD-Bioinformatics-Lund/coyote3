@@ -59,11 +59,15 @@ inside the Docker network.
 
 Prepare a private host runtime environment file with the settings from the
 [environment reference](../deployment/configuration-reference.md). Host processes
-need `COYOTE3_CENTER_CONFIG_DIR` set to the host center directory, plus explicit
+need `COYOTE3_CENTER_CONFIG_HOST_DIR` set to the host center directory, plus explicit
 host-reachable `CACHE_REDIS_URL`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`.
 The application Compose file wires those URLs internally; copying its environment
 template alone does not expose Redis to a host process. Do not point at production
-databases for local development. Load only a trusted file:
+databases for local development.
+
+The host directory also supplies Docker's center mount. There is no need to set
+`COYOTE3_CENTER_CONFIG_DIR` separately; use it only for a deliberate process override.
+Load only a trusted file:
 
 ```bash
 set -a

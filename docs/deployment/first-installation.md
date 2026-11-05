@@ -155,7 +155,7 @@ Set or confirm these values in the selected environment file:
 | `COYOTE3_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
 | `COYOTE3_DATA_HOST_ROOT`, `COYOTE3_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
 | `COYOTE3_UID`, `COYOTE3_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. |
+| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. Host-run API/worker commands inherit it; Compose sets the container path automatically. |
 | `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE` | Center identity and timezone. |
 | Authentication and email | Select the intended authentication providers and configure SMTP before relying on email delivery. |
 

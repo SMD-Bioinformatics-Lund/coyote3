@@ -81,11 +81,18 @@ COYOTE3_CENTER_CONFIG_HOST_DIR=/srv/coyote3/center-releases/reviewed-001
 
 API, worker, beat, and monitor mount this directory read-only. The documentation
 build receives the same directory as its `center_config` build context. Host-run
-commands use `COYOTE3_CENTER_CONFIG_DIR` instead:
+API and worker commands inherit this setting too. Load the trusted environment
+file into their shell, or put the setting in the runtime root's `.env` file:
 
 ```bash
-export COYOTE3_CENTER_CONFIG_DIR=/srv/coyote3/center-releases/reviewed-001
+export COYOTE3_CENTER_CONFIG_HOST_DIR=/srv/coyote3/center-releases/reviewed-001
 ```
+
+Usually omit `COYOTE3_CENTER_CONFIG_DIR` from the environment file. It remains an
+optional process override; a nonblank value takes precedence over the host setting.
+Compose supplies `/app/center-config` inside its containers automatically.
+If neither setting is provided, host-run commands use bundled examples. An explicit
+or inherited directory with missing required files fails startup.
 
 Compose supplies the documentation build context automatically. A standalone
 documentation image build must supply it explicitly:

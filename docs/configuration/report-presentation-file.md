@@ -5,8 +5,11 @@ report sections that contain no reportable findings. It does not change finding
 selection, classification, reporting rules, or ASPC revisions. Legacy reports keep
 their existing layout and wording.
 
-Place the file beside `contact.toml` in `COYOTE3_CENTER_CONFIG_DIR`. A complete
-example is supplied in `config/examples/center/report_presentation.toml`.
+Place the file beside `contact.toml` in the center directory selected by
+`COYOTE3_CENTER_CONFIG_HOST_DIR`. Host-run commands inherit this directory; Compose
+mounts it at `/app/center-config`. An explicit `COYOTE3_CENTER_CONFIG_DIR` overrides
+the process location. A complete example is supplied in
+`config/examples/center/report_presentation.toml`.
 
 ```toml
 [empty_results]

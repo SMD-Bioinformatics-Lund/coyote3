@@ -17,6 +17,76 @@ from scripts.deployment.prepare_center_config import FILES, prepare
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.mark.parametrize("explicit", [None, "", "   ", "override"])
+@pytest.mark.parametrize("from_dotenv", [False, True])
+def test_host_directory_selects_both_policy_and_application_paths(tmp_path, explicit, from_dotenv):
+    """Host tools inherit the mount source unless an explicit process path overrides it."""
+    host = tmp_path / "host-center"
+    override = tmp_path / "process-center"
+    for directory in (host, override):
+        directory.mkdir()
+        for name in FILES:
+            shutil.copyfile(ROOT / "config/examples/center" / name, directory / name)
+    env = dict(os.environ, COYOTE3_RUNTIME_ROOT=str(tmp_path))
+    env.pop("COYOTE3_CENTER_CONFIG_DIR", None)
+    env.pop("COYOTE3_CENTER_CONFIG_HOST_DIR", None)
+    settings = {
+        "COYOTE3_CENTER_CONFIG_HOST_DIR": str(tmp_path / "unmounted-host")
+        if explicit == "override"
+        else str(host)
+    }
+    if explicit is not None:
+        settings["COYOTE3_CENTER_CONFIG_DIR"] = (
+            str(override) if explicit == "override" else explicit
+        )
+    if from_dotenv:
+        (tmp_path / ".env").write_text(
+            "\n".join(f"{key}='{value}'" for key, value in settings.items()) + "\n"
+        )
+    else:
+        env.update(settings)
+    expected = override if explicit == "override" else host
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from api.config.paths import CENTER_CONFIG_DIR; "
+            "from coyote3.config.selection import center_policy_path; "
+            "from pathlib import Path; "
+            f"assert CENTER_CONFIG_DIR == Path({str(expected)!r}); "
+            "assert center_policy_path('clinical_vocabulary.toml', Path('unused')) "
+            "== CENTER_CONFIG_DIR / 'clinical_vocabulary.toml'",
+        ],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("exists", [False, True])
+def test_invalid_inherited_host_directory_fails_startup(tmp_path, exists):
+    """Missing host policies must not silently select bundled clinical defaults."""
+    host = tmp_path / "host-center"
+    if exists:
+        host.mkdir()
+    result = subprocess.run(
+        [sys.executable, "-c", "import api"],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "COYOTE3_RUNTIME_ROOT": str(tmp_path),
+            "COYOTE3_CENTER_CONFIG_DIR": "",
+            "COYOTE3_CENTER_CONFIG_HOST_DIR": str(host),
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "Required center configuration file is missing" in result.stderr
+
+
 @pytest.mark.parametrize("valid", [True, False])
 def test_optional_report_wording_is_validated_and_recorded_in_release(tmp_path, valid):
     """A center release retains optional report wording only after successful validation."""

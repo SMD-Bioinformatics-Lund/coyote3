@@ -6,10 +6,12 @@ SNV flag-filter choices in sample review, assay configurations, finding query ru
 and clinical report rules. Changing the metadata alone does not exclude any finding
 or change tiering logic.
 
-The bundled file is `config/examples/center/filter_flag_metadata.yaml`. When
-`COYOTE3_CENTER_CONFIG_DIR` is set, the application reads `filter_flag_metadata.yaml`
-from that directory instead. Selectable flag keys come from this file rather than
-a frontend constant.
+The bundled file is `config/examples/center/filter_flag_metadata.yaml`. Select an
+external center directory with `COYOTE3_CENTER_CONFIG_HOST_DIR`; host-run commands
+use it directly and Compose mounts it at `/app/center-config`. The optional
+`COYOTE3_CENTER_CONFIG_DIR` process override takes precedence. The application reads
+`filter_flag_metadata.yaml` from the selected directory. Selectable flag keys come
+from this file rather than a frontend constant.
 
 ## Format and fields
 

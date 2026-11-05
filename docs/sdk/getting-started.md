@@ -39,8 +39,9 @@ those capabilities or create an authenticated application. See
 
 ## Explicit center configuration
 
-Library imports ignore `COYOTE3_CENTER_CONFIG_DIR`, `.env`, API secrets and database
-connection variables. A standalone host can select an external profile explicitly:
+Library imports ignore `COYOTE3_CENTER_CONFIG_HOST_DIR`, `COYOTE3_CENTER_CONFIG_DIR`,
+`.env`, API secrets and database connection variables. A standalone host can select
+an external profile explicitly:
 
 ```python
 from pathlib import Path

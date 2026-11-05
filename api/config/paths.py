@@ -6,6 +6,8 @@ import os
 import re
 from pathlib import Path
 
+from api.config.bootstrap import center_directory_from_environment
+
 API_CONFIG_DIR = Path(__file__).resolve().parent
 REPO_ROOT = Path(os.getenv("COYOTE3_RUNTIME_ROOT") or Path.cwd()).resolve()
 EMAIL_LOGO_PATH = API_CONFIG_DIR / "assets" / "coyote-email.png"
@@ -20,11 +22,7 @@ DEMO_WORKFLOW_BUNDLE_PATH = (
     if (REPO_ROOT / "demo_data" / "clinical_workflows").is_dir()
     else API_CONFIG_DIR.parent / "bootstrap" / "demo_data" / "clinical_workflows"
 )
-CENTER_CONFIG_DIR = (
-    Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or BUNDLED_CENTER_CONFIG_DIR)
-    .expanduser()
-    .absolute()
-)
+CENTER_CONFIG_DIR = center_directory_from_environment() or BUNDLED_CENTER_CONFIG_DIR
 
 if not CENTER_CONFIG_DIR.is_dir():
     raise RuntimeError(f"Center configuration directory does not exist: {CENTER_CONFIG_DIR}")
