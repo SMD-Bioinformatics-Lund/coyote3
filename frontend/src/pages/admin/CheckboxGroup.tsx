@@ -38,12 +38,16 @@ export function CheckboxGroup({
         : field.options || [],
     [conditional, conditionalValue, dependentOptions, field.options, field.options_from_field, formValues],
   )
-  const options = field.show_unavailable_options ? field.options || availableOptions : availableOptions
+  const configuredOptions = field.show_unavailable_options ? field.options || availableOptions : availableOptions
+  // Retained documents may contain choices no longer offered for new edits.
+  const options = disabled
+    ? [...configuredOptions, ...[...selected].filter(item => !configuredOptions.some(option => optionValue(option) === item))]
+    : configuredOptions
   const allowed = useMemo(
     () => new Set(availableOptions.map(optionValue).filter(Boolean)),
     [availableOptions],
   )
-  const visibleSelected = new Set([...selected].filter((item) => allowed.has(item)))
+  const visibleSelected = new Set([...selected].filter((item) => disabled || allowed.has(item)))
   const hasDependentValue = dependent
     ? normalizeList(formValues?.[dependent.field]).length > 0
     : false

@@ -8,6 +8,64 @@ import { parseCellValue, submitPayload } from "./resource-list"
 import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it("shows tiers only for selected report sections and retains hidden tier settings", () => {
+    const changed = vi.fn()
+    const field: FormField = { display_type: "reporting-structured", groups: [{
+      title: "Report sections", fields: [{ key: "report_sections", label: "Sections", type: "checkbox-group", options: ["SNV", "CNV", "TRANSLOCATION", "FUSION"] }],
+    }, { title: "Reportable tiers", fields: ["SNV", "CNV", "TRANSLOCATION", "FUSION"].map(type => ({
+      key: `reportable_tiers.${type}`, label: `${type} tiers`, type: "checkbox-group", options: ["1", "2"],
+    })) }] }
+    const value = { report_sections: ["SNV"], reportable_tiers: { SNV: [1], CNV: [2], TRANSLOCATION: [1], FUSION: [2] } }
+    const { rerender } = render(<FormControl name="reporting" field={field} value={value} mode="edit" onChange={changed} />)
+    expect(screen.getByText("SNV tiers")).toBeVisible()
+    expect(screen.queryByText("CNV tiers")).not.toBeInTheDocument()
+    expect(screen.queryByText("TRANSLOCATION tiers")).not.toBeInTheDocument()
+    expect(screen.queryByText("FUSION tiers")).not.toBeInTheDocument()
+    rerender(<FormControl name="reporting" field={field} value={{ ...value, report_sections: ["CNV", "FUSION"] }} mode="view" onChange={changed} />)
+    expect(screen.getByText("CNV tiers")).toBeVisible()
+    expect(screen.getByText("FUSION tiers")).toBeVisible()
+    expect(screen.queryByText("SNV tiers")).not.toBeInTheDocument()
+    expect(changed).not.toHaveBeenCalled()
+  })
+
+  it("displays retained report sections in view mode even when current options exclude them", () => {
+    const changed = vi.fn()
+    render(<FormControl name="report_sections" field={{ label: "Report sections", display_type: "checkbox-group",
+      options: ["SNV", "CNV"], options_from_field: "analysis_types", show_unavailable_options: true,
+    }} value={["CNV", "FUSION"]} formValues={{ analysis_types: ["SNV"] }} mode="view" onChange={changed} />)
+    expect(screen.getByRole("checkbox", { name: "CNV" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "FUSION" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "FUSION" })).toBeDisabled()
+    expect(changed).not.toHaveBeenCalled()
+  })
+
+  it("preserves decimal zeros while editing structured filters and submits numbers", async () => {
+    const changed = vi.fn()
+    function FilterForm() {
+      const [value, setValue] = useState({ threshold: 0.05 })
+      return <><FormControl name="filters" field={{ display_type: "filters-structured", groups: [{
+        title: "Thresholds", fields: [{ key: "threshold", label: "Max Control AF", type: "float" }],
+      }] }} value={value} mode="edit" onChange={next => { setValue(next); changed(next) }} />
+        <button onClick={() => setValue({ threshold: 0.2 })}>Reset threshold</button></>
+    }
+    const user = userEvent.setup()
+    render(<FilterForm />)
+    const input = screen.getByRole("spinbutton", { name: /Max Control AF$/ }) as HTMLInputElement
+    await user.clear(input)
+    fireEvent.change(input, { target: { value: "0.0" } })
+    expect(input.value).toBe("0.0")
+    fireEvent.change(input, { target: { value: "0.005" } })
+    expect(input.value).toBe("0.005")
+    expect(changed).toHaveBeenLastCalledWith({ threshold: 0.005 })
+    await user.tab()
+    expect(input.value).toBe("0.005")
+    await user.click(screen.getByRole("button", { name: "Reset threshold" }))
+    expect(input.value).toBe("0.2")
+    await user.clear(input)
+    expect(input.value).toBe("")
+    expect(changed).toHaveBeenLastCalledWith({ threshold: "" })
+  })
+
   it.each([
     { text: "[101, 202]", value: [101, 202] },
     { text: "[]", value: [] },

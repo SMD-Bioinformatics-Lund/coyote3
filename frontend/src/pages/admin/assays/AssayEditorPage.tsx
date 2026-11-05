@@ -12,6 +12,7 @@ import { AssayGeneLists } from "@/pages/admin/AssayGeneLists";
 import { submitPayload } from "@/pages/admin/resource-list";
 import { type AdminFormMode, type FormSpec } from "@/pages/admin/resource-specs";
 import { resource as spec } from "./resource";
+import { Link } from "react-router-dom";
 
 export function AssayEditorPage({ mode }: { mode: AdminFormMode }) {
   const state = useAdminEditor({ spec, mode, documentKey: "panel", requestBodyKey: "config" });
@@ -41,6 +42,11 @@ export function AssayEditorPage({ mode }: { mode: AdminFormMode }) {
     >
       <AdminEditorContent state={state}>
         <SystemRecordNotice state={state} />
+        {doc && effectiveMode === "view" && <p className="type-body-sm text-muted-foreground">
+          Report sections, reportable tiers and report text belong to each assay configuration,
+          which can differ by diagnosis and environment.
+          {hasPermission(user, "assay.config:list") && <> <Link className="text-primary underline" to="/admin/aspc">View assay configurations</Link>.</>}
+        </p>}
 
         <AdminManagedForm
           mode={effectiveMode}

@@ -115,8 +115,8 @@ export function AdminManagedForm({
           ))
           if (!sectionFields.length) return null
           return (
-            <fieldset key={sectionName} className="min-w-0 rounded-xl border border-border bg-card p-4 shadow-sm">
-              <legend className="rounded-lg border border-border bg-muted px-3 py-1 type-section-title text-foreground">{sectionName.replaceAll("_", " ")}</legend>
+            <fieldset key={sectionName} className="min-w-0 border-t border-border pt-4">
+              <legend className="pr-3 type-section-title text-foreground">{sectionName.replaceAll("_", " ")}</legend>
               {sectionName === "configuration scope" && mode === "edit" && (
                 <p className="mb-4 type-supporting text-muted-foreground">Assay, diagnosis and environment identify this configuration. Use Copy as new to create another scope.</p>
               )}

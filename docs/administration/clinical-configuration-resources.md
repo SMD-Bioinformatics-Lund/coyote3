@@ -47,6 +47,16 @@ One active ASPC serves an `(asp_id, diagnosis_id, environment)` combination.
 Assay setup requires only Base / production. Other scope/environment combinations
 are optional and can be added later from **Assay Configurations**.
 
+Numeric filter fields retain decimal zeros while you type, so `0.0` can be
+continued to `0.005`. Saved thresholds are numbers. Arrow controls use the
+field's configured increment; integer fields use whole-number increments.
+
+Reporting controls show reportable tiers only for selected report sections.
+Unchecking a section preserves its tier settings for reuse if selected again.
+Read-only configuration views display saved selections even if current editing
+options have changed. Reporting settings belong to the ASPC for a diagnosis and
+environment; the assay view links to **Assay Configurations** to inspect them.
+
 Ingest and sample configuration resolution first look for the requested named
 scope and then may fall back to Base in the **same environment**. Resolution records
 the requested/resolved scope and a warning when that fallback is used. A development

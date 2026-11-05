@@ -18,6 +18,19 @@ import { ObjectFieldEditor } from "./ObjectFieldEditor"
 import { readFormPath, writeFormPath } from "./form-paths"
 import { useId, useState, type ComponentProps } from "react"
 
+/** Retain decimal text when the parent echoes its parsed numeric value. */
+function NumericInput({ value, onChange, ...props }: ComponentProps<"input">) {
+  const textValue = String(value ?? "")
+  const canonical = textValue === "" ? "" : String(Number(textValue))
+  const [draft, setDraft] = useState({ canonical, text: textValue })
+  if (draft.canonical !== canonical) setDraft({ canonical, text: textValue })
+  return <input {...props} value={draft.text} onChange={(event) => {
+    const text = event.target.value
+    setDraft({ canonical: text === "" ? "" : String(Number(text)), text })
+    onChange?.(event)
+  }} />
+}
+
 /** Keep typed separators visible while passing parsed lists to the form state. */
 function ListTextarea({ value, onChange, ...props }: Omit<ComponentProps<"textarea">, "value" | "onChange"> & {
   value: unknown
@@ -51,6 +64,14 @@ export function StructuredObjectField({
   const selectedAnalyses = new Set(normalizeList(formValues?.analysis_types).map((item) => item.toUpperCase()))
   const selectedIntents = new Set(normalizeList(formValues?.analysis_intents || ["somatic"]).map((item) => item.toLowerCase()))
   const isFilter = field.display_type === "filters-structured"
+  const reportSections = new Set(normalizeList(objectValue.report_sections
+    ?? field.groups?.flatMap(group => group.fields).find(item => item.key === "report_sections")?.default))
+  const visibleFields = (group: NonNullable<FormField["groups"]>[number]) => group.fields.filter(nested => (
+    (!nested.requires_analysis || normalizeList(nested.requires_analysis).some(item => selectedAnalyses.has(item.toUpperCase())))
+    && (!nested.requires_intent || normalizeList(nested.requires_intent).some(item => selectedIntents.has(item.toLowerCase())))
+    && (field.display_type !== "reporting-structured" || !nested.key.startsWith("reportable_tiers.")
+      || reportSections.has(nested.key.slice("reportable_tiers.".length)))
+  ))
   const visibleGroups = (field.groups || []).filter((group: any) => (
     (!group.requires_analysis || normalizeList(group.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
     && (!group.requires_intent || normalizeList(group.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
@@ -66,16 +87,13 @@ export function StructuredObjectField({
   }
   const displayGroups = isFilter ? [...groupedFilters.values()] : visibleGroups
   return (
-    <div className={isFilter ? "min-w-0 space-y-4" : "space-y-3 rounded-lg border border-border bg-background/60 p-3"}>
+    <div className="min-w-0 space-y-4">
       {isFilter && !visibleGroups.length && <p role="status" className="p-4 type-body text-muted-foreground">No filter groups apply to the selected analyses and intents.</p>}
-      {displayGroups.map((group) => (
+      {displayGroups.filter(group => visibleFields(group).length > 0).map((group) => (
         <fieldset key={group.title} aria-label={group.title} className={isFilter ? "min-w-0 overflow-hidden rounded-lg border border-border bg-background shadow-sm" : "min-w-0 space-y-2"}>
           <h4 className={isFilter ? "border-l-4 border-primary bg-muted px-3 py-2 type-label font-semibold text-foreground" : "text-xs font-semibold uppercase text-muted-foreground"}>{group.title}</h4>
           <div className={isFilter ? "grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-6" : "grid gap-3 md:grid-cols-2 xl:grid-cols-3"}>
-            {group.fields.filter((nested: any) => (
-              (!nested.requires_analysis || normalizeList(nested.requires_analysis).some((item) => selectedAnalyses.has(item.toUpperCase())))
-              && (!nested.requires_intent || normalizeList(nested.requires_intent).some((item) => selectedIntents.has(item.toLowerCase())))
-            )).map((nested) => {
+            {visibleFields(group).map((nested) => {
               const nestedField: FormField = {
                 ...nested,
                 display_type:
@@ -262,12 +280,14 @@ export function FormControl({
       </div>
     )
   } else {
+    const InputControl = field.data_type === "int" || field.data_type === "float"
+      ? NumericInput : "input"
     control = readOnly && name === "email" && value ? (
       <a href={`mailto:${String(value)}`} className="link-text block rounded-lg border border-input bg-background px-2 py-1.5 text-sm font-semibold">
         {String(value)}
       </a>
     ) : (
-      <input
+      <InputControl
         type={field.display_type === "password" ? "password" : field.data_type === "int" || field.data_type === "float" ? "number" : "text"}
         step={field.step ?? (field.data_type === "int" ? 1 : field.data_type === "float" ? 0.001 : undefined)}
         value={String(value ?? "")}

@@ -43,10 +43,20 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
     await expect(cutoff).toHaveAttribute("step", "0.01")
     await cutoff.press("ArrowUp")
     await expect(cutoff).toHaveValue("-0.29")
+    const controlAf = page.getByRole("spinbutton", { name: /Max Control AF$/ })
+    await controlAf.fill("")
+    await controlAf.pressSequentially("0.")
+    await controlAf.pressSequentially("0")
+    await expect(controlAf).toHaveValue("0.0")
+    await controlAf.pressSequentially("05")
+    await expect(controlAf).toHaveValue("0.005")
+    await controlAf.press("Tab")
+    await expect(controlAf).toHaveValue("0.005")
     await page.screenshot({ path: testInfo.outputPath(`filter-steps-${theme}-${width}.png`), fullPage: true })
     await page.getByRole("button", { name: "Save", exact: true }).first().click()
     await expect.poll(() => saved).toEqual({ config: { filters: { somatic: {
-      snv: Object.fromEntries(thresholds.map(field => [field.key, field.next])),
+      snv: Object.fromEntries(thresholds.map(field => [field.key,
+        field.key === "max_control_freq" ? 0.005 : field.next])),
       cnv: { cnv_loss_cutoff: -0.29 },
     } } } })
   })

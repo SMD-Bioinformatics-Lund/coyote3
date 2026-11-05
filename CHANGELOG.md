@@ -20,8 +20,13 @@ Version 4 replaces Flask with FastAPI and React.
 - Consistent light/dark themes, including API documentation, clearer navigation and raised cards
   and badges.
   Workflow badges share status colors; assay setup uses a unified workspace card.
+  Read-only setups explain their state and expose the appropriate editing or review actions.
+  Submitted assay setups require approval from their assigned independent reviewer.
+  Table search includes searchable column values; diagnosis registries add per-column filters.
 - Central assay, diagnosis, gene-list and configuration management, with validated
   imports/exports, editing leases, revision checks and protected system records.
+  Numeric filter editing preserves decimal zeros without changing saved number types.
+  Reporting forms show tiers for selected sections and retain saved choices in read-only views.
   Setup editing protects unsaved forms and imports, including browser history navigation, and
   supports removing unavailable list selections, with a searchable sidebar and
   workflow-state filters for saved setups.
