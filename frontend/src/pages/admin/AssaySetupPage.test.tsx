@@ -9,7 +9,7 @@ import { AssaySetupPage } from "./AssaySetupPage"
 
 const access = vi.hoisted(() => ({ username: "reviewer", permissions: [] as string[], roles: [] }))
 vi.mock("@/lib/access-control", async (original) => ({ ...await original<typeof import("@/lib/access-control")>(), useCurrentUserAccess: () => ({ data: access, isLoading: false }) }))
-vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
+vi.mock("@/lib/api", () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifySuccess: vi.fn(), notifyActionError: vi.fn() }))
 const setup = { _id: "setup-1", asp_id: "assay_1", status: "submitted", reviewer: "reviewer", revision: 3, content_editors: ["author"], created_by: "author", content: { panel: { asp_id: "assay_1", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["development"], existing_gene_list_ids: [] as string[], gene_lists: [], configurations: [] } }
 const context = { setup, reviewers: [{ username: "colleague", name: "Eligible colleague" }], panel_form: { fields: { asp_id: { data_type: "str", label: "Assay identifier" }, display_name: { data_type: "str", label: "Display name" } } }, diagnoses: [], environments: ["production", "development"], readiness: { ready: true, issues: [] }, history: [], rules: [] }
@@ -33,7 +33,8 @@ function mount(withNavigationLink = false, history?: { entries: string[]; index:
   return router
 }
 it("reviews imported setup content before creating an unpublished draft", async () => {
-  mount()
+  vi.mocked(api.post).mockResolvedValue({ status: 201, data: { ...setup, _id: "imported-setup" } })
+  const router = mount()
   await screen.findByRole("button", { name: "6. Review" })
   const document = { ...setup.content, panel: { ...setup.content.panel, asp_id: "imported_panel" } }
   const file = new File([JSON.stringify(document)], "setup.json")
@@ -43,7 +44,63 @@ it("reviews imported setup content before creating an unpublished draft", async 
   expect(api.post).not.toHaveBeenCalledWith("/admin/assay-setups", expect.anything())
   fireEvent.click(screen.getByRole("button", { name: "Save assay setup" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/assay-setups", document))
+  await waitFor(() => expect(router.state.location.search).toBe("?setup=imported-setup"))
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
   expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/publish"), expect.anything())
+})
+it("protects imported setup content when navigating and closes it after confirmed discard", async () => {
+  const router = mount(true)
+  await screen.findByLabelText("Display name")
+  const document = { ...setup.content, panel: { ...setup.content.panel, asp_id: "imported_panel" } }
+  const file = new File([JSON.stringify(document)], "setup.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+  fireEvent.change(screen.getByLabelText("Import assay setup JSON"), { target: { files: [file] } })
+  const editor = await screen.findByRole("textbox", { name: "Assay setup JSON" })
+  const beforeUnload = new Event("beforeunload", { cancelable: true })
+  window.dispatchEvent(beforeUnload)
+  expect(beforeUnload.defaultPrevented).toBe(true)
+  fireEvent.change(editor, { target: { value: JSON.stringify({ ...document, scopes: ["base", "solid"] }) } })
+  expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("link", { name: "Leave for configurations" }))
+  expect(await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Keep editing" }))
+  expect(editor).toHaveValue(JSON.stringify({ ...document, scopes: ["base", "solid"] }))
+  fireEvent.click(screen.getByRole("link", { name: "Leave for configurations" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }))
+  await waitFor(() => expect(router.state.location.pathname).toBe("/admin/aspc"))
+  expect(screen.queryByRole("textbox", { name: "Assay setup JSON" })).not.toBeInTheDocument()
+})
+it("leaves a deleted dirty draft without a second discard prompt", async () => {
+  setup.status = "draft"
+  access.permissions.push("assay.panel:delete")
+  vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} })
+  const router = mount()
+  const field = await screen.findByLabelText("Display name")
+  await waitFor(() => expect(field).toBeEnabled())
+  fireEvent.change(field, { target: { value: "Unsaved deleted draft" } })
+  fireEvent.click(screen.getByRole("button", { name: "Delete unpublished setup" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Delete setup" }))
+  await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/admin/assay-setups/setup-1?revision=3", editSessionOptions))
+  await waitFor(() => expect(router.state.location.search).toBe(""))
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+})
+it("returns to the assay identity form when browser history opens a new setup", async () => {
+  const router = mount(false, { entries: ["/admin/assay-setups?setup=new", "/admin/assay-setups?setup=setup-1"], index: 1 })
+  fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
+  await act(async () => { await router.navigate(-1) })
+  expect(await screen.findByLabelText("Display name")).toBeVisible()
+  expect(screen.getByRole("button", { name: "1. Assay" })).toHaveAttribute("aria-current", "step")
+})
+it("closes a deletion confirmation when browser history changes the selected setup", async () => {
+  access.permissions.push("assay.panel:delete")
+  const router = mount(false, { entries: ["/admin/assay-setups?setup=setup-2", "/admin/assay-setups?setup=setup-1"], index: 1 })
+  await screen.findByLabelText("Display name")
+  fireEvent.click(screen.getByRole("button", { name: "Delete unpublished setup" }))
+  expect(await screen.findByRole("alertdialog", { name: "Delete unpublished assay setup?" })).toBeVisible()
+  await act(async () => { await router.navigate(-1) })
+  await waitFor(() => expect(router.state.location.search).toBe("?setup=setup-2"))
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+  expect(api.delete).not.toHaveBeenCalled()
 })
 it("allows an independent reviewer to approve the loaded revision", async () => {
   mount()
@@ -53,10 +110,41 @@ it("allows an independent reviewer to approve the loaded revision", async () => 
 })
 it("labels saved setups with the assay, status and revision", async () => {
   mount()
-  const picker = await screen.findByRole("combobox", { name: "Saved setups" })
-  await waitFor(() => expect(picker).toHaveTextContent("Synthetic assay · assay_1 · submitted · Revision 3"))
-  fireEvent.click(picker)
-  expect(await screen.findByRole("option", { name: /Synthetic assay · assay_1 · submitted · Revision 3/ })).toBeVisible()
+  const row = await screen.findByRole("button", { name: /Synthetic assay · assay_1 · submitted · Revision 3/ })
+  expect(row).toBeVisible()
+  expect(row).toHaveAttribute("aria-pressed", "true")
+  expect(screen.getByRole("navigation", { name: "Saved assay setups" })).toContainElement(row)
+})
+it("filters the setup list without closing or changing the selected editor", async () => {
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
+  const state = screen.getByRole("combobox", { name: "Filter assay setups by workflow state" })
+  fireEvent.change(state, { target: { value: "draft" } })
+  expect(screen.getByText("No setups match these filters.")).toBeVisible()
+  expect(screen.getByRole("button", { name: "Approve and activate" })).toBeVisible()
+  fireEvent.change(state, { target: { value: "submitted" } })
+  expect(screen.getByRole("button", { name: /Synthetic assay · assay_1/ })).toBeVisible()
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search assay setups" }), { target: { value: "NO MATCH" } })
+  expect(screen.getByText("No setups match these filters.")).toBeVisible()
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search assay setups" }), { target: { value: "ASSAY_1" } })
+  expect(screen.getByRole("button", { name: /Synthetic assay · assay_1/ })).toBeVisible()
+  expect(api.put).not.toHaveBeenCalled()
+})
+it("preserves unsaved edits when the active row is clicked or the sidebar is collapsed", async () => {
+  setup.status = "draft"
+  mount()
+  const field = await screen.findByLabelText("Display name")
+  await waitFor(() => expect(field).toBeEnabled())
+  fireEvent.change(field, { target: { value: "Unsaved sidebar edit" } })
+  fireEvent.click(screen.getByRole("button", { name: /Synthetic assay · assay_1/ }))
+  fireEvent.click(screen.getByRole("button", { name: "Collapse assay setup list" }))
+  expect(field).toHaveValue("Unsaved sidebar edit")
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Expand assay setup list" }))
+  fireEvent.click(screen.getByRole("button", { name: "Clear selection" }))
+  expect(await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" })).toBeVisible()
+  fireEvent.click(screen.getByRole("button", { name: "Keep editing" }))
+  expect(field).toHaveValue("Unsaved sidebar edit")
 })
 it("allows a content editor to activate a submitted setup without waiting for review", async () => {
   access.username = "author"
@@ -110,12 +198,9 @@ it("clears review notes when reopening a setup", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   fireEvent.change(screen.getByLabelText("Review notes"), { target: { value: "Unsubmitted notes" } })
   const user = userEvent.setup()
-  await user.click(screen.getByRole("combobox", { name: "Saved setups" }))
-  await user.click(await screen.findByRole("option", { name: "Select a setup" }))
-  await waitFor(() => expect(screen.getByRole("combobox", { name: "Saved setups" })).toHaveTextContent("Select a setup"))
-  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
-  await user.click(screen.getByRole("combobox", { name: "Saved setups" }))
-  await user.click(await screen.findByRole("option", { name: /Synthetic assay · assay_1/ }))
+  await user.click(screen.getByRole("button", { name: "Clear selection" }))
+  await screen.findByText("No setup selected")
+  await user.click(await screen.findByRole("button", { name: /Synthetic assay · assay_1/ }))
   fireEvent.click(await screen.findByRole("button", { name: "6. Review" }))
   expect(screen.getByLabelText("Review notes")).toHaveValue("")
 })
@@ -134,6 +219,41 @@ it("preserves the reserved assay identifier when saving the assay form", async (
   fireEvent.change(await screen.findByLabelText("Display name"), { target: { value: "Updated display name" } })
   fireEvent.click(screen.getByRole("button", { name: "Save and continue" }))
   await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ revision: 3, content: expect.objectContaining({ panel: expect.objectContaining({ asp_id: "assay_1", display_name: "Updated display name" }) }) }), editSessionOptions))
+})
+it.each([null, "asp_id", "asp_group", "asp_category", "diagnosis_id", "environment"])("stages a configuration import with mismatched scope field=%s", async mismatch => {
+  setup.status = "draft"
+  const fields = {
+    asp_id: { data_type: "str", hidden_mode: ["create"] },
+    asp_group: { data_type: "str", hidden_mode: ["create"] },
+    asp_category: { data_type: "str", hidden_mode: ["create"] },
+    diagnosis_id: { data_type: "str", hidden_mode: ["create"] },
+    environment: { data_type: "str", hidden_mode: ["create"] },
+    display_name: { data_type: "str", label: "Configuration name" },
+    filters: { data_type: "json", hidden_mode: ["create"] },
+    reporting: { data_type: "json", hidden_mode: ["create"] },
+  }
+  const selectedSetup = { ...setup, content: { ...setup.content, panel: { ...setup.content.panel, asp_group: "hematology", asp_category: "dna" } } }
+  vi.mocked(api.get).mockImplementation(async url => ({ status: 200, data: url.endsWith("/context") ? { ...context, setup: selectedSetup, configuration_form: { fields } } : { items: [selectedSetup] } }))
+  mount()
+  fireEvent.click(await screen.findByRole("button", { name: "5. Configurations" }))
+  const add = screen.getByRole("button", { name: "Add configuration base production" })
+  await waitFor(() => expect(add).toBeEnabled())
+  fireEvent.click(add)
+  const document = { asp_id: "assay_1", asp_group: "hematology", asp_category: "dna", diagnosis_id: "base", environment: "production", display_name: "Imported Base Configuration", filters: { somatic: {} }, reporting: { report_sections: ["SNV"] }, ...(mismatch ? { [mismatch]: "other" } : {}) }
+  const file = new File([JSON.stringify(document)], "aspc-base.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
+  fireEvent.change(screen.getByLabelText("Import staged configuration JSON"), { target: { files: [file] } })
+  if (mismatch) {
+    expect(await screen.findByRole("alert")).toHaveTextContent(`imported ${mismatch} must match`)
+    expect(api.put).not.toHaveBeenCalled()
+  } else {
+    await waitFor(() => expect(screen.getByLabelText("Configuration name")).toHaveValue("Imported Base Configuration"))
+    expect(api.put).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Import configuration JSON" })).toBeDisabled()
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0])
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith("/admin/assay-setups/setup-1", expect.objectContaining({ content: expect.objectContaining({ configurations: [expect.objectContaining(document)] }) }), editSessionOptions))
+    expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/publish"), expect.anything(), expect.anything())
+  }
 })
 it("keeps unsaved assay edits when a step change is cancelled", async () => {
   setup.status = "draft"

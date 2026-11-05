@@ -4,6 +4,20 @@ An assay is a center-defined sequencing offering. Its name does not require a
 dedicated code path: it selects compatible [application-supported analyses](supported-capabilities.md).
 The setup workflow configures those analyses for the assay's diagnoses and environments.
 
+Use the **Saved setups** sidebar to search by assay name, identifier or assigned
+reviewer, and filter by Draft, Submitted for review or Published. Each row shows
+its workflow state and revision. Selecting a row opens the existing six-step
+editor on the right; filters do not change the open setup. Collapse the sidebar
+when more editing space is needed. On narrow screens the list appears above the
+editor. Selecting another setup or clearing the selection still checks for unsaved
+form edits. Import controls, navigation and the editor share one workspace card.
+
+Workflow badges retain text labels and use consistent colors across setup, rule,
+catalog and configuration-governance pages: blue for Draft, amber for Submitted or
+Pending review, mauve for Clinical review, green for Approved, teal for Published,
+red for Rejected and neutral gray for Retired. These colors apply in both themes;
+the label identifies the state without relying on color.
+
 The assay editor derives modality from the selected sequencing family. Modality is
 read-only; choose another family to change it. Accepted input
 files determine the required-file choices and, together with sequencing family,
@@ -19,6 +33,103 @@ ASPC settings-profile receipts, template releases and
 promotion records are system-managed. Edit filter and reporting settings through
 their structured controls and manage reusable resources through their dedicated
 administration pages.
+
+## Current versions and history
+
+When an assay setup is successfully published, its draft and submitted editing
+snapshots are removed in the publication transaction. The final published snapshot,
+revision number and audit events remain. Failed publication retains the editing
+history. This applies to new publications; existing stored history is not purged
+automatically. Published assay, ASPC and gene-list versions are retained as described below.
+
+### Remove editing snapshots from previously published setups
+
+For existing staging records, an operator can run the following in an authenticated
+`mongosh` session. It targets only `coyote3_staging`, requires transactions, and
+verifies that every published setup retains its final published snapshot before
+removing older draft/submitted snapshots. Operational resources, published snapshots
+and audit events are not deleted. Successful cleanup permanently removes the old
+editing content; it does not reset revision numbers.
+
+```javascript
+function cleanupPublishedSetupDrafts(apply = false) {
+  const session = db.getMongo().startSession();
+  const staging = session.getDatabase("coyote3_staging");
+  let snapshots = 0;
+  let setups = 0;
+  session.startTransaction();
+  try {
+    const published = staging.assay_setups.find(
+      { status: "published" }, { _id: 1, revision: 1 }
+    ).toArray();
+    for (const setup of published) {
+      const setupId = setup._id.toString();
+      const retained = staging.assay_setup_revisions.findOne({
+        setup_id: setupId, revision: setup.revision,
+        "document.status": "published"
+      });
+      if (!retained) throw new Error("Missing published snapshot; cleanup aborted");
+      const filter = {
+        setup_id: setupId, revision: { $lt: setup.revision },
+        "document.status": { $in: ["draft", "submitted"] }
+      };
+      const count = staging.assay_setup_revisions.countDocuments(filter);
+      if (count) setups += 1;
+      snapshots += apply
+        ? staging.assay_setup_revisions.deleteMany(filter).deletedCount
+        : count;
+    }
+    if (apply) session.commitTransaction();
+    else session.abortTransaction();
+    return { applied: apply, setups, snapshots };
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+```
+
+Preview counts without deleting, then review the result:
+
+```javascript
+cleanupPublishedSetupDrafts(false)
+```
+
+To perform the cleanup, rechecking the records in a new transaction:
+
+```javascript
+cleanupPublishedSetupDrafts(true)
+```
+
+### Published resource history
+
+Runtime query/report evaluation resolves published rules. Configuration compilation
+selects current published profiles; applied configurations retain their compiled
+settings. Drafts and approved but unpublished versions are authoring work; they do
+not replace the current publication. Editing a published rule creates a successor
+draft, and the previous publication remains current until its successor is published.
+
+Saving an assay, assay configuration or gene-list edit creates a new active
+revision and retains its predecessor. Applied configuration revisions and their
+captured assay/gene-list content remain pinned to existing samples. New assignments
+resolve the current configuration; applying another configuration to an existing
+sample is an explicit operation. Saved reports retain their captured content.
+
+Assay, configuration and gene-list lists show active revisions. Select the row's
+**Version history** action to load all retained revisions for that identifier.
+The toolbar's **Version history** action also accepts an identifier whose revisions
+are all retired. Each revision is read-only; opening it does not reactivate it.
+
+Query rules, reporting rules and reusable profiles open on published versions.
+Use their workflow selector to author drafts. **Browse retired versions** exposes
+historical publications on demand; reporting rules load the selected rule set's
+complete version history. Profiles use `is_current` to distinguish the current
+publication from retained superseded publications. Reporting rules use `active`;
+an inactive historical publication appears in retired history even when its stored
+status still records that it was published. Retired catalog versions are
+likewise hidden until **Browse retired versions** is selected.
 
 Query policies and clinical reporting rules resolve from their current published
 scopes. Their publication takes effect on subsequent matching requests without
@@ -159,6 +270,10 @@ Saving diagnoses and environments advances to **Gene lists**. Use **Next** for
 the remaining steps after saving any open gene-list or configuration editor.
 Step changes, saved-setup changes, in-app links, browser Back/Forward and editor cancellation prompt before discarding
 unsaved form edits. Browser reload/close prompts while an edited form is unsaved.
+Imported setup JSON remains unsaved until **Save assay setup** succeeds. Import
+review replaces the underlying form and uses the same navigation and reload
+warnings, including before any JSON edits. **Cancel** closes the import review.
+Confirming draft deletion discards its open form and clears the selection.
 The setup refreshes after acquiring its edit session, then keeps the loaded form
 when browser focus changes. A failed load has a **Retry loading setup** action.
 
@@ -263,6 +378,17 @@ empty combinations have an Add action that preselects that scope and environment
 The table shows 10 combinations per page. Saving an ASPC is available at both the
 top and bottom of its editor. Displayed reporting defaults are included when saving,
 including when only the report method is changed.
+To load a configuration file into an existing setup, choose **Add** or **Edit**
+for its scope/environment, then **Import configuration JSON**. The import loads
+the form without saving or publishing. Its assay, group, modality, diagnosis and
+environment must match the selected scope. Save the configuration after review;
+ordinary schema validation, editing leases and revision checks still apply.
+Import is unavailable for read-only forms or while the form has unsaved changes.
+Use this staged editor for unpublished assays; standalone **Assay Configurations**
+requires an operational assay record. Configuration files must contain editable
+form fields. `profile_sources` and `profile_overrides` are server-computed fields,
+not authored profile selections, and must not be included in a configuration import.
+Creating a staged ASPC does not require a reusable configuration profile.
 Review enabled analyses and intents, thresholds, consequence selections,
 analysis-specific ISGL defaults, report sections, language and report settings.
 Only analyses supported by the ASP's declared files and family are available.
@@ -414,7 +540,7 @@ selected setup and are cleared when switching workspaces.
 | Collection | Identity | Purpose |
 | --- | --- | --- |
 | `assay_setups` | Reserved `asp_id`; `_id` identifies the workspace | Current content and governance state |
-| `assay_setup_revisions` | `setup_id`, `revision` | Immutable full snapshots of saved states and lifecycle actions |
+| `assay_setup_revisions` | `setup_id`, `revision` | Editing snapshots until publication; thereafter the final published snapshot |
 
 Collection names are configured in `api/config/collections.toml`. Install
 their indexes using the standard command, with the intended deployment

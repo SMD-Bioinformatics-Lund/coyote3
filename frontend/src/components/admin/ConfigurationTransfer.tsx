@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { icon } from "@/lib/assets"
 import { downloadJson } from "@/lib/json-download"
@@ -24,6 +24,14 @@ export function ConfigurationTransfer({ label, filename, document, metadataDocum
   const [error, setError] = useState("")
   const [reading, setReading] = useState(false)
   const [includeMetadata, setIncludeMetadata] = useState(false)
+  const importGeneration = useRef(0)
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+  // A file read must not stage into an editor whose scope or availability changed.
+  useEffect(() => () => { importGeneration.current += 1 }, [disabled, onImport])
   return <div className="flex flex-wrap items-center gap-2">
     {onImport && <>
       <input ref={input} type="file" accept="application/json,.json" className="sr-only"
@@ -32,10 +40,13 @@ export function ConfigurationTransfer({ label, filename, document, metadataDocum
           const file = event.target.files?.[0]
           event.target.value = ""
           if (!file) return
+          const generation = importGeneration.current
           setError(""); setReading(true)
           try {
             if (file.size > 1024 * 1024) throw new Error("File must be no larger than 1 MiB")
-            const value: unknown = JSON.parse(await file.text())
+            const source = await file.text()
+            if (generation !== importGeneration.current || !mounted.current) return
+            const value: unknown = JSON.parse(source)
             if (!value || typeof value !== "object" || Array.isArray(value)) {
               throw new Error("Choose a JSON object exported for this resource")
             }
@@ -46,9 +57,10 @@ export function ConfigurationTransfer({ label, filename, document, metadataDocum
             if (missing.length) throw new Error(`Missing fields: ${missing.join(", ")}`)
             await onImport(record)
           } catch (failure) {
+            if (generation !== importGeneration.current || !mounted.current) return
             setError(failure instanceof SyntaxError ? "The selected file is not valid JSON."
               : failure instanceof Error ? failure.message : "Unable to import configuration")
-          } finally { setReading(false) }
+          } finally { if (mounted.current) setReading(false) }
         }} />
       <Button type="button" variant="outline" disabled={disabled || reading}
         onClick={() => input.current?.click()}><icon.upload aria-hidden="true" />{importLabel}</Button>

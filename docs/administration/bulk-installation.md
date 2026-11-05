@@ -8,6 +8,12 @@ accepted keys and a downloadable example file. For assays, gene lists and assay
 configurations, fields and choices come from the running server's create form.
 For assay configurations, select DNA or RNA before downloading or uploading a file.
 
+For an assay that is still a setup draft, use **Assay setup → Configurations →
+Import configuration JSON** to stage the ASPC inside that draft. Standalone bulk
+installation creates operational resources and requires their references to exist.
+The **Configuration governance** page imports reusable profiles, not ASPCs; see
+[profiles and environment promotion](configuration-publication.md).
+
 For small lists, choose **Paste JSON / YAML** to open the floating editor. Select
 the content format, then paste or type your records. Syntax and structure warnings
 update as you type; **Review records** stays disabled until these checks pass.
@@ -51,8 +57,8 @@ references retain their own version/status values; those are clinical content.
 
 Single-document imports accept a JSON object up to 1 MiB. List exports use the
 bulk JSON-array format; split exports exceeding the bulk limits below into smaller
-files. A single resource export can also be wrapped in an array for bulk creation
-where that resource supports it. Imports never automatically publish query rules,
+files. Bulk installation also accepts a single resource object directly, using
+the same validation and review as a one-record list. Imports never automatically publish query rules,
 profiles, clinical rules or assay setups. Exporting a query version uses its saved
 content; unsaved edits are not included.
 
@@ -88,7 +94,7 @@ fail validation. Bulk examples omit application-managed fields.
    exist first. Install parent groups before children, groups before assays, then
    diagnosis associations and gene lists before dependent assay configurations.
    Diagnoses can be created before assays with `asp_ids: []` and linked later.
-3. Supply a JSON array or YAML list of 1–100 records, at most 1 MiB. Use one resource
+3. Supply one JSON/YAML object or a list of 1–100 records, at most 1 MiB. Use one resource
    type per file. Do not wrap records in `config` or `items`. YAML custom tags,
    aliases, duplicate keys and multiple documents are not supported.
 4. Choose **Upload JSON / YAML**. The preview checks structure, accepted top-level

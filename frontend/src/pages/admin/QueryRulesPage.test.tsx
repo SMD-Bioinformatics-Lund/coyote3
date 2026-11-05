@@ -26,6 +26,23 @@ function mount(client = new QueryClient({ defaultOptions: { queries: { retry: fa
   return render(<MemoryRouter><QueryClientProvider client={client}><QueryRulesPage /></QueryClientProvider></MemoryRouter>)
 }
 
+it("opens current publications first and requests retired versions only on demand", async () => {
+  const original = vi.mocked(api.get).getMockImplementation()!
+  vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options") ? original(path, options) : {
+    status: 200, data: { items: [{ ...rule, name: path.endsWith("status=retired") ? "Retired policy" : "Published policy", status: path.endsWith("status=retired") ? "retired" : "published" }] },
+  })
+  mount()
+  expect(await screen.findByRole("button", { name: /Published policy/ })).toBeVisible()
+  expect(api.get).toHaveBeenCalledWith("/admin/query-rule-sets?status=published")
+  expect(api.get).not.toHaveBeenCalledWith("/admin/query-rule-sets?status=retired")
+  expect(screen.queryByRole("option", { name: "Retired" })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Browse retired versions" }))
+  expect(await screen.findByRole("button", { name: /Retired policy/ })).toBeVisible()
+  expect(api.get).toHaveBeenCalledWith("/admin/query-rule-sets?status=retired")
+  fireEvent.click(screen.getByRole("button", { name: "Hide retired versions" }))
+  expect(await screen.findByRole("button", { name: /Published policy/ })).toBeVisible()
+})
+
 it("exports only portable query content from a read-only published version", async () => {
   access.permissions = ["query_rules:view"]
   const original = vi.mocked(api.get).getMockImplementation()!
@@ -81,7 +98,7 @@ it("separates policy preview and authorized sample testing from the editor", asy
   expect(screen.getByRole("button", { name: "Test rules" })).toHaveAttribute("href", "/admin/query-rules/testing")
   const filter = screen.getByLabelText("Filter query rules by workflow state")
   expect(within(filter).getAllByRole("option").map(option => option.textContent)).toEqual([
-    "All workflow states", "Draft", "Approved", "Published", "Retired",
+    "Published", "Draft", "Approved",
   ])
   await screen.findByText("No published overrides. Default policies apply.")
 })
@@ -95,6 +112,7 @@ it("filters the compact rule list without discarding the selected draft", async 
     ] },
   })
   mount()
+  fireEvent.change(screen.getByLabelText("Filter query rules by workflow state"), { target: { value: "draft" } })
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Keep this reason" } })
   fireEvent.change(screen.getByLabelText("Search query rules"), { target: { value: "Other" } })
@@ -200,6 +218,7 @@ it("requires confirmation before discarding local conditions for inheritance", a
     status: 200, data: { items: [{ ...rule, status: "draft", content: { evidence_mode: null, exceptions: [{ id: "keep-me", mode: "exclude", genes: ["TP53"] }] } }] },
   })
   mount()
+  fireEvent.change(screen.getByLabelText("Filter query rules by workflow state"), { target: { value: "draft" } })
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   fireEvent.change(await screen.findByLabelText("Exception list"), { target: { value: "inherit" } })
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }))
@@ -216,6 +235,7 @@ it("deletes only a selected draft after a reason and confirmation", async () => 
   vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options") ? original(path, options) : { status: 200, data: { items: [{ ...rule, status: "draft" }] } })
   vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} })
   mount()
+  fireEvent.change(screen.getByLabelText("Filter query rules by workflow state"), { target: { value: "draft" } })
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   expect(screen.getByRole("button", { name: "Delete version" })).toBeDisabled()
   fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Unused" } })
@@ -247,6 +267,7 @@ it("requires confirmation and the inspected revision when publishing", async () 
   vi.mocked(api.get).mockImplementation(async (path, options) => path.endsWith("/options") ? original(path, options) : { status: 200, data: { items: [rule] } })
   vi.mocked(api.post).mockImplementation(async path => ({ status: 200, data: path.endsWith("/preview") ? { evidence_mode: "paired", exceptions: [], lineage: [] } : { ...rule, status: "published", revision: 3 } }))
   mount(client)
+  fireEvent.change(screen.getByLabelText("Filter query rules by workflow state"), { target: { value: "approved" } })
   fireEvent.click(await screen.findByRole("button", { name: /Example selection/ }))
   expect(screen.getByRole("region", { name: "Saved query definition" })).toHaveTextContent("example__all__base__somatic_snvs")
   expect(screen.queryByLabelText("Query ID")).not.toBeInTheDocument()

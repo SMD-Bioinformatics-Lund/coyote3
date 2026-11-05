@@ -10,18 +10,31 @@ Version 4 replaces Flask with FastAPI and React.
   reviewer history and immutable snapshots that preserve issued reports.
 - Governed query policies and clinical reporting rules with visual authoring,
   previews, independent review and controlled publication.
+  Sample comparisons retain pinned assay/gene scopes; parent retirement checks child
+  policies. Missing RNA filter profiles inherit the applied configuration's defaults.
+  Admin rule/profile lists open on current publications; retained resource versions
+  are available through read-only history on demand.
 - Hierarchical assay catalog with service details, inherited pricing and turnaround,
   reviewed gene scopes, assay comparison and a gene coverage matrix.
   In-place catalog editing supports sections, source dropdowns and draft management.
-- Consistent light/dark themes, clearer navigation and raised cards and badges.
+- Consistent light/dark themes, including API documentation, clearer navigation and raised cards
+  and badges.
+  Workflow badges share status colors; assay setup uses a unified workspace card.
 - Central assay, diagnosis, gene-list and configuration management, with validated
   imports/exports, editing leases, revision checks and protected system records.
-  Setup editing protects unsaved forms, including browser history navigation, and
-  supports removing unavailable list selections.
+  Setup editing protects unsaved forms and imports, including browser history navigation, and
+  supports removing unavailable list selections, with a searchable sidebar and
+  workflow-state filters for saved setups.
+  Configuration JSON can be staged directly in existing setup drafts with scope checks.
+  Resource uploads accept single JSON/YAML objects as well as bulk lists.
   Assay activation requires only Base/production; configurations can be copied from
   saved records or setup drafts into new scopes. Setup review is optional;
   authorized users can publish directly or assign a colleague for optional review.
   Fixed saved setup pages failing to load their reviewer choices.
+  Successful setup publication removes draft snapshots while retaining audit events and published versions.
+  Delayed file imports cannot overwrite changed or closed editors; deletion clears stale forms
+  and confirmation dialogs.
+  Restored RNA fusion workflow dependencies and retained setup timestamps when reading snapshots.
 - Permission-scoped personal and service tokens with expiry, revocation,
   one-time secrets and audit attribution; retained clinical audit history.
 - Resumable background ingestion with credential rechecks, retry safeguards and
@@ -33,6 +46,7 @@ Version 4 replaces Flask with FastAPI and React.
   worker dependencies before runtime.
   Isolated legacy builds retain Python 3.12 on Bullseye with signed Debian archives;
   modern builds use Bookworm.
+  Host-run commands inherit the configured center mount directory automatically.
 
 ### Upgrade and compatibility notes
 

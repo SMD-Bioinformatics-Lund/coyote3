@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { StatusBadge } from "./resource-list"
+import { ValueBadge } from "./resource-list"
 
 type Section = "profiles" | "promotions"
 type Entry = Record<string, unknown> & {
   _id: string; name?: string; profile_id?: string; kind?: string; version?: number;
-  status: string; content_hash: string; created_by: string;
+  status: string; content_hash: string; created_by: string; is_current?: boolean;
   candidate?: Record<string, unknown>;
 }
 const initialProfile = {
@@ -35,13 +35,15 @@ export function ConfigurationProfilesPage() {
   const canCreate = hasPermission(access.data, "assay.config:create")
   const canPublish = hasPermission(access.data, "configuration:publish")
   const [section, setSection] = useState<Section>("profiles")
+  const [profileStatus, setProfileStatus] = useState("published")
+  const [retiredOpen, setRetiredOpen] = useState(false)
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null)
   const [review, setReview] = useState<Entry | null>(null)
   const [reason, setReason] = useState("")
   const path = `/resources/configuration-${section}`
   const rows = useQuery({
-    queryKey: ["configuration-governance", section], enabled: allowed,
-    queryFn: () => api.get<Entry[]>(path).then((response) => response.data),
+    queryKey: ["configuration-governance", section, profileStatus], enabled: allowed,
+    queryFn: () => api.get<Entry[]>(`${path}${section === "profiles" ? profileStatus === "draft" ? "?status=draft" : `?status=published&is_current=${profileStatus !== "retired"}` : ""}`).then((response) => response.data),
   })
   const invalidate = () => {
     void client.invalidateQueries({ queryKey: ["configuration-governance"] })
@@ -68,7 +70,7 @@ export function ConfigurationProfilesPage() {
     { header: "Name", accessorFn: (row) => row.name || String(row.candidate?.aspc_id || "Promotion") },
     { header: "Component", accessorFn: (row) => row.kind || String(row.candidate?.environment || "") },
     { header: "Revision", accessorFn: (row) => row.version || row.candidate?.version || "" },
-    { header: "Status", accessorKey: "status", cell: ({ row }) => <StatusBadge value={row.original.status} /> },
+    { header: "Status", accessorKey: "status", cell: ({ row }) => <ValueBadge value={row.original.status === "published" && row.original.is_current === false ? "retired" : row.original.status} kind="status" /> },
     { header: "Author", accessorKey: "created_by" },
     { id: "actions", header: "Actions", cell: ({ row }) => <div className="flex gap-2">
       <Button variant="outline" size="sm" onClick={() => { setReview(row.original); setDraft(null); setReason("") }}>Review</Button>
@@ -101,6 +103,12 @@ export function ConfigurationProfilesPage() {
           setReview(null); setDraft(section === "profiles" ? initialProfile : initialPromotion)
         }}>{section === "profiles" ? "Create profile" : "Propose promotion"}</Button>}
       </div>
+      {section === "profiles" && <div className="flex flex-wrap items-center gap-2">
+        <label className="type-body-sm">Workflow state<select aria-label="Filter configuration profiles by workflow state" className="paper-inset ml-2 rounded-lg p-2" value={profileStatus} onChange={event => setProfileStatus(event.target.value)}>
+          <option value="published">Published</option><option value="draft">Draft</option>{retiredOpen && <option value="retired">Retired</option>}
+        </select></label>
+        <Button variant="outline" aria-expanded={retiredOpen} onClick={() => { setRetiredOpen(!retiredOpen); setProfileStatus(retiredOpen ? "published" : "retired") }}>{retiredOpen ? "Hide retired versions" : "Browse retired versions"}</Button>
+      </div>}
       {rows.isError ? <p role="alert">Configuration records could not be loaded. <Button variant="link" onClick={() => void rows.refetch()}>Retry</Button></p>
         : rows.isPending ? <p role="status">Loading configuration records…</p>
         : <DataTable columns={columns} data={rows.data || []} filename={`configuration-${section}.csv`} />}

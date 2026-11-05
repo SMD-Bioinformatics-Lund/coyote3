@@ -314,7 +314,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/asp",
     page: "AssaysPage",
     area: "admin",
-    api: ["GET /resources/asp","GET /resources/asp/create_context","POST /resources/asp","DELETE /resources/asp/:id","PATCH /resources/asp/:id/status"],
+    api: ["GET /resources/asp","GET /resources/asp/:id/versions","GET /resources/asp/create_context","POST /resources/asp","DELETE /resources/asp/:id","PATCH /resources/asp/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -335,7 +335,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/aspc",
     page: "AssayConfigurationsPage",
     area: "admin",
-    api: ["GET /resources/aspc","GET /resources/aspc/:id/context","GET /admin/assay-setups","GET /admin/assay-setups/{identifier}/context","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
+    api: ["GET /resources/aspc","GET /resources/aspc/:id/versions","GET /resources/aspc/:id/context","GET /admin/assay-setups","GET /admin/assay-setups/{identifier}/context","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -363,7 +363,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/genelists",
     page: "GeneListsPage",
     area: "admin",
-    api: ["GET /resources/genelists","GET /resources/genelists/create_context","POST /resources/genelists","DELETE /resources/genelists/:id","PATCH /resources/genelists/:id/status"],
+    api: ["GET /resources/genelists","GET /resources/genelists/:id/versions","GET /resources/genelists/create_context","POST /resources/genelists","DELETE /resources/genelists/:id","PATCH /resources/genelists/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -600,6 +600,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "GET /admin/clinical-rule-sets",
       "GET /admin/clinical-rule-sets/facts",
       "GET /admin/clinical-rule-sets/authoring-options",
+      "GET /admin/clinical-rule-sets/:ruleSetId/versions",
       "GET /admin/clinical-rule-sets/versions/:documentId",
       "GET /admin/clinical-rule-sets/versions/:documentId/export",
       "POST /admin/clinical-rule-sets/versions/:documentId/bulk-annotations/preview",

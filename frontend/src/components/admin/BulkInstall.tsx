@@ -120,7 +120,7 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
       <Dialog.Portal><Dialog.Backdrop className="fixed inset-0 z-50 bg-background/80" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[min(48rem,95vw)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-lg">
           <Dialog.Title className="type-card-title">{mode === "example" ? "Bulk file example" : mode === "paste" ? "Paste bulk records" : "Review bulk installation"}</Dialog.Title>
-          <Dialog.Description className="my-3 type-body-sm">Paste a small list or upload a file for larger structures: a JSON array or YAML list of 1–100 records, up to 1 MiB, for one resource type. Each record is created separately with your current permissions. Existing records are not overwritten; successful records remain if another fails.</Dialog.Description>
+          <Dialog.Description className="my-3 type-body-sm">Paste or upload one JSON/YAML object or a list of 1–100 records, up to 1 MiB, for one resource type. Each record is created separately with your current permissions. Existing records are not overwritten; successful records remain if another fails.</Dialog.Description>
           {mode === "example" ? <>
             <p className="type-body-sm">Replace example values with your center's settings. Required keys: {contract.data?.required.join(", ") || "See field details"}. References must already exist; diagnoses may use an empty asp_ids list.</p>
             <pre className="paper-inset my-3 overflow-auto rounded p-3 type-body-sm">{JSON.stringify([example], null, 2)}</pre>

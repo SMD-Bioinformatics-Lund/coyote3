@@ -52,6 +52,7 @@ export function AssayConfigurationsPage() {
     </>}>
       {canReadDrafts && showDrafts && <CopySetupConfiguration />}
       <div className="glass-card p-3">
+        {canReadDrafts && <p className="mb-3 type-body-sm text-muted-foreground">This page creates configurations for registered assays. For an unpublished assay, add or import its configuration in <Link to="/admin/assay-setups" className="text-primary underline">Assay setup</Link> before publishing.</p>}
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>
           <DataTable columns={tableColumns} data={visibleRows} filename="aspc.csv" hideSearch />

@@ -1,5 +1,7 @@
 import { AppLoader } from "@/components/layout/AppLoader"
 import { BulkInstall } from "./BulkInstall"
+import { ResourceVersionHistory } from "./ResourceVersionHistory"
+import { Button } from "@/components/ui/button"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   resourceFilterOptionLabel,
@@ -48,6 +50,7 @@ export function AdminListToolbar({ state, spec }: { state: AdminListState; spec:
       <span className="pb-2 text-xs font-semibold text-muted-foreground">
         {visibleRows.length === rows.length ? `${rows.length} loaded` : `${visibleRows.length} of ${rows.length} loaded`}
       </span>
+      {state.canView && ["asp", "aspc", "genelists"].includes(spec.key) && <Button variant="outline" onClick={() => state.setVersionHistory("")}><icon.history />Version history</Button>}
     </div>
   )
 }
@@ -71,6 +74,7 @@ export function AdminListContent({ state, spec, children }: { state: AdminListSt
       <>
         {state.canCreate && (spec.key === "asp" || spec.key === "aspc" || spec.key === "genelists") && <div className="mb-3"><BulkInstall kind={spec.key} /></div>}
         {children}
+        {state.canView && state.versionHistory != null && ["asp", "aspc", "genelists"].includes(spec.key) && <ResourceVersionHistory key={`${spec.key}-${state.versionHistory}`} spec={spec} identifier={state.versionHistory} onClose={() => state.setVersionHistory(null)} />}
       </>
     )}
   </>
@@ -90,6 +94,7 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
       >
         <icon.eye className="h-4 w-4" />
       </Link>}
+      {canView && ["asp", "aspc", "genelists"].includes(spec.key) && <Button variant="ghost" size="icon-sm" title="Version history" aria-label={`Version history for ${id}`} onClick={() => state.setVersionHistory(id)}><icon.history className="h-4 w-4" /></Button>}
       {canEdit && !systemPermission && <Link
         to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
         className="rounded-md p-1.5 text-panel hover:bg-panel/10"

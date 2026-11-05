@@ -23,6 +23,16 @@ function mount() {
   render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><ConfigurationProfilesPage /></QueryClientProvider></MemoryRouter>)
 }
 
+it.each([
+  ["draft", "badge-info"], ["pending", "badge-warning"],
+  ["approved", "badge-success"], ["published", "matte-badge-production"],
+  ["rejected", "badge-danger"],
+])("shows %s with its shared workflow color and readable label", async (status, className) => {
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: [{ ...profile, status }] })
+  mount()
+  expect(await screen.findByText(status, { selector: '[data-slot="table-badge"]' })).toHaveClass(className)
+})
+
 it("exports editable profile fields and imports them for review without publishing", async () => {
   mount()
   fireEvent.click(await screen.findByRole("button", { name: "Export JSON" }))
@@ -64,4 +74,14 @@ it("loads promotion proposals separately from profiles", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Environment promotions" }))
   await waitFor(() => expect(api.get).toHaveBeenCalledWith("/resources/configuration-promotions"))
   expect(screen.getByRole("button", { name: "Propose promotion" })).toBeVisible()
+})
+
+it("requests current publications first and superseded profiles only on demand", async () => {
+  mount()
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith("/resources/configuration-profiles?status=published&is_current=true"))
+  expect(api.get).not.toHaveBeenCalledWith("/resources/configuration-profiles?status=published&is_current=false")
+  fireEvent.click(screen.getByRole("button", { name: "Browse retired versions" }))
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith("/resources/configuration-profiles?status=published&is_current=false"))
+  fireEvent.click(screen.getByRole("button", { name: "Hide retired versions" }))
+  expect(screen.getByLabelText("Filter configuration profiles by workflow state")).toHaveValue("published")
 })

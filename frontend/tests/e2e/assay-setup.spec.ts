@@ -1,6 +1,102 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
+for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
+  test(`protects setup JSON import review in ${theme} at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 })
+    const original = { _id: "setup-1", asp_id: "synthetic", revision: 1, status: "published",
+      created_by: "synthetic-author", content_editors: ["synthetic-author"], content: {
+        panel: { asp_id: "synthetic", display_name: "Synthetic assay" }, scopes: ["base"],
+        environments: ["production"], gene_lists: [], configurations: [],
+      } }
+    let imported: typeof original | null = null
+    const panel_form = { fields: { display_name: { data_type: "str", label: "Display name" } } }
+    await installApiFixtures(page, (path, _url, route) => {
+      if (path.endsWith("/auth/whoami")) return { json: { username: "synthetic-author", roles: ["superuser"], permissions: [], ui_settings: { theme } } }
+      if (path === "/api/v1/admin/assay-setups") {
+        if (route.request().method() === "POST") {
+          imported = { ...original, _id: "setup-2", asp_id: "imported-assay", status: "draft", content: route.request().postDataJSON() }
+          return { status: 201, json: imported }
+        }
+        return { json: { items: imported ? [original, imported] : [original] } }
+      }
+      if (path.endsWith("/setup-1/context") || path.endsWith("/setup-2/context")) return { json: {
+        setup: path.endsWith("/setup-2/context") ? imported : original, panel_form,
+        diagnoses: [], environments: ["production"], history: [], rules: [],
+      } }
+    })
+    await page.goto("/admin/assay-setups?setup=setup-1")
+    await expect(page.getByLabel("Display name", { exact: true })).toBeVisible()
+    const document = { ...original.content, panel: { asp_id: "imported-assay", display_name: "Imported assay" } }
+    await page.getByLabel("Import assay setup JSON", { exact: true }).setInputFiles({ name: "setup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(document)) })
+    const editor = page.getByRole("textbox", { name: "Assay setup JSON", exact: true })
+    await expect(editor).toBeVisible()
+    await expect(page.getByLabel("Display name", { exact: true })).toHaveCount(0)
+    await page.getByRole("button", { name: "Clear selection", exact: true }).click()
+    await page.getByRole("alertdialog").getByRole("button", { name: "Keep editing" }).click()
+    await expect(editor).toBeVisible()
+    expect(imported).toBeNull()
+    await page.screenshot({ path: testInfo.outputPath(`setup-import-review-${theme}-${width}.png`), fullPage: true })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+    await page.getByRole("button", { name: "Save assay setup", exact: true }).click()
+    await expect(page).toHaveURL(/setup=setup-2$/)
+    await expect(editor).toHaveCount(0)
+    await expect(page.getByRole("alertdialog")).toHaveCount(0)
+    await expect(page.getByLabel("Display name", { exact: true })).toHaveValue("Imported assay")
+  })
+
+  test(`imports Base ASPC into an existing draft in ${theme} at ${width}px`, async ({ page }, testInfo) => {
+    const writes: Record<string, unknown>[] = []
+    let setup = { _id: "setup-1", asp_id: "synthetic", revision: 1, status: "draft",
+      created_by: "synthetic-author", content_editors: ["synthetic-author"],
+      content: { panel: { asp_id: "synthetic", asp_group: "solid", asp_category: "dna", display_name: "Synthetic assay" }, scopes: ["base"], environments: ["production"], gene_lists: [], configurations: [] as Record<string, unknown>[] } }
+    const fields = {
+      asp_id: { data_type: "str", hidden_mode: ["create"] },
+      asp_group: { data_type: "str", hidden_mode: ["create"] },
+      asp_category: { data_type: "str", hidden_mode: ["create"] },
+      diagnosis_id: { data_type: "str", hidden_mode: ["create"] },
+      environment: { data_type: "str", hidden_mode: ["create"] },
+      display_name: { data_type: "str", label: "Configuration name" },
+      filters: { data_type: "json", hidden_mode: ["create"] },
+      reporting: { data_type: "json", hidden_mode: ["create"] },
+    }
+    await installApiFixtures(page, (path, _url, route) => {
+      if (path.endsWith("/auth/whoami")) return { json: { username: "synthetic-author", roles: ["superuser"], permissions: [], ui_settings: { theme } } }
+      if (path === "/api/v1/admin/assay-setups") return { json: { items: [setup] } }
+      if (path === "/api/v1/admin/assay-setups/setup-1/context") return { json: { setup, panel_form: { fields: {} }, configuration_form: { fields }, diagnoses: [], environments: ["production"], readiness: { ready: true, issues: [] }, history: [] } }
+      if (path === "/api/v1/admin/assay-setups/setup-1" && route.request().method() === "PUT") {
+        const body = route.request().postDataJSON()
+        expect(body.revision).toBe(1)
+        writes.push(body)
+        setup = { ...setup, revision: 2, content: body.content }
+        return { json: setup }
+      }
+    })
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto("/admin/assay-setups?setup=setup-1")
+    await page.getByRole("button", { name: "5. Configurations", exact: true }).click()
+    await page.getByRole("button", { name: "Add configuration base production" }).click()
+    const document = { asp_id: "synthetic", asp_group: "solid", asp_category: "dna", diagnosis_id: "base", environment: "production", display_name: "Synthetic - Base Configuration", filters: { somatic: {} }, reporting: { report_sections: ["SNV"] } }
+    const input = page.getByLabel("Import staged configuration JSON")
+    await input.setInputFiles({ name: "wrong-assay.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ ...document, asp_id: "different-assay" })) })
+    await expect(page.getByRole("alert")).toContainText("imported asp_id must match")
+    expect(writes).toEqual([])
+    await input.setInputFiles({ name: "aspc-base-production.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(document)) })
+    await expect(page.getByLabel("Configuration name", { exact: true })).toHaveValue(document.display_name)
+    expect(writes).toEqual([])
+    await expect(page.getByRole("button", { name: "Import configuration JSON", exact: true })).toBeDisabled()
+    await page.getByRole("button", { name: "6. Review", exact: true }).click()
+    await page.getByRole("alertdialog").getByRole("button", { name: "Keep editing" }).click()
+    await expect(page.getByLabel("Configuration name", { exact: true })).toHaveValue(document.display_name)
+    await page.screenshot({ path: testInfo.outputPath(`configuration-import-${theme}-${width}.png`), fullPage: true })
+    await page.getByRole("button", { name: "Save", exact: true }).first().click()
+    await expect.poll(() => writes.length).toBe(1)
+    expect((writes[0].content as { configurations: unknown[] }).configurations).toEqual([document])
+    await expect(page.getByRole("cell", { name: "Configured", exact: true })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+  })
+}
+
 for (const width of [1440, 1024, 390]) {
   test(`assay setup starts with Base and resumes saved scope selections at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
@@ -51,13 +147,12 @@ for (const width of [1440, 1024, 390]) {
     await page.getByRole("checkbox", { name: "development", exact: true }).check()
     await page.getByRole("button", { name: "Save and continue" }).click()
     await expect(page.getByRole("region", { name: "Gene list workspace" })).toBeVisible()
-    await expect(page.getByText("draft · Revision 2", { exact: true })).toBeVisible()
+    await expect(page.getByText("r2 · Draft", { exact: true })).toBeVisible()
     await page.getByRole("button", { name: "Link", exact: true }).click()
     await expect(page.getByText("Selected: shared", { exact: true })).toBeVisible()
     expect((saved!.content as { existing_gene_list_ids: string[] }).existing_gene_list_ids).toEqual(["shared"])
     await page.reload()
-    await page.getByRole("combobox", { name: "Saved setups" }).click()
-    await expect(page.getByRole("option", { name: /Synthetic assay · synthetic-assay · draft · Revision/ })).toBeVisible()
+    await expect(page.getByRole("button", { name: /Synthetic assay · synthetic-assay · draft · Revision/ })).toBeVisible()
     await page.keyboard.press("Escape")
     await page.getByRole("button", { name: "2. Diagnoses", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Base", exact: true })).toBeChecked()
@@ -213,6 +308,30 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
     await page.setViewportSize({ width, height: 1000 })
     await page.goto("/admin/assay-setups?setup=setup-1")
     await expect(page.getByLabel("Display name", { exact: true })).toBeEditable()
+    const navigation = page.getByRole("complementary", { name: "Assay setup navigation" })
+    const editor = page.getByRole("region", { name: "Assay setup editor" })
+    await navigation.getByRole("combobox", { name: "Filter assay setups by workflow state" }).selectOption("published")
+    await expect(navigation.getByText("No setups match these filters.")).toBeVisible()
+    await expect(page.getByLabel("Display name", { exact: true })).toHaveValue("Synthetic assay")
+    await navigation.getByRole("combobox", { name: "Filter assay setups by workflow state" }).selectOption("draft")
+    await navigation.getByRole("searchbox", { name: "Search assay setups" }).fill("SYNTHETIC")
+    const row = navigation.getByRole("button", { name: /Synthetic assay · synthetic · draft/ })
+    const draftColor = await row.getByText("Draft", { exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)
+    const workspace = page.getByRole("region", { name: "Assay setup workspace", exact: true })
+    await expect(workspace.getByRole("button", { name: "Import JSON", exact: true })).toBeVisible()
+    await expect(workspace.getByRole("complementary", { name: "Assay setup navigation" })).toBeVisible()
+    await row.focus()
+    await page.keyboard.press("Enter")
+    await expect(row).toHaveAttribute("aria-pressed", "true")
+    const left = await navigation.boundingBox()
+    const right = await editor.boundingBox()
+    expect(left).not.toBeNull()
+    expect(right).not.toBeNull()
+    if (width >= 1280) expect(right!.x).toBeGreaterThanOrEqual(left!.x + left!.width)
+    else expect(right!.y).toBeGreaterThanOrEqual(left!.y + left!.height)
+    await page.screenshot({ path: testInfo.outputPath(`setup-sidebar-${theme}-${width}.png`), fullPage: true })
+    await navigation.getByRole("button", { name: "Collapse assay setup list" }).click()
+    await navigation.getByRole("button", { name: "Expand assay setup list" }).click()
     await page.getByRole("button", { name: "New assay setup", exact: true }).click()
     await expect(page).toHaveURL(/setup=new$/)
     await page.getByLabel("Display name", { exact: true }).fill("Unsaved new assay")
@@ -244,12 +363,16 @@ for (const [theme, width] of [["light", 1440], ["dark", 390]] as const) {
     await page.getByRole("option", { name: "Synthetic reviewer (colleague)" }).click()
     await page.getByRole("button", { name: "Submit for review", exact: true }).click()
     await expect(page.getByText("Assigned reviewer:", { exact: false })).toContainText("colleague")
+    const reviewColor = await editor.getByText("r2 · Submitted", { exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)
+    expect(reviewColor).not.toBe(draftColor)
     await page.screenshot({ path: testInfo.outputPath(`assigned-review-${theme}-${width}.png`), fullPage: true })
     actor = "colleague"
     await page.reload()
     await page.getByRole("button", { name: "6. Review", exact: true }).click()
     await page.getByRole("button", { name: "Approve and activate", exact: true }).click()
     await expect(page.getByText("Reviewed by colleague", { exact: false })).toBeVisible()
+    const publishedColor = await editor.getByText("r3 · Published", { exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)
+    expect(new Set([draftColor, reviewColor, publishedColor]).size).toBe(3)
     expect(actions).toEqual(["submit", "publish"])
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
   })

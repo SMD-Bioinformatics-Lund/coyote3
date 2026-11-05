@@ -27,8 +27,8 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
   const pages = Math.max(1, Math.ceil(rows.length / 10))
   const page = Math.min(requestedPage, pages)
   return <section aria-label="Saved configuration coverage" className="space-y-3">
-    <div className="overflow-x-auto rounded-xl border border-border">
-      <table className="w-full text-left type-body">
+    <div role="region" aria-label="Configuration coverage table" tabIndex={0} className="overflow-x-auto rounded-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <table className="w-full min-w-[36rem] text-left type-body">
         <caption className="sr-only">Configuration coverage by scope and environment</caption>
         <thead className="bg-muted/60 type-label"><tr>{["Scope", "Environment", "Status", "Saved configuration", "Actions"].map(label => <th key={label} scope="col" className="p-3">{label}</th>)}</tr></thead>
         <tbody className="divide-y divide-border">{rows.slice((page - 1) * 10, page * 10).map(({ scope, environment }) => {
@@ -48,7 +48,7 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
     </div>
     {rows.length > 0 && <nav aria-label="Configuration pages" className="flex flex-wrap items-center justify-between gap-2">
       <p role="status" className="type-body-sm text-muted-foreground">Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, rows.length)} of {rows.length} scopes · 10 per page</p>
-      <div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous configurations</Button><span className="type-meta">Page {page} of {pages}</span><Button size="sm" variant="outline" disabled={page === pages} onClick={() => setPage(page + 1)}>Next configurations</Button></div>
+      <div className="flex flex-wrap items-center gap-2"><Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous configurations</Button><span className="whitespace-nowrap type-meta">Page {page} of {pages}</span><Button size="sm" variant="outline" disabled={page === pages} onClick={() => setPage(page + 1)}>Next configurations</Button></div>
     </nav>}
   </section>
 }

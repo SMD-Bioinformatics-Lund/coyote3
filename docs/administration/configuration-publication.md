@@ -3,6 +3,23 @@
 Open **Assay configurations → Profiles and promotions** to manage reusable defaults
 and review configuration releases for another environment.
 
+The page heading is **Configuration governance**. This workflow is optional: you
+do not need to create profiles or promotion proposals to complete an assay setup
+or import an assay configuration (ASPC).
+
+| Resource or workflow | Purpose |
+| --- | --- |
+| Assay configuration (ASPC) | Complete settings for an assay, diagnosis and environment. |
+| Reusable profile | Shared settings applied to matching configurations or reporting rules according to its component and scope. |
+| Environment promotion | Reviewed proposal to release an existing configuration into another environment. |
+
+An empty **Reusable profiles** table means no profiles match the current view;
+it does not mean assay configurations are missing. Manage those on **Assay
+configurations**. For an unpublished assay setup, import its ASPC in **Assay setup
+→ Configurations → Import configuration JSON**. The standalone resource uploader
+requires the referenced operational resources to exist. See
+[configuration imports](bulk-installation.md#json-configuration-transfer).
+
 ![Scoped profile compilation, sample pins and independently reviewed promotion](../assets/diagrams/configuration-publication.svg)
 
 ## Reusable profiles

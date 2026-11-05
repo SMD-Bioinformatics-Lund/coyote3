@@ -28,12 +28,14 @@ export function useAdminList({ spec, filters, serverFilters = false, sampleNotif
   const queryClient = useQueryClient()
   const [q, setQ] = useState("")
   const [resourceFilters, setResourceFilters] = useState<Record<string, string>>({})
+  const [versionHistory, setVersionHistory] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<{ action: "toggle" | "delete" | "invite"; id: string; name: string } | null>(null)
 
   useEffect(() => {
     setResourceFilters({})
     setQ("")
     setPendingAction(null)
+    setVersionHistory(null)
   }, [filters])
 
   const { data, isLoading, error } = useQuery({
@@ -118,6 +120,6 @@ export function useAdminList({ spec, filters, serverFilters = false, sampleNotif
     return rows.filter((row) => rowMatchesResourceFilters(row, listFilterDefinitions, resourceFilters))
   }, [listFilterDefinitions, resourceFilters, rows])
 
-  return { accessQuery, canList, canView, canCreate, canEdit, canDelete, data, isLoading, error, rows, visibleRows, q, setQ, resourceFilters, setResourceFilters, listFilterDefinitions, listFilterOptions, pendingAction, setPendingAction, mutate }
+  return { accessQuery, canList, canView, canCreate, canEdit, canDelete, data, isLoading, error, rows, visibleRows, q, setQ, resourceFilters, setResourceFilters, listFilterDefinitions, listFilterOptions, pendingAction, setPendingAction, mutate, versionHistory, setVersionHistory }
 }
 export type AdminListState = ReturnType<typeof useAdminList>

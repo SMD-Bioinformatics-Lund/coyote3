@@ -1,5 +1,18 @@
 import { GENELIST_TYPE_METADATA, configuredValueDescription } from "@/lib/configured-values"
 
+/** Workflow colors shared by resource tables and governed document workspaces. */
+export const workflowStatusClasses = {
+  draft: "badge-info",
+  submitted: "badge-warning",
+  pending: "badge-warning",
+  in_clinical_review: "badge-signal",
+  approved: "badge-success",
+  rejected: "badge-danger",
+  published: "matte-badge-production",
+  retired: "badge-neutral",
+  unpublished: "badge-neutral",
+} as const
+
 export const sequencingValueClasses: Record<string, string> = {
   dna: "badge-dna",
   rna: "badge-rna",
@@ -73,6 +86,9 @@ export function accentColor(value: string) {
 }
 
 export function valueBadgeClass(value: string, kind?: string) {
+  if (kind === "status" && Object.hasOwn(workflowStatusClasses, value.toLowerCase())) {
+    return workflowStatusClasses[value.toLowerCase() as keyof typeof workflowStatusClasses]
+  }
   const exact = configuredValueClasses[value] || configuredValueClasses[value.toLowerCase()] || configuredValueClasses[value.toUpperCase()]
   if (exact) return exact
   if (kind === "role") return roleFallbackClasses[value.toLowerCase()] || "badge-role-unknown"

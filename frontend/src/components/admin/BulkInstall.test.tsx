@@ -20,6 +20,23 @@ async function upload() {
   await screen.findByRole("dialog")
 }
 beforeEach(() => { vi.clearAllMocks(); access.permissions = ["assay.panel:edit"]; vi.mocked(api.post).mockResolvedValue({ status: 201, data: {} }) })
+it("reviews a single ASPC upload before creating it through the normal API", async () => {
+  access.permissions = ["assay.config:create"]
+  const record = { asp_id: "synthetic", diagnosis_id: "base", environment: "production" }
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { form: { fields:
+    Object.fromEntries(Object.keys(record).map(key => [key, { data_type: "str", required: true }])),
+  } } })
+  mount("aspc")
+  await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())
+  const file = new File([JSON.stringify(record)], "aspc-base-production.json")
+  Object.defineProperty(file, "text", { value: async () => JSON.stringify(record) })
+  fireEvent.change(screen.getByLabelText("Bulk upload aspc"), { target: { files: [file] } })
+  const install = await screen.findByRole("button", { name: "Install records" })
+  expect(api.post).not.toHaveBeenCalled()
+  fireEvent.click(install)
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/aspc", { config: record }))
+  expect(api.post).toHaveBeenCalledTimes(1)
+})
 it("imports association records into the selected assay through its normal create API", async () => {
   mount("assay-diagnoses")
   await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())

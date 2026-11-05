@@ -87,6 +87,18 @@ beforeEach(() => {
 })
 
 describe("Public assay catalog governance", () => {
+  it("keeps retired catalog versions out of the initial navigation", async () => {
+    workspace.catalog.version = 8
+    workspace.items.push({ ...version, _id: "retired-one", status: "published", content_version: 7 })
+    renderPage()
+    await screen.findByRole("button", { name: "Browse retired versions" })
+    expect(screen.queryByRole("button", { name: /Version 7/ })).not.toBeInTheDocument()
+    expect(mocks.get).not.toHaveBeenCalledWith("/admin/assay-catalog/versions/retired-one", expect.anything())
+    fireEvent.click(screen.getByRole("button", { name: "Browse retired versions" }))
+    expect(await screen.findByRole("button", { name: /Version 7/ })).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Hide retired versions" }))
+    expect(screen.queryByRole("button", { name: /Version 7/ })).not.toBeInTheDocument()
+  })
   it.each(["", "draft-one"])("retries only the selected catalog requests (version: %s)", async (id) => {
     const user = userEvent.setup()
     let failed = true

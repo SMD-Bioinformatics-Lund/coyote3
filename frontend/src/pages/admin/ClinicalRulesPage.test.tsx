@@ -94,6 +94,39 @@ describe("ClinicalRulesPage", () => {
     })
   })
 
+  it("starts with publications and loads retired reporting rules only on demand", async () => {
+    renderPage()
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/admin/clinical-rule-sets?q=&status=published"))
+    expect(mocks.get).not.toHaveBeenCalledWith("/admin/clinical-rule-sets?q=&status=retired")
+    expect(screen.queryByRole("option", { name: "Retired" })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole("button", { name: "Browse retired versions" }))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/admin/clinical-rule-sets?q=&status=retired"))
+    fireEvent.click(await screen.findByRole("button", { name: "Hide retired versions" }))
+    expect(screen.getByLabelText("Filter reporting rules by workflow state")).toHaveValue("published")
+  })
+
+  it("loads the selected rule set's complete superseded history on demand", async () => {
+    const current = { ...existingDraft, status: "published", active: true }
+    const original = mocks.get.getMockImplementation()!
+    const historyPath = `/admin/clinical-rule-sets/${current.rule_set_id}/versions`
+    mocks.get.mockImplementation((path: string) => {
+      if (path === historyPath) return Promise.resolve({ data: { items: Array.from({ length: 50 }, (_, index) => ({ ...current, _id: `old-${index}`, name: `Archived reporting ${index + 1}`, active: false, content_version: index + 1 })) } })
+      if (path === `/admin/clinical-rule-sets/versions/${current._id}`) return Promise.resolve({ data: current })
+      if (path.startsWith("/admin/clinical-rule-sets?q=")) return Promise.resolve({ data: { items: [current] } })
+      return original(path)
+    })
+    renderPage()
+    fireEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await screen.findByRole("heading", { name: "Existing solid rules" })
+    expect(mocks.get).not.toHaveBeenCalledWith(historyPath)
+    fireEvent.click(await screen.findByRole("button", { name: "Browse retired versions" }))
+    await screen.findByRole("button", { name: /Archived reporting 50/ })
+    expect(screen.getAllByRole("button", { name: /Archived reporting \d+/ })).toHaveLength(50)
+    expect(mocks.get).toHaveBeenCalledWith(historyPath)
+    fireEvent.change(screen.getByLabelText("Filter reporting rules by workflow state"), { target: { value: "draft" } })
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Archived reporting 50/ })).not.toBeInTheDocument())
+  })
+
   it.each([
     ["submitted", "clinical_rules:clinical_review", "Start review", "start-clinical-review"],
     ["approved", "clinical_rules:publish", "Publish", "publish"],
@@ -182,7 +215,7 @@ describe("ClinicalRulesPage", () => {
     const fallback = mocks.get.getMockImplementation()!
     mocks.get.mockImplementation((path: string) => {
       if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
-      if (path === "/admin/clinical-rule-sets?q=") return Promise.resolve({ data: { items: [existingDraft] } })
+      if (path.startsWith("/admin/clinical-rule-sets?q=")) return Promise.resolve({ data: { items: [existingDraft] } })
       return fallback(path)
     })
     renderPage()
@@ -240,7 +273,7 @@ describe("ClinicalRulesPage", () => {
     const fallback = mocks.get.getMockImplementation()!
     mocks.get.mockImplementation((path: string) => {
       if (path.includes("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
-      if (path === "/admin/clinical-rule-sets?q=") return Promise.resolve({ data: { items: [existingDraft] } })
+      if (path.startsWith("/admin/clinical-rule-sets?q=")) return Promise.resolve({ data: { items: [existingDraft] } })
       return fallback(path)
     })
     const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test")

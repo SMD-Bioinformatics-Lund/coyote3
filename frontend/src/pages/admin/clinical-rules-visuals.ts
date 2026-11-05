@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { workflowStatusClasses } from "@/lib/badge-colors"
 
 import type { RuleStatus } from "./clinical-rules-types"
 
@@ -12,18 +13,8 @@ export const CLINICAL_RULE_STATUS_LABELS: Record<RuleStatus, string> = {
   retired: "Retired",
 }
 
-const STATUS_STYLES: Record<RuleStatus, string> = {
-  draft: "badge-info",
-  submitted: "badge-warning",
-  in_clinical_review: "badge-signal",
-  approved: "badge-success",
-  rejected: "badge-danger",
-  published: "matte-badge-production",
-  retired: "border-border bg-muted text-muted-foreground",
-}
-
 export function clinicalRuleStatusStyle(status: RuleStatus) {
-  return STATUS_STYLES[status]
+  return workflowStatusClasses[status]
 }
 
 const SECTION_TONES = [

@@ -149,6 +149,50 @@ describe("Managed admin resource workflows", () => {
     expect(screen.queryByRole("link", { name: "Create" })).not.toBeInTheDocument()
   })
 
+  it.each(["asp", "aspc", "genelists"])("loads %s history only on request and keeps it read-only", async resource => {
+    const row = { asp_id: "synthetic", aspc_id: "synthetic", isgl_id: "synthetic", name: "Synthetic", version: 2, is_active: true }
+    mocks.get.mockImplementation(async (path: string) => ({ data: path.endsWith("/versions")
+      ? [{ ...row, _id: "current" }, { ...row, _id: "old", version: 1, is_active: false }]
+      : { panels: [row], assay_configs: [row], genelists: [row] } }))
+    renderResource(resource)
+    const action = await screen.findByRole("button", { name: "Version history for synthetic" })
+    expect(mocks.get.mock.calls.some(([path]) => String(path).endsWith("/versions"))).toBe(false)
+    fireEvent.click(action)
+    expect(await screen.findByText("Version 1 · Retired")).toBeVisible()
+    expect(mocks.get).toHaveBeenCalledWith(`/resources/${resource}/synthetic/versions`)
+    const history = screen.getByRole("region", { name: /version history$/ })
+    fireEvent.click(within(history).getByRole("button", { name: "Load versions" }))
+    await waitFor(() => expect(mocks.get.mock.calls.filter(([path]) => String(path).endsWith("/versions"))).toHaveLength(2))
+    expect(within(history).queryByRole("button", { name: /save|publish|edit/i })).not.toBeInTheDocument()
+    expect(mocks.post).not.toHaveBeenCalled()
+    expect(mocks.put).not.toHaveBeenCalled()
+    fireEvent.click(within(history).getByRole("button", { name: "Close history" }))
+    expect(screen.queryByRole("region", { name: /version history$/ })).not.toBeInTheDocument()
+  })
+
+  it.each([false, true])("handles missing or unavailable version history (error=%s)", async unavailable => {
+    mocks.get.mockImplementation(async (path: string) => {
+      if (path.endsWith("/versions")) {
+        if (unavailable) throw new Error("History unavailable")
+        return { data: [] }
+      }
+      return { data: { assay_configs: [] } }
+    })
+    renderResource("aspc")
+    fireEvent.click(await screen.findByRole("button", { name: "Version history" }))
+    fireEvent.change(screen.getByLabelText("Resource identifier for history"), { target: { value: "retired-only" } })
+    fireEvent.click(screen.getByRole("button", { name: "Load versions" }))
+    const history = within(screen.getByRole("region", { name: /version history$/ }))
+    if (unavailable) {
+      expect(await history.findByRole("alert")).toHaveTextContent("Unable to load version history")
+      mocks.get.mockResolvedValue({ data: [] })
+      fireEvent.click(history.getByRole("button", { name: "Retry" }))
+    }
+    expect(await screen.findByText("No retained versions for this identifier.")).toBeVisible()
+    expect(mocks.post).not.toHaveBeenCalled()
+    expect(mocks.put).not.toHaveBeenCalled()
+  })
+
   it("loads users and filters them by role, authentication type, and status", async () => {
     mocks.get.mockResolvedValue({
       data: {

@@ -2,6 +2,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
+import { SearchInput } from "@/components/ui/search-input"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
@@ -22,6 +23,7 @@ import { SetupNavigation } from "./assay-setup/SetupNavigation"
 import { SetupEmptyState } from "./assay-setup/SetupEmptyState"
 import { SetupConfigurationsTable } from "./assay-setup/SetupConfigurationsTable"
 import { AssayGeneLists } from "./AssayGeneLists"
+import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
 
 type Document = Record<string, unknown>
 type Content = { panel: Document; scopes: string[]; environments: string[]; gene_lists: Document[]; existing_gene_list_ids?: string[]; configurations: Document[] }
@@ -56,9 +58,18 @@ function ResourceEditor({ kind, form, source, readonly, pending, onSave, onCance
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
   const stagedForm = { ...form, fields: { ...form.fields, is_active: { ...form.fields.is_active, hidden_mode: ["create", "view"] } } }
-  return <AdminManagedForm bottomActions={kind === "aspc"} saveLabel={saveLabel} mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
+  return <div className="min-w-0 space-y-4">
+    {kind === "aspc" && !readonly && <ConfigurationTransfer label="staged configuration" filename="assay-configuration" importLabel="Import configuration JSON" fields={Object.keys(form.fields)} required={["filters", "reporting"]} disabled={pending || dirty} onImport={document => {
+      for (const key of ["asp_id", "asp_group", "asp_category", "diagnosis_id", "environment"]) {
+        if (document[key] != null && source[key] != null && document[key] !== source[key]) throw new Error(`The imported ${key} must match this configuration's selected scope.`)
+      }
+      setError("")
+      setValues(formStateFromSpec(form, { ...source, ...document }))
+    }} />}
+    <AdminManagedForm bottomActions={kind === "aspc"} saveLabel={saveLabel} mode={readonly ? "view" : "create"} spec={specs[kind]} form={stagedForm} values={values} setValues={setValues} isSaving={pending} error={error} onCancel={onCancel} onSave={() => {
     try { onSave(submitPayload(form, values, "create")) } catch (err) { setError(err instanceof Error ? err.message : "Check the form values") }
-  }} />
+    }} />
+  </div>
 }
 
 function ScopeEditor({ content, context, readonly, pending, onSave, onRefresh, onDirtyChange }: { content: Content; context: Context; readonly: boolean; pending: boolean; onSave: (content: Content) => void; onRefresh: () => void; onDirtyChange: (dirty: boolean) => void }) {
@@ -90,27 +101,33 @@ export function AssaySetupPage() {
   const selected = params.get("setup") || (location.pathname === "/admin/asp/create" ? "new" : "")
   const isNew = selected === "new"
   const [step, setStep] = useState(0)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [listCollapsed, setListCollapsed] = useState(false)
   const [editing, setEditing] = useState<number | null>(null)
   const [configurationSeed, setConfigurationSeed] = useState<Document>({})
   const [reason, setReason] = useState("")
   const [assignee, setAssignee] = useState("")
-  useEffect(() => { setAssignee(""); setReason(""); setEditing(null) }, [selected])
+  useEffect(() => { setAssignee(""); setReason(""); setEditing(null); setConfirmDelete(false) }, [selected])
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [imported, setImported] = useState<Document | null>(null)
+  const [imported, setImportedState] = useState<Document | null>(null)
+  const importedRef = useRef<Document | null>(null)
+  const setImported = useCallback((document: Document | null) => { importedRef.current = document; setImportedState(document) }, [])
+  useEffect(() => { if (isNew) setStep(0) }, [isNew])
   const [dirty, setDirtyState] = useState(false)
   const dirtyRef = useRef(false)
   const setDirty = useCallback((value: boolean) => { dirtyRef.current = value; setDirtyState(value) }, [])
   const [pendingChange, setPendingChange] = useState<(() => void) | null>(null)
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirtyRef.current && (
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => (dirtyRef.current || importedRef.current !== null) && (
     currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search
   ))
   useEffect(() => {
-    const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault() }
+    const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty || imported !== null) event.preventDefault() }
     window.addEventListener("beforeunload", beforeUnload)
     return () => window.removeEventListener("beforeunload", beforeUnload)
-  }, [dirty])
+  }, [dirty, imported])
   const requestChange = (change: () => void) => {
-    if (dirty) setPendingChange(() => change)
+    if (dirtyRef.current || importedRef.current !== null) setPendingChange(() => change)
     else change()
   }
   const client = useQueryClient()
@@ -152,11 +169,12 @@ export function AssaySetupPage() {
     },
     onError: (error) => notifyActionError("Assay setup", error),
   })
-  const choose = (identifier: string) => requestChange(() => { navigate(`/admin/assay-setups${identifier ? `?setup=${encodeURIComponent(identifier)}` : ""}`); setStep(0); setEditing(null); setReason(""); setDirty(false); mutation.reset() })
+  const openSetup = (identifier: string) => { setDirty(false); setImported(null); navigate(`/admin/assay-setups${identifier ? `?setup=${encodeURIComponent(identifier)}` : ""}`); setStep(0); setEditing(null); setReason(""); mutation.reset() }
+  const choose = (identifier: string) => requestChange(() => openSetup(identifier))
   const importSetup = useMutation({
     mutationFn: (document: Document) => api.post<Setup>("/admin/assay-setups", document),
     onSuccess: response => {
-      setImported(null); choose(response.data._id)
+      setImported(null); openSetup(response.data._id)
       void client.invalidateQueries({ queryKey: ["assay-setups"] })
       void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
       void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
@@ -167,7 +185,7 @@ export function AssaySetupPage() {
   const deletion = useMutation({
     mutationFn: () => api.delete(`/admin/assay-setups/${selected}?revision=${setup!.revision}`, documentEditor.options()),
     onSuccess: () => {
-      setConfirmDelete(false); choose("")
+      setConfirmDelete(false); openSetup("")
       client.removeQueries({ queryKey: ["assay-setup-context", selected], type: "inactive" })
       void client.invalidateQueries({ queryKey: ["assay-setups"] })
       void client.invalidateQueries({ queryKey: ["clinical-rule-authoring-options"] })
@@ -184,11 +202,18 @@ export function AssaySetupPage() {
   const canActivate = canWrite && sharedListAccess
   const reviewAllowed = hasPermission(user, "assay.panel:edit") && setup?.status === "submitted"
   const isAssignedReviewer = setup?.reviewer === user?.username
+  const visibleSetups = (list.data || []).filter(item => (
+    (!statusFilter || item.status === statusFilter) &&
+    [item.asp_id, item.content?.panel?.name, item.content?.panel?.display_name, item.reviewer]
+      .join(" ").toLowerCase().includes(search.trim().toLowerCase())
+  ))
 
   return <PageShell className="min-w-0 [&>*]:min-w-0" eyebrow="Admin" title="Assay setup" actions={canWrite ? <Button disabled={busy || isNew} onClick={() => choose("new")}><icon.plus />New assay setup</Button> : undefined}>
     <DocumentEditorNotice editor={documentEditor} />
     {canWrite && !sharedListAccess && setup?.status !== "published" && <p role="alert" className="surface-panel p-3 type-body-sm text-warning">Saving or activating selected shared gene lists requires gene_list.insilico:edit permission. Ask an administrator for access, or clear the staged selections in Gene lists.</p>}
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
+      <section aria-label="Assay setup workspace" className="surface-panel min-w-0">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
       <ConfigurationTransfer label="assay setup" filename={`${setup?.asp_id || "assay"}-setup`}
         document={content} metadataDocument={setup ? { ...setup, ...content } : content}
         fields={["panel", "scopes", "environments", "gene_lists", "existing_gene_list_ids", "configurations"]}
@@ -200,26 +225,38 @@ export function AssaySetupPage() {
         disabled={busy || imported !== null || dirty}
         onImport={panel => { importSetup.reset(); setImported({ panel, scopes: ["base"], environments: ["production"],
           gene_lists: [], existing_gene_list_ids: [], configurations: [] }) }} />}
+      </div>
       {imported && <section className="surface-panel space-y-3 p-4" aria-label="Import assay setup">
         <p className="type-body-sm">Review the imported configuration and choose an unused assay identifier. Saving creates a draft that can be activated after validation, with optional review.</p>
         <JsonDocumentEditor document={imported} label="Assay setup" allowUnchanged
           onCancel={() => setImported(null)} serverError={importSetup.error?.message}
           onSave={document => importSetup.mutate(document)} isSaving={importSetup.isPending} />
       </section>}
-      <section className="surface-panel flex flex-wrap items-end gap-3 p-4">
-        <div className="min-w-0 flex-1 space-y-1"><p className="type-label">Saved setups</p>
-          <Select label="Saved setups" value={selected} disabled={busy} onValueChange={choose} options={[
-            { value: "", label: "Select a setup" },
-            ...(isNew ? [{ value: "new", label: "New assay" }] : []),
-            ...(list.data || []).map(item => ({ value: item._id, label: `${item.content?.panel?.name || item.content?.panel?.display_name || item.asp_id} · ${item.asp_id} · ${item.status} · Revision ${item.revision}${item.reviewer ? ` · Reviewer: ${item.reviewer}` : ""}` })),
-          ]} />
-        </div>
-        {setup && <span className="inline-flex shrink-0 items-center rounded-md border border-primary/20 bg-primary/5 px-3 py-2 type-body font-medium text-primary">{setup.status} · Revision {setup.revision}</span>}
-      </section>
+      <div className={cn("grid min-h-[32rem] min-w-0 items-stretch", listCollapsed ? "xl:grid-cols-[3rem_minmax(0,1fr)]" : "xl:grid-cols-[18rem_minmax(0,1fr)]")}>
+        <aside aria-label="Assay setup navigation" className="min-w-0 border-b border-border xl:border-r xl:border-b-0">
+          {listCollapsed ? <button type="button" className="clinical-rules-rail rounded-[inherit]" aria-label="Expand assay setup list" onClick={() => setListCollapsed(false)}><icon.panelLeftOpen /><span>Saved setups</span></button> : <>
+            <div className="space-y-3 border-b border-border p-3">
+              <div className="flex items-center justify-between gap-2"><h2 className="type-label">Saved setups</h2><Button size="icon-sm" variant="ghost" aria-label="Collapse assay setup list" title="Collapse assay setup list" onClick={() => setListCollapsed(true)}><icon.panelLeftClose /></Button></div>
+              <SearchInput type="search" aria-label="Search assay setups" placeholder="Search assays" value={search} onChange={event => setSearch(event.target.value)} />
+              <label className="block type-meta text-muted-foreground">Workflow state<select aria-label="Filter assay setups by workflow state" className="paper-inset mt-1 w-full rounded-lg p-2 type-body-sm text-foreground" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All workflow states</option><option value="draft">Draft</option><option value="submitted">Submitted for review</option><option value="published">Published</option></select></label>
+              <div className="flex flex-wrap items-center justify-between gap-2"><p className="type-supporting text-muted-foreground" role="status">{visibleSetups.length} of {list.data?.length ?? 0} setups</p>{selected && <Button size="sm" variant="ghost" disabled={busy} onClick={() => choose("")}>Clear selection</Button>}</div>
+            </div>
+            <nav className="max-h-96 space-y-2 overflow-y-auto p-2 xl:max-h-[calc(100dvh-22rem)]" aria-label="Saved assay setups">
+              {list.isLoading ? <p className="p-3 type-body-sm text-muted-foreground">Loading setups…</p> : list.error ? <p className="p-3 type-body-sm text-destructive">Unable to load saved setups.</p> : !list.data?.length ? <p className="p-3 type-body-sm text-muted-foreground">No saved assay setups.</p> : !visibleSetups.length ? <p className="p-3 type-body-sm text-muted-foreground">No setups match these filters.</p> : visibleSetups.map(item => <button type="button" key={item._id} disabled={busy} aria-pressed={selected === item._id} aria-label={`${item.content?.panel?.name || item.content?.panel?.display_name || item.asp_id} · ${item.asp_id} · ${item.status} · Revision ${item.revision}${item.reviewer ? ` · Reviewer: ${item.reviewer}` : ""}`} className={cn("w-full rounded-lg border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60", selected === item._id ? "border-primary/40 bg-primary/10" : "border-border bg-card hover:border-primary/30 hover:bg-muted")} onClick={() => { if (selected !== item._id) choose(item._id) }}>
+                <span className="block truncate type-body-sm font-semibold" title={String(item.content?.panel?.display_name || item.asp_id)}>{String(item.content?.panel?.name || item.content?.panel?.display_name || item.asp_id)}</span>
+                <span className="mt-0.5 block truncate type-meta text-muted-foreground">{item.asp_id}</span>
+                <span className="mt-2 flex flex-wrap items-center justify-between gap-2"><span className="type-meta text-muted-foreground">Revision {item.revision}</span><ClinicalRuleStatusBadge status={item.status} /></span>
+                {item.reviewer && <span className="mt-1 block truncate type-meta text-muted-foreground">Reviewer: {item.reviewer}</span>}
+              </button>)}
+            </nav>
+          </>}
+        </aside>
+        <section aria-label="Assay setup editor" className="min-w-0 space-y-4 p-3 sm:p-4">
+      {setup && <div className="flex flex-wrap items-center justify-between gap-2"><p className="type-body font-medium">{String(content?.panel.display_name || setup.asp_id)}</p><ClinicalRuleStatusBadge status={setup.status} prefix={`r${setup.revision} · `} /></div>}
       {(list.error || context.error) && <p role="alert" className="text-destructive">Unable to load assay setup. <Button variant="link" disabled={list.isFetching || context.isFetching} onClick={() => { if (list.error) void list.refetch(); if (context.error) void context.refetch() }}>Retry loading setup</Button></p>}
-      {!selected && !list.isLoading && !list.error && <section className="surface-panel p-4 sm:p-6"><SetupEmptyState icon={icon.clipboardCheck} title={list.data?.length ? "No setup selected" : "No saved assay setups"} /></section>}
+      {!selected && !list.isLoading && !list.error && <div className="p-4 sm:p-6"><SetupEmptyState icon={icon.clipboardCheck} title={list.data?.length ? "No setup selected" : "No saved assay setups"} /></div>}
       {context.isLoading && <AppLoader label="Loading setup" />}
-      {context.data && <>
+      {context.data && !imported && <>
         <SetupNavigation step={step} isNew={isNew} pending={busy} onChange={(index) => { if (index !== step) requestChange(() => { setStep(index); setEditing(null) }) }} />
         {dirty && <p role="status" className="type-body-sm text-muted-foreground">Unsaved changes. Save this form before activation or changing steps.</p>}
         {mutation.error && <p role="alert" className="text-destructive">{mutation.error.message}</p>}
@@ -263,9 +300,12 @@ export function AssaySetupPage() {
         </section>}
         {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || busy} onClick={() => requestChange(() => { setStep(step - 1); setEditing(null) })}><icon.arrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6{!readonly && (step < 2 || editing !== null) && " · Save the form to continue"}</span><Button variant="outline" disabled={step === 5 || busy || (!readonly && (step < 2 || editing !== null))} onClick={() => requestChange(() => { setStep(step + 1); setEditing(null) })}>Next<icon.arrowRight /></Button></footer>}
       </>}
+        </section>
+      </div>
+      {setup && !imported && ["draft", "submitted"].includes(setup.status) && hasPermission(user, "assay.panel:delete") && <div className="flex justify-end border-t border-border p-3"><Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}><icon.trash2 />Delete unpublished setup</Button></div>}
+      </section>
     </>}
-    <ConfirmationDialog open={pendingChange !== null || blocker.state === "blocked"} title="Discard unsaved changes?" description="The changes in this form have not been saved. Your saved draft remains available." confirmLabel="Discard changes" cancelLabel="Keep editing" isPending={busy} onConfirm={() => { const change = pendingChange; setPendingChange(null); setDirty(false); if (blocker.state === "blocked") blocker.proceed(); else change?.() }} onCancel={() => { setPendingChange(null); if (blocker.state === "blocked") blocker.reset() }} />
-    {setup && ["draft", "submitted"].includes(setup.status) && hasPermission(user, "assay.panel:delete") && <Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}><icon.trash2 />Delete unpublished setup</Button>}
+    <ConfirmationDialog open={pendingChange !== null || blocker.state === "blocked"} title="Discard unsaved changes?" description="The changes in this form have not been saved. Your saved draft remains available." confirmLabel="Discard changes" cancelLabel="Keep editing" isPending={busy} onConfirm={() => { const change = pendingChange; setPendingChange(null); setDirty(false); setImported(null); if (blocker.state === "blocked") blocker.proceed(); else change?.() }} onCancel={() => { setPendingChange(null); if (blocker.state === "blocked") blocker.reset() }} />
     <ConfirmationDialog open={confirmDelete} title="Delete unpublished assay setup?" description="The workspace and its private snapshots will be removed. Separately saved resources and published records are preserved. An audit receipt is retained." confirmLabel="Delete setup" isPending={deletion.isPending} onConfirm={() => deletion.mutate()} onCancel={() => setConfirmDelete(false)} />
   </PageShell>
 }

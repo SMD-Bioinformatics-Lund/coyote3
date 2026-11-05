@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { expect, it, vi } from "vitest"
 import { ConfigurationTransfer } from "./ConfigurationTransfer"
 import { downloadJson } from "@/lib/json-download"
@@ -51,6 +51,24 @@ it("does not offer import without its authorized handler", () => {
   render(<ConfigurationTransfer label="configuration" filename="config" document={{}} />)
   expect(screen.queryByRole("button", { name: "Import JSON" })).not.toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Export JSON" })).toBeEnabled()
+})
+
+it.each(["disabled", "unmounted", "changed"])("discards a delayed file read when the target is %s", async state => {
+  const onImport = vi.fn()
+  const nextImport = vi.fn()
+  let finish!: (value: string) => void
+  const file = new File(["{}"], "config.json")
+  Object.defineProperty(file, "text", { value: () => new Promise<string>(resolve => { finish = resolve }) })
+  const view = render(<ConfigurationTransfer label="configuration" filename="config" onImport={onImport} />)
+  fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
+  if (state === "disabled") {
+    view.rerender(<ConfigurationTransfer label="configuration" filename="config" onImport={onImport} disabled />)
+  } else if (state === "changed") {
+    view.rerender(<ConfigurationTransfer label="configuration" filename="config" onImport={nextImport} />)
+  } else view.unmount()
+  await act(async () => { finish('{"name":"Delayed configuration"}') })
+  expect(onImport).not.toHaveBeenCalled()
+  expect(nextImport).not.toHaveBeenCalled()
 })
 
 it("ignores audit metadata on import and exports it only with explicit opt-in", async () => {

@@ -9,7 +9,9 @@ describe("bulk resource files", () => {
     expect(parse("- diagnosis_id: example\n  display_name: Example\n  asp_ids: []", "diagnoses.yaml")).toEqual([{ diagnosis_id: "example", display_name: "Example", asp_ids: [] }])
   })
   it.each([
-    ['{}', "list"], ['[]', "list"], ['[null]', "object"],
+    ['{}', "missing required"], ['[]', "list"], ['[null]', "object"],
+    ['null', "one record"], ['"text"', "one record"], ['42', "one record"],
+    ['{"diagnosis_id":"a","display_name":"A","unexpected":true}', "unsupported"],
     ['[{"diagnosis_id":"a"}]', "display_name"],
     ['[{"diagnosis_id":"a","display_name":"A","unexpected":true}]', "unsupported"],
     [JSON.stringify([config.example, config.example]), "duplicate"],
@@ -29,5 +31,14 @@ describe("bulk resource files", () => {
   it("uses the full assay configuration identity", () => {
     const records = [{ asp_id: "assay", diagnosis_id: "base", environment: "development" }, { asp_id: "assay", diagnosis_id: "base", environment: "production" }]
     expect(parseBulkFile(JSON.stringify(records), "config.json", Object.keys(records[0]), [], bulkDefinitions.aspc.identity)).toEqual(records)
+  })
+  it("accepts a single ASPC in JSON or YAML with the same identity validation", () => {
+    const record = { asp_id: "synthetic", diagnosis_id: "base", environment: "production" }
+    for (const [text, filename] of [
+      [JSON.stringify(record), "config.json"],
+      ["asp_id: synthetic\ndiagnosis_id: base\nenvironment: production", "config.yaml"],
+    ]) {
+      expect(parseBulkFile(text, filename, Object.keys(record), Object.keys(record), bulkDefinitions.aspc.identity)).toEqual([record])
+    }
   })
 })

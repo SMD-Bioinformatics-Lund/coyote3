@@ -27,7 +27,7 @@ export const bulkDefinitions = {
   genelists: { permission: "gene_list.insilico:create", identity: "isgl_id" },
 } as const
 
-/** Read a bounded list without YAML aliases, custom tags or silently discarded keys. */
+/** Read a single resource or bounded list without unsafe YAML or discarded keys. */
 export function parseBulkFile(text: string, filename: string, keys: string[], required: string[], identity: string): BulkRecord[] {
   if (new TextEncoder().encode(text).length > BULK_BYTES) throw new Error("File must be no larger than 1 MiB")
   if (!/\.(json|ya?ml)$/i.test(filename)) throw new Error("Choose a JSON or YAML file")
@@ -39,7 +39,8 @@ export function parseBulkFile(text: string, filename: string, keys: string[], re
     if (problem) throw new Error(`Invalid YAML: ${problem.message}`)
     value = document.toJS({ maxAliasCount: 0 })
   }
-  if (!Array.isArray(value) || !value.length || value.length > BULK_LIMIT) throw new Error(`Provide a list of 1–${BULK_LIMIT} records`)
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) value = [value]
+  if (!Array.isArray(value) || !value.length || value.length > BULK_LIMIT) throw new Error(`Provide one record or a list of 1–${BULK_LIMIT} records`)
   const seen = new Set<string>()
   return value.map((record: unknown, index) => {
     if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error(`Row ${index + 1}: expected an object`)

@@ -87,7 +87,8 @@ export function QueryRulesPage() {
   const [selected, setSelected] = useState<Rule | null>(null)
   const [activeSection, setActiveSection] = useState("scope")
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("published")
+  const [retiredOpen, setRetiredOpen] = useState(false)
   const [groupFilter, setGroupFilter] = useState("")
   const { listCollapsed, setListCollapsed, listWidth, setListWidth, previewWidth, setPreviewWidth }
     = useRuleWorkspaceLayout("query")
@@ -100,7 +101,7 @@ export function QueryRulesPage() {
   dirtyRef.current = dirty || Boolean(draft.reason)
   const previewGeneration = useRef(0)
   const [confirmation, setConfirmation] = useState<{ title: string; description: string; run: () => void } | null>(null)
-  const list = useQuery({ queryKey: ["query-rules"], queryFn: () => api.get<{ items: Rule[] }>("/admin/query-rule-sets").then(r => r.data) })
+  const list = useQuery({ queryKey: ["query-rules", statusFilter], queryFn: () => api.get<{ items: Rule[] }>(`/admin/query-rule-sets?status=${statusFilter}`).then(r => r.data) })
   const options = useQuery({ queryKey: ["query-rule-options"], queryFn: () => api.get<Options>("/admin/query-rule-sets/options").then(r => r.data) })
   const [historyOpen, setHistoryOpen] = useState(false)
   const history = useQuery({ queryKey: ["query-rule-revisions", selected?._id, selected?.revision], enabled: historyOpen && !!selected, queryFn: () => api.get<{ revision: number; action: string; actor: string; occurred_at: string; document: Rule }[]>(`/admin/query-rule-sets/${selected!._id}/revisions`).then(r => r.data) })
@@ -202,7 +203,8 @@ export function QueryRulesPage() {
               <SearchInput aria-label="Search query rules" placeholder="Search rules" value={search} onChange={event => setSearch(event.target.value)} />
               <Button size="icon-sm" variant="ghost" aria-label="Collapse query-rule list" title="Collapse query-rule list" onClick={() => setListCollapsed(true)}><icon.panelLeftClose /></Button>
             </div>
-            <label className="block type-meta text-muted-foreground">Workflow state<select aria-label="Filter query rules by workflow state" className="paper-inset mt-1 w-full rounded-lg p-2 type-body-sm text-foreground" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">All workflow states</option>{["draft", "approved", "published", "retired"].map(status => <option key={status} value={status}>{label(status)}</option>)}</select></label>
+            <label className="block type-meta text-muted-foreground">Workflow state<select aria-label="Filter query rules by workflow state" className="paper-inset mt-1 w-full rounded-lg p-2 type-body-sm text-foreground" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>{["published", "draft", "approved", ...(retiredOpen ? ["retired"] : [])].map(status => <option key={status} value={status}>{label(status)}</option>)}</select></label>
+            <Button variant="outline" size="sm" aria-expanded={retiredOpen} onClick={() => { setRetiredOpen(!retiredOpen); setStatusFilter(retiredOpen ? "published" : "retired") }}><icon.history />{retiredOpen ? "Hide retired versions" : "Browse retired versions"}</Button>
             <select aria-label="Filter query rules by assay group" className="paper-inset w-full rounded-lg p-2 type-supporting" value={groupFilter} onChange={event => setGroupFilter(event.target.value)}><option value="">All assay groups</option><option value="__default__">Default: all groups</option>{options.data?.groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
             <p className="type-supporting text-muted-foreground" role="status">{visibleRules.length} of {list.data?.items.length ?? 0} versions</p>
           </div>

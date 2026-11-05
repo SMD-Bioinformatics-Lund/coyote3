@@ -5,7 +5,7 @@ import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { ValueBadge } from "./resource-list"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
@@ -38,6 +38,7 @@ export function PublicAssayCatalogPage() {
   const [reason, setReason] = useState("")
   const [confirmPublish, setConfirmPublish] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [retiredOpen, setRetiredOpen] = useState(false)
   const [addParent, setAddParent] = useState("")
   const [addSource, setAddSource] = useState("")
   const upload = useRef<HTMLInputElement>(null)
@@ -186,12 +187,13 @@ export function PublicAssayCatalogPage() {
           <p className="type-body-sm text-muted-foreground">Organize DNA and RNA sections into families, groups and assay or diagnosis entries. Starter folders are optional.</p>
         </div>}
         <div className="max-h-64 space-y-1 overflow-auto">
-          {data.items.map((item) => <button key={item._id} onClick={() => select(item._id)}
+          {data.items.filter(item => retiredOpen ? item.status === "published" && item.content_version !== data.catalog.version : item.status !== "published" || item.content_version === data.catalog.version).map((item) => <button key={item._id} onClick={() => select(item._id)}
             className={`w-full rounded-md px-2 py-2 text-left type-body-sm ${id === item._id ? "bg-primary/10" : "hover:bg-muted"}`}>
             <span className="block font-semibold">{item.content_version ? `Version ${item.content_version}` : `Draft by ${item.created_by}`}</span>
-            <span>{item.status} · r{item.revision}</span>
+            <span className="flex flex-wrap items-center gap-2"><ValueBadge kind="status" value={item.status === "published" && item.content_version !== data.catalog.version ? "retired" : item.status} />r{item.revision}</span>
           </button>)}
         </div>
+        <Button variant="outline" size="sm" aria-expanded={retiredOpen} onClick={() => setRetiredOpen(!retiredOpen)}><icon.history />{retiredOpen ? "Hide retired versions" : "Browse retired versions"}</Button>
         {data.items.some(item => item.status === "draft" && !item.system_installed) && allowed("catalog:draft") &&
           <p className="type-meta text-muted-foreground">Select a draft to edit or delete it. Published versions are retained.</p>}
         <details className="space-y-2">
@@ -232,7 +234,7 @@ export function PublicAssayCatalogPage() {
       </aside>
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/35 p-3">
-          <Badge variant="outline">{id ? version?.status : data.has_published ? "Published" : "Unpublished"}</Badge>
+          <ValueBadge kind="status" value={id ? version?.status ?? "" : data.has_published ? "Published" : "Unpublished"} />
           {version && <><span className="type-body-sm">Revision {version.revision}</span>
             <div className="flex items-center gap-2 type-meta text-muted-foreground">Created by <RecordProvenance record={version} /></div>
             <span className="type-meta text-muted-foreground">Updated by {version.updated_by || "Unknown"}</span></>}
