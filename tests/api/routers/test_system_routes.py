@@ -14,6 +14,7 @@ from api.interfaces.http.v1.operations import auth as auth_router
 from api.interfaces.http.v1.operations import health as health_router
 from api.security import password_flows
 from coyote3.application.operations.account import Account
+from coyote3.config.constants import DEFAULT_TABLE_PAGE_SIZE
 from coyote3.domain.exceptions import AppError
 from tests.fixtures.api import application_sdk as sdk_fixtures
 from tests.fixtures.api import mock_collections as fx
@@ -100,7 +101,7 @@ def test_whoami_sorts_permission_list(monkeypatch):
         "sample_list_layout": "classic",
         "analysis_modern_view_tried": False,
         "sample_list_modern_view_tried": False,
-        "table_page_size": 50,
+        "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
     }
     assert payload["csrf_token"] == "csrf-test-token"
     assert "denied_permissions" not in payload

@@ -155,6 +155,7 @@ export type ApiOperations = {
   "GET /resources/asp/{assay_panel_id}/fields/{field}": { request: T.Request_assayFieldReadApiV1ResourcesAspAssayPanelIdFieldsFieldGet; response: T.Response_assayFieldReadApiV1ResourcesAspAssayPanelIdFieldsFieldGet }
   "GET /resources/asp/{assay_panel_id}/metadata": { request: T.Request_assayMetadataReadApiV1ResourcesAspAssayPanelIdMetadataGet; response: T.Response_assayMetadataReadApiV1ResourcesAspAssayPanelIdMetadataGet }
   "PATCH /resources/asp/{assay_panel_id}/status": { request: T.Request_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch; response: T.Response_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch }
+  "GET /resources/asp/{identifier}/versions": { request: T.Request_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet; response: T.Response_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet }
   "GET /resources/aspc": { request: T.Request_listAspcReadApiV1ResourcesAspcGet; response: T.Response_listAspcReadApiV1ResourcesAspcGet }
   "POST /resources/aspc": { request: T.Request_createAspcChangeApiV1ResourcesAspcPost; response: T.Response_createAspcChangeApiV1ResourcesAspcPost }
   "GET /resources/aspc/create_context": { request: T.Request_createAspcContextReadApiV1ResourcesAspcCreateContextGet; response: T.Response_createAspcContextReadApiV1ResourcesAspcCreateContextGet }
@@ -165,6 +166,7 @@ export type ApiOperations = {
   "PUT /resources/aspc/{assay_id}": { request: T.Request_updateAspcChangeApiV1ResourcesAspcAssayIdPut; response: T.Response_updateAspcChangeApiV1ResourcesAspcAssayIdPut }
   "GET /resources/aspc/{assay_id}/context": { request: T.Request_aspcContextReadApiV1ResourcesAspcAssayIdContextGet; response: T.Response_aspcContextReadApiV1ResourcesAspcAssayIdContextGet }
   "PATCH /resources/aspc/{assay_id}/status": { request: T.Request_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch; response: T.Response_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch }
+  "GET /resources/aspc/{identifier}/versions": { request: T.Request_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet; response: T.Response_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet }
   "GET /resources/assay-groups": { request: T.Request_listAssayGroupsApiV1ResourcesAssayGroupsGet; response: T.Response_listAssayGroupsApiV1ResourcesAssayGroupsGet }
   "POST /resources/assay-groups": { request: T.Request_createAssayGroupApiV1ResourcesAssayGroupsPost; response: T.Response_createAssayGroupApiV1ResourcesAssayGroupsPost }
   "GET /resources/assay-groups/{group_id}/fields/{field}": { request: T.Request_assayGroupFieldReadApiV1ResourcesAssayGroupsGroupIdFieldsFieldGet; response: T.Response_assayGroupFieldReadApiV1ResourcesAssayGroupsGroupIdFieldsFieldGet }
@@ -193,6 +195,7 @@ export type ApiOperations = {
   "GET /resources/genelists/{genelist_id}/metadata": { request: T.Request_genelistMetadataReadApiV1ResourcesGenelistsGenelistIdMetadataGet; response: T.Response_genelistMetadataReadApiV1ResourcesGenelistsGenelistIdMetadataGet }
   "PATCH /resources/genelists/{genelist_id}/status": { request: T.Request_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatusPatch; response: T.Response_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatusPatch }
   "GET /resources/genelists/{genelist_id}/view_context": { request: T.Request_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet; response: T.Response_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet }
+  "GET /resources/genelists/{identifier}/versions": { request: T.Request_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet; response: T.Response_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet }
   "GET /resources/samples": { request: T.Request_listAdminSamplesReadApiV1ResourcesSamplesGet; response: T.Response_listAdminSamplesReadApiV1ResourcesSamplesGet }
   "DELETE /resources/samples/{sample_id}": { request: T.Request_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete; response: T.Response_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete }
   "PUT /resources/samples/{sample_id}": { request: T.Request_updateSampleChangeApiV1ResourcesSamplesSampleIdPut; response: T.Response_updateSampleChangeApiV1ResourcesSamplesSampleIdPut }

@@ -243,6 +243,17 @@ class ASPConfigRepository(BaseRepository):
         )
         return docs, total
 
+    def list_versions(self, identifier: str) -> list[dict]:
+        """Read all retained revisions of one exact resource without changing activation.
+
+        Args:
+            identifier: Stable aspc_id business identifier, including retired-only resources.
+
+        Returns:
+            Current and retired documents in descending version order; empty if unknown.
+        """
+        return list(self.get_collection().find({"aspc_id": identifier}).sort("version", -1))
+
     def get_aspc(
         self, assay: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
     ) -> dict | None:

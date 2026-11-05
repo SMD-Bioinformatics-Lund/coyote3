@@ -22,6 +22,7 @@ from coyote3.config.constants import ENVIRONMENT_OPTIONS
 from coyote3.contracts.authoring.resources import managed_resource_spec
 from coyote3.contracts.schemas.assay import InsilicoGenelistsDoc
 from coyote3.contracts.schemas.assay_setup import AssaySetupContent, AssaySetupDoc
+from coyote3.domain.common.configuration_transfer import configuration_content
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.exceptions import AppError
 
@@ -236,8 +237,25 @@ class AssaySetupService:
         identifier: str | None = None,
         revision: int | None = None,
     ) -> dict:
-        """Create or revise a draft; operational assay resources remain untouched."""
+        """Create or revise a draft, replacing imported provenance at the write boundary.
+
+        Args:
+            content: Authored assay and staged configuration; audit fields are discarded.
+            actor: Authenticated author recorded on the saved revision.
+            identifier: Existing workspace identity, or None to reserve a new assay.
+            revision: Expected revision for edits; unused when creating a workspace.
+
+        Returns:
+            Saved draft without writing operational assay resources.
+
+        Raises:
+            AppError: The state, revision, identifier or selected scopes prevent saving.
+        """
         previous = self.get(identifier) if identifier else None
+        # Sanitize authored provenance at the write boundary, not when reading saved snapshots.
+        content = AssaySetupContent.model_validate(
+            configuration_content(content.model_dump(exclude_computed_fields=True))
+        )
         if previous is None:
             require_new_identifier(content.panel.asp_id, label="asp_id")
         if previous and (previous["status"] != "draft" or previous["revision"] != revision):

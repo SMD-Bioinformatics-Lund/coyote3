@@ -38,12 +38,24 @@ class ConfigurationProfiles:
         """Bind runtime authorization and the lazy configuration service."""
         self._runtime, self._service = runtime, service
 
-    def list(self) -> list[dict[str, Any]]:
-        """List profile revisions with assay.config:list permission."""
+    def list(
+        self, *, status: str | None = None, is_current: bool | None = None
+    ) -> list[dict[str, Any]]:
+        """List profile revisions with assay.config:list permission.
+
+        Args:
+            status: Exact workflow status, or None for all retained source versions.
+            is_current: Select current or superseded publications; None retains both.
+
+        Returns:
+            Matching source profile versions.
+        """
         return self._runtime.execute(
             "configuration_profiles.list",
             ("assay.config:list",),
-            lambda actor, sample: deepcopy(self._service().list()),
+            lambda actor, sample: deepcopy(
+                self._service().list(status=status, is_current=is_current)
+            ),
         )
 
     def create(self, draft: ConfigurationProfileDraft) -> dict[str, Any]:
@@ -184,12 +196,19 @@ class QueryRules:
             sample_id=sample_id,
         )
 
-    def list(self) -> dict[str, Any]:
-        """List retained policies with query_rules:view permission."""
+    def list(self, *, status: str | None = None) -> dict[str, Any]:
+        """List retained policies with query_rules:view permission.
+
+        Args:
+            status: Exact workflow status, or None for the full authoring inventory.
+
+        Returns:
+            Matching retained policy versions.
+        """
         return self._runtime.execute(
             "query_rules.list",
             ("query_rules:view",),
-            lambda actor, sample: deepcopy(self._service().list()),
+            lambda actor, sample: deepcopy(self._service().list(status=status)),
         )
 
     def options(self) -> dict[str, Any]:

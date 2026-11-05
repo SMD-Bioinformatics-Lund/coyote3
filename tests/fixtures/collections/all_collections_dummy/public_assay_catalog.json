@@ -25,6 +25,11 @@
         "tat": "",
         "limitations": null,
         "public_notes": null,
+        "price": null,
+        "pricing_message": "",
+        "methodology": "",
+        "ordering_information": "",
+        "report_deliverables": [],
         "categories": {
           "assay_1_base": {
             "label": null,

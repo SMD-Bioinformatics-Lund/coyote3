@@ -14,6 +14,10 @@
     "attempts": 1,
     "result": {"status": "ok"},
     "error": null,
-    "submitted_by": "synthetic.operator"
+    "submitted_by": "synthetic.operator",
+    "credential_operation": null,
+    "credential_owner": null,
+    "credential_id": null,
+    "credential_scope": null
   }
 ]

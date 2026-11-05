@@ -50,9 +50,16 @@ def test_every_namespace_has_diagram_and_incoming_and_outgoing_tables(catalog):
 def test_invalid_reviewed_reference_is_rejected(catalog, field, value, message):
     """Reject unknown namespaces, evidence files and typed source fields before rendering."""
     catalog = deepcopy(catalog)
-    catalog["edges"][0][field] = value
+    collections = exporter.inventory()
+    edge = next(
+        item
+        for item in catalog["edges"]
+        if collections[item["source"]]["schema"].get("properties")
+        and not item.get("repository_field")
+    )
+    edge[field] = value
     with pytest.raises(ValueError, match=message):
-        exporter.relationships(catalog, exporter.inventory())
+        exporter.relationships(catalog, collections)
 
 
 def test_generated_reference_matches_reviewed_source(catalog):

@@ -22,6 +22,7 @@ from coyote3.application.resources.assay_setup import AssaySetupService
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote3.contracts.schemas.assay_setup import AssaySetupContent
 from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote3.contracts.schemas.registry import normalize_collection_document
 from coyote3.domain.exceptions import AppError
 
 
@@ -177,6 +178,11 @@ def test_setup_import_discards_nested_record_metadata_before_staging(setup_servi
     parsed = AssaySetupContent.model_validate(source)
     assert parsed.panel.id_ is None and parsed.panel.version == 1
     assert parsed.panel.created_by != "foreign.author"
+    service, _db = setup_service
+    saved = service.save(parsed, actor="author")
+    assert saved["content"]["panel"]["_id"] is None
+    assert saved["content"]["panel"]["version"] == 1
+    assert saved["content"]["panel"]["created_by"] != "foreign.author"
     assert "version" not in parsed.configurations[0]
     assert "created_by" not in parsed.configurations[0]
     assert parsed.gene_lists == [{"isgl_id": "synthetic", "genes": ["TP53"]}]
@@ -191,6 +197,20 @@ def test_review_compilation_retains_resource_hashes_across_actors(setup_service)
     assert author_bundle["panel"]["created_by"] == "author"
     assert reviewer_bundle["panel"]["created_by"] == "author"
     assert author_bundle["panel"]["created_on"] == reviewer_bundle["panel"]["created_on"]
+
+
+def test_saved_setup_normalization_retains_panel_creation_time(setup_service):
+    """Repeated collection validation cannot rewrite saved panel timestamps."""
+    service, _db = setup_service
+    source = content().model_dump(mode="python")
+    imported_time = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    source["panel"]["created_on"] = imported_time
+    draft = service.save(AssaySetupContent.model_validate(source), actor="author")
+    first = normalize_collection_document("assay_setups", draft)
+    second = normalize_collection_document("assay_setups", first)
+    assert first == second
+    assert first["content"]["panel"]["created_on"] == draft["content"]["panel"]["created_on"]
+    assert first["content"]["panel"]["created_on"] != imported_time
 
 
 def test_saved_setup_context_uses_runtime_repository_bindings(setup_service):
@@ -303,7 +323,7 @@ def test_draft_isolation_and_atomic_publication_bundle(setup_service):
     assert db.asp.find_one()["is_active"] is True
     assert db.aspc.find_one()["diagnosis_id"] == "base"
     assert db.associations.count_documents({}) == db.diagnoses.count_documents({}) == 0
-    assert len(service.repository.revisions(identifier)) == 3
+    assert [row["action"] for row in service.repository.revisions(identifier)] == ["publish"]
     with pytest.raises(AppError, match="current draft"):
         service.save(content(), actor="reviewer", identifier=identifier, revision=3)
 
@@ -385,6 +405,38 @@ def test_content_editors_can_publish_or_reopen_optional_review(setup_service, ac
         assert result["reviewed_by"] is None
 
 
+def test_publication_prunes_only_own_unpublished_snapshots(setup_service, monkeypatch):
+    """Draft snapshots are removed without losing other setups or audit events."""
+    import api.infra.mongo.repositories.assay_setup as module
+
+    events = []
+    monkeypatch.setattr(module, "enqueue_audit", lambda *_args, **kwargs: events.append(kwargs))
+    service, db = setup_service
+    draft = service.save(content(), actor="author")
+    identifier = str(draft["_id"])
+    unrelated = {
+        "setup_id": "other-setup",
+        "revision": 1,
+        "document": {"status": "draft"},
+    }
+    published_snapshot = {
+        "setup_id": identifier,
+        "revision": 0,
+        "action": "publish",
+        "document": {"status": "published"},
+    }
+    db.assay_setup_revisions.insert_many([unrelated, published_snapshot])
+    service.transition(identifier, 1, "publish", actor="author")
+    assert db.assay_setup_revisions.find_one({"setup_id": "other-setup"}) is not None
+    retained = service.repository.revisions(identifier)
+    assert [row["revision"] for row in retained] == [2, 0]
+    assert all(row["document"]["status"] == "published" for row in retained)
+    assert [event["event_type"] for event in events] == [
+        "assay_setup.created",
+        "assay_setup.publish",
+    ]
+
+
 def test_author_can_activate_a_valid_draft_without_submission(setup_service):
     service, db = setup_service
     draft = service.save(content(), actor="author")
@@ -398,7 +450,6 @@ def test_author_can_activate_a_valid_draft_without_submission(setup_service):
     assert db.asp.count_documents({}) == db.aspc.count_documents({}) == 1
     assert [row["action"] for row in service.repository.revisions(identifier)] == [
         "publish",
-        "created",
     ]
     with pytest.raises(AppError, match="state or revision"):
         service.transition(identifier, 2, "publish", actor="author")

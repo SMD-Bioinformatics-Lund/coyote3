@@ -48,6 +48,19 @@ from coyote3.contracts.schemas.diagnoses import (
 router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
 
 
+@router.get("/api/v1/resources/asp/{identifier}/versions", response_model=list[dict])
+def resource_versions_read(
+    identifier: str,
+    user: ApiUser = Depends(require_access(permission="assay.panel:view")),
+    service: Assays = Depends(get_assays),
+) -> list[dict]:
+    """Read current and retired versions of one resource; requires assay.panel:view.
+
+    Versions are read-only and returned newest first, including retired-only resources.
+    """
+    return util.common.convert_to_serializable(service.versions(identifier=identifier))
+
+
 @router.get("/api/v1/resources/assay-groups/{group_id}/metadata", response_model=GroupMetadata)
 def assay_group_metadata_read(
     group_id: str,

@@ -8,6 +8,7 @@ import pytest
 
 from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
 from api.infra.mongo.repositories.configuration_profiles import ConfigurationProfileRepository
+from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
 from coyote3.application.resources.configuration_profiles import (
     ConfigurationProfileService,
     compile_profile_rules,
@@ -20,6 +21,7 @@ from coyote3.contracts.configuration_profiles import (
     ConfigurationProfileDraft,
     ConfigurationPromotionRequest,
 )
+from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote3.domain.exceptions import AppError
 from scripts.quality.export_demo_workflows import replay
 
@@ -78,10 +80,18 @@ def test_profile_publication_requires_another_reviewer_and_exact_hash(profiles):
     assert published["status"] == "published"
     assert published["published_by"] == "reviewer"
     newer = service.create(draft(content={"somatic": {"snv": {"min_depth": 90}}}), actor="author")
+    assert [row["_id"] for row in repository.published()] == [published["_id"]]
+    assert (
+        service.list(status="published", is_current=True)[0]["content_hash"]
+        == published["content_hash"]
+    )
     assert repository.published()[0]["version"] == 1
     service.publish(
         str(newer["_id"]), actor="reviewer", content_hash=newer["content_hash"], reason="Validated"
     )
+    assert [row["_id"] for row in service.list(status="published", is_current=False)] == [
+        published["_id"]
+    ]
     assert repository.published()[0]["version"] == 2
     assert db.profiles.count_documents({}) == 2
 
@@ -251,12 +261,21 @@ def test_clinical_profile_replaces_only_the_selected_block_and_retains_base(prom
     block = deepcopy(base["blocks"][0])
     block["rules"][0]["output"][0]["value"] = "Synthetic reviewed reporting text."
     config["profile_sources"] = [{"kind": "clinical_rules", "content": {"replace_blocks": [block]}}]
-    with pytest.raises(AppError, match="failed validation"):
-        compile_profile_rules(config)
+    candidate = deepcopy(config)
+    compile_profile_rules(candidate)
+    # Normal compilation checks structure; embedded expectations run only on explicit request.
+    validation = validate_rule_set(
+        ClinicalRuleSetDoc.model_validate(candidate["clinical_rule_release"]), require_tests=True
+    )
+    assert not validation.valid
+    assert any("unexpected report text" in error for error in validation.errors)
     case = deepcopy(base["test_cases"][0])
     case["expected_sections"] = {"Report summary": ["Synthetic reviewed reporting text."]}
     config["profile_sources"][0]["content"]["replace_tests"] = [case]
     compile_profile_rules(config)
+    assert validate_rule_set(
+        ClinicalRuleSetDoc.model_validate(config["clinical_rule_release"]), require_tests=True
+    ).valid
     assert config["clinical_rule_base"] == base
     assert config["clinical_rule_release"]["blocks"][0] == block
     assert config["clinical_rule_release"]["content_hash"] != base["content_hash"]

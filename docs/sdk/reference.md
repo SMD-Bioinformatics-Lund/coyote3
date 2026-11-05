@@ -340,6 +340,25 @@ Raises:
         or the operation's existing business rules reject the request.
 ```
 
+#### `AssayConfigurations.versions`
+
+```python
+AssayConfigurations.versions(self, *, identifier: 'str') -> 'list[dict[str, Any]]'
+```
+
+```text
+Read all retained configuration revisions; requires assay.config:view.
+
+Args:
+    identifier: Stable configuration identifier, including retired-only scopes.
+
+Returns:
+    Current and retired versions ordered newest first.
+
+Raises:
+    AppError: Authentication or assay.config:view permission is missing.
+```
+
 ### `AssayGroups`
 
 ```python
@@ -785,6 +804,25 @@ Returns:
 Raises:
     AppError: Authentication, required grants (assay.panel:create), validation
         or the operation's existing business rules reject the request.
+```
+
+#### `Assays.versions`
+
+```python
+Assays.versions(self, *, identifier: 'str') -> 'list[dict[str, Any]]'
+```
+
+```text
+Read all retained assay revisions; requires assay.panel:view.
+
+Args:
+    identifier: Stable assay identifier, including a retired-only assay.
+
+Returns:
+    Current and retired versions ordered newest first.
+
+Raises:
+    AppError: Authentication or assay.panel:view permission is missing.
 ```
 
 ### `CatalogAuthoring`
@@ -1389,11 +1427,18 @@ Returns:
 #### `ConfigurationProfiles.list`
 
 ```python
-ConfigurationProfiles.list(self) -> 'list[dict[str, Any]]'
+ConfigurationProfiles.list(self, *, status: 'str | None' = None, is_current: 'bool | None' = None) -> 'list[dict[str, Any]]'
 ```
 
 ```text
 List profile revisions with assay.config:list permission.
+
+Args:
+    status: Exact workflow status, or None for all retained source versions.
+    is_current: Select current or superseded publications; None retains both.
+
+Returns:
+    Matching source profile versions.
 ```
 
 #### `ConfigurationProfiles.publish`
@@ -2394,6 +2439,25 @@ Returns:
 Raises:
     AppError: Authentication, required grants (gene_list.insilico:create), validation
         or the operation's existing business rules reject the request.
+```
+
+#### `GeneLists.versions`
+
+```python
+GeneLists.versions(self, *, identifier: 'str') -> 'list[dict[str, Any]]'
+```
+
+```text
+Read all retained gene-list revisions; requires gene_list.insilico:view.
+
+Args:
+    identifier: Stable gene-list identifier, including retired-only lists.
+
+Returns:
+    Current and retired versions ordered newest first.
+
+Raises:
+    AppError: Authentication or gene_list.insilico:view permission is missing.
 ```
 
 ### `IngestJobs`
@@ -3984,11 +4048,17 @@ Delete an unpublished revision with query_rules:draft and revision validation.
 #### `QueryRules.list`
 
 ```python
-QueryRules.list(self) -> 'dict[str, Any]'
+QueryRules.list(self, *, status: 'str | None' = None) -> 'dict[str, Any]'
 ```
 
 ```text
 List retained policies with query_rules:view permission.
+
+Args:
+    status: Exact workflow status, or None for the full authoring inventory.
+
+Returns:
+    Matching retained policy versions.
 ```
 
 #### `QueryRules.options`
@@ -5680,8 +5750,9 @@ Args:
 
 Returns:
     A copy without display counts or application-managed audit metadata,
-    with missing modality derived from a known sequencing family. Explicit
-    modality values remain subject to validation.
+    with missing modality derived from a known sequencing family. The
+    creation time is retained for stable snapshot reads; the save service
+    discards imported audit fields before creating a draft.
 ```
 
 #### `AssaySetupContent.prepare_staged_records`

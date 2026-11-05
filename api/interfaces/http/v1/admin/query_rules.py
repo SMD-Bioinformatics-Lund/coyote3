@@ -1,6 +1,8 @@
 """Permission-controlled query-policy authoring, preview and lifecycle routes."""
 
-from fastapi import APIRouter, Depends
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query
 
 from api.app.deps.application import get_query_rules
 from api.interfaces.http.tags import TAG_ADMIN_ASSAYS
@@ -71,11 +73,12 @@ def rule_options(
 
 @router.get("", response_model=QueryRuleList)
 def list_rules(
+    status: Literal["draft", "approved", "published", "retired"] | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="query_rules:view")),
     service: QueryRules = Depends(get_query_rules),
 ):
     """List policy versions; requires query_rules:view."""
-    return service.list()
+    return service.list(status=status)
 
 
 @router.post("/preview", response_model=QueryRuleResolution)

@@ -23,6 +23,19 @@ from coyote3.contracts.resource_metadata import ConfigurationMetadata
 router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
 
 
+@router.get("/api/v1/resources/aspc/{identifier}/versions", response_model=list[dict])
+def resource_versions_read(
+    identifier: str,
+    user: ApiUser = Depends(require_access(permission="assay.config:view")),
+    service: AssayConfigurations = Depends(get_assay_configurations),
+) -> list[dict]:
+    """Read current and retired versions of one resource; requires assay.config:view.
+
+    Versions are read-only and returned newest first, including retired-only resources.
+    """
+    return util.common.convert_to_serializable(service.versions(identifier=identifier))
+
+
 @router.get("/api/v1/resources/aspc", response_model=AdminAspcListPayload)
 def list_aspc_read(
     q: str = Query(default=""),

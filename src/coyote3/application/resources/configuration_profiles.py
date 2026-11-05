@@ -148,9 +148,22 @@ class ConfigurationProfileService:
         """Bind profile persistence on the application database."""
         self.repository = repository
 
-    def list(self) -> list[dict]:
-        """List retained source profile revisions for the authoring workspace."""
-        return self.repository.list()
+    def list(self, *, status: str | None = None, is_current: bool | None = None) -> list[dict]:
+        """List source profile revisions without changing which version is published.
+
+        Args:
+            status: Exact workflow status; None returns the complete authoring inventory.
+            is_current: Select current or superseded publications; None retains both.
+
+        Returns:
+            Matching retained source profiles.
+        """
+        return [
+            row
+            for row in self.repository.list()
+            if (status is None or row["status"] == status)
+            and (is_current is None or row["is_current"] is is_current)
+        ]
 
     def create(self, draft: ConfigurationProfileDraft, *, actor: str) -> dict:
         """Validate content and save the next immutable draft revision."""

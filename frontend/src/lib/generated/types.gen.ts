@@ -13489,7 +13489,12 @@ export type Request_listRulesApiV1AdminQueryRuleSetsGet = {
         'x-edit-session'?: string | null;
     };
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'draft' | 'approved' | 'published' | 'retired' | null;
+    };
     url: '/api/v1/admin/query-rule-sets';
 };
 
@@ -18772,6 +18777,66 @@ export type Responses_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch = 
 
 export type Response_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch = Responses_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch[keyof Responses_toggleAspChangeApiV1ResourcesAspAssayPanelIdStatusPatch];
 
+export type Request_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Identifier
+         */
+        identifier: string;
+    };
+    query?: never;
+    url: '/api/v1/resources/asp/{identifier}/versions';
+};
+
+export type ResourceVersionsReadApiV1ResourcesAspIdentifierVersionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ResourceVersionsReadApiV1ResourcesAspIdentifierVersionsGetError = ResourceVersionsReadApiV1ResourcesAspIdentifierVersionsGetErrors[keyof ResourceVersionsReadApiV1ResourcesAspIdentifierVersionsGetErrors];
+
+export type Responses_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet = {
+    /**
+     * Response Resource Versions Read Api V1 Resources Asp  Identifier  Versions Get
+     *
+     * Successful Response
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type Response_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet = Responses_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet[keyof Responses_resourceVersionsReadApiV1ResourcesAspIdentifierVersionsGet];
+
 export type Request_createAspContextReadApiV1ResourcesAspCreateContextGet = {
     body?: never;
     headers?: {
@@ -19346,6 +19411,66 @@ export type Responses_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch = {
 
 export type Response_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch = Responses_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch[keyof Responses_toggleAspcChangeApiV1ResourcesAspcAssayIdStatusPatch];
 
+export type Request_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Identifier
+         */
+        identifier: string;
+    };
+    query?: never;
+    url: '/api/v1/resources/aspc/{identifier}/versions';
+};
+
+export type ResourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ResourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGetError = ResourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGetErrors[keyof ResourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGetErrors];
+
+export type Responses_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet = {
+    /**
+     * Response Resource Versions Read Api V1 Resources Aspc  Identifier  Versions Get
+     *
+     * Successful Response
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type Response_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet = Responses_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet[keyof Responses_resourceVersionsReadApiV1ResourcesAspcIdentifierVersionsGet];
+
 export type Request_createAspcContextReadApiV1ResourcesAspcCreateContextGet = {
     body?: never;
     headers?: {
@@ -19799,7 +19924,16 @@ export type Request_listProfilesApiV1ResourcesConfigurationProfilesGet = {
         'x-edit-session'?: string | null;
     };
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'draft' | 'published' | null;
+        /**
+         * Is Current
+         */
+        is_current?: boolean | null;
+    };
     url: '/api/v1/resources/configuration-profiles';
 };
 
@@ -20913,6 +21047,66 @@ export type Responses_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdVi
 };
 
 export type Response_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet = Responses_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet[keyof Responses_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet];
+
+export type Request_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Identifier
+         */
+        identifier: string;
+    };
+    query?: never;
+    url: '/api/v1/resources/genelists/{identifier}/versions';
+};
+
+export type ResourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ResourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGetError = ResourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGetErrors[keyof ResourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGetErrors];
+
+export type Responses_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet = {
+    /**
+     * Response Resource Versions Read Api V1 Resources Genelists  Identifier  Versions Get
+     *
+     * Successful Response
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type Response_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet = Responses_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet[keyof Responses_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet];
 
 export type Request_createGenelistContextReadApiV1ResourcesGenelistsCreateContextGet = {
     body?: never;

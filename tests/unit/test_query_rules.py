@@ -286,6 +286,68 @@ def test_parent_publication_cannot_introduce_collision_in_published_extension(se
     assert service.resolve(child).exceptions == [extra]
 
 
+@pytest.mark.parametrize("environment", [None, "validation"])
+def test_parent_retirement_cannot_reveal_collision_in_published_extension(service, environment):
+    """Removing an ancestor must not make a retained child unresolvable."""
+    inherited = {"id": "shared-marker", "mode": "exclude", "genes": ["TP53"]}
+    release(service, QueryRuleScope(analysis="snv"), exceptions=[inherited])
+    parent = release(service, exceptions=[])
+    child = scope(asp_id="panel", environment=environment)
+    release(service, child, exception_mode="extend", exceptions=[inherited])
+    with pytest.raises(AppError, match="identifiers distinct"):
+        service.transition(
+            str(parent["_id"]),
+            "retire",
+            QueryRuleTransition(expected_revision=parent["revision"], reason="Withdraw parent"),
+            "publisher",
+        )
+    assert service.repository.get(str(parent["_id"]))["status"] == "published"
+    assert service.resolve(child).exceptions == [inherited]
+
+
+def test_successor_draft_does_not_replace_current_publication_until_published(service):
+    """New authoring versions leave the current publication and its original content intact."""
+    original = release(service, exceptions=[{"id": "old", "mode": "exclude", "genes": ["TP53"]}])
+    successor = service.create(draft(exceptions=[]), "author")
+    assert successor["version"] == original["version"] + 1
+    assert service.list(status="published")["items"][0]["_id"] == original["_id"]
+    assert service.resolve(scope()).exceptions == original["content"]["exceptions"]
+    approved = service.transition(
+        str(successor["_id"]),
+        "approve",
+        QueryRuleTransition(expected_revision=1, reason="Independent review"),
+        "reviewer",
+    )
+    assert service.resolve(scope()).exceptions == original["content"]["exceptions"]
+    service.transition(
+        str(successor["_id"]),
+        "publish",
+        QueryRuleTransition(expected_revision=approved["revision"], reason="Publish successor"),
+        "publisher",
+    )
+    retained = service.list(status="retired")["items"][0]
+    assert retained["_id"] == original["_id"]
+    assert retained["content"] == original["content"]
+    assert service.resolve(scope()).exceptions == []
+
+
+def test_parent_retirement_allows_a_child_that_replaces_the_inherited_rules(service):
+    """A replacing child remains valid when an ancestor reveals the same rule ID."""
+    inherited = {"id": "shared-marker", "mode": "exclude", "genes": ["TP53"]}
+    release(service, QueryRuleScope(analysis="snv"), exceptions=[inherited])
+    parent = release(service, exceptions=[])
+    child = scope(asp_id="panel")
+    release(service, child, exception_mode="replace", exceptions=[inherited])
+    result = service.transition(
+        str(parent["_id"]),
+        "retire",
+        QueryRuleTransition(expected_revision=parent["revision"], reason="Withdraw parent"),
+        "publisher",
+    )
+    assert result["status"] == "retired"
+    assert service.resolve(child).exceptions == [inherited]
+
+
 def test_global_publication_applies_to_groups_and_retirement_restores_base(service):
     global_scope = QueryRuleScope(analysis="snv")
     row = release(service, global_scope, evidence_mode="case_only")

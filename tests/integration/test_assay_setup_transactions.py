@@ -73,6 +73,39 @@ def test_duplicate_resource_rolls_back_all_operational_writes(repository):
     assert repository.adapter.assay_groups_collection.find_one().get("publication_serial", 0) == 0
 
 
+def test_late_publication_failure_restores_pruned_snapshots(repository, monkeypatch):
+    """An audit failure after pruning must roll back deletion and publication together."""
+    import api.infra.mongo.repositories.assay_setup as module
+
+    draft = repository.save(
+        {"asp_id": "synthetic", "revision": 1, "status": "draft"}, action="created"
+    )
+    before = repository.revisions(str(draft["_id"]))
+
+    def fail_audit(*args, **kwargs):
+        raise RuntimeError("synthetic audit failure")
+
+    monkeypatch.setattr(module, "enqueue_audit", fail_audit)
+    with pytest.raises(RuntimeError, match="synthetic audit failure"):
+        repository.save(
+            {**draft, "revision": 2, "status": "published"},
+            previous=draft,
+            action="publish",
+            bundle={
+                "panel": {"asp_id": "synthetic", "asp_group": "demo"},
+                "configurations": [],
+                "gene_lists": [],
+                "associations": [],
+                "rules": [],
+                "definitions": [],
+                "existing_lists": [],
+            },
+        )
+    assert repository.revisions(str(draft["_id"])) == before
+    assert repository.get(str(draft["_id"]))["status"] == "draft"
+    assert repository.adapter.asp_collection.count_documents({}) == 0
+
+
 def test_publication_commits_all_documents_and_revision(repository):
     """A successful activation commits its draft state and all related records."""
     draft = repository.save(
@@ -96,7 +129,9 @@ def test_publication_commits_all_documents_and_revision(repository):
     assert repository.adapter.asp_collection.count_documents({}) == 1
     assert repository.adapter.aspc_collection.count_documents({}) == 1
     assert repository.adapter.insilico_genelist_collection.count_documents({}) == 1
-    assert len(repository.revisions(str(draft["_id"]))) == 2
+    revisions = repository.revisions(str(draft["_id"]))
+    assert len(revisions) == 1
+    assert revisions[0]["document"]["status"] == "published"
     group = repository.adapter.assay_groups_collection.find_one()
     assert group["publication_serial"] == 1
     assert group["version"] == 1

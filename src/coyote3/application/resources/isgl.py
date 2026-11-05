@@ -50,6 +50,17 @@ class IsglService:
         self.assay_panel_repository = assay_panel_repository
         self.assay_diagnosis_repository = assay_diagnosis_repository
 
+    def versions(self, identifier: str) -> list[dict[str, Any]]:
+        """Read retained resource versions only when explicitly requested.
+
+        Args:
+            identifier: Exact stable resource identifier; no active version is required.
+
+        Returns:
+            Current and retired versions, newest first. Missing identifiers return no rows.
+        """
+        return [dict(row) for row in self.gene_list_repository.list_versions(identifier)]
+
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the admin list payload for genelists.
 

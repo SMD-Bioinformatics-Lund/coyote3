@@ -139,6 +139,17 @@ class ASPRepository(BaseRepository):
             query["is_active"] = is_active
         return int(self.get_collection().count_documents(query))
 
+    def list_versions(self, identifier: str) -> list[dict]:
+        """Read all retained revisions of one exact resource without changing activation.
+
+        Args:
+            identifier: Stable asp_id business identifier, including retired-only resources.
+
+        Returns:
+            Current and retired documents in descending version order; empty if unknown.
+        """
+        return list(self.get_collection().find({"asp_id": identifier}).sort("version", -1))
+
     def get_asp(self, asp_name: str) -> dict | None:
         """
         Retrieve an assay specific panel (ASP) by its name or ID.

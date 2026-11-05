@@ -66,7 +66,7 @@
         "scopes": [
           "base"
         ],
-        "environments": [],
+        "environments": ["production"],
         "gene_lists": [],
         "existing_gene_list_ids": [],
         "configurations": []
@@ -82,7 +82,9 @@
       "updated_at": "2026-01-01T10:00:00+00:00",
       "review_reason": "",
       "published_by": null,
-      "review_dependencies": null
+      "review_dependencies": null,
+      "reviewer": null,
+      "reviewed_by": null
     }
   }
 ]

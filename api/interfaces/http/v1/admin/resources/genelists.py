@@ -24,6 +24,19 @@ from coyote3.contracts.resource_metadata import GeneListMetadata
 router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
 
 
+@router.get("/api/v1/resources/genelists/{identifier}/versions", response_model=list[dict])
+def resource_versions_read(
+    identifier: str,
+    user: ApiUser = Depends(require_access(permission="gene_list.insilico:view")),
+    service: GeneLists = Depends(get_gene_lists),
+) -> list[dict]:
+    """Read current and retired versions of one resource; requires gene_list.insilico:view.
+
+    Versions are read-only and returned newest first, including retired-only resources.
+    """
+    return util.common.convert_to_serializable(service.versions(identifier=identifier))
+
+
 @router.post(
     "/api/v1/resources/genelists",
     response_model=AdminChangePayload,

@@ -685,6 +685,24 @@ class Assays:
         """
         self._runtime, self._service = runtime, service
 
+    def versions(self, *, identifier: str) -> list[dict[str, Any]]:
+        """Read all retained assay revisions; requires assay.panel:view.
+
+        Args:
+            identifier: Stable assay identifier, including a retired-only assay.
+
+        Returns:
+            Current and retired versions ordered newest first.
+
+        Raises:
+            AppError: Authentication or assay.panel:view permission is missing.
+        """
+        return self._runtime.execute(
+            "assays.versions",
+            ("assay.panel:view",),
+            lambda actor, sample: self._service().versions(identifier),
+        )
+
     def create_asp(self, *, payload: dict[str, Any]) -> dict[str, Any]:
         """Create an assay panel.
 
@@ -1124,6 +1142,24 @@ class AssayConfigurations:
         """
         self._runtime, self._service = runtime, service
 
+    def versions(self, *, identifier: str) -> list[dict[str, Any]]:
+        """Read all retained configuration revisions; requires assay.config:view.
+
+        Args:
+            identifier: Stable configuration identifier, including retired-only scopes.
+
+        Returns:
+            Current and retired versions ordered newest first.
+
+        Raises:
+            AppError: Authentication or assay.config:view permission is missing.
+        """
+        return self._runtime.execute(
+            "assay_configurations.versions",
+            ("assay.config:view",),
+            lambda actor, sample: self._service().versions(identifier),
+        )
+
     def list_aspc(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the assay-config list.
 
@@ -1309,6 +1345,24 @@ class GeneLists:
             service: Lazy operation implementation with injected repositories.
         """
         self._runtime, self._service = runtime, service
+
+    def versions(self, *, identifier: str) -> list[dict[str, Any]]:
+        """Read all retained gene-list revisions; requires gene_list.insilico:view.
+
+        Args:
+            identifier: Stable gene-list identifier, including retired-only lists.
+
+        Returns:
+            Current and retired versions ordered newest first.
+
+        Raises:
+            AppError: Authentication or gene_list.insilico:view permission is missing.
+        """
+        return self._runtime.execute(
+            "gene_lists.versions",
+            ("gene_list.insilico:view",),
+            lambda actor, sample: self._service().versions(identifier),
+        )
 
     def create_genelist(self, *, payload: dict[str, Any]) -> dict[str, Any]:
         """Create a genelist.

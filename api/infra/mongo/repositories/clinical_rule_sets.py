@@ -312,7 +312,9 @@ class ClinicalRuleSetRepository(BaseRepository):
         """Page rule sets by update time and content version, newest first.
 
         Args:
-            status: Exact lifecycle status; falsey values omit this filter.
+            status: Published selects the active publication; retired includes inactive
+                historical publications. Other truthy values select an exact lifecycle
+                status; falsey values omit this filter.
             search: Literal case-insensitive substring of identity, name, assay, or
                 diagnosis; falsey values omit text filtering.
             skip: Number of matching documents to skip.
@@ -322,7 +324,11 @@ class ClinicalRuleSetRepository(BaseRepository):
             Page of documents and total matching count before pagination.
         """
         query: dict[str, Any] = {}
-        if status:
+        if status == "published":
+            query.update(status="published", active=True)
+        elif status == "retired":
+            query.update(status={"$in": ["published", "retired"]}, active=False)
+        elif status:
             query["status"] = status
         if search:
             escaped_search = re.escape(search)

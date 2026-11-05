@@ -36,8 +36,9 @@ class AssaySetupContent(_StrictDocBase):
 
         Returns:
             A copy without display counts or application-managed audit metadata,
-            with missing modality derived from a known sequencing family. Explicit
-            modality values remain subject to validation.
+            with missing modality derived from a known sequencing family. The
+            creation time is retained for stable snapshot reads; the save service
+            discards imported audit fields before creating a draft.
         """
         if isinstance(value, dict):
             panel = {
@@ -45,6 +46,8 @@ class AssaySetupContent(_StrictDocBase):
                 for key, item in configuration_content(value).items()
                 if key not in {"covered_genes_count", "germline_genes_count"}
             }
+            if "created_on" in value:
+                panel["created_on"] = value["created_on"]
             family = str(panel.get("asp_family") or "").strip().lower()
             if "asp_category" not in panel:
                 category = CLINICAL_VOCABULARY.assay_family_categories.get(family)

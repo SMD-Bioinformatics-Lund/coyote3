@@ -72,6 +72,8 @@
         "CNV"
       ],
       "reportable_tiers": {
+        "CNV": [1, 2, 3],
+        "TRANSLOCATION": [1, 2, 3],
         "SNV": [
           1,
           2,
@@ -184,6 +186,8 @@
         "CNV"
       ],
       "reportable_tiers": {
+        "CNV": [1, 2, 3],
+        "TRANSLOCATION": [1, 2, 3],
         "SNV": [
           1,
           2,
@@ -269,6 +273,8 @@
         "QC"
       ],
       "reportable_tiers": {
+        "CNV": [1, 2, 3],
+        "TRANSLOCATION": [1, 2, 3],
         "SNV": [
           1,
           2,

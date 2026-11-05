@@ -221,13 +221,20 @@ class QueryRuleService:
             raise api_error(404, "Query rule not found")
         return document
 
-    def list(self) -> dict:
+    def list(self, *, status: str | None = None) -> dict:
         """Return retained versions without exposing persistence result objects.
 
+        Args:
+            status: Exact workflow status; None retains the complete authoring inventory.
+
         Returns:
-            Items envelope containing policy versions across lifecycle states.
+            Items envelope containing policy versions, optionally restricted by status.
         """
-        return {"items": self.repository.list()}
+        return {
+            "items": [
+                row for row in self.repository.list() if status is None or row["status"] == status
+            ]
+        }
 
     def options(self) -> dict:
         """Return active groups, assays and their available diagnosis scopes.
@@ -615,7 +622,8 @@ class QueryRuleService:
 
         Raises:
             AppError: Version is absent, stale, unavailable, in the wrong state or
-                submitted for approval by its creator or latest editor.
+                submitted for approval by its creator or latest editor. Publication
+                and retirement also reject conflicts in retained descendant policies.
         """
         current = self.repository.get(identifier)
         if not current:
@@ -643,7 +651,14 @@ class QueryRuleService:
         }
         if action == "approve":
             values["approved_by"] = actor
-        if action == "publish":
+        if action in {"publish", "retire"}:
+            # An all-inherit placeholder removes this layer's effect for validation,
+            # while retaining the normal ancestor lookup and environment ordering.
+            candidate_publication = (
+                current
+                if action == "publish"
+                else {**current, "content": QueryRuleContent().model_dump()}
+            )
             for descendant in self.repository.list():
                 if descendant["status"] != "published":
                     continue
@@ -667,7 +682,8 @@ class QueryRuleService:
                     if current["scope_key"] in {
                         ancestor.key() for ancestor in candidate.ancestors()
                     }:
-                        self.resolve(candidate, publication=current)
+                        self.resolve(candidate, publication=candidate_publication)
+        if action == "publish":
             values.update(published_by=actor, published_on=datetime.now(timezone.utc))
         return self.repository.change(identifier, payload.expected_revision, before, values, actor)
 

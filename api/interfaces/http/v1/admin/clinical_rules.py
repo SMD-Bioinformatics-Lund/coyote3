@@ -59,10 +59,13 @@ def list_rule_sets(
 ):
     """List rule sets with optional filters; requires `clinical_rules:view`.
 
+    Published selects current active releases. Retired includes superseded publications.
+
     \u000c
 
     Args:
-        status: Lifecycle status filter, or None to omit it.
+        status: Published selects active releases; retired includes inactive publications.
+            Other statuses match exactly; None leaves the authoring inventory unfiltered.
         q: Search text, or None to omit text filtering.
         page: One-based result page; defaults to 1.
         per_page: Page size from 1 to 200; defaults to 30.

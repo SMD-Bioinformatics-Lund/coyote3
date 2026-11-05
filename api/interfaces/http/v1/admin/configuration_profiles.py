@@ -1,6 +1,8 @@
 """Permission-checked reusable configuration profile authoring and review routes."""
 
-from fastapi import APIRouter, Depends
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query
 
 from api.app.container import util
 from api.app.deps.application import get_configuration_profiles, get_configuration_promotions
@@ -61,11 +63,13 @@ def approve_promotion(
     "/api/v1/resources/configuration-profiles", response_model=list[ConfigurationProfileDoc]
 )
 def list_profiles(
+    status: Literal["draft", "published"] | None = Query(default=None),
+    is_current: bool | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="assay.config:list")),
     service: ConfigurationProfiles = Depends(get_configuration_profiles),
 ):
     """List source revisions for configuration authoring with assay.config:list permission."""
-    return util.common.convert_to_serializable(service.list())
+    return util.common.convert_to_serializable(service.list(status=status, is_current=is_current))
 
 
 @router.post(

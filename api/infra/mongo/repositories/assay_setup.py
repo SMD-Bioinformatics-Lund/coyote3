@@ -16,7 +16,7 @@ from coyote3.domain.common.errors import api_error
 
 
 class AssaySetupRepository(BaseRepository):
-    """Reserve one setup workspace per assay and preserve every saved revision."""
+    """Reserve one setup per assay and retain its published snapshot after activation."""
 
     def __init__(self, adapter: Any) -> None:
         """Bind setup workspaces to the application database."""
@@ -128,7 +128,10 @@ class AssaySetupRepository(BaseRepository):
         action: str,
         bundle: dict | None = None,
     ) -> dict:
-        """Save a revision, optionally publishing all staged resources atomically.
+        """Save a revision, optionally publishing resources and pruning draft snapshots.
+
+        Publication removes this setup's draft/submitted snapshots in the same
+        transaction. Published snapshots and separately recorded audit events remain.
 
         Args:
             candidate: New workspace state, copied before persistence.
@@ -260,6 +263,14 @@ class AssaySetupRepository(BaseRepository):
                 },
                 session=session,
             )
+            if bundle and action == "publish" and payload["status"] == "published":
+                self.adapter.assay_setup_revisions_collection.delete_many(
+                    {
+                        "setup_id": str(payload["_id"]),
+                        "document.status": {"$in": ["draft", "submitted"]},
+                    },
+                    session=session,
+                )
             enqueue_audit(
                 self.get_collection().database,
                 session,
@@ -292,7 +303,7 @@ class AssaySetupRevisionRepository(BaseRepository):
         self.set_collection(adapter.assay_setup_revisions_collection)
 
     def ensure_indexes(self) -> None:
-        """Require one snapshot for every setup revision."""
+        """Allow at most one retained snapshot for each setup revision."""
         self.get_collection().create_index(
             [("setup_id", 1), ("revision", 1)], unique=True, name="setup_revision_unique"
         )

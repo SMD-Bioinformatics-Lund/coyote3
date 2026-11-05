@@ -127,6 +127,17 @@ class ISGLRepository(BaseRepository):
             query["adhoc"] = adhoc
         return int(self.get_collection().count_documents(query))
 
+    def list_versions(self, identifier: str) -> list[dict]:
+        """Read all retained revisions of one exact resource without changing activation.
+
+        Args:
+            identifier: Stable isgl_id business identifier, including retired-only resources.
+
+        Returns:
+            Current and retired documents in descending version order; empty if unknown.
+        """
+        return list(self.get_collection().find({"isgl_id": identifier}).sort("version", -1))
+
     def get_isgl(
         self, isgl_id: str, is_active: bool | None = True, is_public: bool | None = None
     ) -> dict | None:
