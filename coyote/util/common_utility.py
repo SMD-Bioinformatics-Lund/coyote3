@@ -336,14 +336,16 @@ class CommonUtility:
         if not sample_filters:
             merged_filters = deepcopy(filters_config)
         else:
-            # If sample filters are not empty, then merge the default filters with the sample filters
+            # If sample filters are empty, then merge the default filters with the sample filters
             merged_filters = {}
 
             for key, value in filters_config.items():
                 # If the key already exists and is non-empty in the sample's filters, keep it
-                if key in sample_filters and sample_filters[key]:
+                if key in sample_filters and sample_filters[key] is not None:
+                    print(f"Using sample filter for key - {key}: {sample_filters[key]}")
                     merged_filters[key] = sample_filters[key]
                 else:
+                    print(f"Using default filter for key - {key}: {value}")
                     merged_filters[key] = value
 
         if adhoc_genes:
@@ -944,7 +946,7 @@ class CommonUtility:
             genelists,
             fusionlists,
             fusion_callers,
-            fusioneffects,
+            fusion_effects,
             cnveffects,
         ) = ([], [], [], [], [], [])
 
@@ -953,7 +955,7 @@ class CommonUtility:
             "genelist_": genelists,
             "fusionlist_": fusionlists,
             "fusioncaller_": fusion_callers,
-            "fusioneffect_": fusioneffects,
+            "fusioneffect_": fusion_effects,
             "cnveffect_": cnveffects,
         }
 
@@ -972,8 +974,8 @@ class CommonUtility:
                 filters["fusionlists"] = fusionlists
             elif _field == "fusion_callers":
                 filters["fusion_callers"] = fusion_callers
-            elif _field == "fusioneffects":
-                filters["fusioneffects"] = fusioneffects
+            elif _field == "fusion_effects":
+                filters["fusion_effects"] = fusion_effects
             elif _field == "cnveffects":
                 filters["cnveffects"] = cnveffects
             else:

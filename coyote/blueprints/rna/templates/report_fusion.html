@@ -2,12 +2,12 @@
 {% block title %}RNA Report{% endblock %}
 {% block body %}
 
-{% if pdf != 1 %}
+{% if save != 1 %}
 <div class="report-preview-card">
   <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
   <b>*** PREVIEW OF REPORT ***</b><br><br>
   {% if has_access('create_report', min_role='admin') %}
-    <a href="../report/pdf/{{sample.name}}" class="report-button">Finalize Report</a>
+    <a href="{{ url_for('rna_bp.save_rna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
   {% endif %}
 </div>
 {% endif %}
@@ -310,4 +310,3 @@
 </style>
 
 {% endblock %}
-

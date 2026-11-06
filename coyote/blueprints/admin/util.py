@@ -487,6 +487,9 @@ class AdminUtility:
         - Fusions
         - Biomarkers
         - The sample record itself
+        - RNA Expressions
+        - RNA QC
+        - RNA Classifications
 
         Args:
             sample_id (str): The unique identifier of the sample to delete.

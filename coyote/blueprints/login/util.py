@@ -55,6 +55,7 @@ class LoginUtility:
                 attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
             )
         except Exception as ex:
+            app.logger.error(f"LDAP authentication error: {ex}")
             flash(str(ex), "red")
 
         return authorized

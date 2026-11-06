@@ -330,7 +330,7 @@ class DevelopmentConfig(DefaultConfig):
 
     MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
@@ -354,7 +354,7 @@ class TestConfig(DefaultConfig):
 
     MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3_test")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LOGS = "logs/test"
     PRODUCTION = False

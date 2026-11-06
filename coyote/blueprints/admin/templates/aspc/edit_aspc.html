@@ -128,7 +128,7 @@
                       </div>
 
                     {% else %}
-                      <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}" name="{{ key }}" value="{{ value }}" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}" name="{{ key }}" value="{{ value }}" placeholder="{{ field.placeholder }}" {% if field.data_type == 'float' %}step="0.1"{% elif field.data_type == 'int' %}step="1"{% endif %} class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                     {% endif %}
                   </div>
                 {% endfor %}
