@@ -32,6 +32,7 @@ from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.extensions import store, util
 from coyote.blueprints.rna import rna_bp, filters
+from coyote.blueprints.rna.util import RNAUtility
 from datetime import datetime
 from coyote.errors.exceptions import AppError
 from coyote.util.decorators.access import require_sample_access

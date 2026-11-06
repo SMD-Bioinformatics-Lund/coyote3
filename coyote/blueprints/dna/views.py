@@ -1400,6 +1400,7 @@ def save_dna_report(sample_id: str) -> Response:
     "/<string:sample_id>/transloc/picktransloccall/<string:transloc_id>/<string:callidx>/<string:num_calls>",
     methods=["GET", "POST"],
 )
+@require("manage_translocs", min_role="user", min_level=9)
 @require_sample_access("sample_id")
 def pick_transloc_call(
     sample_id: str, transloc_id: str, callidx: str, num_calls: str
@@ -1417,5 +1418,11 @@ def pick_transloc_call(
         Response: Redirects to the translocation details page after updating the picked call.
 
     """
+    sample = store.sample_handler.get_sample(sample_id)
+    if not sample:
+        sample = store.sample_handler.get_sample_by_id(sample_id)
+    transloc = store.transloc_handler.get_transloc(transloc_id)
+    if not transloc or str(transloc.get("SAMPLE_ID")) != str(sample["_id"]):
+        raise AppError(status_code=404, message="Translocation not found for this sample.")
     store.transloc_handler.pick_transloc(transloc_id, callidx, num_calls)
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))

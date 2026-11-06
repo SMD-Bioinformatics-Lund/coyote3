@@ -163,30 +163,34 @@ class DNAUtility:
         """
         selected_variants = []
         for var_idx, var in enumerate(variants):
-            try:
-                variant = RNAUtility.get_selected_fusioncall(var)
-            except Exception:
-                variant = var
+            selected_call = RNAUtility.get_selected_fusioncall(var)
+            lookup = selected_call if selected_call is not None else var   # RNA → call, DNA → var
 
             (
-                variants[var_idx]["global_annotations"],
-                variants[var_idx]["classification"],
-                variants[var_idx]["other_classification"],
-                variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
-            classification = variants[var_idx]["classification"]
-            if classification is not None:
-                class_value = classification.get("class")
-                if (
-                    class_value is not None
-                    and class_value < 999
-                    and not var.get("blacklist")
-                    and not var.get("fp")
-                    and not var.get("irrelevant")
-                ):
-                    selected_variants.append(variants[var_idx])
+                var["global_annotations"],
+                var["classification"],
+                var["other_classification"],
+                var["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(lookup, assay, subpanel)
 
-            variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
+            class_value = (var["classification"] or {}).get("class")
+            if (
+                class_value is not None
+                and class_value < 999
+                and not var.get("blacklist")
+                and not var.get("fp")
+                and not var.get("irrelevant")
+            ):
+                selected_variants.append(var)
+
+            if selected_call is None:
+
+                variants[var_idx] = DNAUtility.add_alt_class(var, assay, subpanel)
+            else:
+
+                alt = DNAUtility.add_alt_class(dict(selected_call), assay, subpanel)
+                var["additional_classification"] = alt["additional_classification"]
+
         return variants, selected_variants
 
     @staticmethod
