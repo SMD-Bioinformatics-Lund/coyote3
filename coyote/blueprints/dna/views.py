@@ -1424,5 +1424,5 @@ def pick_transloc_call(
     transloc = store.transloc_handler.get_transloc(transloc_id)
     if not transloc or str(transloc.get("SAMPLE_ID")) != str(sample["_id"]):
         raise AppError(status_code=404, message="Translocation not found for this sample.")
-    store.transloc_handler.pick_transloc(transloc_id, callidx, num_calls)
+    store.transloc_handler.pick_transloc(transloc_id, callidx)
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))

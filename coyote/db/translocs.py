@@ -298,30 +298,72 @@ class TranslocsHandler(BaseHandler):
         """
         return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
 
-    def pick_transloc(self, id, callidx, num_calls) -> Any:
-        """
-        Pick specific translocation annotation from a translocation annotations documents.
+    # def pick_transloc(self, id, callidx, num_calls) -> Any:
+    #     """
+    #     Pick specific translocation annotation from a translocation annotations documents.
 
-        This method updates the 'annotation' field of a translocation document by selecting a specific annotation based on the provided index and total number of calls.
+    #     This method updates the 'annotation' field of a translocation document by selecting a specific annotation based on the provided index and total number of calls.
+
+    #     Args:
+    #         id (str): The unique identifier of the translocation.
+    #         callidx (int): The index of the annotation to be selected.
+    #         num_calls (int): The total number of annotations available for the translocation.
+
+    #     Returns:
+    #         None
+
+    #     """
+
+    #     num_calls = int(num_calls)
+    #     idx = int(callidx)
+
+    #     update_fields = {}
+
+    #     for i in range(num_calls):
+    #         update_fields["INFO.ANN." + str(i) + ".selected"] = 0
+
+    #     update_fields["INFO.ANN." + str(idx) + ".selected"] = 1
+
+    #     self.get_collection().update({"_id": ObjectId(id)}, {"$set": update_fields})
+
+
+    def pick_transloc(self, transloc_id: str, callidx: int) -> bool:
+        """
+        Mark exactly one annotation in INFO.ANN as selected (MongoDB 3.2 compatible).
+
+        The array length is read from the stored document, never taken from the client.
+        The update is guarded on the array length and the index existing, so an invalid
+        index can never extend or pad the array, and a concurrent change cannot leave
+        two annotations selected.
 
         Args:
-            id (str): The unique identifier of the translocation.
-            callidx (int): The index of the annotation to be selected.
-            num_calls (int): The total number of annotations available for the translocation.
+            transloc_id (str): Translocation document ID.
+            callidx (int): Index of the annotation to select.
 
         Returns:
-            None
-
+            bool: True if the update was applied, False if the document was not found,
+            the index is out of range, or the document changed in the meantime.
         """
+        if not ObjectId.is_valid(transloc_id):
+            return False
+        oid = ObjectId(transloc_id)
 
-        num_calls = int(num_calls)
+        doc = self.get_collection().find_one({"_id": oid}, {"INFO.ANN": 1})
+        anns = ((doc or {}).get("INFO") or {}).get("ANN") or []
+        n = len(anns)
+
         idx = int(callidx)
+        if not 0 <= idx < n:
+            return False
 
-        update_fields = {}
+        update_fields = {f"INFO.ANN.{i}.selected": int(i == idx) for i in range(n)}
 
-        for i in range(num_calls):
-            update_fields["INFO.ANN." + str(i) + ".selected"] = 0
-
-        update_fields["INFO.ANN." + str(idx) + ".selected"] = 1
-
-        self.get_collection().update({"_id": ObjectId(id)}, {"$set": update_fields})
+        result = self.get_collection().update_one(
+            {
+                "_id": oid,
+                "INFO.ANN": {"$size": n},                 # array unchanged since we read it
+                f"INFO.ANN.{idx}": {"$exists": True},     # index really exists
+            },
+            {"$set": update_fields},
+        )
+        return result.matched_count == 1
