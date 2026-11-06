@@ -10,12 +10,7 @@ from coyote3.application.common.access import enforce_assay_group
 from coyote3.application.common.assay_config import get_formatted_assay_config
 from coyote3.application.common.release_resources import assay_resource, gene_list_resources
 from coyote3.application.coverage.processing import CoverageProcessingService
-from coyote3.domain.common.assay_filters import (
-    get_sample_effective_genes,
-    merge_sample_settings_with_assay_config,
-)
-from coyote3.domain.common.errors import setup_error
-from coyote3.domain.common.sample_filters import normalize_sample_filters
+from coyote3.domain.common.errors import setup_error, validation_error
 
 
 class CoverageService:
@@ -45,14 +40,26 @@ class CoverageService:
         self.d4_coverage_repository = d4_coverage_repository
         self.d4_coverage_blacklist_repository = d4_coverage_blacklist_repository
 
-    def sample_payload(self, *, sample: dict, cov_cutoff: int) -> dict[str, Any]:
-        """Return coverage data for a sample.
+    def sample_payload(
+        self, *, sample: dict, cov_cutoff: int, gene_list_id: str | None = None
+    ) -> dict[str, Any]:
+        """Return low coverage within the sample's captured assay scope.
 
         Args:
             sample: Sample payload to inspect.
             cov_cutoff: Coverage threshold for low-coverage detection.
+            gene_list_id: Optional captured gene list narrowing the assay scope.
+                None uses the complete assay scope; a selected list containing
+                no genes matches no measurements.
+
         Returns:
-            dict[str, Any]: Coverage payload for charts and tables.
+            Coverage charts, summary rows and gene scope. A nonempty assay
+            covered_genes list defines scope; otherwise use ingested coverage genes.
+            Finding filters do not affect coverage eligibility.
+
+        Raises:
+            AppError: The applied configuration or its captured assay is unavailable
+                or fails integrity validation, or the selected list is unavailable.
         """
         sample_assay = sample.get("asp_id", "unknown")
         assay_config = get_formatted_assay_config(
@@ -72,17 +79,20 @@ class CoverageService:
 
         assay_group = assay_config.get("asp_group", "unknown")
         assay_panel_doc = assay_resource(assay_config)
-        scoped_sample = merge_sample_settings_with_assay_config(sample, assay_config)
-        filters = normalize_sample_filters(scoped_sample.get("filters"), asp_category="dna")
-        selected = (filters.get("snv") or {}).get("snvlists") or []
-        lists = gene_list_resources(assay_config, selected) if selected else {}
-        _, gene_scope = get_sample_effective_genes(
-            scoped_sample, assay_panel_doc, lists, target="snv"
-        )
-
         cov_dict = self.d4_coverage_repository.get_sample_coverage(str(sample["_id"])) or {}
         cov_dict = deepcopy(cov_dict)
         cov_dict.pop("_id", None)
+        scope_genes = assay_panel_doc.get("covered_genes") or CoverageProcessingService._genes_map(
+            cov_dict
+        )
+        gene_scope = sorted({str(gene).strip() for gene in scope_genes if str(gene).strip()})
+        lists = gene_list_resources(assay_config)
+        if gene_list_id is not None:
+            if gene_list_id not in lists:
+                raise validation_error("Choose a gene list from the sample's applied configuration")
+            gene_scope = sorted(
+                set(gene_scope).intersection(lists[gene_list_id].get("genes") or [])
+            )
         sample_payload = deepcopy(sample)
         sample_payload.pop("_id", None)
 
@@ -106,6 +116,11 @@ class CoverageService:
             "cov_cutoff": cov_cutoff,
             "sample": sample_payload,
             "gene_scope": gene_scope,
+            "gene_list_id": gene_list_id,
+            "gene_lists": [
+                {"id": identity, "label": row.get("displayname") or identity}
+                for identity, row in sorted(lists.items())
+            ],
             "smp_grp": assay_group,
             "cov_table": cov_table,
         }

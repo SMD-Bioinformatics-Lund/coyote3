@@ -3,8 +3,62 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+from pysam import VariantHeader
 
 from coyote3.domain.common.parsers import cmdvcf
+
+
+def test_missing_genotype_alleles_use_vcf_missing_marker():
+    """Missing alleles remain missing rather than becoming literal None text."""
+    rows, _ = cmdvcf.fix_gt({"CASE": {"GT": (None, 1)}}, ["CASE"])
+    assert rows[0]["GT"] == "./1"
+
+
+def test_phased_genotypes_retain_phase_separator():
+    """Phasing is preserved in the persisted genotype string."""
+    header = VariantHeader()
+    header.contigs.add("1")
+    header.add_sample("CASE")
+    header.formats.add("GT", 1, "String", "Genotype")
+    record = header.new_record(contig="1", start=1, alleles=("A", "G"))
+    record.samples["CASE"]["GT"] = (0, 1)
+    record.samples["CASE"].phased = True
+    rows, _ = cmdvcf.fix_gt(dict(record.samples), ["CASE"])
+    assert rows[0]["GT"] == "0|1"
+
+
+@pytest.mark.parametrize("field,key", [("CSQ", "SYMBOL"), ("ANN", "Gene")])
+def test_scalar_annotation_field_is_one_annotation(field, key):
+    """Number-one annotation fields must not be split into individual characters."""
+    result = cmdvcf.fix_info({field: "A|missense_variant|SYNTHETIC"}, _header())
+    assert result[field][0][key] == "SYNTHETIC"
+
+
+def test_csq_header_ignores_trailing_whitespace():
+    """Valid descriptions with trailing whitespace retain their annotation fields."""
+    header = _header()
+    header.info["CSQ"].description += "  "
+    assert cmdvcf.csq(["A|missense_variant|SYNTHETIC"], header)[0]["SYMBOL"] == "SYNTHETIC"
+
+
+def test_snpeff_quoted_format_does_not_include_quote_in_last_key():
+    """SnpEff's quoted format description must not become a quoted field name."""
+    header = _header()
+    header.info["ANN"].description = "Functional annotations: 'Allele | Annotation | Gene'"
+    assert cmdvcf.snpeff(["A|missense_variant|SYNTHETIC"], header)[0]["Gene"] == "SYNTHETIC"
+
+
+def test_parse_vcf_closes_file_on_parser_failure(monkeypatch):
+    """Failed parsing must release its descriptor immediately."""
+    source = Mock(header=_header())
+    source.fetch.side_effect = ValueError("invalid VCF")
+    monkeypatch.setattr(cmdvcf, "VariantFile", lambda _: source)
+    with pytest.raises(ValueError):
+        cmdvcf.parse_vcf("synthetic.vcf")
+    source.close.assert_called_once()
 
 
 def _header():
@@ -103,7 +157,9 @@ def test_parse_vcf_closes_over_variant_file(monkeypatch) -> None:
     monkeypatch.setattr(
         cmdvcf,
         "VariantFile",
-        lambda path: SimpleNamespace(header=header, fetch=lambda: iter([record])),
+        lambda path: SimpleNamespace(
+            header=header, fetch=lambda: iter([record]), close=lambda: None
+        ),
     )
     observed_header, rows = cmdvcf.parse_vcf("input.vcf")
     assert observed_header is header

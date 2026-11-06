@@ -46,7 +46,7 @@ export function ConfigurationTransfer({ label, filename, document, metadataDocum
             if (file.size > 1024 * 1024) throw new Error("File must be no larger than 1 MiB")
             const source = await file.text()
             if (generation !== importGeneration.current || !mounted.current) return
-            const value: unknown = JSON.parse(source)
+            const value: unknown = JSON.parse(source.replace(/^\uFEFF/, ""))
             if (!value || typeof value !== "object" || Array.isArray(value)) {
               throw new Error("Choose a JSON object exported for this resource")
             }

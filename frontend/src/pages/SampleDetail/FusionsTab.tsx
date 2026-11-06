@@ -22,7 +22,7 @@ import {
   tierValue,
 } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
-import { findingBulkActionOptions } from "@/lib/finding-actions";
+import { findingBulkActionOptions, previewBulkAnnotationText } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import { tieredVariantSearchPath } from "@/lib/variant-routing";
 import {
@@ -249,12 +249,16 @@ export function FusionsTab({
           canManage
             ? (table) => (
                 <BulkActionDropdown
-                  selectedCount={Object.keys(table.getState().rowSelection).length}
+                  selectedIds={table.getSelectedRowModel().rows.map(row => String(row.original._id))}
                   actions={fusionBulkActions}
                   isPending={bulkAction.isPending}
-                  onAction={(action) =>
+                  automaticTextAvailable
+                  onPreviewAutomaticText={action => previewBulkAnnotationText(sampleId, action, table.getSelectedRowModel().rows.map(row => String(row.original._id)), "fusion")}
+                  onAction={(action, options) =>
                     bulkAction.mutateAsync({
                       action,
+                      includeAutomaticText: options?.includeAutomaticText,
+                      annotationRuleHash: options?.annotationRuleHash,
                       resourceIds: table
                         .getSelectedRowModel()
                         .rows.map((row: any) => String(row.original._id)),

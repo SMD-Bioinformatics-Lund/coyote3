@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
 
 from coyote3.application.classification.bulk_annotation_rules import (
     bulk_annotation_group_options,
@@ -17,7 +17,11 @@ from coyote3.domain.annotation_identity import primary_small_variant_identity
 from coyote3.domain.annotation_scope import annotation_namespace
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.dna.structural_identity import translocation_annotation_identity
-from coyote3.domain.finding_types import normalize_finding_kind
+from coyote3.domain.finding_types import (
+    ANNOTATION_FINDING_KINDS,
+    FindingKind,
+    normalize_finding_kind,
+)
 
 
 class ResourceClassificationService:
@@ -204,6 +208,12 @@ class ResourceClassificationService:
             return {
                 "variant": f"{selected_call.get('breakpoint1', '')}^{selected_call.get('breakpoint2', '')}",
                 "nomenclature": "f",
+                "automatic_text_context": {
+                    "fusion_gene_1": gene1,
+                    "fusion_gene_2": gene2,
+                    "fusion_breakpoint_1": selected_call.get("breakpoint1"),
+                    "fusion_breakpoint_2": selected_call.get("breakpoint2"),
+                },
                 "variant_data": {
                     **base_context,
                     "gene1": gene1,
@@ -218,6 +228,12 @@ class ResourceClassificationService:
             return {
                 "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
                 "nomenclature": "cn",
+                "automatic_text_context": {
+                    "chromosome": str(cnv["chr"]) if cnv.get("chr") is not None else None,
+                    "start": cnv.get("start"),
+                    "end": cnv.get("end"),
+                    "cnv_effect": cnv.get("effect"),
+                },
                 "variant_data": base_context,
             }
 
@@ -243,6 +259,10 @@ class ResourceClassificationService:
             return {
                 "variant": translocation_annotation_identity(transloc),
                 "nomenclature": "t",
+                "automatic_text_context": {
+                    "fusion_gene_1": gene1,
+                    "fusion_gene_2": gene2,
+                },
                 "variant_data": {
                     **base_context,
                     "gene1": gene1,
@@ -298,9 +318,15 @@ class ResourceClassificationService:
         if preview_only and not (apply and include_automatic_text):
             raise api_error(422, "Annotation preview requires a bulk assignment with text")
         if include_automatic_text:
-            if not apply or class_num not in {1, 2, 3} or normalized_type != "small_variant":
+            if (
+                not apply
+                or class_num not in {1, 2, 3}
+                or normalized_type
+                not in ANNOTATION_FINDING_KINDS.get(str(sample.get("asp_category") or ""), ())
+            ):
                 raise api_error(
-                    422, "Bulk annotation templates support small-variant Tier I–III assignments"
+                    422,
+                    "Bulk annotation templates require a compatible finding type and Tier I–III assignment",
                 )
             try:
                 groups = bulk_annotation_group_options(self.assay_group_repository.list())
@@ -348,6 +374,12 @@ class ResourceClassificationService:
                     rendered = render_bulk_annotation(
                         release,
                         BulkAnnotationPreviewRequest(
+                            **{
+                                key: value
+                                for key, value in text_context.items()
+                                if key not in {"gene", "consequence", "variant_type"}
+                            },
+                            finding_kind=cast(FindingKind, normalized_type),
                             tier=class_num,
                             asp_group=classification_context["asp_group"] or None,
                             gene=text_context.get("gene"),

@@ -59,6 +59,11 @@ export function GlobalRichTooltip() {
       enhancedTitles.set(target, title)
       target.dataset.tooltipContent = title
       target.removeAttribute("title")
+      if (activeTarget.current === target) {
+        setTooltip((current) => current ? {
+          ...current, title, label: tooltipLabel(target, title),
+        } : current)
+      }
     }
     const enhanceTree = (root: ParentNode) => {
       if (root instanceof HTMLElement && root.hasAttribute("title")) enhanceTitle(root)
@@ -74,6 +79,7 @@ export function GlobalRichTooltip() {
           if (node instanceof HTMLElement) enhanceTree(node)
         })
       })
+      if (activeTarget.current && !activeTarget.current.isConnected) close()
     })
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] })
 
@@ -94,7 +100,7 @@ export function GlobalRichTooltip() {
         if (!title) return
         activeTarget.current = target
         previousDescribedBy.current = target.getAttribute("aria-describedby")
-        target.setAttribute("aria-describedby", TOOLTIP_ID)
+        target.setAttribute("aria-describedby", [previousDescribedBy.current, TOOLTIP_ID].filter(Boolean).join(" "))
       }
       const title = target.dataset.tooltipContent
       if (!title) return

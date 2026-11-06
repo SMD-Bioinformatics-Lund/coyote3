@@ -57,14 +57,14 @@ export function createNotification(input: NotificationInput): AppNotification {
 }
 
 export function notify(input: NotificationInput) {
-  const fingerprint = [
+  const fingerprint = JSON.stringify([
     input.tone ?? "info",
     input.title,
     input.message ?? "",
     input.source ?? "",
     input.resource?.type ?? "",
     input.resource?.id ?? input.resource?.name ?? "",
-  ].join("|")
+  ])
   const now = Date.now()
   const previous = recentNotificationKeys.get(fingerprint)
   if (previous && now - previous < DEDUPE_WINDOW_MS) {

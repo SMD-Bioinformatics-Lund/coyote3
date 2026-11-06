@@ -183,14 +183,27 @@ class DnaIngestParser:
 
     @staticmethod
     def _parse_cnvs_only(cnv_doc: Any) -> list[dict[str, Any]]:
-        """Normalize pipeline CNV JSON into a list of contract-shaped CNV docs."""
+        """Normalize every CNV row without silently dropping malformed entries.
+
+        Args:
+            cnv_doc: List of call objects or an object mapping pipeline IDs to calls.
+
+        Returns:
+            Rows with normalized callers, probe counts and ratios. Explicit event
+            types are preserved; symbolic ratio labels precede numeric inference.
+
+        Raises:
+            ValueError: The root or any row is not an accepted object/list shape.
+        """
         if isinstance(cnv_doc, list):
+            if not all(isinstance(row, dict) for row in cnv_doc):
+                raise ValueError("CNV JSON rows must be objects")
             rows = [dict(row) for row in cnv_doc if isinstance(row, dict)]
         elif isinstance(cnv_doc, dict):
             rows = []
             for key, value in cnv_doc.items():
                 if not isinstance(value, dict):
-                    continue
+                    raise ValueError("CNV JSON rows must be objects")
                 row = dict(value)
                 row.setdefault("_pipeline_key", key)
                 rows.append(row)
@@ -204,7 +217,14 @@ class DnaIngestParser:
             normalized["nprobes"] = _normalize_nprobes_field(normalized.get("nprobes"))
             normalized["ratio"] = _normalize_cnv_ratio(normalized.get("ratio"))
             if normalized.get("type") in {None, ""}:
-                normalized["type"] = _infer_cnv_type(normalized.get("ratio"))
+                symbolic_type = {
+                    "AMP": "AMP",
+                    "DEL": "DEL",
+                    "LOSS": "DEL",
+                    "DUP": "DUP",
+                    "GAIN": "DUP",
+                }.get(str(row.get("ratio") or "").strip().upper())
+                normalized["type"] = symbolic_type or _infer_cnv_type(normalized.get("ratio"))
             normalized_rows.append(normalized)
         return normalized_rows
 
@@ -223,127 +243,137 @@ class DnaIngestParser:
 
         Args:
             infile: Absolute path to the SNV VCF file.
+            case_id: Expected tumor sample column, or None to infer its role.
+            control_id: Expected control sample column, or None when unavailable.
+            warnings: Optional caller-owned list receiving sample-role warnings.
 
         Returns:
             A list of variant dicts ready for persistence.
 
         Raises:
             ValueError: If a variant record lacks required GT fields (AF/VAF, DP, VD).
+
+        Notes:
+            The VCF reader is closed on success and on parsing failure.
         """
         filtered: list[dict[str, Any]] = []
-        vcf_object = VariantFile(infile)
-        roles, role_warnings = resolve_vcf_roles(
-            list(vcf_object.header.samples), case_id, control_id
-        )
-        for warning in role_warnings:
-            logging.getLogger(__name__).warning("%s File: %s", warning, infile)
-        if warnings is not None:
-            warnings.extend(role_warnings)
-        processed = 0
-        for processed, var in enumerate(vcf_object.fetch(), start=1):
-            if processed % 1000 == 0:
-                logging.getLogger(__name__).info(
-                    "SNV parsing: records read=%s, retained so far=%s", processed, len(filtered)
+        with VariantFile(infile) as vcf_object:
+            roles, role_warnings = resolve_vcf_roles(
+                list(vcf_object.header.samples), case_id, control_id
+            )
+            for warning in role_warnings:
+                logging.getLogger(__name__).warning("%s File: %s", warning, infile)
+            if warnings is not None:
+                warnings.extend(role_warnings)
+            processed = 0
+            for processed, var in enumerate(vcf_object.fetch(), start=1):
+                if processed % 1000 == 0:
+                    logging.getLogger(__name__).info(
+                        "SNV parsing: records read=%s, retained so far=%s", processed, len(filtered)
+                    )
+                var_dict = cmdvcf.parse_variant(var, vcf_object.header)
+                var_csq = var_dict["INFO"]["CSQ"]
+                if var_csq:
+                    all_features = [c.get("Feature") for c in var_csq]
+                    all_x_genes = [
+                        c.get("SYMBOL") for c in var_csq if c.get("Feature", "").startswith("X")
+                    ]
+                else:
+                    all_features = []
+                    all_x_genes = []
+
+                if (
+                    all_features
+                    and all([f.startswith("X") for f in all_features])
+                    and not any(
+                        g in ["HNF1A", "MZT2A", "SNX9", "KLHDC4", "LMTK3", "PTPA"]
+                        for g in list(set(all_x_genes))
+                    )
+                ):
+                    continue
+
+                if "SVTYPE" in var_dict["INFO"]:
+                    var_dict["INFO"]["TYPE"] = var_dict["INFO"]["SVTYPE"]
+                var_dict = _emulate_perl(var_dict)
+                var_dict.update(_pick_af_fields(var_dict))
+                var_dict["variant_class"] = var_csq[0].get("VARIANT_CLASS") if var_csq else None
+
+                (
+                    slim_csq,
+                    cosmic_list,
+                    dbsnp,
+                    pubmed_list,
+                    transcripts_list,
+                    cdna_list,
+                    prot_list,
+                    genes_list,
+                    hotspots,
+                    consequence_terms,
+                ) = _parse_transcripts(var_csq)
+                vault_csq = _build_transcript_vault_rows(
+                    var_csq,
+                    slim_csq,
                 )
-            var_dict = cmdvcf.parse_variant(var, vcf_object.header)
-            var_csq = var_dict["INFO"]["CSQ"]
-            if var_csq:
-                all_features = [c.get("Feature") for c in var_csq]
-                all_x_genes = [
-                    c.get("SYMBOL") for c in var_csq if c.get("Feature", "").startswith("X")
+
+                selected_csq, selected_source = _select_csq(
+                    slim_csq,
+                    hgnc_by_id=self.hgnc_by_id,
+                    hgnc_by_symbol=self.hgnc_by_symbol,
+                )
+                # Build the immutable VEP vault from the complete transcript set.
+                # It is removed from the mutable variant document after staging.
+                var_dict["INFO"]["CSQ"] = vault_csq
+                # ``Annotation`` is an unstructured pipeline INFO passthrough. It
+                # is not part of the DNA finding contract; structured VEP evidence
+                # is held by the selected CSQ and immutable annotation vault.
+                var_dict["INFO"].pop("Annotation", None)
+                var_dict["INFO"]["selected_CSQ"] = compact_selected_csq(selected_csq)
+                var_dict["INFO"]["selected_CSQ_criteria"] = selected_source
+                var_dict["selected_csq_feature"] = selected_csq["Feature"]
+                var_dict["HGVSp"] = prot_list
+                var_dict["HGVSc"] = cdna_list
+                var_dict["genes"] = genes_list
+                var_dict["transcripts"] = transcripts_list
+                var_dict["cosmic_ids"] = cosmic_list
+                var_dict["dbsnp_id"] = dbsnp
+                var_dict["pubmed_ids"] = pubmed_list
+                var_dict["hotspots"] = [hotspots]
+                var_dict["consequence_terms"] = consequence_terms
+                var_dict["simple_id"] = (
+                    f"{var_dict['CHROM']}_{var_dict['POS']}_{var_dict['REF']}_{var_dict['ALT']}"
+                )
+                var_dict["INFO"]["variant_callers"] = var_dict["INFO"]["variant_callers"].split("|")
+                var_dict["FILTER"] = var_dict["FILTER"].split(";")
+
+                filters = set(var_dict["FILTER"])
+                if "FAIL_NVAF" in filters or "FAIL_LONGDEL" in filters:
+                    continue
+                if any(f.startswith("FAIL_PON_") for f in filters):
+                    continue
+
+                del var_dict["FORMAT"]
+                var_dict["GT"] = [
+                    sample for sample in var_dict["GT"] if sample["_sample_id"] in roles
                 ]
-            else:
-                all_features = []
-                all_x_genes = []
+                var_dict["GT"].sort(key=lambda sample: roles[sample["_sample_id"]] != "case")
+                for index, sample in enumerate(var_dict["GT"]):
+                    required = {"DP", "VD", "GT"}
+                    if not required.issubset(sample) or not {"AF", "VAF"}.intersection(sample):
+                        raise ValueError(
+                            "Invalid VCF: expected AF/VAF, DP, VD and GT in GT entries"
+                        )
+                    var_dict["GT"][index]["type"] = roles[sample["_sample_id"]]
+                    var_dict["GT"][index]["AF"] = sample.get("VAF", sample.get("AF"))
+                    var_dict["GT"][index].pop("VAF", None)
+                    var_dict["GT"][index]["sample"] = var_dict["GT"][index]["_sample_id"]
+                    del var_dict["GT"][index]["_sample_id"]
 
-            if (
-                all_features
-                and all([f.startswith("X") for f in all_features])
-                and not any(
-                    g in ["HNF1A", "MZT2A", "SNX9", "KLHDC4", "LMTK3", "PTPA"]
-                    for g in list(set(all_x_genes))
-                )
-            ):
-                continue
+                filtered.append(ensure_variant_identity_fields(var_dict))
 
-            if "SVTYPE" in var_dict["INFO"]:
-                var_dict["INFO"]["TYPE"] = var_dict["INFO"]["SVTYPE"]
-            var_dict = _emulate_perl(var_dict)
-            var_dict.update(_pick_af_fields(var_dict))
-            var_dict["variant_class"] = var_csq[0].get("VARIANT_CLASS") if var_csq else None
-
-            (
-                slim_csq,
-                cosmic_list,
-                dbsnp,
-                pubmed_list,
-                transcripts_list,
-                cdna_list,
-                prot_list,
-                genes_list,
-                hotspots,
-                consequence_terms,
-            ) = _parse_transcripts(var_csq)
-            vault_csq = _build_transcript_vault_rows(
-                var_csq,
-                slim_csq,
+            logging.getLogger(__name__).info(
+                "SNV parsing complete: records read=%s, retained=%s", processed, len(filtered)
             )
-
-            selected_csq, selected_source = _select_csq(
-                slim_csq,
-                hgnc_by_id=self.hgnc_by_id,
-                hgnc_by_symbol=self.hgnc_by_symbol,
-            )
-            # Build the immutable VEP vault from the complete transcript set.
-            # It is removed from the mutable variant document after staging.
-            var_dict["INFO"]["CSQ"] = vault_csq
-            # ``Annotation`` is an unstructured pipeline INFO passthrough. It
-            # is not part of the DNA finding contract; structured VEP evidence
-            # is held by the selected CSQ and immutable annotation vault.
-            var_dict["INFO"].pop("Annotation", None)
-            var_dict["INFO"]["selected_CSQ"] = compact_selected_csq(selected_csq)
-            var_dict["INFO"]["selected_CSQ_criteria"] = selected_source
-            var_dict["selected_csq_feature"] = selected_csq["Feature"]
-            var_dict["HGVSp"] = prot_list
-            var_dict["HGVSc"] = cdna_list
-            var_dict["genes"] = genes_list
-            var_dict["transcripts"] = transcripts_list
-            var_dict["cosmic_ids"] = cosmic_list
-            var_dict["dbsnp_id"] = dbsnp
-            var_dict["pubmed_ids"] = pubmed_list
-            var_dict["hotspots"] = [hotspots]
-            var_dict["consequence_terms"] = consequence_terms
-            var_dict["simple_id"] = (
-                f"{var_dict['CHROM']}_{var_dict['POS']}_{var_dict['REF']}_{var_dict['ALT']}"
-            )
-            var_dict["INFO"]["variant_callers"] = var_dict["INFO"]["variant_callers"].split("|")
-            var_dict["FILTER"] = var_dict["FILTER"].split(";")
-
-            filters = set(var_dict["FILTER"])
-            if "FAIL_NVAF" in filters or "FAIL_LONGDEL" in filters:
-                continue
-            if any(f.startswith("FAIL_PON_") for f in filters):
-                continue
-
-            del var_dict["FORMAT"]
-            var_dict["GT"] = [sample for sample in var_dict["GT"] if sample["_sample_id"] in roles]
-            var_dict["GT"].sort(key=lambda sample: roles[sample["_sample_id"]] != "case")
-            for index, sample in enumerate(var_dict["GT"]):
-                required = {"AF", "VAF", "DP", "VD", "GT"}
-                if not required.intersection(sample.keys()) or "DP" not in sample:
-                    raise ValueError("Invalid VCF: expected AF/VAF, DP, VD and GT in GT entries")
-                var_dict["GT"][index]["type"] = roles[sample["_sample_id"]]
-                var_dict["GT"][index]["AF"] = var_dict["GT"][index]["VAF"]
-                del var_dict["GT"][index]["VAF"]
-                var_dict["GT"][index]["sample"] = var_dict["GT"][index]["_sample_id"]
-                del var_dict["GT"][index]["_sample_id"]
-
-            filtered.append(ensure_variant_identity_fields(var_dict))
-
-        logging.getLogger(__name__).info(
-            "SNV parsing complete: records read=%s, retained=%s", processed, len(filtered)
-        )
-        return filtered
+            return filtered
 
     def _parse_transloc_only(self, infile: str) -> list[dict[str, Any]]:
         """Parse DNA structural findings using embedded SnpEff and internal HGNC data.

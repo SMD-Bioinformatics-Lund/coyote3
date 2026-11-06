@@ -25,7 +25,22 @@ class UploadedFileIndex(BaseModel):
 
 
 def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> UploadedFileIndex:
-    """Extract a ZIP into destination after validating every archive member."""
+    """Extract a ZIP into destination after validating every archive member.
+
+    Args:
+        archive_path: Uploaded ZIP file to validate and extract.
+        destination: Private staging directory for extracted files.
+
+    Returns:
+        File lookup indexes and checksums for the extracted contents.
+
+    Raises:
+        ValueError: The archive is corrupt, unsafe, or exceeds extraction limits.
+        OSError: Staged files cannot be read or written.
+
+    Notes:
+        The caller owns staging cleanup, including partial extraction on failure.
+    """
     if archive_path.suffix.lower() != ".zip":
         raise ValueError("data_archive must be a .zip file")
 
@@ -48,6 +63,8 @@ def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> Upload
             )
         paths: dict[Path, zipfile.ZipInfo] = {}
         for member in members:
+            if member.flag_bits & 1:
+                raise ValueError("data_archive contains encrypted ZIP members")
             relative_path = _validated_member_path(member)
             if relative_path in paths:
                 raise ValueError(f"data_archive contains a duplicate path: {member.filename!r}")
@@ -71,8 +88,11 @@ def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> Upload
             target = destination / relative_path
             target.parent.mkdir(parents=True, exist_ok=True)
             digest = sha256()
-            with archive.open(member) as source, target.open("xb") as output:
-                shutil.copyfileobj(_DigestingReader(source, digest), output)
+            try:
+                with archive.open(member) as source, target.open("xb") as output:
+                    shutil.copyfileobj(_DigestingReader(source, digest), output)
+            except zipfile.BadZipFile as exc:
+                raise ValueError("data_archive contains corrupt ZIP contents") from exc
 
             resolved = str(target)
             checksums[resolved] = digest.hexdigest()

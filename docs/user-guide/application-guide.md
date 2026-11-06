@@ -505,6 +505,8 @@ filter choices.
 | Base configuration in use | No active diagnosis-specific ASPC was found. | Confirm that base behavior is clinically intended. |
 | Request could not be completed | The API rejected a validly delivered request. | Read the detailed message and request path. |
 | System action failed | An unexpected server or upstream failure occurred. | Record the time and request path for operations. |
+| Invalid server response | A successful HTTP response did not contain readable JSON. | Check whether the operation completed before retrying; report the request path to operations. |
+| Connection interrupted | The request or response download was interrupted. | Restore connectivity and check whether a write completed before retrying. |
 | Module unavailable | An administrator disabled the module. | Contact the application operator. |
 
 ## Before completing a review

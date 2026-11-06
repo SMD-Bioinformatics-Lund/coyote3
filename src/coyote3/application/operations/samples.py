@@ -591,15 +591,29 @@ class Sample:
 
         return self._runtime.execute("sample.plot", ("sample:view",), read, sample_id=self.id)
 
-    def coverage(self, *, cutoff: int = 500) -> dict[str, Any]:
-        """Read the existing coverage analysis at a positive minimum-depth cutoff."""
+    def coverage(self, *, cutoff: int = 500, gene_list_id: str | None = None) -> dict[str, Any]:
+        """Read coverage within the assay scope and an optional captured gene list.
+
+        Args:
+            cutoff: Positive minimum-depth cutoff.
+            gene_list_id: Captured gene-list identity, or None for full assay scope.
+
+        Returns:
+            Coverage measurements, scope and available gene lists.
+
+        Raises:
+            ValueError: The cutoff is not positive.
+            AppError: Sample access is denied or the selected list is unavailable.
+        """
         if cutoff < 1:
             raise ValueError("Coverage cutoff must be positive")
         return self._runtime.execute(
             "sample.coverage",
             ("sample:view",),
             lambda actor, record: dict(
-                self._services.coverage().sample_payload(sample=_sample(record), cov_cutoff=cutoff)
+                self._services.coverage().sample_payload(
+                    sample=_sample(record), cov_cutoff=cutoff, gene_list_id=gene_list_id
+                )
             ),
             sample_id=self.id,
         )

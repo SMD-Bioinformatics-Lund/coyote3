@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SurfacePanel, MetricCard } from "@/components/cards/Panel";
@@ -53,10 +53,10 @@ describe("detail presentation components", () => {
     expect(container.firstElementChild).toHaveClass("min-w-0", "max-w-full", "overflow-hidden");
     fireEvent.click(screen.getByTitle("Expand"));
     expect(screen.getByText("abcdefghijklmnopqrstuvwxyz")).toBeVisible();
-    fireEvent.click(screen.getByTitle("Copy to clipboard"));
+    await act(async () => { fireEvent.click(screen.getByTitle("Copy to clipboard")); });
     expect(writeText).toHaveBeenCalledWith("abcdefghijklmnopqrstuvwxyz");
     expect(screen.getByTitle("Copy to clipboard")).toHaveClass("text-pass");
-    vi.advanceTimersByTime(2000);
+    act(() => { vi.advanceTimersByTime(2000); });
     fireEvent.click(screen.getByTitle("Collapse"));
     expect(screen.getByText("abcdefghij...")).toBeVisible();
   });

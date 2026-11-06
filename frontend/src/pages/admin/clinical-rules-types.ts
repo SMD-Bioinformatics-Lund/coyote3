@@ -14,6 +14,7 @@ export type FactDefinition = {
   kind: "boolean" | "integer" | "number" | "string" | "string_list" | "object_list"
   operators: string[]
   scopes: string[]
+  bulk_annotation_finding_kinds?: AnnotationFindingKind[]
   unit?: string | null
   description?: string
   value_options?: string[]
@@ -61,7 +62,7 @@ export type OutputNode =
   | { type: "list"; path: string; conjunction: string; formatter: "text" | "gene_symbol" | "upper" | "lower"; missing: "error" | "omit" }
   | { type: "number"; path: string; precision: number; unit: "" | "%" | "x"; missing: "error" | "omit" }
   | { type: "message"; count_path: string; one: string; other: string }
-  | { type: "renderer"; name: "dna_report_intro" | "tier_summary" | "fusion_summary" | "cnv_summary"; source?: string }
+  | { type: "renderer"; name: "dna_report_intro" | "tier_summary" | "fusion_summary" | "cnv_summary" | "translocation_summary"; source?: string }
   | { type: "paragraph_break" }
 
 export type ClinicalRule = {
@@ -93,7 +94,12 @@ export type RuleBlock = {
   rules: ClinicalRule[]
 }
 
-export type BulkAnnotationRule = ClinicalRule & { tier: 1 | 2 | 3 }
+export type AnnotationFindingKind = "small_variant" | "cnv" | "translocation" | "fusion"
+export const annotationFindingOptions: Record<"dna" | "rna", { value: AnnotationFindingKind; label: string }[]> = {
+  dna: [{ value: "small_variant", label: "Small variants" }, { value: "cnv", label: "Copy-number variants" }, { value: "translocation", label: "Translocations" }],
+  rna: [{ value: "fusion", label: "Fusions" }],
+}
+export type BulkAnnotationRule = ClinicalRule & { tier: 1 | 2 | 3; finding_kind?: AnnotationFindingKind }
 
 export type ClinicalRuleSet = {
   _id: string

@@ -3,6 +3,26 @@ import { describe, expect, it } from "vitest"
 import { markdownToHtml } from "./markdown-format"
 
 describe("markdownToHtml", () => {
+  it("keeps formatting syntax literal inside code", () => {
+    expect(markdownToHtml("`**literal**`")).toBe("<p><code>**literal**</code></p>")
+    expect(markdownToHtml("```first\n\n**second**```" )).toContain("<pre><code>first\n\n**second**</code></pre>")
+  })
+  it("preserves text resembling internal escape markers", () => {
+    expect(markdownToHtml("@@COYOTE_ESC_0@@")).toBe("<p>@@COYOTE_ESC_0@@</p>")
+  })
+  it("recognizes Windows newlines as paragraph boundaries", () => {
+    expect(markdownToHtml("first\r\n\r\nsecond")).toBe("<p>first</p><p>second</p>")
+  })
+  it("removes accepted indentation before quote and list markers", () => {
+    expect(markdownToHtml("  > quote")).toBe("<blockquote>quote</blockquote>")
+    expect(markdownToHtml("  - item")).toBe("<ul><li>item</li></ul>")
+  })
+  it("preserves the starting number of ordered lists", () => {
+    expect(markdownToHtml("3. third\n4. fourth")).toBe('<ol start="3"><li>third</li><li>fourth</li></ol>')
+  })
+  it("does not nest block headings inside paragraphs", () => {
+    expect(markdownToHtml("# Heading")).toBe("<h1>Heading</h1>")
+  })
   it("escapes raw HTML before applying supported formatting", () => {
     expect(markdownToHtml('<script>alert("x")</script> & text')).toBe(
       "<p>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; text</p>",

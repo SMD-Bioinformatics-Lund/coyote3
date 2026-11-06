@@ -22,6 +22,7 @@ export function PageSizeSelect({
   className,
   ariaLabel = "Rows per page",
 }: PageSizeSelectProps) {
+  const options = [...new Set<number>([...TABLE_PAGE_SIZE_OPTIONS, value])].sort((a, b) => a - b)
   return (
     <select
       id={id}
@@ -34,7 +35,7 @@ export function PageSizeSelect({
         className,
       )}
     >
-      {TABLE_PAGE_SIZE_OPTIONS.map((option) => (
+      {options.map((option) => (
         <option key={option} value={option}>
           {optionLabel?.(option) ?? `${option}${showPageSuffix ? " / page" : ""}`}
         </option>

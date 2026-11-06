@@ -6,6 +6,12 @@ import { ExpandableText } from "./ExpandableText"
 import { RotatableImage } from "./RotatableImage"
 
 describe("detail interaction components", () => {
+  it("retries loading when the image source changes after failure", () => {
+    const view = render(<RotatableImage src="/missing.png" alt="Profile" />)
+    fireEvent.error(screen.getByAltText("Profile"))
+    view.rerender(<RotatableImage src="/available.png" alt="Profile" />)
+    expect(screen.getByAltText("Profile")).toHaveAttribute("src", "/available.png")
+  })
   it("expands, collapses, and copies long text", async () => {
     const user = userEvent.setup()
     const writeText = vi.fn().mockResolvedValue(undefined)

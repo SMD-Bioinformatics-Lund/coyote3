@@ -251,6 +251,41 @@ def _structural_fact(finding: dict[str, Any], kind: str) -> dict[str, Any]:
     }
 
 
+def _translocation_summaries(translocations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group selected DNA fusions and retain the largest observed PR, SR and UR support.
+
+    Args:
+        translocations: Prepared report candidates with interesting, INFO and GT fields.
+
+    Returns:
+        Groups in first-occurrence order. Only explicitly interesting calls with
+        two annotated genes contribute. Missing, invalid or negative support is
+        omitted; zero remains an observed value. PR/SR fractions are rounded to
+        three decimals before conversion to percentages, using the shared report
+        evidence helper to avoid binary floating-point artifacts in the text.
+    """
+    groups: dict[tuple[str, str], dict[str, Any]] = {}
+    for finding in translocations:
+        if not finding.get("interesting"):
+            continue
+        facts = _structural_fact(finding, "translocation")
+        genes = facts["genes"]
+        if len(genes) != 2:
+            continue
+        group = groups.setdefault(tuple(genes), {"genes": genes})
+        for genotype in finding.get("GT") or []:
+            for field, target in (("PR", "paired_read_percent"), ("SR", "split_read_percent")):
+                percent = supporting_read_percent(genotype.get(field))
+                if percent is None:
+                    continue
+                group[target] = max(group.get(target, 0), percent)
+        unique = (finding.get("INFO") or {}).get("UR")
+        if isinstance(unique, (int, float)) and not isinstance(unique, bool):
+            if math.isfinite(unique) and unique >= 0:
+                group["unique_reads"] = max(group.get("unique_reads", 0), unique)
+    return list(groups.values())
+
+
 def _gene_list_fact(gene_list: dict[str, Any], assay: dict[str, Any]) -> dict[str, Any]:
     """Project an applied gene list into the report fact fields.
 
@@ -397,6 +432,7 @@ def prepare_report_context(
     findings.extend(_structural_fact(item, "translocation") for item in translocations)
     tier_summaries = _tier_summaries(snvs)
     cnv_summaries = _cnv_summaries(cnvs, cnv_facts)
+    translocation_summaries = _translocation_summaries(translocations)
     tier_counts = {
         tier: next(
             (
@@ -463,6 +499,8 @@ def prepare_report_context(
             "tier_summaries": tier_summaries,
             "cnv_summaries": cnv_summaries,
             "cnv_summary_count": len(cnv_summaries),
+            "translocation_summaries": translocation_summaries,
+            "translocation_summary_count": len(translocation_summaries),
             "has_tiered_snvs": bool(tier_summaries),
             "has_reportable_findings": bool(findings or biomarkers),
         },

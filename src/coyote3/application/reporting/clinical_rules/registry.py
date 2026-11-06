@@ -7,12 +7,22 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from coyote3.config.loaders.filter_flags import filter_flag_options
+from coyote3.domain.finding_types import FindingKind
 
 FactKind = Literal["boolean", "integer", "number", "string", "string_list", "object_list"]
+_ANNOTATION_KINDS: tuple[FindingKind, ...] = ("small_variant", "cnv", "fusion", "translocation")
 
 BULK_ANNOTATION_FACT_PATHS = frozenset(
     {
         "finding.gene",
+        "finding.fusion_gene_1",
+        "finding.fusion_gene_2",
+        "finding.fusion_breakpoint_1",
+        "finding.fusion_breakpoint_2",
+        "finding.chromosome",
+        "finding.start",
+        "finding.end",
+        "finding.cnv_effect",
         "finding.consequence",
         "finding.tier",
         "finding.hgvsc",
@@ -39,6 +49,36 @@ BULK_ANNOTATION_FACT_PATHS = frozenset(
     }
 )
 
+_STRUCTURAL_ANNOTATION_PATHS = {
+    "cnv": frozenset({"finding.chromosome", "finding.start", "finding.end", "finding.cnv_effect"}),
+    "fusion": frozenset(
+        {
+            "finding.fusion_gene_1",
+            "finding.fusion_gene_2",
+            "finding.fusion_breakpoint_1",
+            "finding.fusion_breakpoint_2",
+        }
+    ),
+    "translocation": frozenset({"finding.fusion_gene_1", "finding.fusion_gene_2"}),
+}
+
+
+def bulk_annotation_fact_paths(kind: FindingKind) -> frozenset[str]:
+    """Return annotation facts supplied by the selected finding workflow.
+
+    Args:
+        kind: Canonical finding type selected for this template.
+
+    Returns:
+        Shared assay/group/tier facts plus finding-specific identity fields.
+    """
+    if kind == "small_variant":
+        return BULK_ANNOTATION_FACT_PATHS - frozenset().union(
+            *_STRUCTURAL_ANNOTATION_PATHS.values()
+        )
+    shared = {path for path in BULK_ANNOTATION_FACT_PATHS if path.startswith(("sample.", "asp."))}
+    return frozenset(shared | {"finding.tier"}) | _STRUCTURAL_ANNOTATION_PATHS[kind]
+
 
 class ClinicalFactDefinition(BaseModel):
     """Immutable fact metadata defining rule operators, scopes, and editor hints."""
@@ -55,6 +95,7 @@ class ClinicalFactDefinition(BaseModel):
     description: str = ""
     value_options: tuple[str, ...] = ()
     value_format: Literal["gene", "integer", "number", "text"] = "text"
+    bulk_annotation_finding_kinds: tuple[FindingKind, ...] = ()
 
 
 def _fact(
@@ -96,6 +137,9 @@ def _fact(
         unit=unit,
         value_options=value_options,
         value_format=value_format,
+        bulk_annotation_finding_kinds=tuple(
+            kind for kind in _ANNOTATION_KINDS if path in bulk_annotation_fact_paths(kind)
+        ),
     )
 
 
@@ -114,6 +158,15 @@ _NUMBER = (
     "is_unknown",
 )
 _LIST = ("contains", "overlaps", "is_empty", "exists", "is_unknown")
+
+_FUSION_FACTS: tuple[tuple[str, str, FactKind, tuple[str, ...]], ...] = (
+    ("fusion_breakpoint_1", "First fusion breakpoint", "string", _EQUALITY),
+    ("fusion_breakpoint_2", "Second fusion breakpoint", "string", _EQUALITY),
+    ("fusion_effect", "Fusion effect", "string", _EQUALITY),
+    ("fusion_spanning_pairs", "Fusion spanning pairs", "integer", _NUMBER),
+    ("fusion_spanning_reads", "Fusion spanning reads", "integer", _NUMBER),
+    ("fusion_annotation", "Fusion annotation text", "string", _EQUALITY),
+)
 
 
 FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
@@ -409,14 +462,7 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("finding.end", "CNV end", "Finding", "integer", _NUMBER, ("each_finding",)),
     *(
         _fact(f"finding.{field}", label, "Fusion", kind, operators, ("each_finding",))
-        for field, label, kind, operators in (
-            ("fusion_breakpoint_1", "First fusion breakpoint", "string", _EQUALITY),
-            ("fusion_breakpoint_2", "Second fusion breakpoint", "string", _EQUALITY),
-            ("fusion_effect", "Fusion effect", "string", _EQUALITY),
-            ("fusion_spanning_pairs", "Fusion spanning pairs", "integer", _NUMBER),
-            ("fusion_spanning_reads", "Fusion spanning reads", "integer", _NUMBER),
-            ("fusion_annotation", "Fusion annotation text", "string", _EQUALITY),
-        )
+        for field, label, kind, operators in _FUSION_FACTS
     ),
     _fact(
         "finding.cnv_effect",
@@ -456,6 +502,19 @@ FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
     _fact("aggregates.tier_4_count", "Tier IV SNV count", "Result", "integer", _NUMBER),
     _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
     _fact("aggregates.cnv_summary_count", "CNV summary group count", "Result", "integer", _NUMBER),
+    *(
+        _fact(
+            f"aggregates.tier_{tier}_count", f"Tier {tier} SNV count", "Result", "integer", _NUMBER
+        )
+        for tier in (1, 2, 3, 4)
+    ),
+    _fact(
+        "aggregates.translocation_summary_count",
+        "DNA fusion summary group count",
+        "Result",
+        "integer",
+        _NUMBER,
+    ),
     _fact("aggregates.cnv_summaries", "Grouped CNV evidence", "Result", "object_list", _LIST),
     _fact(
         "aggregates.has_reportable_findings",

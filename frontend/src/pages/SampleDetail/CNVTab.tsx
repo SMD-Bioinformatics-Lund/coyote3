@@ -12,7 +12,7 @@ import { AppLoader } from "@/components/layout/AppLoader";
 import { ColumnDef } from "@tanstack/react-table";
 import { findingRowClass, normalizedCallerList, statusLabels } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
-import { findingBulkActionOptions } from "@/lib/finding-actions";
+import { findingBulkActionOptions, previewBulkAnnotationText } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import { sampleFileName, hasSampleFile } from "@/lib/sample-shape";
 import { apiPath } from "@/lib/runtime-paths";
@@ -310,12 +310,16 @@ export function CNVTab({
           canManage
             ? (table) => (
                 <BulkActionDropdown
-                  selectedCount={Object.keys(table.getState().rowSelection).length}
+                  selectedIds={table.getSelectedRowModel().rows.map(row => String(row.original._id))}
                   actions={cnvBulkActions}
                   isPending={bulkAction.isPending}
-                  onAction={(action) =>
+                  automaticTextAvailable
+                  onPreviewAutomaticText={action => previewBulkAnnotationText(sampleId, action, table.getSelectedRowModel().rows.map(row => String(row.original._id)), "cnv")}
+                  onAction={(action, options) =>
                     bulkAction.mutateAsync({
                       action,
+                      includeAutomaticText: options?.includeAutomaticText,
+                      annotationRuleHash: options?.annotationRuleHash,
                       resourceIds: table
                         .getSelectedRowModel()
                         .rows.map((row: any) => String(row.original._id)),

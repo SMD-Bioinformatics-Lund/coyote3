@@ -42,7 +42,7 @@ STANDARD_TIER_SUMMARY_PHRASES: dict[str, Any] = {
     "next_prefix": "Vidare ses ",
     "final_prefix": "Slutligen ses ",
     "number_gender": "n",
-    "finding_singular": "mutation",
+    "finding_singular": "variant",
     "finding_plural_suffix": "er",
     "tier_labels": {str(tier): label for tier, label in TIER_SUMMARY_LABELS.items()},
     "single_gene_prefix": " i ",

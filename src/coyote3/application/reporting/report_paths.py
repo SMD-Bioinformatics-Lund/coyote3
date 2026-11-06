@@ -15,11 +15,26 @@ def build_report_file_location(
     default_assay_group: str,
     reports_base_path: str,
 ) -> Tuple[str, str, str]:
-    """Build report id/path/file location used by both DNA and RNA save flows."""
+    """Build the report identity and validated file location for DNA and RNA saves.
+
+    Args:
+        sample: Sample identifiers and optional case/control records; null records
+            contribute no clarity identifier.
+        assay_config: Published configuration containing reporting.report_folder.
+        default_assay_group: Assay group used in missing-configuration diagnostics.
+        reports_base_path: Root directory within which report files must remain.
+
+    Returns:
+        Report identifier, absolute parent directory and HTML file path.
+
+    Raises:
+        AppError: Report identifiers or configured folders contain unsafe paths,
+            or the report folder is missing.
+    """
     case_id = sample.get("case_id")
     control_id = sample.get("control_id")
-    clarity_case_id = sample.get("case", {}).get("clarity_id")
-    clarity_control_id = sample.get("control", {}).get("clarity_id")
+    clarity_case_id = (sample.get("case") or {}).get("clarity_id")
+    clarity_control_id = (sample.get("control") or {}).get("clarity_id")
     report_timestamp = get_report_timestamp()
 
     if control_id:

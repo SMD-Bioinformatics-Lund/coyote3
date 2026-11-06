@@ -150,6 +150,11 @@ function renderDetail(path = "/samples/legacy-id/variant/variant-1") {
 }
 
 describe("VariantDetail", () => {
+  it("encodes decoded route identifiers before requesting finding data", async () => {
+    vi.mocked(api.get).mockImplementation(() => new Promise(() => undefined) as never)
+    renderDetail("/samples/CASE%20%231/variant/variant%3F1")
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/samples/CASE%20%231/small-variants/variant%3F1"))
+  })
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
     vi.mocked(api.patch).mockReset()

@@ -21,6 +21,37 @@ const data: Row[] = [
 ]
 
 describe("DataTable", () => {
+  it("does not export a rendered header's JavaScript source", async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+    render(<DataTable data={data} columns={[{ accessorKey: "gene", header: () => <span>Gene</span> }]} />)
+    fireEvent.click(screen.getByRole("button", { name: "Export to CSV" }))
+    const blob = vi.mocked(URL.createObjectURL).mock.calls.at(-1)?.[0] as Blob
+    expect((await blob.text()).split("\n")[0]).toBe('"gene"')
+    vi.mocked(URL.createObjectURL).mockClear()
+    vi.mocked(HTMLAnchorElement.prototype.click).mockRestore()
+  })
+  it("honors an explicit client page size", () => {
+    render(<DataTable data={Array.from({ length: 30 }, (_, index) => ({ gene: `GENE${index}`, tier: 1, note: "" }))}
+      columns={columns} perPage={25} />)
+    expect(screen.queryByText("GENE25")).not.toBeInTheDocument()
+  })
+
+  it("does not transfer selection to another record occupying the same row index", () => {
+    const toolbar = (table: import("@tanstack/react-table").Table<Row>) => <>
+      <button onClick={() => table.getRowModel().rows[0].toggleSelected()}>Select first</button>
+      <output aria-label="Selected genes">{table.getSelectedRowModel().rows.map(row => row.original.gene).join(",")}</output>
+    </>
+    const view = render(<DataTable data={data} columns={columns} renderToolbar={toolbar} />)
+    fireEvent.click(screen.getByRole("button", { name: "Select first" }))
+    expect(screen.getByLabelText("Selected genes")).toHaveTextContent("TP53")
+    view.rerender(<DataTable data={[data[1], data[0]]} columns={columns} renderToolbar={toolbar} />)
+    expect(screen.getByLabelText("Selected genes")).not.toHaveTextContent("ABL1")
+  })
+  it("ignores malformed persisted sorting instead of crashing the table", () => {
+    window.sessionStorage.setItem("coyote3.table.broken.sorting", '{"id":"gene"}')
+    render(<DataTable data={data} columns={columns} stateKey="broken" />)
+    expect(screen.getByText("TP53")).toBeVisible()
+  })
   it("searches nullable, numeric, list and display-only columns without searching excluded fields", () => {
     const rows = [{ name: "First", note: null, count: 0, tags: [] }, { name: "Second", note: "unique note", count: 23, tags: ["Fusion"] }]
     render(<DataTable data={rows} columns={[

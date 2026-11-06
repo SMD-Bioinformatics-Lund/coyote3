@@ -40,10 +40,17 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
     const endpoint = `/editing/${encodeURIComponent(kind)}/${encodeURIComponent(identity)}`
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | undefined
+    let expiryTimer: ReturnType<typeof setTimeout> | undefined
     const update = (lease: Lease | null, error = "") => {
+      clearTimeout(expiryTimer)
       const next = { key, session, lease, error }
       current.current = next
       setState(next)
+      if (lease?.owned && lease.expires_at) {
+        expiryTimer = setTimeout(() => {
+          if (!disposed) update(null, "Editing session expired. Keep your unsaved text and reload before editing again.")
+        }, Math.max(0, Date.parse(lease.expires_at) - Date.now()))
+      }
     }
     const release = () => api.post(`${endpoint}/release`, { editor_id: session }, { keepalive: true }).catch(() => undefined)
     const leavePage = () => {
@@ -81,6 +88,7 @@ export function useDocumentEditor(kind: string, identity: string, enabled: boole
     return () => {
       disposed = true
       clearTimeout(timer)
+      clearTimeout(expiryTimer)
       window.removeEventListener("pagehide", leavePage)
       current.current = null
       cleanup.current = acquiring.then(release).then(() => undefined)

@@ -14,8 +14,8 @@ class EmptyResultMessages(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    SNV: ReportMessage = "Inga detekterade mutationer"
-    GERMLINE_SNV: ReportMessage = "Inga detekterade germline-mutationer"
+    SNV: ReportMessage = "Inga detekterade varianter"
+    GERMLINE_SNV: ReportMessage = "Inga detekterade germline-varianter"
     CNV: ReportMessage = "Inga detekterade kopietalsförändringar."
     TRANSLOCATION: ReportMessage = "Inga detekterade fusioner"
     FUSION: ReportMessage = "Inga detekterade fusioner"

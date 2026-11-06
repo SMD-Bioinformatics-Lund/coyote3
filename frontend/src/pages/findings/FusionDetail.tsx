@@ -50,7 +50,7 @@ export function FusionDetail() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['fusion', id, varId],
-    queryFn: () => api.get(`/samples/${id}/fusions/${varId}`).then(res => res.data)
+    queryFn: () => api.get(`/samples/${encodeURIComponent(id || "")}/fusions/${encodeURIComponent(varId || "")}`).then(res => res.data)
   })
   const callsLength = Array.isArray(data?.fusion?.calls) ? data.fusion.calls.length : 0
   const pickCall = useMutation({

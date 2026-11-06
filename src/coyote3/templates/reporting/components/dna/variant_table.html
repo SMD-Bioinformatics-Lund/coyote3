@@ -1,5 +1,5 @@
 <table class="variant_table">
-    <tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
+    <tr><th>Gen</th><th>Variant</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
     {% for var in variants %}
       <tr>
         <td>{{ var.symbol }}</td>
@@ -8,6 +8,6 @@
         <td>{{ var.class_short_desc }}</td>
       </tr>
     {% else %}
-      <tr><td>Inga detekterade mutationer</td></tr>
+      <tr><td>Inga detekterade varianter</td></tr>
     {% endfor %}
   </table>

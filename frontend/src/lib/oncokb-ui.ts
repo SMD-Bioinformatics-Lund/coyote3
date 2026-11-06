@@ -11,5 +11,5 @@ export type OncoKbGeneRecord = {
 export function isOncoKbGene(gene: string | undefined, oncokbGenes?: string[] | Record<string, OncoKbGeneRecord>) {
   if (!gene) return false
   if (Array.isArray(oncokbGenes)) return oncokbGenes.includes(gene)
-  return Boolean(oncokbGenes?.[gene])
+  return Boolean(oncokbGenes && Object.hasOwn(oncokbGenes, gene) && oncokbGenes[gene])
 }

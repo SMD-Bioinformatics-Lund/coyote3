@@ -26,9 +26,14 @@ export function dateRangeLabel(preset: DateRangePreset): string {
 }
 
 function localDateBoundary(value: string, nextDay = false) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const [year, month, day] = value.split("-").map(Number)
   if (!year || !month || !day) return null
-  const boundary = new Date(year, month - 1, day + (nextDay ? 1 : 0))
+  const boundary = new Date(0)
+  boundary.setFullYear(year, month - 1, day)
+  boundary.setHours(0, 0, 0, 0)
+  if (boundary.getFullYear() !== year || boundary.getMonth() !== month - 1 || boundary.getDate() !== day) return null
+  if (nextDay) boundary.setDate(boundary.getDate() + 1)
   return Number.isNaN(boundary.getTime()) ? null : boundary.toISOString()
 }
 

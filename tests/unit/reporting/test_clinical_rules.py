@@ -794,10 +794,10 @@ def test_optional_swedish_sentence_wording_matches_grouped_default_branch_output
         },
     ]
     assert render_tier_summary(groups, terms).strip() == (
-        "Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) "
-        "i BCOR (i 2% av läsningarna). Vidare ses två mutationer av potentiell "
+        "Vid analysen finner man en variant av stark klinisk signifikans (Tier I) "
+        "i BCOR (i 2% av läsningarna). Vidare ses två varianter av potentiell "
         "klinisk signifikans (Tier II): en i SUZ12 (18%) och en i CUX1 (4%). "
-        "Slutligen ses en mutation av oklar klinisk signifikans (Tier III) "
+        "Slutligen ses en variant av oklar klinisk signifikans (Tier III) "
         "i ROBO2 (i 16% av läsningarna)."
     )
     terms["tier_summary"]["first_prefix"] = "Changed draft wording"

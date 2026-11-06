@@ -1,7 +1,17 @@
 """Tests for stable reporting language and HGVS residue notation helpers."""
 
 from coyote3.domain.common.reporting import nl_num
-from coyote3.domain.dna.notation import one_letter_p, three_letter_p
+from coyote3.domain.dna.notation import one_letter_p, standard_hgvs, three_letter_p
+
+
+def test_standard_hgvs_preserves_existing_prediction_parentheses():
+    """Already normalized protein notation must not acquire duplicate parentheses."""
+    assert standard_hgvs("p.(Arg175His)") == "p.(Arg175His)"
+
+
+def test_three_letter_conversion_preserves_predicted_substitution_syntax():
+    """Both residues are expanded inside prediction parentheses."""
+    assert three_letter_p("p.(R175H)") == "p.(Arg175His)"
 
 
 def test_swedish_small_numbers_respect_neuter_form_and_bounds():

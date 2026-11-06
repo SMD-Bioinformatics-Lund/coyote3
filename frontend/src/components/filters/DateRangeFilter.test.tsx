@@ -12,6 +12,9 @@ import {
 } from "./date-range"
 
 describe("DateRangeFilter", () => {
+  it("rejects impossible custom calendar dates rather than rolling them forward", () => {
+    expect(resolveDateRange("custom", "2026-02-30", "2026-13-01")).toEqual({ addedFrom: null, addedUntil: null })
+  })
   it("normalizes presets and exposes their display labels", () => {
     expect(parseDateRangePreset("7d")).toBe("7d")
     expect(parseDateRangePreset("unsupported")).toBe("all")

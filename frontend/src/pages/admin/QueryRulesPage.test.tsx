@@ -63,14 +63,22 @@ it("exports only portable query content from a read-only published version", asy
   expect(screen.queryByRole("button", { name: "Import JSON" })).not.toBeInTheDocument()
 })
 
-it("validates an import and stages a new draft without copying its lifecycle", async () => {
+it.each([
+  { binding: "group", importedScope: scope, resolvedScope: scope },
+  { binding: "assay", importedScope: { ...scope, asp_id: "panel" },
+    resolvedScope: { ...scope, asp_id: "panel", family: "panel-dna", modality: "dna" } },
+  { binding: "family", importedScope: { ...scope, family: "panel-dna", modality: "dna" },
+    resolvedScope: { ...scope, family: "panel-dna", modality: "dna" } },
+])("imports a $binding policy and preserves its authored binding through preview and save", async ({ importedScope, resolvedScope }) => {
   const originalPost = vi.mocked(api.post).getMockImplementation()!
   vi.mocked(api.post).mockImplementation(async (path, body, options) => path === "/admin/query-rule-sets"
     ? { status: 201, data: { ...rule, ...body as object, status: "draft" } }
-    : originalPost(path, body, options))
+    : path === "/admin/query-rule-sets/preview"
+      ? { status: 200, data: { scope: resolvedScope, evidence_mode: "paired", exceptions: [], lineage: [] } }
+      : originalPost(path, body, options))
   mount()
   await screen.findByText("No published overrides. Default policies apply.")
-  const document = { name: rule.name, scope, content: rule.content }
+  const document = { name: rule.name, scope: importedScope, content: rule.content }
   const file = new File([JSON.stringify(document)], "query.json")
   Object.defineProperty(file, "text", { value: async () => JSON.stringify(document) })
   fireEvent.change(screen.getByLabelText("Import query rules JSON"), { target: { files: [file] } })
@@ -78,9 +86,16 @@ it("validates an import and stages a new draft without copying its lifecycle", a
   expect(screen.getByLabelText("Change or review reason")).toHaveValue("")
   expect(screen.getByRole("button", { name: "Save draft" })).toBeDisabled()
   expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
-    scope, content: rule.content,
+    scope: importedScope, content: rule.content,
   }, { errorNotice: "inline" })
   expect(api.post).not.toHaveBeenCalledWith("/admin/query-rule-sets", expect.anything())
+  fireEvent.click(screen.getByRole("button", { name: "Preview effective policy" }))
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+    scope: importedScope, content: rule.content,
+  }))
+  expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+    scope: importedScope,
+  })
   fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Reviewed imported policy" } })
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets", {

@@ -7,6 +7,7 @@ import pytest
 from coyote3.application.classification.tiering import ResourceClassificationService
 from coyote3.application.classification.variant_annotation import ResourceAnnotationService
 from coyote3.application.common.release_resources import capture_assay_resource
+from coyote3.domain.exceptions import AppError
 
 
 class _AnnotationHandlerStub:
@@ -321,6 +322,78 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     }
 
 
+@pytest.mark.parametrize(
+    "kind,analyte,identity,path,expected",
+    [
+        ("fusion", "rna", "fus-1", "fusion_gene_1", "EML4"),
+        ("cnv", "dna", "cnv-1", "chromosome", "7"),
+        ("translocation", "dna", "tl-1", "fusion_gene_1", "BCR"),
+    ],
+)
+def test_structural_bulk_annotation_preview_and_persistence(
+    monkeypatch, kind, analyte, identity, path, expected
+):
+    """Structural bulk text preserves preview provenance and writes only after confirmation."""
+    from coyote3.application.reporting.clinical_rules.validation import content_hash
+    from coyote3.contracts.schemas.clinical_rules import BulkAnnotationRule
+    from tests.unit.reporting.test_clinical_rules import _document
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _: {
+            "asp_group": "hematology",
+            "asp_id": "assay",
+            "namespace": "production",
+            "diagnosis_id": "base",
+            "configuration": {},
+        },
+    )
+    release = _document(status="published", active=True)
+    release.scope.analyte = analyte
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="structural",
+            name="Structural text",
+            tier=3,
+            finding_kind=kind,
+            order=10,
+            output=[{"type": "fact", "path": f"finding.{path}"}],
+        )
+    ]
+    release.content_hash = content_hash(release)
+    service.clinical_rule_service = SimpleNamespace(bulk_annotation_release=lambda **_: release)
+    arguments = dict(
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "environment": "production",
+            "asp_category": analyte,
+        },
+        resource_type=kind,
+        resource_ids=[identity],
+        apply=True,
+        class_num=3,
+        include_automatic_text=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    preview = service.set_tier_bulk(**arguments, preview_only=True)
+    assert preview[0]["text"] == expected
+    assert repo.annotation_repository.inserted_bulk is None
+    with pytest.raises(AppError, match="changed after preview") as error:
+        service.set_tier_bulk(**arguments, annotation_rule_hash="outdated")
+    assert error.value.status_code == 409
+    assert repo.annotation_repository.inserted_bulk is None
+    service.set_tier_bulk(**arguments, annotation_rule_hash=release.content_hash)
+    assert repo.annotation_repository.inserted_bulk[1]["text"] == expected
+    assert (
+        repo.annotation_repository.inserted_bulk[1]["rule_source"]["content_hash"]
+        == release.content_hash
+    )
+
+
 def test_resource_classification_service_persists_tier_three_classification_only():
     """Tier 3 SNV bulk classification persists only the classification."""
     repo = _RepoStub()
@@ -417,7 +490,7 @@ def test_resource_classification_service_adds_bulk_annotation_template_when_requ
     )
 
     service.set_tier_bulk(
-        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        sample={"_id": "S1", "asp_category": "dna", "asp_id": "assay", "environment": "production"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
@@ -442,7 +515,7 @@ def test_resource_classification_service_adds_bulk_annotation_template_when_requ
 
     repo.annotation_repository.inserted_bulk = None
     preview = service.set_tier_bulk(
-        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        sample={"_id": "S1", "asp_category": "dna", "asp_id": "assay", "environment": "production"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
@@ -458,7 +531,12 @@ def test_resource_classification_service_adds_bulk_annotation_template_when_requ
 
     with pytest.raises(AppError) as error:
         service.set_tier_bulk(
-            sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+            sample={
+                "_id": "S1",
+                "asp_category": "dna",
+                "asp_id": "assay",
+                "environment": "production",
+            },
             resource_type="small_variant",
             resource_ids=["var-1"],
             apply=True,
@@ -535,7 +613,7 @@ def test_bulk_annotation_uses_registered_parents_and_local_gene_metadata(monkeyp
         },
     )
     service.set_tier_bulk(
-        sample={"_id": "S1"},
+        sample={"_id": "S1", "asp_category": "dna"},
         resource_type="small_variant",
         resource_ids=["var-1"],
         apply=True,
@@ -583,10 +661,10 @@ def test_automatic_annotation_requires_published_terminology(monkeypatch):
 
     repo = _RepoStub()
     service = _classification_service(repo)
-    monkeypatch.setattr(service, "classification_context", lambda sample: {"diagnosis": "base"})
+    monkeypatch.setattr(service, "classification_context", lambda sample: {"configuration": {}})
     with pytest.raises(AppError) as error:
         service.set_tier_bulk(
-            sample={"asp_id": "assay"},
+            sample={"asp_id": "assay", "asp_category": "dna"},
             resource_type="small_variant",
             resource_ids=["var-1"],
             apply=True,

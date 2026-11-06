@@ -1,13 +1,24 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { exportChartAsPng, exportChartAsSvg, exportRowsAsCsv } from "@/lib/chart-export"
 import { ChartPanel } from "./ChartPanel"
+import { notifyActionError } from "@/lib/notifications"
+
+vi.mock("@/lib/notifications", () => ({ notifyActionError: vi.fn() }))
 
 vi.mock("@/lib/chart-export", () => ({ exportChartAsPng: vi.fn(), exportChartAsSvg: vi.fn(), exportRowsAsCsv: vi.fn() }))
 
 describe("ChartPanel", () => {
+  it("reports failed PNG rendering without an uncaught rejection", async () => {
+    const user = userEvent.setup()
+    const error = new Error("Image could not be rendered")
+    vi.mocked(exportChartAsPng).mockRejectedValueOnce(error)
+    render(<ChartPanel title="Chart" filename="chart" data={[]}><svg /></ChartPanel>)
+    await user.click(screen.getByTitle("Export chart PNG"))
+    await waitFor(() => expect(notifyActionError).toHaveBeenCalledWith("Unable to export chart", error, "Charts"))
+  })
   it("renders context and exports each supported format with a sanitized filename", async () => {
     const user = userEvent.setup()
     const data = [{ assay: "hema", count: 3 }]

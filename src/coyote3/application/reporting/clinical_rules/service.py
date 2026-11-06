@@ -107,7 +107,7 @@ class ClinicalRuleService:
         return ClinicalRuleSetDoc.model_validate(configuration["clinical_rule_release"])
 
     def bulk_annotation_release(self, *, aspc: dict, sample: dict) -> ClinicalRuleSetDoc | None:
-        """Resolve the published DNA rule version used for bulk annotation templates.
+        """Resolve the published analyte-scoped rules used for bulk annotation templates.
 
         Args:
             aspc: Sample configuration supplying the reporting language.
@@ -117,22 +117,23 @@ class ClinicalRuleService:
             Validated published version, or None when no publication is configured.
 
         Raises:
-            ValueError: Release resolution/integrity fails or the sample is not DNA.
+            ValueError: Release resolution/integrity fails or the analyte is unsupported.
         """
-        if sample.get("asp_category") != "dna":
-            raise ValueError("Automatic variant annotation requires a DNA configuration")
+        analyte = sample.get("asp_category")
+        if analyte not in {"dna", "rna"}:
+            raise ValueError("Automatic annotation requires a DNA or RNA configuration")
         try:
             release = resolve_published_rule_set(
                 self.repository,
                 asp_id=sample["asp_id"],
                 diagnosis_id=sample.get("diagnosis_id") or "base",
-                analyte="dna",
+                analyte=analyte,
                 language=aspc.get("reporting", {}).get("language", "sv"),
             )
         except MissingClinicalRuleSet:
             return None
-        if release.scope.analyte != "dna":
-            raise ValueError("Automatic variant annotation requires a DNA configuration")
+        if release.scope.analyte != analyte:
+            raise ValueError("Automatic annotation requires matching analyte rules")
         return release
 
     @staticmethod

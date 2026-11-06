@@ -22,6 +22,7 @@ const toneMeta = {
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const sessionGeneration = useRef(0)
+  const inboxRequest = useRef(0)
   const usernameRef = useRef("")
   const initializedServerInbox = useRef(false)
   const seenServerIds = useRef(new Set<string>())
@@ -54,10 +55,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const refreshServerInbox = useCallback(async () => {
     const generation = sessionGeneration.current
+    const request = ++inboxRequest.current
     try {
       const identityResponse = await fetch(apiPath("/auth/whoami"), { credentials: "same-origin" })
-      if (generation !== sessionGeneration.current) return
+      if (generation !== sessionGeneration.current || request !== inboxRequest.current) return
       if (!identityResponse.ok) {
+        if (identityResponse.status !== 401 && identityResponse.status !== 403) return
         try { if (usernameRef.current) window.sessionStorage.removeItem(sessionKey()) } catch { /* Storage may be disabled. */ }
         hiddenIds.current.clear()
         usernameRef.current = ""
@@ -68,7 +71,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return
       }
       const identity = await identityResponse.json() as { username?: string; must_change_password?: boolean }
-      if (generation !== sessionGeneration.current) return
+      if (generation !== sessionGeneration.current || request !== inboxRequest.current) return
       if (identity.must_change_password) { setNotifications([]); setVisibleToasts([]); return }
       const nextUsername = String(identity.username || "").trim().toLowerCase()
       if (!nextUsername) return
@@ -80,9 +83,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         initializedServerInbox.current = false
         seenServerIds.current.clear()
         try {
-          const saved = JSON.parse(window.sessionStorage.getItem(sessionKey()) || "{}") as { hidden?: string[]; local?: AppNotification[] }
-          hiddenIds.current = new Set(saved.hidden || [])
-          setNotifications(saved.local || [])
+          const saved = JSON.parse(window.sessionStorage.getItem(sessionKey()) || "{}") as { hidden?: unknown; local?: unknown }
+          hiddenIds.current = new Set(Array.isArray(saved?.hidden) ? saved.hidden.filter(id => typeof id === "string") : [])
+          setNotifications(Array.isArray(saved?.local) ? saved.local.filter((item): item is AppNotification =>
+            item !== null && typeof item === "object" && typeof item.id === "string"
+              && typeof item.title === "string" && typeof item.createdAt === "string"
+              && typeof item.read === "boolean" && Object.hasOwn(toneMeta, item.tone)
+              && !item.persisted,
+          ) : [])
         } catch { hiddenIds.current.clear() }
       }
 
@@ -95,13 +103,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       let offset = pageSize
       while (pageSize === 200) {
         const page = await fetch(apiPath(`/notifications?limit=200&offset=${offset}`), { credentials: "same-origin" })
-        if (!page.ok || generation !== sessionGeneration.current) return
+        if (!page.ok || generation !== sessionGeneration.current || request !== inboxRequest.current) return
         const older = await page.json() as { notifications?: ServerNotification[] }
         pageSize = older.notifications?.length || 0
         offset += pageSize
         payload.notifications = [...(payload.notifications || []), ...(older.notifications || [])]
       }
-      if (generation !== sessionGeneration.current || usernameRef.current !== nextUsername) return
+      if (generation !== sessionGeneration.current || request !== inboxRequest.current || usernameRef.current !== nextUsername) return
       const serverNotifications = [...new Map((payload.notifications || []).map((item) => [item.id, item])).values()].map(mapServerNotification)
         .filter((item) => !hiddenIds.current.has(item.id))
 
@@ -129,6 +137,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const refresh = () => void refreshServerInbox()
     window.addEventListener("focus", refresh)
     return () => {
+      inboxRequest.current += 1
       window.clearInterval(interval)
       window.removeEventListener("focus", refresh)
     }
@@ -165,25 +174,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markRead = useCallback((id: string) => {
     const persisted = notifications.some((item) => item.id === id && item.persisted)
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    )
-    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}/read`, "PATCH")
+    const generation = sessionGeneration.current
+    void (async () => {
+      if (persisted && !await updateServerState(`/notifications/${encodeURIComponent(id)}/read`, "PATCH")) return
+      if (generation !== sessionGeneration.current) return
+      setNotifications(current => current.map(item => item.id === id ? { ...item, read: true } : item))
+    })()
   }, [notifications, updateServerState])
 
   const markAllRead = useCallback(() => {
-    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })))
-    if (notifications.some((item) => item.persisted)) {
-      void updateServerState("/notifications/read-all", "PATCH")
-    }
+    const generation = sessionGeneration.current
+    const ids = new Set(notifications.map(item => item.id))
+    void (async () => {
+      if (notifications.some(item => item.persisted) && !await updateServerState("/notifications/read-all", "PATCH")) return
+      if (generation !== sessionGeneration.current) return
+      setNotifications(current => current.map(item => ids.has(item.id) ? { ...item, read: true } : item))
+    })()
   }, [notifications, updateServerState])
 
   const markUnread = useCallback((id: string) => {
     const persisted = notifications.some((item) => item.id === id && item.persisted)
-    setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: false } : item))
-    if (persisted) void updateServerState(`/notifications/${encodeURIComponent(id)}/unread`, "PATCH")
+    const generation = sessionGeneration.current
+    void (async () => {
+      if (persisted && !await updateServerState(`/notifications/${encodeURIComponent(id)}/unread`, "PATCH")) return
+      if (generation !== sessionGeneration.current) return
+      setNotifications(current => current.map(item => item.id === id ? { ...item, read: false } : item))
+    })()
   }, [notifications, updateServerState])
 
   const remove = useCallback((id: string) => {

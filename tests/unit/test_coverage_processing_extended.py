@@ -136,3 +136,67 @@ def test_assign_to_exon_and_coverage_table_cover_probe_and_cds_paths() -> None:
     assert table["TP53"]["300-320"]["cov"] == 5
     assert table["BRCA1"]["3"]["cov"] == 2
     assert "ALK" not in table
+
+
+def test_low_coverage_cds_without_overlapping_probes_remains_in_summary() -> None:
+    """Probe presence must not suppress independent low-coverage coding regions."""
+    payload = _coverage_payload()
+    table = CoverageProcessingService.coverage_table(payload, 20)
+    assert table["TP53"]["2"]["cov"] == 8
+    payload["genes"]["TP53"]["probes"] = {}
+    table = CoverageProcessingService.coverage_table(payload, 20)
+    assert table["TP53"]["2"]["cov"] == 8
+
+
+def test_blacklisted_regions_do_not_return_when_another_region_keeps_the_gene() -> None:
+    """Keep complete design context while excluding blocked regions from low summaries."""
+    repository = _D4CoverageBlacklistRepository(
+        [
+            {"gene": "TP53", "region": "CDS", "coord": "200-220"},
+            {"gene": "TP53", "region": "probe", "coord": "95-125"},
+        ]
+    )
+    payload = _coverage_payload()
+    filtered = CoverageProcessingService.find_low_covered_genes(
+        payload, 20, "hematology", d4_coverage_blacklist_repository=repository
+    )
+    table = CoverageProcessingService.coverage_table(filtered, 20)
+    assert set(table["TP53"]) == {"300-320"}
+    assert len(filtered["genes"]["TP53"]["CDS"]) == 2
+    assert filtered["genes"]["TP53"]["CDS"]["200-220"]["blacklisted"] is True
+    assert "blacklisted" not in payload["genes"]["TP53"]["CDS"]["200-220"]
+
+
+def test_blacklist_matches_ui_coordinates_for_numbered_exons() -> None:
+    """A UI coordinate must match an interval stored under its exon number."""
+    payload = {
+        "genes": {
+            "GENE1": {
+                "CDS": {
+                    "1": {"chr": "1", "start": 0, "end": 100, "cov": 5, "nbr": 1},
+                }
+            }
+        }
+    }
+    repository = _D4CoverageBlacklistRepository(
+        [
+            {"gene": "GENE1", "region": "CDS", "coord": "1:0-100"},
+        ]
+    )
+    filtered = CoverageProcessingService.find_low_covered_genes(
+        payload, 20, "hematology", d4_coverage_blacklist_repository=repository
+    )
+    assert not filtered.get("genes")
+
+
+def test_blocked_cds_does_not_hide_an_independent_low_probe() -> None:
+    """Blacklisting an exon must not implicitly blacklist overlapping probes."""
+    repository = _D4CoverageBlacklistRepository(
+        [{"gene": "TP53", "region": "CDS", "coord": "100-120"}]
+    )
+    filtered = CoverageProcessingService.find_low_covered_genes(
+        _coverage_payload(), 20, "hematology", d4_coverage_blacklist_repository=repository
+    )
+    table = CoverageProcessingService.coverage_table(filtered, 20)
+    assert "1" not in table["TP53"]
+    assert table["TP53"]["95-125"]["cov"] == 7

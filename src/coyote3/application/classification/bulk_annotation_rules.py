@@ -10,6 +10,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     BulkAnnotationPreviewResult,
     ClinicalRuleSetDoc,
 )
+from coyote3.domain.finding_types import ANNOTATION_FINDING_KINDS
 
 
 def bulk_annotation_group_options(groups: list[dict[str, Any]]) -> list[BulkAnnotationGroupOption]:
@@ -119,6 +120,8 @@ def render_bulk_annotation(
         No sample measurements, identifiers or patient information enter the scope.
         This function neither assigns tiers nor writes annotations.
     """
+    if facts.finding_kind not in ANNOTATION_FINDING_KINDS.get(release.scope.analyte, ()):
+        raise ValueError("Annotation finding type is incompatible with the rule-set analyte")
     scope: dict[str, Any] = {
         "sample": {
             "asp_id": release.scope.asp_id,
@@ -141,7 +144,7 @@ def render_bulk_annotation(
         },
     }
     for rule in sorted(release.bulk_annotation_rules, key=lambda item: item.order):
-        if not rule.enabled or rule.tier != facts.tier:
+        if not rule.enabled or rule.tier != facts.tier or rule.finding_kind != facts.finding_kind:
             continue
         matched, missing = condition_matches(rule.condition, scope)
         if not matched or missing:

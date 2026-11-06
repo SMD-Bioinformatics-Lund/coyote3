@@ -4,12 +4,66 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+- Coverage review can optionally narrow assay scope to a gene list captured in
+  the applied configuration. Assay scope remains the default; the temporary
+  selection leaves finding filters unchanged. The coverage API and SDK accept
+  an optional `gene_list_id` and return available list choices.
+
+- Coverage review uses the assay scope captured in the sample's applied
+  configuration independently of finding filters. Assays without covered genes
+  use the genes present in the ingested coverage data; blacklist exclusions remain
+  in effect.
+
+- Overlapping interface-preference saves retain newer edits and roll back only
+  failed changes. Coverage blacklists match displayed coordinates and exclude
+  blocked intervals from low-coverage summaries while preserving gene context.
+
+- Report save feedback remains bound to its original sample, editing controls
+  expire with their lease, and delayed preference responses preserve the current
+  account. Structural-finding evidence preserves missing measurements and zero
+  coordinates, and translocation support accepts stored comma-separated counts.
+  Coverage summaries retain low coding regions without overlapping probes;
+  blacklist controls respect permissions and refresh affected results. RNA sorting
+  preserves measured zero support, and SNV ingestion closes readers on failure.
+
 - Unified DNA/RNA review with assay-aware filters, reference annotations, biomarkers,
   coverage and traceable classification history.
 - Modern HTML/PDF reports with assay-specific accreditation, detailed findings,
   reviewer history and immutable snapshots that preserve issued reports.
+  New report defaults and authoring examples use variant terminology; published
+  rule wording changes through reviewed versions.
+  Migrated report rules support grouped DNA-fusion evidence and explicit legacy
+  panel sentence formatting without changing existing rule defaults.
 - Governed query policies and clinical reporting rules with visual authoring,
   previews, independent review and controlled publication.
+  Bulk annotation templates support finding-specific DNA and RNA tiering previews.
+  Rule autosave waits for incomplete sentences instead of submitting empty text.
+  Background refreshes preserve unsaved rule edits; bulk previews are bound to the
+  selected findings and one published rule version.
+  Empty names pause rule autosave; bulk actions prevent duplicate submissions and
+  keep failed confirmations open for retry with a fresh annotation preview.
+  API requests reject malformed successful responses and handle interrupted body
+  downloads. Report preview/save URLs encode sample identifiers consistently;
+  corrupt ZIP contents are reported as invalid uploads.
+  Shared controls support same-file import retries, honest clipboard failure feedback,
+  and form-safe expand/copy buttons. Table state rejects malformed stored sorting,
+  bounds URL page sizes, and normalizes sort directions consistently with the API.
+  Missing measurements and tiers retain missing-value semantics; epoch timestamps
+  display correctly and custom date filters reject impossible dates. Notification
+  deduplication preserves distinct messages containing separators.
+  Empty MANE annotation lists fall back to available translocation annotations.
+  Chart exports contain valid SVG namespaces and reserve subtitle space. IGV keeps
+  remote alignment URLs intact, and rule workspaces bound restored panel widths.
+  Gene-count extraction ignores metadata, unpaired report paths accept null controls,
+  nonfinite sort values remain missing, and encrypted ZIP uploads fail validation.
+  Comment saves and suggestions preserve newer edits. Markdown keeps code literal,
+  ordered-list numbering and valid block structure; tooltips retain accessible descriptions.
+  Tables prevent selection from moving to replacement rows and honor explicit page sizes.
+  Notification read changes require successful saves; stale refreshes cannot replace newer inboxes.
+  VCF ingestion preserves phasing, missing alleles and measured zero population frequencies,
+  accepts AF or VAF, and parses scalar annotations. CNV ingestion rejects partial malformed
+  bundles and retains explicit amplification labels. UTF-8 BOM JSON imports are accepted.
+  Query imports preserve assay or family bindings through preview and save.
   Sample comparisons retain pinned assay/gene scopes; parent retirement checks child
   policies. Missing RNA filter profiles inherit the applied configuration's defaults.
   Admin rule/profile lists open on current publications; retained resource versions

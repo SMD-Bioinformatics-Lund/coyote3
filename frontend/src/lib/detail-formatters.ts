@@ -13,12 +13,14 @@ export function displayValue(value: unknown, fallback = "-") {
 }
 
 export function percentValue(value: unknown, digits = 2) {
+  if ((typeof value !== "number" && typeof value !== "string") || String(value).trim() === "") return "-"
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return "-"
   return `${(numeric * 100).toFixed(digits)}%`
 }
 
 export function shortCount(value: unknown, fallback = "0") {
+  if ((typeof value !== "number" && typeof value !== "string") || String(value).trim() === "") return fallback
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return fallback
   const abs = Math.abs(numeric)
@@ -50,7 +52,7 @@ export function localTimeZone() {
 }
 
 export function utcDate(value: unknown) {
-  if (!value) return null
+  if (value === null || value === undefined || value === "" || typeof value === "boolean") return null
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
   if (typeof value === "number") {
     const date = new Date(value)

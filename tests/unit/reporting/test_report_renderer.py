@@ -186,7 +186,7 @@ def test_dna_report_renderer_uses_master_style_template():
     assert "Analysresultat" in html
     assert "Kliniskt relevanta SNVs och små INDELs" in html
     assert "Slutsats" in html
-    assert "Detekterade mutationer" in html
+    assert "Detekterade varianter" in html
     assert "Analysbeskrivning" in html
     assert "table.report_general" in html
     assert "Latest sample conclusion" in html

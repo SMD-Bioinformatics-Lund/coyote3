@@ -1,6 +1,7 @@
 import { icon } from "@/lib/assets"
 import { useRef, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
+import { notifyActionError } from "@/lib/notifications"
 import {
   type ChartDataRow,
   exportChartAsPng,
@@ -23,6 +24,13 @@ export function ChartPanel({
 }) {
   const chartRef = useRef<HTMLDivElement>(null)
   const safeName = filename.replace(/[^a-z0-9_.-]+/gi, "_").replace(/^_+|_+$/g, "")
+  const exportChart = async (action: () => unknown | Promise<unknown>) => {
+    try {
+      await action()
+    } catch (error) {
+      notifyActionError("Unable to export chart", error, "Charts")
+    }
+  }
 
   return (
     <section className="chart-panel flex h-full min-h-0 flex-col overflow-hidden rounded-lg p-2.5">
@@ -38,7 +46,7 @@ export function ChartPanel({
             size="xs"
             title="Export chart PNG"
             aria-label={`Export ${title} chart as PNG`}
-            onClick={() => exportChartAsPng(chartRef.current, `${safeName}.png`, { title, subtitle: description })}
+            onClick={() => void exportChart(() => exportChartAsPng(chartRef.current, `${safeName}.png`, { title, subtitle: description }))}
           >
             <icon.imageDown className="h-3.5 w-3.5" />
             PNG
@@ -49,7 +57,7 @@ export function ChartPanel({
             size="xs"
             title="Export chart SVG"
             aria-label={`Export ${title} chart as SVG`}
-            onClick={() => exportChartAsSvg(chartRef.current, `${safeName}.svg`, { title, subtitle: description })}
+            onClick={() => void exportChart(() => exportChartAsSvg(chartRef.current, `${safeName}.svg`, { title, subtitle: description }))}
           >
             <icon.download className="h-3.5 w-3.5" />
             SVG
@@ -60,7 +68,7 @@ export function ChartPanel({
             size="xs"
             title="Export chart data CSV"
             aria-label={`Export ${title} chart data as CSV`}
-            onClick={() => exportRowsAsCsv(data, `${safeName}.csv`)}
+            onClick={() => void exportChart(() => exportRowsAsCsv(data, `${safeName}.csv`))}
           >
             <icon.fileDown className="h-3.5 w-3.5" />
             CSV

@@ -8,7 +8,29 @@ from coyote3.application.dna.export import (
     build_transloc_export_rows,
     join_tokens,
 )
-from coyote3.application.rna.expression_analysis import RnaService
+from coyote3.application.rna.expression_analysis import RnaService, _fusion_sort_value
+
+
+def test_fusion_read_support_sort_retains_measured_zero() -> None:
+    """Sorting must use the displayed zero count rather than fallback evidence."""
+    row = {
+        "fusion": [{"spanpairs": 0, "spanreads": 0}],
+        "supporting_reads": {"span": 100, "split": 50},
+    }
+    assert _fusion_sort_value(row, "spanpairs") == 0
+    assert _fusion_sort_value(row, "unique_spanpairs") == 0
+    row["fusion"] = [{}]
+    assert _fusion_sort_value(row, "spanpairs") == 100
+
+
+def test_csv_preserves_measured_zero_population_frequency():
+    """Measured zero is distinct from missing population evidence."""
+    assert build_snv_export_rows([{"gnomad_frequency": 0}])[0].pop_freq == "0"
+
+
+def test_csv_token_lists_omit_null_entries():
+    """Missing values must not become the literal label None."""
+    assert join_tokens([None, "PASS", ""]) == "PASS"
 
 
 def test_join_tokens_deduplicates_case_insensitively_and_preserves_order() -> None:

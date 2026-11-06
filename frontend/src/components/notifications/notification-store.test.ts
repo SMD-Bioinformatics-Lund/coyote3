@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest"
 import { createNotification, notify, subscribeNotifications } from "./notification-store"
 
 describe("notification store", () => {
+  it("does not suppress different notifications containing separator characters", () => {
+    expect(notify({ title: "Audit|one", message: "two" })).not.toBeNull()
+    expect(notify({ title: "Audit", message: "one|two" })).not.toBeNull()
+  })
   it("creates unread notifications without accessing browser storage", () => {
     vi.stubGlobal("window", {})
     expect(createNotification({ title: "Ready" })).toMatchObject({

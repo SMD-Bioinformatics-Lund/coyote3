@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { NotificationProvider } from "./NotificationProvider"
@@ -9,6 +9,7 @@ function Probe({ title = "Local warning" }: { title?: string }) {
   return (
     <div>
       <output aria-label="Unread count">{inbox.unreadCount}</output>
+      <output aria-label="Server read state">{String(inbox.notifications.find(item => item.id === "server-1")?.read)}</output>
       {inbox.notifications.map((item) => <span key={item.id}>{item.title}</span>)}
       <button type="button" onClick={() => inbox.push({ tone: "warning", title, message: "Review it" })}>Push</button>
       <button type="button" onClick={() => inbox.markRead("server-1")}>Read one</button>
@@ -26,6 +27,62 @@ function response(data: unknown, ok = true) {
 
 describe("NotificationProvider", () => {
   afterEach(() => { vi.unstubAllGlobals(); window.sessionStorage.clear() })
+
+  it("does not overwrite a newer inbox refresh with an older response", async () => {
+    let finish!: (value: Response) => void
+    let inboxCalls = 0
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("whoami")) return response({ username: "reader" })
+      if (++inboxCalls === 1) return new Promise<Response>(resolve => { finish = resolve })
+      return response({ notifications: [{ id: "server-1", title: "Current notice", tone: "info",
+        created_at: "2026-10-25T12:00:00Z", read: false }] })
+    }))
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    await waitFor(() => expect(inboxCalls).toBe(1))
+    window.dispatchEvent(new Event("focus"))
+    await screen.findByText("Current notice")
+    await act(async () => finish(await response({ notifications: [] })))
+    expect(screen.getByText("Current notice")).toBeInTheDocument()
+  })
+
+  it("ignores a malformed saved local inbox", async () => {
+    window.sessionStorage.setItem("coyote3:notification-tray:reader", '{"local":{}}')
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => response(
+      String(input).includes("whoami") ? { username: "reader" } : { notifications: [] },
+    )))
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(screen.getByLabelText("Unread count")).toHaveTextContent("0")
+  })
+
+  it.each(["Read one", "Read all"])("does not mark notifications read when %s fails", async (action) => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("whoami")) return response({ username: "reader" })
+      if (init?.method === "PATCH") return response({}, false)
+      return response({ notifications: [{ id: "server-1", title: "Unread notice", tone: "info",
+        created_at: "2026-10-25T12:00:00Z", read: false }] })
+    }))
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    await screen.findByText("Unread notice")
+    await userEvent.click(screen.getByRole("button", { name: action }))
+    expect(screen.getByLabelText("Server read state")).toHaveTextContent("false")
+  })
+
+  it("retains the inbox during a temporary identity service failure", async () => {
+    let unavailable = false
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("whoami")) return unavailable
+        ? Promise.resolve(new Response("", { status: 503 })) : response({ username: "reader" })
+      return response({ notifications: [{ id: "server-1", title: "Retained notice", tone: "info",
+        created_at: "2026-10-25T12:00:00Z", read: false }] })
+    }))
+    render(<NotificationProvider><Probe /></NotificationProvider>)
+    await screen.findByText("Retained notice")
+    unavailable = true
+    window.dispatchEvent(new Event("focus"))
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3))
+    expect(screen.getByText("Retained notice")).toBeInTheDocument()
+  })
 
   it("merges the current user's server inbox with local notifications and persists server actions", async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

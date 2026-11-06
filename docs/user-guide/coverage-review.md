@@ -16,11 +16,34 @@ by the sample's recorded ASPC revision and coverage data was ingested for the sa
 Changing the cutoff requests a new server-side coverage result. The displayed
 counts and low-coverage lists therefore use the same cutoff.
 
-Coverage uses the assay panel's covered-gene scope. If the ASP defines
-`covered_genes`, the workspace evaluates those genes. If it does not, the
-workspace evaluates every gene present in the sample's coverage data. Gene
+Missing depth is shown as unavailable, rather than zero. Low-coverage coding
+regions remain in the summary even when no probe overlaps them. Adding or removing
+a blacklist entry refreshes cached coverage results; management controls require
+the `coverage.blacklist:manage` permission.
+Blacklisted intervals remain visible in the complete gene view and carry a
+**Blacklisted** status, but are excluded from the low-region summary and low-exon
+and low-probe lists. A blacklist entry matches either the stored interval key or
+its displayed chromosome/start/end coordinates.
+
+Coverage uses the assay definition captured in the sample's applied configuration,
+not a newer assay revision. A nonempty `covered_genes` list defines the scope.
+When that list is empty or absent, the workspace evaluates every gene present in
+the sample's ingested coverage data. Missing measurements are not fabricated. Gene
 lists selected for SNV, CNV, fusion, or translocation review do not change
 coverage scope.
+
+To focus the review, use **Coverage gene list** and select a list. The available
+lists are captured in the sample's applied configuration. A selection includes
+only genes shared by that list and the assay coverage scope; an empty list or one
+with no overlapping genes shows no results. Blacklist exclusions still apply.
+Choose **Assay scope** to restore the default. This is a temporary coverage-view
+selection: it does not change saved finding filters and resets when another
+sample is opened.
+
+API and SDK callers can provide the optional `gene_list_id` parameter to the
+coverage endpoint or `Sample.coverage()`. Responses include the selected identity
+and the available `gene_lists`. Identities outside the applied configuration are
+rejected.
 
 ## Summary Metrics
 

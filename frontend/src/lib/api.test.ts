@@ -16,6 +16,51 @@ function response(body: string, status = 200, statusText = "OK") {
 }
 
 describe("typed API client", () => {
+  it("sends binary request bodies unchanged and preserves their media type", async () => {
+    vi.mocked(fetch).mockImplementation(async () => response("{}"))
+    const body = new Uint8Array([0, 128, 255])
+    await api.post("/records", body)
+    expect(vi.mocked(fetch).mock.calls[0][1]?.body).toBe(body)
+    expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get("Content-Type")).not.toBe("application/json")
+    const blob = new Blob(["example"], { type: "text/plain" })
+    await api.post("/records", blob)
+    expect(new Headers(vi.mocked(fetch).mock.calls[1][1]?.headers).get("Content-Type")).not.toBe("application/json")
+  })
+  it("preserves form-encoded request bodies and their content type", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response("{}"))
+    const body = new URLSearchParams({ value: "a & b" })
+    await api.post("/records", body)
+    const options = vi.mocked(fetch).mock.calls[0][1]!
+    expect(String(options.body)).toBe("value=a+%26+b")
+    expect(new Headers(options.headers).get("Content-Type")).not.toBe("application/json")
+  })
+  it.each([false, true])("normalizes interrupted response bodies (binary=%s)", async binary => {
+    const interrupted = new Response("unused")
+    vi.spyOn(interrupted, binary ? "blob" : "text").mockRejectedValue(new TypeError("stream interrupted"))
+    vi.mocked(fetch).mockResolvedValueOnce(interrupted)
+    const request = binary ? api.getBlob("/report") : api.get("/records")
+    await expect(request).rejects.toMatchObject({ code: "network_error", status: 0 })
+    expect(notifyMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps cancellation during body reading silent", async () => {
+    const interrupted = response("unused")
+    const abort = new DOMException("Cancelled", "AbortError")
+    vi.spyOn(interrupted, "text").mockRejectedValue(abort)
+    vi.mocked(fetch).mockResolvedValueOnce(interrupted)
+    await expect(api.get("/records")).rejects.toBe(abort)
+    expect(notifyMock).not.toHaveBeenCalled()
+  })
+
+  it.each(["<html>proxy fallback</html>", '{"incomplete":'])
+  ("rejects malformed successful JSON without exposing its body: %s", async body => {
+    vi.mocked(fetch).mockResolvedValueOnce(response(body))
+    await expect(api.post("/records", {}, { errorNotice: "inline" })).rejects.toMatchObject({
+      code: "invalid_response", status: 200, handledInline: true,
+    })
+    expect(notifyMock).not.toHaveBeenCalled()
+  })
+
   it("loads binary reports and keeps structured errors with reference IDs", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response("%PDF-1.7\n%%EOF", { headers: { "Content-Type": "application/pdf" } }))
     const result = await api.getBlob("/reports/preview/pdf")

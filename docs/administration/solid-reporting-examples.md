@@ -168,7 +168,7 @@ Review **Edit tier summary wording** before enabling the rule.
 For a synthetic EGFR finding already assigned tier II at 23% case VAF, that
 terminology produces:
 
-> Vid analysen finner man en mutation av potentiell klinisk signifikans (Tier II) i EGFR (i 23% av läsningarna).
+> Vid analysen finner man en variant av potentiell klinisk signifikans (Tier II) i EGFR (i 23% av läsningarna).
 
 This sentence appears because the reviewed finding is eligible and tiered, not
 because this rule assigns every EGFR finding to tier II.
@@ -199,7 +199,7 @@ Choose **Add rule** in the same section:
 In **Report sentence**, enter the reviewed negative wording, for example:
 
 ```text
-Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.
+Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.
 ```
 
 Keep the positive and negative rules conditional. An unconditional negative
@@ -315,7 +315,7 @@ with the solid biological group.
 
 For a synthetic PIK3CA finding already assigned tier I at 18% case VAF:
 
-> Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) i PIK3CA (i 18% av läsningarna).
+> Vid analysen finner man en variant av stark klinisk signifikans (Tier I) i PIK3CA (i 18% av läsningarna).
 
 For no eligible reportable tier groups, the negative rule emits the reviewed
 negative sentence instead. Do not retain a second unconditional negative

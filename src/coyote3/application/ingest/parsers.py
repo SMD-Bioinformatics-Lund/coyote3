@@ -192,7 +192,9 @@ def _normalize_callers_field(value: Any) -> list[str]:
         raw = value.replace("|", ",").replace(";", ",")
         return [token.strip().lower() for token in raw.split(",") if token.strip()]
     if isinstance(value, (list, tuple, set)):
-        return [str(item).strip().lower() for item in value if str(item).strip()]
+        return [
+            str(item).strip().lower() for item in value if item is not None and str(item).strip()
+        ]
     text = str(value).strip().lower()
     return [text] if text else []
 
@@ -237,11 +239,13 @@ def _normalize_fusion_docs(payload: Any) -> list[dict[str, Any]]:
             raw_selected = normalized_call.get("selected", 0)
             try:
                 selected = int(raw_selected)
-            except (TypeError, ValueError) as exc:
+            except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError(
                     f"Fusion record {fusion_index} call {call_index} has invalid selected value"
                 ) from exc
-            if selected not in {0, 1}:
+            if selected not in {0, 1} or (
+                isinstance(raw_selected, float) and raw_selected != selected
+            ):
                 raise ValueError(
                     f"Fusion record {fusion_index} call {call_index} selected must be 0 or 1"
                 )
@@ -303,8 +307,8 @@ def _infer_cnv_type(ratio: float | None) -> str | None:
 def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
     """Collapse ampersand-delimited numeric CSQ values to their maximum.
 
-    For each transcript in INFO/CSQ, any string field containing ampersand-delimited
-        float values is collapsed to the numeric maximum.
+    For each transcript in INFO/CSQ, numeric strings beginning with a decimal float
+    are collapsed to their maximum. Mixed numeric/text annotations remain intact.
 
     Args:
         var_dict: Parsed variant dict with INFO/CSQ list populated.
@@ -317,7 +321,11 @@ def _emulate_perl(var_dict: dict[str, Any]) -> dict[str, Any]:
             if isinstance(transcript[key], str):
                 data = transcript[key].split("&")
                 if _is_float(data[0]):
-                    transcript[key] = float(max(float(x) for x in data))
+                    try:
+                        numbers = [float(item) for item in data]
+                    except ValueError:
+                        continue
+                    transcript[key] = max(numbers)
     return var_dict
 
 
@@ -339,20 +347,20 @@ def _parse_allele_freq(freq_str: str | None, allele: str) -> float:
     return 0.0
 
 
-def _max_gnomad(gnomad: str | None) -> float | str | None:
+def _max_gnomad(gnomad: float | str | None) -> float | str | None:
     """Return the maximum gnomAD frequency from an ampersand-delimited string.
 
     Args:
-        gnomad: Ampersand-delimited gnomAD frequency string, or None.
+        gnomad: Numeric frequency, ampersand-delimited frequencies, or None.
 
     Returns:
-        The maximum value as a float, the original string if parsing fails, or None if falsy.
+        Numeric maximum, original input if parsing fails, or None for absent input.
     """
-    if not gnomad:
+    if gnomad is None or gnomad == "":
         return None
     try:
-        return float(max(gnomad.split("&")))
-    except Exception:
+        return max(float(value) for value in str(gnomad).split("&"))
+    except (TypeError, ValueError):
         return gnomad
 
 
@@ -375,17 +383,17 @@ def _pick_af_fields(var: dict[str, Any]) -> dict[str, Any]:
     allele = var["ALT"]
     exac = _parse_allele_freq(var["INFO"]["CSQ"][0].get("ExAC_MAF"), allele)
     thousand_g = _parse_allele_freq(var["INFO"]["CSQ"][0].get("GMAF"), allele)
-    gnomad = var["INFO"]["CSQ"][0].get("gnomAD_AF", 0)
-    gnomad_genome = var["INFO"]["CSQ"][0].get("gnomADg_AF", 0)
-    gnomad_max = var["INFO"]["CSQ"][0].get("MAX_AF", 0)
+    gnomad = var["INFO"]["CSQ"][0].get("gnomAD_AF")
+    gnomad_genome = var["INFO"]["CSQ"][0].get("gnomADg_AF")
+    gnomad_max = var["INFO"]["CSQ"][0].get("MAX_AF")
 
-    if gnomad:
+    if gnomad is not None and gnomad != "":
         af["gnomad_frequency"] = _max_gnomad(gnomad)
-        if gnomad_max:
+        if gnomad_max is not None and gnomad_max != "":
             af["gnomad_max"] = gnomad_max
-    elif gnomad_genome:
+    elif gnomad_genome is not None and gnomad_genome != "":
         af["gnomad_frequency"] = gnomad_genome
-        if gnomad_max:
+        if gnomad_max is not None and gnomad_max != "":
             af["gnomad_max"] = gnomad_max
     if exac:
         af["exac_frequency"] = exac

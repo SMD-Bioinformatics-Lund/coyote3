@@ -1,6 +1,29 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
+test("exported chart SVG is readable and separates a subtitle from the plot", async ({ page }) => {
+  await installApiFixtures(page)
+  await page.goto("/")
+  const result = await page.evaluate(async () => {
+    const modulePath = "/src/lib/chart-export.ts"
+    const { serializeChartSvg } = await import(modulePath)
+    const container = document.createElement("div")
+    container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="white"/></svg>'
+    document.body.appendChild(container)
+    try {
+      const exported = serializeChartSvg(container, { subtitle: "Synthetic subtitle" })
+      const parsed = new DOMParser().parseFromString(exported.serialized, "image/svg+xml")
+      return {
+        invalid: Boolean(parsed.querySelector("parsererror")),
+        plotY: Number(parsed.querySelector("svg svg")?.getAttribute("y")),
+        subtitleY: Number(parsed.querySelector("text")?.getAttribute("y")),
+      }
+    } finally { container.remove() }
+  })
+  expect(result.invalid).toBe(false)
+  expect(result.plotY).toBeGreaterThan(result.subtitleY)
+})
+
 for (const theme of ["light", "dark"]) {
   for (const width of [390, 1280, 1920]) {
     test(`${theme} sample composition stays proportional at ${width}px`, async ({ page }, testInfo) => {

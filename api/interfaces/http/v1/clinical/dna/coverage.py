@@ -21,6 +21,7 @@ def coverage_sample_read(
     cov_cutoff: int = Query(default=500, ge=1),
     user: ApiUser = Depends(require_access(permission="sample:view")),
     service: Sample = Depends(get_sample),
+    gene_list_id: str | None = None,
 ):
     """Return coverage data for a sample.
 
@@ -31,11 +32,14 @@ def coverage_sample_read(
         cov_cutoff: Coverage threshold for low-coverage detection.
         user: Authenticated user requesting coverage data.
         service: Coverage workflow service.
+        gene_list_id: Optional captured list narrowing the assay coverage scope.
 
     Returns:
         dict: Coverage payload for the requested sample.
     """
-    return util.common.convert_to_serializable(service.coverage(cutoff=cov_cutoff))
+    return util.common.convert_to_serializable(
+        service.coverage(cutoff=cov_cutoff, gene_list_id=gene_list_id)
+    )
 
 
 @router.get("/api/v1/coverage/blacklisted/{group}", response_model=CoverageBlacklistedPayload)

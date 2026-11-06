@@ -25,6 +25,7 @@ describe("Report section starters", () => {
     expect(block.rules.every(rule => !rule.enabled)).toBe(true)
     expect(block.rules[0].rule_id).toBe("synthetic_base_snv_summary_reportable_snvs_present")
     expect(block.rules[0].output).toEqual([{ type: "renderer", name: "tier_summary" }])
+    expect(JSON.stringify(block.rules[1].output)).toContain("somatiskt förvärvade varianter")
     const next = sectionStarter([block], "snv_summary", scope)
     expect(new Set([...block.rules, ...next.rules].map(rule => rule.rule_id)).size).toBe(4)
     const identity = block.rules[0].rule_id
@@ -42,6 +43,7 @@ describe("Report section starters", () => {
     expect(JSON.stringify(block)).toContain("gene_lists.snv.names")
     expect(block.rules[2].condition).toMatchObject({ fact: "sample.paired", value: false })
     expect(block.rules[4].condition).toMatchObject({ type: "all", children: [{ fact: "sample.paired" }, { type: "not", child: { operator: "is_empty" } }] })
+    expect(JSON.stringify(block.rules[4].output)).toContain("konstitutionella varianter")
     const next = sectionStarter([block], "intro", scope)
     expect(next.block_id).not.toBe(block.block_id)
     expect(new Set([...block.rules, ...next.rules].map(rule => rule.rule_id)).size).toBe(10)

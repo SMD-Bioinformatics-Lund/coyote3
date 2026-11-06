@@ -53,7 +53,8 @@ def _coverage_service() -> CoverageService:
     )
 
 
-def test_coverage_sample_read_builds_payload(monkeypatch):
+@pytest.mark.parametrize("gene_list_id", [None, "GL1"])
+def test_coverage_sample_read_builds_payload(monkeypatch, gene_list_id):
     sample = fx.sample_doc()
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"
@@ -113,14 +114,106 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         cov_cutoff=500,
         user=fx.api_user(),
         service=sdk_fixtures.sample_operations(service, fx.api_user()),
+        gene_list_id=gene_list_id,
     )
 
     assert payload["cov_cutoff"] == 500
     assert payload["smp_grp"] == "dna"
-    assert payload["gene_scope"] == ["TP53"]
+    expected_scope = ["TP53"] if gene_list_id else ["NPM1", "TP53"]
+    assert payload["gene_scope"] == expected_scope
+    assert payload["gene_list_id"] == gene_list_id
     assert payload["cov_table"]["TP53"]["1"]["cov"] == 700
     assert requested_diagnoses == ["myeloid", "base"]
-    assert requested_gene_scopes == [["TP53"]]
+    assert requested_gene_scopes == [expected_scope]
+
+
+@pytest.mark.parametrize(
+    "genes,expected",
+    [
+        (["TP53", "ALK"], ["TP53"]),
+        ({"NPM1": {"description": "Synthetic"}}, ["NPM1"]),
+        ([], []),
+        (["ALK"], []),
+    ],
+)
+def test_optional_coverage_gene_list_only_narrows_assay_scope(monkeypatch, genes, expected):
+    """Captured list selection cannot admit outside-assay genes or broaden empty lists."""
+    service = _coverage_service()
+    configuration = _coverage_configuration("wgs", "production", "base")
+    configuration["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "focused", "displayname": "Focused genes", "genes": genes}]
+    )
+    monkeypatch.setattr(
+        coverage_service_module, "get_formatted_assay_config", lambda *args, **kwargs: configuration
+    )
+    monkeypatch.setattr(service.d4_coverage_repository, "get_sample_coverage", lambda _: {})
+    monkeypatch.setattr(
+        service.d4_coverage_blacklist_repository, "get_regions_per_group", lambda _: []
+    )
+    result = service.sample_payload(
+        sample={"_id": "SYNTHETIC", "asp_id": "wgs"}, cov_cutoff=20, gene_list_id="focused"
+    )
+    assert result["gene_scope"] == expected
+    assert result["gene_lists"] == [{"id": "focused", "label": "Focused genes"}]
+    with pytest.raises(AppError) as error:
+        service.sample_payload(
+            sample={"_id": "SYNTHETIC", "asp_id": "wgs"}, cov_cutoff=20, gene_list_id="unavailable"
+        )
+    assert error.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        {"somatic": {"snv": {"snvlists": ["GL1"]}}},
+        {"somatic": {"snv": {"adhoc_genes": {"genes": {"ALK": True}}}}},
+        {},
+    ],
+)
+@pytest.mark.parametrize("covered_genes", [["TP53", "NPM1"], [], None])
+@pytest.mark.parametrize("has_measurements", [True, False])
+def test_coverage_scope_uses_captured_assay_not_finding_filters(
+    monkeypatch, filters, covered_genes, has_measurements
+):
+    """Use recorded assay genes, with ingested-gene fallback for unspecified scope."""
+    service = _coverage_service()
+    configuration = _coverage_configuration("wgs", "production", "base")
+    assay = _coverage_assay()
+    if covered_genes is None:
+        assay.pop("covered_genes")
+    else:
+        assay["covered_genes"] = covered_genes
+    configuration["assay_resource_release"] = capture_assay_resource(assay)
+    monkeypatch.setattr(
+        coverage_service_module, "get_formatted_assay_config", lambda *args, **kwargs: configuration
+    )
+    source = {
+        "genes": {
+            gene: {"CDS": {"1": {"chr": "1", "start": 0, "end": 100, "nbr": 1, "cov": 5}}}
+            for gene in ("TP53", "NPM1", "ALK")
+            if has_measurements
+        }
+    }
+    monkeypatch.setattr(service.d4_coverage_repository, "get_sample_coverage", lambda _: source)
+    monkeypatch.setattr(
+        service.d4_coverage_blacklist_repository, "get_regions_per_group", lambda _: []
+    )
+
+    def reject_latest_assay(*args, **kwargs):
+        """Coverage must not replace the sample's captured assay with a newer revision."""
+        raise AssertionError("Unexpected live assay lookup")
+
+    monkeypatch.setattr(service.assay_panel_repository, "get_asp", reject_latest_assay)
+    result = service.sample_payload(
+        sample={"_id": "SYNTHETIC", "asp_id": "wgs", "filters": filters}, cov_cutoff=20
+    )
+    expected = sorted(covered_genes or source["genes"])
+    assert result["gene_scope"] == expected
+    expected_measured = sorted(set(expected) & source["genes"].keys())
+    assert sorted(result["coverage"].get("genes", {})) == expected_measured
+    assert sorted(result["cov_table"]) == expected_measured
+    if has_measurements:
+        assert isinstance(source["genes"]["TP53"]["CDS"], dict)
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():

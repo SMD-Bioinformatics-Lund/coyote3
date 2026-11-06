@@ -28,14 +28,14 @@ const ESCAPABLE_MARKDOWN_CHARACTERS = new Set([
   "~",
 ])
 
-function protectEscapedMarkdown(value: string) {
+function protectEscapedMarkdown(value: string, prefix: string) {
   const escaped: string[] = []
   let protectedValue = ""
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index]
     const next = value[index + 1]
     if (character === "\\" && next && ESCAPABLE_MARKDOWN_CHARACTERS.has(next)) {
-      protectedValue += `@@COYOTE_ESC_${escaped.push(next) - 1}@@`
+      protectedValue += `${prefix}${escaped.push(next) - 1}@@`
       index += 1
       continue
     }
@@ -47,17 +47,29 @@ function protectEscapedMarkdown(value: string) {
   }
 }
 
-function restoreEscapedMarkdown(value: string, escaped: string[]) {
-  return value.replace(/@@COYOTE_ESC_(\d+)@@/g, (_match, index: string) => (
+function restoreEscapedMarkdown(value: string, escaped: string[], prefix: string) {
+  return value.replace(new RegExp(`${prefix}(\\d+)@@`, "g"), (_match, index: string) => (
     escapeHtml(escaped[Number(index)] || "")
   ))
 }
 
 export function markdownToHtml(markdown: string) {
-  const protectedMarkdown = protectEscapedMarkdown(markdown || "")
+  const source = (markdown || "").replace(/\r\n?/g, "\n")
+  let prefix = "@@COYOTE_TOKEN_"
+  while (source.includes(prefix)) prefix += "X"
+  const code = new Map<string, string>()
+  const blocks = new Set<string>()
+  const token = (text: string, block: boolean) => {
+    const key = `${prefix}C${code.size}@@`
+    code.set(key, block ? `<pre><code>${escapeHtml(text)}</code></pre>` : `<code>${escapeHtml(text)}</code>`)
+    if (block) blocks.add(key)
+    return key
+  }
+  const withoutCode = source.replace(/```([\s\S]*?)```|`([^`\n]+)`/g,
+    (_match, block: string | undefined, inline: string) => token(block ?? inline, block !== undefined))
+  const escapedPrefix = `${prefix}E`
+  const protectedMarkdown = protectEscapedMarkdown(withoutCode, escapedPrefix)
   let html = escapeHtml(protectedMarkdown.value)
-  html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
   html = html.replace(/^######\s+(.+)$/gm, "<h6>$1</h6>")
   html = html.replace(/^#####\s+(.+)$/gm, "<h5>$1</h5>")
   html = html.replace(/^####\s+(.+)$/gm, "<h4>$1</h4>")
@@ -71,15 +83,17 @@ export function markdownToHtml(markdown: string) {
   html = html
     .split(/\n{2,}/)
     .map((block) => {
+      if (blocks.has(block) || /^<h[1-6]>[^\n]*<\/h[1-6]>$/.test(block)) return block
       const lines = block.split("\n")
       if (lines.every((line) => /^&gt;\s?/.test(line.trim()))) {
-        return `<blockquote>${lines.map((line) => line.replace(/^&gt;\s?/, "")).join("<br>")}</blockquote>`
+        return `<blockquote>${lines.map((line) => line.trimStart().replace(/^&gt;\s?/, "")).join("<br>")}</blockquote>`
       }
       if (lines.every((line) => /^[-*]\s+/.test(line.trim()))) {
-        return `<ul>${lines.map((line) => `<li>${line.replace(/^[-*]\s+/, "")}</li>`).join("")}</ul>`
+        return `<ul>${lines.map((line) => `<li>${line.trimStart().replace(/^[-*]\s+/, "")}</li>`).join("")}</ul>`
       }
       if (lines.every((line) => /^\d+\.\s+/.test(line.trim()))) {
-        return `<ol>${lines.map((line) => `<li>${line.replace(/^\d+\.\s+/, "")}</li>`).join("")}</ol>`
+        const start = Number.parseInt(lines[0].trimStart(), 10)
+        return `<ol${start === 1 ? "" : ` start="${start}"`}>${lines.map((line) => `<li>${line.trimStart().replace(/^\d+\.\s+/, "")}</li>`).join("")}</ol>`
       }
       if (
         lines.length >= 2
@@ -97,5 +111,7 @@ export function markdownToHtml(markdown: string) {
       return `<p>${block.replace(/\n/g, "<br>")}</p>`
     })
     .join("")
-  return restoreEscapedMarkdown(html, protectedMarkdown.escaped)
+  html = restoreEscapedMarkdown(html, protectedMarkdown.escaped, escapedPrefix)
+  for (const [key, value] of code) html = html.replaceAll(key, value)
+  return html
 }

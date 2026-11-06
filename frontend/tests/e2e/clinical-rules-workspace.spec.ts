@@ -38,6 +38,43 @@ const ruleSet = {
 
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
+    for (const analyte of ["dna", "rna"] as const) {
+      test(`finding-specific annotation editor: ${analyte}, ${theme}, ${width}px`, async ({ page }, testInfo) => {
+        await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
+        await page.setViewportSize({ width, height: 1000 })
+        let saved = { ...structuredClone(ruleSet), scope: { ...ruleSet.scope, analyte }, blocks: [] }
+        let saves = 0
+        await installApiFixtures(page, (path, _url, route) => {
+          if (path.endsWith("/auth/whoami")) return { json: { username: "admin", roles: ["admin"], ui_settings: { theme }, permissions: ["clinical_rules:view", "clinical_rules:draft"] } }
+          if (path.endsWith("/drafts/rule-version-1")) {
+            saves++
+            saved = { ...saved, ...route.request().postDataJSON(), revision: saved.revision + 1 }
+            return { json: saved }
+          }
+          if (path.endsWith("/versions/rule-version-1")) return { json: saved }
+          if (path === "/api/v1/admin/clinical-rule-sets") return { json: { items: [saved], total: 1 } }
+          if (path.endsWith("/authoring-options")) return { json: { assays: [] } }
+          if (path.endsWith("/facts")) return { json: { items: [] } }
+        })
+        await page.goto("/admin/clinical-rules")
+        await page.getByRole("button", { name: /Assay 1 report rules/ }).click()
+        await page.getByRole("tab", { name: "Report wording" }).focus()
+        await page.keyboard.press("ArrowRight")
+        await expect(page.getByRole("tab", { name: "Bulk annotation text" })).toHaveAttribute("aria-selected", "true")
+        const selector = page.getByRole("combobox", { name: "Finding type" })
+        await expect(selector.locator("option")).toHaveCount(analyte === "dna" ? 3 : 1)
+        await selector.selectOption(analyte === "dna" ? "cnv" : "fusion")
+        await page.getByRole("button", { name: "Add annotation template" }).click()
+        await expect(page.getByText(/Autosave is waiting for sentence text/)).toBeVisible()
+        await page.waitForTimeout(1200)
+        expect(saves).toBe(0)
+        await page.getByLabel("Annotation sentence").fill("Reviewed structural annotation.")
+        await expect.poll(() => saves).toBe(1)
+        await expect(page.getByLabel("Annotation sentence")).toHaveValue("Reviewed structural annotation.")
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+        await page.screenshot({ path: testInfo.outputPath("finding-annotation.png"), fullPage: true })
+      })
+    }
     for (const initialStatus of ["submitted", "in_clinical_review", "approved"]) {
       test(`${initialStatus} rules can return to review: ${theme}, ${width}px`, async ({ page }) => {
         await page.addInitScript(value => localStorage.setItem("vite-ui-theme", value), theme)
@@ -140,9 +177,9 @@ for (const theme of ["light", "dark"] as const) {
           ],
         } }
         if (path.endsWith("/facts")) return { json: { items: [
-          { path: "finding.gene", label: "Gene", kind: "string", group: "Finding", operators: ["eq", "in"], scopes: ["each_finding"] },
-          { path: "asp.group_path_ids", label: "Biological group or descendant of", kind: "string_list", group: "Biological group", operators: ["contains"], scopes: ["bulk_annotation"] },
-          { path: "annotation.consequence_text", label: "First consequence: readable text", kind: "string", group: "Annotation", operators: ["eq"], scopes: ["bulk_annotation"] },
+          { path: "finding.gene", label: "Gene", kind: "string", group: "Finding", operators: ["eq", "in"], scopes: ["each_finding"], bulk_annotation_finding_kinds: ["small_variant"] },
+          { path: "asp.group_path_ids", label: "Biological group or descendant of", kind: "string_list", group: "Biological group", operators: ["contains"], scopes: ["bulk_annotation"], bulk_annotation_finding_kinds: ["small_variant", "cnv", "translocation", "fusion"] },
+          { path: "annotation.consequence_text", label: "First consequence: readable text", kind: "string", group: "Annotation", operators: ["eq"], scopes: ["bulk_annotation"], bulk_annotation_finding_kinds: ["small_variant", "cnv", "translocation", "fusion"] },
         ] } }
       })
       await page.goto("/admin/clinical-rules")

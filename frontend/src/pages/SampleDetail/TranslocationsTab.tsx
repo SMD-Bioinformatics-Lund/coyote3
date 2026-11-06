@@ -26,7 +26,7 @@ import {
   translocationType,
 } from "@/lib/variant-helpers";
 import { useBulkFindingAction } from "@/hooks/useFindingActions";
-import { findingBulkActionOptions } from "@/lib/finding-actions";
+import { findingBulkActionOptions, previewBulkAnnotationText } from "@/lib/finding-actions";
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state";
 import {
   CLINICAL_TABLE_CACHE_MS,
@@ -257,12 +257,20 @@ export function TranslocationsTab({
             ? (table) => (
                 <>
                   <BulkActionDropdown
-                    selectedCount={Object.keys(table.getState().rowSelection).length}
+                    selectedIds={table.getSelectedRowModel().rows.map(row => String(row.original._id))}
                     actions={translocationBulkActions}
                     isPending={bulkAction.isPending}
-                    onAction={(action) =>
+                    automaticTextAvailable
+                    onPreviewAutomaticText={action => previewBulkAnnotationText(
+                      sampleId, action,
+                      table.getSelectedRowModel().rows.map(row => String(row.original._id)),
+                      "translocation",
+                    )}
+                    onAction={(action, options) =>
                       bulkAction.mutateAsync({
                         action,
+                        includeAutomaticText: options?.includeAutomaticText,
+                        annotationRuleHash: options?.annotationRuleHash,
                         resourceIds: table
                           .getSelectedRowModel()
                           .rows.map((row: any) => String(row.original._id)),

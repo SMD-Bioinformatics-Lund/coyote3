@@ -29,17 +29,17 @@ import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail
 
 function cnvRegion(cnv: any) {
   if (!cnv) return "-"
-  return `${cnv.chr || cnv.CHROM}:${cnv.start || cnv.POS}-${cnv.end || cnv.INFO?.END}`
+  return `${cnv.chr || cnv.CHROM}:${cnv.start ?? cnv.POS}-${cnv.end ?? cnv.INFO?.END}`
 }
 
 function cnvSize(cnv: any) {
-  const size = Number(cnv?.size ?? ((cnv?.end || cnv?.INFO?.END) - (cnv?.start || cnv?.POS)))
+  const size = Number(cnv?.size ?? ((cnv?.end ?? cnv?.INFO?.END) - (cnv?.start ?? cnv?.POS)))
   return Number.isFinite(size) ? `${Math.abs(size).toLocaleString()} bp` : "-"
 }
 
 function copyNumber(cnv: any) {
-  const ratio = Number(cnv?.ratio ?? cnv?.log2)
-  return Number.isFinite(ratio) ? (2 * Math.pow(2, ratio)).toFixed(2) : "-"
+  const ratio = cnv?.ratio ?? cnv?.log2
+  return ratio != null && Number.isFinite(Number(ratio)) ? (2 * Math.pow(2, Number(ratio))).toFixed(2) : "-"
 }
 
 function cnvGenes(cnv: any, panelOnly: boolean) {
@@ -69,7 +69,7 @@ export function CNVDetail() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['cnv', id, varId],
-    queryFn: () => api.get(`/samples/${id}/cnvs/${varId}`).then(res => res.data)
+    queryFn: () => api.get(`/samples/${encodeURIComponent(id || "")}/cnvs/${encodeURIComponent(varId || "")}`).then(res => res.data)
   })
   const routeSample = data?.sample
   useEffect(() => {
@@ -140,7 +140,7 @@ export function CNVDetail() {
                 <DetailField label="Filter flags"><FilterFlagBadges value={cnv?.FILTER} metadata={filterFlagMetadata} analysis="cnv" callers={callers} /></DetailField>
                 <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
                 <DetailField label="Type"><CopyNumberBadge value={type} /></DetailField>
-                <DetailField label="Ratio (log2)">{Number.isFinite(Number(cnv?.ratio)) ? Number(cnv?.ratio).toFixed(4) : "-"}</DetailField>
+                <DetailField label="Ratio (log2)">{cnv?.ratio != null && Number.isFinite(Number(cnv.ratio)) ? Number(cnv.ratio).toFixed(4) : "-"}</DetailField>
                 <DetailField label="Copy number"><CopyNumberBadge value={type} label={copyNumber(cnv)} /></DetailField>
                 <DetailField label="Status"><StatusBadges finding={cnv} /></DetailField>
                 <DetailField label="Artefact evidence"><ArtefactFrequencyBadges finding={cnv} /></DetailField>

@@ -33,6 +33,21 @@ function setup() {
 describe("finding action hooks", () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it("invalidates the edited sample after navigation while the request is pending", async () => {
+    let finish!: (value: object) => void
+    mocks.applyFindingAction.mockImplementation(() => new Promise((resolve) => { finish = resolve }))
+    const { invalidate, wrapper } = setup()
+    const { result, rerender } = renderHook(({ sample }) => useBulkFindingAction(sample, "small_variant"), {
+      wrapper, initialProps: { sample: "S1" },
+    })
+    act(() => result.current.mutate({ action: "tier_2", resourceIds: ["V1"] }))
+    await waitFor(() => expect(mocks.applyFindingAction).toHaveBeenCalled())
+    rerender({ sample: "S2" })
+    await act(async () => finish({ ok: true }))
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ["sample-variants", "S1"] }))
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ["sample-variants", "S2"] })
+  })
+
   it("applies a bulk action, invalidates clinical caches, and notifies the user", async () => {
     mocks.applyFindingAction.mockResolvedValue({ ok: true })
     const { invalidate, wrapper } = setup()

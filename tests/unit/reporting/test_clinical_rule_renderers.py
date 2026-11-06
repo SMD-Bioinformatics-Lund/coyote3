@@ -63,6 +63,29 @@ def test_tier_summary_uses_middle_connector_for_two_groups() -> None:
     assert "Vidare ses" in render_tier_summary(groups, _terms())
 
 
+def test_source_panel_context_and_tier_scope_are_explicit_rule_options() -> None:
+    """Legacy panel sentences retain context for Tier II/III and omit Tier IV only by opt-in."""
+    groups = [
+        {"tier": tier, "finding_count": 1, "genes": [{"gene": "TP53", "vaf_percentages": ["10%"]}]}
+        for tier in (2, 3, 4)
+    ]
+    original = _terms()
+    source_terms = {
+        "tier_summary": {
+            **original["tier_summary"],
+            "legacy_panel_read_context": True,
+            "tiers_to_summarize": [1, 2, 3],
+        }
+    }
+    assert render_tier_summary(groups, source_terms) == (
+        "Vid analysen finner man en variant av potentiell klinisk signifikans (Tier II) "
+        "i TP53 (i 10% av läsningarna). Vidare ses en variant av oklar klinisk signifikans "
+        "(Tier III) i TP53 (i 10% av läsningarna). "
+    )
+    assert "Tier IV" in render_tier_summary(groups, original)
+    assert render_tier_summary([groups[-1]], source_terms) == ""
+
+
 def test_tier_summary_covers_context_suppression_branches() -> None:
     terms = _terms()
     terms["tier_summary"] = dict(terms["tier_summary"])
@@ -118,7 +141,7 @@ def test_tier_summary_covers_context_suppression_branches() -> None:
                     {"isgl_id": "solid", "selected_for": ["snv"], "genes": ["TP53"]}
                 ],
             },
-            "konstitutionella mutationer",
+            "konstitutionella varianter",
             "never",
         ),
         (

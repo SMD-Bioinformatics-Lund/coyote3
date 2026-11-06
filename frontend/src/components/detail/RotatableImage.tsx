@@ -28,6 +28,10 @@ export function RotatableImage({
   const [naturalSize, setNaturalSize] = useState<ImageSize | null>(null)
   const [viewportSize, setViewportSize] = useState<ImageSize>({ width: 0, height: 0 })
   const [loadFailed, setLoadFailed] = useState(false)
+  useEffect(() => {
+    setLoadFailed(false)
+    setNaturalSize(null)
+  }, [src])
 
   useEffect(() => {
     const viewport = viewportRef.current

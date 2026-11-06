@@ -12,6 +12,13 @@ function upload(value: string, size?: number) {
   fireEvent.change(screen.getByLabelText("Import configuration JSON"), { target: { files: [file] } })
 }
 
+it("accepts UTF-8 configuration files with a byte order mark", async () => {
+  const onImport = vi.fn()
+  render(<ConfigurationTransfer label="configuration" filename="config" onImport={onImport} />)
+  upload('\ufeff{"name":"Example"}')
+  await waitFor(() => expect(onImport).toHaveBeenCalledWith({ name: "Example" }))
+})
+
 it("stages a JSON object and exports the supplied portable document", async () => {
   const onImport = vi.fn()
   render(<ConfigurationTransfer label="configuration" filename="config" document={{ name: "Example" }}

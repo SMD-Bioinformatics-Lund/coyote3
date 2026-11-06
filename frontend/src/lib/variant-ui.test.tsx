@@ -130,6 +130,13 @@ describe("variant UI semantics", () => {
     expect(screen.getByText(/does not recalculate/)).toBeInTheDocument()
   })
 
+  it("distinguishes absent artefact frequencies from measured zero", () => {
+    render(<ArtefactFrequencyBadges finding={{ AFRQ_NULL: null, AFRQ_EMPTY: "", AFRQ_ZERO: 0 }} />)
+    expect(screen.queryByLabelText("NULL artefact frequency 0.0 percent")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("EMPTY artefact frequency 0.0 percent")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("ZERO artefact frequency 0.0 percent")).toBeVisible()
+  })
+
   it("renders linked and unlinked informational badges with tooltip context", () => {
     const { rerender } = render(
       <InfoTooltipBadge label="MANE Select" description="Preferred transcript">MANE</InfoTooltipBadge>,

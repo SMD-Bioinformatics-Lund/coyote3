@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRef } from "react"
 import type { ReportType } from "@/components/reports/report-snapshot"
 import { api, ApiClientError } from "@/lib/api"
 import type { ReportPreviewPayload } from "@/lib/generated"
@@ -24,13 +25,18 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
   reportFormat?: "modern" | "legacy"
 }) {
   const queryClient = useQueryClient()
-  const pdfEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}/preview/pdf?include_snapshot=${includeSnapshot}&format=${reportFormat}`
+  const activeScope = useRef("")
+  activeScope.current = JSON.stringify([sampleId, reportType, reportFormat])
+  const requestContext = () => ({ sampleId, reportType, sampleName: data?.sample?.name || sampleId,
+    scope: activeScope.current })
+  const reportEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}`
+  const pdfEndpoint = `${reportEndpoint}/preview/pdf?include_snapshot=${includeSnapshot}&format=${reportFormat}`
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["report-preview", sampleId, reportType, includeSnapshot, reportFormat],
     queryFn: () =>
       api
-        .get<ReportPreviewPayload>(`/samples/${sampleId}/reports/${reportType}/preview?include_snapshot=${includeSnapshot}&save=false&format=${reportFormat}`)
+        .get<ReportPreviewPayload>(`${reportEndpoint}/preview?include_snapshot=${includeSnapshot}&save=false&format=${reportFormat}`)
         .then((response) => response.data),
     retry: false,
     refetchOnMount: "always",
@@ -48,14 +54,15 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
   })
 
   const saveReport = useMutation({
-    mutationFn: () => api.post(`/samples/${sampleId}/reports/${reportType}`, {
+    onMutate: requestContext,
+    mutationFn: () => api.post(reportEndpoint, {
       preview_fingerprint: data?.meta?.preview_fingerprint,
       report_format: reportFormat,
     }),
-    onSuccess: () => {
-      const sampleName = data?.sample?.name || sampleId
-      onSaved()
-      refetch()
+    onSuccess: (_response, _variables, context) => {
+      const { sampleId, reportType, sampleName } = context
+      if (activeScope.current === context.scope) onSaved()
+      queryClient.invalidateQueries({ queryKey: ["report-preview", sampleId, reportType] })
       queryClient.invalidateQueries({ queryKey: ["samples"] })
       queryClient.invalidateQueries({ queryKey: ["sample-navigation-counts"] })
       notifySuccess("Report saved", `${reportType.toUpperCase()} report was saved for ${sampleName}.`, "Reports", {
@@ -65,8 +72,8 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
         sampleName,
       })
     },
-    onError: (mutationError) => {
-      const sampleName = data?.sample?.name || sampleId
+    onError: (mutationError, _variables, context) => {
+      const { sampleId, reportType, sampleName } = context ?? requestContext()
       notifyActionError("Unable to save report", mutationError, "Reports", {
         type: "report",
         id: sampleId,
@@ -77,12 +84,13 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
   })
 
   const downloadPreviewPdf = useMutation({
+    onMutate: requestContext,
     mutationFn: async () => {
       const blob = pdfPreview.data ?? await loadPreviewPdf(pdfEndpoint)
       downloadBlob(blob, `${data?.sample?.name || sampleId}_${reportType}_preview.pdf`)
     },
-    onSuccess: () => {
-      const sampleName = data?.sample?.name || sampleId
+    onSuccess: (_response, _variables, context) => {
+      const { sampleId, reportType, sampleName } = context
       notifySuccess(
         "PDF generated",
         `The temporary ${reportType.toUpperCase()} report preview PDF for ${sampleName} was downloaded.`,
@@ -90,8 +98,8 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
         { type: "report", id: sampleId, name: `${sampleName} ${reportType.toUpperCase()} preview`, sampleName },
       )
     },
-    onError: (mutationError) => {
-      const sampleName = data?.sample?.name || sampleId
+    onError: (mutationError, _variables, context) => {
+      const { sampleId, reportType, sampleName } = context ?? requestContext()
       notifyActionError("Unable to generate PDF", mutationError, "Reports", {
         type: "report",
         id: sampleId,

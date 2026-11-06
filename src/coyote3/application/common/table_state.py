@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import cmp_to_key
 from heapq import nsmallest
+from math import isfinite
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 SortSpec = tuple[str, str]
@@ -29,14 +30,22 @@ def in_memory_sorted_page(
 
 
 def numeric_value(value: Any) -> float | None:
-    """Convert values to sortable numbers when possible."""
+    """Convert finite values to sortable numbers, treating nonfinite values as missing.
+
+    Args:
+        value: Numeric input or numeric text; booleans retain their 0/1 ordering.
+
+    Returns:
+        Finite float, or None for absent, invalid, overflowing or nonfinite input.
+    """
     if value in (None, ""):
         return None
     if isinstance(value, bool):
         return float(int(value))
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        parsed = float(value)
+        return parsed if isfinite(parsed) else None
+    except (TypeError, ValueError, OverflowError):
         return None
 
 

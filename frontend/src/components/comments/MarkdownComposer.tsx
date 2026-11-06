@@ -17,7 +17,10 @@ export function MarkdownComposer({ id, value, onChange, maxLength = 5000, label,
     const start = input.current?.selectionStart ?? value.length
     const end = input.current?.selectionEnd ?? start
     const selected = value.slice(start, end) || "text"
-    const text = escape ? selected.replace(/([\\`*_{}[\]()#+\-.!>|~])/g, "\\$1") : before + selected + after
+    const text = escape ? selected.replace(/([\\`*_{}[\]()#+\-.!>|~])/g, "\\$1")
+      : before.startsWith("\n")
+        ? "\n" + selected.split("\n").map((line) => before.slice(1) + line).join("\n")
+        : before + selected + after
     const next = value.slice(0, start) + text + value.slice(end)
     if (maxLength != null && next.length > maxLength) return
     onChange(next)

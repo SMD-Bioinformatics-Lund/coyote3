@@ -15,6 +15,17 @@ from coyote3.domain.reporting import report_paths as domain_report_paths
 from coyote3.domain.reporting.errors import ReportCommitUncertain
 
 
+def test_report_paths_accept_null_optional_control(tmp_path):
+    """An unpaired sample may explicitly store a null control."""
+    _, path, _ = report_paths.build_report_file_location(
+        sample={"case_id": "synthetic", "case": {}, "control": None},
+        assay_config={"reporting": {"report_folder": "panel"}},
+        default_assay_group="solid",
+        reports_base_path=str(tmp_path),
+    )
+    assert path == str(tmp_path / "panel")
+
+
 def test_build_report_file_location_with_control_id(monkeypatch):
     """Create paired report filenames with a timestamp and no random suffix."""
     monkeypatch.setattr(

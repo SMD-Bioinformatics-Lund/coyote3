@@ -16,7 +16,8 @@ The header must declare `INFO/CSQ`, `INFO/variant_callers`, the contigs, and eac
 FORMAT key used by the records. `CSQ` is a string list: commas separate transcripts
 and pipes separate fields. Its description must end in the exact pipe-separated
 field order. Blank annotation values retain their positions between delimiters.
-The SNV parser reads raw `VAF`; a FORMAT field named only `AF` is not a substitute.
+The SNV parser accepts `VAF` or `AF` in fractional 0–1 units. When both are present,
+`VAF` takes precedence. Each selected sample column must also provide `GT`, `DP`, and `VD`.
 
 VCF `POS` is 1-based. Ingest does not normalize alleles, split multiallelic records,
 or convert the reference build. Those operations belong in the producing pipeline.
@@ -50,10 +51,10 @@ a replacement for a valid VCF header. The manifest would specify
 | `FILTER` | Caller filter labels | Split into `variants.FILTER[]`; excluded FAIL records are not stored |
 | `INFO.variant_callers` | Actual variant callers, such as `sage` or `sage\|mutect2` | Split into `variants.INFO.variant_callers[]`; VEP is an annotation version, not a caller |
 | `INFO.SVTYPE` | Optional structural type | Also copied to `INFO.TYPE` by the SNV parser |
-| `FORMAT.GT` | Genotype, `0/1` | `GT[].GT`; pysam allele tuple becomes slash-separated text |
+| `FORMAT.GT` | Genotype, `0/1` | `GT[].GT`; preserves `/` or phased `\|` separators and missing `.` alleles |
 | `FORMAT.DP` | Total read depth | `GT[].DP` |
 | `FORMAT.VD` | Alternate read count | `GT[].VD` |
-| `FORMAT.VAF` | Alternate fraction in 0–1 units | Renamed to `GT[].AF`; raw `VAF` removed |
+| `FORMAT.VAF` or `FORMAT.AF` | Alternate fraction in 0–1 units | Stored as `GT[].AF`; `VAF` takes precedence and is removed |
 | Sample column name | `SYNTHETIC-T` or `SYNTHETIC-N` | `GT[].sample`; `GT[].type` is resolved as case/control and the case entry is placed first |
 | Other FORMAT fields | Pipeline-specific genotype evidence | Decoded from the header and retained when permitted by the genotype contract |
 | `FORMAT` column definition | Colon-separated genotype key names | Used to decode each sample; standalone `FORMAT` is removed from stored small variants |

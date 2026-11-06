@@ -18,6 +18,7 @@ export function findingRowClass(finding: any) {
 
 export function tierValue(finding: any) {
   const raw = finding?.classification?.class ?? finding?.classification?.tier ?? finding?.tier
+  if ((typeof raw !== "number" && typeof raw !== "string") || String(raw).trim() === "") return 999
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : 999
 }
@@ -87,8 +88,8 @@ export function fusionCallers(fusion: any) {
 export function selectedTranslocationAnnotation(translocation: any) {
   const info = translocationInfo(translocation)
   const mane = info?.MANE_ANN ?? translocation?.MANE_ANN
-  if (Array.isArray(mane)) return mane[0] ?? {}
-  if (mane && typeof mane === "object") return mane
+  if (Array.isArray(mane) && mane.length) return mane[0] ?? {}
+  if (mane && !Array.isArray(mane) && typeof mane === "object" && Object.keys(mane).length) return mane
   const annotations = info?.ANN ?? translocation?.ANN
   if (Array.isArray(annotations)) return annotations[0] ?? {}
   if (annotations && typeof annotations === "object") return annotations

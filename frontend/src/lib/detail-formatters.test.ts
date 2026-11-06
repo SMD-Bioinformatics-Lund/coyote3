@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest"
 import { displayValue, isPresent, percentValue, shortCount, utcDate } from "./detail-formatters"
 
 describe("detail formatters", () => {
+  it("does not present absent measurements as zero percent", () => {
+    for (const value of [null, undefined, "", "  ", false, []]) expect(percentValue(value)).toBe("-")
+    expect(percentValue(0)).toBe("0.00%")
+  })
+  it("accepts the Unix epoch as a numeric timestamp", () => {
+    expect(utcDate(0)?.toISOString()).toBe("1970-01-01T00:00:00.000Z")
+  })
   it("distinguishes absent values from valid false and zero values", () => {
     expect(isPresent(null)).toBe(false)
     expect(isPresent("-")).toBe(false)
@@ -31,4 +38,11 @@ describe("detail formatters", () => {
     expect(utcDate("2026-07-31 12:30:00")?.toISOString()).toBe("2026-07-31T12:30:00.000Z")
     expect(utcDate("not-a-date")).toBeNull()
   })
+})
+
+it("respects the explicit missing-count fallback", () => {
+  expect(shortCount(null, "Unknown")).toBe("Unknown")
+  expect(shortCount(" ", "Unknown")).toBe("Unknown")
+  expect(shortCount(false, "Unknown")).toBe("Unknown")
+  expect(shortCount(0, "Unknown")).toBe("0")
 })

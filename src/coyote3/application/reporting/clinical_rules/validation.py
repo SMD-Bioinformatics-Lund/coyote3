@@ -8,6 +8,7 @@ from typing import Any
 
 from coyote3.application.reporting.clinical_rules.registry import (
     BULK_ANNOTATION_FACT_PATHS,
+    bulk_annotation_fact_paths,
     validate_fact_path,
 )
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
@@ -29,6 +30,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRuleValidationResult,
     ClinicalTextOutput,
 )
+from coyote3.domain.finding_types import ANNOTATION_FINDING_KINDS
 
 REPORT_METADATA_SECTIONS = frozenset({"report_header_suffix", "clinical_question"})
 MAX_CONDITION_DEPTH = 6
@@ -112,7 +114,10 @@ def _validate_condition(
 
 
 def _validate_annotation_condition(
-    condition: ClinicalCondition | None, errors: list[str], depth: int = 0
+    condition: ClinicalCondition | None,
+    errors: list[str],
+    depth: int = 0,
+    allowed_paths: frozenset[str] = BULK_ANNOTATION_FACT_PATHS,
 ) -> None:
     """Reject sample measurements and collection conditions in reusable annotation text.
 
@@ -120,6 +125,7 @@ def _validate_annotation_condition(
         condition: Authored condition; None is an explicit fallback.
         errors: Validation messages populated in place.
         depth: Current nested-condition depth, starting at zero.
+        allowed_paths: Facts supplied by the selected annotation finding type.
     """
     if condition is None:
         return
@@ -127,13 +133,13 @@ def _validate_annotation_condition(
         errors.append(f"Condition nesting exceeds {MAX_CONDITION_DEPTH} levels")
         return
     if isinstance(condition, ClinicalRulePredicate):
-        if condition.fact not in BULK_ANNOTATION_FACT_PATHS:
+        if condition.fact not in allowed_paths:
             errors.append(f"Bulk annotations cannot use fact '{condition.fact}'")
     elif isinstance(condition, (ClinicalRuleAll, ClinicalRuleAny)):
         for child in condition.children:
-            _validate_annotation_condition(child, errors, depth + 1)
+            _validate_annotation_condition(child, errors, depth + 1, allowed_paths)
     elif isinstance(condition, ClinicalRuleNot):
-        _validate_annotation_condition(condition.child, errors, depth + 1)
+        _validate_annotation_condition(condition.child, errors, depth + 1, allowed_paths)
     else:
         errors.append("Bulk annotations cannot use report collections")
 
@@ -285,16 +291,20 @@ def validate_rule_set(
                         validate_fact_path(path, scope=block.evaluation.mode)
                     except ValueError as exc:
                         errors.append(str(exc))
-    for tier in (1, 2, 3):
+    for kind, tier in {(rule.finding_kind, rule.tier) for rule in document.bulk_annotation_rules}:
         warnings.extend(
             _first_match_warnings(
-                [rule for rule in document.bulk_annotation_rules if rule.tier == tier],
+                [
+                    rule
+                    for rule in document.bulk_annotation_rules
+                    if rule.tier == tier and rule.finding_kind == kind
+                ],
                 f"Bulk annotation Tier {tier}",
             )
         )
     for rule in document.bulk_annotation_rules:
-        if document.scope.analyte != "dna":
-            errors.append("Bulk annotation templates require DNA small variants")
+        if rule.finding_kind not in ANNOTATION_FINDING_KINDS.get(document.scope.analyte, ()):
+            errors.append("Bulk annotation finding type is incompatible with the rule-set analyte")
         if (
             rule.enabled
             and all(
@@ -306,7 +316,8 @@ def validate_rule_set(
             )
         ):
             errors.append(f"Enabled annotation rule '{rule.rule_id}' has empty text")
-        _validate_annotation_condition(rule.condition, errors)
+        allowed_paths = bulk_annotation_fact_paths(rule.finding_kind)
+        _validate_annotation_condition(rule.condition, errors, allowed_paths=allowed_paths)
         if rule.condition is not None:
             _validate_condition(rule.condition, scope="bulk_annotation", depth=0, errors=errors)
         for node in rule.output:
@@ -314,7 +325,7 @@ def validate_rule_set(
                 errors.append("Bulk annotations cannot use report sentence renderers")
             path = getattr(node, "path", getattr(node, "count_path", None))
             if path is not None:
-                if path not in BULK_ANNOTATION_FACT_PATHS:
+                if path not in allowed_paths:
                     errors.append(f"Bulk annotations cannot use fact '{path}'")
                 else:
                     try:

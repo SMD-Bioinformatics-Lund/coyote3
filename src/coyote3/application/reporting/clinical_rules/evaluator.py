@@ -346,6 +346,7 @@ def _render_output_node(
             "tier_summary": "aggregates.tier_summaries",
             "fusion_summary": "findings",
             "cnv_summary": "aggregates.cnv_summaries",
+            "translocation_summary": "aggregates.translocation_summaries",
         }
         source_path = node.source or defaults.get(node.name)
         source = resolve_path(scope, source_path)[0] if source_path else None

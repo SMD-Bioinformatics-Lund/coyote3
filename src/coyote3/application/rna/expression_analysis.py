@@ -142,7 +142,8 @@ def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
 
     Returns:
         Lowercase text or a numeric value; None for unsupported or unavailable values.
-        Falsey call counts fall back to supporting_reads span/split counts.
+        Missing call counts fall back to supporting_reads span/split counts;
+        measured zero counts retain their sort position.
     """
     call = _selected_fusion_call(fusion)
     genes = _fusion_genes(fusion)
@@ -161,9 +162,13 @@ def _fusion_sort_value(fusion: dict[str, Any], sort_by: str) -> Any:
         "gene1": lambda: sortable_text(genes[0] if len(genes) > 0 else None),
         "gene2": lambda: sortable_text(genes[1] if len(genes) > 1 else None),
         "effect": lambda: sortable_text(call.get("effect") or fusion.get("frame")),
-        "spanpairs": lambda: numeric_value(call.get("spanpairs") or supporting_reads.get("span")),
+        "spanpairs": lambda: numeric_value(
+            call["spanpairs"] if call.get("spanpairs") is not None else supporting_reads.get("span")
+        ),
         "unique_spanpairs": lambda: numeric_value(
-            call.get("spanreads") or supporting_reads.get("split")
+            call["spanreads"]
+            if call.get("spanreads") is not None
+            else supporting_reads.get("split")
         ),
         "fusion_points": lambda: sortable_text(
             " ".join(

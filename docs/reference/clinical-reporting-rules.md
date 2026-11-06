@@ -37,17 +37,27 @@ subsequent matching requests; saved reports retain their original rule content.
 
 ## Bulk annotation templates
 
-In **Administration → Clinical reporting rules**, open a DNA draft and select
-**Bulk annotation text**. Select Tier I, II or III, add a template, define its
+In **Administration → Clinical reporting rules**, open a draft and select
+**Bulk annotation text**. Choose the finding type: DNA offers small variants,
+copy-number variants and translocations; RNA offers fusions.
+Select Tier I, II or III, add a template, define its
 conditions and Markdown text, then explicitly enable it. Templates are stored in
 `bulk_annotation_rules`, separately from report sections. The first enabled matching
-template for the chosen tier supplies the text. No condition means an explicit
+template for the chosen finding type and tier supplies the text. No condition means an explicit
 fallback, so place it after more specific templates.
+
+Autosave pauses while a report or annotation sentence is empty, including newly
+added templates. Continue typing or remove the unfinished template to resume
+saving. The editor retains incomplete text locally; it is not sent to the API.
+Empty rule-set, rule and annotation template names also pause autosave until
+completed. Rule-set names allow up to 160 characters.
+Background version refreshes do not overwrite unsaved edits. Saves retain the
+revision on which editing began, so concurrent changes still require reconciliation.
 
 | Property | Requirement or behavior |
 | --- | --- |
 | Values | Gene, transcript, variant class, raw/readable consequences, HGVS c/p, tier, assay, diagnosis, biological hierarchy and local OncoKB gene presence/description/link. No sample measurements or patient identifiers. |
-| Scope | Current published DNA rules for the sample's assay and diagnosis, with assay Base fallback and the configured reporting language. |
+| Scope | Current published DNA or RNA rules matching the sample's analyte, assay and diagnosis, with assay Base fallback and the configured reporting language. |
 | Inheritance | Templates come from the selected release as a whole. An exact diagnosis release with no templates does not borrow them from Base. |
 | Language | Authored wording uses the release language; there is no fixed Swedish sentence generator. |
 | Governance | Included in the content hash, draft revision, independent review and publication lifecycle, using existing clinical-rule permissions. |
@@ -55,12 +65,28 @@ fallback, so place it after more specific templates.
 | Invalid release or required value | Generation fails before any classification or annotation is written. |
 | Existing annotations | Preserved. Publication does not rewrite or translate stored text. |
 
+The finding-type selector also limits available condition and sentence values.
+CNVs expose chromosome, start, end and stored copy-number effect. Translocations
+expose the two annotated partner genes; fusions additionally expose the selected
+call's breakpoints. Assay, diagnosis, biological hierarchy and target tier are
+shared. Missing required values cause generation to fail before writes.
+Small-variant-only fields such as transcript, consequence and OncoKB gene metadata
+cannot be used in structural templates.
+
+Templates store `finding_kind`. Existing templates without this field remain
+small-variant templates, with unchanged published content hashes. Ordering and
+fallback matching are independent for each finding type and tier.
+
 Preview synthetic values without a sample in the right panel. The preview
 diagnosis defaults to the release scope. Set a named diagnosis when
 testing diagnosis-specific conditions on Base templates. Actual bulk actions use
 the sample's server-resolved diagnosis, regardless of synthetic preview input.
 In the finding table,
 bulk Tier I–III actions offer **Include automatic text**, unchecked by default.
+The finding table retains its existing action permissions and tiering controls.
+CNV and translocation tiering must be enabled before those tier actions appear.
+Report inclusion, false-positive, relevance, noteworthy and blacklist actions
+remain limited to the finding types that support them; they do not generate tier text.
 Preview the resulting annotations before confirming. Each saved generated annotation
 records its rule ID, content version, revision and hash; the application sets actor
 and time. Individual tiering does not invoke these templates. See the
@@ -612,9 +638,25 @@ Rule output is an ordered sequence of typed nodes rather than executable templat
 | `renderer` | A named, deterministic domain renderer with governed terminology. |
 
 Named renderers are limited to the registered set (`dna_report_intro`, `tier_summary`,
-and `fusion_summary`). They cannot query MongoDB, call external services, execute code,
+`fusion_summary`, `cnv_summary`, and `translocation_summary`). They cannot query MongoDB, call external services, execute code,
 or invent missing data. Assay-specific prose belongs in literal output or the rule-set
 terminology payload, not in Python branches.
+
+`translocation_summary` consumes prepared, explicitly selected DNA fusion calls.
+It groups ordered gene pairs and retains the maximum observed PR and SR read
+percentages and UR count per pair. Missing or invalid support is omitted. Its
+`translocation_summary` terminology supplies first/next/final sentence openings,
+gene conjunction, evidence delimiters, PR/SR labels, UR-only and combined-support
+phrases, and the sentence separator. The second of two findings receives a complete
+next sentence. `aggregates.translocation_summary_count` can guard this output.
+
+For migrated panel wording, `tier_summary.tiers_to_summarize` explicitly restricts
+the rendered tiers, and `legacy_panel_read_context` retains the original panel's
+Tier II/III read-context repetition. These options are opt-in; existing rule
+versions keep their behavior. The registered `aggregates.tier_1_count` through
+`aggregates.tier_4_count` facts allow a negative rule to distinguish no Tier I–III
+findings from Tier IV-only findings. `show_empty_evidence` in CNV or DNA-fusion
+terminology preserves source parentheses when explicitly requested.
 
 ## Authoring Workspace
 

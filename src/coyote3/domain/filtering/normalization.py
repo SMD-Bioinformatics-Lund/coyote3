@@ -6,14 +6,19 @@ from typing import Any
 
 
 def coerce_nonnegative_int(value: Any, default: int = 0) -> int:
-    """
-    Coerce incoming filter values to non-negative integers.
-    Handles mixed string/int form and persisted values.
+    """Parse a nonnegative count, falling back for invalid or overflowing input.
+
+    Args:
+        value: Form or persisted value accepted by int.
+        default: Value returned for negative or unparseable counts.
+
+    Returns:
+        Parsed count or the supplied default.
     """
     try:
         parsed = int(value)
         return parsed if parsed >= 0 else default
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -64,21 +69,24 @@ def _strip_form_meta_keys(filters: dict[str, Any]) -> None:
 
 
 def _fold_prefixed_flags(filters: dict[str, Any], prefix_map: dict[str, str]) -> None:
-    """
-    Fold dynamic prefixed checkbox flags into canonical list-based keys.
+    """Replace canonical selections when prefixed checkboxes were submitted.
 
-    Example:
-        {"snvlist_PANEL_A": True} -> {"snvlists": ["PANEL_A"]}
+    Args:
+        filters: Mutable payload; consumed checkbox keys are removed. Explicitly
+            unchecked groups clear the existing canonical selection.
+        prefix_map: Form prefixes mapped to their canonical list keys.
     """
     for prefix, canonical_key in prefix_map.items():
         selected: list[str] = []
+        supplied = False
         for key, value in list(filters.items()):
             if not str(key).startswith(prefix):
                 continue
+            supplied = True
             if _is_truthy_flag(value):
                 selected.append(str(key).replace(prefix, "", 1))
             filters.pop(key, None)
-        if selected:
+        if supplied:
             filters[canonical_key] = selected
         elif canonical_key not in filters:
             filters[canonical_key] = []

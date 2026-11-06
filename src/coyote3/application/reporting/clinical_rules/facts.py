@@ -151,6 +151,15 @@ class PreparedCnvSummaryFacts(_FactModel):
     other_gene_count: int = 0
 
 
+class PreparedTranslocationSummaryFacts(_FactModel):
+    """Selected DNA fusion calls grouped by ordered gene pair and maximum support."""
+
+    genes: list[str]
+    paired_read_percent: float | None = None
+    split_read_percent: float | None = None
+    unique_reads: float | None = None
+
+
 class PreparedAggregateFacts(_FactModel):
     """Deterministic counts derived from the prepared findings."""
 
@@ -169,6 +178,8 @@ class PreparedAggregateFacts(_FactModel):
     tier_summaries: list[PreparedTierSummaryFacts] = Field(default_factory=list)
     cnv_summaries: list[PreparedCnvSummaryFacts] = Field(default_factory=list)
     cnv_summary_count: int = 0
+    translocation_summaries: list[PreparedTranslocationSummaryFacts] = Field(default_factory=list)
+    translocation_summary_count: int = 0
     has_tiered_snvs: bool = False
     has_reportable_findings: bool = False
 

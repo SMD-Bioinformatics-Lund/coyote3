@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api"
 import { CommentsPanel } from "./CommentsPanel"
+import { notifyActionError } from "@/lib/notifications"
 
 vi.mock("@/lib/api", () => ({ api: { post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifyActionError: vi.fn(), notifySuccess: vi.fn() }))
@@ -27,6 +28,35 @@ function renderPanel(node: React.ReactElement) {
 }
 
 describe("CommentsPanel", () => {
+  it("preserves text typed while an earlier comment is saving", async () => {
+    const user = userEvent.setup()
+    let finish!: (value: unknown) => void
+    vi.mocked(api.post).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }) as never)
+    renderPanel(<CommentsPanel sampleId="CASE_1" />)
+    await user.type(screen.getByRole("textbox"), "First note")
+    await user.click(screen.getByRole("button", { name: "Save comment" }))
+    await user.clear(screen.getByRole("textbox"))
+    await user.type(screen.getByRole("textbox"), "Next note")
+    await act(async () => { finish({ data: {} }) })
+    expect(screen.getByRole("textbox")).toHaveValue("Next note")
+  })
+  it("handles rejected suggestions without an uncaught rejection", async () => {
+    const user = userEvent.setup()
+    const error = new Error("Suggestion unavailable")
+    renderPanel(<CommentsPanel sampleId="CASE_1" onRequestSuggestion={async () => { throw error }} />)
+    await user.click(screen.getByRole("button", { name: "Suggest" }))
+    await waitFor(() => expect(notifyActionError).toHaveBeenCalledWith("Unable to suggest comment", error, "Comments"))
+  })
+  it("does not replace newly typed text with a late suggestion", async () => {
+    const user = userEvent.setup()
+    let finish!: (value: string) => void
+    const suggestion = new Promise<string>(resolve => { finish = resolve })
+    renderPanel(<CommentsPanel sampleId="CASE_1" onRequestSuggestion={() => suggestion} />)
+    await user.click(screen.getByRole("button", { name: "Suggest" }))
+    await user.type(screen.getByRole("textbox"), "Manual note")
+    await act(async () => { finish("Older suggestion"); await suggestion })
+    expect(screen.getByRole("textbox")).toHaveValue("Manual note")
+  })
   beforeEach(() => {
     accessState.permissions = [
       "sample.comment:hide",

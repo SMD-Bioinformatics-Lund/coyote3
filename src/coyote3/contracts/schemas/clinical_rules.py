@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from coyote3.config.constants import normalize_clinical_identifier
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase
+from coyote3.domain.finding_types import FindingKind
 
 
 class _StrictModel(BaseModel):
@@ -215,7 +216,9 @@ class ClinicalRendererOutput(_StrictModel):
     """Invocation of a named report renderer with an optional source path."""
 
     type: Literal["renderer"] = "renderer"
-    name: Literal["dna_report_intro", "tier_summary", "fusion_summary", "cnv_summary"]
+    name: Literal[
+        "dna_report_intro", "tier_summary", "fusion_summary", "cnv_summary", "translocation_summary"
+    ]
     source: str | None = None
 
 
@@ -276,12 +279,24 @@ class BulkAnnotationRule(ClinicalRule):
     """Ordered text template for an explicitly selected bulk Tier I, II or III action."""
 
     tier: Literal[1, 2, 3]
+    finding_kind: FindingKind = Field(
+        default="small_variant", exclude_if=lambda value: value == "small_variant"
+    )
 
 
 class BulkAnnotationPreviewRequest(_StrictModel):
     """Synthetic finding facts for testing annotation wording without a sample."""
 
     tier: Literal[1, 2, 3]
+    finding_kind: FindingKind = "small_variant"
+    fusion_gene_1: str | None = None
+    fusion_gene_2: str | None = None
+    fusion_breakpoint_1: str | None = None
+    fusion_breakpoint_2: str | None = None
+    chromosome: str | None = None
+    start: int | None = Field(default=None, ge=0)
+    end: int | None = Field(default=None, ge=0)
+    cnv_effect: str | None = None
     diagnosis_id: str | None = Field(default=None, min_length=1)
     asp_group: str | None = Field(default=None, min_length=1)
     gene: str | None = None
@@ -501,8 +516,12 @@ class ClinicalRuleConfiguration(_StrictModel):
         rule_ids.extend(rule.rule_id for rule in self.bulk_annotation_rules)
         if len(rule_ids) != len(set(rule_ids)):
             raise ValueError("rule IDs must be unique across the rule set")
-        for tier in (1, 2, 3):
-            orders = [rule.order for rule in self.bulk_annotation_rules if rule.tier == tier]
+        for kind, tier in {(rule.finding_kind, rule.tier) for rule in self.bulk_annotation_rules}:
+            orders = [
+                rule.order
+                for rule in self.bulk_annotation_rules
+                if rule.tier == tier and rule.finding_kind == kind
+            ]
             if len(orders) != len(set(orders)):
                 raise ValueError(f"Tier {tier} annotation rule orders must be unique")
         return self

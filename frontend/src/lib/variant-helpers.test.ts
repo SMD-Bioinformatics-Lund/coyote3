@@ -23,6 +23,15 @@ import {
   translocationType,
 } from "./variant-helpers"
 
+it("sorts missing tiers after classified findings", () => {
+  for (const tier of [null, "", "  ", false]) expect(tierValue({ tier })).toBe(999)
+})
+
+it("uses ANN when MANE contains no annotation", () => {
+  const annotation = { Gene_Name: "GENE_A" }
+  expect(selectedTranslocationAnnotation({ INFO: { MANE_ANN: [], ANN: [annotation] } })).toEqual(annotation)
+})
+
 describe("variant display normalization", () => {
   it("distinguishes missing evidence from an unselected fusion call", () => {
     expect(fusionTierUnavailableReason({})).toBe("Missing fusion evidence")

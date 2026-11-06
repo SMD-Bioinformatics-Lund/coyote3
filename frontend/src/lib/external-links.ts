@@ -32,6 +32,7 @@ function igvRelativePath(path: string) {
 }
 
 export function igvDataPath(path: string) {
+  if (/^https?:\/\//i.test(path)) return path
   const root = runtimeConfig.igvDataRoot || ""
   if (!root) return path
   return `${root}${root.endsWith(":") ? "" : "/"}${igvRelativePath(path)}`

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 
 
 class CoverageProcessingService:
@@ -42,25 +43,54 @@ class CoverageProcessingService:
         return gene_blacklist, region_blacklist
 
     @staticmethod
+    def _region_is_blacklisted(gene: str, region: str, key: str, row: dict, entries: set) -> bool:
+        """Match a stored region key or the coordinate submitted by the coverage UI.
+
+        Args:
+            gene: Gene symbol owning the interval.
+            region: CDS or probe region type.
+            key: Original coverage mapping key, which may be an exon number.
+            row: Interval with optional chr, start and end coordinates.
+            entries: Assay-group blacklist tuples of gene, type and coordinate.
+
+        Returns:
+            Whether either supported identity matches a blacklist entry.
+        """
+        coordinates = str(key)
+        if all(row.get(field) is not None for field in ("chr", "start", "end")):
+            coordinates = f"{row['chr']}:{row['start']}-{row['end']}"
+        return (gene, region, str(key)) in entries or (gene, region, coordinates) in entries
+
+    @staticmethod
     def find_low_covered_genes(
         cov: dict, cutoff: float, smp_grp: str, *, d4_coverage_blacklist_repository
     ) -> dict:
-        """Return only genes containing low-covered regions.
+        """Return genes with unblocked low coverage, retaining their complete design.
 
         Args:
             cov: Coverage payload to inspect.
             cutoff: Coverage threshold for low-coverage detection.
             smp_grp: Assay group used for blacklist lookups.
+            d4_coverage_blacklist_repository: Repository supplying group-scoped exclusions.
 
         Returns:
-            dict: Filtered coverage payload containing low-covered genes.
+            Copies of retained genes with a transient blacklisted flag on CDS and
+            probe intervals. Source documents are not mutated or persisted.
         """
         keep = defaultdict(dict)
         genes = CoverageProcessingService._genes_map(cov)
-        _gene_blacklist, region_blacklist = CoverageProcessingService._blacklist_index(
+        gene_blacklist, region_blacklist = CoverageProcessingService._blacklist_index(
             d4_coverage_blacklist_repository.get_regions_per_group(smp_grp)
         )
         for gene, gene_cov in genes.items():
+            if gene in gene_blacklist:
+                continue
+            gene_cov = deepcopy(gene_cov)
+            for field, region in (("CDS", "CDS"), ("probes", "probe")):
+                for coord, row in gene_cov.get(field, {}).items():
+                    row["blacklisted"] = CoverageProcessingService._region_is_blacklisted(
+                        gene, region, coord, row, region_blacklist
+                    )
             has_low = False
             if "CDS" in gene_cov:
                 has_low = has_low or CoverageProcessingService.reg_low(
@@ -177,9 +207,10 @@ class CoverageProcessingService:
         has_low = False
         for reg in region_dict:
             if region_dict[reg].get("cov") is not None and float(region_dict[reg]["cov"]) < cutoff:
-                reg_key = (gene, region, str(reg))
                 if region_blacklist is not None:
-                    blacklisted = reg_key in region_blacklist
+                    blacklisted = CoverageProcessingService._region_is_blacklisted(
+                        gene, region, reg, region_dict[reg], region_blacklist
+                    )
                 else:
                     blacklisted = d4_coverage_blacklist_repository.is_region_blacklisted(
                         gene, region, reg, smp_grp
@@ -190,7 +221,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def coverage_table(cov_dict: dict, cov_cutoff: float) -> defaultdict:
-        """Build the low-coverage summary table.
+        """Include low-coverage coding regions and regions identified by low probes.
 
         Args:
             cov_dict: Coverage payload to summarize.
@@ -206,6 +237,9 @@ class CoverageProcessingService:
                 for probe in gene_cov["probes"]:
                     exons = CoverageProcessingService.assign_to_exon(probe, gene_cov)
                     gene_cov["probes"][probe]["exon_nr"] = exons
+                    if gene_cov["probes"][probe].get("blacklisted"):
+                        continue
+                    exons = [exon for exon in exons if not exon.get("blacklisted")]
                     if len(exons) > 0:
                         for exon in exons:
                             exon_cov = exon.get("cov")
@@ -219,11 +253,10 @@ class CoverageProcessingService:
                         and float(gene_cov["probes"][probe]["cov"]) < cov_cutoff
                     ):
                         cov_table[gene][probe] = gene_cov["probes"][probe]
-            else:
-                for exon in gene_cov["CDS"]:
-                    cov = gene_cov["CDS"][exon].get("cov", None)
-                    if cov is not None and float(cov) < cov_cutoff:
-                        cov_table[gene][gene_cov["CDS"][exon]["nbr"]] = gene_cov["CDS"][exon]
+            for exon in gene_cov.get("CDS", {}).values():
+                cov = exon.get("cov")
+                if not exon.get("blacklisted") and cov is not None and float(cov) < cov_cutoff:
+                    cov_table[gene][exon["nbr"]] = exon
         return cov_table
 
     @staticmethod

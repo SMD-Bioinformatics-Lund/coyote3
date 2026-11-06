@@ -17,10 +17,11 @@ export function metric(value: unknown) {
 
 export function coord(row: any) {
   const chr = row?.chr || row?.chrom || "-"
-  return `${chr}:${row?.start || "-"}-${row?.end || "-"}`
+  return `${chr}:${row?.start ?? "-"}-${row?.end ?? "-"}`
 }
 
 export function coverageNumber(row: any) {
+  if ((typeof row?.cov !== "number" && typeof row?.cov !== "string") || String(row.cov).trim() === "") return Number.NaN
   const value = Number(row?.cov)
   return Number.isFinite(value) ? value : Number.NaN
 }

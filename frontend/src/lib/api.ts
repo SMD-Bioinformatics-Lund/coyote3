@@ -63,9 +63,15 @@ export function reportUiError(error: unknown, componentStack = "") {
   }).catch(() => undefined)
 }
 
+function isBinaryBody(body: unknown) {
+  return body instanceof Blob || body instanceof ArrayBuffer || ArrayBuffer.isView(body)
+    || (typeof ReadableStream !== "undefined" && body instanceof ReadableStream)
+}
+
 function encodeBody(body: ApiBody): BodyInit | undefined {
   if (body === undefined || body === null) return undefined
-  if (body instanceof FormData || body instanceof Blob || typeof body === "string") return body
+  if (body instanceof FormData || body instanceof Blob || body instanceof URLSearchParams || typeof body === "string") return body
+  if (isBinaryBody(body)) return body as BodyInit
   return JSON.stringify(body)
 }
 
@@ -75,7 +81,7 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
   const isFormData = options.body instanceof FormData
   const method = (options.method ?? "GET").toUpperCase()
   const headers = new Headers(options.headers)
-  if (!isFormData && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+  if (!isFormData && !isBinaryBody(options.body) && !(options.body instanceof URLSearchParams) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
   if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method)) {
     headers.set("X-CSRF-Token", csrfToken)
   }
@@ -105,13 +111,39 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
     }
   }
 
-  if (response.ok && responseType === "blob") {
-    return { data: await response.blob() as T, status: response.status }
+  let text: string
+  try {
+    if (response.ok && responseType === "blob") {
+      return { data: await response.blob() as T, status: response.status }
+    }
+    text = await response.text()
+  } catch (error) {
+    if (recordValue(error).name === "AbortError" || options.signal?.aborted) throw error
+    const message = "The response was interrupted. Check your connection and whether the operation completed before retrying."
+    if (errorNotice === "toast") notify({ tone: "error", title: "Connection interrupted", message, source: `${method} ${endpoint}` })
+    const failure = new ApiClientError(message, 0, endpoint)
+    failure.notificationShown = errorNotice === "toast"
+    failure.handledInline = errorNotice === "inline"
+    failure.code = "network_error"
+    throw failure
   }
-
-  // Handle empty responses
-  const text = await response.text()
-  const data = text ? safeJson(text) : {}
+  // Error bodies can be proxy HTML; successful JSON must actually be parseable.
+  let data
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    if (response.ok) {
+      const message = "The server returned an unreadable response. Check whether the operation completed before retrying."
+      if (errorNotice === "toast") notify({ tone: "error", title: "Invalid server response", message, source: `${method} ${endpoint}` })
+      const failure = new ApiClientError(message, response.status, endpoint)
+      failure.notificationShown = errorNotice === "toast"
+      failure.handledInline = errorNotice === "inline"
+      failure.code = "invalid_response"
+      failure.requestId = response.headers.get("X-Request-ID") || undefined
+      throw failure
+    }
+    data = {}
+  }
 
   if (!response.ok) {
     if (response.status === 403 && (data?.category || data?.detail?.category) === "password_change_required") {
@@ -203,14 +235,6 @@ function userFacingApiError(status: number, value: unknown) {
     : typeof structured === "string" ? structured : ""
   const hint = stringValue(data.hint) || stringValue(nested.hint)
   return [[rawError, details].filter(Boolean).join(": "), hint].filter(Boolean).join(" ")
-}
-
-function safeJson(text: string) {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return {}
-  }
 }
 
 export const api = {

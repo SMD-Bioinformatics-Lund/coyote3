@@ -5,6 +5,11 @@ report sections that contain no reportable findings. It does not change finding
 selection, classification, reporting rules, or ASPC revisions. Legacy reports keep
 their existing layout and wording.
 
+Bundled clinical wording uses `variant` / `varianter`. A center-owned file overrides
+the defaults, so update its SNV messages explicitly when adopting this terminology.
+Published reporting rules require a new reviewed version to change their authored
+text. Existing report snapshots are not rewritten.
+
 Place the file beside `contact.toml` in the center directory selected by
 `COYOTE3_CENTER_CONFIG_HOST_DIR`. Host-run commands inherit this directory; Compose
 mounts it at `/app/center-config`. An explicit `COYOTE3_CENTER_CONFIG_DIR` overrides
@@ -13,7 +18,7 @@ the process location. A complete example is supplied in
 
 ```toml
 [empty_results]
-SNV = "Inga detekterade mutationer"
+SNV = "Inga detekterade varianter"
 CNV = "Inga detekterade kopietalsförändringar."
 FUSION = "Inga detekterade fusioner"
 ```
@@ -27,8 +32,8 @@ HTML is escaped and is displayed as text.
 
 | Key under `empty_results` | Section | Default |
 | --- | --- | --- |
-| `SNV` | DNA SNVs and small INDELs | `Inga detekterade mutationer` |
-| `GERMLINE_SNV` | Separate germline SNV section | `Inga detekterade germline-mutationer` |
+| `SNV` | DNA SNVs and small INDELs | `Inga detekterade varianter` |
+| `GERMLINE_SNV` | Separate germline SNV section | `Inga detekterade germline-varianter` |
 | `CNV` | Copy-number findings | `Inga detekterade kopietalsförändringar.` |
 | `TRANSLOCATION` | DNA fusions/translocations | `Inga detekterade fusioner` |
 | `FUSION` | RNA fusions | `Inga detekterade fusioner` |

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { icon } from "@/lib/assets"
 
 interface ExpandableTextProps {
@@ -10,17 +10,27 @@ interface ExpandableTextProps {
 export function ExpandableText({ text, maxLength = 25, className = "" }: ExpandableTextProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   if (!text || text === "-") return <span className={className}>-</span>;
 
   const isLong = text.length > maxLength;
   const displayText = isExpanded ? text : isLong ? `${text.substring(0, maxLength)}...` : text;
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopyError("");
+    setCopied(false);
+    clearTimeout(copyTimer.current);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Could not copy. Select the text and copy it manually.");
+    }
   };
 
   return (
@@ -33,6 +43,7 @@ export function ExpandableText({ text, maxLength = 25, className = "" }: Expanda
 
       {isLong && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             setIsExpanded(!isExpanded);
@@ -53,12 +64,14 @@ export function ExpandableText({ text, maxLength = 25, className = "" }: Expanda
       )}
 
       <button
+        type="button"
         onClick={handleCopy}
         className={`shrink-0 rounded p-1 interaction-transition ${copied ? "text-pass opacity-100" : "text-muted-foreground opacity-0 group-hover/expandable:opacity-100 hover:bg-surface-hover hover:text-foreground"}`}
         title="Copy to clipboard"
       >
         {copied ? <icon.check className="w-3 h-3" /> : <icon.copy className="w-3 h-3" />}
       </button>
+      {copyError && <span role="alert" className="type-meta text-destructive">{copyError}</span>}
     </div>
   );
 }

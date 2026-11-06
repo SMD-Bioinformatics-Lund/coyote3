@@ -62,15 +62,21 @@ def alignment_files_payload(
         if bai and not bam and len(catalog.get(sample_id) or []) > 1:
             logger.warning("igv_index_ambiguous role=%s; explicit BAM filename required", role)
         for catalog_path in catalog.get(sample_id) or []:
-            original = PurePosixPath(catalog_path.replace("\\", "/"))
-            path = str(original.with_name(bam)) if bam else str(original)
+            parsed = urlsplit(catalog_path)
+            remote = parsed.scheme in {"http", "https"}
+            original = PurePosixPath(parsed.path if remote else catalog_path.replace("\\", "/"))
+            resolved_path = str(original.with_name(bam)) if bam else str(original)
+            path = parsed._replace(path=resolved_path).geturl() if remote else resolved_path
             paths = bams.setdefault(sample_id, [])
             if path not in paths:
                 paths.append(path)
             if bai:
                 # Without an explicit BAM, one index cannot select among several files.
                 if bam or len(catalog[sample_id]) == 1:
-                    indexes[path] = str(original.with_name(bai))
+                    index_path = str(original.with_name(bai))
+                    indexes[path] = (
+                        parsed._replace(path=index_path).geturl() if remote else index_path
+                    )
     beds = (
         [str(PurePosixPath(base, settings["design_bed"]))]
         if base and settings.get("design_bed")

@@ -1,5 +1,7 @@
 """Clinical regressions for bulk annotation templates, separate from report narration."""
 
+import hashlib
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -9,13 +11,95 @@ from coyote3.application.classification.bulk_annotation_rules import (
     render_bulk_annotation,
 )
 from coyote3.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
-from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
+from coyote3.application.reporting.clinical_rules.validation import (
+    canonical_content,
+    content_hash,
+    validate_rule_set,
+)
 from coyote3.contracts.schemas.clinical_rules import (
     BulkAnnotationPreviewRequest,
     BulkAnnotationRule,
     ClinicalRuleSetDoc,
 )
 from tests.unit.reporting.test_clinical_rules import _context, _document
+
+
+@pytest.mark.parametrize(
+    "kind,analyte,path,value",
+    [
+        ("cnv", "dna", "chromosome", "7"),
+        ("translocation", "dna", "fusion_gene_1", "GENE_A"),
+        ("fusion", "rna", "fusion_gene_2", "GENE_B"),
+    ],
+)
+def test_structural_annotation_scopes_and_facts(kind, analyte, path, value):
+    """Structural templates render their own facts and reject other analyte scopes."""
+    document = _document()
+    document.scope.analyte = analyte
+    document.blocks = []
+    document.analysis_declarations = {}
+    document.bulk_annotation_rules = [
+        _rule(
+            finding_kind=kind,
+            condition=None,
+            output=[{"type": "fact", "path": f"finding.{path}"}],
+        )
+    ]
+    facts = BulkAnnotationPreviewRequest(tier=2, finding_kind=kind, **{path: value})
+    assert validate_rule_set(document).valid
+    assert render_bulk_annotation(document, facts).text == value
+    document.scope.analyte = "dna" if analyte == "rna" else "rna"
+    assert not validate_rule_set(document).valid
+    with pytest.raises(ValueError, match="incompatible"):
+        render_bulk_annotation(document, facts)
+
+
+def test_small_variant_fallback_cannot_capture_structural_findings():
+    """Templates of different finding types have independent order and fallback matching."""
+    document = _document()
+    document.bulk_annotation_rules = [
+        _rule(rule_id="snv", condition=None, output=[{"type": "text", "value": "SNV"}]),
+        _rule(
+            rule_id="cnv",
+            finding_kind="cnv",
+            condition=None,
+            output=[{"type": "text", "value": "CNV"}],
+        ),
+    ]
+    ClinicalRuleSetDoc.model_validate(document.model_dump())
+    assert not validate_rule_set(document).warnings
+    assert (
+        render_bulk_annotation(
+            document, BulkAnnotationPreviewRequest(tier=2, finding_kind="cnv")
+        ).text
+        == "CNV"
+    )
+    document.bulk_annotation_rules.pop()
+    assert (
+        render_bulk_annotation(
+            document, BulkAnnotationPreviewRequest(tier=2, finding_kind="cnv")
+        ).text
+        is None
+    )
+
+
+def test_legacy_annotation_content_hash_is_preserved():
+    """The implicit small-variant default does not change published content hashes."""
+    document = _document()
+    document.bulk_annotation_rules = [_rule()]
+    legacy = canonical_content(document)
+    assert "finding_kind" not in legacy["bulk_annotation_rules"][0]
+    expected = hashlib.sha256(
+        json.dumps(legacy, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    ).hexdigest()
+    assert content_hash(document) == expected
+
+
+def test_structural_template_rejects_small_variant_only_fields():
+    """A CNV template cannot consume transcript or single-gene annotation facts."""
+    document = _document()
+    document.bulk_annotation_rules = [_rule(finding_kind="cnv")]
+    assert not validate_rule_set(document).valid
 
 
 def _rule(**changes):

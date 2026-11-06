@@ -380,7 +380,9 @@ type ArtefactFrequencyItem = {
 function artefactFrequencyItems(finding: FindingRecord): ArtefactFrequencyItem[] {
   if (!finding || typeof finding !== "object") return []
   return Object.entries(finding)
-    .filter(([key]) => key.startsWith("AFRQ_"))
+    .filter(([key, value]) => key.startsWith("AFRQ_")
+      && (typeof value === "number" || typeof value === "string")
+      && String(value).trim() !== "")
     .map(([key, value]) => {
       const frequency = Number(value)
       const label = key.slice("AFRQ_".length)

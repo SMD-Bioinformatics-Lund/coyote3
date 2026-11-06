@@ -1,5 +1,14 @@
 """Canonical finding family identifiers and the existing accepted input spellings."""
 
+from typing import Literal
+
+FindingKind = Literal["small_variant", "cnv", "fusion", "translocation"]
+
+ANNOTATION_FINDING_KINDS: dict[str, tuple[FindingKind, ...]] = {
+    "dna": ("small_variant", "cnv", "translocation"),
+    "rna": ("fusion",),
+}
+
 
 def normalize_finding_kind(resource_type: str | None) -> str:
     """Normalize an existing finding-family spelling without accepting new resource kinds.

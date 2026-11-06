@@ -70,6 +70,19 @@ describe("structural finding detail pages", () => {
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_001/cnvs/CNV1")
   })
 
+  it("preserves zero-based CNV coordinates and does not invent a missing log2 ratio", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "DNA_001" },
+      cnv: { _id: "CNV1", chr: "7", start: 0, end: 100, type: "gain", ratio: null, log2: null, genes: [] },
+      annotations: [],
+    } })
+    mount("/samples/DNA_001/cnv/CNV1", "/samples/:id/cnv/:varId", <CNVDetail />)
+    expect(await screen.findByText("GAIN · 7:0-100")).toBeVisible()
+    expect(screen.getByText("100 bp")).toBeVisible()
+    expect(screen.queryByText("0.0000")).not.toBeInTheDocument()
+    expect(screen.queryAllByText("2.00")).toHaveLength(0)
+  })
+
   it("renders a selected fusion call and all caller alternatives", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "RNA_001" }, assay_group: "fusion", diagnosis: "base",
@@ -98,7 +111,7 @@ describe("structural finding detail pages", () => {
     expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_001/fusions/F1")
   })
 
-  it("renders translocation annotations and sample read support", async () => {
+  it.each([false, true])("renders translocation annotations and sample read support (string counts: %s)", async (stringCounts) => {
     const annotation = {
       Gene_Name: "KMT2A", Feature_ID: "ENST00000534358", HGVS_p: "p.Gly1Val",
       HGVS_c: "c.1G>T", Annotation: "transcript_ablation", Rank: "1/10", BioType: "protein_coding",
@@ -108,7 +121,7 @@ describe("structural finding detail pages", () => {
       translocation: {
         _id: "T1", CHROM: "11", POS: 118307000, ALT: "N[4:12345[", QUAL: 80,
         INFO: { SVTYPE: "BND", variant_callers: ["MANTA"], ANN: [annotation], UNIQUE_READS: 22 },
-        GT: [{ type: "case", PR: [100, 20], SR: [50, 15] }],
+        GT: [{ type: "case", PR: stringCounts ? "100,20" : [100, 20], SR: stringCounts ? "50,15" : [50, 15] }],
       },
       annotations: [], latest_classification: { class: 2 },
       snpeff_conseq_translations: { transcript_ablation: { display_name: "Transcript ablation" } },
@@ -120,11 +133,11 @@ describe("structural finding detail pages", () => {
     expect(screen.getAllByText("KMT2A").length).toBeGreaterThan(0)
     expect(screen.getAllByText("ENST00000534358").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Transcript ablation").length).toBeGreaterThan(0)
-    expect(screen.getByText("100/20")).toBeVisible()
-    expect(screen.getByText("50/15")).toBeVisible()
+    expect(screen.getByText(stringCounts ? "100,20" : "100/20")).toBeVisible()
+    expect(screen.getByText(stringCounts ? "50,15" : "50/15")).toBeVisible()
     const identity = within(screen.getByText("Translocation Identity").closest("section")!)
-    expect(identity.getByText("100/20")).toBeVisible()
-    expect(identity.getByText("50/15")).toBeVisible()
+    expect(identity.getByText(stringCounts ? "100,20" : "100/20")).toBeVisible()
+    expect(identity.getByText(stringCounts ? "50,15" : "50/15")).toBeVisible()
     expect(identity.getByText("16.7%")).toBeVisible()
     expect(identity.getByText("23.1%")).toBeVisible()
     expect(screen.queryByText("Sample Read Evidence")).not.toBeInTheDocument()

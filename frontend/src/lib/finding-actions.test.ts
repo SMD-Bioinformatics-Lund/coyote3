@@ -13,9 +13,18 @@ import {
   findingBulkActionOptions,
   findingQueryKeys,
   setSingleFlag,
+  previewBulkAnnotationText,
 } from "./finding-actions"
 
 describe("finding actions", () => {
+  it.each(["cnv", "fusion", "translocation"] as const)("previews %s annotations with the selected finding type", async resourceType => {
+    apiMock.post.mockResolvedValue({ data: [] })
+    await previewBulkAnnotationText("sample-1", "tier_3", ["finding-1"], resourceType)
+    expect(apiMock.post).toHaveBeenCalledWith("/samples/sample-1/classifications/tier/preview", {
+      resource_type: resourceType, resource_ids: ["finding-1"], tier: 3, apply: true, include_automatic_text: true,
+    }, { errorNotice: "inline" })
+  })
+
   beforeEach(() => {
     apiMock.patch.mockReset().mockResolvedValue({ data: {}, status: 200 })
     apiMock.post.mockReset().mockResolvedValue({ data: {}, status: 200 })

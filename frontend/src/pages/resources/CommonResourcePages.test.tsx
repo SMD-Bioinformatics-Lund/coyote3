@@ -143,6 +143,7 @@ describe("CoverageBlacklistPage", () => {
 
     await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("/coverage/blacklist/entries/R1"))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["coverage-blacklisted", "hematology"] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["sample-coverage"] })
     expect(mocks.success).toHaveBeenCalledWith("Blacklist entry removed", expect.any(String), "Coverage")
   })
 

@@ -317,7 +317,14 @@ class SampleCatalogFiltersMixin:
 
     @staticmethod
     def _collect_doc_gene_names(doc: dict[str, Any]) -> set[str]:
-        """Collect gene-like names from heterogenous DNA/RNA result documents."""
+        """Collect gene symbols without interpreting structured gene metadata as names.
+
+        Args:
+            doc: Finding containing scalar genes, gene-entry lists or annotations.
+
+        Returns:
+            Nonblank uppercase gene symbols using the existing string separators.
+        """
         genes: set[str] = set()
 
         def _add(value: Any) -> None:
@@ -333,14 +340,16 @@ class SampleCatalogFiltersMixin:
         for key in ("gene", "gene1", "gene2"):
             _add(doc.get(key))
 
-        gene_blob = str(doc.get("genes") or "").strip()
-        if gene_blob:
+        gene_blob = doc.get("genes")
+        if isinstance(gene_blob, str):
             for piece in re.split(r"[^A-Za-z0-9_]+", gene_blob):
                 _add(piece)
-
-        for gene_doc in doc.get("genes", []) or []:
-            if isinstance(gene_doc, dict):
-                _add(gene_doc.get("gene"))
+        elif isinstance(gene_blob, list):
+            for gene_doc in gene_blob:
+                if isinstance(gene_doc, dict):
+                    _add(gene_doc.get("gene"))
+                elif isinstance(gene_doc, str):
+                    _add(gene_doc)
 
         info = doc.get("INFO")
         if isinstance(info, list):

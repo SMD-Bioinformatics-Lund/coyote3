@@ -2,7 +2,8 @@ import { MetricCard } from "@/components/cards/Panel"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { icon } from "@/lib/assets"
 import { useState } from "react"
 import { coord, coverageNumber, metric, regionLength, type CoverageFeatureKind, type InspectedCoverageFeature } from "./coverage-presentation"
@@ -18,16 +19,20 @@ export function CoverageGeneView({
   cutoff: number
   smpGrp: string
 }) {
+  const queryClient = useQueryClient()
+  const access = useCurrentUserAccess()
+  const canManage = hasPermission(access.data, "coverage.blacklist:manage")
   const [zoom, setZoom] = useState(1)
   const [activeTab, setActiveTab] = useState<"exons" | "probes">("exons")
   const [infoTab, setInfoTab] = useState<"transcript" | "exons" | "cds" | "probes">("transcript")
-  const [inspectedFeature, setInspectedFeature] = useState<InspectedCoverageFeature | null>(null)
+  const [inspection, setInspection] = useState<{ gene: string; data: unknown; feature: InspectedCoverageFeature } | null>(null)
+  const inspectedFeature = inspection?.gene === gene && inspection.data === geneData ? inspection.feature : null
   const transcript = geneData?.transcript || {}
   const exons = Array.isArray(geneData?.exons) ? geneData.exons : []
   const cds = Array.isArray(geneData?.CDS) ? geneData.CDS : []
   const probes = Array.isArray(geneData?.probes) ? geneData.probes : []
-  const lowExons = cds.filter((row: any) => coverageNumber(row) < cutoff)
-  const lowProbes = probes.filter((row: any) => coverageNumber(row) < cutoff)
+  const lowExons = cds.filter((row: any) => !row.blacklisted && coverageNumber(row) < cutoff)
+  const lowProbes = probes.filter((row: any) => !row.blacklisted && coverageNumber(row) < cutoff)
   const start = Number(transcript.start || Math.min(...[...exons, ...cds, ...probes].map((row: any) => Number(row.start)).filter(Number.isFinite)))
   const end = Number(transcript.end || Math.max(...[...exons, ...cds, ...probes].map((row: any) => Number(row.end)).filter(Number.isFinite)))
   const safeStart = Number.isFinite(start) ? start : 0
@@ -45,13 +50,13 @@ export function CoverageGeneView({
   }
   const ticks = Array.from({ length: 6 }, (_, index) => safeStart + ((safeEnd - safeStart) * index) / 5)
   const inspectFeature = (kind: CoverageFeatureKind, row: any, index: number) => {
-    setInspectedFeature({
+    setInspection({ gene, data: geneData, feature: {
       kind,
       label: String(row.nbr || row.exon || row.name || row.id || `${kind} ${index + 1}`),
       coordinates: coord(row),
       coverage: coverageNumber(row),
       length: regionLength(row),
-    })
+    } })
   }
 
   const blacklist = useMutation({
@@ -63,6 +68,8 @@ export function CoverageGeneView({
         smp_grp: smpGrp,
       }),
     onSuccess: (_result, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["sample-coverage"] })
+      void queryClient.invalidateQueries({ queryKey: ["coverage-blacklisted"] })
       notifySuccess("Coverage region blacklisted", `${gene} ${variables.region} was added to the blacklist.`, "Coverage")
     },
     onError: (error) => {
@@ -90,13 +97,13 @@ export function CoverageGeneView({
               <td className="px-2 py-1 font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
               <td className="px-2 py-1 ">{metric(regionLength(row))}</td>
               <td className="px-2 py-1">
-                <button
+                {canManage && <button
                   onClick={() => blacklist.mutate({ row, region })}
                   disabled={blacklist.isPending}
                   className="rounded-md border border-fail/30 bg-fail/10 px-2 py-1 text-xs font-bold text-fail hover:bg-fail/20 disabled:opacity-50"
                 >
                   Blacklist
-                </button>
+                </button>}
               </td>
             </tr>
           ))}
@@ -154,12 +161,12 @@ export function CoverageGeneView({
                 </td>
                 <td className="px-2 py-1">
                   <span className={`rounded-md px-2 py-1 type-label font-bold uppercase ${isLow ? "bg-fail/10 text-fail" : "bg-pass/10 text-pass"}`}>
-                    {Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
+                    {row.blacklisted ? "Blacklisted" : Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
                   </span>
                 </td>
                 {region === "probe" && <td className="px-2 py-1 ">{overlapping}</td>}
                 <td className="px-2 py-1">
-                  {(region === "CDS" || region === "probe") && (
+                  {canManage && !row.blacklisted && (region === "CDS" || region === "probe") && (
                     <button
                       onClick={() => blacklist.mutate({ row, region })}
                       disabled={blacklist.isPending}
@@ -204,13 +211,13 @@ export function CoverageGeneView({
             <button aria-label="Reset zoom" className="soft-icon-button" onClick={() => setZoom(1)}><icon.rotateCcw className="h-4 w-4" /></button>
           </AppTooltip>
           <span className="type-badge rounded-md border border-border bg-background px-2 py-1">{Math.round(zoom * 100)}%</span>
-          <button
+          {canManage && <button
             onClick={() => blacklist.mutate({ region: "" })}
             disabled={blacklist.isPending}
             className="rounded-md border border-fail/30 bg-fail/10 px-2.5 py-1 text-xs font-bold text-fail hover:bg-fail/20 disabled:opacity-50"
           >
             Blacklist gene
-          </button>
+          </button>}
         </div>
       </div>
 

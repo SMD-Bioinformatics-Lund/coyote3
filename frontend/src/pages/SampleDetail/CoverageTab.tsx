@@ -2,6 +2,8 @@ import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { SearchInput } from "@/components/ui/search-input"
+import { Select } from "@/components/ui/select"
+import type { CoverageGeneListOption, CoverageSamplePayload } from "@/lib/generated"
 import { api } from "@/lib/api"
 import { shortCount } from "@/lib/detail-formatters"
 import { sampleFilterSection } from "@/lib/sample-shape"
@@ -12,16 +14,34 @@ import { useEffect, useMemo, useState } from "react"
 import { coverageNumber, flattenCoverageTable, metric } from "./coverage-presentation"
 import { CoverageGeneView } from "./CoverageGeneView"
 
+type CoverageViewPayload = CoverageSamplePayload & {
+  coverage: { genes?: Record<string, Record<string, unknown>> }
+}
+
 export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: any }) {
   const configuredCutoff = Number(sampleFilterSection(sample, "coverage").warn_cov)
   const cutoff = Number.isFinite(configuredCutoff) && configuredCutoff > 0 ? configuredCutoff : 500
   const [selectedGene, setSelectedGene] = useState<string | null>(null)
   const [geneSearch, setGeneSearch] = useState("")
+  const [selection, setSelection] = useState<{ sampleId: string; id: string } | null>(null)
+  const geneListId = selection?.sampleId === sampleId ? selection.id : ""
+  const [listOptions, setListOptions] = useState<{ sampleId: string; lists: CoverageGeneListOption[] } | null>(null)
   const { data, isLoading, error } = useQuery({
-    queryKey: ["sample-coverage", sampleId, cutoff],
-    queryFn: () => api.get(`/samples/${sampleId}/coverage?cov_cutoff=${cutoff}`).then((res) => res.data),
+    queryKey: ["sample-coverage", sampleId, cutoff, geneListId],
+    queryFn: () => api.get<CoverageViewPayload>(`/samples/${sampleId}/coverage?cov_cutoff=${cutoff}${geneListId ? `&gene_list_id=${encodeURIComponent(geneListId)}` : ""}`).then((res) => res.data),
     retry: false,
   })
+  useEffect(() => {
+    if (data) setListOptions({ sampleId, lists: data.gene_lists || [] })
+  }, [data, sampleId])
+  const availableLists = listOptions?.sampleId === sampleId ? listOptions.lists : []
+  const scopeControl = <div className="space-y-1">
+    <p className="type-label">Coverage scope</p>
+    <Select label="Coverage gene list" value={geneListId}
+      options={[{ value: "", label: "Assay scope" }, ...availableLists.map(list => ({ value: list.id, label: list.label }))]}
+      onValueChange={id => { setSelection({ sampleId, id }); setSelectedGene(null); setGeneSearch("") }} />
+    <p className="type-meta text-muted-foreground">Optionally narrow assay coverage to a gene list. Finding filters are unchanged.</p>
+  </div>
 
   const rows = useMemo(() => flattenCoverageTable(data?.cov_table), [data])
   const coveredGenes = Object.keys(data?.coverage?.genes || {}).length
@@ -113,13 +133,13 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
     },
   ]
 
-  if (isLoading) return <AppLoader label="Loading coverage" />
+  if (isLoading) return <div className="space-y-3">{scopeControl}<AppLoader label="Loading coverage" /></div>
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <div className="space-y-3">{scopeControl}<div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
         <icon.alertTriangle className="mr-2 inline h-4 w-4" />
         {error instanceof Error ? error.message : "Error loading coverage"}
-      </div>
+      </div></div>
     )
   }
 
@@ -129,6 +149,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
         title="Coverage"
         description="Low-covered genes, exon/CDS/probe coverage, and blacklist controls for the active assay design."
       >
+        {scopeControl}
         <div className="grid gap-2 sm:grid-cols-3">
           <MetricCard title="Low regions" value={shortCount(rows.length)} />
           <MetricCard title="Genes with coverage" value={shortCount(coveredGenes)} />
@@ -176,7 +197,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
               ))}
               {!geneSummaries.length && (
                 <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
-                  No low-covered genes for the current cutoff and selected gene lists.
+                No low-covered genes for the current cutoff and coverage scope.
                 </p>
               )}
               {geneSummaries.length > 0 && !filteredGeneSummaries.length && (

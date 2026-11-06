@@ -24,6 +24,40 @@ from coyote3.contracts.schemas.rna import (
 EXAMPLES = Path(__file__).resolve().parents[2] / "docs/assets/examples/ingest"
 
 
+@pytest.mark.parametrize("fail", [False, True])
+def test_small_variant_reader_closes_after_ingest(monkeypatch, fail):
+    """Successful and rejected ingestion both release the open VCF handle."""
+    from coyote3.application.ingest import analysis_parsers
+
+    source = analysis_parsers.VariantFile(str(EXAMPLES / "small-variants-vcf.vcf"))
+    monkeypatch.setattr(analysis_parsers, "VariantFile", lambda _: source)
+    if fail:
+
+        def reject_record(*args):
+            """Simulate a malformed input after the reader has been opened."""
+            raise ValueError("Invalid synthetic record")
+
+        monkeypatch.setattr(analysis_parsers.cmdvcf, "parse_variant", reject_record)
+        with pytest.raises(ValueError, match="Invalid synthetic record"):
+            DnaIngestParser()._parse_snvs_only(str(EXAMPLES / "small-variants-vcf.vcf"))
+    else:
+        DnaIngestParser()._parse_snvs_only(str(EXAMPLES / "small-variants-vcf.vcf"))
+    try:
+        assert source.closed
+    finally:
+        source.close()
+
+
+def test_small_variant_accepts_af_format_field(tmp_path):
+    """The documented AF alternative must preserve measured allele fractions."""
+    path = tmp_path / "af.vcf"
+    path.write_text((EXAMPLES / "small-variants-vcf.vcf").read_text().replace("VAF", "AF"))
+    rows = DnaIngestParser()._parse_snvs_only(
+        str(path), case_id="SYNTHETIC-T", control_id="SYNTHETIC-N"
+    )
+    assert float(rows[0]["GT"][0]["AF"]) == pytest.approx(0.4)
+
+
 @pytest.mark.parametrize(
     ("filename", "model"),
     [

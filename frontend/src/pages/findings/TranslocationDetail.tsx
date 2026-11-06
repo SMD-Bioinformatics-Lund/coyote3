@@ -31,12 +31,21 @@ import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/samp
 import { cbioportalOncoprintUrl, igvAlignmentLinks, pubmedSearchUrl } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
+function supportFraction(value: unknown): number | null {
+  const counts = typeof value === "string" ? value.split(",") : value
+  if (!Array.isArray(counts) || counts.length !== 2) return null
+  if (counts.some(count => (typeof count !== "number" && typeof count !== "string") || String(count).trim() === "")) return null
+  const [reference, alternate] = counts.map(Number)
+  if (![reference, alternate].every(count => Number.isFinite(count) && count >= 0)) return null
+  return reference + alternate > 0 ? alternate / (reference + alternate) : null
+}
+
 function genotypeRows(translocation: any) {
   const rows = Array.isArray(translocation?.GT) ? translocation.GT : []
   return rows.map((gt: any) => ({
     ...gt,
-    prPct: Number(gt?.PR?.[1]) / Math.max(Number(gt?.PR?.[0]) + Number(gt?.PR?.[1]), 1),
-    srPct: Number(gt?.SR?.[1]) / Math.max(Number(gt?.SR?.[0]) + Number(gt?.SR?.[1]), 1),
+    prPct: supportFraction(gt?.PR),
+    srPct: supportFraction(gt?.SR),
   }))
 }
 
@@ -61,7 +70,7 @@ export function TranslocationDetail() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['translocation', id, varId],
-    queryFn: () => api.get(`/samples/${id}/translocations/${varId}`).then(res => res.data)
+    queryFn: () => api.get(`/samples/${encodeURIComponent(id || "")}/translocations/${encodeURIComponent(varId || "")}`).then(res => res.data)
   })
   const routeSample = data?.sample
   useEffect(() => {
@@ -96,10 +105,9 @@ export function TranslocationDetail() {
   const position = translocationPositionLabel(translocation)
   const callers = translocation?.INFO?.variant_callers || translocation?.callers
   const readEvidence = genotypeRows(translocation)
-  const maxSupport = readEvidence.reduce(
-    (max: number, row: any) => Math.max(max, row.prPct || 0, row.srPct || 0),
-    0,
-  )
+  const supportValues = readEvidence.flatMap((row: { prPct: number | null; srPct: number | null }) =>
+    [row.prPct, row.srPct].filter((value): value is number => value !== null))
+  const maxSupport = supportValues.length ? Math.max(...supportValues) : null
   const sampleRouteKey = sampleUrlKey(sample, id)
   const sampleHref = sampleDetailTabPath(sample, id, "translocations")
   const previousSampleHref = typeof location.state === "object" && location.state && "from" in location.state
@@ -144,7 +152,7 @@ export function TranslocationDetail() {
                 <DetailField label="Callers">{translocation?.INFO?.variant_callers || translocation?.callers || "-"}</DetailField>
                 <DetailField label="Unique reads">{translocation?.INFO?.UNIQUE_READS || translocation?.unique_reads || "-"}</DetailField>
                 <DetailField label="Status"><StatusBadges finding={translocation} /></DetailField>
-                {readEvidence.map((row: { type?: string; sample?: string; PR?: unknown; SR?: unknown; prPct: number; srPct: number }, index: number) => <Fragment key={index}>
+                {readEvidence.map((row: { type?: string; sample?: string; PR?: unknown; SR?: unknown; prPct: number | null; srPct: number | null }, index: number) => <Fragment key={index}>
                   <DetailField label={`${row.type || row.sample || "Sample"} paired reads`}>
                     <span>{Array.isArray(row.PR) ? row.PR.join("/") : displayValue(row.PR)}</span>
                     <span className="ml-1 type-meta text-muted-foreground">{percentValue(row.prPct, 1)}</span>

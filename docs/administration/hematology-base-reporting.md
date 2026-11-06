@@ -17,6 +17,13 @@ The repository's default branch is `master`, not `main`. This comparison uses
 It describes existing software behavior, not approval of clinical wording or
 thresholds for a new assay.
 
+The current examples use **variant/varianter** instead of the historical composer's
+**mutation/mutationer**. This is an intentional terminology update following
+[ACMG/AMP sequence-variant terminology](https://pmc.ncbi.nlm.nih.gov/articles/PMC4544753/).
+It does not change matching conditions, tiers, thresholds or clinical significance.
+Existing published rules retain their authored text until a new reviewed version
+is published; saved report snapshots retain their original wording.
+
 | Part | Condition in that composer | Current authoring equivalent |
 | --- | --- | --- |
 | Method introduction | Start with `reporting.general_report_summary` from the assay configuration | Literal reviewed method wording plus dynamic assay name and panel gene count |
@@ -119,7 +126,7 @@ Choose **Common condition → Paired case/control analysis**, equivalent to
 `sample.paired is true`. Enter the center-reviewed control-material sentence.
 For a workflow verified to use skin biopsy, the historical wording was:
 
-> Analysen avser somatiska mutationer (hudbiopsi har använts som kontrollmaterial).
+> Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial).
 
 Keep a trailing space. This rule emits nothing for an unpaired sample. The starter
 also supplies **Unpaired control wording**, conditioned on `sample.paired is false`,
@@ -162,7 +169,7 @@ Use **Match all** with:
 2. **Exclude when → SNV selected lists: selected germline genes → is empty**.
 
 Output `För `, list `gene_lists.snv.germline_genes` with conjunction `samt`,
-and ` undersöks även konstitutionella mutationer. `.
+and ` undersöks även konstitutionella varianter. `.
 CEBPA appears only when it belongs to both the selected SNV gene scope and the
 assay's declared germline genes. Selecting an unrelated list must not produce
 the CEBPA sentence.
@@ -262,7 +269,7 @@ always read context** yourself if that is the approved wording for an existing d
 For a synthetic TP53 finding already assigned tier I with case VAF 35%, the
 terminology example below produces:
 
-> Vid analysen finner man en mutation av stark klinisk signifikans (Tier I) i TP53 (i 35% av läsningarna).
+> Vid analysen finner man en variant av stark klinisk signifikans (Tier I) i TP53 (i 35% av läsningarna).
 
 Several findings in one gene contribute several VAF labels to the same gene
 group. Findings in multiple genes or tiers produce the corresponding grouped
@@ -293,7 +300,7 @@ Choose **Add rule** in the same section. Set:
 Write the reviewed negative sentence in **Report sentence**:
 
 ```text
-Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.
+Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.
 ```
 
 Enable this rule too. Both rules may be enabled; their conditions decide which
@@ -366,7 +373,7 @@ grouped summaries because the wording is driven by the prepared tiers and genes.
     "next_prefix": "Vidare ses ",
     "final_prefix": "Slutligen ses ",
     "number_gender": "n",
-    "finding_singular": "mutation",
+    "finding_singular": "variant",
     "finding_plural_suffix": "er",
     "tier_labels": {
       "1": " av stark klinisk signifikans (Tier I)",
@@ -442,7 +449,7 @@ Choose **Start a section → Closing text**. Keep **Whole report**, **Once per
 report**, **All matches**, and heading off. Use two rules:
 
 - Unconditional closing rule: `För ytterligare information om utförd analys och
-  beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. `
+  beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. `
 - Accreditation rule: **Accredited is false**, then
   `Analysen omfattas inte av ackrediteringen.`
 

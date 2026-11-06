@@ -493,7 +493,7 @@ export function VariantsTab({
                 <>
                   <BulkActionDropdown
                     key={table.getSelectedRowModel().rows.map(row => String(row.original._id)).sort().join(",")}
-                    selectedCount={Object.keys(table.getState().rowSelection).length}
+                    selectedIds={table.getSelectedRowModel().rows.map(row => String(row.original._id))}
                     actions={variantBulkActions}
                     isPending={bulkAction.isPending}
                     automaticTextAvailable

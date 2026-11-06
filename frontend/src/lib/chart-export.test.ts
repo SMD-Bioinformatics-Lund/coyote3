@@ -13,6 +13,23 @@ class LoadableImage {
 }
 
 describe("chart export utilities", () => {
+  it("exports well-formed XML without duplicate namespace attributes", () => {
+    const container = document.createElement("div")
+    container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"></svg>'
+    const result = serializeChartSvg(container)!
+    const parsed = new DOMParser().parseFromString(result.serialized, "image/svg+xml")
+    expect(parsed.querySelector("parsererror")).toBeNull()
+    expect(parsed.querySelectorAll("svg")).toHaveLength(2)
+  })
+  it("reserves header space when only a subtitle is supplied", () => {
+    const container = document.createElement("div")
+    container.innerHTML = '<svg width="200" height="100"></svg>'
+    const result = serializeChartSvg(container, { subtitle: "Synthetic subtitle" })!
+    const root = new DOMParser().parseFromString(result.serialized, "image/svg+xml")
+    const subtitle = root.querySelector("text")!
+    const chart = root.querySelector("svg svg")!
+    expect(Number(chart.getAttribute("y"))).toBeGreaterThan(Number(subtitle.getAttribute("y")))
+  })
   afterEach(() => vi.restoreAllMocks())
 
   it("serializes heterogeneous rows and escapes CSV values", () => {

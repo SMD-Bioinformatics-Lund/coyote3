@@ -69,6 +69,18 @@ it("fails closed when renewal fails", async () => {
   expect(() => result.current.options()).toThrow("not active")
 })
 
+it("disables the editor at expiry even while a renewal request is stalled", async () => {
+  vi.useFakeTimers()
+  const { result } = renderHook(() => useDocumentEditor("draft", "one", true))
+  await act(async () => { await Promise.resolve() })
+  expect(result.current.owned).toBe(true)
+  vi.mocked(api.post).mockImplementation(path => path.endsWith("/renew")
+    ? new Promise(() => {}) : Promise.resolve(response()))
+  await act(async () => { await vi.advanceTimersByTimeAsync(91_000) })
+  expect(result.current.owned).toBe(false)
+  expect(result.current.error).toMatch(/expired/i)
+})
+
 it("rejects expiry before a suspended tab's renewal timer fires", async () => {
   const { result } = renderHook(() => useDocumentEditor("draft", "one", true))
   await waitFor(() => expect(result.current.owned).toBe(true))

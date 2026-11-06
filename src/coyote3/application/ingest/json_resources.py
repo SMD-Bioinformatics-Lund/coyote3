@@ -23,7 +23,7 @@ def read_ingest_json(filename: str, label: str) -> Any:
     """
     path = Path(filename)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8-sig")
         if not text.strip():
             raise ValueError(f"{label} file '{path.name}' is empty; provide valid JSON output.")
         return json.loads(text)

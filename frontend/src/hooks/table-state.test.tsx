@@ -12,6 +12,18 @@ function router(entry: string) {
 }
 
 describe("URL-backed table state", () => {
+  it("normalizes sort direction like the server", () => {
+    const { result } = renderHook(() => useUrlTableState({ prefix: "table" }), {
+      wrapper: router("/?table_sort=gene:%20DESC%20"),
+    })
+    expect(result.current.sorting).toEqual([{ id: "gene", desc: true }])
+  })
+  it("caps bookmarked page sizes at the server maximum", () => {
+    const { result } = renderHook(() => useUrlTableState({ prefix: "table" }), {
+      wrapper: router("/?table_per_page=10000"),
+    })
+    expect(result.current.perPage).toBe(200)
+  })
   it("parses paging, search, and multi-column sorting from the URL", () => {
     const { result } = renderHook(() => ({
       table: useUrlTableState({ prefix: "variants", tab: "snvs" }),

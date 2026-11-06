@@ -6,7 +6,7 @@ from typing import Any
 
 DNA_TERMINOLOGY: dict[str, Any] = {
     "paired_text": (
-        "Analysen avser somatiska mutationer (hudbiopsi har använts som kontrollmaterial). "
+        "Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). "
     ),
     "list_singular": "Analysen omfattar genlistan: ",
     "list_plural": "Analysen omfattar genlistorna: ",
@@ -20,7 +20,7 @@ DNA_TERMINOLOGY: dict[str, Any] = {
     "list_suffix": ". ",
     "germline_prefix": "För ",
     "germline_conjunction": "samt",
-    "germline_suffix": " undersöks även konstitutionella mutationer.",
+    "germline_suffix": " undersöks även konstitutionella varianter.",
 }
 
 

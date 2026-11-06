@@ -1,9 +1,27 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { AppTooltip } from "./app-tooltip"
 import { GlobalRichTooltip } from "./global-rich-tooltip"
 
 describe("GlobalRichTooltip", () => {
+  it("retains an existing accessible description while the tooltip is open", () => {
+    render(<><p id="help">Required context</p><button aria-describedby="help" title="Hint">Action</button><GlobalRichTooltip /></>)
+    const button = screen.getByRole("button")
+    fireEvent.focus(button)
+    expect(button.getAttribute("aria-describedby")?.split(" ")).toContain("help")
+  })
+  it("closes when its target is removed", async () => {
+    const view = render(<><button title="Hint">Action</button><GlobalRichTooltip /></>)
+    fireEvent.pointerOver(screen.getByRole("button"))
+    view.rerender(<>{null}<GlobalRichTooltip /></>)
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument())
+  })
+  it("updates an active hint when the title changes", async () => {
+    const view = render(<><button title="Old hint">Action</button><GlobalRichTooltip /></>)
+    fireEvent.pointerOver(screen.getByRole("button"))
+    view.rerender(<><button title="New hint">Action</button><GlobalRichTooltip /></>)
+    await waitFor(() => expect(screen.getByRole("tooltip")).toHaveTextContent("New hint"))
+  })
   it("upgrades button titles and suppresses the native hint", () => {
     render(
       <>

@@ -11,7 +11,7 @@ _AA_THREE_TO_ONE_PATTERN = re.compile(
     "|".join(re.escape(code) for code in CLINICAL_NOTATION.amino_acid_three_to_one)
 )
 _HGVS_ONE_LETTER_PROTEIN_PATTERN = re.compile(
-    r"(?P<source>(?<=p\.)[ACDEFGHIKLMNPQRSTVWY*](?=\d))"
+    r"(?P<source>(?:(?<=p\.)|(?<=p\.\())[ACDEFGHIKLMNPQRSTVWY*](?=\d))"
     r"|(?P<target>(?<=\d)[ACDEFGHIKLMNPQRSTVWY*](?=$|[?=)]))"
 )
 
@@ -50,10 +50,20 @@ def three_letter_p(value: str | None) -> str:
 
 
 def standard_hgvs(value: str | None) -> str:
-    """Normalize HGVS by wrapping version with parentheses."""
+    """Wrap the final HGVS expression once in prediction parentheses.
+
+    Args:
+        value: HGVS text; absent or empty input yields empty text.
+
+    Returns:
+        Text with its final dot-separated expression parenthesized. Already
+        parenthesized expressions and values without a dot remain unchanged.
+    """
     if not value:
         return ""
     parts = value.rsplit(".", 1)
     if len(parts) == 2:
+        if parts[1].startswith("(") and parts[1].endswith(")"):
+            return value
         return f"{parts[0]}.({parts[1]})"
     return value

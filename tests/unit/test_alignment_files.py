@@ -10,6 +10,13 @@ from coyote3.application.ingest.helpers import build_sample_meta_dict
 from coyote3.contracts.schemas.samples import SampleCaseControlDoc
 
 
+def test_catalog_http_urls_preserve_authority_and_query():
+    """Remote catalog tracks must remain valid URLs for IGV."""
+    url = "https://example.invalid/data/case.bam?version=2"
+    result = alignment_files_payload({}, {"case": "C"}, Mock(return_value={"C": [url]}))
+    assert result["bam_id"]["C"] == [url]
+
+
 @pytest.mark.parametrize("value", [None, "", "  "])
 def test_missing_alignment_references_are_empty_strings(value):
     assert SampleCaseControlDoc().bam == ""

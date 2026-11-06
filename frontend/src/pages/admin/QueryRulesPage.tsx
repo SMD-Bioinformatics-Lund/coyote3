@@ -123,7 +123,9 @@ export function QueryRulesPage() {
     if (generation !== previewGeneration.current) throw new Error("The draft changed while checking the file. Import it again.")
     const run = () => {
       choose(null)
-      change({ name: document.name as string, scope: validated.scope,
+      // Resolution adds family metadata for inheritance, not an authored binding.
+      change({ name: document.name as string, scope: { ...validated.scope,
+        ...(validated.scope.asp_id ? { family: null, modality: null } : {}) },
         content: { ...initial().content, ...document.content as Content }, reason: "" })
     }
     if (dirtyRef.current) setConfirmation({ title: "Discard unsaved changes?", description: "Import this policy into a new unsaved draft.", run })

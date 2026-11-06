@@ -10,6 +10,11 @@ complete the normal independent review/publication workflow. References must exi
 in the target installation. See [configuration transfer](bulk-installation.md#json-configuration-transfer)
 for the supported formats across administration resources.
 
+An imported scope binds to either an assay or a technical family. Preview resolution
+can include the assay's family for inheritance; that derived metadata does not add
+a family binding to the editable draft. Family-bound imports retain their family
+and modality when previewed and saved.
+
 The change/review reason uses the same Markdown editor and preview as comments.
 Query identifiers, field paths and condition values remain literal query inputs.
 

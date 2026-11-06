@@ -1680,6 +1680,14 @@ export type BulkAnnotationPreviewRequest = {
      */
     asp_group?: string | null;
     /**
+     * Chromosome
+     */
+    chromosome?: string | null;
+    /**
+     * Cnv Effect
+     */
+    cnv_effect?: string | null;
+    /**
      * Consequence
      */
     consequence?: Array<string>;
@@ -1687,6 +1695,30 @@ export type BulkAnnotationPreviewRequest = {
      * Diagnosis Id
      */
     diagnosis_id?: string | null;
+    /**
+     * End
+     */
+    end?: number | null;
+    /**
+     * Finding Kind
+     */
+    finding_kind?: 'small_variant' | 'cnv' | 'fusion' | 'translocation';
+    /**
+     * Fusion Breakpoint 1
+     */
+    fusion_breakpoint_1?: string | null;
+    /**
+     * Fusion Breakpoint 2
+     */
+    fusion_breakpoint_2?: string | null;
+    /**
+     * Fusion Gene 1
+     */
+    fusion_gene_1?: string | null;
+    /**
+     * Fusion Gene 2
+     */
+    fusion_gene_2?: string | null;
     /**
      * Gene
      */
@@ -1707,6 +1739,10 @@ export type BulkAnnotationPreviewRequest = {
      * Oncokb Gene Present
      */
     oncokb_gene_present?: boolean | null;
+    /**
+     * Start
+     */
+    start?: number | null;
     /**
      * Tier
      */
@@ -1761,6 +1797,10 @@ export type BulkAnnotationRuleInput = {
      * Enabled
      */
     enabled?: boolean;
+    /**
+     * Finding Kind
+     */
+    finding_kind?: 'small_variant' | 'cnv' | 'fusion' | 'translocation';
     /**
      * Name
      */
@@ -1819,6 +1859,10 @@ export type BulkAnnotationRuleOutput = {
      * Enabled
      */
     enabled?: boolean;
+    /**
+     * Finding Kind
+     */
+    finding_kind?: 'small_variant' | 'cnv' | 'fusion' | 'translocation';
     /**
      * Name
      */
@@ -2344,7 +2388,7 @@ export type ClinicalRendererOutput = {
     /**
      * Name
      */
-    name: 'dna_report_intro' | 'tier_summary' | 'fusion_summary' | 'cnv_summary';
+    name: 'dna_report_intro' | 'tier_summary' | 'fusion_summary' | 'cnv_summary' | 'translocation_summary';
     /**
      * Source
      */
@@ -4388,6 +4432,22 @@ export type CoverageFiltersDoc = {
 };
 
 /**
+ * CoverageGeneListOption
+ *
+ * A selectable gene list captured in the applied configuration.
+ */
+export type CoverageGeneListOption = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
  * CoverageSamplePayload
  *
  * Represent the coverage sample payload.
@@ -4411,6 +4471,14 @@ export type CoverageSamplePayload = {
     coverage: {
         [key: string]: unknown;
     };
+    /**
+     * Gene List Id
+     */
+    gene_list_id?: string | null;
+    /**
+     * Gene Lists
+     */
+    gene_lists?: Array<CoverageGeneListOption>;
     /**
      * Gene Scope
      */
@@ -23552,6 +23620,10 @@ export type Request_coverageSampleReadApiV1SamplesSampleIdCoverageGet = {
          * Cov Cutoff
          */
         cov_cutoff?: number;
+        /**
+         * Gene List Id
+         */
+        gene_list_id?: string | null;
     };
     url: '/api/v1/samples/{sample_id}/coverage';
 };

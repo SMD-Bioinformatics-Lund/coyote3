@@ -5,6 +5,17 @@ from __future__ import annotations
 from coyote3.domain.filtering import normalization as norm
 
 
+def test_unchecking_all_prefixed_flags_clears_previous_canonical_selection():
+    """An explicit checkbox selection replaces previously retained list values."""
+    result = norm.normalize_dna_filter_keys({"snvlists": ["A"], "snvlist_A": False})
+    assert result["snvlists"] == []
+
+
+def test_nonnegative_integer_coercion_handles_overflow():
+    """Malformed infinite values use the same default as other invalid inputs."""
+    assert norm.coerce_nonnegative_int(float("inf"), default=7) == 7
+
+
 def test_coerce_nonnegative_int_handles_valid_invalid_and_negative_values():
     assert norm.coerce_nonnegative_int("5") == 5
     assert norm.coerce_nonnegative_int(3) == 3

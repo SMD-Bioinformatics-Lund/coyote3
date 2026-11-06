@@ -35,7 +35,15 @@ def consequence_terms(value: object) -> set[str]:
 
 
 def join_tokens(value: object, *, delimiter: str = " | ") -> str:
-    """Normalize list-like values into unique, ordered, pipe-delimited text."""
+    """Join nonblank, non-null tokens while preserving first-seen order.
+
+    Args:
+        value: Scalar or sequence; sets are sorted for deterministic output.
+        delimiter: Text between distinct case-insensitively deduplicated tokens.
+
+    Returns:
+        Delimited text, or empty text when no tokens remain.
+    """
     if value is None:
         return ""
 
@@ -46,6 +54,8 @@ def join_tokens(value: object, *, delimiter: str = " | ") -> str:
     tokens: list[str] = []
     seen: set[str] = set()
     for item in items:
+        if item is None:
+            continue
         parts = re.split(r"[|&,;\r\n]+", item) if isinstance(item, str) else [str(item)]
         for part in parts:
             token = part.strip()
@@ -159,7 +169,9 @@ def build_snv_export_rows(variants: list[dict[str, Any]]) -> list[DnaSnvExportRo
             var_type=safe_text(var.get("variant_class")),
             indel_size=indel_size,
             consequence=consequence,
-            pop_freq=safe_text(var.get("gnomad_frequency") if var.get("gnomad_frequency") else "-"),
+            pop_freq=safe_text(
+                var.get("gnomad_frequency") if var.get("gnomad_frequency") is not None else "-"
+            ),
             tier=tier_value,
             chr_pos=f"{safe_text(var.get('CHROM'))}:{safe_text(var.get('POS'))}",
             flags=flags,

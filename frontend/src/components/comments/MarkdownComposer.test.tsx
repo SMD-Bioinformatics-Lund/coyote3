@@ -3,6 +3,15 @@ import { useState } from "react"
 import { expect, it, vi } from "vitest"
 import { MarkdownComposer } from "./MarkdownComposer"
 
+it.each([["Bulleted list", "- "], ["Quote", "> "]])("formats every selected line as %s", (name, prefix) => {
+  const change = vi.fn()
+  render(<MarkdownComposer label="Note" value={"first\nsecond"} onChange={change} />)
+  const input = screen.getByLabelText("Note") as HTMLTextAreaElement
+  input.setSelectionRange(0, input.value.length)
+  fireEvent.click(screen.getByRole("button", { name }))
+  expect(change).toHaveBeenCalledWith(`\n${prefix}first\n${prefix}second`)
+})
+
 it("formats selected text and previews it using the shared Markdown renderer", () => {
   function Editor() {
     const [value, setValue] = useState("Evidence")

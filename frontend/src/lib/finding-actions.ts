@@ -155,11 +155,11 @@ export function findingQueryKeys(sampleId: string, resourceType: FindingResource
 
 export type AnnotationPreviewRow = { resource_id: string; content_hash: string; gene: string | null; rule_id: string | null; text: string | null }
 
-export async function previewBulkAnnotationText(sampleId: string, action: FindingAction, resourceIds: string[]): Promise<AnnotationPreviewRow[]> {
+export async function previewBulkAnnotationText(sampleId: string, action: FindingAction, resourceIds: string[], resourceType: FindingResourceType = "small_variant"): Promise<AnnotationPreviewRow[]> {
   const tier = Number(action.replace("tier_", ""))
   if (![1, 2, 3].includes(tier)) throw new Error("Annotation templates support Tier I–III assignments")
   return (await api.post<AnnotationPreviewRow[]>(`/samples/${sampleId}/classifications/tier/preview`, {
-    resource_type: "small_variant", resource_ids: resourceIds,
+    resource_type: resourceType, resource_ids: resourceIds,
     tier, apply: true, include_automatic_text: true,
   }, { errorNotice: "inline" })).data
 }

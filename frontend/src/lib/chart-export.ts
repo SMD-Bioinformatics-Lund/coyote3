@@ -172,7 +172,7 @@ export function serializeChartSvg(container: HTMLElement | null, options: ChartE
   if (!svg || !container) return null
   const { width, height } = chartDimensions(svg)
   const clone = svg.cloneNode(true) as SVGSVGElement
-  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+  clone.removeAttribute("xmlns")
   clone.setAttribute("x", String(EXPORT_PADDING))
   clone.setAttribute("viewBox", svg.getAttribute("viewBox") || `0 0 ${width} ${height}`)
   clone.setAttribute("preserveAspectRatio", svg.getAttribute("preserveAspectRatio") || "xMidYMid meet")
@@ -180,8 +180,8 @@ export function serializeChartSvg(container: HTMLElement | null, options: ChartE
 
   const title = options.title?.trim() || ""
   const subtitle = options.subtitle?.trim() || ""
-  const headerHeight = title
-    ? EXPORT_TITLE_HEIGHT + (subtitle ? EXPORT_SUBTITLE_HEIGHT : 0) + EXPORT_HEADER_GAP
+  const headerHeight = title || subtitle
+    ? (title ? EXPORT_TITLE_HEIGHT : 0) + (subtitle ? EXPORT_SUBTITLE_HEIGHT : 0) + EXPORT_HEADER_GAP
     : 0
   clone.setAttribute("y", String(EXPORT_PADDING + headerHeight))
   clone.setAttribute("width", String(width))
@@ -194,7 +194,6 @@ export function serializeChartSvg(container: HTMLElement | null, options: ChartE
   const exportWidth = width + EXPORT_PADDING * 2
   const exportHeight = height + headerHeight + legendHeight + EXPORT_PADDING * 2
   const root = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-  root.setAttribute("xmlns", "http://www.w3.org/2000/svg")
   root.setAttribute("width", String(exportWidth))
   root.setAttribute("height", String(exportHeight))
   root.setAttribute("viewBox", `0 0 ${exportWidth} ${exportHeight}`)
@@ -224,7 +223,7 @@ export function serializeChartSvg(container: HTMLElement | null, options: ChartE
   if (subtitle) {
     svgText(root, subtitle, {
       x: String(EXPORT_PADDING),
-      y: String(EXPORT_PADDING + EXPORT_TITLE_HEIGHT + 14),
+      y: String(EXPORT_PADDING + (title ? EXPORT_TITLE_HEIGHT : 0) + 14),
       fill: containerStyles.getPropertyValue("--muted-foreground").trim() || textColor,
       "fill-opacity": "0.72",
       "font-family": fontFamily,

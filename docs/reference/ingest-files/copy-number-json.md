@@ -4,7 +4,7 @@ Manifest key: `cnv`. Stored destination: `cnvs`.
 
 ## Before submission
 
-Provide `chr`, `start`, `end`, and `size` for every interval. Ingest preserves coordinates without converting their origin or end convention. Use the convention agreed with the assay pipeline. Non-object entries are skipped by the current parser; producers should reject them before submission to avoid silently losing intervals.
+Provide `chr`, `start`, `end`, and `size` for every interval. Ingest preserves coordinates without converting their origin or end convention. Use the convention agreed with the assay pipeline. Non-object entries reject the file so that ingestion cannot silently omit intervals.
 
 [Download the complete synthetic JSON](../../assets/examples/ingest/copy-number.json). All example identifiers and values are synthetic.
 Ingest assigns `SAMPLE_ID` from the parent sample. Do not supply database IDs or review
@@ -43,7 +43,7 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 | `end` | Interval end supplied by producer | `cnvs.end` | Required; no default |
 | `size` | Producer-supplied interval size | `cnvs.size`; supply it explicitly | Required; no default |
 | `ratio` | Numeric copy-number ratio or supported event label | Float/null; `DEL`/`LOSS` → -1, `AMP` → 1, `DUP`/`GAIN` → 0.5 | Optional; null |
-| `type` | Event type | Preserved when provided; inferred from normalized ratio when absent | Optional; inferred from ratio, or null |
+| `type` | Event type | Preserved when provided; otherwise taken from a symbolic ratio label, then inferred from a numeric ratio | Optional; inferred from ratio, or null |
 | `nprobes` | Probe count | Integer; missing value normalizes to 0, which is a parser default rather than measured evidence | Optional; 0 |
 | `genes` | Affected-gene objects | `cnvs.genes[]`; absent → empty list | Optional; [] |
 | `genes[].gene` | Gene name | Stored gene identifier | Required in each supplied gene object; no default |

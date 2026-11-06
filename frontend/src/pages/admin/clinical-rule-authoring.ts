@@ -165,13 +165,13 @@ export function sectionStarter(blocks: RuleBlock[], key: string, scope: NewRuleS
     add("Paired control wording", [text(sv ? "Analysen har utförts med ett parat kontrollprov. " : "The analysis was performed with a paired control sample. ")], predicate("sample.paired", "eq", true))
     add("Unpaired control wording", [text(sv ? "Analysen har utförts utan parat kontrollprov. " : "The analysis was performed without a paired control sample. ")], predicate("sample.paired", "eq", false))
     add("Selected gene lists", [text(sv ? "Analysen omfattar genlistan: " : "Selected gene lists: "), list(`gene_lists.${analysis}.names`), text(sv ? " som innefattar " : " covering "), number(`gene_lists.${analysis}.gene_count`), text(sv ? " gener. " : " genes. ")], predicate(`gene_lists.${analysis}.gene_count`, "gt", 0))
-    add("Selected germline genes", [text(sv ? "För " : "For "), list(`gene_lists.${analysis}.germline_genes`), text(sv ? " undersöks även konstitutionella mutationer." : " constitutional variants are also investigated.")], { type: "all", children: [predicate("sample.paired", "eq", true)!, { type: "not", child: { type: "predicate", fact: `gene_lists.${analysis}.germline_genes`, operator: "is_empty" } }] })
+    add("Selected germline genes", [text(sv ? "För " : "For "), list(`gene_lists.${analysis}.germline_genes`), text(sv ? " undersöks även konstitutionella varianter." : " constitutional variants are also investigated.")], { type: "all", children: [predicate("sample.paired", "eq", true)!, { type: "not", child: { type: "predicate", fact: `gene_lists.${analysis}.germline_genes`, operator: "is_empty" } }] })
   } else if (key === "snv_summary") {
     block.section = block.name = sv ? "Kliniskt relevanta SNVs och små INDELs" : "SNV summary"
     block.evaluation = { mode: "once", collection: null }
     block.match_strategy = "exactly_one"
     add("Reportable SNVs present", [{ type: "renderer", name: "tier_summary" }], predicate("aggregates.has_tiered_snvs", "eq", true))
-    add("No reportable tiered SNVs", [text(sv ? "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats." : "Enter reviewed wording for no reportable tiered SNVs.")], predicate("aggregates.has_tiered_snvs", "eq", false))
+    add("No reportable tiered SNVs", [text(sv ? "Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats." : "Enter reviewed wording for no reportable tiered SNVs.")], predicate("aggregates.has_tiered_snvs", "eq", false))
   } else if (key === "closing") {
     block.match_strategy = "all_matches"
     add("Closing wording", [text(sv ? "Ange granskad avslutande text." : "Enter reviewed closing text.")])

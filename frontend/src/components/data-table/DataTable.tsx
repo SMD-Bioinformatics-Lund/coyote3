@@ -13,6 +13,7 @@ import {
   type FilterFn,
   type ColumnFiltersState,
   type Row,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { icon } from "@/lib/assets"
@@ -112,14 +113,24 @@ export function DataTable<TData, TValue>({
     if (typeof window === "undefined" || sortingState) return [];
     try {
       const raw = window.sessionStorage.getItem(`${tableStateKey}.sorting`);
-      return raw ? JSON.parse(raw) : [];
+      const stored: unknown = raw ? JSON.parse(raw) : [];
+      return Array.isArray(stored) ? stored.filter((item): item is SortingState[number] =>
+        item !== null && typeof item === "object" && typeof item.id === "string" && typeof item.desc === "boolean"
+      ) : [];
     } catch {
       return [];
     }
   });
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = useState({});
+  const [selectionState, setSelectionState] = useState<{ data: TData[]; selection: RowSelectionState }>({ data, selection: {} });
+  const rowSelection = selectionState.data === data ? selectionState.selection : {};
+  const setRowSelection: OnChangeFn<RowSelectionState> = updater => {
+    setSelectionState(current => {
+      const previous = current.data === data ? current.selection : {};
+      return { data, selection: typeof updater === "function" ? updater(previous) : updater };
+    });
+  };
   const [clientPagination, setClientPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: effectivePageSize,
@@ -211,7 +222,7 @@ export function DataTable<TData, TValue>({
       .getAllLeafColumns()
       .filter((col) => col.id !== "actions" && col.id !== "select")
       .map((col) => {
-        return escapeCsvCell(col.columnDef.header?.toString() || col.id, true);
+        return escapeCsvCell(typeof col.columnDef.header === "string" ? col.columnDef.header : col.id, true);
       })
       .join(",");
 
@@ -287,9 +298,9 @@ export function DataTable<TData, TValue>({
   useEffect(() => {
     setClientPagination((current) => ({
       pageIndex: 0,
-      pageSize: serverPaginated ? current.pageSize : preferredPageSize,
+      pageSize: serverPaginated ? current.pageSize : effectivePageSize,
     }));
-  }, [data.length, displayedSearchValue, columnFilters, preferredPageSize, serverPaginated, sorting]);
+  }, [data.length, displayedSearchValue, columnFilters, effectivePageSize, serverPaginated, sorting]);
 
   useEffect(() => {
     if (typeof window === "undefined" || sortingState) return;

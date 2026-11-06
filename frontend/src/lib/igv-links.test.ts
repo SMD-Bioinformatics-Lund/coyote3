@@ -8,6 +8,12 @@ import { igvAlignmentLinks, igvLoadUrl } from "./external-links"
 import { runtimeConfig } from "./runtime-config"
 
 describe("sample alignment links", () => {
+  it("does not prepend a workstation root to remote alignment URLs", () => {
+    runtimeConfig.igvDataRoot = "/R:"
+    const remote = "https://example.org/reads.bam?version=2"
+    const links = igvAlignmentLinks({ case: [remote] }, "17:1-2")
+    expect(new URL(links[0].href).searchParams.get("file")).toBe(remote)
+  })
   beforeEach(() => {
     runtimeConfig.igvDataRoot = ""
   })

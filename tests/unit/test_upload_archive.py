@@ -27,6 +27,31 @@ def test_extract_uploaded_archive_indexes_unique_basename(tmp_path: Path):
     assert result.checksums[result.exact["inputs/case.vcf"]]
 
 
+def test_archive_rejects_encrypted_members_before_extracting(tmp_path):
+    """Password-protected inputs are unsupported and must fail preflight validation."""
+    path = _archive(tmp_path / "bundle.zip", ("first.txt", b"first"), ("secret.txt", b"second"))
+    content = bytearray(path.read_bytes())
+    local = content.find(b"PK\x03\x04", 4)
+    central = content.find(b"PK\x01\x02", content.find(b"PK\x01\x02") + 4)
+    content[local + 6] |= 1
+    content[central + 8] |= 1
+    path.write_bytes(content)
+    destination = tmp_path / "staged"
+    with pytest.raises(ValueError, match="encrypted"):
+        extract_uploaded_archive(archive_path=path, destination=destination)
+    assert list(destination.rglob("*")) == []
+
+
+def test_archive_rejects_corrupt_member_as_invalid_upload(tmp_path: Path):
+    """CRC failures in member contents are input errors, not internal server errors."""
+    archive_path = _archive(tmp_path / "bundle.zip", ("input.txt", b"synthetic-content"))
+    archive_path.write_bytes(
+        archive_path.read_bytes().replace(b"synthetic-content", b"corrupted-content")
+    )
+    with pytest.raises(ValueError, match="corrupt"):
+        extract_uploaded_archive(archive_path=archive_path, destination=tmp_path / "staged")
+
+
 def test_extract_uploaded_archive_rejects_duplicate_member_path(tmp_path: Path):
     archive_path = tmp_path / "duplicate.zip"
     with zipfile.ZipFile(archive_path, "w") as archive:

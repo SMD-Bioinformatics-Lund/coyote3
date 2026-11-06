@@ -122,6 +122,9 @@ export function CommentsPanel({
   const currentUserQuery = useCurrentUserAccess()
   const text = draftText ?? internalText
   const setText = onDraftChange ?? setInternalText
+  const editorKey = `${sampleId}/${resourceType || "sample"}/${resource?._id || ""}`
+  const latestEditor = useRef({ key: editorKey, text })
+  latestEditor.current = { key: editorKey, text }
   const isDetailComposer = Boolean(resourceType && resource)
   const selectedTranscript = resourceType === "small_variant"
     ? String(resource?.INFO?.selected_CSQ?.Feature || "").trim()
@@ -145,18 +148,20 @@ export function CommentsPanel({
   }
 
   const addComment = useMutation({
-    mutationFn: () => {
+    mutationFn: ({ submittedText }: { submittedText: string; editorKey: string }) => {
       if (resourceType && resource) {
         return api.post(`/samples/${sampleId}/annotations`, {
           id: String(resource._id),
-          form_data: resourceFormData(resourceType, resource, text, global, { assayGroup, diagnosis }),
+          form_data: resourceFormData(resourceType, resource, submittedText, global, { assayGroup, diagnosis }),
         })
       }
-      return api.post(`/samples/${sampleId}/comments`, { form_data: { sample_comment: text } })
+      return api.post(`/samples/${sampleId}/comments`, { form_data: { sample_comment: submittedText } })
     },
-    onSuccess: () => {
-      setText("")
-      setGlobal(false)
+    onSuccess: (_response, submitted) => {
+      if (latestEditor.current.key === submitted.editorKey && latestEditor.current.text === submitted.submittedText) {
+        setText("")
+        setGlobal(false)
+      }
       invalidate()
       notifySuccess("Comment saved", "The markdown comment was saved.", "Comments")
     },
@@ -165,18 +170,22 @@ export function CommentsPanel({
     },
   })
   const requestSuggestion = async () => {
+    const requested = latestEditor.current
     let suggestion = ""
     if (onRequestSuggestion) {
       setIsSuggestionLoading(true)
       try {
         suggestion = (await onRequestSuggestion())?.trim() || ""
+      } catch (error) {
+        notifyActionError("Unable to suggest comment", error, "Comments")
+        return
       } finally {
         setIsSuggestionLoading(false)
       }
     } else {
       suggestion = suggestedText.trim()
     }
-    if (!suggestion) return
+    if (!suggestion || latestEditor.current.key !== requested.key || latestEditor.current.text !== requested.text) return
     setMode("edit")
     setText(suggestion)
     onUseAsDraft?.(suggestion)
@@ -398,7 +407,8 @@ export function CommentsPanel({
             </label>
           )}
           <button
-            onClick={() => addComment.mutate()}
+            type="button"
+            onClick={() => addComment.mutate({ submittedText: text, editorKey })}
             disabled={!text.trim() || addComment.isPending}
             className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-50"
           >

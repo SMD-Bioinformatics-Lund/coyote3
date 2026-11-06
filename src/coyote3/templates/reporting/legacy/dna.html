@@ -21,7 +21,7 @@
     {% set germline_variants = report_sections_data.germline_snvs %}
     <span class="report_header">Kliniskt relevanta germline-SNVs och små INDELs</span>
     {% block germline_snv_table scoped %}<table class="variant_table">
-      <tr><th>Gen</th><th>Mutation</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
+      <tr><th>Gen</th><th>Variant</th><th>Variantfrekvens</th><th>Klassificering</th></tr>
       {% for var in germline_variants %}
         <tr>
           <td>{{ var.symbol }}</td>
@@ -30,7 +30,7 @@
           <td>{{ var.class_short_desc }}</td>
         </tr>
       {% else %}
-        <tr><td>Inga detekterade germline-mutationer</td></tr>
+        <tr><td>Inga detekterade germline-varianter</td></tr>
       {% endfor %}
     </table>{% endblock germline_snv_table %}
   {% endif %}
@@ -151,7 +151,7 @@
 {% endif %}
 
 {% if variants %}
-  <span class="report_header">Detekterade mutationer</span>
+  <span class="report_header">Detekterade varianter</span>
   {% for var in variants %}
     <div class=report_div style="page-break-inside:avoid;">
       <table class='report_variant'>

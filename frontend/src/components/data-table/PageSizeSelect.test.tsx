@@ -28,3 +28,8 @@ describe("PageSizeSelect", () => {
     expect(screen.getByRole("option", { name: "50 rows" })).toBeInTheDocument()
   })
 })
+
+it("displays a valid custom page size restored from the URL", () => {
+  render(<PageSizeSelect value={75} onValueChange={vi.fn()} />)
+  expect(screen.getByRole("combobox")).toHaveValue("75")
+})

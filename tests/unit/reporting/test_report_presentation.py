@@ -520,7 +520,7 @@ def test_manual_assessments_are_separate_and_only_tier_one_classification_is_sem
     assert "MSIP" not in text and "LOW" not in text
     assert "source" not in text
     assert "mut/Mb" not in text
-    assert output.index('report-biomarker-detail"') > output.index("Detekterade mutationer")
+    assert output.index('report-biomarker-detail"') > output.index("Detekterade varianter")
     detail = html.etree_element.findall('.//table[@class="report-biomarker-detail"]')[-1]
     assert "0 mut/Mb" in "".join(detail.itertext())
     rows = html.etree_element.findall('.//table[@class="variant_table"]/tbody/tr')
@@ -777,11 +777,11 @@ def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
         box.text for box in document.pages[1]._page_box.descendants() if isinstance(box, TextBox)
     )
     assert "SYNTHETIC_CONCLUSION" in second_page_text
-    assert "Detekterade mutationer" not in second_page_text
+    assert "Detekterade varianter" not in second_page_text
     third_page_text = " ".join(
         box.text for box in document.pages[2]._page_box.descendants() if isinstance(box, TextBox)
     )
-    assert "Detekterade mutationer" in third_page_text
+    assert "Detekterade varianter" in third_page_text
     assert "SYNTHETIC_CONCLUSION" not in third_page_text
     table = html.etree_element.find('.//table[@class="variant_table"]')
     rows = set(table.findall(".//tr"))

@@ -2,8 +2,8 @@
 # Plain text only. Omitted keys retain the software's existing Swedish wording.
 # Changes take effect on the next render, without changing ASPC revisions.
 [empty_results]
-SNV = "Inga detekterade mutationer"
-GERMLINE_SNV = "Inga detekterade germline-mutationer"
+SNV = "Inga detekterade varianter"
+GERMLINE_SNV = "Inga detekterade germline-varianter"
 CNV = "Inga detekterade kopietalsförändringar."
 TRANSLOCATION = "Inga detekterade fusioner"
 FUSION = "Inga detekterade fusioner"

@@ -22,6 +22,7 @@ export function CoverageBlacklistPage() {
     mutationFn: (id: string) => api.delete(`/coverage/blacklist/entries/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coverage-blacklisted", group] })
+      queryClient.invalidateQueries({ queryKey: ["sample-coverage"] })
       notifySuccess("Blacklist entry removed", "The coverage blacklist entry was deleted.", "Coverage")
     },
     onError: (error) => {

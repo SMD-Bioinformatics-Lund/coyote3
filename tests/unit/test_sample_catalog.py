@@ -9,6 +9,21 @@ from coyote3.application.public.catalog import PublicCatalogService
 from coyote3.application.sample.catalog import SampleCatalogService
 
 
+def test_gene_extraction_does_not_turn_metadata_into_gene_symbols():
+    """Structured gene entries contribute symbols only, never their keys or metadata."""
+    assert SampleCatalogService._collect_doc_gene_names(
+        {"genes": [{"gene": "GENE_A", "description": "synthetic metadata"}]}
+    ) == {"GENE_A"}
+    assert SampleCatalogService._collect_doc_gene_names({"genes": ["GENE_A", "GENE-B"]}) == {
+        "GENE_A",
+        "GENE-B",
+    }
+    assert SampleCatalogService._collect_doc_gene_names({"genes": "GENE_A&GENE_B"}) == {
+        "GENE_A",
+        "GENE_B",
+    }
+
+
 def test_gene_list_option_uses_short_name_and_retains_full_name():
     """Filter labels are compact while tooltips retain the full clinical name."""
     option = SampleCatalogService._genelist_option(

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import type { SortingState } from "@tanstack/react-table"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
 
 export type UrlTableState = {
   page: number
@@ -41,7 +42,7 @@ function sortingFromParam(value: string | null): SortingState {
       const [id, direction] = part.split(":")
       const cleanId = id?.trim()
       if (!cleanId) return null
-      return { id: cleanId, desc: direction === "desc" }
+      return { id: cleanId, desc: direction?.trim().toLowerCase() === "desc" }
     })
     .filter(Boolean) as SortingState
 }
@@ -66,7 +67,8 @@ export function useUrlTableState({
   const sortKey = `${prefix}_sort`
 
   const [page, setPage] = useState(() => positiveIntParam(searchParams.get(pageKey), defaultPage))
-  const [perPage, setPerPage] = useState(() => positiveIntParam(searchParams.get(perPageKey), defaultPerPage))
+  const maxPerPage = Math.max(...TABLE_PAGE_SIZE_OPTIONS)
+  const [perPage, setPerPage] = useState(() => Math.min(maxPerPage, positiveIntParam(searchParams.get(perPageKey), defaultPerPage)))
   const [searchText, setSearchText] = useState(() => searchParams.get(searchKey) || "")
   const [sorting, setSorting] = useState<SortingState>(() => sortingFromParam(searchParams.get(sortKey)))
   const activeSort = sorting[0]
@@ -79,7 +81,7 @@ export function useUrlTableState({
     sorting?: SortingState
   }) => {
     const nextPage = next.page ?? page
-    const nextPerPage = next.perPage ?? perPage
+    const nextPerPage = Math.min(maxPerPage, next.perPage ?? perPage)
     const nextSearch = next.search ?? searchText
     const nextSorting = next.sorting ?? sorting
     const nextSortParam = sortingToParam(nextSorting)
@@ -101,7 +103,7 @@ export function useUrlTableState({
 
   useEffect(() => {
     const urlPage = positiveIntParam(searchParams.get(pageKey), defaultPage)
-    const urlPerPage = positiveIntParam(searchParams.get(perPageKey), defaultPerPage)
+    const urlPerPage = Math.min(maxPerPage, positiveIntParam(searchParams.get(perPageKey), defaultPerPage))
     const urlSearch = searchParams.get(searchKey) || ""
     const urlSorting = sortingFromParam(searchParams.get(sortKey))
     const urlSortParam = sortingToParam(urlSorting)
@@ -113,6 +115,7 @@ export function useUrlTableState({
   }, [
     defaultPage,
     defaultPerPage,
+    maxPerPage,
     page,
     pageKey,
     perPage,

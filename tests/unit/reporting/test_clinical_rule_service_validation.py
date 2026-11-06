@@ -182,16 +182,29 @@ def test_reporting_rejects_a_configuration_from_another_context(field) -> None:
         ClinicalRuleService(None).evaluate(aspc=configuration, context=context)
 
 
-def test_automatic_variant_annotation_rejects_rna_configuration() -> None:
+def test_automatic_annotation_resolves_rna_configuration(monkeypatch) -> None:
+    """RNA annotation resolves the matching published analyte and assay scope."""
+    from coyote3.application.reporting.clinical_rules import service as service_module
+
     document = _document(status="published", active=True)
     document.scope.analyte = "rna"
     document.content_hash = content_hash(document)
     configuration = _configuration(document)
     configuration["asp_category"] = "rna"
-    with pytest.raises(ValueError, match="requires a DNA configuration"):
+
+    def resolve(_repository, **scope):
+        """Assert the RNA scope passed to the publication resolver."""
+        assert scope["analyte"] == "rna"
+        assert scope["asp_id"] == document.scope.asp_id
+        return document
+
+    monkeypatch.setattr(service_module, "resolve_published_rule_set", resolve)
+    assert (
         ClinicalRuleService(None).bulk_annotation_release(
-            aspc=configuration, sample={"asp_category": "rna"}
+            aspc=configuration, sample={"asp_category": "rna", "asp_id": document.scope.asp_id}
         )
+        == document
+    )
 
 
 def test_validation_reports_structural_condition_and_embedded_case_failures(monkeypatch) -> None:

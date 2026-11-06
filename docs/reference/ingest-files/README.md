@@ -12,6 +12,8 @@ see [file-format conventions](../file-format-conventions.md). The per-file table
 below describe the raw producer boundary; service-generated fields and database
 contracts are identified separately.
 
+JSON resources must use UTF-8; an initial UTF-8 byte order mark is accepted.
+
 ## File contracts
 
 Each file reference includes its accepted root structure, required fields, synthetic

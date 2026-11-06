@@ -10,6 +10,12 @@ from coyote3.application.common.table_state import (
 )
 
 
+def test_numeric_sort_rejects_nonfinite_values():
+    """Nonfinite values must not violate the comparator's ordering contract."""
+    for value in ("NaN", "Infinity", float("-inf")):
+        assert numeric_value(value) is None
+
+
 def test_parse_sort_specs_accepts_ordered_multi_column_sort_state() -> None:
     """The canonical sort query preserves each field and direction."""
     assert parse_sort_specs({"sort": "case_vaf:desc,gene:asc"}) == [

@@ -48,7 +48,7 @@ export function VariantDetail() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: variantQueryKey,
-    queryFn: () => api.get(`/samples/${id}/small-variants/${varId}`).then(res => res.data)
+    queryFn: () => api.get(`/samples/${encodeURIComponent(id || "")}/small-variants/${encodeURIComponent(varId || "")}`).then(res => res.data)
   })
   const { data: filterFlagMetadata } = useQuery({
     queryKey: ["filter-flag-metadata"],

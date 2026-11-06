@@ -16,6 +16,8 @@ export function FileUpload({ label, hint, className, disabled, onChange, multipl
     <input {...props} ref={input} type="file" multiple={multiple} aria-label={label} disabled={disabled} className="sr-only" onChange={event => {
       setNames(Array.from(event.target.files || [], file => file.name))
       onChange?.(event)
+      // Consumers retain the File; clearing allows retrying the same selected file.
+      event.target.value = ""
     }} />
     <div className="flex flex-wrap items-center gap-3">
       <span className="rounded-lg bg-primary/10 p-2 text-primary"><Icon aria-hidden="true" className="size-5" /></span>

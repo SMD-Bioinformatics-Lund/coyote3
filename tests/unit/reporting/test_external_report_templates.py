@@ -117,7 +117,7 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
         (
             "dna",
             "dna_report.html",
-            "bb363aa1ec3f76158119ce2cde5f6f9ef124376192777d89cf19dfc017ef19fb",
+            "74900d7ee97eb1e956c4347903f9205d4772e0933e223ff2a557d316249c4c8a",
         ),
         (
             "rna",

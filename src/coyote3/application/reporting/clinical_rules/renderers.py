@@ -28,6 +28,8 @@ def _required(mapping: dict[str, Any], key: str) -> Any:
 def render_tier_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
     """Compose prepared tier groups using rule-set-owned language."""
     phrases = _required(terminology, "tier_summary")
+    if "tiers_to_summarize" in phrases:
+        groups = [group for group in groups if group["tier"] in phrases["tiers_to_summarize"]]
     text = ""
     first_gene_context = True
     for index, group in enumerate(groups):
@@ -59,7 +61,8 @@ def render_tier_summary(groups: list[dict[str, Any]], terminology: dict[str, Any
             if include_context:
                 text += _required(phrases, "read_context_suffix")
             text += _required(phrases, "value_close")
-            first_gene_context = False
+            if not phrases.get("legacy_panel_read_context") or group["tier"] == 1:
+                first_gene_context = False
         elif len(genes) > 1:
             text += _required(phrases, "multiple_gene_prefix")
             gene_texts: list[str] = []
@@ -240,12 +243,65 @@ def render_cnv_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]
         if support:
             evidence += _required(terms, "read_prefix")
             evidence += _required(terms, "support_joiner").join(support)
-        if evidence:
+        if evidence or terms.get("show_empty_evidence", False):
             text += (
                 _required(terms, "evidence_open") + evidence + _required(terms, "evidence_close")
             )
         sentences.append(text + _required(terms, "sentence_suffix"))
     return "".join(sentences)
+
+
+def render_translocation_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Render selected DNA fusion groups with rule-owned source sentence fragments.
+
+    Args:
+        groups: Ordered gene-pair groups with maximum PR/SR percentages and UR counts.
+        terminology: Required translocation_summary text fragments.
+
+    Returns:
+        Source-style sentences including only positive observed evidence. The
+        second of two groups uses the next lead; missing evidence is never invented.
+
+    Raises:
+        ValueError: A required wording fragment is missing.
+    """
+    terms = _required(terminology, "translocation_summary")
+    sentences = []
+    for index, group in enumerate(groups):
+        prefix = (
+            "first_prefix"
+            if index == 0
+            else "final_prefix"
+            if len(groups) > 2 and index == len(groups) - 1
+            else "next_prefix"
+        )
+        text = _required(terms, prefix) + nl_join(group["genes"], _required(terms, "gene_joiner"))
+        support = []
+        for field, suffix in (
+            ("paired_read_percent", "paired_read_suffix"),
+            ("split_read_percent", "split_read_suffix"),
+        ):
+            value = group.get(field)
+            if value is not None and value > 0:
+                support.append(str(value) + _required(terms, suffix))
+        evidence = ""
+        if support:
+            evidence = _required(terms, "read_prefix") + _required(terms, "support_joiner").join(
+                support
+            )
+        unique = group.get("unique_reads")
+        if unique is not None and unique > 0:
+            evidence += _required(
+                terms, "unique_with_support" if support else "unique_without_support"
+            )
+            evidence += format(unique, "g") + _required(terms, "unique_suffix")
+        if evidence or terms.get("show_empty_evidence", False):
+            text += (
+                _required(terms, "evidence_open") + evidence + _required(terms, "evidence_close")
+            )
+        sentences.append(text)
+    sentence_joiner: str = _required(terms, "sentence_joiner")
+    return sentence_joiner.join(sentences)
 
 
 def render_named(
@@ -254,7 +310,8 @@ def render_named(
     """Dispatch a named clinical renderer with rule-owned terminology.
 
     Args:
-        name: dna_report_intro, tier_summary, fusion_summary, or cnv_summary.
+        name: dna_report_intro, tier_summary, fusion_summary, cnv_summary or
+            translocation_summary.
         source: Tier groups or findings for summary renderers; falsey values use an
             empty list. The DNA introduction does not use this argument.
         scope: Prepared evaluation scope used by the DNA introduction.
@@ -277,4 +334,6 @@ def render_named(
         return render_fusion_summary(list(source or []), terminology)
     if name == "cnv_summary":
         return render_cnv_summary(list(source or []), terminology)
+    if name == "translocation_summary":
+        return render_translocation_summary(list(source or []), terminology)
     raise ValueError(f"Unsupported clinical renderer '{name}'")

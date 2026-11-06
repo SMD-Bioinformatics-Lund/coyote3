@@ -12,6 +12,7 @@ export function useBulkFindingAction(sampleId: string, resourceType: FindingReso
   const queryClient = useQueryClient()
 
   return useMutation({
+    onMutate: () => ({ sampleId, resourceType }),
     mutationFn: ({
       action,
       resourceIds,
@@ -23,7 +24,7 @@ export function useBulkFindingAction(sampleId: string, resourceType: FindingReso
       includeAutomaticText?: boolean
       annotationRuleHash?: string
     }) => applyFindingAction({ sampleId, resourceType, action, resourceIds, includeAutomaticText, annotationRuleHash }),
-    onSuccess: (_result, variables) => {
+    onSuccess: (_result, variables, { sampleId, resourceType }) => {
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })
       })
@@ -44,6 +45,7 @@ export function useSingleFindingFlag(sampleId: string, resourceType: FindingReso
   const queryClient = useQueryClient()
 
   return useMutation({
+    onMutate: () => ({ sampleId, resourceType }),
     mutationFn: ({
       resourceId,
       flag,
@@ -53,7 +55,7 @@ export function useSingleFindingFlag(sampleId: string, resourceType: FindingReso
       flag: "false-positive" | "irrelevant" | "interesting" | "noteworthy" | "override-blacklist" | "blacklisted"
       apply: boolean
     }) => setSingleFlag({ sampleId, resourceType, resourceId, flag, apply }),
-    onSuccess: (_result, variables) => {
+    onSuccess: (_result, variables, { sampleId, resourceType }) => {
       findingQueryKeys(sampleId, resourceType).forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey })
       })

@@ -17,7 +17,7 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 |---|---|---|---|---|
 | **Apply (Filters)** | Discovery Sidebar | `PUT /api/v1/samples/{id}/filters` | `samples.filters` (DNA) | Recalculation of findings within active review tables. |
 | **Reset** | Discovery Sidebar | `DELETE /api/v1/samples/{id}/filters` | `samples.filters` (Defaults) | Re-initialization of assay-original thresholds. |
-| **Apply (Bulk)** | Bulk Action Panel | `PATCH /api/v1/samples/{id}/classifications/tier` | Classification annotations and, when requested for Tier III small variants, a generated text annotation | Update the selected findings without changing report-rule configuration. |
+| **Apply (Bulk)** | Bulk Action Panel | `PATCH /api/v1/samples/{id}/classifications/tier` | Classification annotations and optional generated text for supported Tier I–III assignments | Update the selected findings without changing report-rule configuration. |
 | **Finalize Report** | Report Preview | Report creation endpoint | `reported_variants` snapshots | Generation of immutable clinical report record. |
 
 ## Finding-Level Clinical Interactions (SNV, CNV, SV)
@@ -95,13 +95,21 @@ the current annotation contract before lifecycle writes are enabled.
 ### Bulk classification text
 
 Bulk classification always stores the requested Tier I-IV classification.
-For Tier I–III small variants, the confirmation dialog offers **Include automatic
+For supported Tier I–III assignments, the confirmation dialog offers **Include automatic
 text**, unchecked by default. Preview matching published annotation templates
 before confirming. Findings with no matching template receive the chosen tier
 without generated text. Matching text is saved as a separate annotation with its
 rule-version provenance. Sample measurements are not inserted into reusable text.
 
-The option is unavailable for CNVs, fusions, translocations and Tier IV.
+DNA templates support small variants, CNVs and translocations; RNA templates
+support fusions. Tier actions remain subject to permissions and enabled tiering
+controls. Changing the selected findings closes the confirmation and discards its
+preview, even when the selection count stays the same. Confirmation requires the
+exact selected finding IDs and a single nonempty published rule-version hash.
+While an action runs, confirmation controls are disabled to prevent duplicate
+submissions. A failed action keeps the dialog open and displays the error. If
+automatic text is selected, generate a fresh preview before retrying.
+Tier IV and non-tier actions do not generate annotation text.
 Individual tiering does not generate annotation text. Configure the templates in
 the clinical rule editor's **Bulk annotation text** tab.
 

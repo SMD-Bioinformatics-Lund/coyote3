@@ -4737,11 +4737,22 @@ Raises:
 #### `Sample.coverage`
 
 ```python
-Sample.coverage(self, *, cutoff: 'int' = 500) -> 'dict[str, Any]'
+Sample.coverage(self, *, cutoff: 'int' = 500, gene_list_id: 'str | None' = None) -> 'dict[str, Any]'
 ```
 
 ```text
-Read the existing coverage analysis at a positive minimum-depth cutoff.
+Read coverage within the assay scope and an optional captured gene list.
+
+Args:
+    cutoff: Positive minimum-depth cutoff.
+    gene_list_id: Captured gene-list identity, or None for full assay scope.
+
+Returns:
+    Coverage measurements, scope and available gene lists.
+
+Raises:
+    ValueError: The cutoff is not positive.
+    AppError: Sample access is denied or the selected list is unavailable.
 ```
 
 #### `Sample.edit_context`

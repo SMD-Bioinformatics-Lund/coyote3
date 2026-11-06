@@ -7,7 +7,9 @@ export function matchedKnowledgebaseGenes(
     new Set(
       genes
         .map((gene) => String(gene || "").trim())
-        .filter((gene) => gene && (recordMap[gene] || recordMap[gene.toUpperCase()])),
+        .filter((gene) => gene && [gene, gene.toUpperCase()].some(
+          (key) => Object.hasOwn(recordMap, key) && recordMap[key],
+        )),
     ),
   )
 }

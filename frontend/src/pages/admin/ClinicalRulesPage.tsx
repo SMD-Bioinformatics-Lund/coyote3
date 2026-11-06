@@ -37,6 +37,7 @@ import { ClinicalRuleStatusBadge } from "./ClinicalRuleStatusBadge"
 import { conditionError } from "./rule-condition-values"
 import { outputPreview } from "./rule-output-preview"
 import { RuleSetPreview } from "./RuleSetPreview"
+import { annotationFindingOptions, type AnnotationFindingKind } from "./clinical-rules-types"
 import { BulkAnnotationEditor, BulkAnnotationPreview } from "./BulkAnnotationEditor"
 import { useRuleWorkspaceLayout } from "@/hooks/useRuleWorkspaceLayout"
 import { RuleEditor } from "./RuleEditor"
@@ -54,9 +55,12 @@ export function ClinicalRulesPage() {
   const [selectedBlock, setSelectedBlock] = useState(0)
   const [selectedRule, setSelectedRule] = useState(0)
   const [workspaceTab, setWorkspaceTab] = useState<"report" | "annotation">("report")
+  const [selectedFindingKind, setFindingKind] = useState<AnnotationFindingKind>("small_variant")
   const [annotationTier, setAnnotationTier] = useState<1 | 2 | 3>(1)
   const [dirty, setDirty] = useState(false)
   const [textError, setTextError] = useState("")
+  const hasUnsavedEdits = useRef(false)
+  hasUnsavedEdits.current = dirty || Boolean(textError)
   const [failedSaveGeneration, setFailedSaveGeneration] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
   const [newScope, setNewScope] = useState<NewRuleSetScope>(emptyRuleSetScope)
@@ -93,7 +97,7 @@ export function ClinicalRulesPage() {
     queryFn: () => api.get<{ items: ClinicalRuleSet[] }>(`/admin/clinical-rule-sets/${encodeURIComponent(draft!.rule_set_id)}/versions`).then(response => response.data.items.filter(item => item.status === "retired" || (item.status === "published" && !item.active))),
   })
   useEffect(() => {
-    if (selectedId && versionQuery.data?._id === selectedId) {
+    if (selectedId && versionQuery.data?._id === selectedId && !hasUnsavedEdits.current) {
       setDraft(orderedRuleSet(versionQuery.data))
       setDirty(false)
       setSelectedBlock(0)
@@ -104,15 +108,22 @@ export function ClinicalRulesPage() {
   const facts = useMemo(() => factsQuery.data?.items || [], [factsQuery.data?.items])
   const controlledValues = useMemo(() => optionsQuery.data?.condition_values || {}, [optionsQuery.data?.condition_values])
   const annotationGroups = useMemo(() => optionsQuery.data?.bulk_annotation_groups || [], [optionsQuery.data?.bulk_annotation_groups])
+  const findingKind = annotationFindingOptions[draft?.scope.analyte || "dna"].some(item => item.value === selectedFindingKind) ? selectedFindingKind : annotationFindingOptions[draft?.scope.analyte || "dna"][0].value
   const annotationFacts = useMemo(() => {
     const labels = Object.fromEntries(annotationGroups.map(group => [group.group_id,
       `${[...group.path_names].reverse().join(" › ")} (${group.group_id})${group.is_active ? "" : " · inactive"}`]))
-    return facts.filter(fact => optionsQuery.data?.bulk_annotation_fact_paths?.includes(fact.path))
+    return facts.filter(fact => optionsQuery.data?.bulk_annotation_fact_paths?.includes(fact.path) && fact.bulk_annotation_finding_kinds?.includes(findingKind))
       .map(fact => fact.group === "Biological group" ? { ...fact, value_labels: labels } : fact)
-  }, [facts, annotationGroups, optionsQuery.data?.bulk_annotation_fact_paths])
-  useEffect(() => { if (draft?.scope.analyte !== "dna") setWorkspaceTab("report") }, [draft?.scope.analyte])
-  const conditionProblem = [...(draft?.blocks.flatMap(item => item.rules) || []), ...(draft?.bulk_annotation_rules || [])].map(item => conditionError(item.condition, facts, controlledValues)).find(Boolean) || ""
+  }, [facts, annotationGroups, findingKind, optionsQuery.data?.bulk_annotation_fact_paths])
+  const authoredRules = [...(draft?.blocks.flatMap(item => item.rules) || []), ...(draft?.bulk_annotation_rules || [])]
+  const nameProblem = draft && (!draft.name.trim() || draft.name.length > 160)
+    ? "Use a rule-set name between 1 and 160 characters."
+    : authoredRules.some(rule => !rule.name.trim()) ? "Finish the empty rule or annotation template name." : ""
+  const conditionProblem = authoredRules.map(item => conditionError(item.condition, facts, controlledValues)).find(Boolean) || ""
+  const incompleteSentence = [...(draft?.blocks.flatMap(block => block.rules) || []), ...(draft?.bulk_annotation_rules || [])]
+    .some(rule => !rule.output.length || rule.output.some(node => node.type === "text" && !node.value.length))
   const localProblem = textError || conditionProblem
+  const saveBlocked = Boolean(localProblem || incompleteSentence || nameProblem)
   useEffect(() => { setTextError("") }, [selectedId, selectedBlock, selectedRule])
   useEffect(() => { setLinkAssay(""); setLinkDiagnosis("base") }, [selectedId])
 
@@ -126,11 +137,11 @@ export function ClinicalRulesPage() {
   const saveDraft = saveMutation.mutate
   const savePending = saveMutation.isPending
   useEffect(() => {
-    if (!dirty || draft?.status !== "draft" || savePending || !documentEditor.owned || localProblem || failedSaveGeneration === editGeneration.current) return
+    if (!dirty || draft?.status !== "draft" || savePending || !documentEditor.owned || saveBlocked || failedSaveGeneration === editGeneration.current) return
     const generation = editGeneration.current
     const timer = window.setTimeout(() => saveDraft({ document: draft, generation }), 800)
     return () => window.clearTimeout(timer)
-  }, [dirty, draft, saveDraft, savePending, documentEditor.owned, localProblem, failedSaveGeneration])
+  }, [dirty, draft, saveDraft, savePending, documentEditor.owned, saveBlocked, failedSaveGeneration])
 
   const mutateDraft = (change: (document: ClinicalRuleSet) => void) => {
     if (!hasPermission(access.data, "clinical_rules:draft") || !documentEditor.owned) return
@@ -150,7 +161,7 @@ export function ClinicalRulesPage() {
     draft.review?.submitted_by?.trim().toLowerCase() !== currentUsername
   const editableDraft = documentEditor.owned && draft?.status === "draft" && !draft.system_installed && can("clinical_rules:draft")
   const deletableVersion = draft && !draft.system_installed && ["draft", "submitted", "in_clinical_review", "approved", "rejected"].includes(draft.status) && can("clinical_rules:draft")
-  const workflowReady = !dirty && !saveMutation.isPending && !localProblem
+  const workflowReady = !dirty && !saveMutation.isPending && !saveBlocked
 
   const beginCreation = (mode: CreationMode = "blank") => {
     setSelectedId(null)
@@ -263,8 +274,10 @@ export function ClinicalRulesPage() {
   return (
     <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><icon.save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><icon.check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><icon.beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={() => beginCreation()}><icon.plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><icon.copyPlus /> Create revision</Button>}</>}>
       <DocumentEditorNotice editor={documentEditor} />
+      {dirty && nameProblem && <p role="status" className="mb-3 type-body-sm text-muted-foreground">Autosave is waiting. {nameProblem}</p>}
+      {dirty && incompleteSentence && <p role="status" className="mb-3 type-body-sm text-muted-foreground">Autosave is waiting for sentence text. Finish the empty sentence or remove its template to save your draft.</p>}
       {localProblem && <p role="alert" className="mb-3 rounded-lg border border-warning p-3 type-body">Correct the current edit before saving: {localProblem}</p>}
-      {saveMutation.isError && failedSaveGeneration === editGeneration.current && <div role="alert" className="mb-3 rounded-lg border border-destructive p-3 type-body"><p>Autosave paused. {saveMutation.error instanceof Error ? saveMutation.error.message : "The draft could not be saved."} Correct the draft or retry when ready.</p><Button variant="outline" size="sm" disabled={!!localProblem} onClick={() => { saveMutation.reset(); setFailedSaveGeneration(null) }}>Retry save</Button></div>}
+      {saveMutation.isError && failedSaveGeneration === editGeneration.current && <div role="alert" className="mb-3 rounded-lg border border-destructive p-3 type-body"><p>Autosave paused. {saveMutation.error instanceof Error ? saveMutation.error.message : "The draft could not be saved."} Correct the draft or retry when ready.</p><Button variant="outline" size="sm" disabled={saveBlocked} onClick={() => { saveMutation.reset(); setFailedSaveGeneration(null) }}>Retry save</Button></div>}
       {creating && (
         <section className="surface-panel mb-3 p-4" aria-label="Create clinical rule set">
           <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Draft creation method">
@@ -275,7 +288,7 @@ export function ClinicalRulesPage() {
             <label className="type-label">Diagnosis<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={newScope.diagnosis_id} onChange={(event) => { const diagnosisId = event.target.value; const assay = optionsQuery.data?.assays.find((item) => item.asp_id === newScope.asp_id); setNewScope((current) => ({ ...current, diagnosis_id: diagnosisId, name: newNameEdited ? current.name : generatedRuleSetName(assay, diagnosisId) })) }}><option value="base">Base (base)</option>{(optionsQuery.data?.assays.find((item) => item.asp_id === newScope.asp_id)?.diagnoses || []).filter(scope => scope.diagnosis_id !== "base").map((scope) => <option key={scope.diagnosis_id} value={scope.diagnosis_id}>{scope.display_name} ({scope.diagnosis_id})</option>)}{newScope.diagnosis_id !== "base" && !optionsQuery.data?.assays.find(item => item.asp_id === newScope.asp_id)?.diagnoses?.some(item => item.diagnosis_id === newScope.diagnosis_id) && <option value={newScope.diagnosis_id}>{newScope.diagnosis_id} (planned)</option>}</select></label>
             <label className="type-label">Analyte<select className="paper-inset mt-1 w-full rounded-lg p-2 type-body" disabled={!!optionsQuery.data?.assays.some(item => item.asp_id === newScope.asp_id)} value={newScope.analyte} onChange={event => setNewScope({ ...newScope, analyte: event.target.value as "dna" | "rna" })}><option value="dna">DNA</option><option value="rna">RNA</option></select></label>
             <label className="type-label">Language<Input className="mt-1" value={newScope.language} onChange={(event) => setNewScope({ ...newScope, language: event.target.value })} /></label>
-            <label className="type-label">Rule-set name<Input className="mt-1" value={newScope.name} onChange={(event) => { setNewNameEdited(true); setNewScope({ ...newScope, name: event.target.value }) }} /></label>
+            <label className="type-label">Rule-set name<Input className="mt-1" value={newScope.name} maxLength={160} onChange={(event) => { setNewNameEdited(true); setNewScope({ ...newScope, name: event.target.value }) }} /></label>
           </div>
           {newScope.asp_id && !optionsQuery.data?.assays.some(item => item.asp_id === newScope.asp_id) && <p className="mt-2 type-body-sm text-muted-foreground">This assay is not registered yet. You can author this draft now, then register the assay or link the draft to an available assay before submitting it for review.</p>}
           {creationMode === "template" && <label className="type-label mt-3 block max-w-xl">Template rule set<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={templateId} onChange={(event) => { const selected = assayTemplates.find((item) => item._id === event.target.value); setTemplateId(event.target.value); if (selected && !newNameEdited) setNewScope((current) => ({ ...current, name: `${selected.name} - test` })) }}><option value="">Select a published {newScope.asp_id ? "assay-specific" : ""} template</option>{assayTemplates.map((item) => <option key={item._id} value={item._id}>{item.scope.diagnosis_id} · {item.name} (v{item.content_version})</option>)}</select></label>}
@@ -312,7 +325,7 @@ export function ClinicalRulesPage() {
                   <Button variant="outline" size="sm" disabled={!workflowReady || !linkAssay} onClick={() => saveDraft({ document: draft, generation: editGeneration.current, scope: { ...draft.scope, asp_id: linkAssay, diagnosis_id: linkDiagnosis } })}>Link assay</Button>
                 </div>
               </details>}
-              <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 flex-1">{editableDraft ? <Input aria-label="Rule-set name" className="max-w-xl font-semibold" value={draft.name} onChange={(event) => mutateDraft((document) => { document.name = event.target.value })} /> : <h2 className="font-semibold">{draft.name}</h2>}<p className="mt-1 text-xs text-muted-foreground">{draft.rule_set_id} · version {draft.content_version} · revision {draft.revision}</p></div><div className="flex flex-wrap items-center gap-2">{!editableDraft && <Badge variant="outline">Read-only</Badge>}{can("clinical_rules:draft") && <Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => beginCreation("import")}><icon.upload /> Import JSON</Button>}<label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={includeExportMetadata} onChange={event => setIncludeExportMetadata(event.target.checked)} />Include metadata</label><Button size="sm" variant="outline" onClick={downloadRuleSet}><icon.download /> Export JSON</Button><ClinicalRuleStatusBadge status={draft.status === "published" && !draft.active ? "retired" : draft.status} /></div></div>
+              <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 flex-1">{editableDraft ? <Input aria-label="Rule-set name" className="max-w-xl font-semibold" value={draft.name} maxLength={160} onChange={(event) => mutateDraft((document) => { document.name = event.target.value })} /> : <h2 className="font-semibold">{draft.name}</h2>}<p className="mt-1 text-xs text-muted-foreground">{draft.rule_set_id} · version {draft.content_version} · revision {draft.revision}</p></div><div className="flex flex-wrap items-center gap-2">{!editableDraft && <Badge variant="outline">Read-only</Badge>}{can("clinical_rules:draft") && <Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => beginCreation("import")}><icon.upload /> Import JSON</Button>}<label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={includeExportMetadata} onChange={event => setIncludeExportMetadata(event.target.checked)} />Include metadata</label><Button size="sm" variant="outline" onClick={downloadRuleSet}><icon.download /> Export JSON</Button><ClinicalRuleStatusBadge status={draft.status === "published" && !draft.active ? "retired" : draft.status} /></div></div>
               {editableDraft && <div className="mt-3 flex flex-wrap items-end gap-2"><Button size="sm" variant="outline" disabled={!workflowReady} onClick={() => validationQuery.refetch()}><icon.fileCheck2 /> Validate</Button>{can("clinical_rules:submit") && <label className="type-label">Assign clinical reviewer<select className="paper-inset mt-1 block rounded-lg p-1.5 text-xs" value={reviewerAssignee} onChange={(event) => setReviewerAssignee(event.target.value)}><option value="">Select reviewer</option>{(optionsQuery.data?.clinical_reviewers || []).filter(user => user.username.trim().toLowerCase() !== access.data?.username?.trim().toLowerCase()).map((user) => <option key={user.username} value={user.username}>{user.name} ({user.username})</option>)}</select></label>}{can("clinical_rules:submit") && <Button size="sm" disabled={!workflowReady || !reviewerAssignee} onClick={() => lifecycleAction("submit", { reason: draft.change_summary || "Submitted for clinical review", assignee: reviewerAssignee })}><icon.send /> Submit</Button>}<Button size="sm" variant="destructive" disabled={!workflowReady || deleteDraftMutation.isPending} onClick={() => setDeleteDraftOpen(true)}><icon.trash2 /> Delete draft</Button></div>}
               {draft.status === "submitted" && !draft.system_installed && canReviewVersion && <Button className="mt-3" size="sm" disabled={!workflowReady || actionMutation.isPending} onClick={() => lifecycleAction("start-clinical-review")}><icon.shieldCheck /> Start review</Button>}
               {["submitted", "in_clinical_review", "approved"].includes(draft.status) && !draft.system_installed && can("clinical_rules:draft") && <div className="mt-3 space-y-2"><Button type="button" size="sm" variant="outline" disabled={!workflowReady || actionMutation.isPending} onClick={() => lifecycleAction("reopen", { revision: draft.revision, reason: draft.status === "approved" ? "Reopened for editing; previous approval cleared" : "Review recalled for editing" })}>{draft.status === "approved" ? "Edit again" : "Recall and edit"}</Button><p className="type-meta text-muted-foreground">Return this version to draft and withdraw the current review or approval. Submit it for a fresh review after editing.</p></div>}
@@ -347,10 +360,10 @@ export function ClinicalRulesPage() {
           </section>}
             </details>
             <div role="tablist" aria-label="Rule content" className="flex flex-wrap gap-2 border-b border-border p-3">
-              {([['report', 'Report wording'], ['annotation', 'Bulk annotation text']] as const).filter(([value]) => value === "report" || draft.scope.analyte === "dna").map(([value, label]) => <Button key={value} id={`rule-tab-${value}`} type="button" role="tab" tabIndex={workspaceTab === value ? 0 : -1} onKeyDown={event => { if (draft.scope.analyte === "dna" && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) { event.preventDefault(); const nextTab = event.key === "Home" ? "report" : event.key === "End" ? "annotation" : workspaceTab === "report" ? "annotation" : "report"; setWorkspaceTab(nextTab); document.getElementById(`rule-tab-${nextTab}`)?.focus() } }} aria-selected={workspaceTab === value} aria-controls={`rule-panel-${value}`} variant={workspaceTab === value ? "secondary" : "ghost"} onClick={() => { setWorkspaceTab(value) }}>{label}</Button>)}
+              {([['report', 'Report wording'], ['annotation', 'Bulk annotation text']] as const).map(([value, label]) => <Button key={value} id={`rule-tab-${value}`} type="button" role="tab" tabIndex={workspaceTab === value ? 0 : -1} onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) { event.preventDefault(); const nextTab = event.key === "Home" ? "report" : event.key === "End" ? "annotation" : workspaceTab === "report" ? "annotation" : "report"; setWorkspaceTab(nextTab); document.getElementById(`rule-tab-${nextTab}`)?.focus() } }} aria-selected={workspaceTab === value} aria-controls={`rule-panel-${value}`} variant={workspaceTab === value ? "secondary" : "ghost"} onClick={() => { setWorkspaceTab(value) }}>{label}</Button>)}
             </div>
             <div role="tabpanel" id="rule-panel-annotation" aria-labelledby="rule-tab-annotation" className="min-h-0 overflow-y-auto" hidden={workspaceTab !== "annotation"} style={{ "--sections-width": `${sectionsWidth}px` } as CSSProperties}>
-              <BulkAnnotationEditor key={draft._id} sectionsWidth={sectionsWidth} setSectionsWidth={setSectionsWidth} rules={draft.bulk_annotation_rules || []} facts={annotationFacts} controlledValues={controlledValues} editable={Boolean(editableDraft)} tier={annotationTier} setTier={setAnnotationTier} ruleIds={[...draft.blocks.flatMap(item => item.rules.map(rule => rule.rule_id)), ...(draft.bulk_annotation_rules || []).map(rule => rule.rule_id)]} onTextError={setTextError} onChange={rules => mutateDraft(document => { document.bulk_annotation_rules = rules })} />
+              <BulkAnnotationEditor analyte={draft.scope.analyte} findingKind={findingKind} setFindingKind={setFindingKind} key={draft._id} sectionsWidth={sectionsWidth} setSectionsWidth={setSectionsWidth} rules={draft.bulk_annotation_rules || []} facts={annotationFacts} controlledValues={controlledValues} editable={Boolean(editableDraft)} tier={annotationTier} setTier={setAnnotationTier} ruleIds={[...draft.blocks.flatMap(item => item.rules.map(rule => rule.rule_id)), ...(draft.bulk_annotation_rules || []).map(rule => rule.rule_id)]} onTextError={setTextError} onChange={rules => mutateDraft(document => { document.bulk_annotation_rules = rules })} />
             </div>
             <div role="tabpanel" id="rule-panel-report" aria-labelledby="rule-tab-report" className="min-h-0 overflow-y-auto" hidden={workspaceTab !== "report"}>
             <div className={cn("clinical-rules-editor-layout min-h-0", sectionsCollapsed && "is-sections-collapsed")} style={{ "--sections-width": `${sectionsWidth}px` } as CSSProperties}>
@@ -454,7 +467,7 @@ export function ClinicalRulesPage() {
         </main>
         <ResizeDivider label="Resize text preview" width={previewWidth} setWidth={setPreviewWidth} min={280} max={720} direction={-1} />
         <aside className="min-h-0 min-w-0 overflow-y-auto bg-muted/10 p-4">
-          {draft ? <><div hidden={workspaceTab !== "report"}><RuleSetPreview key={draft._id} draft={draft} facts={facts} saved={workflowReady} canTest={can("clinical_rules:test")} /></div><div hidden={workspaceTab !== "annotation"}><BulkAnnotationPreview groups={annotationGroups} key={draft._id} documentId={draft._id} scopeDiagnosis={draft.scope.diagnosis_id} revision={draft.revision} saved={workflowReady} tier={annotationTier} /></div></> : <p className="type-body-sm text-muted-foreground">Select a rule set to preview its complete report wording.</p>}
+          {draft ? <><div hidden={workspaceTab !== "report"}><RuleSetPreview key={draft._id} draft={draft} facts={facts} saved={workflowReady} canTest={can("clinical_rules:test")} /></div><div hidden={workspaceTab !== "annotation"}><BulkAnnotationPreview findingKind={findingKind} groups={annotationGroups} key={draft._id} documentId={draft._id} scopeDiagnosis={draft.scope.diagnosis_id} revision={draft.revision} saved={workflowReady} tier={annotationTier} /></div></> : <p className="type-body-sm text-muted-foreground">Select a rule set to preview its complete report wording.</p>}
           {editableDraft && workspaceTab === "report" && <section className="mt-5 border-t border-border pt-4"><h2 className="type-section-title">Report analyses</h2><div className="mt-2 space-y-2">{ANALYSES[draft.scope.analyte].map((analysis) => <label key={analysis} className="flex items-center justify-between gap-3 text-sm"><span>{analysis}</span><select className="paper-inset rounded-lg p-1.5 text-xs" value={draft.analysis_declarations[analysis]?.narrative || "undeclared"} onChange={(event) => mutateDraft((document) => { if (event.target.value === "undeclared") delete document.analysis_declarations[analysis]; else document.analysis_declarations[analysis] = { narrative: event.target.value as "enabled" | "none" } })}><option value="undeclared">Not declared</option><option value="enabled">Generate text</option><option value="none">No narrative</option></select></label>)}</div></section>}
         </aside>
       </div>

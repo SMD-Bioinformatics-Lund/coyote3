@@ -62,16 +62,76 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <ClinicalRulesPage />
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, client }
 }
 
 describe("ClinicalRulesPage", () => {
+  it("preserves unsaved edits when the version query refreshes", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    const { client } = renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await waitFor(() => expect(screen.getByLabelText("Rule-set name")).toBeEnabled())
+    vi.useFakeTimers()
+    try {
+      fireEvent.change(screen.getByLabelText("Rule-set name"), { target: { value: "Local unsaved wording" } })
+      await act(async () => {
+        client.setQueryData(["clinical-rule-set", "rule-version-1"], { ...existingDraft, revision: 7, name: "Background version" })
+        await vi.advanceTimersByTimeAsync(1)
+      })
+      expect(screen.getByLabelText("Rule-set name")).toHaveValue("Local unsaved wording")
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+      expect(mocks.patch).toHaveBeenCalledWith(
+        "/admin/clinical-rule-sets/drafts/rule-version-1",
+        expect.objectContaining({ revision: 1, name: "Local unsaved wording" }), editSessionOptions,
+      )
+    } finally { vi.useRealTimers() }
+  })
+  it.each([
+    ["dna", "cnv", "Copy-number variants", ["Small variants", "Copy-number variants", "Translocations"]],
+    ["rna", "fusion", "Fusions", ["Fusions"]],
+  ] as const)("authors %s templates only for compatible finding types", async (analyte, kind, label, options) => {
+    const draft = { ...existingDraft, scope: { ...existingDraft.scope, analyte } }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: draft })
+      return Promise.resolve({ data: { items: [draft], total: 1 } })
+    })
+    mocks.patch.mockImplementation((_path, body) => Promise.resolve({ data: { ...draft, ...body, revision: 2 } }))
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await userEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+    const selector = screen.getByRole("combobox", { name: "Finding type" })
+    expect(within(selector).getAllByRole("option").map(option => option.textContent)).toEqual([...options])
+    await userEvent.selectOptions(selector, kind)
+    expect(within(selector).getByRole("option", { name: label })).toHaveProperty("selected", true)
+    await userEvent.click(screen.getByRole("button", { name: "Add annotation template" }))
+    const panel = within(screen.getByRole("tabpanel", { name: "Bulk annotation text" }))
+    fireEvent.change(panel.getByLabelText("Annotation sentence"), { target: { value: "Reviewed structural wording." } })
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
+      "/admin/clinical-rule-sets/drafts/rule-version-1",
+      expect.objectContaining({ bulk_annotation_rules: [expect.objectContaining({ finding_kind: kind })] }), editSessionOptions,
+    ))
+    if (analyte === "dna") {
+      await userEvent.selectOptions(selector, "small_variant")
+      expect(panel.queryByLabelText("Annotation sentence")).not.toBeInTheDocument()
+      await userEvent.selectOptions(selector, kind)
+      expect(panel.getByLabelText("Annotation sentence")).toHaveValue("Reviewed structural wording.")
+    }
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.permissions = ["clinical_rules:draft", "clinical_rules:view"]
@@ -251,6 +311,81 @@ describe("ClinicalRulesPage", () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
       expect(mocks.patch).toHaveBeenCalledTimes(1)
       expect(screen.getByRole("button", { name: "Retry save" })).toBeEnabled()
+    } finally { vi.useRealTimers() }
+  })
+
+  it("waits for new or cleared annotation sentences and resumes saving completed text", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await waitFor(() => expect(screen.getByLabelText("Rule-set name")).toBeEnabled())
+    await userEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+    vi.useFakeTimers()
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Add annotation template" }))
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(mocks.patch).not.toHaveBeenCalled()
+      expect(screen.getByText(/Autosave is waiting for sentence text/)).toBeVisible()
+
+      fireEvent.change(screen.getByLabelText("Annotation sentence"), { target: { value: "Initial text" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(400) })
+      fireEvent.change(screen.getByLabelText("Annotation sentence"), { target: { value: "" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(mocks.patch).not.toHaveBeenCalled()
+      expect(screen.getByLabelText("Annotation sentence")).toHaveValue("")
+
+      // Changing tabs must not let a hidden incomplete template reach the API.
+      fireEvent.click(screen.getByRole("tab", { name: "Report wording" }))
+      fireEvent.change(screen.getByLabelText("Rule-set name"), { target: { value: "Updated name" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(mocks.patch).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+      fireEvent.change(screen.getByLabelText("Annotation sentence"), { target: { value: "Completed text." } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+      expect(mocks.patch).toHaveBeenCalledTimes(1)
+      expect(mocks.patch).toHaveBeenCalledWith(
+        "/admin/clinical-rule-sets/drafts/rule-version-1",
+        expect.objectContaining({ name: "Updated name", bulk_annotation_rules: [expect.objectContaining({ output: [{ type: "text", value: "Completed text." }] })] }), editSessionOptions,
+      )
+    } finally { vi.useRealTimers() }
+  })
+
+  it("pauses autosave for blank names and resumes after completing them", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: existingDraft })
+      return Promise.resolve({ data: { items: [existingDraft], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await waitFor(() => expect(screen.getByLabelText("Rule-set name")).toBeEnabled())
+    await userEvent.click(screen.getByRole("tab", { name: "Bulk annotation text" }))
+    vi.useFakeTimers()
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Add annotation template" }))
+      fireEvent.change(screen.getByLabelText("Annotation sentence"), { target: { value: "Completed text." } })
+      fireEvent.change(screen.getByLabelText("Annotation template name"), { target: { value: "   " } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(mocks.patch).not.toHaveBeenCalled()
+      expect(screen.getByText(/Finish the empty rule or annotation template name/)).toBeVisible()
+      fireEvent.change(screen.getByLabelText("Annotation template name"), { target: { value: "Valid template" } })
+      fireEvent.change(screen.getByLabelText("Rule-set name"), { target: { value: "" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(mocks.patch).not.toHaveBeenCalled()
+      fireEvent.change(screen.getByLabelText("Rule-set name"), { target: { value: "Completed name" } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+      expect(mocks.patch).toHaveBeenCalledTimes(1)
+      expect(mocks.patch).toHaveBeenCalledWith(
+        "/admin/clinical-rule-sets/drafts/rule-version-1",
+        expect.objectContaining({ name: "Completed name", revision: 1,
+          bulk_annotation_rules: [expect.objectContaining({ name: "Valid template", output: [{ type: "text", value: "Completed text." }] })] }), editSessionOptions,
+      )
     } finally { vi.useRealTimers() }
   })
 

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -305,11 +306,45 @@ describe("sample analysis table tabs", () => {
       <CoverageTab sampleId="DNA_COV" sample={{ filters: { somatic: { coverage: { warn_cov: 500 } } } }} />,
       "/samples/DNA_COV?tab=coverage",
     )
-    await screen.findByText("No low-covered genes for the current cutoff and selected gene lists.")
+    await screen.findByText("No low-covered genes for the current cutoff and coverage scope.")
 
     rerender(<CoverageTab sampleId="DNA_COV" sample={{ filters: { somatic: { coverage: { warn_cov: 250 } } } }} />)
     expect(await screen.findByText("Coverage unavailable")).toBeVisible()
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=250")
+  })
+
+  it("can select a coverage gene list and recover to assay scope after an error", async () => {
+    const user = userEvent.setup()
+    mocks.get.mockImplementation((url: string) => url.includes("gene_list_id=")
+      ? Promise.reject(new Error("List coverage unavailable"))
+      : Promise.resolve({ data: {
+        cov_table: {}, coverage: { genes: {} }, gene_lists: [{ id: "focused", label: "Focused genes" }],
+      } }))
+    mount(<CoverageTab sampleId="DNA_COV" />, "/samples/DNA_COV?tab=coverage")
+    await screen.findByText("No low-covered genes for the current cutoff and coverage scope.")
+    await user.click(screen.getByRole("combobox", { name: "Coverage gene list" }))
+    await user.click(await screen.findByRole("option", { name: "Focused genes" }))
+    expect(await screen.findByText("List coverage unavailable")).toBeVisible()
+    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_COV/coverage?cov_cutoff=500&gene_list_id=focused")
+    await user.click(screen.getByRole("combobox", { name: "Coverage gene list" }))
+    await user.click(await screen.findByRole("option", { name: "Assay scope" }))
+    await screen.findByText("No low-covered genes for the current cutoff and coverage scope.")
+  })
+
+  it("resets optional coverage scope when navigating to another sample", async () => {
+    const user = userEvent.setup()
+    mocks.get.mockResolvedValue({ data: {
+      cov_table: {}, coverage: { genes: {} }, gene_lists: [{ id: "focused", label: "Focused genes" }],
+    } })
+    const { rerender } = mount(<CoverageTab sampleId="FIRST" />, "/samples/FIRST?tab=coverage")
+    await screen.findByText("No low-covered genes for the current cutoff and coverage scope.")
+    await user.click(screen.getByRole("combobox", { name: "Coverage gene list" }))
+    await user.click(await screen.findByRole("option", { name: "Focused genes" }))
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/samples/FIRST/coverage?cov_cutoff=500&gene_list_id=focused"))
+    rerender(<CoverageTab sampleId="SECOND" />)
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/samples/SECOND/coverage?cov_cutoff=500"))
+    expect(screen.getByRole("combobox", { name: "Coverage gene list" })).toHaveTextContent("Assay scope")
+    expect(mocks.get).not.toHaveBeenCalledWith("/samples/SECOND/coverage?cov_cutoff=500&gene_list_id=focused")
   })
 
   it.each(["modern", "legacy"] as const)("reviews and saves the selected %s format", async (reportFormat) => {
