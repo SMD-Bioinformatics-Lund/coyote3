@@ -332,3 +332,24 @@ def test_svg_logo_rejects_active_content_and_external_resources(body):
         validate_report_svg(svg)
     with pytest.raises(ValueError):
         ReportResourceFetcher()("data:image/svg+xml;base64," + b64encode(svg).decode())
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-16", "utf-16-le", "utf-16-be"])
+def test_svg_rejects_document_types_independent_of_encoding(encoding):
+    """Encoding must not bypass the prohibition on DTD and entity declarations."""
+    svg = (
+        f'<?xml version="1.0" encoding="{encoding}"?>'
+        '<!DOCTYPE svg [<!ENTITY text "synthetic">]>'
+        '<svg xmlns="http://www.w3.org/2000/svg"><text>&text;</text></svg>'
+    ).encode(encoding)
+    with pytest.raises(ValueError):
+        validate_report_svg(svg)
+
+
+def test_svg_accepts_self_contained_utf16_without_document_type():
+    """Safe encoded logos remain supported after parser-level DTD validation."""
+    svg = (
+        '<?xml version="1.0" encoding="utf-16"?>'
+        '<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic</text></svg>'
+    ).encode("utf-16")
+    validate_report_svg(svg)

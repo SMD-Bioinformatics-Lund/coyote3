@@ -20,7 +20,7 @@ function compactHotspotIdentifiers(values: Iterable<string>) {
 }
 
 export function formatPopulationFrequency(value: unknown) {
-  if (value === null || value === undefined || value === "") return "-"
+  if ((typeof value !== "number" && typeof value !== "string") || String(value).trim() === "") return "-"
   const frequency = Number(value)
   if (!Number.isFinite(frequency)) return "-"
   return (frequency * 100).toFixed(6).replace(/\.?0+$/, "")

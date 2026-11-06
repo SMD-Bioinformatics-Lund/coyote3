@@ -10,13 +10,14 @@ by the sample's recorded ASPC revision and coverage data was ingested for the sa
 1. Open a DNA sample.
 2. Confirm on **Overview** that coverage data was loaded.
 3. Open **Coverage**.
-4. Set the depth cutoff appropriate for the validated assay workflow.
+4. Review coverage using the warning depth configured in the sample's coverage filters.
 5. Select a low-coverage gene to inspect its detailed design and measurements.
 
-Changing the cutoff requests a new server-side coverage result. The displayed
+Changing the saved warning depth requests a new server-side coverage result. The displayed
 counts and low-coverage lists therefore use the same cutoff.
 
-Missing depth is shown as unavailable, rather than zero. Low-coverage coding
+Missing depth is shown as a neutral dash in the region table, rather than zero.
+Measured zero remains a low-coverage result. Low-coverage coding
 regions remain in the summary even when no probe overlaps them. Adding or removing
 a blacklist entry refreshes cached coverage results; management controls require
 the `coverage.blacklist:manage` permission.
@@ -53,7 +54,7 @@ The top of the workspace shows:
 | --- | --- |
 | Low regions | Number of returned regions below the selected depth cutoff. |
 | Genes with coverage | Number of genes represented in the coverage payload. |
-| Cutoff | Depth threshold, in `X`, used to classify a measured region as low or passing. |
+| Assay group | Biological group returned with the coverage result. |
 
 ## Low-Coverage Genes and Regions
 

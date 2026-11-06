@@ -11,6 +11,8 @@ import { SearchInput } from "@/components/ui/search-input"
 import { FileUpload } from "@/components/ui/file-upload"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
+import { downloadText } from "@/lib/browser-download"
+import { notifyActionError } from "@/lib/notifications"
 import { shortResourceName } from "@/lib/resource-names"
 import { useDocumentEditor } from "@/hooks/useDocumentEditor"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
@@ -239,13 +241,12 @@ export function ClinicalRulesPage() {
   const assayTemplates = (templateQuery.data?.items || []).filter((item) => item.scope.asp_id === newScope.asp_id)
   const downloadRuleSet = async () => {
     if (!draft) return
-    const exportDocument = await api.get<Record<string, unknown>>(`/admin/clinical-rule-sets/versions/${draft._id}/export${includeExportMetadata ? "?include_metadata=true" : ""}`).then((response) => response.data)
-    const url = URL.createObjectURL(new Blob([JSON.stringify(exportDocument, null, 2)], { type: "application/json" }))
-    const anchor = window.document.createElement("a")
-    anchor.href = url
-    anchor.download = `${draft.rule_set_id}_v${draft.content_version}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
+    try {
+      const exportDocument = await api.get<Record<string, unknown>>(`/admin/clinical-rule-sets/versions/${draft._id}/export${includeExportMetadata ? "?include_metadata=true" : ""}`).then((response) => response.data)
+      downloadText(JSON.stringify(exportDocument, null, 2), `${draft.rule_set_id}_v${draft.content_version}.json`, "application/json")
+    } catch (error) {
+      notifyActionError("Unable to export clinical rules", error, "Clinical rules")
+    }
   }
   const chooseImport = (file: File | undefined) => {
     if (!file) return

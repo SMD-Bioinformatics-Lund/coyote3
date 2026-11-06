@@ -10,8 +10,11 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
+  notifyActionError: vi.fn(),
   permissions: ["clinical_rules:draft", "clinical_rules:view"],
 }))
+
+vi.mock("@/lib/notifications", () => ({ notifyActionError: mocks.notifyActionError }))
 
 vi.mock("@/lib/api", () => ({
   api: { delete: mocks.delete, get: mocks.get, post: mocks.post, patch: mocks.patch },
@@ -424,6 +427,13 @@ describe("ClinicalRulesPage", () => {
       await userEvent.click(screen.getByRole("button", { name: "Export JSON" }))
       expect(mocks.get).toHaveBeenCalledWith("/admin/clinical-rule-sets/versions/rule-version-1/export?include_metadata=true")
       expect(click).toHaveBeenCalledTimes(2)
+      const fallback = mocks.get.getMockImplementation()!
+      mocks.get.mockImplementation((path: string) => path.includes("/export")
+        ? Promise.reject(new Error("Export unavailable")) : fallback(path))
+      await userEvent.click(screen.getByRole("button", { name: "Export JSON" }))
+      await waitFor(() => expect(mocks.notifyActionError).toHaveBeenCalledWith(
+        "Unable to export clinical rules", expect.any(Error), "Clinical rules",
+      ))
     } finally { create.mockRestore(); revoke.mockRestore(); click.mockRestore() }
   })
 

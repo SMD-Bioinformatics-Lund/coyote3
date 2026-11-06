@@ -4,6 +4,18 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+- Ingest rejects unsupported ZIP compression before extraction, reports corrupt
+  compression streams as input errors, and resolves Windows-style manifest paths.
+  CNV and RNA exports preserve zero support; unavailable purity no longer hides
+  a valid CNV copy-number estimate. Numeric admin inputs are validated without
+  silently truncating values. Missing population frequencies remain unavailable.
+  Clinical-rule exports use deferred download cleanup and report download failures.
+  Report SVG validation rejects document type declarations regardless of XML encoding.
+
+- SNV CSV exports retain available genotype evidence when other measurements are
+  missing, without substituting zero. Coverage tables show unavailable depth
+  neutrally, and returning to a previously opened sample resets optional coverage scope.
+
 - Coverage review can optionally narrow assay scope to a gene list captured in
   the applied configuration. Assay scope remains the default; the temporary
   selection leaves finding filters unchanged. The coverage API and SDK accept

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from coyote3.application.dna.export import (
     build_cnv_export_rows,
     build_snv_export_rows,
@@ -9,6 +11,23 @@ from coyote3.application.dna.export import (
     join_tokens,
 )
 from coyote3.application.rna.expression_analysis import RnaService, _fusion_sort_value
+
+
+@pytest.mark.parametrize(
+    ("genotype", "expected"),
+    [
+        ({}, "- (- / -)"),
+        ({"AF": None, "VD": 0, "DP": 20}, "- (0 / 20)"),
+        ({"AF": 0, "VD": 0, "DP": 20}, "0.0% (0 / 20)"),
+        ({"AF": 0.25, "VD": 5}, "25.0% (5 / -)"),
+        ({"AF": float("nan"), "VD": "", "DP": True}, "- (- / -)"),
+        ({"AF": "0.25", "VD": "5", "DP": "20"}, "25.0% (5 / 20)"),
+    ],
+)
+def test_snv_export_preserves_partial_genotype_measurements(genotype, expected):
+    """Missing evidence is not zero and does not obscure available measurements."""
+    row = build_snv_export_rows([{"GT": [{"type": "case", **genotype}]}])[0]
+    assert row.case_gt == expected
 
 
 def test_fusion_read_support_sort_retains_measured_zero() -> None:
@@ -26,6 +45,35 @@ def test_fusion_read_support_sort_retains_measured_zero() -> None:
 def test_csv_preserves_measured_zero_population_frequency():
     """Measured zero is distinct from missing population evidence."""
     assert build_snv_export_rows([{"gnomad_frequency": 0}])[0].pop_freq == "0"
+
+
+@pytest.mark.parametrize("purity", ["unknown", "", None])
+def test_cnv_export_retains_copy_number_without_usable_purity(purity):
+    """An unavailable purity estimate must not erase the independent copy number."""
+    row = build_cnv_export_rows([{"ratio": 1}], {"purity": purity}, "solid")[0]
+    assert row.copy_number == "4.0 (1)"
+    assert row.purity_copy_number == ""
+
+
+def test_cnv_export_preserves_zero_support_before_fallback():
+    """A measured zero must not be replaced by another caller's read support."""
+    row = build_cnv_export_rows([{"SR": 0, "PR": "10,3"}], {}, "solid")[0]
+    assert row.ref_alt_reads == "0"
+
+
+def test_fusion_export_retains_selected_zero_read_support():
+    """CSV evidence must match the selected caller, including measured zero."""
+    service = RnaService.__new__(RnaService)
+    row = service.build_fusion_export_rows(
+        [
+            {
+                "calls": [{"selected": 1, "spanpairs": 0, "spanreads": 0}],
+                "supporting_reads": {"span": 100, "split": 50},
+            }
+        ]
+    )[0]
+    assert row.spanning_pairs == "0"
+    assert row.unique_spanning_reads == "0"
 
 
 def test_csv_token_lists_omit_null_entries():

@@ -7,6 +7,23 @@ from xml.etree import ElementTree
 from weasyprint import URLFetcher
 
 
+class _ReportSvgTreeBuilder(ElementTree.TreeBuilder):
+    """Reject document type declarations after the XML parser decodes the input."""
+
+    def doctype(self, name: str, pubid: str | None, system: str | None) -> None:
+        """Reject DTDs in every supported XML encoding before entities are expanded.
+
+        Args:
+            name: Declared root element name.
+            pubid: Optional public identifier supplied by the XML parser.
+            system: Optional external DTD location supplied by the XML parser.
+
+        Raises:
+            ValueError: All document type declarations are forbidden in report images.
+        """
+        raise ValueError("Report SVG cannot contain document type declarations")
+
+
 def _local_svg_reference(reference: str, *, allow_embedded_font: bool) -> bool:
     """Allow SVG fragments and validated self-contained WOFF2 stylesheet fonts.
 
@@ -41,7 +58,9 @@ def validate_report_svg(content: bytes) -> None:
     if len(content) > 1024 * 1024 or re.search(b"<!DOCTYPE|<!ENTITY", content, re.I):
         raise ValueError("Report SVG must be a small self-contained image")
     try:
-        root = ElementTree.fromstring(content)
+        root = ElementTree.fromstring(
+            content, parser=ElementTree.XMLParser(target=_ReportSvgTreeBuilder())
+        )
     except ElementTree.ParseError as error:
         raise ValueError("Report SVG is not valid XML") from error
     if root.tag != "{http://www.w3.org/2000/svg}svg":

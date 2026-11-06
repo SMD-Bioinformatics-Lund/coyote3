@@ -299,6 +299,21 @@ describe("sample analysis table tabs", () => {
     }))
   })
 
+  it.each([null, "", undefined, 0])("preserves unavailable versus zero coverage in table cells: %s", async (cov) => {
+    mocks.get.mockResolvedValue({ data: {
+      cov_table: { GENE: { exon_1: { cov, start: 10, end: 20 } } },
+      coverage: { genes: {} },
+    } })
+    mount(<CoverageTab sampleId="COVERAGE_MISSING" />, "/samples/COVERAGE_MISSING?tab=coverage")
+    const row = await screen.findByTestId("rendered-clinical-row")
+    if (cov === 0) {
+      expect(row.querySelector(".text-fail")).toHaveTextContent("0.0")
+    } else {
+      expect(row.querySelector(".text-fail")).toBeNull()
+      expect(row.querySelector(".text-muted-foreground")).toHaveTextContent("-")
+    }
+  })
+
   it("re-queries coverage when the saved warning threshold changes and shows API errors", async () => {
     mocks.get.mockResolvedValueOnce({ data: { cov_table: {}, coverage: { genes: {} } } })
       .mockRejectedValueOnce(new Error("Coverage unavailable"))
@@ -345,6 +360,8 @@ describe("sample analysis table tabs", () => {
     await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/samples/SECOND/coverage?cov_cutoff=500"))
     expect(screen.getByRole("combobox", { name: "Coverage gene list" })).toHaveTextContent("Assay scope")
     expect(mocks.get).not.toHaveBeenCalledWith("/samples/SECOND/coverage?cov_cutoff=500&gene_list_id=focused")
+    rerender(<CoverageTab sampleId="FIRST" />)
+    expect(screen.getByRole("combobox", { name: "Coverage gene list" })).toHaveTextContent("Assay scope")
   })
 
   it.each(["modern", "legacy"] as const)("reviews and saves the selected %s format", async (reportFormat) => {
@@ -576,6 +593,8 @@ describe("small-variant table formatting", () => {
     expect(formatPopulationFrequency(0.000001234567)).toBe("0.000123")
     expect(formatPopulationFrequency(0)).toBe("0")
     expect(formatPopulationFrequency(null)).toBe("-")
+    expect(formatPopulationFrequency("   ")).toBe("-")
+    expect(formatPopulationFrequency(false)).toBe("-")
   })
 
   it("normalizes existing hotspot metadata without defining a future list contract", () => {

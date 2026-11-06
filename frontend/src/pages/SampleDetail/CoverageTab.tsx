@@ -24,6 +24,11 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
   const [selectedGene, setSelectedGene] = useState<string | null>(null)
   const [geneSearch, setGeneSearch] = useState("")
   const [selection, setSelection] = useState<{ sampleId: string; id: string } | null>(null)
+  if (selection && selection.sampleId !== sampleId) {
+    setSelection(null)
+    setGeneSearch("")
+    setSelectedGene(null)
+  }
   const geneListId = selection?.sampleId === sampleId ? selection.id : ""
   const [listOptions, setListOptions] = useState<{ sampleId: string; lists: CoverageGeneListOption[] } | null>(null)
   const { data, isLoading, error } = useQuery({
@@ -112,11 +117,12 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
     {
       id: "coverage",
       header: "Coverage",
-      accessorFn: (row) => Number(row.cov || 0),
+      accessorFn: (row) => Number.isFinite(coverageNumber(row)) ? coverageNumber(row) : undefined,
+      sortUndefined: "last",
       cell: ({ row }) => {
-        const value = Number(row.original.cov)
+        const value = coverageNumber(row.original)
         return (
-          <span className={`text-xs font-bold ${Number.isFinite(value) && value < cutoff ? "text-fail" : "text-pass"}`}>
+          <span className={`text-xs font-bold ${!Number.isFinite(value) ? "text-muted-foreground" : value < cutoff ? "text-fail" : "text-pass"}`}>
             {Number.isFinite(value) ? value.toFixed(1) : "-"}
           </span>
         )

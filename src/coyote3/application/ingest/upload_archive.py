@@ -5,7 +5,9 @@ from __future__ import annotations
 import shutil
 import stat
 import zipfile
+import zlib
 from hashlib import sha256
+from lzma import LZMAError
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
@@ -62,7 +64,17 @@ def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> Upload
                 f"data_archive contains too many files ({len(members)}; maximum {MAX_ARCHIVE_FILES})"
             )
         paths: dict[Path, zipfile.ZipInfo] = {}
+        supported_compression = {
+            zipfile.ZIP_STORED,
+            zipfile.ZIP_DEFLATED,
+            zipfile.ZIP_BZIP2,
+            zipfile.ZIP_LZMA,
+        }
+        if hasattr(zipfile, "ZIP_ZSTANDARD"):
+            supported_compression.add(zipfile.ZIP_ZSTANDARD)
         for member in members:
+            if member.compress_type not in supported_compression:
+                raise ValueError("data_archive contains unsupported ZIP compression")
             if member.flag_bits & 1:
                 raise ValueError("data_archive contains encrypted ZIP members")
             relative_path = _validated_member_path(member)
@@ -91,7 +103,7 @@ def extract_uploaded_archive(*, archive_path: Path, destination: Path) -> Upload
             try:
                 with archive.open(member) as source, target.open("xb") as output:
                     shutil.copyfileobj(_DigestingReader(source, digest), output)
-            except zipfile.BadZipFile as exc:
+            except (zipfile.BadZipFile, zlib.error, LZMAError, EOFError) as exc:
                 raise ValueError("data_archive contains corrupt ZIP contents") from exc
 
             resolved = str(target)

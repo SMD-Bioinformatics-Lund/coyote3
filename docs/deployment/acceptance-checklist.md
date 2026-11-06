@@ -112,6 +112,11 @@ inside the API container. ZIP contents are checked by the server; they need not
 also exist as loose files on the host running the check. The optional local `--skip-file-check` does not bypass
 server-side validation.
 
+Uploaded manifest paths accept forward slashes and Windows backslashes. If an
+exact archive path is unavailable, a unique basename can resolve it; duplicate
+basenames require an exact path. Unsupported ZIP compression is rejected before
+extraction, and corrupt compressed contents are reported as invalid uploads.
+
 ```bash
 bash scripts/deployment/center_check.sh \
   --api-base-url https://validation.example.org/coyote3 \

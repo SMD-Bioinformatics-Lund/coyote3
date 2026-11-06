@@ -75,6 +75,9 @@ from this clinical classification.
 
 ## Search, Sort, and Export
 
+Fusion CSV exports preserve measured zero read support from the selected caller.
+Fallback support is used only when that caller's measurement is absent.
+
 - Enter a term in the table search field to search the server-side fusion data.
 - Select one or more sortable headers to build a multi-column sort.
 - Change the page size to control how many rows are displayed.

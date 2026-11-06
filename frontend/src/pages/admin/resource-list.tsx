@@ -257,8 +257,15 @@ export function coerceFieldValue(field: FormField, value: any) {
   if (field.readonly && value === "") return undefined
   if (field.display_type === "checkbox") return Boolean(value)
   if (field.display_type === "checkbox-group" || field.display_type === "multi-select" || field.data_type === "list") return normalizeList(value)
-  if (field.data_type === "int") return value === "" || value === null || value === undefined ? undefined : Number.parseInt(String(value), 10)
-  if (field.data_type === "float") return value === "" || value === null || value === undefined ? undefined : Number.parseFloat(String(value))
+  if (field.data_type === "int" || field.data_type === "float") {
+    if (value === "" || value === null || value === undefined) return undefined
+    if ((typeof value !== "number" && typeof value !== "string") || String(value).trim() === "") return value
+    const numeric = Number(value)
+    // Preserve invalid input for contract validation instead of truncating it or
+    // serializing NaN as null, which could clear an optional saved setting.
+    if (!Number.isFinite(numeric) || (field.data_type === "int" && !Number.isSafeInteger(numeric))) return value
+    return numeric
+  }
   return value
 }
 

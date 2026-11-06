@@ -563,14 +563,14 @@ class RnaService:
                     gene_2=safe_text(genes[1] if len(genes) > 1 else ""),
                     effect=safe_text(selected_call.get("effect") or fusion.get("frame")),
                     spanning_pairs=safe_text(
-                        selected_call.get("spanpairs")
-                        or fusion.get("supporting_reads", {}).get("span")
-                        or ""
+                        selected_call["spanpairs"]
+                        if selected_call.get("spanpairs") is not None
+                        else _fusion_supporting_reads(fusion).get("span")
                     ),
                     unique_spanning_reads=safe_text(
-                        selected_call.get("spanreads")
-                        or fusion.get("supporting_reads", {}).get("split")
-                        or ""
+                        selected_call["spanreads"]
+                        if selected_call.get("spanreads") is not None
+                        else _fusion_supporting_reads(fusion).get("split")
                     ),
                     breakpoint_1=safe_text(
                         selected_call.get("breakpoint1")

@@ -8,6 +8,18 @@ import { parseCellValue, submitPayload } from "./resource-list"
 import type { AdminResourceSpec, FormField, FormSpec } from "./resource-specs"
 
 describe("Resource Form UI", () => {
+  it.each([
+    ["int", "1e3", 1000],
+    ["int", "1.5", "1.5"],
+    ["int", "12oops", "12oops"],
+    ["float", "0.5oops", "0.5oops"],
+    ["float", "Infinity", "Infinity"],
+    ["float", "0.005", 0.005],
+  ] as const)("submits %s input %s without silently changing its meaning", (data_type, input, expected) => {
+    const form = { fields: { threshold: { data_type } } } as FormSpec
+    expect(submitPayload(form, { threshold: input }, "edit")).toEqual({ threshold: expected })
+  })
+
   it("shows tiers only for selected report sections and retains hidden tier settings", () => {
     const changed = vi.fn()
     const field: FormField = { display_type: "reporting-structured", groups: [{

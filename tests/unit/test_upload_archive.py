@@ -3,11 +3,59 @@
 from __future__ import annotations
 
 import zipfile
+from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from coyote3.application.ingest.upload_archive import extract_uploaded_archive
+from coyote3.application.ingest.upload_bundle import prepare_uploaded_bundle
+
+
+def test_archive_rejects_unsupported_compression_before_extracting(tmp_path):
+    """Unsupported ZIP algorithms fail validation before any members are written."""
+    path = _archive(tmp_path / "bundle.zip", ("first.txt", b"first"), ("last.txt", b"last"))
+    content = bytearray(path.read_bytes())
+    local = content.find(b"PK\x03\x04", 4)
+    central = content.find(b"PK\x01\x02", content.find(b"PK\x01\x02") + 4)
+    content[local + 8 : local + 10] = (99).to_bytes(2, "little")
+    content[central + 10 : central + 12] = (99).to_bytes(2, "little")
+    path.write_bytes(content)
+    destination = tmp_path / "staged"
+    with pytest.raises(ValueError, match="compression"):
+        extract_uploaded_archive(archive_path=path, destination=destination)
+    assert list(destination.rglob("*")) == []
+
+
+def test_corrupt_deflate_is_an_invalid_upload(tmp_path):
+    """Broken compression streams are user input errors rather than internal failures."""
+    path = tmp_path / "bundle.zip"
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("input.txt", b"synthetic" * 100)
+    content = bytearray(path.read_bytes())
+    data_offset = 30 + len("input.txt")
+    content[data_offset] = 0x07  # Reserved DEFLATE block type.
+    path.write_bytes(content)
+    with pytest.raises(ValueError, match="corrupt"):
+        extract_uploaded_archive(archive_path=path, destination=tmp_path / "staged")
+
+
+@pytest.mark.parametrize("reference", [r"inputs\case.vcf", r"C:\pipeline\case.vcf"])
+def test_uploaded_manifest_resolves_windows_paths(tmp_path, reference):
+    """Manifest paths use the same separator normalization as archive entries."""
+    path = _archive(tmp_path / "source.zip", ("inputs/case.vcf", b"synthetic"))
+    service = SimpleNamespace(
+        parse_yaml_payload=lambda _: {"asp_id": "synthetic", "vcf_files": reference},
+        _assay_file_policy=lambda **_: ({"vcf_files"}, {"vcf_files"}),
+    )
+    result = prepare_uploaded_bundle(
+        yaml_file=SimpleNamespace(filename="sample.yaml", file=BytesIO(b"synthetic")),
+        data_archive=SimpleNamespace(filename="bundle.zip", file=BytesIO(path.read_bytes())),
+        staging_dir=tmp_path,
+        ingest_service=service,
+    )
+    assert Path(result["_runtime_files"]["vcf_files"]).read_bytes() == b"synthetic"
 
 
 def _archive(path: Path, *entries: tuple[str, bytes]) -> Path:

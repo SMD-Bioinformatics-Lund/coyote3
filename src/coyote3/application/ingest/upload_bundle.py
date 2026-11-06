@@ -91,7 +91,7 @@ def prepare_uploaded_bundle(
         raw_value = runtime_file_path(source_payload, key)
         if not raw_value or not raw_value.strip():
             continue
-        path_value = raw_value.strip()
+        path_value = raw_value.strip().replace("\\", "/")
         if key not in expected_keys:
             warnings.append(
                 f"Ignored '{key}': ASP '{source_payload.get('asp_id')}' does not accept this file."

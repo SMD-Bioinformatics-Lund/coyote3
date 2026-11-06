@@ -36,6 +36,10 @@ In Classic, use the **Filters** button beside a finding section to open the righ
 
 The Small Variants table is the primary DNA review table for SNVs and indels.
 
+SNV CSV exports show case and control evidence as allele percentage followed by
+variant reads / total depth. Each unavailable measurement appears as `-`; available
+measurements, including zero, are retained even when another field is missing.
+
 > **Warning: Somatic SNV results can include germline variants**
 >
 > The current somatic SNV queries can also return germline variants that satisfy

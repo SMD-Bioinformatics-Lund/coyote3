@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import math
 import re
 from io import StringIO
 from typing import Any
@@ -114,6 +115,27 @@ def export_rows_to_csv(rows: list[BaseModel]) -> str:
     return output.getvalue()
 
 
+def _genotype_measurement(value: object, *, percentage: bool = False) -> str:
+    """Format measured genotype evidence, using a dash for unavailable values.
+
+    Args:
+        value: Numeric evidence or None when the measurement is absent.
+        percentage: Render an allele fraction as a percentage instead of a read count.
+
+    Returns:
+        Formatted evidence without substituting zero for missing or invalid data.
+    """
+    if not isinstance(value, (int, float, str)) or isinstance(value, bool):
+        return "-"
+    try:
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            return "-"
+        return f"{100 * numeric:0.1f}%" if percentage else str(int(numeric))
+    except (ValueError, TypeError, OverflowError):
+        return "-"
+
+
 def build_snv_export_rows(variants: list[dict[str, Any]]) -> list[DnaSnvExportRow]:
     """Build typed SNV export rows from filtered variant documents."""
     rows: list[DnaSnvExportRow] = []
@@ -125,13 +147,11 @@ def build_snv_export_rows(variants: list[dict[str, Any]]) -> list[DnaSnvExportRo
         case_gt = []
         control_gt = []
         for gt in sorted(gt_values, key=lambda x: x.get("type", "")):
-            try:
-                gt_text = (
-                    f"{100 * float(gt.get('AF', 0)):0.1f}% "
-                    f"({int(gt.get('VD', 0))} / {int(gt.get('DP', 0))})"
-                )
-            except (ValueError, TypeError, OverflowError):
-                gt_text = safe_text(gt)
+            gt_text = (
+                f"{_genotype_measurement(gt.get('AF'), percentage=True)} "
+                f"({_genotype_measurement(gt.get('VD'))} / "
+                f"{_genotype_measurement(gt.get('DP'))})"
+            )
             if gt.get("type") == "case":
                 case_gt.append(gt_text)
             else:
@@ -226,16 +246,24 @@ def build_cnv_export_rows(
             ratio_num = float(ratio)
             copy_number = copy_number_from_log2(ratio_num)
             copy_number_value = f"{round(copy_number, 2)} ({safe_text(ratio)})"
-            if sample_purity not in {None, "", 0}:
+        except (ValueError, TypeError, OverflowError):
+            copy_number_value = safe_text(ratio)
+        else:
+            try:
                 purity_float = float(sample_purity)
+            except (ValueError, TypeError, OverflowError):
+                purity_float = 0
+            if math.isfinite(purity_float) and purity_float > 0:
                 if ratio_num > 0:
                     purity_cn_value = safe_text(round(copy_number * 1 / purity_float, 2))
                 else:
                     purity_cn_value = safe_text(round(copy_number * purity_float, 2))
-        except (ValueError, TypeError, OverflowError, ZeroDivisionError):
-            copy_number_value = safe_text(ratio)
-
-        ref_alt_reads = safe_text(cnv.get("SR") or cnv.get("sr") or cnv.get("PR") or "-")
+        ref_alt_reads = safe_text(
+            next(
+                (cnv[key] for key in ("SR", "sr", "PR") if cnv.get(key) not in (None, "")),
+                "-",
+            )
+        )
 
         status = ""
         if cnv.get("interesting"):
