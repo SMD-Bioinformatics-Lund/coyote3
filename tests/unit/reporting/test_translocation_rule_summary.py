@@ -87,6 +87,15 @@ def test_invalid_support_never_creates_evidence(raw):
     assert _render(context) == "Vid analysen finner man en genfusion mellan generna BCR och ABL1"
 
 
+@pytest.mark.parametrize("unique", [-1, float("nan"), float("inf")])
+def test_invalid_unique_read_counts_are_not_reported(unique):
+    """Negative and nonfinite unique counts cannot become clinical read evidence."""
+    row = _call()
+    row["INFO"]["UR"] = unique
+    group = _context([row]).aggregates.translocation_summaries[0]
+    assert group.unique_reads is None
+
+
 @pytest.mark.parametrize(
     "gt,ur,expected",
     [

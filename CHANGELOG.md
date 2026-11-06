@@ -4,6 +4,15 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+- Session-authenticated ingestion accepts an absent editor-session header and
+  preserves valid editor UUIDs without treating dependency metadata as a UUID.
+  The runtime pins `pyasn1` 0.6.5 to address decoder denial-of-service advisories.
+  Disposable MongoDB integration checks run on demand through the dedicated
+  runner or manual CI input. The quality runner preserves relative interpreter
+  selections when child checks change working directories.
+  API resource navigation keeps the selected section in view after switching to
+  a narrow viewport, including repeated and keyboard selections.
+
 - Ingest rejects unsupported ZIP compression before extraction, reports corrupt
   compression streams as input errors, and resolves Windows-style manifest paths.
   CNV and RNA exports preserve zero support; unavailable purity no longer hides

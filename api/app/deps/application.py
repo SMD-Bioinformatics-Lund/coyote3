@@ -1,6 +1,6 @@
 """HTTP composition for the authenticated in-process application SDK."""
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Depends, Header, Request
@@ -59,7 +59,7 @@ from coyote3.contracts.service_tokens import SERVICE_TOKEN_PREFIX
 
 
 def get_application(
-    request: Request, x_edit_session: UUID | None = Header(default=None)
+    request: Request, x_edit_session: Annotated[UUID | None, Header()] = None
 ) -> CoyoteApplication:
     """Bind local SDK operations to the request's verified, revocable session.
 
@@ -287,8 +287,18 @@ def get_ingestion(application: CoyoteApplication = Depends(get_application)) -> 
     return application.ingest
 
 
-def get_sample_ingestion(request: Request) -> Ingestion:
-    """Bind synchronous ingestion to a current session or the restricted machine audience."""
+def get_sample_ingestion(
+    request: Request, x_edit_session: Annotated[UUID | None, Header()] = None
+) -> Ingestion:
+    """Bind ingestion to a current session or the restricted machine audience.
+
+    Args:
+        request: HTTP request carrying session or machine authentication.
+        x_edit_session: Optional validated editor UUID for session-authenticated operations.
+
+    Returns:
+        Ingestion operations that recheck the selected credential before execution.
+    """
     bearer = (request.headers.get("Authorization") or "").split()
     managed_token = (
         len(bearer) == 2
@@ -298,7 +308,7 @@ def get_sample_ingestion(request: Request) -> Ingestion:
     if not managed_token and not (
         {"x-coyote-ingest-token", "x-coyote-internal-token"} & set(request.headers)
     ):
-        return get_application(request).ingest
+        return get_application(request, x_edit_session=x_edit_session).ingest
 
     def authenticate() -> Any:
         """Reverify signature, expiry and environment before each SDK operation."""

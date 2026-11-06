@@ -16005,6 +16005,12 @@ export type Response_healthApiV1HealthGet = Responses_healthApiV1HealthGet[keyof
 
 export type Request_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePost = {
     body: InternalIngestSampleBundleRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -16057,6 +16063,12 @@ export type Response_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePo
 
 export type Request_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleBundleAsyncPost = {
     body: InternalIngestSampleBundleRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/async';
@@ -16102,6 +16114,12 @@ export type Response_enqueueIngestSampleBundleInternalApiV1InternalIngestSampleB
 
 export type Request_ingestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadPost = {
     body: BodyIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadPost;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/upload';
@@ -16149,6 +16167,12 @@ export type Response_ingestSampleBundleUploadInternalApiV1InternalIngestSampleBu
 
 export type Request_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost = {
     body: BodyEnqueueIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadAsyncPost;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/internal/ingest/sample-bundle/upload/async';
@@ -16194,6 +16218,12 @@ export type Response_enqueueIngestSampleBundleUploadInternalApiV1InternalIngestS
 
 export type Request_getInternalTaskStatusApiV1InternalTasksTaskIdGet = {
     body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
     path: {
         /**
          * Task Id

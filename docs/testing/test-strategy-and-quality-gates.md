@@ -135,19 +135,24 @@ typing and contract checks, frontend lint/unit/browser tests, the OpenAPI-checke
 build, and documentation checks. Browser tests start a local Vite server with
 intercepted deterministic API responses. External knowledgebase calls use fixtures.
 
-Database integration tests require disposable MongoDB replicas. Some tests skip
-without their explicit test URI settings; the audit runtime-permission test starts
-its own authentication-enabled replica when `mongod` is available. Run the backend
-suite against owned temporary replicas to exercise transaction tests:
+Database integration tests are on demand and require disposable MongoDB replicas.
+The normal quality command does not start MongoDB. The explicit runner requires
+`mongod` and enables transaction tests plus an authentication-enabled replica for
+runtime-permission checks:
 
 ```bash
 .venv/bin/python scripts/quality/run_transaction_tests.py -- \
-  -q tests/unit tests/api tests/integration
+  -q tests/integration
 ```
 
 The runner starts two loopback-only replicas, supplies test database settings, and
 terminates its child processes afterwards. It never connects to an existing
 deployment. Do not point integration tests at production databases.
+
+In GitHub Actions, manually run the `quality` workflow and select
+**Run disposable MongoDB integration tests**. That job is disabled for automatic
+push and pull-request runs and for manual runs without the option selected.
+The separate `bootstrap-and-ingest-check` workflow is also manually triggered.
 
 To validate rendered Docker Compose configuration as part of the same gate:
 
@@ -332,6 +337,7 @@ the backend revision and builds the frontend. The workflow limits runner usage:
 | Documentation changes | Run Markdown lint, internal-link validation, and a strict MkDocs build. |
 | Workflow changes | Run all scopes so CI changes validate the complete execution path. |
 | Manual full check | `workflow_dispatch` runs backend, frontend, and documentation checks regardless of changed paths. |
+| Database integration | Select `database_integration` on a manual run to start the disposable MongoDB transaction job. Automatic runs do not start that job. |
 | Browser installation | Cache the Chromium browser bundle; install only its system libraries on cache hits. |
 | Artifacts | Do not upload coverage from pull requests. Retain default-branch and manual coverage artifacts for seven days. |
 

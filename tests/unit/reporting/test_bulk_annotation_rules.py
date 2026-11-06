@@ -21,6 +21,7 @@ from coyote3.contracts.schemas.clinical_rules import (
     BulkAnnotationRule,
     ClinicalRuleSetDoc,
 )
+from coyote3.domain.exceptions import AppError
 from tests.unit.reporting.test_clinical_rules import _context, _document
 
 
@@ -255,6 +256,78 @@ def test_annotation_specific_facts_do_not_become_report_facts():
     validation = validate_rule_set(document)
     assert not validation.valid
     assert any("unavailable" in error for error in validation.errors)
+
+
+def test_annotation_combined_conditions_and_excessive_nesting():
+    """Grouped finding predicates validate, but excessive authoring depth is rejected."""
+    document = _document()
+    predicate = {"type": "predicate", "fact": "finding.gene", "operator": "eq", "value": "A"}
+    condition = {"type": "all", "children": [predicate, {"type": "any", "children": [predicate]}]}
+    document.bulk_annotation_rules = [_rule(condition=condition)]
+    assert validate_rule_set(document).valid
+    for _ in range(8):
+        condition = {"type": "not", "child": condition}
+    document.bulk_annotation_rules = [_rule(condition=condition)]
+    assert any("nesting exceeds" in error for error in validate_rule_set(document).errors)
+
+
+@pytest.mark.parametrize("failure", ["invalid_rules", "unknown_group", "cyclic_groups"])
+def test_annotation_preview_reports_actionable_validation_failures(failure):
+    """Invalid saved drafts and biological hierarchies fail through application errors."""
+    from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
+
+    document = _document()
+    document.bulk_annotation_rules = [
+        _rule(finding_kind="cnv") if failure == "invalid_rules" else _rule()
+    ]
+    groups = (
+        [{"group_id": "loop", "parent_group_id": "loop"}]
+        if failure == "cyclic_groups"
+        else _groups()
+    )
+    service = ClinicalRuleAuthoringService(
+        SimpleNamespace(get=lambda _: document.model_dump(by_alias=True)),
+        assay_group_repository=SimpleNamespace(list=lambda: groups),
+        assay_panel_repository=SimpleNamespace(get_all_asps=lambda **_: []),
+    )
+    message = {
+        "invalid_rules": "Clinical rule validation failed",
+        "unknown_group": "Annotation preview failed",
+        "cyclic_groups": "Biological group hierarchy is invalid",
+    }[failure]
+    with pytest.raises(AppError, match=message):
+        service.preview_bulk_annotation(
+            "version",
+            BulkAnnotationPreviewRequest(
+                tier=2, asp_group="unknown" if failure == "unknown_group" else None
+            ),
+        )
+
+
+def test_publication_requires_embedded_cases_and_registered_annotation_facts(monkeypatch):
+    """Publication cannot proceed without cases or when a permitted fact loses its registry entry."""
+    from coyote3.application.reporting.clinical_rules import validation
+
+    document = _document()
+    document.test_cases = []
+    assert (
+        "No embedded clinical rule test cases are configured"
+        in validate_rule_set(document, require_tests=True).errors
+    )
+    document.blocks = []
+    document.analysis_declarations = {}
+    document.bulk_annotation_rules = [
+        _rule(condition=None, output=[{"type": "fact", "path": "finding.gene"}])
+    ]
+    original = validation.validate_fact_path
+
+    def validate_path(path, **kwargs):
+        if path == "finding.gene":
+            raise ValueError("Finding fact unavailable")
+        return original(path, **kwargs)
+
+    monkeypatch.setattr(validation, "validate_fact_path", validate_path)
+    assert "Finding fact unavailable" in validate_rule_set(document).errors
 
 
 @pytest.mark.parametrize("present", [True, False, None])

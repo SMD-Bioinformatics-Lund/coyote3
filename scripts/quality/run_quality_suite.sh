@@ -17,6 +17,10 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
   exit 2
 fi
 
+# Child checks may change directories; preserve a caller's relative interpreter
+# selection as the same virtual environment throughout the suite.
+PYTHON_BIN="$("$PYTHON_BIN" -c 'import sys; print(sys.executable)')"
+
 echo "[quality] Backend tests"
 PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration \
   --cov=api --cov=coyote3 \

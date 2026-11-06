@@ -84,7 +84,12 @@ for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as co
     expect(htmlContent).toContain('<style id="modern-report-style">')
     expect(htmlContent).toContain(sampleId!)
     await page.getByRole("tab", { name: "PDF preview", exact: true }).click()
-    await expect(page.getByTitle("Report PDF preview", { exact: true })).toHaveAttribute("src", /^blob:/)
+    await expect(page.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", /^blob:/)
+    if (await page.evaluate(() => navigator.pdfViewerEnabled !== false)) {
+      await expect(page.getByTitle("Report PDF preview", { exact: true })).toHaveAttribute("src", /^blob:/)
+    } else {
+      await expect(page.getByRole("status").filter({ hasText: "This browser does not support embedded PDF previews." })).toBeVisible()
+    }
     const pdfDownload = page.waitForEvent("download")
     await page.getByRole("button", { name: "Download PDF", exact: true }).click()
     const pdf = await pdfDownload

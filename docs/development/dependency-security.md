@@ -11,7 +11,8 @@ interpreter. Runtime CI tests the same patch release. Shared scripts, documentat
 and security tooling also retain Python 3.12 compatibility. No prerelease Python
 runtime or Rust toolchain is required by the supplied Dockerfiles.
 
-Starlette, pyasn1, and idna are explicitly pinned to patched releases. FastAPI
+Starlette, pyasn1, and idna are explicitly pinned to patched releases. pyasn1
+0.6.5 addresses decoder CPU-exhaustion advisories affecting 0.6.4. FastAPI
 0.141.1 uses nested router contexts; route contract and authorization tests inspect
 them with `fastapi.routing.iter_route_contexts`, including schema-hidden routes.
 

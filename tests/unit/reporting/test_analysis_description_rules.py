@@ -132,6 +132,25 @@ def test_missing_description_renders_no_method_text():
     assert context["analysis_description"] == ""
 
 
+def test_diagnosis_report_without_a_base_publication_still_evaluates():
+    """An optional base method description must not prevent diagnosis-specific reporting."""
+    exact = _document(status="published", active=True)
+    exact.scope.diagnosis_id = "myeloid"
+    exact.rule_set_id = "assay_1__myeloid__sv"
+    exact.content_hash = content_hash(exact)
+    context = _context()
+    context.sample.diagnosis_id = "myeloid"
+    evaluation = _service(exact).evaluate(aspc=_configuration(exact, context), context=context)
+    assert "Finding in TP53" in rendered_summary(evaluation)
+    assert "analysis_description" not in evaluation.sections
+
+
+def test_bulk_annotation_rejects_unsupported_analyte_before_resolution():
+    """Non-DNA/RNA samples cannot resolve automatic annotation templates."""
+    with pytest.raises(ValueError, match="requires a DNA or RNA"):
+        _service().bulk_annotation_release(aspc={}, sample={"asp_category": "protein"})
+
+
 def test_description_cannot_override_the_report_section_heading():
     document = _document()
     block = _description_block()

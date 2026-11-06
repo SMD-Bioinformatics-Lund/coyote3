@@ -276,8 +276,8 @@ script.onload = async () => {
         const resourceKey = ["operations-tag", link.dataset.tag];
         layoutActions.updateFilter("");
         layoutActions.show(resourceKey, true);
-        layoutActions.scrollTo(resourceKey);
-        // An already-open group may not rerender, so its scroll callback will not run.
+        // Own scrolling here: Swagger's animated scroll can finish after a viewport
+        // resize and override this position. Repeated selections need no rerender.
         requestAnimationFrame(() => {
           const heading = [...document.querySelectorAll("#api-renderer .opblock-tag")]
             .find((element) => element.dataset.tag === link.dataset.tag);

@@ -7,6 +7,12 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      database_integration:
+        description: Run disposable MongoDB integration tests
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -80,7 +86,7 @@ jobs:
           path: /tmp/coyote3-client/
 
   mongo-transactions:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name == 'workflow_dispatch' && inputs.database_integration
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

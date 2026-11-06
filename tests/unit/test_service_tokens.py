@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi import Request as FastAPIRequest
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
@@ -24,6 +24,34 @@ from coyote3.application.operations.ingest_audit import IngestionAuditAttempt
 from coyote3.contracts.service_tokens import PersonalTokenCreate, ServiceTokenCreate
 from coyote3.domain.exceptions import AppError
 from tests.unit.test_ingest_token_issuance import user_session
+
+
+@pytest.mark.parametrize("editor", [None, "d19e2836-e862-42df-b32f-97cb05ad3366", "invalid"])
+def test_session_ingestion_validates_and_forwards_editor_header(monkeypatch, editor):
+    """Session ingestion preserves a real editor UUID without passing Header metadata to the SDK."""
+    from api.app.deps import application
+
+    opened = Mock(return_value=SimpleNamespace(ingest=object()))
+    monkeypatch.setattr(application, "open_application", opened)
+    monkeypatch.setattr(
+        application, "get_request_api_session", lambda _: SimpleNamespace(token="synthetic-session")
+    )
+    app = FastAPI()
+
+    @app.post("/ingest")
+    def ingest(operations=Depends(get_sample_ingestion)):
+        return {"bound": operations is opened.return_value.ingest}
+
+    with TestClient(app) as client:
+        response = client.post("/ingest", headers={"X-Edit-Session": editor} if editor else {})
+    if editor == "invalid":
+        assert response.status_code == 422
+        opened.assert_not_called()
+    else:
+        assert response.status_code == 200
+        assert response.json() == {"bound": True}
+        assert opened.call_args.args == ("synthetic-session",)
+        assert opened.call_args.kwargs["editor_id"] == editor
 
 
 @pytest.fixture

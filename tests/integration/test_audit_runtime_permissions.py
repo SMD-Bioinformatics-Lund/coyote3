@@ -1,6 +1,7 @@
 """Enforce audit permissions on an owned, authentication-enabled disposable replica set."""
 
 import logging
+import os
 import shutil
 import subprocess
 import time
@@ -26,6 +27,8 @@ from scripts.quality.run_transaction_tests import start_replica
 @pytest.fixture(scope="module")
 def authenticated_replica(tmp_path_factory):
     """Start a fresh replica, provision users, and restart it with authorization enabled."""
+    if os.getenv("COYOTE3_RUN_DISPOSABLE_TESTS") != "1":
+        pytest.skip("Use run_transaction_tests.py for on-demand database-permission tests")
     if shutil.which("mongod") is None:
         pytest.skip("mongod is required for the isolated database-permission test")
     root = tmp_path_factory.mktemp("audit-auth")

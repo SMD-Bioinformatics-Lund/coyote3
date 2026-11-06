@@ -45,8 +45,20 @@ bash scripts/quality/run_quality_suite.sh
 ```
 
 The command runs backend tests, repository/contract checks, frontend lint and
-production build, and a strict MkDocs build. It does not start services or
-modify MongoDB.
+production build, and a strict MkDocs build. It does not provision an application
+deployment or MongoDB. Browser checks start a local Vite server, and proxy tests
+may start temporary Nginx containers.
+
+Run the additional database checks explicitly when needed:
+
+```bash
+.venv/bin/python scripts/quality/run_transaction_tests.py -- -q tests/integration
+```
+
+This requires a local `mongod` executable and uses newly created temporary
+replicas, including authentication checks. It does not reuse a deployment
+database. See [database quality gates](test-strategy-and-quality-gates.md#unified-quality-gate)
+for the manual CI option. The real-deployment checks below are also on demand.
 
 ### Browser Route Checks
 
@@ -55,8 +67,12 @@ Install the browser once on a workstation, then run the front-end suite:
 ```bash
 cd frontend
 npx playwright install chromium
-npm run test:e2e
+npm run test:e2e -- --workers=4
 ```
+
+The worker limit keeps full-schema API documentation and screenshot scenarios
+from competing with too many browser processes on a development workstation.
+It does not change test assertions or timeouts.
 
 The suite uses API fixtures for repeatable rendering and error-state tests. It
 does not replace deployment validation or clinical test data checks. GitHub

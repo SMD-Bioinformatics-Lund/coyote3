@@ -78,7 +78,7 @@ api = [
     "casbin==1.36.1",
     "fastapi==0.141.1",
     "starlette==1.6.0",
-    "pyasn1==0.6.4",
+    "pyasn1==0.6.5",
     "idna==3.19",
     "python-multipart==0.0.31",
     "uvicorn==0.44.0",

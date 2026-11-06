@@ -111,6 +111,7 @@ def main() -> None:
             )
             environment = {**os.environ, **dict.fromkeys(URI_KEYS, primary)}
             environment.update(
+                COYOTE3_RUN_DISPOSABLE_TESTS="1",
                 AUDIT_TEST_DEST_URI=destination,
                 MONGO_TOPOLOGY_TEST_KB_URI=destination,
                 ENV_NAME="test",

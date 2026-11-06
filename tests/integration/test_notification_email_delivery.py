@@ -151,11 +151,26 @@ def test_read_does_not_dismiss_notification(delivery):
     assert inbox["unread_count"] == 0
     with pytest.raises(AppError):
         service.dismiss(notification_id=result["notification_id"], username="recipient")
-    assert service.dismiss_all(username="recipient")["changed"] == 0
     assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"]
     service.dismiss(notification_id=result["notification_id"], username="operator")
     assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"] == []
     assert collection.count_documents({}) == 1
+
+
+def test_clear_inbox_hides_broadcast_only_for_its_recipient(delivery):
+    """Bulk dismissal is personal; it never withdraws the sender's broadcast."""
+    service, repo, collection, users, sender = delivery
+    result = service.broadcast(
+        payload={"audience": "all", "title": "Notice", "message": "Synthetic"},
+        actor=SimpleNamespace(username="operator"),
+    )
+    assert service.dismiss_all(username="recipient")["changed"] == 1
+    assert service.dismiss_all(username="recipient")["changed"] == 0
+    assert service.inbox(user=SimpleNamespace(username="recipient"))["notifications"] == []
+    assert len(service.inbox(user=SimpleNamespace(username="other"))["notifications"]) == 1
+    assert collection.find_one().get("withdrawn_on") is None
+    service.dismiss(notification_id=result["notification_id"], username="operator")
+    assert service.inbox(user=SimpleNamespace(username="other"))["notifications"] == []
 
 
 def test_expiry_hides_broadcast_without_deletion_or_email(delivery):

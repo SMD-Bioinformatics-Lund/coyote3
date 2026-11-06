@@ -60,6 +60,12 @@ export async function installApiFixtures(page: Page, resolver?: ApiResolver) {
       await route.fulfill({ json: { nav_groups: [] } })
       return
     }
+    if (path === "/api/v1/public/assay-catalog/offerings") {
+      await route.fulfill({ json: {
+        version: 1, header: "Synthetic catalog", description: "", offerings: [], navigation: [],
+      } })
+      return
+    }
     if (path === "/api/v1/public/contact") {
       await route.fulfill({ json: { contacts: [], links: [] } })
       return
