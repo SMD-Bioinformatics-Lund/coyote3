@@ -49,14 +49,16 @@
     <tr>
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">
-        {% if assay_group in ["myeloid", "hematology"] %}
+        {% if sample.assay == "tumwgs-hema" %}
+          Hematologisk neoplasi
+        {% elif sample.assay == "tumwgs-solid" or assay_group == "solid" %}
+          Solid tumör
+        {% elif assay_group in ["myeloid", "hematology"] %}
           {% if sample.sample_no == 2 %}
             Hematologisk neoplasi
           {% else %}
             &lt;DIAGNOSIS&gt;
           {% endif %}
-        {% elif assay_group == "solid" %}
-          Solid tumör
         {% endif %}
       </td>
     </tr>
