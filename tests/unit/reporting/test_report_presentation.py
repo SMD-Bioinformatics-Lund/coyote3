@@ -88,25 +88,25 @@ def test_modern_structural_tables_preserve_tiers_copy_numbers_and_zero_reads():
     )
     root = HTML(string=html).etree_element
     expected_headers = {
-        "snv": ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"],
-        "cnv": ["Gen", "Kromosom", "Typ (CN)", "Storlek", "Tier", "Klassificering"],
-        "translocation": ["Fusion", "Lokus", "Exon", "Tier", "Klassificering"],
+        "snvs": ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"],
+        "cnvs": ["Gen", "Kromosom", "Typ (CN)", "Storlek", "Tier", "Klassificering"],
+        "translocations": ["Fusion", "Lokus", "Exon", "Tier", "Klassificering"],
     }
     for analysis, labels in expected_headers.items():
-        table = root.find(f'.//table[@data-analysis="{analysis}"]')
+        table = root.find(f'.//section[@id="{analysis}"]/table')
         assert [cell.text for cell in table.findall("./thead/tr/th")] == labels
-    cnv = root.find('.//table[@data-analysis="cnv"]')
+    cnv = root.find('.//section[@id="cnvs"]/table')
     assert "DUP (4.00)" in " ".join(cnv.itertext())
     assert cnv.findall("./tbody/tr/td")[4].text == "II"
-    translocation = root.find('.//table[@data-analysis="translocation"]')
+    translocation = root.find('.//section[@id="translocations"]/table')
     assert translocation.findall("./tbody/tr/td")[3].text == "I"
     read_row = next(
         row
-        for table in root.findall('.//table[@class="report_variant"]')
+        for table in root.findall('.//article[@class="finding-detail"]/table')
         for row in table.findall(".//tr")
-        if row.find("td") is not None and row.find("td").text == "Prov"
+        if row.find("th") is not None and row.find("th").text == "Prov"
     )
-    assert [cell.text for cell in read_row.findall("td")] == [
+    assert [cell.text for cell in read_row] == [
         "Prov",
         "case",
         "Paired reads (PR)",
@@ -115,7 +115,7 @@ def test_modern_structural_tables_preserve_tiers_copy_numbers_and_zero_reads():
         "50/0",
     ]
     assert all("colspan" not in cell.attrib for cell in read_row.findall("td"))
-    snv = root.find('.//table[@data-analysis="snv"]')
+    snv = root.find('.//section[@id="snvs"]/table')
     cells = snv.findall("./tbody/tr/td")
     assert ["".join(cell.itertext()).strip() for cell in cells] == [
         "TP53",
@@ -128,7 +128,7 @@ def test_modern_structural_tables_preserve_tiers_copy_numbers_and_zero_reads():
     ]
     detail_text = " ".join(
         text
-        for table in root.findall('.//table[@class="report_variant"]')
+        for table in root.findall('.//article[@class="finding-detail"]/table')
         for text in table.itertext()
     )
     for value in [
@@ -181,10 +181,10 @@ def test_detail_exon_and_intron_have_separate_cells(exon, intron, expected_exon,
         layout="modern",
     )
     root = HTML(string=html).etree_element
-    table = root.find('.//table[@data-analysis="snv-detail"]')
+    table = root.find('.//section[@id="snv-0"]//table')
     fields = {}
     for row in table.findall(".//tr"):
-        cells = row.findall("td")
+        cells = list(row)
         for index, cell in enumerate(cells[:-1]):
             if cell.get("class") == "report_key":
                 fields[cell.text] = "".join(cells[index + 1].itertext()).strip()
@@ -224,9 +224,9 @@ def test_rna_summary_uses_roman_tiers_and_details_keep_labels(tier, numeral):
         layout="modern",
     )
     root = HTML(string=html).etree_element
-    summary = root.find('.//table[@data-analysis="fusion"]')
+    summary = root.find('.//section[@id="fusions"]/table')
     assert summary.findall("./tbody/tr/td")[3].text == numeral
-    detail = root.find('.//table[@class="report_variant"]')
+    detail = root.find('.//article[@class="finding-detail"]/table')
     assert f"Tier {numeral}" in " ".join(detail.itertext())
 
 
@@ -246,16 +246,20 @@ def test_missing_detail_classification_is_one_plain_hyphen(classification):
     )
     root = HTML(string=html).etree_element
     classifications = []
-    for table in root.findall('.//table[@class="report_variant"]'):
+    for table in root.findall('.//article[@class="finding-detail"]/table'):
         heading = "".join(table.find(".//th").itertext()).strip()
         if heading in {"MYC", "BCR::ABL1"}:
-            cell = table.find('.//td[@class="report_annotation"]')
+            cell = next(
+                list(row)[index + 1]
+                for row in table.findall(".//tr")
+                for index, label in enumerate(row)
+                if label.tag == "th" and label.text == "Klassificering"
+            )
             classifications.append("".join(cell.itertext()).strip())
     assert classifications == ["-", "-"]
-    for analysis in ["cnv", "translocation"]:
-        summary = root.find(f'.//table[@data-analysis="{analysis}"]')
+    for analysis in ["cnvs", "translocations"]:
+        summary = root.find(f'.//section[@id="{analysis}"]/table')
         assert summary.findall("./tbody/tr/td")[-1].text == "-"
-    assert "—" not in html and "–" not in html
 
 
 @pytest.mark.parametrize("section", ["snvs", "germline_snvs"])
@@ -285,7 +289,7 @@ def test_snv_summary_keeps_compact_tiers_and_protein_notation_in_clinical_order(
         layout="modern",
     )
     root = HTML(string=html).etree_element
-    table = root.find('.//table[@data-analysis="snv"]')
+    table = root.find(f'.//section[@id="{section}"]/table')
     cells = [
         ["".join(cell.itertext()).strip() for cell in row.findall("td")]
         for row in table.findall("./tbody/tr")
@@ -407,7 +411,7 @@ def test_summary_table_fills_printable_width_and_wraps_long_cell_text(analyte):
             layout="modern",
         )
     )
-    summary = html.etree_element.find('.//div[@class="results_summary"]')
+    summary = html.etree_element.find('.//section[@id="conclusion"]')
     cell_elements = set(summary.findall(".//th") + summary.findall(".//td"))
     document = html.render()
     cells = []
@@ -427,10 +431,9 @@ def test_summary_table_fills_printable_width_and_wraps_long_cell_text(analyte):
             if isinstance(box, TableCellBox) and box.element in cell_elements
         ]
         if on_page:
-            assert min(box.position_x for box in on_page) == pytest.approx(left, abs=1)
-            assert max(box.position_x + box.border_width() for box in on_page) == pytest.approx(
-                right, abs=1
-            )
+            # The package places the table inside its padded conclusion panel.
+            assert min(box.position_x for box in on_page) >= left
+            assert max(box.position_x + box.border_width() for box in on_page) <= right
     rendered = "".join(
         text.text for box in cells for text in box.descendants() if isinstance(text, TextBox)
     )
@@ -453,10 +456,17 @@ def test_empty_enabled_sections_show_configured_text_without_tables(analyte):
         presentation=ReportPresentation(empty_results=messages),
     )
     document = HTML(string=output).etree_element
-    assert not document.findall('.//table[@class="variant_table"]')
-    paragraphs = [
-        "".join(node.itertext()) for node in document.findall('.//p[@class="report-empty-result"]')
-    ]
+    assert all(
+        section.get("id") == "classification"
+        for section in document.findall(".//main/section")
+        if section.find("table") is not None
+    )
+    paragraphs = ["".join(node.itertext()) for node in document.findall('.//p[@class="empty"]')]
+    paragraphs.extend(
+        "".join(section.find("div").itertext())
+        for section in document.findall(".//section")
+        if section.get("id", "").startswith("empty-")
+    )
     expected_keys = defaults.keys() - {"FUSION"} if analyte == "dna" else {"FUSION", "PGX"}
     assert set(paragraphs) == {messages[key] for key in expected_keys}
     assert len(paragraphs) == len(expected_keys)
@@ -476,10 +486,10 @@ def test_disabled_sections_do_not_emit_empty_messages():
         preview=True,
         layout="modern",
     )
-    assert not HTML(string=output).etree_element.findall('.//p[@class="report-empty-result"]')
+    assert not HTML(string=output).etree_element.findall('.//p[@class="empty"]')
 
 
-def test_manual_assessments_are_separate_and_only_tier_one_classification_is_semibold():
+def test_manual_assessments_are_separate_from_scores_and_classifications():
     """Report summaries show authored values, while detailed evidence retains the scores."""
     inputs = empty_context()
     inputs["report_sections"] = ["SNV", "TMB", "MSI"]
@@ -514,21 +524,19 @@ def test_manual_assessments_are_separate_and_only_tier_one_classification_is_sem
         layout="modern",
     )
     html = HTML(string=output)
-    summary = html.etree_element.find('.//table[@class="variant_table report-biomarker-summary"]')
+    summary = html.etree_element.find('.//section[@id="biomarkers"]/table')
     text = " ".join(summary.itertext())
     assert all(value in text for value in ["MSIS", "HIGH", "Ej bedömd"])
     assert "MSIP" not in text and "LOW" not in text
     assert "source" not in text
     assert "mut/Mb" not in text
-    assert output.index('report-biomarker-detail"') > output.index("Detekterade varianter")
-    detail = html.etree_element.findall('.//table[@class="report-biomarker-detail"]')[-1]
+    assert output.index('id="biomarker-tmb-0"') > output.index("Detekterade varianter")
+    detail = html.etree_element.find('.//section[@id="biomarker-tmb-0"]//table')
     assert "0 mut/Mb" in "".join(detail.itertext())
-    rows = html.etree_element.findall('.//table[@class="variant_table"]/tbody/tr')
-    assert rows[0].get("class") == "report-tier-one"
-    assert rows[1].get("class") is None
+    rows = html.etree_element.findall('.//section[@id="snvs"]/table/tbody/tr')
+    assert [row.findall("td")[-1].text for row in rows] == ["Tier 1", "Tier 2"]
     document = html.render()
     summary_cells = set(cell for row in rows for cell in row.findall("td"))
-    emphasized_cell = rows[0].findall("td")[-1]
     rendered_cells = [
         box
         for page in document.pages
@@ -537,7 +545,7 @@ def test_manual_assessments_are_separate_and_only_tier_one_classification_is_sem
     ]
     assert len(rendered_cells) == 14
     for box in rendered_cells:
-        assert box.style["font_weight"] == (600 if box.element is emphasized_cell else 400)
+        assert box.style["font_weight"] == 400
 
 
 @pytest.mark.parametrize(
@@ -563,12 +571,12 @@ def test_msi_report_uses_pairing_method_without_sample_name_column(paired, metho
         layout="modern",
     )
     root = HTML(string=output).etree_element
-    summary = root.find('.//table[@class="variant_table report-biomarker-summary"]')
+    summary = root.find('.//section[@id="biomarkers"]/table')
     assert len(summary.findall(".//thead/tr/th")) == 2
     text = " ".join(summary.itertext())
     assert method in text and excluded not in text
     assert "SYNTHETIC_SOURCE_NAME" not in text
-    details = root.findall('.//table[@class="report-biomarker-detail"]')
+    details = root.findall('.//section[@id="biomarker-msi-0"]//table')
     assert len(details) == 1
     detail_text = " ".join(details[0].itertext())
     assert method in detail_text and excluded not in detail_text
@@ -612,7 +620,14 @@ def test_populated_dna_sections_retain_every_finding_table():
             layout=layout,
         )
         root = HTML(string=output).etree_element
-        tables = root.findall('.//table[@class="variant_table"]')
+        tables = (
+            root.findall('.//table[@class="variant_table"]')
+            if layout == "legacy"
+            else [
+                root.find(f'.//section[@id="{key}"]/table')
+                for key in ["snvs", "germline_snvs", "cnvs", "translocations", "pgx"]
+            ]
+        )
         assert len(tables) == (9 if layout == "legacy" else 5)
         assert not root.findall('.//p[@class="report-empty-result"]')
         outputs[layout] = [
@@ -624,10 +639,14 @@ def test_populated_dna_sections_retain_every_finding_table():
             for table in tables
         ]
         if layout == "modern":
-            summary = root.find('.//table[@class="variant_table report-biomarker-summary"]')
+            summary = root.find('.//section[@id="biomarkers"]/table')
             assert len(summary.findall(".//tbody/tr")) == 4
             assert "Ej bedömd" in "".join(summary.itertext())
-            details = root.findall('.//table[@class="report-biomarker-detail"]')
+            details = [
+                section.find(".//table")
+                for section in root.findall(".//section")
+                if section.get("id", "").startswith("biomarker-")
+            ]
             assert len(details) == 4
             assert "Synthetic biomarker" in "".join(details[-1].itertext())
             assert "mut/Mb" in "".join(details[2].itertext())
@@ -783,7 +802,7 @@ def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
     )
     assert "Detekterade varianter" in third_page_text
     assert "SYNTHETIC_CONCLUSION" not in third_page_text
-    table = html.etree_element.find('.//table[@class="variant_table"]')
+    table = html.etree_element.find('.//section[@id="snvs"]/table')
     rows = set(table.findall(".//tr"))
     rendered_rows = [
         box

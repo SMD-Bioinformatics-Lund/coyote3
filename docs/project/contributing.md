@@ -96,13 +96,15 @@ each module; do not invent a new version for each internal service or directory.
 | Application, including UI | `application_version` in `release.toml` |
 | Core SDK and bundled server | `[project].version` in `pyproject.toml` |
 | Python HTTP client | `[project].version` in `clients/python/pyproject.toml` |
-| Modern DNA report template | `[dna].version` in `src/coyote3/templates/reporting/modern/manifest.toml` |
-| Modern RNA report template | `[rna].version` in the same manifest |
+| Modern DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
+| Modern RNA report template | `coyote3.rna` in the same SMD package manifest |
 
 Working changes do not require all five numbers to advance. Version increments
 belong to the affected release, and already published artifacts remain immutable.
-Shared report HTML, CSS, or font releases affect both template versions; released
-report assets also require a new core/server wheel version. An application that
+Shared report HTML, CSS, or font releases affect both template versions in
+`smd-reports`; updating that dependency or Coyote3's input adapter also requires
+a new core/server wheel version. The retained local manifest identifies historical
+bundled templates. An application that
 adopts that wheel selects its exact SDK version in `release.toml`. The UI has no
 independent release counter; application package metadata is synchronized through
 `npm run sync:version` when the application version changes.

@@ -1,5 +1,64 @@
 # Report templates and rendering
 
+Modern DNA/RNA reports use the Python API of `smd-reports==0.1.2`. Coyote3 supplies
+the evaluated clinical content; the package owns the document, tables, detail
+cards, styles, fonts and pagination. No CLI, subprocess or temporary JSON file is
+used to render a report.
+
+## Current rendering pipeline
+
+1. The existing DNA/RNA workflows resolve configuration, finding eligibility,
+   annotations and governed reporting rules.
+2. `application/reporting/report_context.py` prepares presentation values.
+3. `application/reporting/smd_input.py` projects those values into the package's
+   report contract, preserving missing measurements, zero counts, selected fusion
+   calls, transcript notation and Swedish wording.
+4. `ReportLoader().loads(...)` validates the in-memory JSON document.
+   `ReportRenderer().render_html(...)` produces standalone HTML.
+5. Coyote3 adds its browser content-security policy. Its restricted WeasyPrint
+   renderer produces the PDF from that same HTML, and the existing persistence
+   workflow stores both artifacts and their resolution receipt.
+
+Install the base `smd-reports` dependency: Coyote3 supplies the matching
+WeasyPrint 70 runtime and its restricted resource fetcher, rendering the same HTML
+that is retained with the report.
+
+HTTP `format=modern` and SDK `layout="modern"` use this pipeline. Legacy remains
+available through `format=legacy` / `layout="legacy"`. Existing issued artifacts
+are read as saved; installing a new renderer never regenerates them.
+
+New governed template profiles can select `smd/dna_report.html` or
+`smd/report_fusion.html`. The historical identifiers listed below remain accepted.
+The installed SMD package, its assets and Coyote3's input adapter contribute to the
+new template hash. The actual selected template and hash participate in preview
+validation and the saved resolution receipt. A renderer or adapter change requires
+a new preview; an approved SMD profile with a different installed hash is rejected.
+
+The HTML metadata and PDF footer identify `smd-reports` and its analyte template
+version. Package 0.1.2 supplies Coyote3 DNA/RNA template version 0.1.2. The old
+bundled manifest remains the identity source for historical bundled profiles;
+changing it does not release a new SMD template. Publish a new SMD package version
+for package-owned presentation changes, update Coyote3's exact dependency and
+review affected template profiles. Adapter changes require a new Coyote3 release
+and also change the SMD profile hash.
+
+Only embedded images reach the package loader. The host resolves center paths;
+the adapter rejects filesystem paths and network URLs. Bundled marks are projected
+as static SVGs without editor metadata or dark-screen style rules. Custom artwork
+must satisfy both Coyote3's resource policy and the installed package's image
+validation. Package 0.1.2 supports safe SVG styles, inert metadata and validated
+embedded WOFF2 fonts while rejecting active content and external resources.
+
+Run `pytest tests/unit/reporting tests/unit/test_application_sdk.py` for adapter,
+clinical projection, HTML/PDF, pagination, branding and preview consistency checks.
+Use synthetic reports when visually checking output; do not use patient data.
+
+## Historical bundled layout reference
+
+The following sections document retained bundled resources and their historical
+release process. They do not describe the active SMD renderer. These assets remain
+installed to validate existing profile identities and support Legacy rendering.
+
 Report HTML and CSS live in `src/coyote3/templates/reporting/` and are included
 in the Coyote3 wheel. Python does not contain report document or stylesheet strings.
 Jinja's package loader resolves files independently of the working directory.
@@ -27,7 +86,7 @@ resource fetcher. Clinical selection, reporting rules and variant classification
 remain in the existing application/domain workflows. Templates display their
 results rather than evaluating clinical policies.
 
-## Template selection
+### Template selection
 
 The existing governed template configuration profiles accept:
 
@@ -55,7 +114,7 @@ CSS is embedded in rendered HTML; no linked stylesheet or network fetch is neede
 PDF rendering consumes the same HTML. Legacy presentation and finding selection
 retain their existing behavior.
 
-## Edit and verify
+### Edit and verify
 
 Edit templates or CSS directly and reload the consuming process. Include files
 are registered package resources, not center-supplied executable templates.
@@ -74,7 +133,7 @@ clinical text parity, sanitization, profile selection, authorization and tempora
 report nonpersistence. The report directory is excluded from automatic HTML
 reformatting because whitespace participates in approved source identities.
 
-## Template bundle releases
+### Template bundle releases
 
 DNA and RNA template versions are two of Coyote3's five release version numbers.
 For the application/UI, core SDK and Python client SDK versions, see
@@ -114,7 +173,7 @@ and vice versa. Changing shared assets still
 changes the hash even when the version was not incremented. Existing issued
 reports retain their original artifacts and do not acquire a later template version.
 
-## Modern PDF pagination
+### Modern PDF pagination
 
 Modern reports use white paper, neutral text and table fills, purple section headings,
 and a thin purple-to-orange masthead rule. Patient-information and finding-table

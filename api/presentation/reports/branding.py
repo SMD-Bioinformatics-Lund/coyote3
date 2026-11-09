@@ -4,6 +4,8 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Any
 
+from defusedxml import ElementTree
+
 from api.config.paths import API_CONFIG_DIR, CENTER_CONFIG_DIR
 from api.config.report_presentation import load_report_presentation
 from coyote3.application.reporting.pdf_resources import validate_report_svg
@@ -11,11 +13,13 @@ from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_renderer import render_report_html
 
 
-def _image_url(path: Path) -> str:
+def _image_url(path: Path, *, bundled: bool = False) -> str:
     """Read a small supported logo and return an embedded image URL.
 
     Args:
         path: Explicitly selected bundled or center-owned logo.
+        bundled: Remove editor metadata and screen-only style blocks from the two
+            bundled marks. Their visible geometry and ink colours are inline.
 
     Returns:
         Data URL requiring no network or filesystem access while rendering.
@@ -32,6 +36,13 @@ def _image_url(path: Path) -> str:
     content = path.read_bytes()
     if media_type == "svg+xml":
         validate_report_svg(content)
+        if bundled:
+            root = ElementTree.fromstring(content)
+            for parent in root.iter():
+                for child in list(parent):
+                    if child.tag.split("}")[-1] in {"style", "namedview"}:
+                        parent.remove(child)
+            content = ElementTree.tostring(root, encoding="utf-8")
     return f"data:image/{media_type};base64," + b64encode(content).decode()
 
 
@@ -54,7 +65,7 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
         OSError: A configured logo cannot be read.
     """
     assets = API_CONFIG_DIR / "assets"
-    branding = {"coyote_logo": _image_url(assets / "coyote.svg")}
+    branding = {"coyote_logo": _image_url(assets / "coyote.svg", bundled=True)}
     organization = (config.get("CONTACT") or {}).get("organization") or {}
     for field in ("address", "phone"):
         value = organization.get(field)
@@ -71,7 +82,7 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
                 raise ValueError(
                     "The report logo must be inside the center configuration directory"
                 )
-        branding["center_logo"] = _image_url(path)
+        branding["center_logo"] = _image_url(path, bundled=choice == "region-skane")
     accreditation = organization.get("accreditation_logo")
     if isinstance(accreditation, str) and accreditation.strip():
         path = (CENTER_CONFIG_DIR / accreditation.strip()).resolve()
@@ -97,7 +108,7 @@ def render_branded_report_html(*, config: dict[str, Any], **report_inputs: Any) 
     release = (context.get("assay_config") or {}).get("template_release") or {}
     template = release.get("template_name", report_inputs.get("template_name", ""))
     layout = report_inputs.get("layout")
-    modern = layout == "modern" or (layout is None and template.startswith("modern/"))
+    modern = layout == "modern" or (layout is None and template.startswith(("modern/", "smd/")))
     presentation = None
     if modern:
         presentation = (

@@ -12,6 +12,8 @@ REPORT_TEMPLATES = {
     "report_fusion.html": ("rna", "legacy/rna.html", "legacy"),
     "modern/dna_report.html": ("dna", "modern/dna.html", "modern"),
     "modern/report_fusion.html": ("rna", "legacy/rna.html", "modern"),
+    "smd/dna_report.html": ("dna", "legacy/dna.html", "modern"),
+    "smd/report_fusion.html": ("rna", "legacy/rna.html", "modern"),
 }
 _INCLUDE = re.compile(r"{% include ['\"]([^'\"]+)['\"] %}")
 
@@ -93,6 +95,8 @@ def template_content_hash(template_name: str) -> str:
         or CSS still change it. Modern digests additionally cover modern overrides.
     """
     analyte, leaf, layout = REPORT_TEMPLATES[template_name]
+    if template_name.startswith("smd/"):
+        return smd_template_content_hash(analyte)
     base = _expanded_source("base.html")
     for block in ("format_head", "format_notice"):
         base = base.replace("{% block " + block + " %}{% endblock %}", "")
@@ -126,6 +130,43 @@ def template_content_hash(template_name: str) -> str:
             f"modern/components/{REPORT_TEMPLATES[template_name][0]}/sample_information.html"
         )
     return sha256(content.encode()).hexdigest()
+
+
+def smd_template_content_hash(analyte: str) -> str:
+    """Fingerprint the installed rendering package and the Coyote3 input projection.
+
+    Args:
+        analyte: DNA or RNA report modality.
+
+    Returns:
+        SHA-256 of package identity, renderer assets and the application adapter.
+
+    Raises:
+        ValueError: The modality is unsupported.
+        OSError: An installed rendering resource cannot be read.
+    """
+    from smd_reports import __version__
+
+    if analyte not in {"dna", "rna"}:
+        raise ValueError("Template identity requires a DNA or RNA analyte")
+    digest = sha256(f"smd-reports:{__version__}:{analyte}".encode())
+
+    def include(directory, prefix=""):
+        """Hash renderer resources in stable path order, excluding interpreter caches."""
+        for resource in sorted(directory.iterdir(), key=lambda item: item.name):
+            path = prefix + resource.name
+            if resource.is_dir() and resource.name != "__pycache__":
+                include(resource, path + "/")
+            elif resource.is_file() and resource.name.endswith(
+                (".py", ".html", ".css", ".json", ".woff2", ".svg", ".png")
+            ):
+                digest.update(path.encode())
+                digest.update(resource.read_bytes())
+
+    include(files("smd_reports"))
+    for name in ("smd_input.py", "report_context.py", "report_renderer.py"):
+        digest.update(files("coyote3").joinpath("application/reporting", name).read_bytes())
+    return digest.hexdigest()
 
 
 def select_report_template(template_name: str, analyte: str) -> tuple[str, str]:

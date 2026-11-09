@@ -292,7 +292,7 @@ Optional keys:
 - `updated_by` (str | None)
 - `system_installed` (bool)
 - `id_` (Any | None)
-- `in_normal_perc` (dict[str, Annotated[float, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=0), Le(le=100), _PydanticGeneralMetadata(allow_inf_nan=False)])]])
+- `in_normal_perc` (dict[str, Annotated[float, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=0), Le(le=100), AllowInfNan(allow_inf_nan=False)])]])
 
 ## `brcaexchange`
 

@@ -1,4 +1,4 @@
-"""Select the packaged modern layout for the web application's temporary report trial."""
+"""Select smd-reports for the web application's modern report presentation."""
 
 from typing import Any
 
@@ -9,7 +9,7 @@ from coyote3.application.reporting.report_renderer import render_report_html
 def render_modern_report_html(
     *, branding_config: dict[str, Any] | None = None, **report_inputs: Any
 ) -> str:
-    """Render established clinical inputs using the packaged alternate Jinja layout.
+    """Render evaluated clinical inputs through the smd-reports Python interface.
 
     Args:
         branding_config: Host center settings, or None for a standalone unbranded render.

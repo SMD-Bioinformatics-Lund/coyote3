@@ -4,6 +4,15 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+- Modern DNA/RNA reports use the imported `smd-reports` renderer and an application
+  input adapter. Preview validation and saved provenance identify the installed
+  renderer and adapter. Legacy output and issued report artifacts are retained.
+  The existing restricted PDF pipeline consumes the package-generated HTML.
+  Renderer 0.1.2 supports self-contained accreditation SVG styles and embedded
+  fonts. Its dependency minimums require updated Pydantic, Markdown and fonttools
+  pins, including matching Pydantic core and typing extensions. The Python client
+  uses the same Pydantic pin so it can be installed alongside the core package.
+
 - Session-authenticated ingestion accepts an absent editor-session header and
   preserves valid editor UUIDs without treating dependency metadata as a UUID.
   The runtime pins `pyasn1` 0.6.5 to address decoder denial-of-service advisories.

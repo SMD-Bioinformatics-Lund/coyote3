@@ -254,21 +254,30 @@ class Reports:
                 category="validation",
             ) from exc
         release = (context.get("assay_config") or {}).get("template_release") or {}
-        if layout is not None:
-            from coyote3.application.reporting.report_service import template_content_hash
+        from coyote3.application.reporting.report_service import (
+            select_report_template,
+            template_content_hash,
+        )
 
-            if layout not in {"modern", "legacy"}:
-                raise ValueError("Report layout must be legacy or modern")
+        configured_template = release.get("template_name") or template
+        try:
+            _, configured_layout = select_report_template(configured_template, analyte)
+        except ValueError as exc:
+            raise api_error(422, str(exc)) from exc
+        if layout is not None and layout not in {"modern", "legacy"}:
+            raise ValueError("Report layout must be legacy or modern")
+        effective_layout = layout or configured_layout
+        if layout is not None or effective_layout == "modern":
             configured_leaf = "dna_report.html" if analyte == "dna" else "report_fusion.html"
-            actual_template = f"modern/{configured_leaf}" if layout == "modern" else configured_leaf
+            actual_template = (
+                f"smd/{configured_leaf}" if effective_layout == "modern" else configured_leaf
+            )
             context["report_layout"] = {
-                "layout": layout,
+                "layout": effective_layout,
                 "template": actual_template,
                 "content_hash": template_content_hash(actual_template),
             }
-        if layout == "modern" or str(release.get("template_name") or template).startswith(
-            "modern/"
-        ):
+        if effective_layout == "modern":
             context["report_presentation"] = self._services.presentation().model_dump(mode="json")
         return template, context, rows or [], config
 

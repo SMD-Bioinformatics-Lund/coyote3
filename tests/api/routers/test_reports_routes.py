@@ -170,7 +170,7 @@ def test_saved_report_preserves_author_snapshot_and_resolution_receipt(boundary,
     assert values["snapshot_rows"][0]["resource_id"] == "synthetic-finding"
     assert values["resolution_snapshot"]["configuration"] == boundary.config
     leaf = "dna_report.html" if analyte == "dna" else "report_fusion.html"
-    assert values["resolution_snapshot"]["rendering"]["template"] == f"modern/{leaf}"
+    assert values["resolution_snapshot"]["rendering"]["template"] == f"smd/{leaf}"
     assert values["resolution_snapshot"]["rendering"]["configured_template"] == leaf
     assert response.json()["report"]["snapshot_count"] == 1
 

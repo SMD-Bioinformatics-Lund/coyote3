@@ -10,7 +10,6 @@ from weasyprint import CSS, HTML
 from weasyprint.formatting_structure.boxes import MarginBox, ReplacedBox, TableCellBox, TextBox
 
 from coyote3.application.reporting.report_renderer import render_report_html
-from coyote3.application.reporting.report_service import modern_template_version
 
 
 def pagination_context(analyte, image_shape):
@@ -133,7 +132,7 @@ def test_screen_and_pdf_share_content_width_and_keep_all_patient_fields(analyte)
     )
     # A wide, tall viewport lets the screen stylesheet lay out a continuous paper sheet.
     screen = HTML(string=html, media_type="screen").render(
-        stylesheets=[CSS(string="@page { size: 250mm 2000mm; margin: 0; }")]
+        stylesheets=[CSS(string="@page { size: 250mm 2000mm !important; margin: 0 !important; }")]
     )
     pdf = HTML(string=html).render()
     for class_name in [
@@ -150,7 +149,8 @@ def test_screen_and_pdf_share_content_width_and_keep_all_patient_fields(analyte)
                     box
                     for page in document.pages
                     for box in page._page_box.descendants()
-                    if box.element is not None and box.element.get("class") == class_name
+                    if box.element is not None
+                    and class_name in box.element.get("class", "").split()
                 )
             )
         assert boxes[0].width == pytest.approx(boxes[1].width, abs=0.1), class_name
@@ -188,11 +188,9 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
         layout="modern",
     )
     # Isolate the rendered summary table so detail sections do not repeat finding names.
-    table = re.search(
-        r'<table class="variant_table" data-analysis="snv">.*?</table>', html, re.S
-    ).group()
+    table = re.search(r'<table class="results variant_table">.*?</table>', html, re.S).group()
     document = HTML(
-        string=html.partition("<body>")[0]
+        string=html.partition("<body ")[0]
         + '<body><div class="page">'
         + table
         + "</div></body></html>"
@@ -243,9 +241,9 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
     table_pages = {}
     for index, page in enumerate(document.pages):
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        assert f"DNA template v{modern_template_version('dna')}" in words
+        assert "Coyote3 DNA · Mall 0.1.2 · smd-reports 0.1.2" in words
         for box in page._page_box.descendants():
-            if box.element is not None and box.element.get("class") == "report_variant":
+            if box.element is not None and "report_variant" in box.element.get("class", "").split():
                 table_pages.setdefault(box.element, set()).add(index)
     assert len(table_pages) == 30
     assert all(len(pages) == 1 for pages in table_pages.values())

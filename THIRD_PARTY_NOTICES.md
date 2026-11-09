@@ -15,6 +15,9 @@ rights. Components expressly identified under separate terms retain those terms.
   lockfile. Dependencies retain their packaged copyright and license notices.
 - Documentation and repository tooling: [package.json](package.json) and
   [pyproject.toml](pyproject.toml).
+- Modern report rendering: `smd-reports` 0.1.2, distributed under
+  `GPL-3.0-only` according to its installed package metadata. Retain its packaged
+  license and the notices for its report fonts and artwork.
 - Base images, operating-system packages and fonts: installation declarations
   in [docker/Dockerfile](docker/Dockerfile) and the other deployment Dockerfiles.
   Their installed distributions retain their own notices.

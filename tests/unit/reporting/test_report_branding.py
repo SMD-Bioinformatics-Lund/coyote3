@@ -3,6 +3,7 @@
 import re
 from base64 import b64encode
 from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 from weasyprint import HTML
@@ -20,7 +21,7 @@ def test_bundled_branding_contains_both_embedded_vector_logos():
         assert url.startswith("data:image/svg+xml;base64,")
         resource = ReportResourceFetcher()(url)
         try:
-            assert b"<svg" in resource.read()
+            assert ElementTree.fromstring(resource.read()).tag == "{http://www.w3.org/2000/svg}svg"
         finally:
             resource.close()
 
@@ -44,16 +45,21 @@ def test_center_can_select_a_local_logo_or_omit_it(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("accredited", [True, False, None, "true"])
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
+@pytest.mark.parametrize("logo_kind", ["font-embedded", "static"])
 def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
-    accredited, analyte, tmp_path, monkeypatch
+    accredited, analyte, logo_kind, tmp_path, monkeypatch
 ):
     """Only the captured assay accreditation enables the optional footer logo on every page."""
     from tests.unit.reporting.test_report_presentation import empty_context
 
     monkeypatch.setattr(branding, "CENTER_CONFIG_DIR", tmp_path)
-    (tmp_path / "accreditation.svg").write_bytes(
-        Path("config/examples/center/logos/swedac-iso-15189-example.svg").read_bytes()
-    )
+    artwork = Path("config/examples/center/logos/swedac-iso-15189-example.svg").read_bytes()
+    if logo_kind == "static":
+        artwork = (
+            b'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" '
+            b'viewBox="0 0 24 28"><rect width="24" height="28" fill="#ddd"/></svg>'
+        )
+    (tmp_path / "accreditation.svg").write_bytes(artwork)
     inputs = empty_context()
     inputs["assay_config"]["assay_resource_release"] = {"content": {"accredited": accredited}}
     html = branding.render_branded_report_html(
@@ -65,15 +71,14 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         preview=False,
         layout="modern",
     )
-    assert ('<img class="report-accreditation-logo"' in html) is (accredited is True)
+    assert ('<img class="accreditation"' in html) is (accredited is True)
     document = HTML(string=html).render()
     for index, page in enumerate(document.pages, 1):
         boxes = list(page._page_box.descendants())
         logos = [
             box
             for box in boxes
-            if isinstance(box, ReplacedBox)
-            and box.element.get("class") == "report-accreditation-logo"
+            if isinstance(box, ReplacedBox) and box.element.get("class") == "accreditation"
         ]
         assert len(logos) == int(accredited is True)
         assert page._page_box.margin_bottom == pytest.approx(
@@ -82,11 +87,11 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
         assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
         assert f"Sida {index} av {len(document.pages)}" in text
-        assert f"{analyte.upper()} template v" in text
+        assert f"Coyote3 {analyte.upper()} · Mall 0.1.2" in text
         version = next(
             box
             for box in boxes
-            if isinstance(box, TextBox) and box.text.startswith(f"{analyte.upper()} template v")
+            if isinstance(box, TextBox) and box.text.startswith(f"Coyote3 {analyte.upper()}")
         )
         page_number = next(
             box for box in boxes if isinstance(box, TextBox) and box.text.startswith("Sida ")
@@ -99,8 +104,15 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         assert page_number.position_x + page_number.width == pytest.approx(content_right, abs=1)
         assert page.height - (page_number.position_y + page_number.height) >= 8 * 96 / 25.4
         for logo in logos:
-            assert logo.height == pytest.approx((25 * 28 / 24) * 96 / 25.4)
-            assert logo.width == pytest.approx(25 * 96 / 25.4)
+            # Fit the reserved footer while preserving the supplied artwork's aspect ratio.
+            assert logo.height <= 29 * 96 / 25.4 + 0.01
+            assert logo.width <= 25 * 96 / 25.4 + 0.01
+            assert logo.width > 0 and logo.height > 0
+            assert logo.style["object_fit"] == "contain"
+            _, _, intrinsic_ratio = logo.replacement.get_intrinsic_size(
+                logo.style["image_resolution"], logo.style["font_size"]
+            )
+            assert intrinsic_ratio == pytest.approx(24 / 28)
             assert logo.position_y >= page._page_box.content_box_y() + page._page_box.height
             assert page.height - (logo.position_y + logo.height) >= 5 * 96 / 25.4
             assert logo.position_x == pytest.approx(page._page_box.content_box_x(), abs=1)
@@ -164,12 +176,12 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
     coyote = next(
         box
         for box in first_page.descendants()
-        if isinstance(box, ReplacedBox) and box.element.get("class") == "report-coyote-logo"
+        if isinstance(box, ReplacedBox) and box.element.get("class") == "report-application-logo"
     )
     title = next(
         box
         for box in first_page.descendants()
-        if isinstance(box, ReplacedBox) and box.element.get("aria-label") == "COYOT3"
+        if box.element is not None and box.element.get("class") == "application-name"
     )
     assert logo.height == pytest.approx(coyote.height)
     assert 0 <= title.position_x - (coyote.border_box_x() + coyote.width) <= 12

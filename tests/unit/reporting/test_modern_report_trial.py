@@ -35,10 +35,7 @@ class BodyText(HTMLParser):
             }
         ):
             self.print_depth += 1
-        if tag == "header" and dict(attrs).get("class") in {
-            "report-brand-header",
-            "report-document-heading",
-        }:
+        if tag == "header" and dict(attrs).get("class") == "report-brand-header":
             self.brand = True
         if tag == "h2" and dict(attrs).get("class") == "report-metadata-heading":
             self.label = True
@@ -146,7 +143,7 @@ def test_alternate_layout_preserves_all_report_text_and_embeds_its_css(analyte, 
     else:
         assert "SYNTHETIC_A::SYNTHETIC_B" in alternate_text.text
         assert "Synthetic classification" in alternate_text.text
-    assert '<style id="modern-report-style">' in alternate
+    assert 'name="smd-reports:package_version" content="0.1.2"' in alternate
     assert "Content-Security-Policy" in alternate
     assert '<link rel="stylesheet"' not in alternate
     assert "PREVIEW · UNSAVED REPORT" in alternate

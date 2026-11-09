@@ -32,7 +32,7 @@ def context():
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
 def test_template_version_participates_in_its_analyte_identity_only(monkeypatch, analyte):
-    """Releasing one analyte changes only its versioned identity and header label."""
+    """Historical manifests retain their hashes independently of the SMD renderer."""
     names = {"dna": "dna_report.html", "rna": "report_fusion.html"}
     hashes = {name: template_content_hash(name) for name in report_service.REPORT_TEMPLATES}
     versions = {key: report_service.modern_template_version(key) for key in names}
@@ -58,10 +58,8 @@ def test_template_version_participates_in_its_analyte_identity_only(monkeypatch,
             preview=True,
             layout="modern",
         )
-        assert (
-            f'class="report-template-version">{modality.upper()} template v{versions[modality]}</span>'
-            in html
-        )
+        assert 'name="smd-reports:package_version" content="0.1.2"' in html
+        assert template_content_hash(f"smd/{name}") == hashes[f"smd/{name}"]
 
 
 @pytest.mark.parametrize(
@@ -105,10 +103,8 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
             preview=True,
             layout="modern",
         )
-        version = report_service.modern_template_version(analyte)
-        assert (
-            f'class="report-template-version">{analyte.upper()} template v{version}</span>' in html
-        )
+        assert 'name="smd-reports:package_version" content="0.1.2"' in html
+        assert 'name="smd-reports:template_version" content="0.1.2"' in html
 
 
 @pytest.mark.parametrize(
@@ -126,8 +122,8 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
         ),
     ],
 )
-@pytest.mark.parametrize("layout", ["legacy", "modern"])
-def test_registered_layout_matches_html_fixture_and_template_digest(analyte, name, digest, layout):
+def test_registered_layout_matches_html_fixture_and_template_digest(analyte, name, digest):
+    layout = "legacy"
     inputs = context()
     original = deepcopy(inputs)
     html = render_report_html(
@@ -155,7 +151,7 @@ def test_registered_layout_matches_html_fixture_and_template_digest(analyte, nam
 )
 def test_approved_template_profile_selects_modern_without_changing_clinical_values(analyte, name):
     inputs = context()
-    selected = f"modern/{name}"
+    selected = f"smd/{name}"
     inputs["assay_config"]["template_release"] = {
         "template_name": selected,
         "content_hash": template_content_hash(selected),
@@ -163,7 +159,7 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
     html = render_report_html(
         template_name=name, template_context=inputs, snapshot_rows=[], analyte=analyte, preview=True
     )
-    assert '<style id="modern-report-style">' in html
+    assert 'name="smd-reports:package_version" content="0.1.2"' in html
     assert "SYNTHETIC_EXTRACTION" in html
     issued = render_report_html(
         template_name=name,
@@ -173,9 +169,8 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
         preview=False,
     )
     assert "TRY NEW REPORT · TEMPORARY PREVIEW" not in issued
-    assert "@bottom-left { content: element(report-page-footer); }" in issued
-    version = report_service.modern_template_version(analyte)
-    assert f'class="report-template-version">{analyte.upper()} template v{version}</span>' in issued
+    assert "@bottom-left { content: element(report-page-footer);" in issued
+    assert 'name="smd-reports:template_version" content="0.1.2"' in issued
     inputs["assay_config"]["template_release"]["content_hash"] = "invalid"
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(

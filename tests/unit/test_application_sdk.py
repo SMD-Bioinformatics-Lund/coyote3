@@ -442,7 +442,7 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
     sdk.sample["asp_category"] = analyte
     workflow = Mock()
     workflow.build_report_payload.return_value = (
-        "dna_report.html",
+        "dna_report.html" if analyte == "dna" else "report_fusion.html",
         {"sample": {"name": "SYNTHETIC"}},
         [{"gene": "TP53"}],
     )
@@ -484,8 +484,9 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
     assert render_pdf.call_count == 1
 
 
-def test_changed_modern_wording_requires_a_new_preview_before_save(sdk):
-    """Reject changed host wording before allocating a report number or writing artifacts."""
+@pytest.mark.parametrize("change", ["wording", "renderer"])
+def test_changed_modern_rendering_requires_a_new_preview_before_save(sdk, monkeypatch, change):
+    """Reject changed wording or renderer identity before allocating or persisting a report."""
     workflow = Mock()
     workflow.build_report_payload.return_value = ("modern/dna_report.html", {"sample": {}}, [])
     wording = {"empty_results": {"SNV": "First reviewed message"}}
@@ -507,7 +508,13 @@ def test_changed_modern_wording_requires_a_new_preview_before_save(sdk):
     assert (
         preview.context["report_presentation"]["empty_results"]["SNV"] == "First reviewed message"
     )
-    wording["empty_results"]["SNV"] = "Changed message"
+    if change == "wording":
+        wording["empty_results"]["SNV"] = "Changed message"
+    else:
+        monkeypatch.setattr(
+            "coyote3.application.reporting.report_service.template_content_hash",
+            lambda template: "f" * 64,
+        )
     with pytest.raises(AppError, match="Refresh and review"):
         reports.save("demo", "dna", fingerprint=preview.fingerprint)
     workflow.next_report_num.assert_not_called()

@@ -6,35 +6,29 @@ from typing import Any
 
 import bleach
 import markdown
-from jinja2 import ChoiceLoader, Environment, PackageLoader, select_autoescape
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_context import prepare_render_context
 from coyote3.application.reporting.report_service import (
     REPORT_TEMPLATES,
-    modern_template_version,
     select_report_template,
     template_content_hash,
 )
 from coyote3.domain.common.errors import api_error
-from coyote3.domain.common.reporting import TIER_NAME, TIER_SHORT_DESC
+from coyote3.domain.common.reporting import TIER_NAME
 from coyote3.domain.dna.cnv_metrics import copy_number_from_log2
 
 
-def _environment(*, modern: bool = False) -> Environment:
-    """Return report filters and the selected layout's component lookup order.
-
-    Args:
-        modern: Prefer modern presentation components for the selected versioned body.
+def _environment() -> Environment:
+    """Return the retained Legacy template environment and its established filters.
 
     Returns:
         An escaping Jinja environment independent of the current working directory.
     """
     loader = PackageLoader("coyote3", "templates/reporting")
     env = Environment(
-        loader=ChoiceLoader([PackageLoader("coyote3", "templates/reporting/modern"), loader])
-        if modern
-        else loader,
+        loader=loader,
         autoescape=select_autoescape(["html", "xml"]),
     )
     env.filters["perc_no_dec"] = _perc_no_dec
@@ -213,7 +207,7 @@ def render_report_html(
 
     Raises:
         AppError: The installed template differs from the approved configuration layout.
-        ValueError: The layout or modern template manifest is invalid.
+        ValueError: The layout, SMD document or embedded artwork is invalid.
         OSError: A required packaged template asset is missing or unreadable.
     """
     _ = snapshot_rows
@@ -236,42 +230,46 @@ def render_report_html(
     selected_layout = layout or configured_layout
     if selected_layout not in {"legacy", "modern"}:
         raise ValueError("Report layout must be legacy or modern")
-    context["report_body_template"] = (
-        REPORT_TEMPLATES[
-            "modern/dna_report.html" if analyte == "dna" else "modern/report_fusion.html"
-        ][1]
-        if selected_layout == "modern"
-        else leaf
-    )
     context.update(report_analyte=analyte, branding=branding or {})
     context["assay_accredited"] = (
         (context["assay_config"].get("assay_resource_release") or {}).get("content") or {}
     ).get("accredited") is True
     if selected_layout == "modern":
-        context["report_template_version"] = modern_template_version(analyte)
-        context.setdefault("class_desc_short", TIER_SHORT_DESC)
-        sections = dict(context.get("report_sections_data") or {})
-        for key in ("snvs", "germline_snvs"):
-            if key in sections:
-                sections[key] = [
-                    {
-                        **row,
-                        "summary_variant": row.get("variant"),
-                        "variant": (row.get("protein_changes") or [row.get("variant")])[-1],
-                        "protein_changes": (row.get("protein_changes") or [])[-1:],
-                    }
-                    for row in sections[key]
-                ]
-        context["report_sections_data"] = sections
+        import json
+
+        from smd_reports import ReportLoader, ReportRenderer
+
+        from coyote3.application.reporting.smd_input import build_smd_report_input
+
+        settings = presentation or ReportPresentation.model_validate(
+            context.get("report_presentation") or {}
+        )
+        document = ReportLoader().loads(
+            json.dumps(
+                build_smd_report_input(
+                    context,
+                    analyte=analyte,
+                    preview=preview,
+                    presentation=settings,
+                ),
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+        )
+        html = ReportRenderer().render_html(document)
+        # Keep the application's browser policy around the package-owned document.
+        policy = (
+            '<meta http-equiv="Content-Security-Policy" '
+            "content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; "
+            "font-src data:; base-uri 'none'; form-action 'none'\">"
+        )
+        return html.replace("<head>", "<head>" + policy, 1)
+
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )
     context["empty_result_messages"] = settings.empty_results.model_dump()
-    return (
-        _environment(modern=selected_layout == "modern")
-        .get_template("modern/report.html" if selected_layout == "modern" else leaf)
-        .render(**context)
-    )
+    return _environment().get_template(leaf).render(**context)
 
 
 def render_pdf_bytes(html: str) -> bytes:
