@@ -29,6 +29,7 @@ from coyote.blueprints.dna.varqueries import build_query
 from copy import deepcopy
 import os
 from pprint import pformat
+import base64
 
 
 class DNAUtility:
@@ -701,9 +702,17 @@ class DNAUtility:
             )
 
         if "CNV_PROFILE" in report_sections:
-            report_sections_data["cnv_profile_base64"] = CommonUtility.get_plot(
-                os.path.basename(sample.get("cnvprofile", "")), assay_config
-            )
+            cnv_path = sample.get("cnvprofile")
+            cnv_b64 = None
+            if cnv_path and os.path.isfile(cnv_path):
+                with open(cnv_path, "rb") as fh:
+                    cnv_b64 = base64.b64encode(fh.read()).decode("utf-8")
+            elif cnv_path:
+                cnv_b64 = CommonUtility.get_plot(os.path.basename(cnv_path), assay_config)
+
+            if not cnv_b64:
+                app.logger.warning(f"CNV profile could not be loaded: {cnv_path}")
+            report_sections_data["cnv_profile_base64"] = cnv_b64
 
         if "BIOMARKER" in report_sections:
             report_sections_data["biomarkers"] = list(
