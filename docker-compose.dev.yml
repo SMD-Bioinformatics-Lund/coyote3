@@ -35,8 +35,8 @@ services:
       - coyote3-dev-net
     volumes:
       # - ".git:/app/.git"
-      # - "./coyote:/app/coyote"
-      # - "./config:/app/config"
+      - "./coyote:/app/coyote"
+      - "./config:/app/config"
       # - "/data/coyote3/logs:/app/logs"
       # - "./docs:/app/docs"
       # - "./config.py:/app/config.py"
