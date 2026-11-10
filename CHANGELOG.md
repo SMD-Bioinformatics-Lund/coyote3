@@ -4,6 +4,18 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+### Highlights
+
+- New FastAPI backend and React interface with light and dark themes.
+- Unified DNA/RNA review, coverage, biomarkers and classification history.
+- Central assay setup, gene lists and versioned clinical configurations.
+- Governed query and reporting rules with review and publication workflows.
+- HTML/PDF reports through `smd-reports`, with preserved report snapshots.
+- Scoped API tokens, background ingestion and typed Python SDKs.
+- Task-based documentation and container deployment tools.
+
+### Detailed changes
+
 - Documentation navigation starts with six task/reference areas and direct action
   links. Complete review and assay setup guides no longer send readers through
   optional reference pages as required steps. Page titles precede reading controls;
@@ -15,9 +27,11 @@ Version 4 replaces Flask with FastAPI and React.
 
 - Loading indicators use one card surface around the animated dots and label.
 
-- Modern reports use `smd-reports` 0.3.0 and its compact covered-gene tables,
-  retaining gene order and content. Package metadata identifies version 0.3.0;
-  the package's DNA/RNA template revision is 0.3.0.
+- Modern reports use `smd-reports` 0.4.0 and its compact covered-gene tables,
+  retaining gene order and content. Package metadata identifies version 0.4.0;
+  the package's DNA/RNA template revision is 0.4.0.
+  Matching bold and italic font variants are embedded in standalone HTML/PDF;
+  Markdown cells use the renderer's tighter paragraph spacing.
 
 - Modern DNA/RNA reports use the imported `smd-reports` renderer and an application
   input adapter. Preview validation and saved provenance identify the installed

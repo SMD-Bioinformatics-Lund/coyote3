@@ -81,7 +81,7 @@ for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as co
     const html = await htmlDownload
     expect(html.suggestedFilename()).toMatch(new RegExp(`_${analyte}_preview\\.html$`))
     const htmlContent = await readFile((await html.path())!, "utf-8")
-    expect(htmlContent).toContain('name="smd-reports:package_version" content="0.3.0"')
+    expect(htmlContent).toContain('name="smd-reports:package_version" content="0.4.0"')
     expect(htmlContent).toContain(sampleId!)
     await page.getByRole("tab", { name: "PDF preview", exact: true }).click()
     await expect(page.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", /^blob:/)

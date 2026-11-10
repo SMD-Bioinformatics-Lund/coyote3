@@ -196,7 +196,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     assert "<script>" not in output and '<img src="https:' not in output
     assert "&lt;script&gt;" in output and "<strong>Reviewed</strong>" in output
     assert "Content-Security-Policy" in output
-    assert 'name="smd-reports:package_version" content="0.3.0"' in output
+    assert 'name="smd-reports:package_version" content="0.4.0"' in output
 
 
 def test_smd_identity_is_distinct_from_historical_templates_and_analytes():

@@ -87,7 +87,7 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
         assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
         assert f"Sida {index} av {len(document.pages)}" in text
-        assert f"Coyote3 {analyte.upper()} · Mall 0.3.0" in text
+        assert f"Coyote3 {analyte.upper()} · Mall 0.4.0" in text
         version = next(
             box
             for box in boxes
@@ -258,7 +258,7 @@ def test_center_contact_details_are_optional_and_escaped_in_modern_header():
     assert "center_address" not in absent and "center_phone" not in absent
 
 
-def test_modern_pdf_embeds_regular_semibold_and_italic_without_system_font_fallback():
+def test_modern_pdf_embeds_authored_emphasis_without_system_font_fallback():
     """PDF text uses the packaged font for Swedish text, labels and authored emphasis."""
     html = render_report_html(
         template_name="dna_report.html",
@@ -272,11 +272,24 @@ def test_modern_pdf_embeds_regular_semibold_and_italic_without_system_font_fallb
             "report_sections": [],
             "report_sections_data": {},
             "genes_covered_in_panel": {},
-            "latest_sample_comment_text": "Åäö **Syntetiskt fynd** och *syntetisk tolkning*.",
+            "latest_sample_comment_text": (
+                "Åäö **Syntetiskt fynd** och *syntetisk tolkning*, med ***betonad tolkning***."
+            ),
         },
     )
     fonts = re.findall(r"data:font/woff2;base64,[A-Za-z0-9+/=]+", html)
-    assert len(fonts) == 3
+    assert len(fonts) == 6
+    faces = re.findall(r"@font-face\s*\{([^}]+)\}", html)
+    styles = {
+        (
+            int(re.search(r"font-weight:\s*(\d+)", face).group(1)),
+            re.search(r"font-style:\s*(\w+)", face).group(1),
+        )
+        for face in faces
+    }
+    assert styles == {
+        (weight, style) for weight in (400, 600, 700) for style in ("normal", "italic")
+    }
     for url in fonts:
         resource = ReportResourceFetcher()(url)
         try:
@@ -286,8 +299,9 @@ def test_modern_pdf_embeds_regular_semibold_and_italic_without_system_font_fallb
     document = HTML(string=html, url_fetcher=ReportResourceFetcher()).render()
     assert document.write_pdf().startswith(b"%PDF-")
     assert {font.family for font in document.fonts.values()} == {"Source Sans 3"}
-    assert {font.weight for font in document.fonts.values()} == {400, 600}
+    assert {font.weight for font in document.fonts.values()} == {400, 600, 700}
     assert any(font.style for font in document.fonts.values())
+    assert any(font.weight == 700 and font.style for font in document.fonts.values())
 
 
 @pytest.mark.parametrize("content", [b"not a font", b"<script>unsafe</script>"])

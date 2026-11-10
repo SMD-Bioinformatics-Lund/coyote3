@@ -143,7 +143,7 @@ def test_alternate_layout_preserves_all_report_text_and_embeds_its_css(analyte, 
     else:
         assert "SYNTHETIC_A::SYNTHETIC_B" in alternate_text.text
         assert "Synthetic classification" in alternate_text.text
-    assert 'name="smd-reports:package_version" content="0.3.0"' in alternate
+    assert 'name="smd-reports:package_version" content="0.4.0"' in alternate
     assert "Content-Security-Policy" in alternate
     assert '<link rel="stylesheet"' not in alternate
     assert "PREVIEW · UNSAVED REPORT" in alternate
