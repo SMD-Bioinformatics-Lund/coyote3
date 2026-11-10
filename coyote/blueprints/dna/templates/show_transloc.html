@@ -2,32 +2,44 @@
 
 {% block body %}
 
+{# ------------------------------------------------------------------
+   Resolve the selected annotation and its index in ANN.
+   Order: user pick (selected == 1) -> MANE -> first annotation.
+   Feature_ID holds only the 5' transcript; the partner transcript is
+   only encoded in HGVSp, so MANE is located by Feature_ID + HGVSc + HGVSp.
+   The table below compares row indices, never HGVS strings.
+   ------------------------------------------------------------------ #}
 {% set anns = tl.INFO.ANN or [] %}
 {% set mane = tl.INFO.MANE_ANN %}
 {% set ns = namespace(sel_idx=none) %}
 
-{% if mane %}
-  {# MANE_ANN is a separate object: locate its row by transcript #}
-  {% for a in anns %}
-    {% if ns.sel_idx is none and a.Feature_ID == mane.Feature_ID %}
-      {% set ns.sel_idx = loop.index0 %}
-    {% endif %}
-  {% endfor %}
-  {% set sel_ann = mane %}
-{% else %}
-  {% for a in anns %}
-    {% if ns.sel_idx is none and a.selected == 1 %}
-      {% set ns.sel_idx = loop.index0 %}
-    {% endif %}
-  {% endfor %}
-  {% if ns.sel_idx is none and anns %}
-    {% set ns.sel_idx = 0 %}
+{# 1. User pick wins #}
+{% for a in anns %}
+  {% if ns.sel_idx is none and a.selected == 1 %}
+    {% set ns.sel_idx = loop.index0 %}
   {% endif %}
-  {% set sel_ann = anns[ns.sel_idx] if ns.sel_idx is not none else {} %}
+{% endfor %}
+
+{# 2. Otherwise MANE #}
+{% if ns.sel_idx is none and mane %}
+  {% for a in anns %}
+    {% if ns.sel_idx is none
+          and a.Feature_ID == mane.Feature_ID
+          and a.HGVSc == mane.HGVSc
+          and a.HGVSp == mane.HGVSp %}
+      {% set ns.sel_idx = loop.index0 %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{# 3. Otherwise the first annotation #}
+{% if ns.sel_idx is none and anns and not mane %}
+  {% set ns.sel_idx = 0 %}
 {% endif %}
 
 {% set sel_idx = ns.sel_idx %}
-{% set genes = sel_ann.Gene_Name.split('&') %}
+{% set sel_ann = anns[sel_idx] if sel_idx is not none else (mane or {}) %}
+{% set genes = (sel_ann.Gene_Name or '').split('&') %}
 
 {% set gene2 = tl.ALT.split(':') %}
 {% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
@@ -63,16 +75,14 @@
   {% set igv_url_gene2 = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
   {% set igv_link_gene1 = '<a href="' ~ igv_url_gene1 ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
   {% set igv_link_gene2 = '<a href="' ~ igv_url_gene2 ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
-
 {% else %}
   {% set igv_url_gene1 = none %}
   {% set igv_url_gene2 = none %}
   {% set igv_link_gene1 = gene_1_locus %}
   {% set igv_link_gene2 = gene_2_locus %}
-
 {% endif %}
 
-{# check permissions for dna cnv actions buttons #}
+{# check permissions for dna transloc actions buttons #}
 {% set transloc_actions_disabled = not has_access('manage_translocs', min_role='user', min_level=9) %}
 {% set transloc_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if transloc_actions_disabled else "" %}
 {% set transloc_actions_attr = "disabled" if transloc_actions_disabled else "" %}
@@ -107,7 +117,7 @@
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Consequence</th>
             <td class="p-1 text-right font-medium">
-              {% for annot in sel_ann.Annotation%}
+              {% for annot in sel_ann.Annotation %}
                 <div class="inline-block mb-1 py-1 cursor-pointer rounded-full bg-gray-300"
                   onmouseover="showTooltip(event, `{% if annot in vep_conseq_translations %}
                     <strong>{{ vep_conseq_translations[annot].display }}</strong><br>
@@ -117,7 +127,7 @@
                     {{ annot }}
                   {% endif %}`)">
                   {% if annot in vep_conseq_translations %}
-                      {{ vep_conseq_translations[annot].short }}
+                    {{ vep_conseq_translations[annot].short }}
                   {% else %}
                     {{ annot }}
                   {% endif %}
@@ -151,7 +161,7 @@
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_ann.HGVSp|unesc|safe }}</span>`)">
                 <div class="relative flex flex-wrap justify-end inline-block pr-1">
                   <div id="transloc-hgvsp-short" class="truncate max-w-[15ch]">
-                    {{ sel_ann.HGVSp }}
+                    {{ sel_ann.HGVSp|unesc|safe }}
                   </div>
                   <div id="transloc-hgvsp-full" class="hidden break-all whitespace-normal">
                     {{ sel_ann.HGVSp|unesc|safe }}
@@ -192,9 +202,9 @@
     <!-- sample info -->
     {% include "sample_meta_info.html" %}
 
-    <!-- Tranlocations Main Info Card  -->
+    <!-- Translocations Main Info Card -->
     <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="transloc-info">
-      <!-- Tranlocations Info Left Section -->
+      <!-- Translocations Info Left Section -->
       <div class="flex flex-col ml-2 mr-4" id="transloc-info-left">
         <h2 class="text-base font-bold">
           {{genes[0]}}::{{genes[1]}} ; {{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}
@@ -236,7 +246,7 @@
 
     <!-- other information cards -->
     <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="transloc-information-cards">
-      <!-- Comment box, other tiering and pon -->
+      <!-- Comment box, alternate transcripts -->
       <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
         {% if has_access("add_variant_comment", min_role="user", min_level=9) %}
@@ -277,27 +287,26 @@
                   <th class="px-1 py-2 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody id="transloc-alternate-transcripts-info-body" class="{% if tl.INFO.ANN|length > 1 %}border-b border-gray-400 {% endif %}">
-                {% for ann in tl.INFO.ANN %}
-                    {% set genes = ann.Gene_Name.split('&') %}
-                    {% set is_selected = (loop.index0 == sel_idx) %}
-                    {% if is_selected %}
-                      <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
-                    {% else %}
-                      <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
-                    {% endif %}
-                    {% set hgvsp = ann.HGVSp|unesc|replace(";","-") %}
-                    <td class="p-2">{{genes[0]}}</td>
-                    <td class="p-2">{{genes[1]}}</td>
-                    <td class="p-2 ">
-                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ hgvsp|unesc|safe }}</span>`)">
+              <tbody id="transloc-alternate-transcripts-info-body" class="{% if anns|length > 1 %}border-b border-gray-400 {% endif %}">
+                {% for ann in anns %}
+                  {% set row_genes = (ann.Gene_Name or '').split('&') %}
+                  {% set is_selected = (loop.index0 == sel_idx) %}
+                  {% set hgvsp = ann.HGVSp|unesc|replace(";","-") %}
+                  {% if is_selected %}
+                    <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                  {% else %}
+                    <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  {% endif %}
+                    <td class="p-2">{{ row_genes[0] }}</td>
+                    <td class="p-2">{{ row_genes[1] }}</td>
+                    <td class="p-2">
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ hgvsp|safe }}</span>`)">
                         <div class="relative flex inline-block max-w-[20ch]">
-                          <!-- CHANGE THIS ID TO FEAURE -->
                           <div id="transloc-hgvsp-{{loop.index}}-short" class="truncate max-w-[20ch] overflow-hidden whitespace-nowrap inline-block align-top">
-                            {{hgvsp|unesc|safe }}
+                            {{ hgvsp|safe }}
                           </div>
                           <div id="transloc-hgvsp-{{loop.index}}-full" class="hidden break-all whitespace-normal">
-                            {{hgvsp|unesc|safe }}
+                            {{ hgvsp|safe }}
                           </div>
                           <button class="ml-1 text-toggle hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
                                   data-target="transloc-hgvsp-{{loop.index}}"
@@ -325,21 +334,20 @@
                       </span>
                     </td>
                     <td class="p-2">
-                      {% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}
+                      {% for annot in ann.Annotation %}{{annot}}<br>{% endfor %}
                     </td>
                     <td class="p-2">
                       {% if is_selected %}
                         <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Selected</span>
                       {% else %}
-                        <a href="{{ url_for('dna_bp.pick_transloc_call', sample_id=sample.name, transloc_id=tl._id, callidx=loop.index0, num_calls=tl.INFO.ANN|length) }}" class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full hover:bg-blue-300 transition-colors duration-200">Pick</a>
-                    {% endif %}
+                        <a href="{{ url_for('dna_bp.pick_transloc_call', sample_id=sample.name, transloc_id=tl._id, callidx=loop.index0, num_calls=anns|length) }}" class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full hover:bg-blue-300 transition-colors duration-200">Pick</a>
+                      {% endif %}
                     </td>
                   </tr>
-          
                 {% endfor %}
               </tbody>
             </table>
-            {% if tl.INFO.ANN|length == 0 %}
+            {% if anns|length == 0 %}
               <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">
                 No alternate transcripts combinations available.
               </em>
@@ -350,7 +358,7 @@
       </div>
 
       <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl items-start">
-        <!-- Tranlocations annotations -->
+        <!-- Translocations annotations -->
         {% if has_access(min_role='user', min_level=9) %}
           <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="transloc-annotations-all">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">Translocation Annotations</h2>
@@ -435,17 +443,17 @@
                       {% else %}
                         <td class="p-2">N/A</td>
                         <td class="p-2">N/A</td>
-                    {% endif %}
-                    {% if tl.INFO.UR %}
-                      <td class="p-2">{{tl.INFO.UR}}</td>
-                    {% endif %}
-                    {% if tl.INFO.set %}
-                      {% if tl.INFO.set == "Intersection" %}
-                        <td class="p-2">manta&genefuse</td>
-                      {% else %}
-                        <td class="p-2">{{tl.INFO.set}}</td>
                       {% endif %}
-                    {% endif %}
+                      {% if tl.INFO.UR %}
+                        <td class="p-2">{{tl.INFO.UR}}</td>
+                      {% endif %}
+                      {% if tl.INFO.set %}
+                        {% if tl.INFO.set == "Intersection" %}
+                          <td class="p-2">manta&genefuse</td>
+                        {% else %}
+                          <td class="p-2">{{tl.INFO.set}}</td>
+                        {% endif %}
+                      {% endif %}
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -456,7 +464,7 @@
           </div>
         </div>
 
-        <!-- Sample Specific Tranlocations comments -->
+        <!-- Sample Specific Translocations comments -->
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="transloc-comments">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
           <div class="rounded-b-lg overflow-x-auto">
@@ -501,12 +509,11 @@
                         </a>
                       </td>
                     </tr>
-                {% endif %}
+                  {% endif %}
                 </tbody>
               </table>
             {% else %}
-              <em class="block text
-              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific translocation comments available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific translocation comments available.</em>
             {% endif %}
           </div>
         </div>
@@ -515,7 +522,6 @@
     </section>
 
   </main>
-
 
 </div>
 
@@ -534,7 +540,6 @@
       elems[i].classList.toggle('hidden');
     }
   }
-
 
 </script>
 

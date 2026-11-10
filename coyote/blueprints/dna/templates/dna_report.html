@@ -210,9 +210,10 @@
       <th>HGVS.p</th>
     </tr>
     {% for tl in transloc %}
-      {% set selected_ann = tl.INFO.ANN|selectattr("selected", "equalto", 1)|first %}
-      {% set sel_ann =  tl.INFO.MANE_ANN or selected_ann or tl.INFO.ANN[0] %}
-      {% set genes = sel_ann.Gene_Name.split('&') %}
+      {% set anns = tl.INFO.ANN or [] %}
+      {% set selected_ann = anns | selectattr("selected", "equalto", 1) | list | first %}
+      {% set sel_ann = selected_ann or tl.INFO.MANE_ANN or (anns | first) or {} %}
+      {% set genes = (sel_ann.Gene_Name or '').split('&') %}
       <tr>
         <td>{{ genes[0] }}::{{ genes[1] }}</td>
         <td>{{ sel_ann.HGVSp|unesc }}</td>
