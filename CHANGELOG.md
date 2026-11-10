@@ -1,5 +1,46 @@
 # Changelog
 
+## v3.3.0
+### DNA – Translocations
+- Added "Pick" for DNA translocation annotations: users can select which alternate transcript combination is the active annotation (new `dna_bp.pick_transloc_call` route, `TranslocsHandler.pick_transloc`). The selected annotation is used as fallback when no MANE annotation exists.
+- Alternate transcript table in translocation view now has a "Status" column (Selected / Pick) and is sortable.
+- Translocation header now uses the `GENE1::GENE2` fusion naming convention.
+- Updated `regex_replace` filter to return an empty string for values without digits (cleaner DNA translocation display).
+- Updated IGV links for TumWGS translocations.
+
+### RNA – Fusions
+- Reworked RNA fusion views to align with the DNA layout (fusion list, fusion detail, sidebars, selected gene/fusion panel).
+- Fusion routes are now sample-scoped (`/<sample_id>/fusion/<fusion_id>`, fp/unfp, pick call, hide/unhide comment).
+- Moved fusion query building out of `dna/varqueries.py` into new `rna/fusion_queries.py` (spanning pairs/reads coerced to int, effect/caller/fusion-list filters).
+- Added RNA expression, RNA QC and RNA classification data to the sample view (new handlers `rna_expression`, `rna_qc`, `rna_classification` and matching collections in `coyote3_collections.toml`).
+- Added fusion handler helpers: matching breakpoints, fusion in other samples, hidden fusion comments.
+- RNA report: refactored report payload building, added save-report route (`/sample/<sample_id>/report/save`) and updated fusion tiering.
+- Renamed `fusioneffects` filter key to `fusion_effects`.
+- Sample deletion now also removes RNA expression, QC and classification records.
+
+### Assay catalog
+- Restructured TumWGS hematology into separate Hematology, Myeloid and Lymphoid categories, each with its own gene list, analysis types and description (with links to the curated pindel, CNV and fusion lists).
+- Relabelled TumWGS solid as "Pediatric solid cancer" with an updated description.
+
+### Fixes / internal
+- Fixed `get_isgl_by_asp` `is_active` filter (it was a no-op because of `:` instead of `=`) and added a `list_type` filter.
+- Default filters now override sample filters only when the sample value is `None`, so falsy values such as `0` and `[]` are kept.
+- Dev/Test config now uses `config/coyote3_collections.toml`. Dev CNV collection is renamed `cnvs_wgs` → `cnvs`.
+- Dev Docker port changed 6815 → 8801. `run.py` reads its port from `PORT_NBR`.
+
+## v3.2.0
+- Changed the headers in the reports for CNVs (Kliniskt relevanta genspecifika kopietalsförändringar) and Fusions (removed DNA in the name), diagnosis is fixed as 'Solid tumör' for solid tumors.
+- Fixed ASPC Create/Edit numeric input step handling: float fields now use `step="0.1"` (including CNV gain/loss ratio fields) and int fields use `step="1"`, so decimal CNV ratio values save correctly.
+- Fixed development Tailwind watcher stability in Docker by running `npm run dev:css -- --watch=always` in `coyote3_dev_tailwind` to prevent restart loops and stale CSS.
+- Fixed DNA variant sidebar CNV ratio filter inputs to render as numeric controls (`type="number"`, `step="0.1"`), enabling proper decimal stepping/validation for gain/loss cutoffs.
+- Fixed DNA/RNA classify/remove-classify/comment action handlers to accept explicit Flask route kwargs (`var_id`, `fus_id`, `cnv_id`, `transloc_id`) and avoid `unexpected keyword argument` errors from multi-route endpoints.
+- Moved shared classify/remove-classify/comment routes from `dna_bp` to `common_bp` (keeping existing `/dna/...` URL paths), and updated DNA/RNA templates to call `common_bp` endpoints.
+- RNA: Updated fusion detail views to use shared `common_bp` endpoints for classify, remove-tier, and add-comment flows.
+- RNA: Fixed legacy fusion template action URLs to pass correct route params (`sample_id`, `fus_id`) for shared handlers.
+- Fixed TumWGS translocation Sample-Specific Data rendering by iterating on `tl.GT` and using `_sample_id`, restoring per-sample values in the detail table.
+- Fixed TumWGS DNA report fusion rendering: corrected fusion summary iteration/section handling and populated fusion report payload data so clinically relevant fusions appear in generated reports.
+
+
 ## v3.1.22
 - Variant search gene mode will match exact gene search string, not substring match.
 - Added CNV to the Solid CRC avaiable analysis options in the assay catalog.

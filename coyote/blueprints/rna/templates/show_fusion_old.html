@@ -90,7 +90,7 @@
 						  {% endif %}
 						</div>
 						{% if current_user.get_role() != "readonly" %}
-						<form id="form" action="{{ url_for('dna_bp.classify_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2">
+							<form id="form" action="{{ url_for('common_bp.classify_fusion', sample_id=sample.name, fus_id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2">
 							<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
 							<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
 							<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
@@ -102,7 +102,7 @@
 							<button id="tier3" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 3 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
 							<button id="tier4" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 4 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
 						</form>
-						<form id="form" action="{{ url_for('dna_bp.remove_classified_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
+							<form id="form" action="{{ url_for('common_bp.remove_classified_fusion', sample_id=sample.name, fus_id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
 							<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
 							<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
 							<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
@@ -173,7 +173,7 @@
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
 					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Add new comment/annotation</h2>
 					<div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
-					  <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
+					  <form action="{{ url_for('common_bp.add_fusion_comment', sample_id=sample.name, fus_id=fusion._id) }}" method="post">
 						<textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
 						
 						<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">

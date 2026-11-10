@@ -784,4 +784,7 @@ def regex_replace(s: str, find: str, replace: str) -> str:
     Returns:
         str: The string with all matches of the pattern replaced.
     """
-    return re.sub(find, replace, s)
+    if any(char.isdigit() for char in s):
+        return re.sub(find, replace, s)
+    else:
+        return ""

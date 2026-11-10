@@ -20,6 +20,7 @@ from collections import defaultdict
 from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
+from coyote.blueprints.rna.util import RNAUtility
 from flask import current_app as app
 from coyote.extensions import store
 from typing import Any, Dict, List, Optional, Tuple
@@ -28,6 +29,7 @@ from coyote.blueprints.dna.varqueries import build_query
 from copy import deepcopy
 import os
 from pprint import pformat
+import base64
 
 
 class DNAUtility:
@@ -162,25 +164,34 @@ class DNAUtility:
         """
         selected_variants = []
         for var_idx, var in enumerate(variants):
-            (
-                variants[var_idx]["global_annotations"],
-                variants[var_idx]["classification"],
-                variants[var_idx]["other_classification"],
-                variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
-            classification = variants[var_idx]["classification"]
-            if classification is not None:
-                class_value = classification.get("class")
-                if (
-                    class_value is not None
-                    and class_value < 999
-                    and not var.get("blacklist")
-                    and not var.get("fp")
-                    and not var.get("irrelevant")
-                ):
-                    selected_variants.append(variants[var_idx])
+            selected_call = RNAUtility.get_selected_fusioncall(var)
+            lookup = selected_call if selected_call is not None else var   # RNA → call, DNA → var
 
-            variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
+            (
+                var["global_annotations"],
+                var["classification"],
+                var["other_classification"],
+                var["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(lookup, assay, subpanel)
+
+            class_value = (var["classification"] or {}).get("class")
+            if (
+                class_value is not None
+                and class_value < 999
+                and not var.get("blacklist")
+                and not var.get("fp")
+                and not var.get("irrelevant")
+            ):
+                selected_variants.append(var)
+
+            if selected_call is None:
+
+                variants[var_idx] = DNAUtility.add_alt_class(var, assay, subpanel)
+            else:
+
+                alt = DNAUtility.add_alt_class(dict(selected_call), assay, subpanel)
+                var["additional_classification"] = alt["additional_classification"]
+
         return variants, selected_variants
 
     @staticmethod
@@ -691,9 +702,17 @@ class DNAUtility:
             )
 
         if "CNV_PROFILE" in report_sections:
-            report_sections_data["cnv_profile_base64"] = CommonUtility.get_plot(
-                os.path.basename(sample.get("cnvprofile", "")), assay_config
-            )
+            cnv_path = sample.get("cnvprofile")
+            cnv_b64 = None
+            if cnv_path and os.path.isfile(cnv_path):
+                with open(cnv_path, "rb") as fh:
+                    cnv_b64 = base64.b64encode(fh.read()).decode("utf-8")
+            elif cnv_path:
+                cnv_b64 = CommonUtility.get_plot(os.path.basename(cnv_path), assay_config)
+
+            if not cnv_b64:
+                app.logger.warning(f"CNV profile could not be loaded: {cnv_path}")
+            report_sections_data["cnv_profile_base64"] = cnv_b64
 
         if "BIOMARKER" in report_sections:
             report_sections_data["biomarkers"] = list(
@@ -708,7 +727,12 @@ class DNAUtility:
             )
 
         if "FUSION" in report_sections:
-            report_sections_data["fusions"] = []
+            fusions = store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+            report_sections_data["fusions"] = fusions
+            # Backward-compatible alias for templates that still read translocs.
+            report_sections_data.setdefault("translocs", fusions)
 
         assay_config["reporting"]["report_header"] = CommonUtility.get_report_header(
             assay_group,
