@@ -87,7 +87,7 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
         assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
         assert f"Sida {index} av {len(document.pages)}" in text
-        assert f"Coyote3 {analyte.upper()} · Mall 0.1.2" in text
+        assert f"Coyote3 {analyte.upper()} · Mall 0.3.0" in text
         version = next(
             box
             for box in boxes

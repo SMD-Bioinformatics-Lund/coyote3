@@ -15,6 +15,9 @@ distribution maintained in `clients/python/`.
 
 ## Guides
 
+<details markdown="1">
+<summary>All Python reference guides</summary>
+
 | Task | Guide |
 | --- | --- |
 | Install the library or choose local operations versus HTTP access | [Getting started](getting-started.md) |
@@ -26,6 +29,8 @@ distribution maintained in `clients/python/`.
 | Add operations, implement repository ports or compose a trusted host | [SDK development](extending.md) |
 | Look up public Python signatures and their documented behavior | [Python reference](reference.md) |
 | Release the library or select a compatible application/SDK combination | [Versions and compatibility](compatibility.md) |
+
+</details>
 
 Clinical users follow the [user guide](../user-guide/README.md). Administrators
 follow the [administration guide](../administration/README.md). Operators select

@@ -18,29 +18,6 @@ theme:
 
 extra:
   environment: !ENV [ENV_NAME, ""]
-  clinical_reference:
-    - title: Samples and review
-      path: user-guide/sample-management/
-    - title: Set up an assay
-      path: administration/assay-setup/
-    - title: Assay configuration and prerequisites
-      path: administration/clinical-configuration-resources/
-    - title: Gene lists
-      path: user-guide/gene-lists-and-assay-context/
-    - title: Query defaults and finding selection
-      path: administration/query-rules/#application-base-queries-by-analysis
-    - title: Reporting rules
-      path: reference/clinical-reporting-rules/
-    - title: Report preview and save
-      path: user-guide/application-guide/#reports
-    - title: Classifications and comments
-      path: user-guide/application-guide/#comments-and-annotations
-    - title: Assay groups
-      path: administration/assay-groups/
-    - title: Diagnoses
-      path: administration/assay-diagnoses/
-    - title: Coverage review
-      path: user-guide/coverage-review/
 
 extra_javascript:
   - javascripts/footer-year.js
@@ -59,179 +36,201 @@ validation:
     anchors: warn
 
 nav:
-  - Home: README.md
-  - Getting started:
-      - "Choose a task": getting-started/README.md
-      - "Try Coyote3 locally": getting-started/local-quickstart.md
-      - Installation and updates:
-          - "Browse deployment topics": deployment/README.md
-          - "Choose a procedure": deployment/production-deployment.md
-          - "Production requirements": deployment/production-requirements.md
-          - "First installation": deployment/first-installation.md
-          - "Installation operations": deployment/installation-operations.md
-          - "Deployment acceptance": deployment/acceptance-checklist.md
-          - "Upgrade an existing installation": deployment/application-upgrades.md
-          - "Restart or redeploy": deployment/application-redeployment.md
-          - "MongoDB setup and recovery": deployment/mongodb-setup-and-recovery.md
-          - "First-time MongoDB provisioning": deployment/mongodb-first-setup.md
-          - "Containers and reverse proxy": deployment/containers-and-reverse-proxy.md
-          - "Bootstrap and installed data": deployment/bootstrap-data-flow.md
-          - "Required clinical data": deployment/required-data.md
-      - Configuration reference:
-          - "Configuration reference index": configuration/README.md
-          - Deployment settings:
-              - "Environment file explained": configuration/environment-file.md
-              - "Environment variables and defaults": deployment/configuration-reference.md
-              - "Environments and secrets": deployment/environments-and-secrets.md
-              - "Compose files and storage mounts": configuration/compose-files.md
-          - Clinical and application files:
-              - "Center configuration directory": deployment/center-configuration.md
-              - "Contact file": configuration/contact-file.md
-              - "Report presentation file": configuration/report-presentation-file.md
-              - "Installed query seed criteria (maintainers)": configuration/clinical-query-policy-file.md
-              - "Filter flag metadata file": configuration/filter-flag-metadata-file.md
-              - "Collection mapping file": configuration/collection-mapping-file.md
-  - Use Coyote3:
-      - "Browse clinical topics": user-guide/README.md
-      - "Sign in, navigate and use the application": user-guide/application-guide.md
-      - Review a sample:
-          - "Review steps from sample to report": user-guide/clinical-review-workflow.md
-          - "Find and open samples": user-guide/sample-management.md
-          - "DNA findings": user-guide/dna-review.md
-          - "RNA findings": user-guide/rna-review.md
-          - "Coverage": user-guide/coverage-review.md
-          - "Biomarker assessments": user-guide/biomarker-review.md
-          - "Gene lists and assay context": user-guide/gene-lists-and-assay-context.md
-          - "Preview and save reports": user-guide/try-new-report.md
-      - Find help and understand controls:
-          - "Missing samples, analyses or results": user-guide/sample-readiness-and-missing-results.md
-          - "Dashboard": user-guide/dashboard.md
-          - "What each action changes": user-guide/actions-and-record-changes.md
-          - "Pages, table columns and badges": user-guide/pages-and-table-columns.md
-  - Administer Coyote3:
-      - "Browse administration tasks": administration/README.md
-      - Set up an assay:
-          - "Prerequisites and setup steps": administration/assay-setup.md
-          - "Register assay groups": administration/assay-groups.md
-          - "Register diagnoses (subpanel scopes)": administration/assay-diagnoses.md
-          - "Bulk install from JSON or YAML": administration/bulk-installation.md
-          - "Resources and missing prerequisites": administration/clinical-configuration-resources.md
-          - "Supported analyses": administration/supported-capabilities.md
-          - "Enable analysis and reporting": administration/assay-analysis-availability.md
-          - "Build report wording and conditions": administration/report-rule-authoring.md
-          - "Hematology Base: worked example": administration/hematology-base-reporting.md
-          - "Solid Base and diagnosis: worked examples": administration/solid-reporting-examples.md
-      - Configure finding selection:
-          - "Application base queries and UI rules": administration/query-rules.md
-          - "Installed group rules and demo defaults": administration/installed-defaults.md
-          - "Creators and system-installed records": administration/record-attribution.md
-      - Manage configuration changes:
-          - "Editing sessions and concurrent users": administration/document-editing.md
-          - "Plan a change": administration/planning-configuration-changes.md
-          - "Configuration profiles and promotion": administration/configuration-publication.md
-          - "Resource fields and defaults": administration/clinical-resource-fields.md
-          - "Center vocabulary": administration/clinical-vocabulary.md
-          - "Publish the assay catalog": administration/public-assay-catalog.md
-      - Accounts and application settings:
-          - "Administration controls": administration/administration-guide.md
-          - "Permissions and access control": administration/permissions-and-access.md
-          - "Role catalog": administration/system-role-catalog.md
-          - "Permission catalog": administration/permission-catalog.md
-          - "Application control settings": administration/application-controls.md
-  - API integration:
-      - "API integration index": api/README.md
-      - "Authenticate to the API": api/authentication.md
-      - "API routes and workflows": api/routes-and-workflows.md
-      - "API route groups and visibility": api/route-groups.md
-      - "Individual resource fields": api/resource-fields.md
-      - "Ingestion API": api/sample-ingestion.md
-      - "Collection imports and permissions": api/collection-imports.md
-      - "API versioning and compatibility": api/versioning-and-compatibility.md
-  - Python SDK:
-      - "Choose core SDK or HTTP client": sdk/README.md
-      - Getting started: sdk/getting-started.md
-      - Package boundaries: sdk/package-boundaries.md
-      - Core and server installation: sdk/server-installation.md
-      - Application operations: sdk/application-sdk.md
-      - Permissions and host trust: sdk/permissions.md
-      - Remote Python client: sdk/python-client.md
-      - SDK development: sdk/extending.md
-      - Python reference: sdk/reference.md
-      - Versions and compatibility: sdk/compatibility.md
-  - Architecture:
-      - "Architecture reference index": architecture/README.md
-      - "Application architecture": architecture/application-architecture.md
-      - Architecture and workflow diagrams: architecture/diagram-guide.md
-      - "Resource relationships": architecture/resource-relationships.md
-      - "Data contracts and collection models": architecture/data-contracts.md
-      - "MongoDB services and deployment topology": architecture/mongodb-topology.md
-      - "Configuration identity and audit": architecture/configuration-identity-and-audit.md
-      - "Security model": architecture/security-model.md
-      - "Clinical data lifecycle: ingest, storage, and retrieval": architecture/clinical-data-lifecycle.md
-      - "Transactions and ingest recovery": architecture/transactions-and-ingest-recovery.md
-      - "Clinical data preparation and reporting flow": architecture/clinical-data-and-reporting.md
-      - Architecture decisions:
-          - "Decision index": architecture/decisions/README.md
-          - "ADR-0001: Resolve Authentication Provider From User Document": architecture/decisions/0001-authentication-provider-resolution.md
-          - "ADR-0002: Local Password Lifecycle With Email Fallback": architecture/decisions/0002-local-password-lifecycle.md
-          - "ADR 0003: synchronous HTTP handlers and MongoDB execution": architecture/decisions/0003-synchronous-http-and-mongodb.md
-  - Develop Coyote3:
-      - "Browse engineering topics": development/README.md
-      - Set up and run:
-          - "Local development environment": getting-started/developer-environment.md
-          - "Code structure and development guide": development/developer-guide.md
-          - "Remote development": development/remote-development.md
-          - "Commands and checks": development/engineering-commands.md
-          - "Development troubleshooting": development/troubleshooting.md
-      - Change application behavior:
-          - "Engineering standards": development/refactoring-standards.md
-          - "Collection contracts and versions": development/schema-contracts.md
-          - "Frontend API contracts": development/frontend-api-contracts.md
-          - "Add a domain or collection": development/adding-domains-and-collections.md
-          - "HTML and PDF report templates": development/report-templates.md
-          - "Action confirmation dialogs": development/action-dialogs.md
-          - "Charts and exports": development/charts-and-exports.md
-      - Maintain the repository:
-          - "Write and organize documentation": development/writing-documentation.md
-          - "Dependency security": development/dependency-security.md
-          - "Script reference": development/script-reference.md
-  - Operate Coyote3:
-      - "Browse operations tasks": operations/README.md
-      - Monitor and maintain:
-          - "Maintenance checks": operations/maintenance-and-verification.md
-          - "Monitoring and alerts": operations/monitoring-and-alerts.md
-          - "Audit events and logs": operations/audit-and-logging.md
-          - "Redis encryption": operations/redis-tls.md
-          - "Email and notifications": operations/email-and-notifications.md
-      - Investigate and recover:
-          - "Troubleshooting": operations/troubleshooting.md
-          - "Backup and recovery": operations/backup-and-recovery.md
-          - "Ingest job recovery": operations/ingest-job-recovery.md
-          - "Background delivery and recovery": operations/background-delivery.md
-      - Update reference data:
-          - "Knowledgebase snapshots": operations/knowledgebase-updates.md
-          - "VEP metadata": operations/vep-metadata-updates.md
-          - "HGNC genes": operations/hgnc-gene-installation.md
-      - Data migrations:
-          - "Choose a migration": operations/migrations/README.md
-          - "Clinical data: order and commands": operations/migrations/clinical-data.md
-          - "Variant blacklist": operations/migrations/variant-blacklist.md
-          - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
-          - "Clinical-rule data maintenance": operations/migrations/clinical-rule-migrations.md
-          - "Reference database placement": operations/migrations/knowledgebase-database-migration.md
-  - Data and clinical reference:
-      - "Data reference index": reference/README.md
+  - Start here: README.md
+  - Review samples:
+      - Review a sample and save its report: user-guide/clinical-review-workflow.md
+      - Find a sample: user-guide/sample-management.md
+      - Missing samples or results: user-guide/sample-readiness-and-missing-results.md
+      - Review reference:
+          - Browse clinical topics: user-guide/README.md
+          - Sign in, navigate and use the application: user-guide/application-guide.md
+          - Review a sample:
+              - DNA findings: user-guide/dna-review.md
+              - RNA findings: user-guide/rna-review.md
+              - Coverage: user-guide/coverage-review.md
+              - Biomarker assessments: user-guide/biomarker-review.md
+              - Gene lists and assay context: user-guide/gene-lists-and-assay-context.md
+              - Preview and save reports: user-guide/try-new-report.md
+          - Find help and understand controls:
+              - Dashboard: user-guide/dashboard.md
+              - What each action changes: user-guide/actions-and-record-changes.md
+              - Pages, table columns and badges: user-guide/pages-and-table-columns.md
+  - Configure assays:
+      - Set up a new assay: administration/assay-setup.md
+      - Change an existing configuration: administration/planning-configuration-changes.md
+      - Manage accounts and access: administration/permissions-and-access.md
+      - Administration reference:
+          - Browse administration tasks: administration/README.md
+          - Set up an assay:
+              - Register assay groups: administration/assay-groups.md
+              - Register diagnoses (subpanel scopes): administration/assay-diagnoses.md
+              - Bulk install from JSON or YAML: administration/bulk-installation.md
+              - Resources and missing prerequisites: administration/clinical-configuration-resources.md
+              - Supported analyses: administration/supported-capabilities.md
+              - Enable analysis and reporting: administration/assay-analysis-availability.md
+              - Build report wording and conditions: administration/report-rule-authoring.md
+              - 'Hematology Base: worked example': administration/hematology-base-reporting.md
+              - 'Solid Base and diagnosis: worked examples': administration/solid-reporting-examples.md
+          - Configure finding selection:
+              - Application base queries and UI rules: administration/query-rules.md
+              - Installed group rules and demo defaults: administration/installed-defaults.md
+              - Creators and system-installed records: administration/record-attribution.md
+          - Manage configuration changes:
+              - Editing sessions and concurrent users: administration/document-editing.md
+              - Configuration profiles and promotion: administration/configuration-publication.md
+              - Resource fields and defaults: administration/clinical-resource-fields.md
+              - Center vocabulary: administration/clinical-vocabulary.md
+              - Publish the assay catalog: administration/public-assay-catalog.md
+          - Accounts and application settings:
+              - Administration controls: administration/administration-guide.md
+              - Role catalog: administration/system-role-catalog.md
+              - Permission catalog: administration/permission-catalog.md
+              - Application control settings: administration/application-controls.md
+  - Install and operate:
+      - Install at a new center: deployment/first-installation.md
+      - Upgrade an installation: deployment/application-upgrades.md
+      - Restart or redeploy: deployment/application-redeployment.md
+      - Investigate a service failure: operations/troubleshooting.md
+      - Deployment reference:
+          - Try Coyote3 locally: getting-started/local-quickstart.md
+          - Installation and updates:
+              - Browse deployment topics: deployment/README.md
+              - Choose a procedure: deployment/production-deployment.md
+              - Production requirements: deployment/production-requirements.md
+              - Installation operations: deployment/installation-operations.md
+              - Deployment acceptance: deployment/acceptance-checklist.md
+              - MongoDB setup and recovery: deployment/mongodb-setup-and-recovery.md
+              - First-time MongoDB provisioning: deployment/mongodb-first-setup.md
+              - Containers and reverse proxy: deployment/containers-and-reverse-proxy.md
+              - Bootstrap and installed data: deployment/bootstrap-data-flow.md
+              - Required clinical data: deployment/required-data.md
+          - Configuration reference:
+              - Configuration reference index: configuration/README.md
+              - Deployment settings:
+                  - Environment file explained: configuration/environment-file.md
+                  - Environment variables and defaults: deployment/configuration-reference.md
+                  - Environments and secrets: deployment/environments-and-secrets.md
+                  - Compose files and storage mounts: configuration/compose-files.md
+              - Clinical and application files:
+                  - Center configuration directory: deployment/center-configuration.md
+                  - Contact file: configuration/contact-file.md
+                  - Report presentation file: configuration/report-presentation-file.md
+                  - Installed query seed criteria (maintainers): configuration/clinical-query-policy-file.md
+                  - Filter flag metadata file: configuration/filter-flag-metadata-file.md
+                  - Collection mapping file: configuration/collection-mapping-file.md
+      - Operations reference:
+          - Browse operations tasks: operations/README.md
+          - Monitor and maintain:
+              - Maintenance checks: operations/maintenance-and-verification.md
+              - Monitoring and alerts: operations/monitoring-and-alerts.md
+              - Audit events and logs: operations/audit-and-logging.md
+              - Redis encryption: operations/redis-tls.md
+              - Email and notifications: operations/email-and-notifications.md
+          - Investigate and recover:
+              - Backup and recovery: operations/backup-and-recovery.md
+              - Ingest job recovery: operations/ingest-job-recovery.md
+              - Background delivery and recovery: operations/background-delivery.md
+          - Update reference data:
+              - Knowledgebase snapshots: operations/knowledgebase-updates.md
+              - VEP metadata: operations/vep-metadata-updates.md
+              - HGNC genes: operations/hgnc-gene-installation.md
+          - Data migrations:
+              - Choose a migration: operations/migrations/README.md
+              - 'Clinical data: order and commands': operations/migrations/clinical-data.md
+              - Variant blacklist: operations/migrations/variant-blacklist.md
+              - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
+              - Clinical-rule data maintenance: operations/migrations/clinical-rule-migrations.md
+              - Reference database placement: operations/migrations/knowledgebase-database-migration.md
+  - Integrate pipelines:
+      - Arrange authentication: api/authentication.md
+      - Prepare and submit samples: api/sample-ingestion.md
+      - Use the Python HTTP client: sdk/python-client.md
+      - API reference:
+          - API integration index: api/README.md
+          - API routes and workflows: api/routes-and-workflows.md
+          - API route groups and visibility: api/route-groups.md
+          - Individual resource fields: api/resource-fields.md
+          - Collection imports and permissions: api/collection-imports.md
+          - API versioning and compatibility: api/versioning-and-compatibility.md
+      - Python SDK reference:
+          - Choose core SDK or HTTP client: sdk/README.md
+          - Getting started: sdk/getting-started.md
+          - Package boundaries: sdk/package-boundaries.md
+          - Core and server installation: sdk/server-installation.md
+          - Application operations: sdk/application-sdk.md
+          - Permissions and host trust: sdk/permissions.md
+          - SDK development: sdk/extending.md
+          - Python reference: sdk/reference.md
+          - Versions and compatibility: sdk/compatibility.md
+  - Develop and validate:
+      - Prepare the development environment: getting-started/developer-environment.md
+      - Change application code: development/developer-guide.md
+      - Validate a change: testing/test-strategy-and-quality-gates.md
+      - Engineering reference:
+          - Browse engineering topics: development/README.md
+          - Set up and run:
+              - Remote development: development/remote-development.md
+              - Commands and checks: development/engineering-commands.md
+              - Development troubleshooting: development/troubleshooting.md
+          - Change application behavior:
+              - Engineering standards: development/refactoring-standards.md
+              - Collection contracts and versions: development/schema-contracts.md
+              - Frontend API contracts: development/frontend-api-contracts.md
+              - Add a domain or collection: development/adding-domains-and-collections.md
+              - HTML and PDF report templates: development/report-templates.md
+              - Action confirmation dialogs: development/action-dialogs.md
+              - Charts and exports: development/charts-and-exports.md
+          - Maintain the repository:
+              - Write and organize documentation: development/writing-documentation.md
+              - Dependency security: development/dependency-security.md
+              - Script reference: development/script-reference.md
+      - Testing reference:
+          - Choose validation checks: testing/README.md
+          - Validation datasets and test fixtures: testing/test-data-and-fixtures.md
+          - Synthetic clinical workflow exercises: testing/clinical-workflow-demo.md
+          - Demo data bundle: testing/demo-data-bundle.md
+          - Local disposable full-stack validation: testing/disposable-stack-validation.md
+          - Browser and release validation: testing/browser-and-release-validation.md
+          - Load and capacity testing: testing/load-and-capacity-testing.md
+      - Architecture:
+          - Architecture reference index: architecture/README.md
+          - Application architecture: architecture/application-architecture.md
+          - Architecture and workflow diagrams: architecture/diagram-guide.md
+          - Resource relationships: architecture/resource-relationships.md
+          - Data contracts and collection models: architecture/data-contracts.md
+          - MongoDB services and deployment topology: architecture/mongodb-topology.md
+          - Configuration identity and audit: architecture/configuration-identity-and-audit.md
+          - Security model: architecture/security-model.md
+          - 'Clinical data lifecycle: ingest, storage, and retrieval': architecture/clinical-data-lifecycle.md
+          - Transactions and ingest recovery: architecture/transactions-and-ingest-recovery.md
+          - Clinical data preparation and reporting flow: architecture/clinical-data-and-reporting.md
+          - Architecture decisions:
+              - Decision index: architecture/decisions/README.md
+              - 'ADR-0001: Resolve Authentication Provider From User Document': architecture/decisions/0001-authentication-provider-resolution.md
+              - 'ADR-0002: Local Password Lifecycle With Email Fallback': architecture/decisions/0002-local-password-lifecycle.md
+              - 'ADR 0003: synchronous HTTP handlers and MongoDB execution': architecture/decisions/0003-synchronous-http-and-mongodb.md
+      - Project:
+          - Contribution and licensing index: project/README.md
+          - Future work: project/future-work.md
+          - Contributing: project/contributing.md
+          - Maintainer guide: project/maintainer-guide.md
+          - Governance overview: project/governance.md
+          - Code of Conduct: project/code-of-conduct.md
+          - License and clinical use: project/license.md
+  - Reference:
+      - How to use this manual: getting-started/README.md
+      - Data reference index: reference/README.md
       - Understand the data:
-          - "System overview": reference/application-overview.md
-          - "Clinical terms and resource identities": reference/clinical-concepts.md
-          - "DNA and RNA data model": reference/dna-rna-data-model.md
-          - "Application domains and services": reference/domain-services.md
-          - "HRD, MSI and TMB measurements": reference/measurement-analyses.md
+          - System overview: reference/application-overview.md
+          - Clinical terms and resource identities: reference/clinical-concepts.md
+          - DNA and RNA data model: reference/dna-rna-data-model.md
+          - Application domains and services: reference/domain-services.md
+          - HRD, MSI and TMB measurements: reference/measurement-analyses.md
       - Prepare sample inputs:
-          - "File formats and defaults": reference/file-format-conventions.md
-          - "Sample YAML manifest": reference/sample-manifest.md
+          - File formats and defaults: reference/file-format-conventions.md
+          - Sample YAML manifest: reference/sample-manifest.md
       - Raw ingest file reference:
-          - "Choose an input format": reference/ingest-files/README.md
+          - Choose an input format: reference/ingest-files/README.md
           - Small variants · VCF: reference/ingest-files/small-variants-vcf.md
           - Copy-number variants · JSON: reference/ingest-files/copy-number-json.md
           - DNA translocations · VCF: reference/ingest-files/translocations-vcf.md
@@ -247,43 +246,26 @@ nav:
           - Pharmacogenomics · JSON: reference/ingest-files/pharmacogenomics-json.md
           - Images and alignments: reference/ingest-files/images-and-alignments.md
       - Understand filtering and reporting:
-          - "Assay configuration and query filtering": reference/assay-filtering.md
-          - "Review filter fields and defaults": reference/filter-profile-fields.md
-          - "Query condition fields and operators": reference/query-condition-fields.md
-          - "Clinical reporting rules": reference/clinical-reporting-rules.md
-          - "Reporting workflow and saved snapshots": reference/report-snapshots.md
+          - Assay configuration and query filtering: reference/assay-filtering.md
+          - Review filter fields and defaults: reference/filter-profile-fields.md
+          - Query condition fields and operators: reference/query-condition-fields.md
+          - Clinical reporting rules: reference/clinical-reporting-rules.md
+          - Reporting workflow and saved snapshots: reference/report-snapshots.md
       - Knowledgebase reference:
-          - "Choose an evidence source": reference/knowledgebases/README.md
-          - "Knowledgebase evidence": reference/knowledgebases/evidence-sources.md
-          - "OncoKB integration": reference/knowledgebases/oncokb-integration.md
-          - "ClinPGx integration": reference/knowledgebases/clinpgx-integration.md
-          - "VEP reference library": reference/knowledgebases/vep-reference.md
+          - Choose an evidence source: reference/knowledgebases/README.md
+          - Knowledgebase evidence: reference/knowledgebases/evidence-sources.md
+          - OncoKB integration: reference/knowledgebases/oncokb-integration.md
+          - ClinPGx integration: reference/knowledgebases/clinpgx-integration.md
+          - VEP reference library: reference/knowledgebases/vep-reference.md
       - Storage and operational files:
           - Collection dependencies:
-              - "Relationship guide and migration planning": reference/collection-dependencies/README.md
-              - "Find any collection": reference/collection-dependencies/inventory.md
-              - "Assays, diagnoses and gene lists": reference/collection-dependencies/configuration.md
-              - "Drafts, publications and revisions": reference/collection-dependencies/workflows.md
-              - "Samples, findings and reports": reference/collection-dependencies/clinical.md
-              - "Identity, permissions and audit": reference/collection-dependencies/identity.md
-              - "Knowledgebase evidence": reference/collection-dependencies/knowledgebase.md
-              - "Operational state and BAM records": reference/collection-dependencies/operations.md
-          - "MongoDB collection contracts": reference/mongodb-collections.md
-          - "Operational files and artifacts": reference/operational-files.md
-  - Test and validate Coyote3:
-      - "Choose validation checks": testing/README.md
-      - "Test strategy and quality gates": testing/test-strategy-and-quality-gates.md
-      - "Validation datasets and test fixtures": testing/test-data-and-fixtures.md
-      - "Synthetic clinical workflow exercises": testing/clinical-workflow-demo.md
-      - "Demo data bundle": testing/demo-data-bundle.md
-      - "Local disposable full-stack validation": testing/disposable-stack-validation.md
-      - "Browser and release validation": testing/browser-and-release-validation.md
-      - "Load and capacity testing": testing/load-and-capacity-testing.md
-  - Project:
-      - "Contribution and licensing index": project/README.md
-      - Future work: project/future-work.md
-      - "Contributing": project/contributing.md
-      - "Maintainer guide": project/maintainer-guide.md
-      - "Governance overview": project/governance.md
-      - "Code of Conduct": project/code-of-conduct.md
-      - "License and clinical use": project/license.md
+              - Relationship guide and migration planning: reference/collection-dependencies/README.md
+              - Find any collection: reference/collection-dependencies/inventory.md
+              - Assays, diagnoses and gene lists: reference/collection-dependencies/configuration.md
+              - Drafts, publications and revisions: reference/collection-dependencies/workflows.md
+              - Samples, findings and reports: reference/collection-dependencies/clinical.md
+              - Identity, permissions and audit: reference/collection-dependencies/identity.md
+              - Knowledgebase evidence: reference/collection-dependencies/knowledgebase.md
+              - Operational state and BAM records: reference/collection-dependencies/operations.md
+          - MongoDB collection contracts: reference/mongodb-collections.md
+          - Operational files and artifacts: reference/operational-files.md

@@ -82,10 +82,20 @@ product reference, not a response to a request or a summary of completed work.
 
 ## Maintain navigation and links
 
+Use one main reading column with a clear heading hierarchy. Put the ordered
+procedure before field catalogs, historical behavior and operator maintenance
+commands. Keep warnings and prerequisites beside the action they govern. Optional
+diagrams can use a named disclosure; required instructions must remain visible.
+
+Use tables for field comparisons and mappings, rather than as the default format
+for introductions or long reading lists. Entry pages should give a short route
+for each audience, with a first action that does not require scanning the full index.
+
 Add each page to its section's README with a short purpose, and to `mkdocs.yml`.
 
-Keep navigation task-based. Put the section's **Start here** entry first, followed
-by procedures and their supporting references. Group long menus by operation;
+Keep navigation task-based. Put direct procedure links first and supporting
+references in a named group. The home page should open those procedures directly,
+without an intervening index. Group long menus by operation;
 do not make readers choose between several generic manuals without explaining
 their differences. Keep each page in one primary sidebar location and use links
 from other task guides when it is relevant there too.
@@ -95,7 +105,7 @@ next related task. Long references should link directly to common operations and
 distinguish similarly named concepts, such as query rules, review filters,
 reporting rules and report templates. Preserve existing page URLs and heading
 fragments when reorganizing navigation. Validate rendered navigation, including
-the clinical shortcuts, as well as Markdown links.
+the primary task links, as well as Markdown links.
 
 Link directly to the relevant procedure or heading in instructions. A section
 README is an optional subject index, not a prerequisite between two task steps.
@@ -105,15 +115,23 @@ use before linking its reference; do not make readers leave a procedure just to
 discover what its next action means.
 
 `docs/reading-paths.yml` defines the site's explicit task sequences. Add a page there
-only when it is the next operation in that task; alternative DNA/RNA guides, worked
-examples and field catalogs remain optional references. Sidebar group headings
+only when it is the next required operation in that task; alternative DNA/RNA guides,
+worked examples, failure recovery and field catalogs remain optional references.
+A complete single-page procedure needs no extra reading step. Sidebar group headings
 expand without navigating. Page contents are local and collapsible. The normal
 global Next/Previous sequence is replaced by named task navigation.
 
 In-page reference links retain a session-local return location. The return control
 leads to the source paragraph; it does not replace browser history or change the
 linked resource's URL. Links and task navigation remain usable without JavaScript;
-when session storage is unavailable, readers can use browser Back.
+when session storage is unavailable, readers can use browser Back. Task controls
+stay in normal page flow so they do not cover text while scrolling. **On this page**
+includes the guide's sections and their first level of subsections.
+
+The shared documentation stylesheet owns text measure, heading spacing, table
+overflow and print presentation. Check light and dark themes at narrow and wide
+widths after changing it. Print uses a white A4 page without the sidebar or reading
+controls; verify that text, code and warning titles remain legible in both themes.
 
 Use an existing README for each documentation section. Small task groups within
 the sidebar can point directly to their procedures; they do not require another

@@ -465,15 +465,12 @@ def build_smd_report_input(
         if name != sample.get("asp_id"):
             covered = genes.get("covered") or []
             sections.append(
-                _table(
-                    f"gene-list-{index}",
-                    f"Gener inkluderade i {name} insilico-panel",
-                    [""] * 15,
-                    [
-                        covered[start : start + 15] + [""] * (15 - len(covered[start : start + 15]))
-                        for start in range(0, len(covered), 15)
-                    ],
-                )
+                {
+                    "key": f"gene-list-{index}",
+                    "kind": "compact_table",
+                    "heading": f"Gener inkluderade i {name} insilico-panel",
+                    "items": list(covered),
+                }
             )
     if not context.get("germline") or analyte == "rna":
         legend = {
@@ -510,7 +507,7 @@ def build_smd_report_input(
         if branding.get(key) and not branding[key].startswith("data:image/"):
             raise ValueError("Report artwork must already be embedded")
     return {
-        "application": "coyote3",
+        "preset": "coyote3",
         "analyte": analyte,
         "language": "sv",
         "title": str(

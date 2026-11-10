@@ -21,24 +21,48 @@ for (const theme of ["light", "dark"]) {
           await route.fulfill({ status: 404, body: "Build the documentation before running this test." })
         }
       })
-      await page.goto("/docs-site/user-guide/clinical-review-workflow/")
+      await page.goto("/docs-site/")
+      const article = page.locator('[itemprop="articleBody"]')
+      await expect(article.locator("li > strong > a")).toHaveCount(6)
+      await expect(page.locator(".docs-nav-section > summary")).toHaveCount(6)
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1)
+      await page.screenshot({ path: testInfo.outputPath("start-here.png") })
+      await page.evaluate(() => sessionStorage.setItem("coyote3.docs.reference-trail", JSON.stringify([{
+        from: new URL("/docs-site/reference/clinical-concepts/", location.href).href,
+        to: "/docs-site/user-guide/clinical-review-workflow/", label: "A previous task",
+      }])))
+      await article.getByRole("link", { name: "Review and report a sample", exact: true }).click()
+      await expect(page.locator("#docs-return-context")).toBeHidden()
       await expect(page.getByRole("heading", { level: 1, name: "Clinical review workflow" })).toBeVisible()
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme)
-      await expect(page.getByRole("navigation", { name: "Reading path", exact: true })).toContainText("1 of 2")
+      await expect(page.getByRole("navigation", { name: "Reading path", exact: true })).toHaveCount(0)
       expect(await page.locator(".docs-page-contents").getAttribute("open")).toBeNull()
+      expect(await article.locator("h1").evaluate(heading =>
+        Boolean(heading.compareDocumentPosition(document.querySelector(".docs-reading-tools")!) & Node.DOCUMENT_POSITION_FOLLOWING)
+      )).toBe(true)
+      expect((await article.boundingBox())!.width).toBeLessThanOrEqual(820)
+      const paragraphStyle = await article.locator("p").filter({ hasText: /^Clinical review progresses/ }).evaluate(element => {
+        const style = getComputedStyle(element)
+        return { font: parseFloat(style.fontSize), line: parseFloat(style.lineHeight) }
+      })
+      expect(paragraphStyle.font).toBeGreaterThanOrEqual(16)
+      expect(paragraphStyle.line / paragraphStyle.font).toBeGreaterThanOrEqual(1.6)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
       const menu = page.getByRole("button", { name: "Toggle documentation menu", exact: true })
       if (width === 390) {
         await menu.click()
         await expect(menu).toHaveAttribute("aria-expanded", "true")
       }
       const initialUrl = page.url()
-      await page.locator(".docs-nav-group > summary").filter({ hasText: /^Review a sample$/ }).click()
+      await page.locator(".docs-nav-group > summary").filter({ hasText: /^Review reference$/ }).click()
       expect(page.url()).toBe(initialUrl)
       if (width === 390) {
         await menu.click()
         await expect(menu).toHaveAttribute("aria-expanded", "false")
       }
       const expand = page.getByRole("button", { name: "Expand diagram: Clinical review responsibilities and evidence", exact: true })
+      await expect(expand).toBeHidden()
+      await page.getByText("View review responsibilities and saved evidence", { exact: true }).click()
       await expand.click()
       const diagram = page.getByRole("dialog", { name: "Clinical review responsibilities and evidence" })
       await expect(diagram).toBeVisible()
@@ -47,6 +71,14 @@ for (const theme of ["light", "dark"]) {
       await page.keyboard.press("Escape")
       await expect(diagram).toHaveCount(0)
       await expect(expand).toBeFocused()
+      await page.emulateMedia({ media: "print" })
+      await expect(page.locator(".wy-nav-side")).toBeHidden()
+      await expect(page.locator(".docs-reading-tools")).toBeHidden()
+      await expect(page.getByRole("heading", { level: 1, name: "Clinical review workflow" })).toBeVisible()
+      expect(await article.evaluate(element => getComputedStyle(element).color)).toBe("rgb(64, 64, 64)")
+      const printed = await page.pdf({ path: testInfo.outputPath("clinical-guide.pdf"), preferCSSPageSize: true })
+      expect(printed.subarray(0, 5).toString()).toBe("%PDF-")
+      await page.emulateMedia({ media: "screen" })
       const reference = page.getByRole("link", { name: "DNA clinical review", exact: true })
       await reference.click()
       await expect(page).toHaveURL(/\/user-guide\/dna-review\/$/)
@@ -55,7 +87,8 @@ for (const theme of ["light", "dark"]) {
       await back.click()
       await expect(page).toHaveURL(/\/clinical-review-workflow\/#docs-reference-/)
       await expect(reference).toBeInViewport()
-      await page.getByRole("navigation", { name: "Continue this task", exact: true }).getByRole("link", { name: /Preview and save the report/ }).click()
+      await expect(page.getByRole("navigation", { name: "Continue this task", exact: true })).toContainText("End of this guide")
+      await article.getByRole("link", { name: "report preview and save controls", exact: true }).click()
       await expect(page).toHaveURL(/\/application-guide\/#reports$/)
       await expect(page.locator("#reports")).toBeInViewport()
       await expect(page.locator(".rst-footer-buttons")).toHaveCount(0)
@@ -83,6 +116,15 @@ for (const theme of ["light", "dark"]) {
         await expect(link).toBeFocused()
       }
       await page.screenshot({ path: testInfo.outputPath("configuration-navigation.png") })
+      await page.goto("/docs-site/administration/assay-setup/")
+      const procedure = page.locator("#step-by-step-add-a-new-assay")
+      const history = page.locator("#current-versions-and-history")
+      expect((await procedure.boundingBox())!.y).toBeLessThan((await history.boundingBox())!.y)
+      await expect(page.locator('[itemprop="articleBody"] pre').filter({ hasText: "function cleanupPublishedSetupDrafts" })).toHaveCount(0)
+      await page.locator(".docs-page-contents > summary").click()
+      await expect(page.locator(".docs-page-contents").getByRole("link", { name: "3. Select scopes and environments", exact: true })).toBeVisible()
+      await page.locator(".docs-page-contents > summary").click()
+      await page.screenshot({ path: testInfo.outputPath("assay-setup-reading.png") })
       for (const filename of ["clinical-review-flow", "runtime-topology", "assay-configuration-relationships", "report-generation-flow", "resource-setup-order", "application-architecture", "sample-readiness-checks", "query-policy-flow"]) {
         await page.goto(`/docs-site/assets/diagrams/${filename}.svg`)
         const overflow = await page.locator("svg > g > text").evaluateAll(elements => elements.flatMap(element => {

@@ -184,6 +184,69 @@ Use the resulting JSON as maintenance evidence and compare it with the prior
 snapshot. It is a capacity inventory, not a synthetic benchmark: latency
 changes still need to be assessed against an approved non-production workload.
 
+## Remove editing snapshots from previously published setups
+
+For existing staging records, an operator can run the following in an authenticated
+`mongosh` session. It targets only `coyote3_staging`, requires transactions, and
+verifies that every published setup retains its final published snapshot before
+removing older draft/submitted snapshots. Operational resources, published snapshots
+and audit events are not deleted. Successful cleanup permanently removes the old
+editing content; it does not reset revision numbers.
+
+```javascript
+function cleanupPublishedSetupDrafts(apply = false) {
+  const session = db.getMongo().startSession();
+  const staging = session.getDatabase("coyote3_staging");
+  let snapshots = 0;
+  let setups = 0;
+  session.startTransaction();
+  try {
+    const published = staging.assay_setups.find(
+      { status: "published" }, { _id: 1, revision: 1 }
+    ).toArray();
+    for (const setup of published) {
+      const setupId = setup._id.toString();
+      const retained = staging.assay_setup_revisions.findOne({
+        setup_id: setupId, revision: setup.revision,
+        "document.status": "published"
+      });
+      if (!retained) throw new Error("Missing published snapshot; cleanup aborted");
+      const filter = {
+        setup_id: setupId, revision: { $lt: setup.revision },
+        "document.status": { $in: ["draft", "submitted"] }
+      };
+      const count = staging.assay_setup_revisions.countDocuments(filter);
+      if (count) setups += 1;
+      snapshots += apply
+        ? staging.assay_setup_revisions.deleteMany(filter).deletedCount
+        : count;
+    }
+    if (apply) session.commitTransaction();
+    else session.abortTransaction();
+    return { applied: apply, setups, snapshots };
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+```
+
+Preview counts without deleting, then review the result:
+
+```javascript
+cleanupPublishedSetupDrafts(false)
+```
+
+To perform the cleanup, rechecking the records in a new transaction:
+
+```javascript
+cleanupPublishedSetupDrafts(true)
+```
+
+Return to [assay setup and publication history](../administration/assay-setup.md#current-versions-and-history).
+
 ## Integrated Operational Assets
 
 Use these related documents for detailed procedures:

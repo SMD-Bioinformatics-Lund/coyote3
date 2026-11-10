@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 
 import pytest
 from smd_reports import ReportLoader
+from weasyprint import HTML
+from weasyprint.formatting_structure.boxes import TextBox
 
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_context import prepare_render_context
@@ -35,6 +37,8 @@ def test_projection_preserves_selected_values_and_does_not_mutate_context():
     inputs = structural_context()
     original = deepcopy(inputs)
     result = document(inputs)
+    assert result["preset"] == "coyote3"
+    assert "application" not in result
     projected = sections(result)
     assert projected["snvs"]["rows"] == [
         ["TP53", "17", "4/11", "p.(K4E)", "40%", "I", "Synthetic clinical significance"]
@@ -85,9 +89,42 @@ def test_gene_lists_keep_all_genes_in_order_without_repeating_the_assay_panel():
     }
     projected = sections(document(inputs))
     assert "gene-list-0" not in projected
-    rows = projected["gene-list-1"]["rows"]
-    assert all(len(row) == 15 for row in rows)
-    assert [gene for row in rows for gene in row if gene] == genes
+    assert projected["gene-list-1"]["items"] == genes
+
+
+@pytest.mark.parametrize("count", [0, 31, 503])
+def test_compact_gene_table_preserves_every_gene_in_html_and_paginated_pdf(count):
+    """Covered genes remain ordered, legible and inside PDF margins as the list grows."""
+    inputs = empty_context()
+    inputs["report_sections"] = []
+    genes = [f"SYNTHETIC_{index:04d}" for index in range(count)]
+    inputs["genes_covered_in_panel"] = {"Synthetic scope": {"covered": genes}}
+    output = render_report_html(
+        template_name="smd/dna_report.html",
+        template_context=inputs,
+        snapshot_rows=[],
+        analyte="dna",
+        preview=False,
+    )
+    html = HTML(string=output)
+    table = html.etree_element.find('.//section[@id="gene-list-0"]/table')
+    if count:
+        assert table is not None
+        assert [cell.text for cell in table.findall(".//td")] == genes
+    else:
+        assert table is None
+        assert html.etree_element.find('.//section[@id="gene-list-0"]/p[@class="empty"]').text
+    rendered_genes = []
+    for page in html.render().pages:
+        bounds = page._page_box
+        for box in bounds.descendants():
+            if isinstance(box, TextBox) and box.text in genes:
+                rendered_genes.append(box.text)
+                assert box.position_x >= bounds.content_box_x() - 1
+                assert box.position_x + box.width <= bounds.content_box_x() + bounds.width + 1
+                assert box.position_y >= bounds.content_box_y() - 1
+                assert box.position_y + box.height <= bounds.content_box_y() + bounds.height + 1
+    assert rendered_genes == genes
 
 
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
@@ -159,7 +196,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     assert "<script>" not in output and '<img src="https:' not in output
     assert "&lt;script&gt;" in output and "<strong>Reviewed</strong>" in output
     assert "Content-Security-Policy" in output
-    assert 'name="smd-reports:package_version" content="0.1.2"' in output
+    assert 'name="smd-reports:package_version" content="0.3.0"' in output
 
 
 def test_smd_identity_is_distinct_from_historical_templates_and_analytes():

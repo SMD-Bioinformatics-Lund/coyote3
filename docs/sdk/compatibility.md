@@ -22,10 +22,10 @@ package versions, and two modern report-template versions.
 | Application, including the UI | `4.0.0` | `application_version` in `release.toml` | Tested frontend, API, worker and selected SDK combination. The UI has no independent release counter. |
 | Core SDK/server package | `1.0.0` | `[project].version` in `pyproject.toml` | Installable `coyote3` core, bundled API modules and report assets. Changed wheel content requires a new published package version. |
 | Python client SDK | `1.0.0` | `[project].version` in `clients/python/pyproject.toml` | Independent HTTP-only `coyote3-client` package, imported as `coyote3_client`. |
-| Modern DNA report template | `0.1.2` | `coyote3.dna` in the installed `smd_reports/themes/versions.json` | DNA presentation release printed in the PDF footer. |
-| Modern RNA report template | `0.1.2` | `coyote3.rna` in the same SMD template manifest | RNA presentation release printed in the PDF footer. |
+| Modern DNA report template | `0.3.0` | `coyote3.dna` in the installed `smd_reports/themes/versions.json` | DNA presentation release printed in the PDF footer. |
+| Modern RNA report template | `0.3.0` | `coyote3.rna` in the same SMD template manifest | RNA presentation release printed in the PDF footer. |
 
-The exact `smd-reports` dependency is 0.1.2. Its package version and template
+The exact `smd-reports` dependency is 0.3.0. Its package version and template
 version appear in report metadata. The retained Coyote3 `modern/manifest.toml`
 identifies historical bundled templates, not newly rendered Modern reports.
 

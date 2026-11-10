@@ -9,7 +9,12 @@ you intend to perform. **You finish with:** reviewed findings and a saved report
 or a recorded reason why review cannot continue. Follow the steps on this page;
 the DNA, RNA and coverage references provide extra detail only when needed.
 
+<details markdown="1">
+<summary>View review responsibilities and saved evidence</summary>
+
 ![Clinical review responsibilities and evidence](../assets/diagrams/clinical-review-flow.svg)
+
+</details>
 
 ## 1. Find the sample
 
@@ -26,7 +31,7 @@ or case identifier. Select the sample name to open its workspace.
 ## 2. Check the overview
 
 Before reviewing findings, confirm the sample identity, case and control
-metadata, assay, ASPC, pipeline, loaded files, and analysis status. Stop if these
+metadata, assay, assay configuration (ASPC), pipeline, loaded files, and analysis status. Stop if these
 details do not match the submitted case.
 
 The available pages come from the sample omics layer and resolved ASPC. A
@@ -124,7 +129,16 @@ requesting it does not save a sample comment or a report. If no published report
 rules resolve, the report remains available and the UI warns that an automatic
 summary is unavailable.
 
-Open **Reports** and review the temporary preview. The report conclusion uses the
+1. Open **Reports** inside the sample. The global Reports page lists saved reports;
+   it does not create a new report outside a sample.
+2. Choose the report format. **Modern** is the default; **Legacy** uses the older
+   layout. Review a new preview after changing the format.
+3. Check the sample identity, included findings and report text in the preview.
+   Use **Refresh** if you need to regenerate it after changes.
+4. Select **Save report**. Check the sample, format and included-finding count in
+   **Confirm report save**, then select **Confirm save**. Review the saved output.
+
+The report conclusion uses the
 latest visible sample comment; no comment produces an empty summary. Reported
 finding rows are built from the current reportable findings and enabled report
 sections.

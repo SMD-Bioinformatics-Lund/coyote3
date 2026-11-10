@@ -58,7 +58,7 @@ def test_template_version_participates_in_its_analyte_identity_only(monkeypatch,
             preview=True,
             layout="modern",
         )
-        assert 'name="smd-reports:package_version" content="0.1.2"' in html
+        assert 'name="smd-reports:package_version" content="0.3.0"' in html
         assert template_content_hash(f"smd/{name}") == hashes[f"smd/{name}"]
 
 
@@ -103,8 +103,8 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
             preview=True,
             layout="modern",
         )
-        assert 'name="smd-reports:package_version" content="0.1.2"' in html
-        assert 'name="smd-reports:template_version" content="0.1.2"' in html
+        assert 'name="smd-reports:package_version" content="0.3.0"' in html
+        assert 'name="smd-reports:template_version" content="0.3.0"' in html
 
 
 @pytest.mark.parametrize(
@@ -159,7 +159,7 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
     html = render_report_html(
         template_name=name, template_context=inputs, snapshot_rows=[], analyte=analyte, preview=True
     )
-    assert 'name="smd-reports:package_version" content="0.1.2"' in html
+    assert 'name="smd-reports:package_version" content="0.3.0"' in html
     assert "SYNTHETIC_EXTRACTION" in html
     issued = render_report_html(
         template_name=name,
@@ -170,7 +170,7 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
     )
     assert "TRY NEW REPORT · TEMPORARY PREVIEW" not in issued
     assert "@bottom-left { content: element(report-page-footer);" in issued
-    assert 'name="smd-reports:template_version" content="0.1.2"' in issued
+    assert 'name="smd-reports:template_version" content="0.3.0"' in issued
     inputs["assay_config"]["template_release"]["content_hash"] = "invalid"
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(

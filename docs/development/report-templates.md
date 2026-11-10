@@ -1,6 +1,6 @@
 # Report templates and rendering
 
-Modern DNA/RNA reports use the Python API of `smd-reports==0.1.2`. Coyote3 supplies
+Modern DNA/RNA reports use the Python API of `smd-reports==0.3.0`. Coyote3 supplies
 the evaluated clinical content; the package owns the document, tables, detail
 cards, styles, fonts and pagination. No CLI, subprocess or temporary JSON file is
 used to render a report.
@@ -13,6 +13,11 @@ used to render a report.
 3. `application/reporting/smd_input.py` projects those values into the package's
    report contract, preserving missing measurements, zero counts, selected fusion
    calls, transcript notation and Swedish wording.
+   Covered genes use `compact_table` with ordered `items`; the package fits the
+   columns to the available paper width without adding blank header cells.
+   The JSON selects `preset: coyote3`; package defaults supply the Coyote3 theme,
+   branded header and translated metadata labels. Optional badge, theme and layout
+   overrides are omitted. Clinical text and report language remain Swedish.
 4. `ReportLoader().loads(...)` validates the in-memory JSON document.
    `ReportRenderer().render_html(...)` produces standalone HTML.
 5. Coyote3 adds its browser content-security policy. Its restricted WeasyPrint
@@ -35,7 +40,7 @@ validation and the saved resolution receipt. A renderer or adapter change requir
 a new preview; an approved SMD profile with a different installed hash is rejected.
 
 The HTML metadata and PDF footer identify `smd-reports` and its analyte template
-version. Package 0.1.2 supplies Coyote3 DNA/RNA template version 0.1.2. The old
+version. Package 0.3.0 supplies Coyote3 DNA/RNA template version 0.3.0. The old
 bundled manifest remains the identity source for historical bundled profiles;
 changing it does not release a new SMD template. Publish a new SMD package version
 for package-owned presentation changes, update Coyote3's exact dependency and

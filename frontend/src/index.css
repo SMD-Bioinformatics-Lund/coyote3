@@ -1776,14 +1776,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.42rem;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--card) 88%, transparent);
     padding: 0.65rem 0.82rem;
-    box-shadow: 0 8px 22px color-mix(in srgb, var(--foreground) 9%, transparent);
-  }
-  .dark .app-loader-material {
-    box-shadow: 0 8px 22px rgb(0 0 0 / 24%);
   }
   .app-loader-material span {
     width: 0.55rem;

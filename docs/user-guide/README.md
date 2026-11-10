@@ -7,13 +7,14 @@ configuration and user access. Account and assay configuration are covered in
 
 ## Review your first sample
 
-1. [Sign in and learn the navigation](application-guide.md#sign-in-and-public-pages).
-2. Follow the [clinical review workflow](clinical-review-workflow.md) from sample
-   selection through interpretation and reporting.
-3. Use the [DNA](dna-review.md), [RNA](rna-review.md) and [coverage](coverage-review.md)
-   guides for the analyses available on that sample.
-4. [Review biomarker assessments](biomarker-review.md) when enabled, then
-   [preview and save the report](try-new-report.md) in modern or legacy format.
+Follow the [clinical review workflow](clinical-review-workflow.md) from sample
+selection through saving the report. It is the complete procedure on one page.
+
+If you are new to the application, use [sign-in and navigation](application-guide.md#sign-in-and-public-pages)
+for the screen controls. Open the [DNA](dna-review.md), [RNA](rna-review.md),
+[coverage](coverage-review.md) or [biomarker](biomarker-review.md) reference when you
+need detail for an enabled analysis. [Report formats](try-new-report.md) explains
+Modern and Legacy presentation. These references are not additional review steps.
 
 If a sample, analysis or result is missing, start with
 [sample readiness and missing results](sample-readiness-and-missing-results.md)
@@ -22,6 +23,9 @@ before changing filters. To understand the underlying selection, follow
 To change an assay's configuration, use [administration](../administration/README.md).
 
 ## Guides
+
+<details markdown="1">
+<summary>All clinical reference guides</summary>
 
 | Guide | Use it to |
 | --- | --- |
@@ -38,5 +42,7 @@ To change an assay's configuration, use [administration](../administration/READM
 | [Operational Dashboard](dashboard.md) | Interpret workload, recent samples, and operational summaries. |
 | [User Action and Operational Impact Reference](actions-and-record-changes.md) | Check which records a user action changes. |
 | [UI Page And Table Reference](pages-and-table-columns.md) | Look up page controls, columns, badges, and tooltips. |
+
+</details>
 
 [Documentation home](../README.md)

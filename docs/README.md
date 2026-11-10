@@ -1,61 +1,40 @@
 # Coyote3 documentation
 
-Coyote3 supports clinical genomics workflows from sample ingestion and assay-aware
-review to classification and reporting. Documentation covers clinical workflows,
-assay configuration, access management, integration, deployment, and operations.
+Choose the task you need to complete. The guides below give its steps and checks.
 
 ## Start with a task
 
-Pick the outcome you need below. Each link opens the procedure itself. Its reading
-path shows the next task page; **On this page** opens the local section list.
-References provide optional detail, with a return link to your place in the procedure.
+<nav class="docs-task-start" aria-label="Choose a task" markdown="1">
 
-| Task | Start here |
-| --- | --- |
-| Evaluate Coyote3 locally | [Local quickstart](getting-started/local-quickstart.md) |
-| Install at a new center | [First installation](deployment/first-installation.md), then the [deployment acceptance checklist](deployment/acceptance-checklist.md) |
-| Prepare the deployment environment file | [Environment file fields and examples](configuration/environment-file.md) |
-| Update or restart an existing installation | [Choose a procedure](deployment/production-deployment.md) |
-| Migrate an existing Coyote v2 or v3 database | [Select the source version and follow the migration procedure](operations/migrations/clinical-data.md#select-the-source-version) |
-| Review a DNA or RNA sample | [Clinical review workflow](user-guide/clinical-review-workflow.md) |
-| Explain a missing sample, tab, or result | [Sample readiness and missing results](user-guide/sample-readiness-and-missing-results.md) |
-| Set up an assay for the first time | [Prerequisites and setup steps](administration/assay-setup.md#step-by-step-add-a-new-assay) |
-| Understand application query defaults or change finding selection | [Base queries by analysis](administration/query-rules.md#application-base-queries-by-analysis), then [UI rule inheritance](administration/query-rules.md#scope-and-inheritance) |
-| Manage accounts and access | [Permissions and access control](administration/permissions-and-access.md) |
-| Plan a clinical configuration change | [Planning configuration changes](administration/planning-configuration-changes.md) |
-| Submit samples from a pipeline or client | [Sample ingestion API](api/sample-ingestion.md) and [sample manifest](reference/sample-manifest.md) |
-| Make your first code change | [Developer environment setup](getting-started/developer-environment.md) |
-| Use the remote Python client | [Client installation and usage](sdk/python-client.md) |
-| Build a trusted Python application host | [Application SDK operations](sdk/application-sdk.md) |
-| Investigate an installed-system failure | [Operations troubleshooting](operations/troubleshooting.md) |
-| Investigate an accepted or failed ingest job | [Ingest job recovery](operations/ingest-job-recovery.md) |
+- <span id="review-and-report-a-sample"></span>**[Review and report a sample](user-guide/clinical-review-workflow.md).**
+  Find a sample, review its results and save a report.
+- <span id="configure-an-assay"></span>**[Set up an assay](administration/assay-setup.md#step-by-step-add-a-new-assay).**
+  Prepare its configuration and verify it with a validation sample.
+- <span id="install-or-operate-coyote3"></span>**[Install, update or restart Coyote3](deployment/production-deployment.md).**
+  Choose the procedure for a new or existing installation.
+- <span id="connect-a-pipeline-or-python-application"></span>**[Connect a pipeline](api/authentication.md).**
+  Arrange access, prepare sample files and submit them to Coyote3.
+- <span id="develop-coyote3"></span>**[Develop Coyote3](getting-started/developer-environment.md).**
+  Prepare the development environment, make a change and verify it.
+- <span id="investigate-a-problem"></span>**[Get help with a problem](operations/troubleshooting.md).**
+  Investigate service failures. For missing sample results, use
+  [sample readiness](user-guide/sample-readiness-and-missing-results.md).
+
+</nav>
+
+For evaluation with demonstration data, use the [local quickstart](getting-started/local-quickstart.md).
 
 ## Browse the documentation tree
 
-Use this index when you are looking up a subject rather than following a task.
-
-<details markdown="1">
-<summary>Open the complete section index</summary>
-
-| Directory | What belongs here |
-| --- | --- |
-| [getting-started/](getting-started/README.md) | Entry point for evaluation, first installation, upgrades, redeployment and configuration references. |
-| [user-guide/](user-guide/README.md) | Clinical review, samples, coverage, dashboards, pages, and controls. |
-| [administration/](administration/README.md) | Users, access, assay groups, diagnoses, clinical configuration, and catalog publication. |
-| [api/](api/README.md) | Authentication, HTTP routes, ingestion, collection imports, and compatibility. |
-| [sdk/](sdk/README.md) | Python installation, local operations, remote client, host development, reference and independent versions. |
-| [architecture/](architecture/README.md) | Components, resource relationships, clinical data flow, security, and design decisions. |
-| [deployment/](deployment/README.md) | Installation and infrastructure source guides, grouped under Getting started in the site. |
-| [configuration/](configuration/README.md) | File syntax, supported fields, defaults, examples and links to clinical resource contracts. |
-| [development/](development/README.md) | Code structure, extension guides, frontend components, commands, and documentation practices. |
-| [operations/](operations/README.md) | Monitoring, logs, incidents, backups, reference updates, and migrations. |
-| [reference/](reference/README.md) | Clinical concepts, rules, report snapshots, input formats, and database contracts. |
-| [testing/](testing/README.md) | Quality gates, synthetic fixtures, browser validation, and load testing. |
-| [project/](project/README.md) | Contribution, maintenance, governance, conduct, and licensing. |
-
-</details>
+The sidebar puts common actions first. The reference groups contain field
+definitions, examples, architecture and other supporting material. Use
+[How to use this manual](getting-started/README.md) if you are unsure which kind
+of guide you need.
 
 ## Frequently used references
+
+<details markdown="1">
+<summary>Look up a specific concept or field</summary>
 
 - [Samples and clinical review](user-guide/sample-management.md)
 - [Assays, configurations, and gene lists](user-guide/gene-lists-and-assay-context.md)
@@ -72,6 +51,8 @@ Use this index when you are looking up a subject rather than following a task.
   and capabilities installed with the application.
 - [Center configuration files](deployment/center-configuration.md): supported
   center-owned files and settings.
+
+</details>
 
 ## Documentation sources and site support
 

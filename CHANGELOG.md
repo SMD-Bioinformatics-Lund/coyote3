@@ -4,6 +4,21 @@
 
 Version 4 replaces Flask with FastAPI and React.
 
+- Documentation navigation starts with six task/reference areas and direct action
+  links. Complete review and assay setup guides no longer send readers through
+  optional reference pages as required steps. Page titles precede reading controls;
+  the home page presents six starting choices and reference inventories expand on demand.
+
+- Documentation uses a narrower reading column, clearer heading spacing and a
+  print layout. Entry pages group reading paths by task; assay setup presents the
+  procedure before references and keeps staging cleanup in operational maintenance.
+
+- Loading indicators use one card surface around the animated dots and label.
+
+- Modern reports use `smd-reports` 0.3.0 and its compact covered-gene tables,
+  retaining gene order and content. Package metadata identifies version 0.3.0;
+  the package's DNA/RNA template revision is 0.3.0.
+
 - Modern DNA/RNA reports use the imported `smd-reports` renderer and an application
   input adapter. Preview validation and saved provenance identify the installed
   renderer and adapter. Legacy output and issued report artifacts are retained.

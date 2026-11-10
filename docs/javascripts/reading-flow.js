@@ -20,13 +20,11 @@
     container.replaceChildren();
     container.hidden = !current || current.to !== location.pathname;
     if (container.hidden) return;
-    const label = document.createElement("span");
-    label.textContent = "You opened a reference. ";
     const back = document.createElement("a");
     back.href = current.from;
     back.textContent = `Return to ${current.label}`;
     back.addEventListener("click", () => { trail.pop(); write(trail); });
-    container.append(label, back);
+    container.append(back);
   };
   document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.querySelector(".wy-nav-side");
@@ -40,6 +38,13 @@
     const content = document.querySelector(".rst-content");
     if (!content) return;
     content.querySelectorAll("a[href]").forEach((link, index) => {
+      if (link.closest(".docs-task-start")) {
+        link.addEventListener("click", event => {
+          if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target === "_blank") return;
+          write([]);
+        });
+        return;
+      }
       if (link.closest("nav, footer, .wy-breadcrumbs, .docs-page-contents") || link.classList.contains("headerlink")) return;
       const destination = new URL(link.href);
       if (destination.origin !== location.origin || !destination.pathname.startsWith(root.pathname)
@@ -54,12 +59,6 @@
         write([...read(), { from: from.href, to: destination.pathname, label: title }]);
       });
     });
-    const tools = document.querySelector(".docs-reading-tools");
-    if (tools) {
-      const measure = () => document.documentElement.style.setProperty("--docs-reading-offset", `${tools.getBoundingClientRect().height + 20}px`);
-      new ResizeObserver(measure).observe(tools);
-      measure();
-    }
     content.querySelectorAll('img[src*="assets/diagrams/"]').forEach(image => {
       const figure = document.createElement("figure");
       figure.className = "docs-figure";

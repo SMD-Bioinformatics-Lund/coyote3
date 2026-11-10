@@ -11,6 +11,10 @@ the UI. Start at **step 9** to check service status and the browser URL.
 
 ## 1. Check prerequisites
 
+Check the [production baseline](production-requirements.md) before running the
+installation commands. It covers network protection, backups, monitoring and
+database requirements. Stop here if a required prerequisite is unavailable.
+
 MongoDB authentication is optional; installation warns and continues for
 unauthenticated connections. Application login and role permissions remain required.
 Database-level audit protection requires authenticated, collection-scoped runtime permissions.

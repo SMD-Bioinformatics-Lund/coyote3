@@ -3,6 +3,7 @@
 import base64
 import re
 from io import BytesIO
+from xml.etree import ElementTree
 
 import pytest
 from PIL import Image
@@ -188,7 +189,9 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
         layout="modern",
     )
     # Isolate the rendered summary table so detail sections do not repeat finding names.
-    table = re.search(r'<table class="results variant_table">.*?</table>', html, re.S).group()
+    summary = HTML(string=html).etree_element.find('.//section[@id="snvs"]/table')
+    assert summary is not None
+    table = ElementTree.tostring(summary, encoding="unicode", method="html")
     document = HTML(
         string=html.partition("<body ")[0]
         + '<body><div class="page">'
@@ -241,7 +244,7 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
     table_pages = {}
     for index, page in enumerate(document.pages):
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        assert "Coyote3 DNA · Mall 0.1.2 · smd-reports 0.1.2" in words
+        assert "Coyote3 DNA · Mall 0.3.0 · smd-reports 0.3.0" in words
         for box in page._page_box.descendants():
             if box.element is not None and "report_variant" in box.element.get("class", "").split():
                 table_pages.setdefault(box.element, set()).add(index)

@@ -23,6 +23,9 @@ For installation rather than API use, follow [deployment](../deployment/README.m
 
 ## Guides
 
+<details markdown="1">
+<summary>API explorers and reference guides</summary>
+
 The installation's `/api/v1/docs` explorer and `/api/v1/redoc` reference include
 an integration guide with the mounted base path, OpenAPI version, authentication
 steps, request example, access constraints and error-response guidance. Both views
@@ -50,5 +53,7 @@ always downloads the complete contract, regardless of the selected resource.
 | [Collection imports and permissions](collection-imports.md) | Import collection documents with the required permissions. |
 | [API versioning and compatibility](versioning-and-compatibility.md) | Check API compatibility and runtime support commitments. |
 | [Raw ingest file contracts](../reference/ingest-files/README.md) | Prepare pipeline files before submitting a sample bundle. |
+
+</details>
 
 [Documentation home](../README.md)

@@ -1,35 +1,22 @@
-# Getting started
+# How to use this manual {#getting-started}
 
-Choose the task that matches your role and the state of your installation.
-Installing the application, changing its configuration and adding a clinical assay
-are separate operations; the links below identify the appropriate procedure.
-
-| Task | Start here |
-| --- | --- |
-| Evaluate the application with demonstration data | [Try Coyote3 locally](local-quickstart.md) |
-| Install at a new center | [First installation](../deployment/first-installation.md) |
-| Update a running installation | [Upgrade the application or configuration](../deployment/application-upgrades.md) |
-| Restart or replace containers without changing the release | [Restart or redeploy](../deployment/application-redeployment.md) |
-| Understand a file or setting mentioned in a procedure | [Configuration and file formats](../configuration/README.md) |
-| Add the first or another clinical assay | [Assay setup procedure](../administration/assay-setup.md#step-by-step-add-a-new-assay) |
-| Understand built-in finding selection and UI query rules | [Application base queries](../administration/query-rules.md#application-base-queries-by-analysis) and [policy inheritance](../administration/query-rules.md#scope-and-inheritance) |
-| Begin clinical review | [Review one sample from start to report](../user-guide/clinical-review-workflow.md) |
-| Prepare to develop application code | [Developer environment](developer-environment.md) |
+Start on the [documentation home page](../README.md#start-with-a-task) and choose
+the task you need to complete. You do not need to read this manual from beginning
+to end.
 
 ## Choose a reading path
 
-You can use an existing installation without learning deployment or development.
-Start with the path for the work you need to do, then follow the linked references
-only when you need field definitions or implementation details.
+A **guide** gives the numbered actions, prerequisites and checks for a task.
+Follow those actions in order. A **reference** explains a field, term or setting;
+open it only when you need that detail.
 
-| Your work | Suggested reading order |
-| --- | --- |
-| Review and report clinical findings | [Sign in and navigate](../user-guide/application-guide.md#sign-in-and-public-pages) → [review a sample](../user-guide/clinical-review-workflow.md) → [preview and save a report](../user-guide/application-guide.md#reports). |
-| Configure an assay | [Understand the resources](../administration/clinical-configuration-resources.md) → [follow assay setup](../administration/assay-setup.md) → [validate the workflow](../testing/clinical-workflow-demo.md). Synthetic exercises supplement the center's validation. |
-| Install and operate the service | [Choose a deployment procedure](../deployment/production-deployment.md) → [acceptance checks](../deployment/acceptance-checklist.md) → [operations tasks](../operations/README.md). |
-| Connect a pipeline or external application | [Authenticate](../api/authentication.md) → [choose API workflows](../api/routes-and-workflows.md) or the [Python HTTP client](../sdk/python-client.md) → [prepare and submit samples](../api/sample-ingestion.md). |
-| Develop the application | [Prepare the environment](developer-environment.md) → [understand code boundaries](../development/developer-guide.md) → [run the required checks](../testing/test-strategy-and-quality-gates.md). |
-| Migrate legacy clinical data | [Choose the source version](../operations/migrations/README.md) → read its prerequisites and source inventory → follow its migration procedure. |
+When a task spans multiple guides, **Continue this task** opens its next required
+page. Optional examples, field catalogs and failure-recovery procedures are not
+extra steps in that path. The last page says **End of this guide**.
+
+If you open a reference from a guide, **Return to …** takes you back to the
+paragraph you were reading. If you arrive from search, use **Start here** in the
+sidebar to choose a task, or use the active sidebar section to find related material.
 
 ## Find the right kind of rule or setting
 
@@ -44,18 +31,18 @@ only when you need field definitions or implementation details.
 
 ## Using the documentation navigation
 
-Sidebar group headings expand their links; they do not open another contents page.
-Choose a procedure link to begin. **On this page** opens that page's section list.
-Task pages show their ordered path and a **Continue this task** link at the end.
-The **Clinical
-reference** shortcuts link directly to common review and assay topics.
+The sidebar has six areas: **Review samples**, **Configure assays**,
+**Install and operate**, **Integrate pipelines**, **Develop and validate**, and
+**Reference**. Each task area starts with direct action links. Expand its reference
+group when you need supporting material. **On this page** opens the current guide's
+sections, including its numbered steps.
 Search using the visible application term, such as “assay group”, “query rules”,
 “missing results” or “report preview”. For internal names such as ASP, ASPC and
 ISGL, use [clinical concepts and resource identities](../reference/clinical-concepts.md).
 
 ## Installation and updates
 
-All deployment guides appear under **Getting started → Installation and updates**
+Deployment procedures and their references appear under **Install and operate**
 in the documentation site. Their source files remain together in `docs/deployment/`.
 The [deployment overview](../deployment/README.md) lists infrastructure, acceptance
 and recovery references alongside the three ordered procedures.

@@ -12,6 +12,9 @@ That is the ordered procedure from preparing an active group to validating an
 activated assay. The sidebar groups its supporting pages under **Set up an assay**.
 You do not need to read every reference before starting.
 
+<details markdown="1">
+<summary>Look up a resource for a setup step</summary>
+
 | At this stage | Read this |
 | --- | --- |
 | Understand the names | [Resources and dependencies](clinical-configuration-resources.md): an assay (ASP) defines the offering; an assay configuration (ASPC) configures a diagnosis and environment; an in-silico gene list (ISGL) selects genes. |
@@ -22,6 +25,8 @@ You do not need to read every reference before starting.
 | Prepare reporting | [Optional setup step 5](assay-setup.md#5-optionally-publish-reporting-rules) and the [reporting-rule reference](../reference/clinical-reporting-rules.md). Query rules select findings; reporting rules generate clinical report content. |
 | Complete Base / production and activate | Continue from [setup step 6](assay-setup.md#6-complete-the-base-production-aspc), with validation and optional review before activation. |
 | Resolve a blocked step | [Missing prerequisites and their effects](clinical-configuration-resources.md#missing-prerequisites-and-their-effects). |
+
+</details>
 
 ## Other administration tasks
 
@@ -37,6 +42,9 @@ You do not need to read every reference before starting.
   or [operations](../operations/README.md); these are separate from registering an assay.
 
 ## All administration guides
+
+<details markdown="1">
+<summary>All administration reference guides</summary>
 
 | Guide | Use it to |
 | --- | --- |
@@ -63,5 +71,7 @@ You do not need to read every reference before starting.
 | [Center Vocabulary Configuration](clinical-vocabulary.md) | Configure center-owned terms and annotation choices. |
 | [Public Assay Catalog](public-assay-catalog.md) | Author, review, and publish the public assay catalog. |
 | [Application controls](application-controls.md) | Configure runtime switches and retention using exact keys and limits. |
+
+</details>
 
 [Documentation home](../README.md)

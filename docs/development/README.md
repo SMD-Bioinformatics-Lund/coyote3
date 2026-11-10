@@ -22,6 +22,9 @@ For an incident in an installed service, use [operations troubleshooting](../ope
 
 ## Guides
 
+<details markdown="1">
+<summary>All engineering reference guides</summary>
+
 | Guide | Use it to |
 | --- | --- |
 | [Developer environment setup](../getting-started/developer-environment.md) | Install the toolchain and prepare a local development environment. |
@@ -40,5 +43,7 @@ For an incident in an installed service, use [operations troubleshooting](../ope
 | [Dependency Advisory Policy](dependency-security.md) | Review dependency advisories and runtime security requirements. |
 | [Repository Script Reference](script-reference.md) | Find repository scripts and their execution responsibilities. |
 | [Development troubleshooting](troubleshooting.md) | Diagnose local development, configuration, and integration problems. |
+
+</details>
 
 [Documentation home](../README.md)

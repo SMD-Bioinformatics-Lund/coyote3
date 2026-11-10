@@ -22,6 +22,9 @@ Account permissions and clinical assay changes belong in
 
 ## Guides
 
+<details markdown="1">
+<summary>All operations reference guides</summary>
+
 | Guide | Use it to |
 | --- | --- |
 | [Operational Maintenance and Quality Verification](maintenance-and-verification.md) | Run maintenance checks and verify deployment data consistency. |
@@ -37,5 +40,7 @@ Account permissions and clinical assay changes belong in
 | [Ingest job recovery](ingest-job-recovery.md) | Interpret durable receipt states and investigate delays, failures, and uncertain acknowledgements. |
 | [Operational Troubleshooting & Remediation](troubleshooting.md) | Investigate operational failures and apply documented remediation. |
 | [Data migrations](migrations/README.md) | Find version, clinical-rule, and database-placement migrations. |
+
+</details>
 
 [Documentation home](../README.md)

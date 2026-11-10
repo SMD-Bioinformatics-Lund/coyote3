@@ -53,61 +53,30 @@
         {% endfor %}
       </ul>
     </details>
-  {% elif nav_item == nav.homepage and config.theme.include_homepage_in_sidebar %}
-    <details class="docs-nav-section"{% if nav_item.active %} open{% endif %}>
-      <summary>
-        <span class="docs-nav-section-label">{{ nav_item.title }}</span>
-        <svg class="docs-nav-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </summary>
-      <ul>
-        <li class="toctree-l1{% if nav_item.active %} current{% endif %}">
-          <a href="{{ nav_item.url | url }}"{% if nav_item.active %} aria-current="page"{% endif %}>Overview</a>
-        </li>
-        {% if nav_item.toc.items %}
-          {% for heading in nav_item.toc.items[0].children %}
-            <li class="toctree-l1"><a href="{{ nav_item.url | url }}{{ heading.url }}">{{ heading.title }}</a></li>
-          {% endfor %}
-        {% endif %}
-      </ul>
-    </details>
-  {% elif nav_item != nav.homepage %}
+  {% else %}
     <ul{% if nav_item.active %} class="current"{% endif %}>
       <li class="toctree-l{{ navlevel }}{% if nav_item.active %} current{% endif %}">
         {% include 'nav.html' %}
       </li>
     </ul>
   {% endif %}
-  {% if nav_item == nav.homepage %}
-    <details class="docs-nav-section docs-clinical-reference">
-      <summary>
-        <span class="docs-nav-section-label">Clinical reference</span>
-        <svg class="docs-nav-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </summary>
-      <ul>
-        {% for shortcut in config.extra.clinical_reference %}
-          <li class="toctree-l1"><a href="{{ shortcut.path | url }}">{{ shortcut.title }}</a></li>
-        {% endfor %}
-      </ul>
-    </details>
-  {% endif %}
 {% endfor %}
 {% endblock %}
 {% block content %}
+{% set article_parts = page.content.split('</h1>', 1) if page else [] %}
+{% if article_parts | length == 2 %}{{ article_parts[0] | safe }}</h1>{% endif %}
+{% if page and page.file.src_uri != 'README.md' %}
 <div class="docs-reading-tools">
 <div id="docs-return-context" class="docs-return-context" hidden></div>
-{% if reading_path %}
+{% if reading_path and reading_path.entries | length > 1 %}
 <nav class="docs-reading-path" aria-label="Reading path">
-  <p><strong>{{ reading_path.title }}</strong> <span>· {{ reading_path.position }} of {{ reading_path.entries | length }}</span></p>
-  <details><summary>Steps in this task</summary><ol>{% for entry in reading_path.entries %}<li><a href="{{ entry.url | url }}"{% if loop.index == reading_path.position %} aria-current="step"{% endif %}>{{ entry.label }}</a></li>{% endfor %}</ol></details>
+  <details><summary>{{ reading_path.title }} · {{ reading_path.position }} of {{ reading_path.entries | length }}</summary><ol>{% for entry in reading_path.entries %}<li><a href="{{ entry.url | url }}"{% if loop.index == reading_path.position %} aria-current="step"{% endif %}>{{ entry.label }}</a></li>{% endfor %}</ol></details>
 </nav>
 {% endif %}
+{% if page and page.file.src_uri != 'README.md' and page.toc and page.toc.items[0] and page.toc.items[0].children %}
+<details class="docs-page-contents"><summary>On this page</summary><ul>{% for heading in page.toc.items[0].children %}<li><a href="{{ heading.url }}">{{ heading.title }}</a>{% if heading.children %}<ul>{% for section in heading.children %}<li><a href="{{ section.url }}">{{ section.title }}</a></li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ul></details>
+{% endif %}
 </div>
-{% if page and page.toc and page.toc.items[0] and page.toc.items[0].children %}
-<details class="docs-page-contents"><summary>On this page</summary><ul>{% for heading in page.toc.items[0].children %}<li><a href="{{ heading.url }}">{{ heading.title }}</a></li>{% endfor %}</ul></details>
 {% endif %}
 {% set environment = config.extra.environment | trim | lower %}
 {% if environment and environment not in ["production", "prod"] %}
@@ -116,11 +85,11 @@
   <p>Not for production clinical use.</p>
 </div>
 {% endif %}
-{{ super() }}
+{% if article_parts | length == 2 %}{{ article_parts[1] | safe }}{% else %}{{ super() }}{% endif %}
 {% if reading_path %}
 <nav class="docs-reading-next" aria-label="Continue this task">
 {% if reading_path.previous %}<a href="{{ reading_path.previous.url | url }}"><span>Previous in this task</span><strong>{{ reading_path.previous.label }}</strong></a>{% endif %}
-{% if reading_path.next %}<a href="{{ reading_path.next.url | url }}"><span>Continue this task</span><strong>{{ reading_path.next.label }} →</strong></a>{% else %}<p>Task path complete. Use the references on this page for field-level details.</p>{% endif %}
+{% if reading_path.next %}<a href="{{ reading_path.next.url | url }}"><span>Continue this task</span><strong>{{ reading_path.next.label }} →</strong></a>{% else %}<p>End of this guide. <a href="{{ nav.homepage.url | url }}">Choose another task</a>, or use the references above when needed.</p>{% endif %}
 </nav>
 {% endif %}
 {% endblock %}
