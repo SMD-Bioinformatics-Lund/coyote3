@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Render production DNA and RNA reports with the pinned `smd-reports` Coyote3
+  template while retaining the existing clinical content and report workflows.
+- Build conditional report JSON directly from prepared findings and configuration.
+- Use `smd-reports==0.4.1` and supply the production author caption through
+  `report.author_label`, without a Coyote3 renderer override.
+- Display reports in an isolated preview frame with separate finalization confirmation
+  and panel configuration actions. Saved HTML contains only the shared report.
+- Update required report dependencies and remove unused PDF-rendering dependencies.
+
 ## v3.3.0
 ### DNA – Translocations
 - Added "Pick" for DNA translocation annotations: users can select which alternate transcript combination is the active annotation (new `dna_bp.pick_transloc_call` route, `TranslocsHandler.pick_transloc`). The selected annotation is used as fallback when no MANE annotation exists.

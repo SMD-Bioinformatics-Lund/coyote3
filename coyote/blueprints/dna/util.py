@@ -21,10 +21,12 @@ from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from coyote.blueprints.rna.util import RNAUtility
-from flask import current_app as app
+from coyote.util.report.report_documents import build_dna_document
+from coyote.util.report.shared_renderer import render_report, render_preview
+from flask import current_app as app, url_for
+from flask_login import current_user
 from coyote.extensions import store
 from typing import Any, Dict, List, Optional, Tuple
-from flask import render_template
 from coyote.blueprints.dna.varqueries import build_query
 from copy import deepcopy
 import os
@@ -554,8 +556,9 @@ class DNAUtility:
             behavior for the DNA report.
 
         save : int, optional
-            Flag passed through to the report template to control rendering behavior
-            (e.g. preview vs. save mode). This flag does not trigger persistence.
+            A value of 1 returns standalone shared-template HTML for saving.
+            Other values return the Flask preview container with separate actions.
+            This flag does not trigger persistence.
 
         include_snapshot : bool, optional
             If True, return a list of reported-variant snapshot rows corresponding
@@ -740,33 +743,31 @@ class DNAUtility:
             assay_config["reporting"].get("report_header", "Unknown"),
         )
 
-        vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
-            sample.get("vep", 103)
-        )
-
         report_date = datetime.now().date()
         report_timestamp: str = DNAUtility.get_report_timestamp()
-        fernet = app.config["FERNET"]
 
-        html = render_template(
-            "dna_report.html",
+        document = build_dna_document(
             assay_config=assay_config,
             report_sections=report_sections,
             report_sections_data=report_sections_data,
             sample=sample,
-            translation=ReportUtility.VARIANT_CLASS_TRANSLATION,
-            vep_var_class_translations=vep_variant_class_meta,
-            class_desc=ReportUtility.TIER_DESC,
-            class_desc_short=ReportUtility.TIER_SHORT_DESC,
             report_date=report_date,
             report_timestamp=report_timestamp,
-            save=save,
-            sample_assay=sample_assay,
             assay_group=assay_group,
             genes_covered_in_panel=genes_covered_in_panel,
-            encrypted_panel_doc=CommonUtility.encrypt_json(assay_panel_doc, fernet),
-            encrypted_genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
-            encrypted_sample_filters=CommonUtility.encrypt_json(sample_filters, fernet),
+            author=current_user.fullname,
+            asp_url=url_for("public_bp.asp_genes", asp_id=sample_assay, _external=True),
         )
+        html = render_report(document)
+        if save != 1:
+            panel_export = None
+            if assay_group != "tumwgs":
+                fernet = app.config["FERNET"]
+                panel_export = dict(
+                    panel=CommonUtility.encrypt_json(assay_panel_doc, fernet),
+                    genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
+                    filters=CommonUtility.encrypt_json(sample_filters, fernet),
+                )
+            html = render_preview(html, sample, "dna", panel_export)
 
         return html, snapshot_rows

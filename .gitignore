@@ -163,6 +163,10 @@ docker-compose.dev.yml
 api
 coyote3-core
 .internal
+.design
+.codex
+.smd_configs
+skills
 
 # CSS
 coyote/static/css/tailwind.css

@@ -41,6 +41,8 @@ from coyote.services.auth.decorators import require
 from coyote.util.common_utility import CommonUtility
 from copy import deepcopy
 from coyote.blueprints.rna.fusion_queries import build_fusion_query
+from coyote.util.report.report_documents import build_rna_document
+from coyote.util.report.shared_renderer import render_report, render_preview
 
 
 @rna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -449,7 +451,18 @@ def _build_rna_snapshot_rows(fusions: list[dict]) -> list[dict]:
 
 
 def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: bool = False):
-    """Build RNA report HTML and optional reported-variant snapshot rows."""
+    """Build shared-template RNA HTML and optional reported-finding snapshots.
+
+    Args:
+        sample: Existing sample metadata used by the production query and report.
+        save: A value of 1 returns standalone report HTML. Other values return the
+            Flask preview container with separate review/finalization actions.
+        include_snapshot: Whether to prepare snapshot rows for the existing save
+            workflow; this function never persists them.
+
+    Returns:
+        Rendered HTML and snapshot rows, or an empty list when snapshots are omitted.
+    """
     assay = util.common.get_assay_from_sample(sample)
     fusion_query = {"SAMPLE_ID": str(sample["_id"])}
     fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
@@ -467,8 +480,7 @@ def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: boo
     report_header = util.common.get_report_header(assay, sample)
     report_date = datetime.now().date()
 
-    html = render_template(
-        "report_fusion.html",
+    document = build_rna_document(
         assay=assay,
         fusions=fusions,
         report_header=report_header,
@@ -478,8 +490,11 @@ def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: boo
         class_desc=class_desc,
         class_desc_short=class_desc_short,
         report_date=report_date,
-        save=save,
+        author=current_user.get_fullname(),
     )
+    html = render_report(document)
+    if save != 1:
+        html = render_preview(html, sample, "rna")
 
     if not include_snapshot:
         return html, []
