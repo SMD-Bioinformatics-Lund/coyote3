@@ -22,7 +22,7 @@
     variants_collection = "variants"
     cnvs_collection = "cnvs"
     fusions_collection = "fusions"
-    transloc_collection = "translocations"
+    transloc_collection = "transloc"
     biomarkers_collection = "biomarkers"
     coverage_collection = "coverage"
     coverage2_collection = "panel_cov"
