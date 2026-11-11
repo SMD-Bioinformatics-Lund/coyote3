@@ -813,6 +813,16 @@ class DNAUtility:
             author=current_user.fullname,
             asp_url=url_for("public_bp.asp_genes", asp_id=sample_assay, _external=True),
             accredited=bool((assay_panel_doc or {}).get("accredited", False)),
+            genelist_urls={
+                name: url_for(
+                    "public_bp.view_genelist",
+                    genelist_id=name,
+                    assay=sample_assay,
+                    _external=True,
+                )
+                for name, genes in genes_covered_in_panel.items()
+                if not genes.get("adhoc")
+            },
         )
         html = render_report(document)
         if save != 1:

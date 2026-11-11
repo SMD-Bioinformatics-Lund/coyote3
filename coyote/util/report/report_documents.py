@@ -231,7 +231,6 @@ def _base(
             organization=contact.get("report_organization", ""),
             department=contact.get("report_department", ""),
             address={"sv": contact.get("report_address", "")},
-            telephone=contact.get("report_phone", ""),
         ),
         layout=dict(metadata_heading="Patient/Analysinformation", document_label=""),
         sections=[],
@@ -379,6 +378,7 @@ def build_dna_document(
     asp_url: str,
     germline: bool = False,
     accredited: bool = False,
+    genelist_urls: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build conditional DNA JSON from the established prepared context.
 
@@ -394,6 +394,7 @@ def build_dna_document(
         author: Report creator display name.
         asp_url: Existing public ASP gene-list URL.
         accredited: Existing assay-panel accreditation flag, independent of germline.
+        genelist_urls: Public assay-filtered URLs for the applied saved in silico lists.
         germline: Existing report-template flag controlling the classification
             explanation and reference. The production caller does not supply it,
             so False retains master's normal display. It is not inferred from findings.
@@ -572,15 +573,24 @@ def build_dna_document(
                     )
                 )
                 table_no += 1
+        reference_lines = ["För analysens genlista, se:", asp_url]
+        if genes_covered_in_panel:
+            reference_lines.extend(
+                ["", "För de in silico-genlistor som tillämpats i denna rapport, se:"]
+            )
+            for name, genes in genes_covered_in_panel.items():
+                if genes.get("adhoc"):
+                    reference_lines.append(f"{name}: provspecifik genlista (ingen publik URL).")
+                elif (genelist_urls or {}).get(name):
+                    reference_lines.append(f"{name}: {genelist_urls[name]}")
+                else:
+                    reference_lines.append(name)
         sections.append(
             dict(
                 key="panel-reference",
                 kind="description",
                 heading="",
-                text=(
-                    "For complete panel gene lists, and configurations, see here.\n"
-                    f"Or, for ASP genelist, visit {asp_url}"
-                ),
+                text={"sv": "\n".join(reference_lines)},
             )
         )
     if not germline:
