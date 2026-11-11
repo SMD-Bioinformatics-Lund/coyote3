@@ -467,6 +467,31 @@ docker run -d \
     "$image_name"
 
 # ------------------------------------------
+# Tailwind CSS development watcher
+# ------------------------------------------
+
+tailwind_container="coyote3_dev_tailwind"
+
+log "Starting Tailwind CSS watcher..."
+
+if docker container inspect "$tailwind_container" >/dev/null 2>&1; then
+    docker rm -f "$tailwind_container"
+fi
+
+docker run -d \
+    --name "$tailwind_container" \
+    --network "$docker_network" \
+    --restart unless-stopped \
+    -v "$APP_DIR:/app" \
+    -v coyote3_dev_node_modules:/app/node_modules \
+    -w /app \
+    node:20-alpine \
+    sh -c 'npm install && exec npx @tailwindcss/cli \
+        -i ./coyote/static/css/tailwind.input.css \
+        -o ./coyote/static/css/tailwind.css \
+        --watch=always'
+
+# ------------------------------------------
 # Verify application startup
 # ------------------------------------------
 
@@ -481,6 +506,7 @@ if ! container_running "$container_name"; then
 
     false
 fi
+
 
 # ------------------------------------------
 # Deployment successful

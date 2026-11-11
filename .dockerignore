@@ -1,5 +1,24 @@
-# Ignore generated files
-**/*.pyc
-*/.coyote3_dev_env
+# Secrets
+.coyote3_env
+.coyote3_dev_env
 */config/db_collections_beta2.toml
+.env
+.env.*
 .env_test
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+**/*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Git
+.git/
+
+# Runtime files
+logs/
+redis_data/
