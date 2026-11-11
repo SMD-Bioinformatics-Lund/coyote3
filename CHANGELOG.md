@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.4.2
+
+- Fix the production translocation collection mapping so TumWGS translocations are read from `transloc`.
+
 ## v3.4.1
 
 - Fix genelist URL in the public catalog
