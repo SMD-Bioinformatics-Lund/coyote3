@@ -230,12 +230,8 @@ def _base(
             ),
             organization=contact.get("report_organization", ""),
             department=contact.get("report_department", ""),
-            address=(
-                {"sv": f"Adress: {contact['report_address']}"}
-                if contact.get("report_address")
-                else ""
-            ),
-            telephone=f"Telefon: {contact['report_phone']}" if contact.get("report_phone") else "",
+            address={"sv": contact.get("report_address", "")},
+            telephone=contact.get("report_phone", ""),
         ),
         layout=dict(metadata_heading="Patient/Analysinformation", document_label=""),
         sections=[],
@@ -579,7 +575,8 @@ def build_dna_document(
         sections.append(
             dict(
                 key="panel-reference",
-                kind="text",
+                kind="description",
+                heading="",
                 text=(
                     "For complete panel gene lists, and configurations, see here.\n"
                     f"Or, for ASP genelist, visit {asp_url}"
