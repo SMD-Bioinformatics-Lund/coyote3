@@ -8,6 +8,7 @@ or parsing a report HTML document.
 import re
 from datetime import date, datetime
 from html import escape, unescape
+from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
@@ -147,6 +148,20 @@ def _conclusion(sample: dict) -> str:
     return _comment(visible[-1].get("text")) if visible else ""
 
 
+def _conclusion_heading(fields: list[tuple[str, str]]) -> str:
+    """Use the report's existing clinical question in its conclusion heading.
+
+    Args:
+        fields: The same ordered metadata supplied to the shared report document.
+
+    Returns:
+        Slutsats followed by the exact Frågeställning value or placeholder. When
+        that field is absent or empty, returns Slutsats without a trailing separator.
+    """
+    question = next((value for label, value in fields if label == "Frågeställning"), "")
+    return f"Slutsats – {question}" if question else "Slutsats"
+
+
 def _base(
     sample: dict,
     analyte: str,
@@ -173,6 +188,8 @@ def _base(
         JSON-ready document with an initially empty section list.
     """
     generated = datetime.combine(report_date, datetime.now().astimezone().timetz())
+    logos = Path(__file__).resolve().parents[2] / "static" / "images" / "reporting"
+    contact = current_app.config.get("CONTACT", {})
     return dict(
         preset="coyote3",
         theme="coyote3",
@@ -191,6 +208,18 @@ def _base(
             application_name="Coyote3",
             application_version=__version__,
             assay_name=sample.get("assay", ""),
+        ),
+        branding=dict(
+            application_logo=str(logos / "coyote.svg"),
+            center_logo=str(logos / "region-skane.svg"),
+            organization=contact.get("report_organization", ""),
+            department=contact.get("report_department", ""),
+            address=(
+                {"sv": f"Adress: {contact['report_address']}"}
+                if contact.get("report_address")
+                else ""
+            ),
+            telephone=f"Telefon: {contact['report_phone']}" if contact.get("report_phone") else "",
         ),
         layout=dict(metadata_heading="Patient/Analysinformation", document_label=""),
         sections=[],
@@ -212,6 +241,16 @@ def _table(key: str, heading: str, columns: list[str], rows: list[list], empty: 
     """
     return dict(
         key=key, kind="table", heading=heading, columns={"sv": columns}, rows=rows, empty_text=empty
+    )
+
+
+def _reference_table(key: str, caption: str, rows: list[list[str]]) -> dict:
+    """Build a compact bordered reference table with a native table caption."""
+    return dict(
+        **_table(key, "", ["", ""], rows),
+        caption=caption,
+        style="reference",
+        show_header=False,
     )
 
 
@@ -262,7 +301,7 @@ def _dna_detail(variant: dict, index: int) -> dict:
     protein = (
         "\n".join(
             unescape(str(item)) if isinstance(item, Markup) else str(item)
-            for item in variant.get("protein_changes", [])
+            for item in (variant.get("protein_changes") or [])
         )
         if variant["indel_size"] < 20
         else _value(variant, "cdna")
@@ -403,15 +442,19 @@ def build_dna_document(
             ]
             for v in variants
         ]
-        sections.append(
-            _table(
-                "snvs",
-                "Kliniskt relevanta SNVs och små INDELs",
-                ["Gen", "Mutation", "Variantfrekvens", "Klassificering"],
-                rows,
-                "Inga detekterade mutationer",
-            )
+        summary = _table(
+            "snvs",
+            "Kliniskt relevanta SNVs och små INDELs",
+            ["Gen", "Mutation", "Variantfrekvens", "Klassificering"],
+            rows,
+            "Inga detekterade mutationer",
         )
+        summary["cell_options"] = {
+            str(index): {"3": {"font_weight": "semibold"}}
+            for index, variant in enumerate(variants)
+            if variant.get("class") == 1
+        }
+        sections.append(summary)
     sections.append(
         dict(key="notation", kind="text", text="Note: p = protein, c = cDNA, g = genomic")
     )
@@ -470,7 +513,7 @@ def build_dna_document(
         dict(
             key="conclusion",
             kind="summary",
-            heading="Slutsats",
+            heading=_conclusion_heading(fields),
             text=_conclusion(sample),
             format="markdown",
         )
@@ -495,7 +538,7 @@ def build_dna_document(
             kind="description",
             heading="Analysbeskrivning",
             page_break_before=not variants,
-            text=_rich_text(reporting.get("report_description")),
+            text={"sv": _rich_text(reporting.get("report_description"))},
             format="markdown",
         )
     )
@@ -507,7 +550,7 @@ def build_dna_document(
                     dict(
                         key=f"genes-{table_no}",
                         kind="compact_table",
-                        heading=f"Tabell {table_no}: Gener inkluderade i {name} insilico-panel",
+                        caption=f"Tabell {table_no}: Gener inkluderade i {name} insilico-panel",
                         items=genes["covered"],
                         columns=15,
                     )
@@ -525,7 +568,7 @@ def build_dna_document(
         )
     if not germline:
         sections.append(
-            _table("tiers", f"Tabell {table_no}: Förklaring av klassificering", ["", ""], DNA_TIERS)
+            _reference_table("tiers", f"Tabell {table_no}: Förklaring av klassificering", DNA_TIERS)
         )
         sections.append(
             dict(key="references", kind="references", heading="Referenser", text=REFERENCE)
@@ -605,7 +648,7 @@ def build_rna_document(
         dict(
             key="conclusion",
             kind="summary",
-            heading="Slutsats",
+            heading=_conclusion_heading(fields),
             text=_conclusion(sample),
             format="markdown",
         )
@@ -677,10 +720,10 @@ def build_rna_document(
             key="description",
             kind="description",
             heading="Analysbeskrivning",
-            text=_rich_text(analysis_desc),
+            text={"sv": _rich_text(analysis_desc)},
             format="markdown",
         )
     )
-    sections.append(_table("tiers", "Tabell: Förklaring av klassificering", ["", ""], RNA_TIERS))
+    sections.append(_reference_table("tiers", "Tabell: Förklaring av klassificering", RNA_TIERS))
     sections.append(dict(key="references", kind="references", heading="Referenser", text=REFERENCE))
     return document

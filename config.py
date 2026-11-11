@@ -234,6 +234,10 @@ class DefaultConfig:
     }
 
     CONTACT: dict[str, str] = {
+        "report_organization": "Sektion för molekylär diagnostik (SMD)",
+        "report_department": "Klinisk genetik och patologi",
+        "report_address": "Sölvegatan 23B, Lund, Region Skåne",
+        "report_phone": "00000000",
         "clinical_email": "ram.nanduri@skane.se",
         "research_email": "ram.nanduri@skane.se",
         "samples_email": "ram.nanduri@skane.se",
