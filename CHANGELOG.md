@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v3.4.1
+
+- Fix genelist URL in the public catalog
 
 ## v3.4.0
 
