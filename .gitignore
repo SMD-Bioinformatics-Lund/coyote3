@@ -153,6 +153,7 @@ tests
 
 # coyote
 redis_data
+/coyote/static/images/reporting/accreditation/
 
 # idea
 .idea/

@@ -150,6 +150,8 @@ echo "Path:       $SCRIPT_NAME"
 echo "Commit:     $GIT_COMMIT"
 echo "----------------------------------------"
 
+python3 "$APP_DIR/scripts/prepare-report-logo.py"
+
 # Validate Docker
 docker info >/dev/null 2>&1 || {
     echo "ERROR: Docker is unavailable."

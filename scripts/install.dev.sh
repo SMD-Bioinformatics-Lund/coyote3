@@ -295,6 +295,8 @@ fi
 # Build Docker image
 # ------------------------------------------
 
+python3 "$APP_DIR/scripts/prepare-report-logo.py"
+
 log "Building Docker image: $image_name"
 
 docker build \

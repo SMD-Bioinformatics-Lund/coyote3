@@ -18,7 +18,6 @@ from markupsafe import Markup
 
 from coyote.__version__ import __version__
 
-LABORATORY = "Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi"
 REFERENCE = (
     "[1] Standards and guidelines for the interpretation and reporting of sequence "
     "variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017."
@@ -59,6 +58,14 @@ RNA_TIERS = [
     ],
     ["Tier IV", "Variant bedömd som benign eller sannolikt benign"],
 ]
+
+
+def _laboratory() -> str:
+    """Use the report header's configured organization and department."""
+    contact = current_app.config.get("CONTACT", {})
+    return " och ".join(
+        contact[key] for key in ("report_organization", "report_department") if contact.get(key)
+    )
 
 
 def _value(record: dict, key: str) -> str:
@@ -171,6 +178,7 @@ def _base(
     report_date: date,
     author: str,
     fields: list[tuple[str, str]],
+    accredited: bool = False,
 ) -> dict[str, Any]:
     """Create a shared-template document envelope with ordered metadata.
 
@@ -183,12 +191,16 @@ def _base(
         report_date: Production local report date.
         author: Existing author display name.
         fields: Additional metadata, excluding automatic sample/date/author/ID fields.
+        accredited: Accreditation flag from the sample's assay panel.
 
     Returns:
         JSON-ready document with an initially empty section list.
     """
     generated = datetime.combine(report_date, datetime.now().astimezone().timetz())
-    logos = Path(__file__).resolve().parents[2] / "static" / "images" / "reporting"
+    logos = Path(
+        current_app.config.get("REPORT_LOGO_DIR")
+        or Path(__file__).resolve().parents[2] / "static" / "images" / "reporting"
+    )
     contact = current_app.config.get("CONTACT", {})
     return dict(
         preset="coyote3",
@@ -212,6 +224,10 @@ def _base(
         branding=dict(
             application_logo=str(logos / "coyote.svg"),
             center_logo=str(logos / "region-skane.svg"),
+            accredited=accredited,
+            accreditation_logo=(
+                current_app.config.get("ACCREDITATION_LOGO_PATH") if accredited else None
+            ),
             organization=contact.get("report_organization", ""),
             department=contact.get("report_department", ""),
             address=(
@@ -251,6 +267,7 @@ def _reference_table(key: str, caption: str, rows: list[list[str]]) -> dict:
         caption=caption,
         style="reference",
         show_header=False,
+        column_options={"0": {"width": 12}, "1": {"width": 88}},
     )
 
 
@@ -365,6 +382,7 @@ def build_dna_document(
     author: str,
     asp_url: str,
     germline: bool = False,
+    accredited: bool = False,
 ) -> dict[str, Any]:
     """Build conditional DNA JSON from the established prepared context.
 
@@ -379,6 +397,7 @@ def build_dna_document(
         genes_covered_in_panel: Existing ordered gene-list data.
         author: Report creator display name.
         asp_url: Existing public ASP gene-list URL.
+        accredited: Existing assay-panel accreditation flag, independent of germline.
         germline: Existing report-template flag controlling the classification
             explanation and reference. The production caller does not supply it,
             so False retains master's normal display. It is not inferred from findings.
@@ -405,7 +424,7 @@ def build_dna_document(
     fields.extend(
         [
             ("Analysmetod", _value(reporting, "report_method")),
-            ("Analys genomförd av", LABORATORY),
+            ("Analys genomförd av", _laboratory()),
             ("Rapportnummer", str(sample.get("report_num", 0) + 1)),
         ]
     )
@@ -428,6 +447,7 @@ def build_dna_document(
         report_date,
         author,
         fields,
+        accredited=accredited,
     )
     sections = document["sections"]
     sections.append(dict(key="results", kind="text", heading="Analysresultat", text=""))
@@ -588,6 +608,7 @@ def build_rna_document(
     class_desc_short: list,
     report_date: date,
     author: str,
+    accredited: bool = False,
 ) -> dict[str, Any]:
     """Build conditional RNA JSON from the production report context.
 
@@ -602,6 +623,7 @@ def build_rna_document(
         class_desc_short: Existing ordered short tier descriptions.
         report_date: Existing local report date.
         author: Report creator display name.
+        accredited: Existing assay-panel accreditation flag.
 
     Returns:
         JSON-ready content retaining report eligibility and ordering.
@@ -613,7 +635,7 @@ def build_rna_document(
         ("Provtyp", "<SAMPLE_TYPE> / RNA"),
         ("Frågeställning", "RNA fusions" if assay == "fusions" else "Gene Panel"),
         ("Analysmetod", str(analysis_method)),
-        ("Analys genomförd av", LABORATORY),
+        ("Analys genomförd av", _laboratory()),
     ]
     document = _base(
         sample,
@@ -624,6 +646,7 @@ def build_rna_document(
         report_date,
         author,
         fields,
+        accredited=accredited,
     )
     sections = document["sections"]
     eligible = [

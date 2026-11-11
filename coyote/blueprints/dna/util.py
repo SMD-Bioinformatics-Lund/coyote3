@@ -812,6 +812,7 @@ class DNAUtility:
             genes_covered_in_panel=genes_covered_in_panel,
             author=current_user.fullname,
             asp_url=url_for("public_bp.asp_genes", asp_id=sample_assay, _external=True),
+            accredited=bool((assay_panel_doc or {}).get("accredited", False)),
         )
         html = render_report(document)
         if save != 1:

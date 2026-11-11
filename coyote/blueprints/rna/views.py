@@ -464,6 +464,9 @@ def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: boo
         Rendered HTML and snapshot rows, or an empty list when snapshots are omitted.
     """
     assay = util.common.get_assay_from_sample(sample)
+    assay_panel_doc = (
+        store.asp_handler.get_asp(asp_name=sample["assay"]) if sample.get("assay") else None
+    )
     fusion_query = {"SAMPLE_ID": str(sample["_id"])}
     fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
 
@@ -491,6 +494,7 @@ def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: boo
         class_desc_short=class_desc_short,
         report_date=report_date,
         author=current_user.get_fullname(),
+        accredited=bool((assay_panel_doc or {}).get("accredited", False)),
     )
     html = render_report(document)
     if save != 1:
