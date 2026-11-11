@@ -16,6 +16,11 @@ sections. The preview page contains the rendered report in a separate frame.
 Finalize report opens a confirmation outside the document; Confirm and save calls
 the existing protected save workflow. Cancel returns to review without saving.
 DNA panel configuration and ASP gene-list actions also appear outside the document.
+Download HTML exports the exact preview document without finalizing or saving a report.
+
+Report headers use the organization, department, address, and phone configured in
+`CONTACT`. The install scripts copy the optional host file selected by
+`ACCREDITATION_LOGO_PATH` into the report assets; the logo appears only for accredited assays.
 
 The author label remains "Rapport genererad av", matching the production report.
 Empty values follow the shared template's display conventions. Narrative link labels and destinations are retained

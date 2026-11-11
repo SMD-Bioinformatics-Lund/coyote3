@@ -2,14 +2,22 @@
 
 ## Unreleased
 
-- Render production DNA and RNA reports with the pinned `smd-reports` Coyote3
-  template while retaining the existing clinical content and report workflows.
-- Build conditional report JSON directly from prepared findings and configuration.
-- Use `smd-reports==0.4.1` and supply the production author caption through
-  `report.author_label`, without a Coyote3 renderer override.
-- Display reports in an isolated preview frame with separate finalization confirmation
-  and panel configuration actions. Saved HTML contains only the shared report.
-- Update required report dependencies and remove unused PDF-rendering dependencies.
+## v3.4.0
+
+- Render production DNA reports using `smd-reports==0.5.3`, with conditional JSON
+  built from existing findings and configuration and the production author label preserved.
+- Match DNA report, summary, and snapshot eligibility to the selected transcript and
+  assay context; exclude indication-only classifications and apply existing report exclusions.
+- Add HTML preview downloads, compact panel and gene-list actions, and a centered
+  confirmation dialog before finalizing reports through the existing save workflow.
+- Read laboratory identity and contact details from config and embed application,
+  center, and optional accreditation logos. Show accreditation artwork only for accredited assays.
+- Use matching numbered-table captions, bordered classification tables, uniform gene
+  matrices, themed detail labels, and conclusion headings containing the clinical question.
+- Update report dependencies and remove unused PDF-rendering dependencies.
+- Update production/development image builds and install scripts for runtime environment
+  configuration, deployment recovery, and env-selected accreditation-logo staging.
+- Stop tracking local `bugs/` artifacts and ignore them in Git.
 
 ## v3.3.0
 ### DNA – Translocations
