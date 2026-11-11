@@ -148,11 +148,12 @@ example_dev*
 migration_scripts
 reports
 tests
-./bugs
+/bugs/
 *dummy*
 
 # coyote
 redis_data
+/coyote/static/images/reporting/accreditation/
 
 # idea
 .idea/
@@ -163,6 +164,10 @@ docker-compose.dev.yml
 api
 coyote3-core
 .internal
+.design
+.codex
+.smd_configs
+skills
 
 # CSS
 coyote/static/css/tailwind.css

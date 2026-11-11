@@ -419,7 +419,7 @@
                         <td class="font-semibold px-1" id="snv-table-row-class">
                           {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ var.classification.class }} text-white shadow-md">
-                              {% if assay_group in ["myeloid", "tumwgs"] or "assay" in var.classification %}
+                              {% if var.has_exact_context_tier %}
                                 <a
                                 href="{{ url_for('common_bp.list_samples_with_tiered_variant',
                                                 variant_id=var._id|string,

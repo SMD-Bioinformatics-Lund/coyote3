@@ -233,7 +233,22 @@ class DefaultConfig:
         "Y": "NC_000024",
     }
 
+    REPORT_LOGO_DIR = path.join(basedir, "coyote", "static", "images", "reporting")
+    ACCREDITATION_LOGO_PATH = (
+        path.join(
+            REPORT_LOGO_DIR,
+            "accreditation",
+            path.basename(os.environ["ACCREDITATION_LOGO_PATH"]),
+        )
+        if os.environ.get("ACCREDITATION_LOGO_PATH")
+        else None
+    )
+
     CONTACT: dict[str, str] = {
+        "report_organization": "Sektion för molekylär diagnostik (SMD)",
+        "report_department": "Klinisk genetik och patologi",
+        "report_address": "Sölvegatan 23B, Lund, Region Skåne",
+        "report_phone": "00000000",
         "clinical_email": "ram.nanduri@skane.se",
         "research_email": "ram.nanduri@skane.se",
         "samples_email": "ram.nanduri@skane.se",

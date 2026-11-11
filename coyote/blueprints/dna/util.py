@@ -21,10 +21,12 @@ from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from coyote.blueprints.rna.util import RNAUtility
-from flask import current_app as app
+from coyote.util.report.report_documents import build_dna_document
+from coyote.util.report.shared_renderer import render_report, render_preview
+from flask import current_app as app, url_for
+from flask_login import current_user
 from coyote.extensions import store
 from typing import Any, Dict, List, Optional, Tuple
-from flask import render_template
 from coyote.blueprints.dna.varqueries import build_query
 from copy import deepcopy
 import os
@@ -145,6 +147,56 @@ class DNAUtility:
         return pon
 
     @staticmethod
+    def has_exact_context_tier(variant: dict, assay: str, subpanel: str | None) -> bool:
+        """Check whether a DNA finding has a numeric tier for its selected context.
+
+        Args:
+            variant: Annotated DNA finding with its selected transcript.
+            assay: Current assay group, following the analysis-page matching policy.
+            subpanel: Current subpanel; equality is required for solid assays.
+
+        Returns:
+            True for a Tier I-IV classification matching the selected transcript
+            and assay context. Legacy assay-less classifications remain supported
+            only for myeloid and tumwgs, as on the analysis page. Alternative and
+            other-context classifications never establish an exact match.
+        """
+        classification = variant.get("classification") or {}
+        selected = (variant.get("INFO") or {}).get("selected_CSQ") or {}
+        tier = classification.get("class")
+        if type(tier) is not int or tier not in (1, 2, 3, 4):
+            return False
+        if not selected.get("Feature") or classification.get("transcript") != selected["Feature"]:
+            return False
+        if "assay" not in classification:
+            return assay in ("myeloid", "tumwgs")
+        if classification["assay"] != assay:
+            return False
+        return assay != "solid" or classification.get("subpanel") == subpanel
+
+    @staticmethod
+    def is_reportable_context_tier(variant: dict, assay: str, subpanel: str | None) -> bool:
+        """Apply existing report exclusions to an exact analysis-context match.
+
+        Args:
+            variant: Annotated DNA finding.
+            assay: Current assay group.
+            subpanel: Current subpanel, or None when no subpanel is selected.
+
+        Returns:
+            True for a matching finding that is not blacklisted, false positive,
+            irrelevant, Tier IV, or a gmsonco Tier III finding.
+        """
+        return (
+            DNAUtility.has_exact_context_tier(variant, assay, subpanel)
+            and not variant.get("blacklist")
+            and not variant.get("fp")
+            and not variant.get("irrelevant")
+            and variant["classification"]["class"] != 4
+            and not (assay == "gmsonco" and variant["classification"]["class"] == 3)
+        )
+
+    @staticmethod
     def add_global_annotations(variants: list, assay: str, subpanel: str) -> tuple[list, list]:
         """
         Add global annotations to each variant in the provided list.
@@ -160,12 +212,14 @@ class DNAUtility:
             subpanel (str): The subpanel identifier for further filtering.
 
         Returns:
-            list: The list of variants with updated global annotations and classifications.
+            tuple: All annotated findings and findings eligible for generated summary
+                text. DNA summary eligibility uses the report's exact context and
+                tier exclusions; indication-only findings remain in the analysis list.
         """
         selected_variants = []
         for var_idx, var in enumerate(variants):
             selected_call = RNAUtility.get_selected_fusioncall(var)
-            lookup = selected_call if selected_call is not None else var   # RNA → call, DNA → var
+            lookup = selected_call if selected_call is not None else var  # RNA → call, DNA → var
 
             (
                 var["global_annotations"],
@@ -175,7 +229,13 @@ class DNAUtility:
             ) = store.annotation_handler.get_global_annotations(lookup, assay, subpanel)
 
             class_value = (var["classification"] or {}).get("class")
-            if (
+            if "selected_CSQ" in (var.get("INFO") or {}):
+                var["has_exact_context_tier"] = DNAUtility.has_exact_context_tier(
+                    var, assay, subpanel
+                )
+                if DNAUtility.is_reportable_context_tier(var, assay, subpanel):
+                    selected_variants.append(var)
+            elif (
                 class_value is not None
                 and class_value < 999
                 and not var.get("blacklist")
@@ -221,7 +281,9 @@ class DNAUtility:
         return variant
 
     @staticmethod
-    def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
+    def filter_variants_for_report(
+        variants: list, filter_genes: list, assay: str, subpanel: str | None = None
+    ) -> list:
         """
         Filters variants for inclusion in the report based on gene, blacklist status, classification, and assay-specific rules.
 
@@ -229,6 +291,7 @@ class DNAUtility:
             variants (list): List of variant dictionaries to filter.
             filter_genes (list): List of gene symbols to include. If empty, all genes are included.
             assay (str): Assay type, used for additional filtering logic.
+            subpanel (str | None): Selected subpanel for context matching. Defaults to None.
 
         Returns:
             list: Filtered and sorted list of variant dictionaries suitable for reporting.
@@ -241,14 +304,7 @@ class DNAUtility:
                     var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
                     or len(filter_genes) == 0
                 )
-                and not var.get("blacklist")
-                and var.get("classification")
-                and var.get("classification", {}).get("class", 0) not in [4, 999]
-                and not (
-                    (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
-                    if assay != "tumwgs"
-                    else False
-                )
+                and DNAUtility.is_reportable_context_tier(var, assay, subpanel)
             ],
             key=lambda var: var.get("classification", {}).get("class", 0),
         )
@@ -554,8 +610,9 @@ class DNAUtility:
             behavior for the DNA report.
 
         save : int, optional
-            Flag passed through to the report template to control rendering behavior
-            (e.g. preview vs. save mode). This flag does not trigger persistence.
+            A value of 1 returns standalone shared-template HTML for saving.
+            Other values return the Flask preview container with separate actions.
+            This flag does not trigger persistence.
 
         include_snapshot : bool, optional
             If True, return a list of reported-variant snapshot rows corresponding
@@ -639,13 +696,14 @@ class DNAUtility:
         variants = list(store.variant_handler.get_case_variants(query))
         variants = store.blacklist_handler.add_blacklist_data(variants, assay=assay_group)
 
-        # This returns tiered_variants already — that’s your snapshot gold
         variants, tiered_variants = DNAUtility.add_global_annotations(
             variants, assay_group, subpanel
         )
 
         variants = DNAUtility.hotspot_variant(variants)
-        variants = DNAUtility.filter_variants_for_report(variants, filter_genes, assay_group)
+        variants = DNAUtility.filter_variants_for_report(
+            variants, filter_genes, assay_group, subpanel
+        )
 
         # latest sample comment
         latest_sample_comment = store.sample_handler.get_latest_sample_comment(
@@ -740,33 +798,42 @@ class DNAUtility:
             assay_config["reporting"].get("report_header", "Unknown"),
         )
 
-        vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
-            sample.get("vep", 103)
-        )
-
         report_date = datetime.now().date()
         report_timestamp: str = DNAUtility.get_report_timestamp()
-        fernet = app.config["FERNET"]
 
-        html = render_template(
-            "dna_report.html",
+        document = build_dna_document(
             assay_config=assay_config,
             report_sections=report_sections,
             report_sections_data=report_sections_data,
             sample=sample,
-            translation=ReportUtility.VARIANT_CLASS_TRANSLATION,
-            vep_var_class_translations=vep_variant_class_meta,
-            class_desc=ReportUtility.TIER_DESC,
-            class_desc_short=ReportUtility.TIER_SHORT_DESC,
             report_date=report_date,
             report_timestamp=report_timestamp,
-            save=save,
-            sample_assay=sample_assay,
             assay_group=assay_group,
             genes_covered_in_panel=genes_covered_in_panel,
-            encrypted_panel_doc=CommonUtility.encrypt_json(assay_panel_doc, fernet),
-            encrypted_genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
-            encrypted_sample_filters=CommonUtility.encrypt_json(sample_filters, fernet),
+            author=current_user.fullname,
+            asp_url=url_for("public_bp.asp_genes", asp_id=sample_assay, _external=True),
+            accredited=bool((assay_panel_doc or {}).get("accredited", False)),
+            genelist_urls={
+                name: url_for(
+                    "public_bp.view_genelist",
+                    genelist_id=name,
+                    assay=sample_assay,
+                    _external=True,
+                )
+                for name, genes in genes_covered_in_panel.items()
+                if not genes.get("adhoc")
+            },
         )
+        html = render_report(document)
+        if save != 1:
+            panel_export = None
+            if assay_group != "tumwgs":
+                fernet = app.config["FERNET"]
+                panel_export = dict(
+                    panel=CommonUtility.encrypt_json(assay_panel_doc, fernet),
+                    genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
+                    filters=CommonUtility.encrypt_json(sample_filters, fernet),
+                )
+            html = render_preview(html, sample, "dna", panel_export)
 
         return html, snapshot_rows

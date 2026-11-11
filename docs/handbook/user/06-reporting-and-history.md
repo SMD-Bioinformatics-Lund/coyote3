@@ -4,11 +4,33 @@ This chapter explains how reports are generated, stored, and traced historically
 
 ## Report lifecycle
 
+New DNA and RNA reports use the shared Coyote3 format from `smd-reports`.
+The format includes embedded Source Sans 3 fonts, shared tables, a pale yellow
+conclusion, and template-version information. Existing saved reports retain their
+original files and appearance. Coyote3 previews and saves HTML; it does not expose
+a PDF-generation action.
+
+The presentation change retains the production report content, including clinical
+wording, classifications, selected annotations, numeric values, and assay-specific
+sections. The preview page contains the rendered report in a separate frame.
+Finalize report opens a confirmation outside the document; Confirm and save calls
+the existing protected save workflow. Cancel returns to review without saving.
+DNA panel configuration and ASP gene-list actions also appear outside the document.
+Download HTML exports the exact preview document without finalizing or saving a report.
+
+Report headers use the organization, department, address, and phone configured in
+`CONTACT`. The install scripts copy the optional host file selected by
+`ACCREDITATION_LOGO_PATH` into the report assets; the logo appears only for accredited assays.
+
+The author label remains "Rapport genererad av", matching the production report.
+Empty values follow the shared template's display conventions. Narrative link labels and destinations are retained
+as report text; the shared template does not make them clickable.
+
 For DNA reports:
 
 1. Analyst reviews sample and tiers variants.
-2. Analyst previews report.
-3. Analyst saves report.
+2. Analyst reviews the report in the preview frame.
+3. Analyst selects Finalize report, then Confirm and save.
 4. Coyote3 writes HTML file.
 5. Coyote3 appends report metadata to sample.
 6. Coyote3 stores immutable `reported_variants` snapshot rows.
@@ -24,7 +46,7 @@ For DNA reports:
 RNA routes:
 
 - Preview RNA report: `/rna/sample/preview_report/<sample_id>`
-- Generate RNA PDF: `/rna/sample/report/pdf/<sample_id>`
+- Save RNA report: `/rna/sample/<sample_id>/report/save`
 
 ## What gets stored in sample document
 

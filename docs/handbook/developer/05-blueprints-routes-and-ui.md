@@ -128,10 +128,14 @@ Primary responsibilities:
 Global shared templates:
 
 - `coyote/templates/layout.html`
-- `coyote/templates/report_layout.html`
+- `coyote/templates/report_preview.html` (application preview and finalization controls)
 - `coyote/templates/error.html`
 
 Feature templates should remain under the owning blueprint. Cross-blueprint template dependencies should be minimized.
+
+Report documents use the installed `smd-reports` template. The production report
+builders supply JSON metadata and conditional sections; report paper styles and
+templates are owned by that package.
 
 ## Tailwind CSS build and references
 

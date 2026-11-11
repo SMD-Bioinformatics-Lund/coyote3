@@ -1212,8 +1212,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
         **kwargs:
             save (int, optional):
-                Flag passed through to the report renderer to control
-                template behavior (e.g. preview vs. save mode). This flag
+                A value of 1 returns standalone report HTML; other values return
+                the preview page with separate finalization controls. This flag
                 does not trigger persistence when used in the preview route.
 
     Returns:

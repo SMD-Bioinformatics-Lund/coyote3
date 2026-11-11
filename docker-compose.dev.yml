@@ -35,8 +35,8 @@ services:
       - coyote3-dev-net
     volumes:
       # - ".git:/app/.git"
-      - "./coyote:/app/coyote"
-      - "./config:/app/config"
+      # - "./coyote:/app/coyote"
+      # - "./config:/app/config"
       # - "/data/coyote3/logs:/app/logs"
       # - "./docs:/app/docs"
       # - "./config.py:/app/config.py"
@@ -72,7 +72,7 @@ services:
     container_name: redis_coyote3_dev
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "8802:6379"
+      - "8820:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:

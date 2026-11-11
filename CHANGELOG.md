@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+## v3.4.0
+
+- Render production DNA reports using `smd-reports==0.5.3`, with conditional JSON
+  built from existing findings and configuration and the production author label preserved.
+- Match DNA report, summary, and snapshot eligibility to the selected transcript and
+  assay context; exclude indication-only classifications and apply existing report exclusions.
+- Add HTML preview downloads, compact panel and gene-list actions, and a centered
+  confirmation dialog before finalizing reports through the existing save workflow.
+- Read laboratory identity and contact details from config and embed application,
+  center, and optional accreditation logos. Show accreditation artwork only for accredited assays.
+- Use matching numbered-table captions, bordered classification tables, uniform gene
+  matrices, themed detail labels, and conclusion headings containing the clinical question.
+- Update report dependencies and remove unused PDF-rendering dependencies.
+- Update production/development image builds and install scripts for runtime environment
+  configuration, deployment recovery, and env-selected accreditation-logo staging.
+- Stop tracking local `bugs/` artifacts and ignore them in Git.
+
 ## v3.3.0
 ### DNA – Translocations
 - Added "Pick" for DNA translocation annotations: users can select which alternate transcript combination is the active annotation (new `dna_bp.pick_transloc_call` route, `TranslocsHandler.pick_transloc`). The selected annotation is used as fallback when no MANE annotation exists.
