@@ -166,7 +166,7 @@ def _conclusion_heading(fields: list[tuple[str, str]]) -> str:
         that field is absent or empty, returns Slutsats without a trailing separator.
     """
     question = next((value for label, value in fields if label == "Frågeställning"), "")
-    return f"Slutsats – {question}" if question else "Slutsats"
+    return f"Slutsats frågeställning {question}" if question else "Slutsats frågeställning"
 
 
 def _base(
