@@ -243,6 +243,9 @@ def list_variants(sample_id: str) -> Response | str:
 
     if "FUSION" in analysis_sections:
         display_sections_data["fusions"] = []
+    if "FUSION" in analysis_sections or (
+        sample_assay in {"tumwgs-hema", "tumwgs-solid"} and "TRANSLOCATION" in analysis_sections
+    ):
         summary_sections_data["translocs"] = (
             store.transloc_handler.get_interesting_sample_translocations(
                 sample_id=str(sample["_id"])

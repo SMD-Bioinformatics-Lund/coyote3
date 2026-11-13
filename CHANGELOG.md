@@ -3,6 +3,8 @@
 ## v3.4.3
 
 - Fix variant detail rendering for numeric-string gnomAD frequencies using the shared percentage formatter; handle missing values and compare population-frequency thresholds numerically.
+- Use body-sized bold summary labels and tighter spacing in the sample comment editor, saved comments, and report summaries.
+- Order findings for `tumwgs-hema` and `tumwgs-solid` as Kopietalsprofil, Fusionsgener, SNVs/INDELs, other analyses, and Sammanfattning. Include interesting translocations when TRANSLOCATION analysis is enabled and preserve accreditation conditions.
 
 ## v3.4.2
 

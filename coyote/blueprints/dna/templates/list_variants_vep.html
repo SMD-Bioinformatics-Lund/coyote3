@@ -37,32 +37,32 @@
   }
   /* Make Image Float While Table Scrolls */
 
-  /* -------------------------------------------------
-   * EasyMDE editor (CodeMirror) heading sizes
-   * This affects what you see while typing (NOT preview)
-   * ------------------------------------------------- */
-
-  /* Generic header token */
+  /* Keep summary headings close to the surrounding clinical text. */
   #comments-box-div .EasyMDEContainer .CodeMirror .cm-header {
-    font-weight: 700 !important;
+    font-size: 1em !important;
+    font-weight: 600 !important;
+    line-height: inherit !important;
   }
 
-  /* Markdown headings in the editor */
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-1 { font-size: 2.00em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-2 { font-size: 1.80em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-3 { font-size: 1.60em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-4 { font-size: 1.40em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-5 { font-size: 1.20em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-6 { font-size: 1.00em !important; }
-
-  /* Optional: also shrink the leading "##" a bit (it is part of header token too, but some themes separate it) */
   #comments-box-div .EasyMDEContainer .CodeMirror .cm-formatting.cm-formatting-header {
-    font-size: 0.95em !important;
+    font-size: 1em !important;
     opacity: 0.85 !important;
   }
 
+  #summary-table .markdown-body :is(h1, h2, h3, h4, h5, h6),
+  #comments-box-div :is(.editor-preview, .editor-preview-side) :is(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 6px 0 2px;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
 
-
+  #summary-table .markdown-body :is(h1, h2, h3, h4, h5, h6) + p,
+  #comments-box-div :is(.editor-preview, .editor-preview-side) :is(h1, h2, h3, h4, h5, h6) + p {
+    margin-top: 0;
+  }
 </style>
 {% endblock %}
 

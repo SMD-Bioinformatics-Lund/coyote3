@@ -94,12 +94,13 @@ def _filter(name: str, value: Any) -> str:
     return str(current_app.jinja_env.filters[name](value))
 
 
-def _rich_text(html: str | None) -> str:
+def _rich_text(html: str | None, compact_headings: bool = False) -> str:
     """Normalize existing rich-text inputs for the package Markdown sanitizer.
 
     Args:
         html: Configured analysis text or already escaped/formatted comment text.
             This is source narrative content, never a rendered report document.
+        compact_headings: Render summary headings as bold text above their paragraph.
 
     Returns:
         Supported rich text. Link destinations appear beside their labels because
@@ -109,6 +110,31 @@ def _rich_text(html: str | None) -> str:
         return "None"
     html = re.sub(r"<([A-Z][A-Z0-9_]+)>", lambda match: escape(match[0]), str(html))
     body = tinyhtml5.parse(html, namespace_html_elements=False).find("body")
+    if compact_headings:
+        for parent in list(body.iter()):
+            children = list(parent)
+            for index, heading in enumerate(children):
+                if heading.tag not in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                    continue
+                heading.tag = "strong"
+                heading.attrib.clear()
+                following = children[index + 1] if index + 1 < len(children) else None
+                if following is not None and following.tag == "p":
+                    line_break = ElementTree.Element("br")
+                    line_break.tail = following.text
+                    following.text = None
+                    heading.tail = None
+                    parent.remove(heading)
+                    following.insert(0, heading)
+                    following.insert(1, line_break)
+                else:
+                    position = list(parent).index(heading)
+                    paragraph = ElementTree.Element("p")
+                    paragraph.tail = heading.tail
+                    heading.tail = None
+                    parent.remove(heading)
+                    paragraph.append(heading)
+                    parent.insert(position, paragraph)
     for element in body.iter():
         if element.tag == "a":
             url = element.get("href", "")
@@ -126,16 +152,17 @@ def _rich_text(html: str | None) -> str:
     )
 
 
-def _comment(text: str | None) -> str:
+def _comment(text: str | None, compact_headings: bool = False) -> str:
     """Escape and format a production comment for a shared Markdown field.
 
     Args:
         text: Existing user-authored Markdown, including null or empty comments.
+        compact_headings: Use body-sized bold paragraphs for summary headings.
 
     Returns:
         Rich text produced by the production comment filter.
     """
-    return _rich_text(_filter("format_comment", text))
+    return _rich_text(_filter("format_comment", text), compact_headings=compact_headings)
 
 
 def _conclusion(sample: dict) -> str:
@@ -152,7 +179,7 @@ def _conclusion(sample: dict) -> str:
     if not comments:
         return "Slutsats saknas!"
     visible = [item for item in comments if item.get("hidden") != 1]
-    return _comment(visible[-1].get("text")) if visible else ""
+    return _comment(visible[-1].get("text"), compact_headings=True) if visible else ""
 
 
 def _conclusion_heading(fields: list[tuple[str, str]]) -> str:
