@@ -199,9 +199,9 @@ class BPCommonUtility:
         )
         tumwgs_summary = assay_config.get("assay_name") in {"tumwgs-hema", "tumwgs-solid"}
         section_order = (
-            ("cnvs", "translocs", "snvs", "fusions", "biomarkers")
+            ("cnvs", "translocs", "snvs", "biomarkers")
             if tumwgs_summary
-            else ("snvs", "cnvs", "translocs", "fusions", "biomarkers")
+            else ("snvs", "cnvs", "translocs", "biomarkers")
         )
         for section in section_order:
             if section not in summary_sections_data:
