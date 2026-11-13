@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.4.3
+
+- Fix variant detail rendering for numeric-string gnomAD frequencies using the shared percentage formatter; handle missing values and compare population-frequency thresholds numerically.
+
 ## v3.4.2
 
 - Fix the production translocation collection mapping so TumWGS translocations are read from `transloc`.
