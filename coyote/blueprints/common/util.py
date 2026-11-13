@@ -232,7 +232,10 @@ class BPCommonUtility:
                     else "Kliniskt relevanta genspecifika DNA-fusioner:"
                 )
                 text += f"**{heading}**\n"
-                text += BPCommonUtility.summarize_transloc(summary_sections_data["translocs"])
+                transloc_text = BPCommonUtility.summarize_transloc(
+                    summary_sections_data["translocs"]
+                )
+                text += transloc_text.lstrip("\n") if tumwgs_summary else transloc_text
                 text += "\n"
             elif section == "biomarkers":
                 text += "**Andra kliniskt relevanta biomarkörer:**\n"
