@@ -4,6 +4,8 @@
 
 
 {% set sel_csq = variant.INFO.selected_CSQ %}
+{% set gnomad_frequency = variant.gnomad_frequency | default(none) | float(default=none) %}
+{% set max_popfreq = sample.filters.max_popfreq | default(none) | float(default=none) %}
 {% set ns = namespace(alternate_transcripts=0) %}
 {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ "/" ~ variant.ALT %}
 {% set indel_size = variant.ALT|length - variant.REF|length %}
@@ -216,8 +218,8 @@
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Pop. Freq %</th>
             <td class="p-1 text-right font-medium break-all">
-              {% if variant.gnomad_frequency != "" %}
-                {{ '%.3f' | format(100*variant.gnomad_frequency)}}
+              {% if gnomad_frequency is not none %}
+                {{ gnomad_frequency | three_dec }}
               {% else %}
                 -
               {% endif %}
@@ -944,9 +946,9 @@
               <tbody id="population-frequencies-info-body">
                 <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
                   <td class="p-2 font-medium">gnomAD (default)</td>
-                  <td class="p-2 {% if variant.gnomad_frequency and variant.gnomad_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
-                    {% if variant.gnomad_frequency != "" %}
-                      {{ '%.3f' | format(100*variant.gnomad_frequency)}}
+                  <td class="p-2 {% if gnomad_frequency is not none and max_popfreq is not none and gnomad_frequency > max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if gnomad_frequency is not none %}
+                      {{ gnomad_frequency | three_dec }}
                     {% else %}
                       -
                     {% endif %}
