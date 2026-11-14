@@ -254,6 +254,7 @@ export function optionsForDependency(field: FormField, formValues?: Record<strin
 }
 
 export function coerceFieldValue(field: FormField, value: any) {
+  if (field.display_type === "assay-access") return Array.isArray(value) ? value : []
   if (field.readonly && value === "") return undefined
   if (field.display_type === "checkbox") return Boolean(value)
   if (field.display_type === "checkbox-group" || field.display_type === "multi-select" || field.data_type === "list") return normalizeList(value)

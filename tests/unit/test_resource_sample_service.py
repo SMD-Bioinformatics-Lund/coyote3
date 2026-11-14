@@ -163,6 +163,7 @@ def test_list_payload_filters_non_documents_and_preserves_query_parameters() -> 
     }
     assert payload["pagination"]["total"] == 0
     assert repository.search_args == {
+        "assay_access": None,
         "asp_ids": ["assay"],
         "search_str": "synthetic",
         "page": 2,

@@ -8,6 +8,7 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 
 from coyote3.application.operations.runtime import ApplicationRuntime
+from coyote3.domain.identity.assay_access import grants_for
 
 if TYPE_CHECKING:
     from coyote3.application.query_rules.service import QueryRuleService
@@ -169,6 +170,7 @@ class QueryRules:
                 page=request.page,
                 allowed_asp_ids=None if actor.is_superuser else actor.asp_ids,
                 allowed_environments=None if actor.is_superuser else actor.envs,
+                assay_access=grants_for(actor),
             ),
         )
 
@@ -192,6 +194,7 @@ class QueryRules:
                 _sample(sample),
                 allowed_asp_ids=None if actor.is_superuser else actor.asp_ids,
                 allowed_environments=None if actor.is_superuser else actor.envs,
+                assay_access=grants_for(actor),
             ),
             sample_id=sample_id,
         )

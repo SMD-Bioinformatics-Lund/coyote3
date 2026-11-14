@@ -47,6 +47,7 @@
     "created_by": null,
     "created_on": "2026-01-01T18:13:16.932982+00:00",
     "updated_by": null,
-    "updated_on": null
+    "updated_on": null,
+    "assay_access": []
   }
 ]

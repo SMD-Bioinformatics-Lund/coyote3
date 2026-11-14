@@ -1491,12 +1491,12 @@
     },
     {
       "source": "identity.users",
-      "field": "asp_ids[]",
+      "field": "assay_access[].asp_id",
       "target": "primary.assay_specific_panels",
       "target_field": "asp_id",
       "kind": "access scope",
       "cardinality": "many ↔ many",
-      "notes": "Cross-database string scope assignments; wildcard semantics are authorization rules, not missing registry rows.",
+      "notes": "Each assay has its own explicit environment list. Flat asp_ids/environments fields are compatibility projections and never supply fallback access.",
       "evidence": "src/coyote3/application/common/access.py"
     },
     {

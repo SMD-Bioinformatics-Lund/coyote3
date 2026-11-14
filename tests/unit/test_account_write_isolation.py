@@ -76,6 +76,58 @@ def test_administrative_edit_preserves_password_flags_tokens_and_preferences(acc
         assert after[key] == before[key]
 
 
+def test_administrator_saves_and_clears_paired_grants_atomically(account, monkeypatch):
+    collection, _, service = account
+    monkeypatch.setattr(
+        "coyote3.application.accounts.users.available_panels",
+        lambda _: [{"asp_id": "assay_a"}, {"asp_id": "assay_b"}],
+    )
+    grants = [
+        {"asp_id": "assay_a", "environments": ["production", "development"]},
+        {"asp_id": "assay_b", "environments": ["production"]},
+    ]
+    service.update_user(
+        user_id="synthetic",
+        payload={"form_data": {"email": "synthetic@example.test", "assay_access": grants}},
+        actor_username="administrator",
+    )
+    after = collection.find_one()
+    assert after["assay_access"] == grants
+    assert after["asp_ids"] == ["assay_a", "assay_b"]
+    assert after["environments"] == ["development", "production"]
+    with pytest.raises(AppError) as denied:
+        service.update_own_profile(
+            username="synthetic", payload={"firstname": "Edited", "assay_access": []}
+        )
+    assert denied.value.status_code == 400
+    service.update_own_profile(username="synthetic", payload={"firstname": "Edited"})
+    assert collection.find_one()["assay_access"] == grants
+    service.update_user(
+        user_id="synthetic",
+        payload={"form_data": {"email": "synthetic@example.test", "assay_access": []}},
+        actor_username="administrator",
+    )
+    assert collection.find_one()["assay_access"] == []
+
+
+def test_invalid_or_duplicate_paired_grants_never_write(account, monkeypatch):
+    collection, _, service = account
+    before = collection.find_one()
+    for grants in (
+        [{"asp_id": "assay_a", "environments": ["unknown"]}],
+        [{"asp_id": "assay_a", "environments": ["production"]}] * 2,
+        "assay_a",
+    ):
+        with pytest.raises(AppError) as error:
+            service.update_user(
+                user_id="synthetic",
+                payload={"form_data": {"assay_access": grants}},
+                actor_username="administrator",
+            )
+        assert error.value.status_code == 422
+        assert collection.find_one() == before
+
+
 @pytest.mark.parametrize(
     "method,payload",
     [

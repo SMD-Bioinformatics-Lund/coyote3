@@ -15,6 +15,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.infra.mongo.assay_access import finding_scope_query
 from api.infra.mongo.persistence import require_object_id
 from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
@@ -671,7 +672,9 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         return self.get_collection().count_documents({"fp": True})
 
-    def get_dashboard_variant_counts(self) -> dict[str, Any]:
+    def get_dashboard_variant_counts(
+        self, *, assay_access: list[dict] | None = None
+    ) -> dict[str, Any]:
         """
         Return variant summary counters for dashboard.
 
@@ -692,6 +695,9 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
                 }
             },
         ]
+        scope = finding_scope_query(self.adapter, assay_access)
+        if scope:
+            by_class_pipeline.insert(0, {"$match": scope})
         rows = list(col.aggregate(by_class_pipeline, allowDiskUse=True))
         by_variant_class = {
             str(row.get("_id") or "Unknown"): int(row.get("count", 0) or 0) for row in rows
@@ -699,7 +705,7 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
         snp_like_count = sum(
             count for key, count in by_variant_class.items() if str(key).upper() in {"SNV", "SNP"}
         )
-        total_variants = int(col.estimated_document_count() or 0)
+        total_variants = sum(int(row.get("count", 0) or 0) for row in rows)
         return {
             "total_variants": total_variants,
             "snv": total_variants,

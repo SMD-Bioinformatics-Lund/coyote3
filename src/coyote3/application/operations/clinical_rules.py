@@ -8,6 +8,7 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 
 from coyote3.application.operations.runtime import ApplicationRuntime
+from coyote3.domain.identity.assay_access import grants_for
 
 if TYPE_CHECKING:
     from coyote3.application.reporting.clinical_rules.authoring import ClinicalRuleAuthoringService
@@ -102,6 +103,7 @@ class ClinicalRules:
                 match_diagnosis=match_diagnosis,
                 allowed_asp_ids=None if actor.is_superuser else actor.asp_ids,
                 allowed_environments=None if actor.is_superuser else actor.envs,
+                assay_access=grants_for(actor),
                 page=page,
                 per_page=per_page,
             ),

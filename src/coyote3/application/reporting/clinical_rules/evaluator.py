@@ -8,6 +8,7 @@ from typing import Any
 from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext
 from coyote3.application.reporting.clinical_rules.renderers import render_named
 from coyote3.application.reporting.clinical_rules.validation import REPORT_METADATA_SECTIONS
+from coyote3.application.reporting.ordering import analysis_priority
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalCondition,
     ClinicalConditionTraceNode,
@@ -590,6 +591,31 @@ class ClinicalRuleEvaluator:
         for section in REPORT_METADATA_SECTIONS:
             if len(sections.get(section, [])) > 1:
                 raise ValueError(f"Report metadata section '{section}' permits at most one output")
+
+        order = context.aspc.reporting.summary_text_order
+        if order:
+            # Match rules in their published order. Only the final section presentation moves.
+            section_analyses: dict[str, set[str]] = {}
+            fixed_sections = set(REPORT_METADATA_SECTIONS) | {"analysis_description"}
+            for block in blocks:
+                if block.analysis and block.analysis not in reporting_analyses:
+                    continue
+                if block.analysis:
+                    section_analyses.setdefault(block.section, set()).add(block.analysis)
+                else:
+                    fixed_sections.add(block.section)
+            movable = [
+                section
+                for section in sections
+                if section in section_analyses and section not in fixed_sections
+            ]
+            reordered = iter(
+                sorted(
+                    movable, key=lambda section: analysis_priority(section_analyses[section], order)
+                )
+            )
+            names = [next(reordered) if section in movable else section for section in sections]
+            sections = {section: sections[section] for section in names}
 
         return ClinicalRuleEvaluation(
             source=ClinicalRuleSourceRef(

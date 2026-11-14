@@ -180,6 +180,18 @@ class UserManagementService:
         """Offer active assay checkboxes only within the selected assay groups."""
         form["fields"]["asp_groups"]["options"] = self.assay_panel_repository.group_options()
         groups = dict(create_assay_group_map(available_panels(self.assay_panel_repository)))
+        form["fields"]["assay_access"].update(
+            options=[
+                {
+                    "value": panel["asp_id"],
+                    "label": panel.get("display_name") or panel["asp_id"],
+                    "group": group,
+                }
+                for group, panels in groups.items()
+                for panel in panels
+                if panel.get("asp_id")
+            ],
+        )
         form["fields"]["asp_ids"].update(
             {
                 "display_type": "checkbox-group",
@@ -207,11 +219,43 @@ class UserManagementService:
         self, values: dict[str, Any], previous: dict[str, Any] | None = None
     ) -> None:
         """Reject newly assigned assays under inactive groups; retain historical assignments."""
-        added = set(values.get("asp_ids") or []) - set((previous or {}).get("asp_ids") or [])
+        from coyote3.contracts.schemas.assay_access import AssayAccessGrant
+        from coyote3.domain.identity.assay_access import scope_projection
+
+        raw = values.get("assay_access", [])
+        if not isinstance(raw, list):
+            raise api_error(422, "Assay access must be a list of assignments")
+        try:
+            rows = [AssayAccessGrant.model_validate(row).model_dump() for row in raw]
+        except ValueError as exc:
+            raise api_error(422, "Invalid assay/environment assignments") from exc
+        if len({row["asp_id"] for row in rows}) != len(rows):
+            raise api_error(422, "Choose one environment assignment per assay")
+        values["assay_access"] = rows
+        values["asp_ids"], values["environments"] = scope_projection(rows)
+        existing = {
+            row["asp_id"]: set(row["environments"])
+            for row in (previous or {}).get("assay_access") or []
+        }
+        added = {
+            row["asp_id"]
+            for row in rows
+            if set(row["environments"]) - existing.get(row["asp_id"], set())
+        }
         if added:
             available = {p["asp_id"] for p in available_panels(self.assay_panel_repository)}
             if added - available:
                 raise api_error(422, "Select active assays belonging to active assay groups")
+        groups = set(values.get("asp_groups") or [])
+        if groups and "*" not in groups:
+            panels = {
+                panel["asp_id"]: panel for panel in available_panels(self.assay_panel_repository)
+            }
+            if any(
+                assay in panels and panels[assay].get("asp_group") not in groups
+                for assay in values["asp_ids"]
+            ):
+                raise api_error(422, "Assay assignments must belong to selected biological groups")
 
     def create_context_payload(self, *, actor_username: str) -> dict[str, Any]:
         """Build a new-user form with available roles and assay access choices.
@@ -258,6 +302,7 @@ class UserManagementService:
         form["fields"]["roles"]["default"] = _normalize_role_ids(user_doc.get("roles"))
         form["fields"]["asp_groups"]["default"] = user_doc.get("asp_groups", [])
         form["fields"]["asp_ids"]["default"] = user_doc.get("asp_ids", [])
+        form["fields"]["assay_access"]["default"] = user_doc.get("assay_access", [])
 
         return {
             "user_doc": user_doc,
@@ -284,6 +329,7 @@ class UserManagementService:
             "is_active",
             "asp_groups",
             "asp_ids",
+            "assay_access",
             "auth_type",
             "must_change_password",
         ]
@@ -440,7 +486,7 @@ class UserManagementService:
         if "superuser" in old_roles.symmetric_difference(new_roles) and not actor_is_superuser:
             raise api_error(403, "Only a superuser may assign or remove the superuser role")
         updated_user = normalize_managed_form_payload(self._spec, form_data)
-        for scope_field in ("asp_ids", "asp_groups", "environments"):
+        for scope_field in ("assay_access", "asp_groups"):
             if scope_field not in form_data:
                 updated_user[scope_field] = list(user_doc.get(scope_field) or [])
         if "asp_groups" in form_data and (
@@ -488,6 +534,7 @@ class UserManagementService:
                 "job_title",
                 "auth_type",
                 "roles",
+                "assay_access",
                 "environments",
                 "asp_ids",
                 "asp_groups",

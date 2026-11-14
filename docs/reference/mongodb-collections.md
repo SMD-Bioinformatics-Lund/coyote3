@@ -1587,6 +1587,7 @@ Optional keys:
 - `password_action_issued_at` (datetime.datetime | None)
 - `password_action_issued_by` (str | None)
 - `roles` (list[str])
+- `assay_access` (list[coyote3.contracts.schemas.assay_access.AssayAccessGrant])
 - `environments` (list[str])
 - `asp_ids` (list[str])
 - `asp_groups` (list[str])

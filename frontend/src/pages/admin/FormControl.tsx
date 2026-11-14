@@ -1,4 +1,5 @@
 import { UserUiSettingsControls } from "@/components/users/UserUiSettingsControls"
+import { AssayAccessEditor } from "@/components/users/AssayAccessEditor"
 import { accentColor } from "@/lib/badge-colors"
 import { resourceNameHint } from "@/lib/resource-names"
 import { cn } from "@/lib/utils"
@@ -200,7 +201,10 @@ export function FormControl({
   }
 
   let control
-  if (field.display_type === "checkbox") {
+  if (field.display_type === "assay-access") {
+    control = <AssayAccessEditor value={value} onChange={onChange} options={field.options}
+      environments={field.environment_options || []} disabled={readOnly} />
+  } else if (field.display_type === "checkbox") {
     const checked = Boolean(value)
     control = (
       <label className="flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/60 px-2 py-1.5 text-sm">

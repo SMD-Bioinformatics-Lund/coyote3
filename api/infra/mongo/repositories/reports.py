@@ -8,6 +8,7 @@ from typing import Any
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 
+from api.infra.mongo.assay_access import restrict_assay_access
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
 from api.infra.mongo.repository_utils import utc_now
@@ -293,6 +294,7 @@ class ReportRepository(BaseRepository):
         search: str = "",
         page: int = 1,
         per_page: int = 30,
+        assay_access: list[dict] | None = None,
     ) -> tuple[list[dict[str, Any]], int]:
         """Return newest-first report metadata matching a scoped literal search.
 
@@ -331,6 +333,7 @@ class ReportRepository(BaseRepository):
         query: dict[str, Any] = {"$and": query_parts} if query_parts else {}
         safe_page = max(1, int(page))
         safe_per_page = max(1, min(200, int(per_page)))
+        query = restrict_assay_access(query, assay_access)
         collection = self.get_collection()
         total = int(collection.count_documents(query))
         rows = list(

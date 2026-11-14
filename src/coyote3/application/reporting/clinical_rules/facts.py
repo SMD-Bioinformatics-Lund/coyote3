@@ -45,6 +45,7 @@ class PreparedAspcReportingFacts(_FactModel):
     """Stable ASPC reporting facts."""
 
     report_sections: list[str] = Field(default_factory=list)
+    summary_text_order: list[str] = Field(default_factory=list)
     language: str = "sv"
     reportable_tiers: ReportableTiersDoc = Field(default_factory=ReportableTiersDoc)
 

@@ -2,11 +2,52 @@
 
 ![Role permissions and user clinical scope](../assets/diagrams/user-assay-access-scope.svg)
 
-Roles grant action permissions. User account assignments supply assay, group, and
-environment scope. The server checks both against the target resource; sharing
+Roles grant action permissions. User assignments pair each assay with its allowed
+environments, with optional biological-group restrictions. The server checks these against the target resource; sharing
 an assay group does not by itself grant a user permission to read or change data.
 
 Coyote3 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
+
+## Access by assay and environment
+
+In user administration, **Assay and environment access** shows one assay per row
+and configured environments as columns. For example:
+
+```json
+{
+  "assay_access": [
+    {"asp_id": "assay_a", "environments": ["production", "development", "validation"]},
+    {"asp_id": "assay_b", "environments": ["production"]}
+  ]
+}
+```
+
+This permits Assay A in all three environments and Assay B only in production.
+Assay B/development is denied even though development is allowed for Assay A.
+Each assay appears once. Unknown environments, duplicate assignments and user
+wildcard assay IDs are rejected. The existing explicit superuser role remains
+unrestricted; administrative role names alone do not bypass clinical scope.
+
+The same paired scope protects sample reads, sample/report lists, searches,
+cohort denominators, rule-testing sample selection, notifications and patient
+metrics. Database filters apply the allowed pairs before pagination and counts.
+Navigation assay/environment lists are derived choices, not authorization rules.
+Assay-group membership does not add access to otherwise unassigned assays.
+
+Sessions reload the current identity on subsequent requests. Personal-token
+issuance, requests and queued execution must also satisfy the owner's current
+pair assignments and action permissions. A rectangular token scope cannot include
+an assay/environment combination its owner lacks.
+
+### Existing accounts
+
+Before enabling the new policy, review existing accounts and populate
+`assay_access`. Accounts without explicit rows have no clinical access; the old
+`asp_ids` and `environments` fields provide no fallback. Existing report files and
+clinical records are not changed by this identity update.
+
+Review and assign environments per assay through user administration. Account
+updates preserve passwords and use the existing versioned, audited write workflow.
 
 ## Account, role and permission fields
 
@@ -19,7 +60,9 @@ and password workflows impose additional checks and supply actor/history metadat
 | `username`, `email`, `firstname`, `lastname`, `fullname`, `job_title` | Required by the stored contract; forms manage identity validation | Account identity and display metadata. |
 | `auth_type` | Default selects LDAP when enabled, otherwise the first enabled provider | Explicit list of implemented authentication providers allowed for the account; not a password. |
 | `roles` | `[]` | Role IDs; no role grants are invented when omitted. |
-| `environments`, `asp_ids`, `asp_groups` | Each `[]` | Clinical access assignments; do not interpret an empty assignment as unrestricted access. |
+| `assay_access` | `[]` | One row per assay, each containing `asp_id` and `environments`. No rows or no selected environments grants no clinical access. |
+| `asp_groups` | `[]` | Additional biological-group restrictions; groups do not add assays to explicit grants. |
+| `environments`, `asp_ids` | Each `[]` | Retained compatibility/selector fields. They never authorize access; managed account saves derive them from the paired grants. |
 | `is_active` | `true` | Account availability; action permission checks still apply. |
 | `must_change_password` | Stored default `false`; account workflows can set it | Password-change requirement, including first-login bootstrap behavior. |
 | `password`, password-token and session fields | Service-owned | Password hashes and security state; never supply plaintext in a database document. |

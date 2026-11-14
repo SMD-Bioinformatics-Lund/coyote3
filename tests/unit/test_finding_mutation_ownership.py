@@ -41,6 +41,7 @@ def test_annotation_route_requires_the_extra_global_permission(monkeypatch, scop
         roles=["commenter"],
         is_superuser=False,
         asp_ids=["*"],
+        assay_access=[{"asp_id": "synthetic", "environments": ["testing"]}],
         asp_groups=["*"],
         envs=["testing"],
     )

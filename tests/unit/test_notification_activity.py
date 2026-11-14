@@ -27,6 +27,7 @@ def principal(username, **overrides):
             "roles": ["reader"],
             "asp_groups": ["hematology"],
             "asp_ids": ["panel"],
+            "assay_access": [{"asp_id": "panel", "environments": ["production"]}],
             "envs": ["production"],
             **overrides,
         }
@@ -67,6 +68,9 @@ def fixture():
     ]
     for user in users.list_active_users_for_notifications.return_value:
         user["roles"] = ["reader"]
+        user["assay_access"] = [
+            {"asp_id": assay, "environments": user["envs"]} for assay in user["asp_ids"]
+        ]
     samples = Mock()
     samples.get_notification_sample.return_value = {
         "name": "DEMO",
@@ -275,9 +279,9 @@ def test_matching_scope_without_clinical_read_permission_receives_no_report_noti
     "changes",
     [
         {"roles": []},
-        {"asp_ids": ["another"]},
+        {"assay_access": [{"asp_id": "another", "environments": ["production"]}]},
         {"asp_groups": ["solid"]},
-        {"envs": ["testing"]},
+        {"assay_access": [{"asp_id": "panel", "environments": ["testing"]}]},
     ],
 )
 def test_clinical_notice_is_hidden_after_access_revocation_but_broadcast_remains(changes):

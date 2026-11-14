@@ -63,6 +63,7 @@ class ResourceSampleService:
         asp_id: str = "",
         page: int = 1,
         per_page: int = 30,
+        assay_access: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Return the admin sample list payload."""
         panels = [
@@ -89,6 +90,7 @@ class ResourceSampleService:
         query_asp_ids = filtered_ids if normalized_group or normalized_asp_id else asp_ids
 
         rows, total = self.sample_repository.search_samples_for_admin(
+            assay_access=assay_access,
             asp_ids=query_asp_ids,
             search_str=search,
             page=page,

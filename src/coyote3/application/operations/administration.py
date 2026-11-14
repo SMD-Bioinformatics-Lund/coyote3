@@ -36,6 +36,7 @@ from coyote3.contracts.schemas.diagnoses import (
     SharedDiagnosisCreate,
     SharedDiagnosisUpdate,
 )
+from coyote3.domain.identity.assay_access import grants_for
 
 if TYPE_CHECKING:
     from coyote3.application.accounts.permissions import PermissionManagementService
@@ -1600,6 +1601,7 @@ class SampleAdministration:
             ("sample:list:global",),
             lambda actor, sample: self._service().list_payload(
                 asp_ids=None if actor.is_superuser else actor.asp_ids,
+                assay_access=grants_for(actor),
                 search=search,
                 asp_group=asp_group,
                 asp_id=asp_id,

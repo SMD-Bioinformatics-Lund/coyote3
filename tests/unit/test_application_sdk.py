@@ -41,6 +41,7 @@ def sdk():
         must_change_password=False,
         permissions=["*"],
         asp_ids=["synthetic"],
+        assay_access=[{"asp_id": "synthetic", "environments": ["testing"]}],
         asp_groups=["synthetic-group"],
         envs=["testing"],
     )
@@ -168,6 +169,7 @@ def test_retained_handle_rechecks_identity_and_current_grants(sdk, change):
         sdk.grants.remove("sample:view")
     elif change == "scope":
         sdk.actor.envs = ["production"]
+        sdk.actor.assay_access = [{"asp_id": "synthetic", "environments": ["production"]}]
     elif change == "group":
         sdk.actor.asp_groups = ["different"]
     else:
@@ -177,6 +179,25 @@ def test_retained_handle_rechecks_identity_and_current_grants(sdk, change):
     assert error.value.status_code == (401 if change == "session" else 403)
     sdk.dna.list_variants_payload.assert_not_called()
     assert not sdk.events[-1].allowed
+
+
+def test_read_and_report_access_require_the_exact_pair_even_when_flat_selectors_allow_it(sdk):
+    sdk.actor.assay_access = [
+        {"asp_id": "synthetic", "environments": ["testing"]},
+        {"asp_id": "other", "environments": ["production"]},
+    ]
+    sdk.actor.asp_ids = ["synthetic", "other"]
+    sdk.actor.envs = ["testing", "production"]
+    sdk.sample["asp_id"] = "other"
+    for operation in (
+        lambda: sdk.samples.ref("demo").read(),
+        lambda: Reports(sdk.runtime, Mock()).preview("demo", "dna"),
+    ):
+        with pytest.raises(AppError) as denied:
+            operation()
+        assert denied.value.status_code == 403
+    sdk.sample["environment"] = "production"
+    assert sdk.samples.ref("demo").read().name == "SYNTHETIC_001"
 
 
 def test_missing_sample_and_empty_identifier(sdk):
@@ -259,6 +280,7 @@ def test_flags_preserve_the_existing_sample_scoped_write(sdk):
 def test_production_tiering_requires_the_publication_grant(sdk):
     sdk.sample["environment"] = "production"
     sdk.actor.envs = ["production"]
+    sdk.actor.assay_access = [{"asp_id": "synthetic", "environments": ["production"]}]
     sdk.grants.remove("annotation:publish")
     with pytest.raises(AppError):
         sdk.samples.ref("demo").set_tiers(

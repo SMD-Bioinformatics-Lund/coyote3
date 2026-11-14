@@ -226,7 +226,7 @@ Binding: `users_collection`.
 
 Persisted user identity, authentication state, access scope, and UI preferences.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `email`, `username`, `firstname`, `lastname`, `fullname`, `job_title`, `auth_type`, `password`, `last_login`, `must_change_password`, `password_updated_on`, `password_action_token_hash`, `password_action_purpose`, `password_action_expires_at`, `password_action_issued_at`, `password_action_issued_by`, `roles`, `environments`, `asp_ids`, `asp_groups`, `ui_settings`, `system_managed`, `is_active`, `version`, `created_on`, `updated_on`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `email`, `username`, `firstname`, `lastname`, `fullname`, `job_title`, `auth_type`, `password`, `last_login`, `must_change_password`, `password_updated_on`, `password_action_token_hash`, `password_action_purpose`, `password_action_expires_at`, `password_action_issued_at`, `password_action_issued_by`, `roles`, `assay_access`, `environments`, `asp_ids`, `asp_groups`, `ui_settings`, `system_managed`, `is_active`, `version`, `created_on`, `updated_on`.
 
 [Field types and validation](../mongodb-collections.md#users). `_id` may also be retained by an open collection model.
 
@@ -239,7 +239,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
 | [identity.users](identity.md#identity-users): `roles[]` | [identity.roles](identity.md#identity-roles): `role_id` | business key; many ↔ many | Runtime resolves current role definitions; these are role IDs, not role ObjectIds. | [S10](#s10) |
-| [identity.users](identity.md#identity-users): `asp_ids[]` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | access scope; many ↔ many | Cross-database string scope assignments; wildcard semantics are authorization rules, not missing registry rows. | [S6](#s6) |
+| [identity.users](identity.md#identity-users): `assay_access[].asp_id` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | access scope; many ↔ many | Each assay has its own explicit environment list. Flat asp_ids/environments fields are compatibility projections and never supply fallback access. | [S6](#s6) |
 | [identity.users](identity.md#identity-users): `asp_groups[]` | [primary.assay_groups](configuration.md#primary-assay-groups): `group_id` | access scope; many ↔ many | Cross-database string scope assignments; wildcard semantics are authorization rules, not missing registry rows. | [S6](#s6) |
 | [identity.users](identity.md#identity-users): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 

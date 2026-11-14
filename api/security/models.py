@@ -3,14 +3,16 @@
 from datetime import datetime
 from typing import Any, List, Optional, cast
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from werkzeug.security import check_password_hash
 
 from coyote3.config.constants import (
     DEFAULT_AUTH_PROVIDER,
-    DEFAULT_ENVIRONMENT,
+    ENVIRONMENT_OPTIONS,
     normalize_auth_types,
 )
+from coyote3.contracts.schemas.assay_access import AssayAccessGrant
+from coyote3.domain.identity.assay_access import grants_for, pair_allowed, scope_projection
 
 
 def _unique_permission_ids(permission_ids: list[str] | None) -> list[str]:
@@ -59,6 +61,7 @@ class UserModel(BaseModel):
     role: str = ""
     asp_groups: List[str] = Field(default_factory=list)
     asp_ids: List[str] = Field(default_factory=list)
+    assay_access: list[AssayAccessGrant] = Field(default_factory=list)
     asp_map: dict[str, Any] = Field(default_factory=dict)
     environments: List[str] = Field(default_factory=list)
     permissions: List[str] = Field(default_factory=list)
@@ -67,6 +70,19 @@ class UserModel(BaseModel):
     is_active: bool = True
     auth_type: List[str] = Field(default_factory=lambda: [DEFAULT_AUTH_PROVIDER])
     must_change_password: bool = False
+
+    @model_validator(mode="after")
+    def derive_scope_choices(self) -> "UserModel":
+        """Derive selector values exclusively from the explicit paired assignments."""
+        if len({row.asp_id for row in self.assay_access}) != len(self.assay_access):
+            raise ValueError("Assay access must contain one row per assay")
+        if self.is_superuser:
+            self.environments = list(ENVIRONMENT_OPTIONS)
+            return self
+        self.asp_ids, self.environments = scope_projection(
+            [row.model_dump() for row in self.assay_access]
+        )
+        return self
 
     @field_validator("id", mode="before")
     @classmethod
@@ -130,6 +146,18 @@ class UserModel(BaseModel):
         """
         role_docs = [dict(item) for item in (role_docs or []) if isinstance(item, dict)]
         asp_docs = asp_docs or []
+        user_doc = dict(user_doc)
+        groups = set(user_doc.get("asp_groups") or [])
+        if groups and "*" not in groups:
+            allowed = {asp["asp_id"] for asp in asp_docs if asp.get("asp_group") in groups}
+            user_doc["assay_access"] = [
+                row for row in user_doc.get("assay_access") or [] if row["asp_id"] in allowed
+            ]
+        user_doc["asp_ids"], user_doc["environments"] = scope_projection(
+            user_doc.get("assay_access") or []
+        )
+        if "superuser" in (user_doc.get("roles") or []):
+            user_doc["asp_ids"] = [asp["asp_id"] for asp in asp_docs if asp.get("asp_id")]
 
         asp_map: dict[str, dict[str, dict[str, list[Any]]]] = {}
         for asp in asp_docs:
@@ -267,14 +295,8 @@ class UserModel(BaseModel):
 
     @property
     def envs(self) -> List[str]:
-        """
-        Returns the list of environments the user has access to.
-        If no environments are specified, defaults to the application default environment.
-
-        Returns:
-            List[str]: List of environment names.
-        """
-        return self.environments if self.environments else [DEFAULT_ENVIRONMENT]
+        """Return derived environment choices; actual access requires an assay/environment pair."""
+        return self.environments
 
     def can_access_group(self, group: str) -> bool:
         """
@@ -288,17 +310,18 @@ class UserModel(BaseModel):
         """
         return self.is_superuser or group in self.asp_groups
 
-    def can_access_assay(self, assay: str) -> bool:
+    def can_access_assay(self, assay: str, environment: str = "") -> bool:
         """
         Determines if the user can access a specific assay.
 
         Args:
             assay (str): The assay to check access for.
+            environment: Exact environment; blank performs an assay-only preflight.
 
         Returns:
-            bool: True if the user is a superuser or the assay is in the user's assays, False otherwise.
+            Whether one explicit row permits the supplied pair, or the actor is a superuser.
         """
-        return self.is_superuser or assay in self.asp_ids
+        return pair_allowed(grants_for(self), assay, environment)
 
     def get_accessible_groups(self) -> List[str]:
         """

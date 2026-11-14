@@ -13,6 +13,7 @@ from xml.etree import ElementTree
 from markdown import Markdown
 from markdown.treeprocessors import Treeprocessor
 
+from coyote3.application.reporting.ordering import analysis_priority, order_summary_tables
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC
 from coyote3.version import __version__
@@ -501,7 +502,7 @@ def build_smd_report_input(
             "FUSION",
         )
 
-    _biomarkers(context, sections, details, empty)
+    biomarker_analyses = _biomarkers(context, sections, details, empty)
     if "PGX" in enabled:
         pgx = (data.get("pgx") if analyte == "dna" else context.get("pgx")) or []
         add_table(
@@ -524,6 +525,11 @@ def build_smd_report_input(
             ],
             "PGX",
         )
+    order_summary_tables(
+        sections,
+        (config.get("reporting") or {}).get("summary_table_order") or [],
+        biomarker_analyses,
+    )
     sections.append(
         {
             "key": "conclusion",
@@ -688,17 +694,32 @@ def build_smd_report_input(
     }
 
 
-def _biomarkers(context: dict, sections: list[dict], details: list[dict], empty: dict) -> None:
-    """Preserve paired MSI selection, clinical assessments and measured biomarker evidence."""
+def _biomarkers(context: dict, sections: list[dict], details: list[dict], empty: dict) -> list[str]:
+    """Preserve paired MSI selection, clinical assessments and measured biomarker evidence.
+
+    Args:
+        context: Prepared clinical inputs and report presentation configuration.
+        sections: Summary sections receiving biomarker rows or empty messages.
+        details: Existing detail cards, appended in their established analysis order.
+        empty: Per-analysis empty-result wording.
+
+    Returns:
+        Analyses represented in the combined summary table, independent of display labels.
+    """
     data = context.get("report_sections_data") or {}
     enabled = context.get("report_sections") or []
     rows = []
-    for analysis, methods in [
+    row_analyses = []
+    methods_by_analysis = [
         ("HRD", ["HRD"]),
         ("MSI", ["MSIP"] if context["sample"].get("paired") else ["MSIS"]),
         ("TMB", ["TMB"]),
         ("BIOMARKER", [None]),
-    ]:
+    ]
+    order = ((context.get("assay_config") or {}).get("reporting") or {}).get(
+        "summary_table_order"
+    ) or []
+    for analysis, methods in methods_by_analysis:
         if analysis not in enabled:
             continue
         found = False
@@ -715,6 +736,7 @@ def _biomarkers(context: dict, sections: list[dict], details: list[dict], empty:
                     "value"
                 ) or "Ej bedömd"
                 rows.append([name, assessment])
+                row_analyses.append(analysis)
                 if analysis == "HRD":
                     fields = [
                         (label, measurement.get(key))
@@ -774,6 +796,13 @@ def _biomarkers(context: dict, sections: list[dict], details: list[dict], empty:
                 "biomarkers",
                 "Kliniskt relevanta biomarkörer",
                 ["Biomarkör", "Klinisk bedömning"],
-                rows,
+                [
+                    row
+                    for _, row in sorted(
+                        zip(row_analyses, rows),
+                        key=lambda entry: analysis_priority([entry[0]], order),
+                    )
+                ],
             )
         )
+    return row_analyses

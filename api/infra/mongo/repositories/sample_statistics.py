@@ -1,5 +1,6 @@
 """Aggregate sample workload and observed provenance without loading sample cohorts."""
 
+from api.infra.mongo.assay_access import restrict_assay_access
 from coyote3.config.constants import DEFAULT_ENVIRONMENT
 
 
@@ -29,12 +30,16 @@ class SampleStatisticsMixin:
         result = list(self.get_collection().aggregate(pipeline))
         return {item["asp_id"]: item["count"] for item in result}
 
-    def get_dashboard_sample_rollup(self, asp_ids: list[str] | None = None) -> dict:
+    def get_dashboard_sample_rollup(
+        self, asp_ids: list[str] | None = None, *, assay_access: list[dict] | None = None
+    ) -> dict:
         """
         Aggregate all dashboard sample counters in a single query.
         """
         # asp_ids=None => unscoped (admin/all), asp_ids=[] => explicit no access (match nothing)
-        base_match = {"asp_id": {"$in": asp_ids}} if asp_ids is not None else {}
+        base_match = restrict_assay_access(
+            {"asp_id": {"$in": asp_ids}} if asp_ids is not None else {}, assay_access
+        )
         collection = self.get_collection()
 
         pipeline: list[dict] = []

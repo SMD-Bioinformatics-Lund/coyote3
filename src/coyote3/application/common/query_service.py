@@ -773,6 +773,7 @@ class CommonQueryService:
         visible_environments: list[str] | None,
         include_history: bool = False,
         finding_limit: int = 10_000,
+        assay_access: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Build prevalence and recurrent-finding statistics for one gene."""
         gene, query = self._resolve_cohort_gene(gene_id)
@@ -781,6 +782,7 @@ class CommonQueryService:
             raise api_error(400, "A gene symbol or HGNC identifier is required")
 
         samples = self.sample_repository.get_gene_cohort_samples(
+            assay_access=assay_access,
             asp_ids=visible_asp_ids,
             environments=visible_environments,
         )

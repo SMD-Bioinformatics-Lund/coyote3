@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from coyote3.domain.identity.assay_access import grants_for
+
 
 class ReportLibraryService:
     """List saved reports and their immutable finding snapshot summaries."""
@@ -40,6 +42,7 @@ class ReportLibraryService:
         rows, total = self.report_repository.list_reports_page(
             asp_ids=asp_ids,
             environments=environments,
+            assay_access=grants_for(user),
             search=search,
             page=page,
             per_page=per_page,

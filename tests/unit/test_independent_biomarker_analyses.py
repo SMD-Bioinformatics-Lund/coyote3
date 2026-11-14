@@ -249,7 +249,7 @@ def test_report_renders_only_selected_measurement_table():
             "genes_covered_in_panel": {},
         },
     )
-    assert ">TMB</span>" in html
-    assert ">HRD</span>" not in html
+    assert ">TMB</td>" in html
+    assert ">HRD</td>" not in html
     assert "mut/Mb" in html
     assert "'value':" not in html

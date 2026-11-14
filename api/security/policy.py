@@ -8,6 +8,8 @@ from typing import Any
 
 import casbin
 
+from coyote3.domain.identity.assay_access import grants_for, pair_allowed
+
 logger = logging.getLogger(__name__)
 
 POLICY_MODEL = """
@@ -116,6 +118,7 @@ class PrincipalScope:
     asp_ids: frozenset[str]
     environments: frozenset[str]
     asp_groups: frozenset[str]
+    assay_access: tuple[tuple[str, tuple[str, ...]], ...] | None = ()
 
     @classmethod
     def from_user(cls, user: Any) -> "PrincipalScope":
@@ -126,7 +129,26 @@ class PrincipalScope:
                 _norm_env(value) for value in _unique(getattr(user, "envs", []) or [])
             ),
             asp_groups=frozenset(_unique(getattr(user, "asp_groups", []) or [])),
+            assay_access=(
+                None
+                if grants_for(user) is None
+                else tuple(
+                    (row["asp_id"], tuple(row["environments"])) for row in grants_for(user) or []
+                )
+            ),
         )
+
+    def allows(self, assay: str, environment: str) -> bool:
+        """Authorize a pair against a single assignment row."""
+        grants = (
+            None
+            if self.assay_access is None
+            else [
+                {"asp_id": assay_id, "environments": list(envs)}
+                for assay_id, envs in self.assay_access
+            ]
+        )
+        return pair_allowed(grants, assay, environment)
 
 
 def _scope_contains(scope_values: frozenset[str], required: str) -> bool:
@@ -263,10 +285,8 @@ class AccessPolicy:
         """Evaluate ABAC-style scope attributes when a route supplies them."""
         access_context = AccessContext.from_mapping(context)
         scope = self.principal_scope
-        return (
-            _scope_contains(scope.asp_ids, access_context.asp_id)
-            and _scope_contains(scope.environments, access_context.environment)
-            and _scope_contains(scope.asp_groups, access_context.asp_group)
+        return scope.allows(access_context.asp_id, access_context.environment) and _scope_contains(
+            scope.asp_groups, access_context.asp_group
         )
 
 
@@ -297,10 +317,8 @@ def build_access_policy(
         Returns:
             True when all three normalized attributes match the user's scopes.
         """
-        return (
-            _scope_contains(principal_scope.asp_ids, _norm(assay))
-            and _scope_contains(principal_scope.environments, _norm_env(environment))
-            and _scope_contains(principal_scope.asp_groups, _norm(assay_group))
+        return principal_scope.allows(_norm(assay), _norm_env(environment)) and _scope_contains(
+            principal_scope.asp_groups, _norm(assay_group)
         )
 
     enforcer.add_function("has_scope", _has_scope)

@@ -832,6 +832,13 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "version": {"readonly": True},
     },
     "user": {
+        "assay_access": {
+            "label": "Assay and environment access",
+            "display_type": "assay-access",
+            "environment_options": list(ENVIRONMENT_OPTIONS),
+            "default": [],
+            "help": "Select environments independently for each assay. An unchecked row grants no access. Roles determine the permitted actions.",
+        },
         "ui_settings": {
             "label": "Interface layouts",
             "display_type": "user-settings",
@@ -848,9 +855,15 @@ RESOURCE_FIELD_OVERRIDES: dict[str, dict[str, dict[str, Any]]] = {
         "environments": {
             "display_type": "checkbox-group",
             "options": list(ENVIRONMENT_OPTIONS),
+            "readonly": True,
+            "hidden_mode": ["create", "edit", "view"],
         },
         "asp_groups": {"display_type": "checkbox-group", "options": []},
-        "asp_ids": {"display_type": "checkbox-group"},
+        "asp_ids": {
+            "display_type": "checkbox-group",
+            "readonly": True,
+            "hidden_mode": ["create", "edit", "view"],
+        },
         "must_change_password": {"display_type": "checkbox"},
         "is_active": {"display_type": "checkbox", "default": True},
         "created_by": {"readonly": True},
@@ -1015,7 +1028,7 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
         ("identity", ["firstname", "lastname", "fullname", "username", "email", "job_title"]),
         ("auth", ["auth_type", "password", "must_change_password"]),
         ("role_access", ["roles"]),
-        ("scope", ["environments", "asp_groups", "asp_ids"]),
+        ("scope", ["asp_groups", "assay_access"]),
         ("user settings", ["ui_settings"]),
         ("status", ["system_managed", "is_active"]),
         ("metadata", ["created_by", "created_on", "updated_by", "updated_on", "version"]),

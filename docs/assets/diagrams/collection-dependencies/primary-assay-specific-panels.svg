@@ -128,7 +128,7 @@
 <text x="20" y="1761" class="kind">optional binding · many ↔ many</text>
 <rect x="20" y="1787" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
 <text x="34" y="1811" font-weight="600">identity.users</text>
-<text x="34" y="1830" font-weight="400">asp_ids[]</text>
+<text x="34" y="1830" font-weight="400">assay_access[].asp_id</text>
 <rect x="660" y="1787" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
 <text x="674" y="1811" font-weight="600">primary.assay_specific_panels</text>
 <text x="674" y="1830" font-weight="400">asp_id</text>

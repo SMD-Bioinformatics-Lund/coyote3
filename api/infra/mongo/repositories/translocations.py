@@ -17,6 +17,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.infra.mongo.assay_access import finding_scope_query
 from api.infra.mongo.persistence import require_object_id
 from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.annotation_queries import annotation_visibility_query
@@ -340,7 +341,7 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         return self._has_hidden_finding_comments(id)
 
-    def get_total_transloc_count(self) -> int:
+    def get_total_transloc_count(self, *, assay_access: list[dict] | None = None) -> int:
         """
         Get the total count of translocations.
 
@@ -349,7 +350,10 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         Returns:
             int: The total count of translocations.
         """
-        return self.get_collection().count_documents({}) or 0
+        return (
+            self.get_collection().count_documents(finding_scope_query(self.adapter, assay_access))
+            or 0
+        )
 
     def get_unique_transloc_count(self) -> list:
         """

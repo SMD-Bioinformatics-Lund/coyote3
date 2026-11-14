@@ -44,6 +44,10 @@ def api_user() -> ApiUser:
             or ["report:preview", "report:create", "role:view", "sample:edit:own"]
         ),
         asp_ids=list(doc.get("asp_ids") or []),
+        assay_access=[
+            {"asp_id": assay, "environments": list(doc.get("envs") or [])}
+            for assay in doc.get("asp_ids") or []
+        ],
         asp_groups=list(doc.get("asp_groups") or []),
         envs=list(doc.get("envs") or []),
         asp_map=deepcopy(doc.get("asp_map") or {}),

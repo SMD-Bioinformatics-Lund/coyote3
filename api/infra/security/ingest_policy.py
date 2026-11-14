@@ -72,15 +72,10 @@ class SampleIngestPolicy:
         ):
             required = AccessContext.from_mapping(context)
             granted = PrincipalScope.from_user(user)
-            return (
-                (not required.asp_id or required.asp_id in granted.asp_ids)
-                and (not required.environment or required.environment in granted.environments)
-                and (
-                    not user.personal_token
-                    or bool(
-                        user.personal_permission_check
-                        and user.personal_permission_check(None, context)
-                    )
+            return granted.allows(required.asp_id, required.environment) and (
+                not user.personal_token
+                or bool(
+                    user.personal_permission_check and user.personal_permission_check(None, context)
                 )
             )
         return isinstance(user, self._principal_type)

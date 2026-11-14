@@ -123,7 +123,7 @@ export function AdminManagedForm({
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {sectionFields.map((name) => {
                   const field = form.fields[name]
-                  const wide = ["textarea", "checkbox-group", "jsoneditor", "jsoneditor-or-upload", "filters-structured", "reporting-structured", "catalog-structured", "user-settings"].includes(field.display_type || "") || field.data_type === "json"
+                  const wide = ["textarea", "checkbox-group", "jsoneditor", "jsoneditor-or-upload", "filters-structured", "reporting-structured", "catalog-structured", "user-settings", "assay-access"].includes(field.display_type || "") || field.data_type === "json"
                   return (
                     <div key={name} className={cn(wide && "md:col-span-2 xl:col-span-3")}>
                       <FormControl

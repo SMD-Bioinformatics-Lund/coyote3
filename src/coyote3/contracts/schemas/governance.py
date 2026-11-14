@@ -17,6 +17,7 @@ from coyote3.config.constants import (
     normalize_environment,
     normalize_permission_category,
 )
+from coyote3.contracts.schemas.assay_access import AssayAccessGrant
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase
 
 
@@ -110,6 +111,7 @@ class UsersDoc(_StrictCollectionDocBase):
     password_action_issued_at: datetime | None = None
     password_action_issued_by: str | None = None
     roles: list[str] = Field(default_factory=list)
+    assay_access: list[AssayAccessGrant] = Field(default_factory=list)
     environments: list[str] = Field(default_factory=list)
     asp_ids: list[str] = Field(default_factory=list)
     asp_groups: list[str] = Field(default_factory=list)
@@ -121,6 +123,14 @@ class UsersDoc(_StrictCollectionDocBase):
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: str | None = None
     updated_on: datetime | None = None
+
+    @field_validator("assay_access")
+    @classmethod
+    def unique_assay_access(cls, values: list[AssayAccessGrant]) -> list[AssayAccessGrant]:
+        """Require one authoritative environment row per assay."""
+        if len({row.asp_id for row in values}) != len(values):
+            raise ValueError("Assay access must contain one row per assay")
+        return values
 
     @field_validator("email")
     @classmethod

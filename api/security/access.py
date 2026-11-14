@@ -87,6 +87,7 @@ class ApiUser:
     asp_map: dict[str, Any]
     auth_type: list[str]
     must_change_password: bool = False
+    assay_access: list[dict[str, Any]] = field(default_factory=list)
     credential_version: str | None = field(default=None, repr=False)
     firstname: str = ""
     lastname: str = ""
@@ -316,6 +317,7 @@ def api_user_from_user_doc(user_doc: dict[str, Any]) -> ApiUser:
         access_level=user_model.access_level,
         permissions=list(user_model.permissions),
         asp_ids=list(user_model.asp_ids),
+        assay_access=[row.model_dump() for row in user_model.assay_access],
         asp_groups=list(user_model.asp_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
@@ -359,6 +361,7 @@ def serialize_api_user(user: ApiUser) -> dict[str, Any]:
         "permissions": sorted(user.permissions),
         "ui_settings": dict(user.ui_settings),
         "asp_ids": sorted(user.asp_ids),
+        "assay_access": list(user.assay_access),
         "asp_groups": sorted(user.asp_groups),
         "envs": sorted(user.envs),
         "asp_map": user.asp_map,
@@ -671,6 +674,10 @@ def _require_ingestion_access(
             access_level=0,
             permissions=permissions,
             asp_ids=credential.asp_ids,
+            assay_access=[
+                {"asp_id": asp_id, "environments": credential.environments}
+                for asp_id in credential.asp_ids
+            ],
             asp_groups=["*"],
             asp_map={},
             envs=credential.environments,

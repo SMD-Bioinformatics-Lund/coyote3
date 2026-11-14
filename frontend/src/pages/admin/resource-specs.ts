@@ -40,6 +40,7 @@ export type FormField = {
   placeholder?: string
   help?: string
   options?: any[]
+  environment_options?: string[]
   options_from_field?: string
   visible_when?: { field: string; value: string }
   options_require_inputs?: { field: string; values: Record<string, string[]> }

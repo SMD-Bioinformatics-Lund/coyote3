@@ -2,8 +2,8 @@
 
 The optional center-owned `report_presentation.toml` supplies plain text for modern
 report sections that contain no reportable findings. It does not change finding
-selection, classification, reporting rules, or ASPC revisions. Legacy reports keep
-their existing layout and wording.
+selection, classification, reporting rules, or ASPC revisions. Previously issued
+reports retain their saved layout and wording.
 
 Bundled clinical wording uses `variant` / `varianter`. A center-owned file overrides
 the defaults, so update its SNV messages explicitly when adopting this terminology.
@@ -109,3 +109,47 @@ normal configuration-release procedure.
 Local SDK callers can supply a validated
 `coyote3.application.reporting.presentation.ReportPresentation` through the report
 renderer’s `presentation` argument. The SDK does not read center directories.
+
+## ASPC summary order
+
+Analysis order belongs to each ASPC's **Reporting → Summary order**, independently
+of the center-owned empty-result wording. Two ordered lists can be configured:
+
+```json
+{
+  "reporting": {
+    "summary_text_order": ["CNV", "TRANSLOCATION", "SNV"],
+    "summary_table_order": ["SNV", "CNV", "TRANSLOCATION", "TMB", "MSI", "HRD"]
+  }
+}
+```
+
+Enter one analysis per line in each form field. Values use canonical analysis
+names; DNA fusions use `TRANSLOCATION`, while RNA fusions use `FUSION`.
+Duplicate, unknown and wrong-modality names are rejected. An order does not enable
+an analysis or select additional findings. Names for currently disabled analyses
+have no effect until the analysis is enabled.
+
+Both fields default to empty lists. Empty text order retains the published rule
+section order. Empty table order retains the renderer's existing order: SNVs
+(including enabled germline findings), CNVs, DNA translocations or RNA fusions,
+biomarkers, then PGx. A partial list puts listed analyses first; all other analyses
+retain their relative order afterward. RNA-only configurations retain their
+existing fusion, biomarker and PGx ordering unless explicitly configured.
+
+Text order applies after rule matching to generated analysis-tagged sections.
+Introduction, conclusion, metadata, method description and any other untagged
+sections stay in their original positions. A section shared by several analyses
+moves as one group using its earliest configured analysis; its authored sentences
+remain together and unchanged. Already saved or edited sample comments are never
+reordered automatically. Generate and review a new suggestion to adopt text order.
+
+Table order changes result summaries and enabled empty-result messages, leaving
+detailed finding cards, reference tables and gene lists in their existing order.
+Somatic and germline SNV tables remain grouped. The combined biomarker table moves
+as one unit using its earliest contained analysis; its rows follow the configured
+priority while biomarker detail cards keep their original order.
+
+Save these settings through normal ASPC review/versioning. Both values participate
+in report preview fingerprints, so changing either invalidates an older preview
+before artifact creation. Already issued report files remain unchanged.

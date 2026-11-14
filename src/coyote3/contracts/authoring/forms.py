@@ -247,6 +247,36 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         tier_analyses = ["FUSION"] if spec.key == "aspc_rna" else ["SNV", "CNV", "TRANSLOCATION"]
         fields["reporting"]["groups"].append(
             {
+                "title": "Summary order",
+                "fields": [
+                    {
+                        "key": key,
+                        "label": label,
+                        "type": "list",
+                        "default": [],
+                        "help": (
+                            "One analysis per line, in priority order. Blank preserves the "
+                            "current order; unlisted analyses keep their relative order after "
+                            "listed analyses. DNA fusions use TRANSLOCATION. " + detail
+                        ),
+                    }
+                    for key, label, detail in [
+                        (
+                            "summary_text_order",
+                            "Summary text order",
+                            "Applies to generated text; saved comments are unchanged.",
+                        ),
+                        (
+                            "summary_table_order",
+                            "Summary table order",
+                            "Applies to report result summaries, not detailed finding cards.",
+                        ),
+                    ]
+                ],
+            }
+        )
+        fields["reporting"]["groups"].append(
+            {
                 "title": "Reportable tiers",
                 "fields": [
                     {

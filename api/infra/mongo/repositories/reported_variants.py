@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
+from api.infra.mongo.assay_access import finding_scope_query
 from api.infra.mongo.persistence import to_provider_id
 from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
@@ -582,7 +583,7 @@ class ReportedVariantsRepository(BaseRepository):
             .limit(limit)
         )
 
-    def get_dashboard_tier_stats(self) -> dict:
+    def get_dashboard_tier_stats(self, *, assay_access: list[dict] | None = None) -> dict:
         """
         Return reported tier distribution for dashboard cards/charts.
 
@@ -612,6 +613,9 @@ class ReportedVariantsRepository(BaseRepository):
                 }
             },
         ]
+        scope = finding_scope_query(self.adapter, assay_access, "sample_name")
+        if scope:
+            pipeline.insert(0, {"$match": scope})
         doc = (list(col.aggregate(pipeline, allowDiskUse=True)) or [{}])[0]
 
         total = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}

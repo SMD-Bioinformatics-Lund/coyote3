@@ -391,6 +391,7 @@ def personal(service):
         access_level=0,
         permissions=permissions.copy(),
         asp_ids=["assay_a"],
+        assay_access=[{"asp_id": "assay_a", "environments": ["testing"]}],
         asp_groups=["demo"],
         envs=["testing"],
         asp_map={},
@@ -438,6 +439,7 @@ def test_personal_tokens_cannot_choose_an_owner_or_exceed_current_access(persona
     assert issued.metadata.owner == user.username
     assert issued.metadata.kind == "personal"
     user.asp_ids = []
+    user.assay_access = []
     with pytest.raises(AppError) as error:
         service.issue_personal(personal_payload(), actor=user)
     assert error.value.status_code == 403
@@ -658,6 +660,7 @@ def test_async_submission_and_completed_status_remain_owned_and_scoped(personal,
     )
     assert status.job_status(job_id)["state"] == "SUCCESS"
     user.asp_ids = []
+    user.assay_access = []
     with pytest.raises(AppError) as error:
         status.job_status(job_id)
     assert error.value.status_code == 403

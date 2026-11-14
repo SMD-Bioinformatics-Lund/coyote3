@@ -3,6 +3,7 @@ import { api } from "@/lib/api"
 
 export type CurrentUserAccess = {
   username: string
+  assay_access?: { asp_id: string; environments: string[] }[]
   firstname?: string
   fullname?: string
   roles: string[]

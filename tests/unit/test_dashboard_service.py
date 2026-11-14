@@ -20,6 +20,7 @@ class _DashboardBackendStub:
             "role": "analyst",
             "roles": ["analyst"],
             "assays": ["A1"],
+            "assay_access": [{"asp_id": "A1", "environments": ["production"]}],
             "assay_groups": ["G1"],
         }
 
@@ -76,7 +77,7 @@ class _DashboardBackendStub:
     def resolve_active_asp_ids_for_scope(self, asp_ids, groups):  # noqa: ARG002
         return ["A2"]
 
-    def get_dashboard_sample_rollup(self, asp_ids=None):
+    def get_dashboard_sample_rollup(self, asp_ids=None, *, assay_access=None):
         if asp_ids is None:
             return {
                 "total_samples": 100,
@@ -86,7 +87,7 @@ class _DashboardBackendStub:
             }
         return {"user_samples_stats": {"scoped": len(asp_ids)}}
 
-    def get_dashboard_variant_counts(self):
+    def get_dashboard_variant_counts(self, *, assay_access=None):
         return {
             "total_variants": 2000,
             "snv": 2000,
@@ -96,19 +97,19 @@ class _DashboardBackendStub:
             "by_variant_class": {"SNV": 1700, "INDEL": 300},
         }
 
-    def get_total_cnv_count(self):
+    def get_total_cnv_count(self, *, assay_access=None):
         return 40
 
-    def get_total_transloc_count(self):
+    def get_total_transloc_count(self, *, assay_access=None):
         return 12
 
-    def get_total_fusion_count(self):
+    def get_total_fusion_count(self, *, assay_access=None):
         return 8
 
     def get_unique_blacklist_count(self):
         return 50
 
-    def get_dashboard_tier_stats(self):
+    def get_dashboard_tier_stats(self, *, assay_access=None):
         return {"total": {"tier1": 10, "tier2": 5, "tier3": 3, "tier4": 1}}
 
     def get_dashboard_classification_stats(self):
@@ -293,7 +294,7 @@ def test_resolve_scope_assays_returns_combined_assays():
 
     payload = service.resolve_scope_assays(user=user)
 
-    assert payload == ["A1", "A2"]
+    assert payload == ["A1"]
 
 
 def test_metric_builders_calculate_dashboard_values(monkeypatch):
@@ -364,7 +365,7 @@ def test_metric_builders_calculate_dashboard_values(monkeypatch):
     assert payload["quality_stats"]["analysed_rate_percent"] == 75.0
     assert payload["quality_stats"]["fp_rate_percent"] == 5.0
     assert payload["admin_insights"]["counts"]["users_total"] == 12
-    assert payload["dashboard_meta"]["scope_assays"] == ["A1", "A2"]
+    assert payload["dashboard_meta"]["scope_assays"] == ["A1"]
 
 
 def test_metric_payload_reads_cached_value_without_running_aggregation(monkeypatch):

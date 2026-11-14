@@ -104,6 +104,7 @@ def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
     user.roles = ["user"]
     user.role = "user"
     user.asp_ids = ["demo-solid_gmsv3"]
+    user.assay_access = [{"asp_id": "demo-solid_gmsv3", "environments": ["production"]}]
     user.envs = ["production"]
     sdk_fixtures.invoke_route(
         common.common_gene_cohort_read,
@@ -115,6 +116,7 @@ def test_common_gene_cohort_read_applies_user_scope(monkeypatch):
         "gene_id": "TP53",
         "visible_asp_ids": ["demo-solid_gmsv3"],
         "visible_environments": ["production"],
+        "assay_access": [{"asp_id": "demo-solid_gmsv3", "environments": ["production"]}],
         "include_history": False,
     }
 

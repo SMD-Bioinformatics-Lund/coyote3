@@ -13,6 +13,10 @@ const form: FormSpec = { fields: { reporting: { display_type: "reporting-structu
     { key: "report_folder", label: "Report folder", type: "text", default: "reports" },
     { key: "report_sections", label: "Report sections", type: "checkbox-group", options: ["SNV"], default: ["SNV"] },
   ] },
+  { title: "Summary order", fields: [
+    { key: "summary_text_order", label: "Summary text order", type: "list", default: [] },
+    { key: "summary_table_order", label: "Summary table order", type: "list", default: [] },
+  ] },
 ] } } }
 
 it("saves visible reporting defaults when only the method is edited, using either save button", () => {
@@ -30,7 +34,28 @@ it("saves visible reporting defaults when only the method is edited, using eithe
   expect(saved).toHaveBeenLastCalledWith({ reporting: {
     report_header: "Synthetic DNA report", report_method: "Reviewed method",
     plots_path: "/tmp", report_folder: "reports", report_sections: ["SNV"],
+    summary_text_order: [], summary_table_order: [],
   } })
+})
+
+it("edits and saves independent text and table priorities in ASPC reporting", () => {
+  const saved = vi.fn()
+  function Editor() {
+    const [values, setValues] = useState(() => formStateFromSpec(form, {}))
+    return <AdminManagedForm mode="create" spec={specs.aspc} form={form} values={values} setValues={setValues} isSaving={false} error="" onCancel={() => {}} onSave={() => saved(submitPayload(form, values, "create"))} />
+  }
+  render(<Editor />)
+  fireEvent.change(screen.getByLabelText("Summary text order"), { target: { value: "CNV\nTRANSLOCATION\nSNV" } })
+  fireEvent.change(screen.getByLabelText("Summary table order"), { target: { value: "SNV\nCNV" } })
+  fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0])
+  expect(saved).toHaveBeenLastCalledWith(expect.objectContaining({ reporting: expect.objectContaining({
+    summary_text_order: ["CNV", "TRANSLOCATION", "SNV"], summary_table_order: ["SNV", "CNV"],
+  }) }))
+  fireEvent.change(screen.getByLabelText("Summary text order"), { target: { value: "" } })
+  fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0])
+  expect(saved).toHaveBeenLastCalledWith(expect.objectContaining({ reporting: expect.objectContaining({
+    summary_text_order: [], summary_table_order: ["SNV", "CNV"],
+  }) }))
 })
 
 it("preserves explicit reporting values and does not mutate the source or form defaults", () => {

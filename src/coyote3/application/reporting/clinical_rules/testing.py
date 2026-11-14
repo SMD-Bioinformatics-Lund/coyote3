@@ -89,6 +89,7 @@ class ClinicalRuleTestingService:
         allowed_environments: list[str] | None,
         page: int,
         per_page: int,
+        assay_access: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Search ready samples for the rule-set assay within caller-provided access scope.
 
@@ -113,6 +114,7 @@ class ClinicalRuleTestingService:
         if allowed_asp_ids is not None and asp_id not in set(allowed_asp_ids):
             raise api_error(403, "Clinical rule-set assay is outside your assigned scope")
         rows, total = self.sample_repository.search_samples_for_admin(
+            assay_access=assay_access,
             asp_ids=[asp_id],
             environments=allowed_environments,
             diagnosis_id=rule_set.scope.diagnosis_id if match_diagnosis else None,

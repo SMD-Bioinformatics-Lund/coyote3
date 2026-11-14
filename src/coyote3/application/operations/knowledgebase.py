@@ -10,6 +10,7 @@ from coyote3.application.common.access import sample_scope_allowed
 from coyote3.application.operations.runtime import ApplicationRuntime
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.exceptions import AppError
+from coyote3.domain.identity.assay_access import grants_for
 
 if TYPE_CHECKING:
     from coyote3.application.common.query_service import CommonQueryService
@@ -64,6 +65,7 @@ class Knowledgebase:
                     gene_id=gene_id,
                     visible_asp_ids=None if actor.is_superuser else list(actor.asp_ids),
                     visible_environments=None if actor.is_superuser else list(actor.envs),
+                    assay_access=grants_for(actor),
                     include_history=include_history,
                 ),
             )

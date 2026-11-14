@@ -146,6 +146,7 @@ def test_sdk_requires_edit_permission_production_publication_and_editing_lease(s
     sdk.grants.add("sample:edit:own")
     sdk.sample["environment"] = "production"
     sdk.actor.envs = ["production"]
+    sdk.actor.assay_access = [{"asp_id": "synthetic", "environments": ["production"]}]
     sdk.grants.remove("annotation:publish")
     with pytest.raises(AppError):
         sample.assess_biomarker("record", "HRD", change)

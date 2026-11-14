@@ -90,6 +90,8 @@ class AspcReportingDoc(_StrictDocBase):
 
     # Reporting
     report_sections: list[str] = Field(default_factory=list)
+    summary_text_order: list[str] = Field(default_factory=list)
+    summary_table_order: list[str] = Field(default_factory=list)
     reportable_tiers: ReportableTiersDoc = Field(default_factory=ReportableTiersDoc)
     language: str = Field(default="sv", min_length=2, max_length=16)
     report_header: str
@@ -153,6 +155,29 @@ class AspcReportingDoc(_StrictDocBase):
         values = value if isinstance(value, list) else [value]
         normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
         return list(dict.fromkeys(normalized))
+
+    @field_validator("summary_text_order", "summary_table_order", mode="before")
+    @classmethod
+    def _normalize_summary_order(cls, value: Any) -> list[str]:
+        """Validate an explicit analysis priority without removing or enabling analyses.
+
+        Args:
+            value: Ordered analysis names. An empty list retains the established order.
+
+        Returns:
+            Canonical analysis names in the supplied order.
+
+        Raises:
+            ValueError: The value is not a list, contains blanks, unknown names or duplicates.
+        """
+        if not isinstance(value, list) or any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
+            raise ValueError("Summary order must be a list of nonblank analysis names")
+        normalized = [normalize_analysis_type(item) for item in value]
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("Summary order must not contain duplicate analyses")
+        return normalized
 
 
 class AspcCatalogDoc(_StrictDocBase):
@@ -425,6 +450,13 @@ class AspConfigDoc(_StrictCollectionDocBase):
                 f"report_sections contains invalid values: {invalid_report_sections}. "
                 f"Allowed values are: {sorted(allowed_analysis)}"
             )
+        for field in ("summary_text_order", "summary_table_order"):
+            invalid_order = set(getattr(self.reporting, field)) - allowed_analysis
+            if invalid_order:
+                raise ValueError(
+                    f"reporting.{field} contains analyses outside this modality: "
+                    f"{sorted(invalid_order)}"
+                )
         if not self.analysis_types:
             raise ValueError("analysis_types must include at least one enabled analysis")
         self.analysis_intents = normalize_analysis_intents(

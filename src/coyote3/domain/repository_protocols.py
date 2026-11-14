@@ -18,6 +18,7 @@ class SampleRepositoryProtocol(Protocol):
         offset: int = 0,
         use_cache: bool = True,
         reload: bool = False,
+        assay_access: list[dict[str, Any]] | None = None,
     ) -> Iterable[dict[str, Any]]:
         """Retrieve ready samples within the supplied access and report scope.
 
@@ -51,6 +52,7 @@ class SampleRepositoryProtocol(Protocol):
         time_limit: Any = None,
         added_from: Any = None,
         added_until: Any = None,
+        assay_access: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Retrieve one sorted ready-sample page and its exact filtered total.
 
@@ -113,7 +115,9 @@ class SampleRepositoryProtocol(Protocol):
 class VariantsRepositoryProtocol(Protocol):
     """Protocol for small variant operations."""
 
-    def get_dashboard_variant_counts(self) -> dict[str, Any]:
+    def get_dashboard_variant_counts(
+        self, *, assay_access: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Aggregate collection-wide small-variant and false-positive counters.
 
         Returns:

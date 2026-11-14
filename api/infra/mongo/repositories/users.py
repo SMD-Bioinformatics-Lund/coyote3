@@ -232,6 +232,7 @@ class UsersRepository(BaseRepository):
             "email": 1,
             "roles": 1,
             "asp_ids": 1,
+            "assay_access": 1,
             "asp_groups": 1,
             "envs": 1,
         }
@@ -445,6 +446,7 @@ class UsersRepository(BaseRepository):
             "job_title",
             "auth_type",
             "roles",
+            "assay_access",
             "environments",
             "asp_ids",
             "asp_groups",

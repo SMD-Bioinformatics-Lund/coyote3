@@ -106,8 +106,9 @@ reviewer` without granting full administration access.
 1. Create or select a role.
 2. Assign only the permissions required for that responsibility.
 3. Assign the role to the user.
-4. Limit the user's assay, assay-group, and environment scope where the
-   workflow supports scoped resources.
+4. In **Assay and environment access**, select environments independently for each
+   assay. Biological groups provide an additional restriction. An unchecked assay
+   row grants no access; granting development for one assay does not grant it for another.
 5. Sign in as a representative account and verify the visible navigation,
    permitted actions, and denied direct URLs.
 

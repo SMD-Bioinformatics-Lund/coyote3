@@ -117,6 +117,7 @@ def test_search_limits_samples_to_rule_scope_and_returns_minimal_metadata() -> N
     assert result["items"][1]["diagnosis_id"] == "base"
     assert result["total"] == 3
     assert testing.sample_repository.call == {
+        "assay_access": None,
         "asp_ids": ["assay_1"],
         "environments": ["production"],
         "diagnosis_id": "base",

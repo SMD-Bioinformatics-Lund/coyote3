@@ -476,6 +476,9 @@ def prepare_report_context(
             "environment": str(aspc.get("environment") or sample.get("environment") or ""),
             "reporting": {
                 "report_sections": list((aspc.get("reporting") or {}).get("report_sections") or []),
+                "summary_text_order": list(
+                    (aspc.get("reporting") or {}).get("summary_text_order") or []
+                ),
                 "language": str((aspc.get("reporting") or {}).get("language") or "sv"),
                 "reportable_tiers": (aspc.get("reporting") or {}).get("reportable_tiers", {}),
             },

@@ -16,6 +16,18 @@ Version 4 replaces Flask with FastAPI and React.
 
 ### Detailed changes
 
+- User access supports an environment list per assay through `assay_access`.
+  User administration provides an assay/environment matrix. Sample reads, lists,
+  reports, clinical searches, rule-testing queries, notifications and patient
+  metrics enforce exact pairs; legacy flat lists no longer authorize access.
+  Existing accounts require reviewed assay/environment assignments before rollout.
+
+- ASPC reporting supports independent `summary_text_order` and
+  `summary_table_order` analysis priorities. Empty priorities retain the existing
+  order. Generated narrative sections and result-summary tables can move without
+  changing selected findings, reviewed comments, detailed evidence or rule matches;
+  changing either priority requires reviewing a new preview before saving.
+
 - Report generation uses only `smd-reports`. Bundled Jinja report templates and
   the legacy format selector are removed. Earlier template identifiers resolve
   to the package renderer; existing saved artifacts remain available, while old

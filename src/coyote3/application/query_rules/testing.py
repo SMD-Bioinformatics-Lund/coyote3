@@ -33,6 +33,7 @@ from coyote3.domain.dna.translocqueries import (
 )
 from coyote3.domain.dna.varqueries import build_query
 from coyote3.domain.finding_repositories import SampleFindingReader
+from coyote3.domain.identity.assay_access import pair_allowed
 from coyote3.domain.selection import Operator, RecordField, select
 
 
@@ -56,6 +57,7 @@ class QueryRuleTestingService:
         page: int,
         allowed_asp_ids: list[str] | None,
         allowed_environments: list[str] | None,
+        assay_access: list[dict] | None = None,
     ) -> dict:
         """Search ready samples within both the rule scope and the operator's access.
 
@@ -90,6 +92,7 @@ class QueryRuleTestingService:
         if not assays or environments == []:
             return {"items": [], "total": 0, "page": page, "per_page": 20}
         rows, total = self.store.sample_repository.search_samples_for_admin(
+            assay_access=assay_access,
             asp_ids=assays,
             environments=environments,
             diagnosis_id=scope.diagnosis_id,
@@ -161,6 +164,7 @@ class QueryRuleTestingService:
         *,
         allowed_asp_ids: list[str] | None,
         allowed_environments: list[str] | None,
+        assay_access: list[dict] | None = None,
     ) -> dict:
         """Compare full retrieval predicates on an already-authorized stored sample.
 
@@ -177,6 +181,8 @@ class QueryRuleTestingService:
         Raises:
             AppError: Scope mismatch, missing configuration or more than 10000 candidates.
         """
+        if not pair_allowed(assay_access, sample.get("asp_id", ""), sample.get("environment", "")):
+            raise api_error(403, "Sample is outside your assay/environment access")
         if (allowed_asp_ids is not None and sample.get("asp_id") not in allowed_asp_ids) or (
             allowed_environments is not None
             and sample.get("environment") not in allowed_environments

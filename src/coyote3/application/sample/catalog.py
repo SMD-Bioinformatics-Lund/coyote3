@@ -17,6 +17,7 @@ from coyote3.config.constants import (
     manifest_file_preload_keys,
 )
 from coyote3.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
+from coyote3.domain.identity.assay_access import grants_for
 
 runtime_app = SimpleNamespace(config={})
 
@@ -281,6 +282,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         done_page_result = self.sample_repository.get_samples_page(
             user_assays=accessible_assays,
             user_envs=query_envs,
+            assay_access=grants_for(user),
             status="done",
             search_str=search_str,
             sort=reported_sort,
@@ -296,6 +298,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         live_page_result = self.sample_repository.get_samples_page(
             user_assays=accessible_assays,
             user_envs=query_envs,
+            assay_access=grants_for(user),
             status="live",
             search_str=search_str,
             sort=live_sort,
@@ -418,6 +421,7 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         by_asp = self.sample_repository.count_ready_samples_by_asp(
             user_assays=accessible_assays,
             user_envs=query_envs,
+            assay_access=grants_for(user),
         )
         counts: dict[str, int] = {}
         for asp in self.assay_panel_repository.get_all_asps() or []:

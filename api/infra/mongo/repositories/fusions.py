@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 
 from bson.objectid import ObjectId
 
+from api.infra.mongo.assay_access import finding_scope_query
 from api.infra.mongo.persistence import require_object_id
 from api.infra.mongo.records import application_record
 from api.infra.mongo.repositories.base import BaseRepository
@@ -169,7 +170,7 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             )
         )
 
-    def get_total_fusion_count(self) -> int:
+    def get_total_fusion_count(self, *, assay_access: list[dict] | None = None) -> int:
         """
         Get the total count of fusion records.
 
@@ -179,7 +180,10 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
             int: The total count of fusion records in the collection.
         """
 
-        return self.get_collection().count_documents({}) or 0
+        return (
+            self.get_collection().count_documents(finding_scope_query(self.adapter, assay_access))
+            or 0
+        )
 
     def get_unique_fusion_count(self) -> int:
         """

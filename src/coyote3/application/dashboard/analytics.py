@@ -14,6 +14,7 @@ from coyote3.domain.common.dashboard import (
     panel_asp_ids,
     summarize_panel_gene_stats,
 )
+from coyote3.domain.identity.assay_access import grants_for, scope_projection
 from coyote3.domain.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
     SampleRepositoryProtocol,
@@ -105,6 +106,7 @@ class DashboardService:
                 }
             ),
             "assays": sorted(scope_assays) if isinstance(scope_assays, list) else None,
+            "assay_access": grants_for(user),
         }
         import json
 
@@ -225,68 +227,47 @@ class DashboardService:
             "isgl_venn": isgl_rollup,
         }
 
-    def resolve_scope_assays(self, *, user) -> list[str] | None:
-        """Resolve the assays visible to a dashboard user.
-
-        Args:
-            user: Authenticated dashboard user.
-
-        Returns:
-            list[str] | None: Scoped assay identifiers, or ``None`` for global access.
-        """
+    def _current_grants(self, *, user) -> list[dict] | None:
+        """Reload current paired assignments before reading or caching patient metrics."""
         try:
-            fresh_user_doc = self.user_repository.user_with_id(str(user.id)) or {}
+            document = self.user_repository.user_with_id(str(user.id))
+            grants = grants_for(document) if document else []
+            groups = set((document or {}).get("asp_groups") or [])
+            if grants is not None and groups and "*" not in groups:
+                permitted = set(
+                    self.assay_panel_repository.resolve_active_asp_ids_for_scope(
+                        asp_ids=[], groups=sorted(groups)
+                    )
+                    or []
+                )
+                grants = [row for row in grants if row["asp_id"] in permitted]
         except Exception:
-            fresh_user_doc = {}
-
-        effective_roles = [
-            str(role_id or "").strip().lower()
-            for role_id in (fresh_user_doc.get("roles") or user.roles)
-        ]
-        if "superuser" in effective_roles:
-            return None
-
-        scoped_assays = (
-            fresh_user_doc.get("asp_ids")
-            if isinstance(fresh_user_doc.get("asp_ids"), list)
-            else user.asp_ids
-        )
-        scoped_groups = (
-            fresh_user_doc.get("asp_groups")
-            if isinstance(fresh_user_doc.get("asp_groups"), list)
-            else user.asp_groups
-        )
-
-        user_assays = {str(item).strip() for item in (scoped_assays or []) if str(item).strip()}
-        user_groups = {str(item).strip() for item in (scoped_groups or []) if str(item).strip()}
-        if not user_assays and not user_groups:
             return []
+        return grants
 
-        effective_assays = set(user_assays)
-        for asp_id in (
-            self.assay_panel_repository.resolve_active_asp_ids_for_scope(
-                asp_ids=sorted(user_assays),
-                groups=sorted(user_groups),
-            )
-            or []
-        ):
-            if asp_id:
-                effective_assays.add(str(asp_id).strip())
-        return sorted(effective_assays)
+    def resolve_scope_assays(self, *, user) -> list[str] | None:
+        """Derive navigation assay IDs from current assignments without group expansion."""
+        grants = self._current_grants(user=user)
+        return None if grants is None else scope_projection(grants)[0]
 
     def metric_scope_key(self, metric: str, *, user) -> str:
         """Return the cache scope for a metric."""
-        if metric not in {"samples", "resources"}:
+        if metric not in {"samples", "resources", "findings"}:
             return "global"
         scope_assays = self.resolve_scope_assays(user=user)
-        return self._scope_key(user=user, scope_assays=scope_assays)
+        key = self._scope_key(user=user, scope_assays=scope_assays)
+        return (
+            key + ":" + hashlib.sha256(repr(self._current_grants(user=user)).encode()).hexdigest()
+        )
 
     def build_samples_metric(self, *, user) -> dict[str, Any]:
         """Build sample workload and composition metrics for the user's assay scope."""
-        sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(asp_ids=None)
+        sample_rollup_global = self.sample_repository.get_dashboard_sample_rollup(
+            asp_ids=None, assay_access=self._current_grants(user=user)
+        )
         scope_assays = self.resolve_scope_assays(user=user)
         sample_rollup_scoped = self.sample_repository.get_dashboard_sample_rollup(
-            asp_ids=scope_assays
+            asp_ids=scope_assays, assay_access=self._current_grants(user=user)
         )
         total = int(sample_rollup_global.get("total_samples", 0) or 0)
         analysed = int(sample_rollup_global.get("analysed_samples", 0) or 0)
@@ -314,17 +295,36 @@ class DashboardService:
             "dashboard_meta": {"scope_assays": scope_assays},
         }
 
-    def build_findings_metric(self) -> dict[str, Any]:
+    def build_findings_metric(self, *, user=None) -> dict[str, Any]:
         """Build finding inventory, classification, and quality metrics."""
-        variant_rollup = self.variant_repository.get_dashboard_variant_counts()
-        total_cnvs = int(self.copy_number_variant_repository.get_total_cnv_count() or 0)
-        total_translocs = int(self.translocation_repository.get_total_transloc_count() or 0)
-        total_fusions = int(self.fusion_repository.get_total_fusion_count() or 0)
+        variant_rollup = self.variant_repository.get_dashboard_variant_counts(
+            assay_access=self._current_grants(user=user)
+        )
+        total_cnvs = int(
+            self.copy_number_variant_repository.get_total_cnv_count(
+                assay_access=self._current_grants(user=user)
+            )
+            or 0
+        )
+        total_translocs = int(
+            self.translocation_repository.get_total_transloc_count(
+                assay_access=self._current_grants(user=user)
+            )
+            or 0
+        )
+        total_fusions = int(
+            self.fusion_repository.get_total_fusion_count(
+                assay_access=self._current_grants(user=user)
+            )
+            or 0
+        )
         unique_blacklisted_variants = int(
             self.blacklist_repository.get_unique_blacklist_count() or 0
         )
         tier_stats = self.annotation_repository.get_dashboard_classification_stats()
-        reported_tier_stats = self.reported_variant_repository.get_dashboard_tier_stats()
+        reported_tier_stats = self.reported_variant_repository.get_dashboard_tier_stats(
+            assay_access=self._current_grants(user=user)
+        )
         tier_total = tier_stats.get("total", {}) if isinstance(tier_stats, dict) else {}
         tier1 = int(tier_total.get("tier1", tier_total.get("tier_1", 0)) or 0)
         tier2 = int(tier_total.get("tier2", tier_total.get("tier_2", 0)) or 0)
@@ -438,7 +438,7 @@ class DashboardService:
         """
         builders = {
             "samples": lambda: self.build_samples_metric(user=user),
-            "findings": self.build_findings_metric,
+            "findings": lambda: self.build_findings_metric(user=user),
             "top_tiered_genes": self.build_top_tiered_genes_metric,
             "panels": self.build_panels_metric,
             "clinical_configuration": self.build_clinical_configuration_metric,

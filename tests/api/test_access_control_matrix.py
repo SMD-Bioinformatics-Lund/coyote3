@@ -90,6 +90,7 @@ def test_enforce_access_allows_permission_inside_resource_scope():
     """Permission grants should be constrained by assigned resource attributes."""
     user = _u(permissions=["sample:view"])
     user.asp_ids = ["hema_gmsv1"]
+    user.assay_access = [{"asp_id": "hema_gmsv1", "environments": ["production"]}]
     user.envs = ["production"]
     user.asp_groups = ["hematology"]
 

@@ -12,11 +12,13 @@ It is part of the MongoDB infrastructure layer.
 # Imports
 # -------------------------------------------------------------------------
 import re
+from hashlib import sha256
 from typing import Any
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 
+from api.infra.mongo.assay_access import restrict_assay_access
 from api.infra.mongo.persistence import restore_object_ids
 from api.infra.mongo.repositories.audit_outbox import enqueue_audit
 from api.infra.mongo.repositories.base import BaseRepository
@@ -118,6 +120,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         time_limit=None,
         added_from=None,
         added_until=None,
+        assay_access: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Build the shared sample-list filter used for rows and totals."""
         query: dict[str, Any] = {"ingest_status": "ready"}
@@ -172,7 +175,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 added_range["$lt"] = added_until
             query["time_added"] = added_range
 
-        return query
+        return restrict_assay_access(query, assay_access)
 
     def _query_samples(
         self,
@@ -185,6 +188,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         time_limit=None,
         added_from=None,
         added_until=None,
+        assay_access: list[dict] | None = None,
     ):
         """
         Query samples based on user groups, report status, search string, and optional time limit.
@@ -202,6 +206,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             - If `search_str` is provided, filters samples by name using regex.
         """
         query = self._build_samples_query(
+            assay_access=assay_access,
             user_assays=user_assays,
             user_envs=user_envs,
             report=report,
@@ -235,9 +240,11 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         time_limit=None,
         added_from=None,
         added_until=None,
+        assay_access: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Return one sample page and its exact filtered total in one query."""
         query = self._build_samples_query(
+            assay_access=assay_access,
             user_assays=user_assays,
             user_envs=user_envs,
             report=report,
@@ -295,6 +302,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         use_cache: bool = True,
         cache_timeout: int = 120,
         reload: bool = False,
+        assay_access: list[dict] | None = None,
     ) -> Any | list:
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
@@ -334,6 +342,9 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             reload=reload,
         )
 
+        if assay_access is not None:
+            cache_key += ":scope:" + sha256(repr(assay_access).encode()).hexdigest()
+
         if use_cache and cache is not None:
             try:
                 samples = cache.get(cache_key)
@@ -358,6 +369,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
+            assay_access=assay_access,
             user_assays=user_assays,
             user_envs=user_envs,
             report=report,
@@ -389,6 +401,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         *,
         user_assays: list[str] | None,
         user_envs: list[str] | None,
+        assay_access: list[dict] | None = None,
     ) -> dict[str, int]:
         """Return ready sample counts grouped by assay panel ID."""
         query: dict[str, Any] = {"ingest_status": "ready"}
@@ -397,6 +410,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         if user_envs is not None:
             query["environment"] = {"$in": user_envs}
 
+        query = restrict_assay_access(query, assay_access)
         rows = self.get_collection().aggregate(
             [
                 {"$match": query},
@@ -410,6 +424,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         *,
         asp_ids: list[str] | None,
         environments: list[str] | None,
+        assay_access: list[dict] | None = None,
     ) -> list[dict[str, Any]]:
         """Return ready samples with only fields needed for gene cohort denominators."""
         query: dict[str, Any] = {"ingest_status": "ready"}
@@ -417,6 +432,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             query["asp_id"] = {"$in": asp_ids}
         if environments is not None:
             query["environment"] = {"$in": environments}
+        query = restrict_assay_access(query, assay_access)
         projection = {
             "name": 1,
             "asp_id": 1,
@@ -804,6 +820,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         page: int = 1,
         per_page: int = 30,
         ready_only: bool = True,
+        assay_access: list[dict] | None = None,
     ) -> tuple[list[dict], int]:
         """Search administrative sample metadata within explicit access scopes.
 
@@ -854,6 +871,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         page = max(1, int(page or 1))
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
+        query = restrict_assay_access(query, assay_access)
         col = self.get_collection()
         total = int(col.count_documents(query))
         docs = list(col.find(query).sort("time_added", -1).skip(skip).limit(per_page))

@@ -72,8 +72,16 @@
         "CNV"
       ],
       "reportable_tiers": {
-        "CNV": [1, 2, 3],
-        "TRANSLOCATION": [1, 2, 3],
+        "CNV": [
+          1,
+          2,
+          3
+        ],
+        "TRANSLOCATION": [
+          1,
+          2,
+          3
+        ],
         "SNV": [
           1,
           2,
@@ -89,7 +97,9 @@
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "plots_path": "/tmp",
-      "report_folder": "demo"
+      "report_folder": "demo",
+      "summary_text_order": [],
+      "summary_table_order": []
     },
     "catalog": {
       "is_public": true
@@ -186,8 +196,16 @@
         "CNV"
       ],
       "reportable_tiers": {
-        "CNV": [1, 2, 3],
-        "TRANSLOCATION": [1, 2, 3],
+        "CNV": [
+          1,
+          2,
+          3
+        ],
+        "TRANSLOCATION": [
+          1,
+          2,
+          3
+        ],
         "SNV": [
           1,
           2,
@@ -203,7 +221,9 @@
       "report_header": "Demo report header",
       "report_method": "Demo method",
       "plots_path": "/tmp",
-      "report_folder": "demo"
+      "report_folder": "demo",
+      "summary_text_order": [],
+      "summary_table_order": []
     },
     "catalog": {
       "is_public": true
@@ -273,8 +293,16 @@
         "QC"
       ],
       "reportable_tiers": {
-        "CNV": [1, 2, 3],
-        "TRANSLOCATION": [1, 2, 3],
+        "CNV": [
+          1,
+          2,
+          3
+        ],
+        "TRANSLOCATION": [
+          1,
+          2,
+          3
+        ],
         "SNV": [
           1,
           2,
@@ -290,7 +318,9 @@
       "report_header": "Demo RNA report header",
       "report_method": "Demo RNA method",
       "plots_path": "/tmp",
-      "report_folder": "demo-rna"
+      "report_folder": "demo-rna",
+      "summary_text_order": [],
+      "summary_table_order": []
     },
     "catalog": {
       "is_public": true

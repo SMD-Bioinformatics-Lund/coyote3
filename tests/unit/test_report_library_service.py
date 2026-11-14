@@ -81,6 +81,7 @@ def test_report_library_scopes_non_superuser_and_attaches_snapshot_counts():
     user = SimpleNamespace(
         is_superuser=False,
         asp_ids=["hema_gmsv1"],
+        assay_access=[{"asp_id": "hema_gmsv1", "environments": ["production"]}],
         envs=["production"],
     )
 
@@ -89,6 +90,7 @@ def test_report_library_scopes_non_superuser_and_attaches_snapshot_counts():
     assert reports.arguments == {
         "asp_ids": ["hema_gmsv1"],
         "environments": ["production"],
+        "assay_access": [{"asp_id": "hema_gmsv1", "environments": ["production"]}],
         "search": "S1",
         "page": 2,
         "per_page": 20,

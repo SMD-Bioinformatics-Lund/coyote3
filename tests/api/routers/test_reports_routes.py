@@ -188,6 +188,20 @@ def test_stale_preview_fails_before_any_artifact_or_number_allocation(boundary):
     boundary.workflow.persist_report.assert_not_called()
 
 
+@pytest.mark.parametrize("field", ["summary_text_order", "summary_table_order"])
+def test_order_changes_require_a_new_preview_before_save(boundary, field):
+    preview = boundary.sdk.preview("synthetic-sample", "dna")
+    boundary.context["assay_config"].setdefault("reporting", {})[field] = ["CNV", "SNV"]
+    result = boundary.client.post(
+        "/api/v1/samples/synthetic-sample/reports/dna",
+        json={"preview_fingerprint": preview.fingerprint},
+    )
+    assert result.status_code == 409
+    boundary.workflow.next_report_num.assert_not_called()
+    boundary.workflow.prepare_report_output.assert_not_called()
+    boundary.workflow.persist_report.assert_not_called()
+
+
 def test_smd_report_is_saved_with_canonical_rendering_provenance(boundary):
     preview = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
     saved = boundary.client.post(
