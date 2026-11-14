@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from api.config.factory_defaults import api_default
 from api.config.paths import EMAIL_LOGO_PATH
 from api.infra.notifications.templates import render_email
 from api.infra.observability.auth_metrics import emit_mail_metric
@@ -85,13 +86,13 @@ def send_email(
         return False
 
     host = str(config.get("SMTP_HOST")).strip()
-    port = int(config.get("SMTP_PORT", 587) or 587)
+    port = int(config.get("SMTP_PORT") or api_default("runtime.SMTP_PORT", int))
     username = str(config.get("SMTP_USERNAME") or "").strip()
     password = str(config.get("SMTP_PASSWORD") or "")
-    use_tls = bool(config.get("SMTP_USE_TLS", True))
-    use_ssl = bool(config.get("SMTP_USE_SSL", False))
+    use_tls = bool(config.get("SMTP_USE_TLS", api_default("runtime.SMTP_USE_TLS", bool)))
+    use_ssl = bool(config.get("SMTP_USE_SSL", api_default("runtime.SMTP_USE_SSL", bool)))
     from_email = str(config.get("SMTP_FROM_EMAIL")).strip()
-    from_name = str(config.get("SMTP_FROM_NAME") or "Coyote3").strip()
+    from_name = str(config.get("SMTP_FROM_NAME") or api_default("product.name")).strip()
 
     try:
         sender_key = {

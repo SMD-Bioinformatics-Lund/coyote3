@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from coyote3.config.factory_defaults import factory_value
+
 
 class _DocBase(BaseModel):
     """Permissive base for MongoDB documents.
@@ -53,7 +55,9 @@ class _CollectionDocBase(_DocBase):
 
     created_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
     updated_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
-    system_installed: bool = Field(default=False, exclude_if=lambda value: not value)
+    system_installed: bool = Field(
+        default=factory_value("records.system_installed"), exclude_if=lambda value: not value
+    )
 
 
 class _FindingDocBase(_CollectionDocBase):

@@ -19,7 +19,7 @@ support does not establish clinical validation of a center's assay.
 | Modalities, sequencing families and analyses | Application release | Define implemented workflows and their permitted combinations. |
 | Input contracts and supported parsers | Application release | Define which pipeline results the application can consume. |
 
-`src/coyote3/config/clinical_capabilities.toml` is the application capability registry.
+`src/coyote3/config/factory_defaults.toml` is the application capability registry.
 Center vocabulary configuration cannot override it. A new group or assay can reuse
 implemented analyses through configuration. A new analysis requires software
 implementation and a release; adding its name to a configuration is insufficient.

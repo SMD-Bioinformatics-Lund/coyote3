@@ -70,8 +70,8 @@ as a clinical/configuration change rather than hidden in application code.
 | --- | --- | --- | --- |
 | `center/contact.toml` | TOML | [Contact table](../configuration/contact-file.md) | Center-owned organization, support, service-hour, and repeatable contact-card content. |
 | `center/clinical_vocabulary.toml` | TOML | [Vocabulary table](center-configuration.md#clinical_vocabularytoml) | Fusion evidence terms and optional DNA caller metadata. |
-| `clinical_capabilities.toml` | TOML, application-owned | [Ownership and upgrade](center-configuration.md#application-owned-definitions) | Fixed families, file keys, analyses, gene-list types and supported providers/callers. Not editable through center configuration. |
-| `clinical_query_defaults.toml` | TOML, application-owned | [Query baseline](../configuration/clinical-query-policy-file.md#baseline-keys) | Release-owned SNV evidence modes and population-field names. |
+| Core `factory_defaults.toml` | TOML, application-owned | [Factory ownership](../configuration/README.md#factory-defaults) | Domain capabilities, base queries, shared filter/report defaults and clinical starter values. |
+| API `factory_defaults.toml` | TOML, API-owned | [Factory ownership](../configuration/README.md#factory-defaults) | Deployment fallbacks and profiles. Both catalogs are release assets, not editable center configuration. |
 | `clinical_query_seed.toml` | TOML, application-owned | [Query-policy table](../configuration/clinical-query-policy-file.md) | Bundled installation criteria loaded by Python bootstrap tools. Not editable center configuration. |
 | `collections.toml` | TOML | [Collection table](../configuration/collection-mapping-file.md) | Application-owned physical collection names. Database names are environment settings. |
 | `center/filter_flag_metadata.yaml` | YAML | [Flag table](../configuration/filter-flag-metadata-file.md) | Human-facing variant flag labels, severity, and tooltip descriptions. |

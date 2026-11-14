@@ -11,6 +11,7 @@ from typing import Any, cast
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY
+from coyote3.config.factory_defaults import factory_value
 
 
 class ClinicalFilterProfile(BaseModel):
@@ -47,12 +48,28 @@ class SnvFlagFiltersDoc(ClinicalFilterProfile):
 class SnvFiltersDoc(SnvFlagFiltersDoc):
     """Somatic SNV frequency, read-support, consequence, flag, and gene-scope filters."""
 
-    max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
-    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
-    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
-    min_depth: int = Field(default=100, ge=0)
-    min_alt_reads: int = Field(default=5, ge=0)
+    max_freq: float = Field(
+        default=factory_value("filters.snv.max_freq"),
+        ge=0.0,
+        le=1.0,
+    )
+    min_freq: float = Field(
+        default=factory_value("filters.snv.min_freq"),
+        ge=0.0,
+        le=1.0,
+    )
+    max_control_freq: float = Field(
+        default=factory_value("filters.snv.max_control_freq"),
+        ge=0.0,
+        le=0.5,
+    )
+    max_popfreq: float = Field(
+        default=factory_value("filters.snv.max_popfreq"),
+        ge=0.0,
+        le=0.5,
+    )
+    min_depth: int = Field(default=factory_value("filters.snv.min_depth"), ge=0)
+    min_alt_reads: int = Field(default=factory_value("filters.snv.min_alt_reads"), ge=0)
     vep_consequences: list[str] = Field(default_factory=list)
     snvlists: list[str] = Field(default_factory=list)
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
@@ -79,11 +96,29 @@ class GermlineSnvFiltersDoc(SnvFlagFiltersDoc):
     threshold is not a germline filtering concept.
     """
 
-    max_freq: float = Field(default=1.0, ge=0.0, le=1.0)
-    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
-    min_depth: int = Field(default=100, ge=0)
-    min_alt_reads: int = Field(default=5, ge=0)
+    max_freq: float = Field(
+        default=factory_value("filters.snv.max_freq"),
+        ge=0.0,
+        le=1.0,
+    )
+    min_freq: float = Field(
+        default=factory_value("filters.snv.min_freq"),
+        ge=0.0,
+        le=1.0,
+    )
+    max_popfreq: float = Field(
+        default=factory_value("filters.snv.max_popfreq"),
+        ge=0.0,
+        le=0.5,
+    )
+    min_depth: int = Field(
+        default=factory_value("filters.snv.min_depth"),
+        ge=0,
+    )
+    min_alt_reads: int = Field(
+        default=factory_value("filters.snv.min_alt_reads"),
+        ge=0,
+    )
     vep_consequences: list[str] = Field(default_factory=list)
     snvlists: list[str] = Field(default_factory=list)
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
@@ -106,11 +141,11 @@ class GermlineSnvFiltersDoc(SnvFlagFiltersDoc):
 class CnvFiltersDoc(ClinicalFilterProfile):
     """CNV size bounds, gain/loss thresholds, effects, and gene-scope filters."""
 
-    min_cnv_size: int = Field(default=100, ge=0)
-    max_cnv_size: int = Field(default=50_000_000, ge=0)
-    cnv_loss_cutoff: float = Field(default=-0.3)
-    cnv_gain_cutoff: float = Field(default=0.3)
-    cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
+    min_cnv_size: int = Field(default=factory_value("filters.cnv.min_cnv_size"), ge=0)
+    max_cnv_size: int = Field(default=factory_value("filters.cnv.max_cnv_size"), ge=0)
+    cnv_loss_cutoff: float = Field(default=factory_value("filters.cnv.cnv_loss_cutoff"))
+    cnv_gain_cutoff: float = Field(default=factory_value("filters.cnv.cnv_gain_cutoff"))
+    cnveffects: list[str] = Field(default_factory=lambda: factory_value("filters.cnv.cnveffects"))
     cnvlists: list[str] = Field(default_factory=list)
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
 
@@ -138,8 +173,8 @@ class CnvFiltersDoc(ClinicalFilterProfile):
 class CoverageFiltersDoc(ClinicalFilterProfile):
     """Read-depth thresholds for coverage warnings and errors."""
 
-    warn_cov: int = Field(default=100, ge=0)
-    error_cov: int = Field(default=10, ge=0)
+    warn_cov: int = Field(default=factory_value("filters.coverage.warn_cov"), ge=0)
+    error_cov: int = Field(default=factory_value("filters.coverage.error_cov"), ge=0)
 
     @model_validator(mode="after")
     def _validate_consistency(self) -> "CoverageFiltersDoc":
@@ -163,8 +198,14 @@ class FusionFiltersDoc(ClinicalFilterProfile):
     fusion_descriptions: list[str] = Field(default_factory=list)
     fusion_effects: list[str] = Field(default_factory=list)
     fusionlists: list[str] = Field(default_factory=list)
-    min_spanning_pairs: int = Field(default=0, ge=0)
-    min_spanning_reads: int = Field(default=0, ge=0)
+    min_spanning_pairs: int = Field(
+        default=factory_value("filters.fusion.min_spanning_pairs"),
+        ge=0,
+    )
+    min_spanning_reads: int = Field(
+        default=factory_value("filters.fusion.min_spanning_reads"),
+        ge=0,
+    )
     adhoc_genes: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("fusion_callers", mode="before")

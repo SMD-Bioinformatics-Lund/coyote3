@@ -5606,7 +5606,7 @@ Safe identity fields an authenticated user may edit on their own account.
 ### `ApiUiSettingsUpdateRequest`
 
 ```python
-ApiUiSettingsUpdateRequest(*, analysis_layout: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(classic|modern)$')] = None, sample_list_layout: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(classic|modern)$')] = None, analysis_modern_view_tried: bool | None = None, sample_list_modern_view_tried: bool | None = None, table_page_size: int | None = None, theme: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(auto|light|dark)$')] = None) -> None
+ApiUiSettingsUpdateRequest(*, analysis_layout: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(classic|modern)$')] = None, sample_list_layout: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(classic|modern)$')] = None, analysis_modern_view_tried: bool | None = None, sample_list_modern_view_tried: bool | None = None, table_page_size: Annotated[int | None, Ge(ge=1), Le(le=200)] = None, theme: Annotated[str | None, _PydanticGeneralMetadata(pattern='^(auto|light|dark)$')] = None) -> None
 ```
 
 ```text

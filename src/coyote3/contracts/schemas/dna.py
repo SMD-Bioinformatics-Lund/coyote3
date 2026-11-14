@@ -7,6 +7,7 @@ from typing import Any, Dict, Literal, Optional
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
+from coyote3.config.factory_defaults import factory_value
 from coyote3.contracts.schemas.base import (
     _CollectionDocBase,
     _DocBase,
@@ -21,25 +22,27 @@ from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple
 class DnaFiltersDoc(SnvFlagFiltersDoc):
     """Flat DNA filter thresholds and gene-list selections with cross-field checks."""
 
-    max_freq: float = Field(default=1.00, ge=0.0, le=1.0)
-    min_freq: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_control_freq: float = Field(default=0.05, ge=0.0, le=0.5)
-    max_popfreq: float = Field(default=0.05, ge=0.0, le=0.5)
+    max_freq: float = Field(default=factory_value("filters.snv.max_freq"), ge=0.0, le=1.0)
+    min_freq: float = Field(default=factory_value("filters.snv.min_freq"), ge=0.0, le=1.0)
+    max_control_freq: float = Field(
+        default=factory_value("filters.snv.max_control_freq"), ge=0.0, le=0.5
+    )
+    max_popfreq: float = Field(default=factory_value("filters.snv.max_popfreq"), ge=0.0, le=0.5)
 
-    min_depth: int = Field(default=100, ge=0)
-    min_alt_reads: int = Field(default=5, ge=0)
-    min_cnv_size: int = Field(default=100, ge=0)
-    max_cnv_size: int = Field(default=50_000_000, ge=0)
+    min_depth: int = Field(default=factory_value("filters.snv.min_depth"), ge=0)
+    min_alt_reads: int = Field(default=factory_value("filters.snv.min_alt_reads"), ge=0)
+    min_cnv_size: int = Field(default=factory_value("filters.cnv.min_cnv_size"), ge=0)
+    max_cnv_size: int = Field(default=factory_value("filters.cnv.max_cnv_size"), ge=0)
 
-    cnv_loss_cutoff: float = Field(default=-0.3)
-    cnv_gain_cutoff: float = Field(default=0.3)
+    cnv_loss_cutoff: float = Field(default=factory_value("filters.cnv.cnv_loss_cutoff"))
+    cnv_gain_cutoff: float = Field(default=factory_value("filters.cnv.cnv_gain_cutoff"))
 
-    warn_cov: int = Field(default=100, ge=0)
-    error_cov: int = Field(default=10, ge=0)
+    warn_cov: int = Field(default=factory_value("filters.coverage.warn_cov"), ge=0)
+    error_cov: int = Field(default=factory_value("filters.coverage.error_cov"), ge=0)
 
     snvlists: list[str] = Field(default_factory=list)
     vep_consequences: list[str] = Field(default_factory=list)
-    cnveffects: list[str] = Field(default_factory=lambda: ["gain", "loss"])
+    cnveffects: list[str] = Field(default_factory=lambda: factory_value("filters.cnv.cnveffects"))
     cnvlists: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")

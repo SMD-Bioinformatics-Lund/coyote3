@@ -19,6 +19,7 @@ from api.app.runtime_state import (
     set_current_request_id,
     set_current_user,
 )
+from api.config.factory_defaults import api_default
 from api.infra.observability.logging import (
     bind_request_context,
     request_context_from_request,
@@ -84,13 +85,27 @@ def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
         ValueError: A configured limit or window string is not an integer.
     """
     global _API_LIMITER, _API_LIMITER_CFG
-    enabled = bool(runtime_app.config.get("API_RATE_LIMIT_ENABLED", True))
+    enabled = bool(
+        runtime_app.config.get(
+            "API_RATE_LIMIT_ENABLED", api_default("runtime.API_RATE_LIMIT_ENABLED", bool)
+        )
+    )
     if not enabled:
         _API_LIMITER = None
         _API_LIMITER_CFG = None
         return None
-    limit = int(runtime_app.config.get("API_RATE_LIMIT_REQUESTS_PER_MINUTE", 600))
-    window_seconds = int(runtime_app.config.get("API_RATE_LIMIT_WINDOW_SECONDS", 60))
+    limit = int(
+        runtime_app.config.get(
+            "API_RATE_LIMIT_REQUESTS_PER_MINUTE",
+            api_default("runtime.API_RATE_LIMIT_REQUESTS_PER_MINUTE", int),
+        )
+    )
+    window_seconds = int(
+        runtime_app.config.get(
+            "API_RATE_LIMIT_WINDOW_SECONDS",
+            api_default("runtime.API_RATE_LIMIT_WINDOW_SECONDS", int),
+        )
+    )
     backend = runtime_app.cache
     if backend is None:
         raise RuntimeError("Redis cache must be initialized before API rate limiting")
@@ -198,7 +213,11 @@ def build_authentication_middleware(
                     return response
 
                 if (
-                    bool(runtime_app.config.get("API_CSRF_ENABLED", True))
+                    bool(
+                        runtime_app.config.get(
+                            "API_CSRF_ENABLED", api_default("runtime.API_CSRF_ENABLED", bool)
+                        )
+                    )
                     and authenticated_user is not None
                     and requires_csrf_validation(request.method, path)
                     and not validate_request_csrf(request)

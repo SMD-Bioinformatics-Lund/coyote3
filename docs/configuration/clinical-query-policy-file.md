@@ -66,7 +66,7 @@ PGX finding query is introduced.
 ## Required values and defaults
 
 The seed file is packaged with the application; centers do not supply it. Application baseline settings come from
-`src/coyote3/config/clinical_query_defaults.toml`. All five seed analysis tables are required. A missing table
+`src/coyote3/config/factory_defaults.toml`. All five seed analysis tables are required. A missing table
 or invalid key fails configuration validation. A default below means loader behavior, not a
 clinically approved center choice.
 

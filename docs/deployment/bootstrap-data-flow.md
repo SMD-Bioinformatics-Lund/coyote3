@@ -10,8 +10,8 @@ For the purpose, format and ownership of each installed catalog, see
 
 ## Deployment Flow
 
-The image build packages `src/coyote3/config/clinical_capabilities.toml`,
-`src/coyote3/config/clinical_query_defaults.toml` and `api/config/collections.toml` with
+The image build packages `src/coyote3/config/factory_defaults.toml`
+and `api/config/collections.toml` with
 the API code. These files are application contracts, not database seed documents.
 They supply supported clinical identifiers, base query settings and collection
 bindings on the first installation and subsequent releases. The

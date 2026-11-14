@@ -542,16 +542,15 @@ def test_users_doc_validates_one_global_analysis_layout_preference():
         "job_title": "Scientist",
     }
 
-    assert UsersDoc.model_validate(payload).ui_settings.analysis_layout == "classic"
-    assert UsersDoc.model_validate(payload).ui_settings.sample_list_layout == "classic"
-    assert UsersDoc.model_validate(payload).ui_settings.analysis_modern_view_tried is False
-    assert UsersDoc.model_validate(payload).ui_settings.sample_list_modern_view_tried is False
-    assert UsersDoc.model_validate(payload).ui_settings.table_page_size == 200
+    assert UsersDoc.model_validate(payload).ui_settings.model_dump() == {}
+    assert UsersDoc.model_validate(
+        {**payload, "ui_settings": {"analysis_layout": "modern", "table_page_size": 50}}
+    ).ui_settings.model_dump() == {"analysis_layout": "modern", "table_page_size": 50}
     with pytest.raises(ValueError, match="analysis_layout must be one of"):
         UsersDoc.model_validate({**payload, "ui_settings": {"analysis_layout": "dna_tabs"}})
     with pytest.raises(ValueError, match="sample_list_layout must be one of"):
         UsersDoc.model_validate({**payload, "ui_settings": {"sample_list_layout": "combined"}})
-    with pytest.raises(ValueError, match="table_page_size must be one of"):
+    with pytest.raises(ValueError, match="less than or equal"):
         UsersDoc.model_validate({**payload, "ui_settings": {"table_page_size": 500}})
 
 

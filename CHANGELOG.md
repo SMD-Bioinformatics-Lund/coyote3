@@ -16,6 +16,12 @@ Version 4 replaces Flask with FastAPI and React.
 
 ### Detailed changes
 
+- Factory defaults follow ownership: reusable domain defaults in the core package,
+  deployment fallbacks in the API, and presentation defaults in the frontend.
+  Shared filter, reporting and retention values are defined once and reused.
+  API preference responses contain explicit stored values; the frontend supplies
+  unset presentation defaults. Clinical values and deployment/center overrides remain unchanged.
+
 - User access supports an environment list per assay through `assay_access`.
   User administration provides an assay/environment matrix. Sample reads, lists,
   reports, clinical searches, rule-testing queries, notifications and patient

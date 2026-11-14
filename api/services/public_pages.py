@@ -6,6 +6,7 @@ from typing import Any
 
 from api.config.application_metadata import APPLICATION_DESCRIPTION
 from api.config.contact import application_integration_links
+from api.config.factory_defaults import api_default
 from coyote3.application.operations.public import PublicApplication
 from coyote3.config.policy import get_runtime_environment
 
@@ -77,7 +78,10 @@ class PublicPages:
         """Build center-owned public contact and support metadata."""
         contact = self._config.get("CONTACT") or {}
         organization = dict(contact.get("organization") or {})
-        organization.setdefault("name", self._config.get("ORGANIZATION_NAME") or "Coyote3")
+        organization.setdefault(
+            "name",
+            self._config.get("ORGANIZATION_NAME") or api_default("product.name", str),
+        )
         payload = {
             "organization": organization,
             "support": dict(contact.get("support") or {}),

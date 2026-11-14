@@ -11,6 +11,7 @@ from coyote3.config.constants import (
     normalize_clinical_identifier,
     normalize_environment,
 )
+from coyote3.config.factory_defaults import factory_value
 from coyote3.contracts.schemas.assay import AssaySpecificPanelsDoc
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase, _StrictDocBase
 from coyote3.domain.common.configuration_transfer import configuration_content
@@ -21,7 +22,10 @@ class AssaySetupContent(_StrictDocBase):
 
     panel: AssaySpecificPanelsDoc
     scopes: list[str] = Field(default_factory=lambda: [DIAGNOSIS_BASE_ID], max_length=100)
-    environments: list[str] = Field(default_factory=lambda: ["production"], max_length=20)
+    environments: list[str] = Field(
+        default_factory=lambda: [factory_value("capabilities.environment.default")],
+        max_length=20,
+    )
     gene_lists: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     existing_gene_list_ids: list[str] = Field(default_factory=list, max_length=100)
     configurations: list[dict[str, Any]] = Field(default_factory=list, max_length=200)

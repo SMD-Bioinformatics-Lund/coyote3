@@ -157,7 +157,7 @@ SNV retrieval also includes effective germline exceptions, as described under
 
 For implementation review, the authoritative modules are:
 
-- `src/coyote3/config/clinical_query_defaults.toml`: SNV evidence modes and population fields.
+- `src/coyote3/config/factory_defaults.toml`: SNV evidence modes and population fields.
 - `src/coyote3/config/clinical_query_policy.py`: typed defaults and resolved policy binding.
 - `src/coyote3/application/query_rules/service.py`: published scope resolution and inheritance.
 - `src/coyote3/domain/dna/varqueries.py`: SNV selection construction.

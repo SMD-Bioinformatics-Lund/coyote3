@@ -11,7 +11,7 @@ run with an ambiguous contract.
 ## Format, required values and defaults
 
 The center file contains clinical policy and presentation metadata. Application
-capabilities are loaded separately from `src/coyote3/config/clinical_capabilities.toml`.
+capabilities are loaded separately from `src/coyote3/config/factory_defaults.toml`.
 That release-owned file defines categories, families, scopes, the base diagnosis,
 environments, authentication providers, gene-list types, supported fusion callers,
 manifest keys, required-file baselines, transcript selection order and analysis mappings. Center configuration
@@ -235,7 +235,7 @@ that option automatically.
 ### Transcript Selection Selectors
 
 `reporting.transcript_selection_order` belongs to the application release in
-`src/coyote3/config/clinical_capabilities.toml`. Centers cannot change its order. It puts
+`src/coyote3/config/factory_defaults.toml`. Centers cannot change its order. It puts
 RefSeq/NCBI sources before their Ensembl equivalents. Within a selector, VEP impact
 is ordered HIGH, MODERATE, LOW, then MODIFIER.
 

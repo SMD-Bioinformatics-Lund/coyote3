@@ -9,6 +9,7 @@ from typing import Any, Literal, Union, get_args, get_origin
 from pydantic import BaseModel
 from pydantic.fields import PydanticUndefined
 
+from coyote3.config.factory_defaults import factory_value
 from coyote3.contracts.authoring.fields import (
     RESOURCE_EXCLUDED_FIELDS,
     RESOURCE_EXTRA_FIELDS,
@@ -284,7 +285,7 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
                         "label": f"{tier_analysis} reportable tiers",
                         "type": "checkbox-group",
                         "options": ["1", "2", "3", "4"],
-                        "default": [1, 2, 3],
+                        "default": factory_value("reporting.reportable_tiers"),
                         "help": (
                             "No selected tiers disables tier-based inclusion; explicitly selected findings can still be included."
                             if tier_analysis in {"CNV", "TRANSLOCATION"}

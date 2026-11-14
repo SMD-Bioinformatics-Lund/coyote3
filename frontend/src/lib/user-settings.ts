@@ -2,12 +2,12 @@ import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-q
 
 import { api } from "@/lib/api"
 import type { CurrentUserAccess } from "@/lib/access-control"
+import { DEFAULT_TABLE_PAGE_SIZE, TABLE_PAGE_SIZE_OPTIONS, USER_UI_DEFAULTS } from "@/lib/defaults"
 
 export type AnalysisLayout = "classic" | "modern"
 export type SampleListLayout = "classic" | "modern"
 export type UserUiSettings = Required<NonNullable<CurrentUserAccess["ui_settings"]>>
-export const TABLE_PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const
-export const DEFAULT_TABLE_PAGE_SIZE = 200
+export { DEFAULT_TABLE_PAGE_SIZE, TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 
 type AuthSession = {
   user?: CurrentUserAccess
@@ -39,11 +39,14 @@ export function normalizeUserUiSettings(
   value: Partial<UserUiSettings> | null | undefined,
 ): UserUiSettings {
   return {
-    theme: value?.theme === "light" || value?.theme === "dark" ? value.theme : "auto",
-    analysis_layout: value?.analysis_layout === "modern" ? "modern" : "classic",
-    sample_list_layout: value?.sample_list_layout === "modern" ? "modern" : "classic",
-    analysis_modern_view_tried: Boolean(value?.analysis_modern_view_tried),
-    sample_list_modern_view_tried: Boolean(value?.sample_list_modern_view_tried),
+    theme: value?.theme === "auto" || value?.theme === "light" || value?.theme === "dark"
+      ? value.theme : USER_UI_DEFAULTS.theme,
+    analysis_layout: value?.analysis_layout === "modern" || value?.analysis_layout === "classic"
+      ? value.analysis_layout : USER_UI_DEFAULTS.analysis_layout,
+    sample_list_layout: value?.sample_list_layout === "modern" || value?.sample_list_layout === "classic"
+      ? value.sample_list_layout : USER_UI_DEFAULTS.sample_list_layout,
+    analysis_modern_view_tried: Boolean(value?.analysis_modern_view_tried ?? USER_UI_DEFAULTS.analysis_modern_view_tried),
+    sample_list_modern_view_tried: Boolean(value?.sample_list_modern_view_tried ?? USER_UI_DEFAULTS.sample_list_modern_view_tried),
     table_page_size: TABLE_PAGE_SIZE_OPTIONS.includes(value?.table_page_size as typeof TABLE_PAGE_SIZE_OPTIONS[number])
       ? Number(value?.table_page_size)
       : DEFAULT_TABLE_PAGE_SIZE,
@@ -58,24 +61,24 @@ export function tablePageSizeForUser(user: CurrentUserAccess | null | undefined)
 }
 
 export function analysisLayoutForUser(user: CurrentUserAccess | null | undefined): AnalysisLayout {
-  return user?.ui_settings?.analysis_layout === "modern" ? "modern" : "classic"
+  return normalizeUserUiSettings(user?.ui_settings).analysis_layout as AnalysisLayout
 }
 
 export function sampleListLayoutForUser(user: CurrentUserAccess | null | undefined): SampleListLayout {
-  return user?.ui_settings?.sample_list_layout === "modern" ? "modern" : "classic"
+  return normalizeUserUiSettings(user?.ui_settings).sample_list_layout as SampleListLayout
 }
 
 export function analysisModernViewTriedForUser(user: CurrentUserAccess | null | undefined): boolean {
+  const settings = normalizeUserUiSettings(user?.ui_settings)
   return Boolean(
-    user?.ui_settings?.analysis_modern_view_tried ||
-    user?.ui_settings?.analysis_layout === "modern",
+    settings.analysis_modern_view_tried || settings.analysis_layout === "modern",
   )
 }
 
 export function sampleListModernViewTriedForUser(user: CurrentUserAccess | null | undefined): boolean {
+  const settings = normalizeUserUiSettings(user?.ui_settings)
   return Boolean(
-    user?.ui_settings?.sample_list_modern_view_tried ||
-    user?.ui_settings?.sample_list_layout === "modern",
+    settings.sample_list_modern_view_tried || settings.sample_list_layout === "modern",
   )
 }
 
@@ -88,7 +91,7 @@ export function useUpdateUiSettings() {
       if (!username || settingsUser(queryClient)?.username !== username) {
         throw new Error("Your account changed. Save preferences again from the current account.")
       }
-      return api.patch<{ status: string; ui_settings: UserUiSettings }>(
+      return api.patch<{ status: string; ui_settings: Partial<UserUiSettings> }>(
         "/users/me/ui-settings",
         updates,
       ).then((response) => response.data)
@@ -114,7 +117,7 @@ export function useUpdateUiSettings() {
     onSettled: async (response, _error, _updates, context) => {
       if (!context) return
       const { batch, token } = context
-      if (response) batch.confirmed = response.ui_settings
+      if (response) batch.confirmed = normalizeUserUiSettings(response.ui_settings)
       batch.pending.delete(token)
       displaySettings(queryClient, batch)
       if (batch.pending.size) return

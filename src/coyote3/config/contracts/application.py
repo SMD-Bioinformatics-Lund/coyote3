@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
+from coyote3.config.factory_defaults import factory_value
+
 
 @dataclass(frozen=True)
 class PipelineManifestContract:
@@ -21,16 +23,11 @@ class NotificationContract:
     categories: frozenset[str]
 
 
-APP_CONTROLS_ID: Final = "default"
+APP_CONTROLS_ID: Final = factory_value("contracts.app_controls_id")
 PIPELINE_MANIFEST: Final = PipelineManifestContract(
-    field_aliases={
-        "assay": "asp_id",
-        "diagnosis": "diagnosis_id",
-        "profile": "environment",
-        "sequencing_technology": "platform",
-    }
+    field_aliases=factory_value("contracts.pipeline_manifest")
 )
 NOTIFICATIONS: Final = NotificationContract(
-    tones=frozenset({"success", "info", "warning", "error"}),
-    categories=frozenset({"application", "feature", "maintenance", "security", "warning"}),
+    tones=frozenset(factory_value("contracts.notifications.tones")),
+    categories=frozenset(factory_value("contracts.notifications.categories")),
 )

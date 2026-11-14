@@ -6,6 +6,7 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from api.config.factory_defaults import api_default
 from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from coyote3.config.constants import DEFAULT_ENVIRONMENT
 
@@ -127,7 +128,9 @@ def get_api_session_cookie_name(config: Mapping[str, Any]) -> str:
     Returns:
         The cookie name used for API sessions.
     """
-    return str(config.get("API_SESSION_COOKIE_NAME") or "coyote3_api_session")
+    return str(
+        config.get("API_SESSION_COOKIE_NAME") or api_default("runtime.API_SESSION_COOKIE_NAME", str)
+    )
 
 
 def get_api_session_ttl_seconds(config: Mapping[str, Any]) -> int:
@@ -139,11 +142,13 @@ def get_api_session_ttl_seconds(config: Mapping[str, Any]) -> int:
     Returns:
         Session lifetime in seconds.
     """
-    value = config.get("API_SESSION_TTL_SECONDS", 12 * 60 * 60)
+    value = config.get(
+        "API_SESSION_TTL_SECONDS", api_default("runtime.API_SESSION_TTL_SECONDS", int)
+    )
     try:
         return int(value)
     except (TypeError, ValueError):
-        return 12 * 60 * 60
+        return api_default("runtime.API_SESSION_TTL_SECONDS", int)
 
 
 def get_api_session_cookie_secure(
@@ -167,8 +172,19 @@ def get_api_session_cookie_secure(
 
 def get_api_session_cookie_samesite(config: Mapping[str, Any]) -> str:
     """Return the session cookie SameSite policy."""
-    value = str(config.get("API_SESSION_COOKIE_SAMESITE") or "lax").strip().lower()
-    return value if value in {"lax", "strict", "none"} else "lax"
+    value = (
+        str(
+            config.get("API_SESSION_COOKIE_SAMESITE")
+            or api_default("runtime.API_SESSION_COOKIE_SAMESITE", str)
+        )
+        .strip()
+        .lower()
+    )
+    return (
+        value
+        if value in {"lax", "strict", "none"}
+        else api_default("runtime.API_SESSION_COOKIE_SAMESITE", str)
+    )
 
 
 def get_api_sessions_collection_name(config: Mapping[str, Any]) -> str:

@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import Final
 
+from coyote3.config.factory_defaults import factory_value
+
 PLATFORM_CAPABILITIES: Final[dict[str, dict[str, object]]] = {
-    "illumina": {"read_technology": "short_read", "read_modes": ("SE", "PE")},
-    "iontorrent": {"read_technology": "short_read", "read_modes": ()},
-    "pacbio": {"read_technology": "long_read", "read_modes": ()},
-    "nanopore": {"read_technology": "long_read", "read_modes": ()},
+    platform: {**capability, "read_modes": tuple(capability["read_modes"])}
+    for platform, capability in factory_value("platforms").items()
 }
 
 PLATFORM_OPTIONS: Final[tuple[str, ...]] = tuple(PLATFORM_CAPABILITIES)

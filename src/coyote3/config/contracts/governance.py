@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from coyote3.config.factory_defaults import factory_value
+
 
 @dataclass(frozen=True)
 class PermissionCatalog:
@@ -13,23 +15,5 @@ class PermissionCatalog:
 
 
 PERMISSION_CATALOG = PermissionCatalog(
-    categories=(
-        "Analysis Actions",
-        "Application Control Management",
-        "Assay Configuration Management",
-        "Assay Panel Management",
-        "Audit & Monitoring",
-        "Clinical Reporting Rules",
-        "Query Rules",
-        "Data Downloads",
-        "Gene List Management",
-        "Permission Policy Management",
-        "Reports",
-        "Role Management",
-        "Sample Management",
-        "Schema Management",
-        "User Management",
-        "Variant Curation",
-        "Visualization",
-    )
+    categories=tuple(factory_value("contracts.permission_categories"))
 )

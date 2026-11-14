@@ -7,6 +7,7 @@ import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary"
 import App from './App.tsx'
 import './index.css'
 import { reportUiError } from "@/lib/api"
+import { USER_UI_DEFAULTS } from "@/lib/defaults"
 
 window.addEventListener("error", (event) => reportUiError(event.error || event.message))
 window.addEventListener("unhandledrejection", (event) => reportUiError(event.reason))
@@ -14,7 +15,7 @@ window.addEventListener("unhandledrejection", (event) => reportUiError(event.rea
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
-      <ThemeProvider defaultTheme="auto" storageKey="vite-ui-theme" attribute="class">
+      <ThemeProvider defaultTheme={USER_UI_DEFAULTS.theme} storageKey="vite-ui-theme" attribute="class">
         <NotificationProvider>
           <App />
           <GlobalRichTooltip />

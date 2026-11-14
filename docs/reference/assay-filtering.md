@@ -562,5 +562,5 @@ is reset. The selected list identifiers are stored with the sample context so
 that filtering and report generation use the same gene scope.
 
 Application baseline evidence modes and population-field names are defined in
-`src/coyote3/config/clinical_query_defaults.toml`. Centers manage scoped exceptions and
+`src/coyote3/config/factory_defaults.toml`. Centers manage scoped exceptions and
 supported evidence-mode overrides through database query rules, not TOML files.

@@ -12,11 +12,13 @@ from pymongo.errors import AutoReconnect, ConnectionFailure, NetworkTimeout
 
 from api.app.container import ldap_manager, store, util
 from api.config import runtime_settings
+from api.config.factory_defaults import api_default
 from api.config.mongo import mongo_endpoints
 from api.infra.cache import create_cache_backend
 from api.infra.observability.logging import configure_json_logging
 from api.infra.observability.prometheus_metrics import set_startup_phase_duration
 from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
+from coyote3.config.factory_defaults import factory_value
 
 
 @dataclass
@@ -59,12 +61,21 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     conf = _config_dict(config_obj)
     mongo_endpoints(conf)
     configure_json_logging(
-        service_name=str(conf.get("LOG_SERVICE_NAME") or "api"),
-        level=str(conf.get("LOG_LEVEL") or "INFO"),
-        log_root=str(conf.get("LOG_ROOT", "logs")),
-        file_enabled=bool(conf.get("LOG_FILE_ENABLED", True)),
-        retention_days=int(conf.get("LOG_RETENTION_DAYS", 30)),
-        timezone_name=str(conf.get("LOG_TIMEZONE") or "UTC"),
+        service_name=str(
+            conf.get("LOG_SERVICE_NAME") or api_default("runtime.LOG_SERVICE_NAME", str)
+        ),
+        level=str(conf.get("LOG_LEVEL") or api_default("runtime.LOG_LEVEL", str)),
+        log_root=str(conf.get("LOG_ROOT", api_default("runtime.LOG_ROOT", str))),
+        file_enabled=bool(
+            conf.get("LOG_FILE_ENABLED", api_default("runtime.LOG_FILE_ENABLED", bool))
+        ),
+        retention_days=int(
+            conf.get(
+                "LOG_RETENTION_DAYS",
+                int(factory_value("controls.RetentionControlDoc.disk_log_days")),
+            )
+        ),
+        timezone_name=str(conf.get("LOG_TIMEZONE") or api_default("runtime.LOCAL_TIME_ZONE", str)),
     )
     logger = logging.getLogger("coyote.api")
     logger.info(

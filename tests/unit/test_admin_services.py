@@ -827,12 +827,8 @@ def test_user_can_update_only_validated_ui_settings():
     )
 
     assert payload["ui_settings"] == {
-        "theme": "auto",
         "analysis_layout": "modern",
-        "sample_list_layout": "classic",
         "analysis_modern_view_tried": True,
-        "sample_list_modern_view_tried": False,
-        "table_page_size": 200,
     }
     assert repo.updated_user[1]["roles"] == ["admin"]
     assert repo.updated_user[1]["ui_settings"] == payload["ui_settings"]

@@ -4,6 +4,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from coyote3.config.factory_defaults import factory_value
+
 ReportMessage = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)
 ]
@@ -14,16 +16,16 @@ class EmptyResultMessages(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    SNV: ReportMessage = "Inga detekterade mutationer"
-    GERMLINE_SNV: ReportMessage = "Inga detekterade germline-varianter"
-    CNV: ReportMessage = "Inga detekterade genspecifika kopietalsförändringar."
-    TRANSLOCATION: ReportMessage = "Inga detekterade fusioner"
-    FUSION: ReportMessage = "Inga detekterade fusioner"
-    HRD: ReportMessage = "Inga rapporterbara biomarkörresultat"
-    MSI: ReportMessage = "Inga rapporterbara biomarkörresultat"
-    TMB: ReportMessage = "Inga rapporterbara biomarkörresultat"
-    BIOMARKER: ReportMessage = "Inga rapporterbara biomarkörresultat"
-    PGX: ReportMessage = "Inga rapporterbara farmakogenomiska resultat"
+    SNV: ReportMessage = factory_value("reporting.empty_results.SNV")
+    GERMLINE_SNV: ReportMessage = factory_value("reporting.empty_results.GERMLINE_SNV")
+    CNV: ReportMessage = factory_value("reporting.empty_results.CNV")
+    TRANSLOCATION: ReportMessage = factory_value("reporting.empty_results.FUSION")
+    FUSION: ReportMessage = factory_value("reporting.empty_results.FUSION")
+    HRD: ReportMessage = factory_value("reporting.empty_results.BIOMARKER")
+    MSI: ReportMessage = factory_value("reporting.empty_results.BIOMARKER")
+    TMB: ReportMessage = factory_value("reporting.empty_results.BIOMARKER")
+    BIOMARKER: ReportMessage = factory_value("reporting.empty_results.BIOMARKER")
+    PGX: ReportMessage = factory_value("reporting.empty_results.PGX")
 
 
 class ReportPresentation(BaseModel):

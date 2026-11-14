@@ -1,0 +1,124 @@
+# API host defaults. Environment overrides retain precedence; domain defaults are imported from coyote3.
+
+[runtime]
+LICENSE_FILE = "LICENSE.txt"
+CACHE_DEFAULT_TIMEOUT = 300
+CACHE_KEY_PREFIX = "coyote3_cache"
+CACHE_TYPE = "RedisCache"
+CELERY_DEFAULT_QUEUE = "default"
+CELERY_INGEST_QUEUE = "ingest"
+TIERED_VARIANT_SEARCH_LIMIT = 1000
+SAMPLE_SEARCH_LIMIT = 1000
+WTF_CSRF_ENABLED = true
+CACHE_REQUIRED = true
+API_SESSION_COOKIE_NAME = "coyote3_api_session"
+API_SESSION_COOKIE_SAMESITE = "lax"
+LOG_SERVICE_NAME = "api"
+LOG_ROOT = "logs"
+LOG_LEVEL = "INFO"
+LOG_LEVEL_NON_PRODUCTION = "DEBUG"
+LOCAL_TIME_ZONE = "UTC"
+ERROR_EMAIL_GROUP = "monitoring_group"
+API_CSRF_ENABLED = true
+SMTP_FROM_EMAIL = "no-reply@coyote3.local"
+SMTP_INFO_FROM_EMAIL = "info@coyote3.local"
+SMTP_SECURITY_FROM_EMAIL = "security@coyote3.local"
+MONGO_READ_CONCERN_LEVEL = "majority"
+MONGO_WRITE_CONCERN_W = "majority"
+MONGO_WRITE_CONCERN_JOURNAL = true
+LDAP_USER_LOGIN_ATTR = "mail"
+LDAP_USE_SSL = false
+LDAP_USE_TLS = true
+LDAP_VERIFY_CERT = true
+COYOTE3_INGEST_WATCH_ENABLED = false
+COYOTE3_INGEST_WATCH_FILENAME = "coyote3.yaml"
+COYOTE3_INGEST_DONE_SUFFIX = ".done"
+COYOTE3_INGEST_FAILED_SUFFIX = ".failed"
+COYOTE3_INGEST_WATCH_UPDATE_EXISTING = false
+COYOTE3_INGEST_WATCH_INCREMENT = false
+COYOTE3_INGEST_WATCH_LOCK_PATH = "/tmp/coyote3_ingest_watch.lock"
+CACHE_REDIS_CONNECT_TIMEOUT = "1.0"
+CACHE_REDIS_SOCKET_TIMEOUT = "1.0"
+DASHBOARD_METRIC_CACHE_TTL_SECONDS = "300"
+DASHBOARD_METRIC_CACHE_RETENTION_SECONDS = "3600"
+API_SESSION_TTL_SECONDS = "43200"
+LOG_FILE_ENABLED = "1"
+API_RATE_LIMIT_ENABLED = "1"
+API_RATE_LIMIT_REQUESTS_PER_MINUTE = "600"
+API_RATE_LIMIT_WINDOW_SECONDS = "60"
+PASSWORD_TOKEN_TTL_SECONDS = "3600"
+ONCOKB_PUBLIC_LOOKUPS_ENABLED = "1"
+CLINPGX_PUBLIC_LOOKUPS_ENABLED = "1"
+SMTP_PORT = "587"
+SMTP_USE_TLS = "1"
+SMTP_USE_SSL = "0"
+MONGO_MAX_POOL_SIZE = "100"
+MONGO_MIN_POOL_SIZE = "0"
+MONGO_CONNECT_TIMEOUT_MS = "10000"
+MONGO_SERVER_SELECTION_TIMEOUT_MS = "30000"
+MONGO_WAIT_QUEUE_TIMEOUT_MS = "10000"
+LDAP_CONNECT_TIMEOUT = "10"
+CELERY_TASK_TIME_LIMIT = "7200"
+CELERY_TASK_SOFT_TIME_LIMIT = "6900"
+CELERY_RESULT_EXPIRES = "86400"
+CELERY_WORKER_PREFETCH_MULTIPLIER = "1"
+CELERY_INSPECTION_TIMEOUT_SECONDS = "1.5"
+COYOTE3_MAINTENANCE_HOUR = "0"
+INGEST_COLLECTION_UPLOAD_MAX_BYTES = "67108864"
+COYOTE3_INGEST_WATCH_INTERVAL_SECONDS = "30"
+KNOWLEDGEBASE_DB = "coyote3_knowledgebases"
+
+[profiles.ProductionConfig]
+LOGS = "logs/prod"
+ENV_NAME = "Production"
+
+[profiles.DevelopmentConfig]
+CACHE_DEFAULT_TIMEOUT = 1
+LOGS = "logs/dev"
+ENV_NAME = "Development"
+COYOTE3_DB = "coyote3_dev"
+IDENTITY_DB = "coyote3_identity"
+BAM_DB = "bam_dev"
+
+[profiles.TestConfig]
+LOGS = "logs/test"
+TESTING = true
+LOGIN_DISABLED = true
+CACHE_REQUIRED = false
+API_RATE_LIMIT_ENABLED = false
+API_CSRF_ENABLED = false
+ENV_NAME = "Testing"
+COYOTE3_DB = "coyote3_test"
+IDENTITY_DB = "coyote3_identity_test"
+BAM_DB = "bam_test"
+
+[profiles.StageConfig]
+LOGS = "logs/stage"
+STAGING = true
+ENV_NAME = "Staging"
+COYOTE3_DB = "coyote3_stage"
+IDENTITY_DB = "coyote3_identity_stage"
+BAM_DB = "bam_stage"
+
+[product]
+name = "Coyote3"
+description = "Clinical genomics interpretation, review, and reporting service."
+
+[product.links]
+repository_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+license_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt"
+issues_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
+bug_report_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=bug_report.md"
+feature_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=feature_request.md"
+support_request_url = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues/new?template=support_request.md"
+
+[http_clients]
+request_timeout_seconds = 3.0
+
+[modes.production]
+PRODUCTION = true
+DEBUG = false
+
+[modes.non_production]
+PRODUCTION = false
+DEBUG = true

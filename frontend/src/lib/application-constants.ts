@@ -1,14 +1,7 @@
 /** Software-owned UI constants. Centre and deployment settings are not defined here. */
-export const DEFAULT_ENVIRONMENT = "production" as const
+import { NOMENCLATURE_METADATA } from "@/lib/defaults"
 
-export const NOMENCLATURE_METADATA = {
-  p: { label: "Protein (p)" },
-  c: { label: "cDNA (c)" },
-  g: { label: "Genomic (g)" },
-  cn: { label: "Copy number (cn)" },
-  f: { label: "Fusion (f)" },
-  t: { label: "Translocation (t)" },
-} as const
+export { DEFAULT_ENVIRONMENT, NOMENCLATURE_METADATA } from "@/lib/defaults"
 
 export type NomenclatureCode = keyof typeof NOMENCLATURE_METADATA
 

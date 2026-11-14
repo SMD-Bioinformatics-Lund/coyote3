@@ -25,8 +25,9 @@ workflow for changing a running installation's rules.
 | Application `clinical_query_seed.toml` | Software maintainers | [Installed query criteria and predicate grammar](clinical-query-policy-file.md). Live changes use the database query-rule editor. |
 | External `filter_flag_metadata.yaml` | Clinical configuration owner | [Flag labels, severity, descriptions and optional caller overrides](filter-flag-metadata-file.md). |
 | Application `collections.toml` | Software maintainers | [Logical collection mappings](collection-mapping-file.md). Centers do not edit it. |
-| Application `clinical_capabilities.toml` | Software maintainers | [Supported identifiers and configuration ownership](../deployment/center-configuration.md#application-owned-definitions). Packaged with the API; not a center file or database seed. |
-| Application `clinical_query_defaults.toml` | Software maintainers | [Application base queries](../administration/query-rules.md#application-base-queries-by-analysis). Published policies modify supported settings through the UI; centers do not edit the packaged definitions. |
+| Core `src/coyote3/config/factory_defaults.toml` | Software maintainers | [Factory defaults](#factory-defaults): domain capabilities, shared policy values, filters and clinical starter values. |
+| API `api/config/factory_defaults.toml` | API maintainers | Deployment fallbacks and environment profiles. Not a center file. |
+| Frontend `frontend/src/lib/defaults.ts` | Frontend maintainers | Presentation defaults: theme, layouts, page-size choices and nomenclature labels. |
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
 The [center configuration guide](../deployment/center-configuration.md) describes
@@ -36,6 +37,54 @@ center directory. Never place passwords in public contact or clinical-policy fil
 
 Empty-section messages for modern reports are configured separately in the optional
 [report presentation file](report-presentation-file.md). They do not require a new ASPC revision.
+
+## Factory defaults
+
+Defaults follow the component that owns their behavior:
+
+| Owner and source | Contents |
+| --- | --- |
+| Core package: `src/coyote3/config/factory_defaults.toml` | Reusable domain capabilities and defaults needed by the library, SDK, schemas and clinical workflows. |
+| API host: `api/config/factory_defaults.toml` | Sessions, cache, databases, mail, workers, HTTP clients, deployment profiles and public product metadata. |
+| Frontend: `frontend/src/lib/defaults.ts` | Theme, layouts, table-size choices, default UI environment selection and nomenclature labels. |
+
+The core package never imports the API or frontend. The API imports shared domain
+values when it needs them: retention periods, for example, come from the core
+application-controls policy rather than another runtime definition. Environment
+variables keep their existing precedence over API factory fallbacks.
+
+A shared setting has one definition and several consumers. SNV filter defaults are
+used by somatic, germline and flat document contracts; reportable tiers are defined
+once for all finding types. Repeated report messages share one entry. Assay families
+inherit their modality's analyses, with explicit overrides for narrower families.
+API profiles reuse the knowledgebase database name and production/non-production
+mode settings. No custom reference syntax is needed in the TOML files.
+
+Equal values are kept separate when they represent different policies. In particular,
+clinical editor starter thresholds that differ from omitted-field defaults retain
+those differences in `starter_defaults`. The browser's initial page size and the
+backend's maximum query size belong to different owners and serve different purposes.
+
+The API validates and persists explicit UI preferences; absent preferences remain
+unset. The frontend applies its defaults on display and after preference saves.
+Existing stored preferences remain effective, including explicit false values.
+Backend validation retains a positive page-size bound without owning the browser's
+selector choices. The OpenAPI generator generates API types only; it does not supply
+frontend defaults or require a UI-default extension on the API schema.
+
+For example, the supplied DNA analyses are in `capabilities.analysis.dna`, while
+new DNA configurations use `starter_defaults.dna.analyses`. Adding a supported
+analysis still requires its parser, schema and workflow support.
+
+Catalogs load once per Python process and are packaged with their owner. Rebuild and
+restart the affected backend after editing its defaults. Frontend defaults require a
+frontend rebuild. Run `npm run api:generate` from `frontend/` when API contracts change.
+
+Existing database records, approved clinical rules, center configuration and explicit
+deployment overrides are not rewritten. Required deployment inputs remain required.
+Empty collections, protocol discriminators, schema versions and lifecycle counters
+remain part of their contracts. Collection names and module definitions retain their
+dedicated typed registries.
 
 ## Clinical resources managed in the application
 

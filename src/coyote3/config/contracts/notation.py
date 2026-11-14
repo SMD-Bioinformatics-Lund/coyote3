@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
+from coyote3.config.factory_defaults import factory_value
+
 
 @dataclass(frozen=True)
 class ClinicalNotationContract:
@@ -24,57 +26,7 @@ class ClinicalNotationContract:
 
 
 CLINICAL_NOTATION: Final = ClinicalNotationContract(
-    swedish_small_cardinals_common=(
-        "noll",
-        "en",
-        "två",
-        "tre",
-        "fyra",
-        "fem",
-        "sex",
-        "sju",
-        "åtta",
-        "nio",
-        "tio",
-        "elva",
-        "tolv",
-    ),
-    swedish_small_cardinals_neuter=(
-        "noll",
-        "ett",
-        "två",
-        "tre",
-        "fyra",
-        "fem",
-        "sex",
-        "sju",
-        "åtta",
-        "nio",
-        "tio",
-        "elva",
-        "tolv",
-    ),
-    amino_acid_three_to_one={
-        "Ala": "A",
-        "Arg": "R",
-        "Asn": "N",
-        "Asp": "D",
-        "Cys": "C",
-        "Gln": "Q",
-        "Glu": "E",
-        "Gly": "G",
-        "His": "H",
-        "Ile": "I",
-        "Leu": "L",
-        "Lys": "K",
-        "Met": "M",
-        "Phe": "F",
-        "Pro": "P",
-        "Ser": "S",
-        "Thr": "T",
-        "Trp": "W",
-        "Tyr": "Y",
-        "Val": "V",
-        "Ter": "*",
-    },
+    swedish_small_cardinals_common=tuple(factory_value("notation.swedish_small_cardinals_common")),
+    swedish_small_cardinals_neuter=tuple(factory_value("notation.swedish_small_cardinals_neuter")),
+    amino_acid_three_to_one=factory_value("notation.amino_acid_three_to_one"),
 )

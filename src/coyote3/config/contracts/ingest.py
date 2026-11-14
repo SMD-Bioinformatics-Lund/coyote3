@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from coyote3.config.factory_defaults import factory_value
+
 
 @dataclass(frozen=True)
 class AnalysisPreloadContract:
@@ -18,22 +20,10 @@ class AnalysisPreloadContract:
 
 ANALYSIS_PRELOAD_CONTRACT = AnalysisPreloadContract(
     preload_keys_by_omics={
-        "dna": {
-            "SNV": "snvs",
-            "CNV": "cnvs",
-            "CNV_PROFILE": None,
-            "TRANSLOCATION": "transloc",
-            "HRD": "biomarkers",
-            "MSI": "biomarkers",
-            "COVERAGE": "cov",
-            "TMB": "biomarkers",
-            "PGX": "pgx",
-        },
-        "rna": {
-            "FUSION": "fusions",
-            "EXPRESSION": "rna_expr",
-            "CLASSIFICATION": "rna_class",
-            "QC": "rna_qc",
-        },
+        omics: {
+            **mapping,
+            **dict.fromkeys(factory_value("contracts.non_database_analyses")[omics]),
+        }
+        for omics, mapping in factory_value("contracts.analysis_preload").items()
     }
 )

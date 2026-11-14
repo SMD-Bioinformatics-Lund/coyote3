@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from coyote3.config.paths import PACKAGE_CONFIG_DIR
+from coyote3.config.factory_defaults import factory_value
 from coyote3.domain.query_conditions import compile_condition
 
 _POLICY_MODES = frozenset({"paired", "case_only", "exception_only"})
@@ -637,8 +637,7 @@ def load_clinical_query_policy(
         raise RuntimeError(
             "clinical query policy is missing required block(s): " + ", ".join(sorted(missing))
         )
-    with (PACKAGE_CONFIG_DIR / "clinical_query_defaults.toml").open("rb") as handle:
-        defaults = tomllib.load(handle)["snv"]
+    defaults = factory_value("clinical_queries.snv")
     if not isinstance(raw["snv"], dict):
         raise RuntimeError("clinical query policy requires an [snv] table")
     protected = set(raw["snv"]) & set(defaults)
@@ -670,8 +669,7 @@ def load_application_query_policy() -> ClinicalQueryPolicy:
         Evidence modes and field bindings with no clinical exceptions. Published
         database rule sets supply additional criteria during runtime resolution.
     """
-    with (PACKAGE_CONFIG_DIR / "clinical_query_defaults.toml").open("rb") as handle:
-        defaults = tomllib.load(handle)["snv"]
+    defaults = factory_value("clinical_queries.snv")
     return ClinicalQueryPolicy(
         snv=_parse_snv_policy(defaults),
         cnv=_finding_policy({}, analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS),

@@ -4,6 +4,7 @@ import { icon } from "@/lib/assets"
 import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
+import { USER_UI_DEFAULTS } from "@/lib/defaults"
 
 export function ThemeToggle({ className, value, onChange, disabled = false }: {
   className?: string
@@ -12,7 +13,7 @@ export function ThemeToggle({ className, value, onChange, disabled = false }: {
   disabled?: boolean
 }) {
   const { theme, setTheme } = useTheme()
-  const current = value || (theme === "light" || theme === "dark" ? theme : "auto")
+  const current = value || (theme === "light" || theme === "dark" ? theme : USER_UI_DEFAULTS.theme)
   const next = current === "auto" ? "light" : current === "light" ? "dark" : "auto"
   const Icon = current === "auto" ? icon.sunMoon : current === "light" ? icon.sun : icon.moon
   const label = `Theme: ${current}. Switch to ${next}`

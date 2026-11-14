@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from api.app.container import util
 from api.app.deps.repositories import get_store
 from api.app.runtime_state import app as runtime_app
+from api.config.factory_defaults import api_default
 from api.config.operational_collections import OPERATIONAL_COLLECTIONS
 from api.config.security import (
     get_api_session_ttl_seconds,
@@ -67,6 +68,7 @@ from coyote3.application.resources.sample import ResourceSampleService
 from coyote3.application.rna.expression_analysis import RnaService
 from coyote3.application.sample.catalog import SampleCatalogService
 from coyote3.application.sample.coverage import CoverageService
+from coyote3.config.factory_defaults import factory_value
 from coyote3.config.policy import get_runtime_environment
 
 ServiceT = TypeVar("ServiceT")
@@ -300,7 +302,10 @@ def get_internal_ingest_service() -> InternalIngestService:
         dashboard_metrics_invalidator=invalidate_dashboard_metrics,
         audit_service=get_audit_service(),
         notification_service=get_notification_service(),
-        monitoring_group=str(runtime_app.config.get("ERROR_EMAIL_GROUP") or "monitoring_group"),
+        monitoring_group=str(
+            runtime_app.config.get("ERROR_EMAIL_GROUP")
+            or api_default("runtime.ERROR_EMAIL_GROUP", str)
+        ),
     )
 
 
@@ -429,7 +434,9 @@ def get_audit_service() -> AuditService | None:
                 )
                 if db is not None
             ),
-            spool_directory=Path(runtime_app.config.get("LOG_ROOT") or "logs")
+            spool_directory=Path(
+                runtime_app.config.get("LOG_ROOT") or api_default("runtime.LOG_ROOT", str)
+            )
             / "audit-spool"
             / namespace,
         ),
@@ -512,7 +519,12 @@ def get_notification_service() -> NotificationService:
     email_ready = smtp_configured(config) and url.scheme in {"http", "https"} and bool(url.netloc)
     return NotificationService.from_store(
         get_store(),
-        retention_days=int(runtime_app.config.get("NOTIFICATION_RETENTION_DAYS", 180)),
+        retention_days=int(
+            runtime_app.config.get(
+                "NOTIFICATION_RETENTION_DAYS",
+                int(factory_value("controls.RetentionControlDoc.notification_days")),
+            )
+        ),
         sample_access=get_sample_notification_access(),
         audit_service=get_audit_service(),
         email_sender=partial(send_email, config=config) if email_ready else None,
@@ -574,7 +586,13 @@ def get_public_oncokb_refresh_service() -> PublicOncoKbRefreshService:
         config=runtime_app.config,
         client=PublicOncoKbClient(
             base_url=str(runtime_app.config["ONCOKB_BASE_URL"]),
-            timeout=float(runtime_app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0) or 3.0),
+            timeout=float(
+                runtime_app.config.get(
+                    "ONCOKB_REQUEST_TIMEOUT_SECONDS",
+                    api_default("http_clients.request_timeout_seconds", float),
+                )
+                or api_default("http_clients.request_timeout_seconds", float)
+            ),
         ),
         audit_service=get_audit_service(),
     )
@@ -589,17 +607,37 @@ def get_public_variant_annotations() -> PublicVariantAnnotations:
     clients = PublicVariantLookups(
         oncokb=PublicOncoKbClient(
             base_url=runtime_app.config["ONCOKB_BASE_URL"],
-            timeout=float(runtime_app.config.get("ONCOKB_REQUEST_TIMEOUT_SECONDS", 3.0)),
+            timeout=float(
+                runtime_app.config.get(
+                    "ONCOKB_REQUEST_TIMEOUT_SECONDS",
+                    api_default("http_clients.request_timeout_seconds", float),
+                )
+            ),
         ),
         clinpgx=ClinPgxPublicClient(
             base_url=runtime_app.config["CLINPGX_BASE_URL"],
-            timeout=float(runtime_app.config.get("CLINPGX_REQUEST_TIMEOUT_SECONDS", 3.0)),
+            timeout=float(
+                runtime_app.config.get(
+                    "CLINPGX_REQUEST_TIMEOUT_SECONDS",
+                    api_default("http_clients.request_timeout_seconds", float),
+                )
+            ),
         ),
     )
     repository = get_dna_service().clinpgx_public_repository
     return PublicVariantAnnotations(
-        oncokb_enabled=bool(runtime_app.config.get("ONCOKB_PUBLIC_LOOKUPS_ENABLED", True)),
-        clinpgx_enabled=bool(runtime_app.config.get("CLINPGX_PUBLIC_LOOKUPS_ENABLED", True)),
+        oncokb_enabled=bool(
+            runtime_app.config.get(
+                "ONCOKB_PUBLIC_LOOKUPS_ENABLED",
+                api_default("runtime.ONCOKB_PUBLIC_LOOKUPS_ENABLED", bool),
+            )
+        ),
+        clinpgx_enabled=bool(
+            runtime_app.config.get(
+                "CLINPGX_PUBLIC_LOOKUPS_ENABLED",
+                api_default("runtime.CLINPGX_PUBLIC_LOOKUPS_ENABLED", bool),
+            )
+        ),
         oncokb_lookup=clients.oncokb,
         clinpgx_lookup=clients.clinpgx,
         local_gene_lookup=lambda symbol: (

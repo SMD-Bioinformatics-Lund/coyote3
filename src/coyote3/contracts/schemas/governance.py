@@ -10,85 +10,80 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from coyote3.config.constants import (
     DEFAULT_AUTH_PROVIDER,
-    DEFAULT_TABLE_PAGE_SIZE,
-    TABLE_PAGE_SIZE_OPTIONS,
     normalize_asp_group,
     normalize_auth_types,
     normalize_environment,
     normalize_permission_category,
 )
+from coyote3.config.factory_defaults import factory_value
 from coyote3.contracts.schemas.assay_access import AssayAccessGrant
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class UserUiSettingsDoc(BaseModel):
-    """Persisted presentation preferences for one user."""
+    """Explicit user preferences; unset fields are omitted for frontend defaults."""
 
     model_config = ConfigDict(extra="forbid")
 
-    analysis_layout: str = "classic"
-    sample_list_layout: str = "classic"
-    analysis_modern_view_tried: bool = False
-    sample_list_modern_view_tried: bool = False
-    table_page_size: int = DEFAULT_TABLE_PAGE_SIZE
-    theme: Literal["auto", "light", "dark"] = "auto"
+    analysis_layout: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    sample_list_layout: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    analysis_modern_view_tried: bool | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    sample_list_modern_view_tried: bool | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    table_page_size: int | None = Field(
+        default=None,
+        ge=1,
+        le=factory_value("pagination.max_page_size"),
+        exclude_if=lambda value: value is None,
+    )
+    theme: Literal["auto", "light", "dark"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @field_validator("analysis_layout")
     @classmethod
-    def _validate_analysis_layout(cls, value: str) -> str:
+    def _validate_analysis_layout(cls, value: str | None) -> str | None:
         """Normalize a analysis layout preference.
 
         Args:
-            value: Layout name before whitespace and case normalization.
+            value: Layout name before normalization, or None for an unset preference.
 
         Returns:
-            The lowercase classic or modern layout name.
+            The lowercase classic or modern layout name, or None when unset.
 
         Raises:
             ValueError: If the layout is neither classic nor modern.
         """
-        normalized = str(value or "").strip().lower()
+        if value is None:
+            return None
+        normalized = str(value).strip().lower()
         if normalized not in {"classic", "modern"}:
             raise ValueError("analysis_layout must be one of: classic, modern")
         return normalized
 
     @field_validator("sample_list_layout")
     @classmethod
-    def _validate_sample_list_layout(cls, value: str) -> str:
+    def _validate_sample_list_layout(cls, value: str | None) -> str | None:
         """Normalize a sample-list layout preference.
 
         Args:
-            value: Layout name before whitespace and case normalization.
+            value: Layout name before normalization, or None for an unset preference.
 
         Returns:
-            The lowercase classic or modern layout name.
+            The lowercase classic or modern layout name, or None when unset.
 
         Raises:
             ValueError: If the layout is neither classic nor modern.
         """
-        normalized = str(value or "").strip().lower()
+        if value is None:
+            return None
+        normalized = str(value).strip().lower()
         if normalized not in {"classic", "modern"}:
             raise ValueError("sample_list_layout must be one of: classic, modern")
         return normalized
-
-    @field_validator("table_page_size")
-    @classmethod
-    def _validate_table_page_size(cls, value: int) -> int:
-        """Check page size against the supported table-size choices.
-
-        Args:
-            value: Requested number of rows per table page.
-
-        Returns:
-            The supported page size unchanged.
-
-        Raises:
-            ValueError: If the size is absent from TABLE_PAGE_SIZE_OPTIONS.
-        """
-        if value not in TABLE_PAGE_SIZE_OPTIONS:
-            allowed = ", ".join(str(option) for option in TABLE_PAGE_SIZE_OPTIONS)
-            raise ValueError(f"table_page_size must be one of: {allowed}")
-        return value
 
 
 class UsersDoc(_StrictCollectionDocBase):
@@ -103,7 +98,7 @@ class UsersDoc(_StrictCollectionDocBase):
     auth_type: list[str] = Field(default_factory=lambda: [DEFAULT_AUTH_PROVIDER])
     password: str | None = None
     last_login: datetime | None = None
-    must_change_password: bool = False
+    must_change_password: bool = factory_value("governance_defaults.must_change_password")
     password_updated_on: datetime | None = None
     password_action_token_hash: str | None = None
     password_action_purpose: str | None = None
@@ -116,8 +111,8 @@ class UsersDoc(_StrictCollectionDocBase):
     asp_ids: list[str] = Field(default_factory=list)
     asp_groups: list[str] = Field(default_factory=list)
     ui_settings: UserUiSettingsDoc = Field(default_factory=UserUiSettingsDoc)
-    system_managed: bool = False
-    is_active: bool = True
+    system_managed: bool = factory_value("records.system_managed")
+    is_active: bool = factory_value("records.is_active")
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -276,8 +271,8 @@ class RolesDoc(_StrictCollectionDocBase):
     description: str | None = None
     color: str
     level: int | float
-    system_managed: bool = False
-    is_active: bool = True
+    system_managed: bool = factory_value("records.system_managed")
+    is_active: bool = factory_value("records.is_active")
     permissions: list[str] = Field(default_factory=list)
     version: int = 1
     created_by: str | None = None
@@ -353,8 +348,8 @@ class PermissionsDoc(_StrictCollectionDocBase):
     category: str
     description: str | None = None
     tags: list[str] = Field(default_factory=list)
-    system_managed: bool = False
-    is_active: bool = True
+    system_managed: bool = factory_value("records.system_managed")
+    is_active: bool = factory_value("records.is_active")
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

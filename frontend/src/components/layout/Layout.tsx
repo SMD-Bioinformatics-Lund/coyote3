@@ -17,6 +17,7 @@ import { BrandWordmark } from "@/components/layout/BrandWordmark"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, hasPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { USER_UI_DEFAULTS } from "@/lib/defaults"
 import { useTheme } from "next-themes"
 import { useUpdateUiSettings } from "@/lib/user-settings"
 import { notifyActionError } from "@/lib/notifications"
@@ -75,7 +76,7 @@ export function Layout() {
     },
   })
 
-  const accountTheme = user?.ui_settings?.theme || "auto"
+  const accountTheme = user?.ui_settings?.theme || USER_UI_DEFAULTS.theme
   useEffect(() => {
     if (user?.username) setTheme(accountTheme)
   }, [user?.username, accountTheme, setTheme])

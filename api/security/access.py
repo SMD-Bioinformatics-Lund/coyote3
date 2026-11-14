@@ -39,7 +39,7 @@ from api.security.models import UserModel
 from api.security.policy import build_access_policy
 from api.security.tokens import constant_time_equal
 from coyote3.application.common.access import enforce_access, sample_scope_allowed
-from coyote3.config.constants import DEFAULT_AUTH_PROVIDER, DEFAULT_TABLE_PAGE_SIZE
+from coyote3.config.constants import DEFAULT_AUTH_PROVIDER
 from coyote3.config.policy import get_runtime_environment
 from coyote3.contracts.service_tokens import SERVICE_TOKEN_PREFIX
 from coyote3.domain.exceptions import AppError
@@ -92,16 +92,7 @@ class ApiUser:
     firstname: str = ""
     lastname: str = ""
     job_title: str = ""
-    ui_settings: dict[str, str | bool | int] = field(
-        default_factory=lambda: {
-            "theme": "auto",
-            "analysis_layout": "classic",
-            "sample_list_layout": "classic",
-            "analysis_modern_view_tried": False,
-            "sample_list_modern_view_tried": False,
-            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
-        }
-    )
+    ui_settings: dict[str, str | bool | int] = field(default_factory=dict)
 
     @property
     def is_superuser(self) -> bool:
@@ -326,15 +317,7 @@ def api_user_from_user_doc(user_doc: dict[str, Any]) -> ApiUser:
         ),
         must_change_password=bool(getattr(user_model, "must_change_password", False)),
         credential_version=sha256(str(user_doc.get("password") or "").encode()).hexdigest(),
-        ui_settings={
-            "theme": "auto",
-            "analysis_layout": "classic",
-            "sample_list_layout": "classic",
-            "analysis_modern_view_tried": False,
-            "sample_list_modern_view_tried": False,
-            "table_page_size": DEFAULT_TABLE_PAGE_SIZE,
-            **dict(user_doc.get("ui_settings") or {}),
-        },
+        ui_settings=dict(user_doc.get("ui_settings") or {}),
     )
 
 

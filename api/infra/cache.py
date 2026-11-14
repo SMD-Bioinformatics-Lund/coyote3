@@ -8,6 +8,7 @@ from typing import Any
 import redis
 from bson import json_util
 
+from api.config.factory_defaults import api_default
 from api.config.security import to_bool
 
 
@@ -225,7 +226,9 @@ def create_cache_backend(
 ) -> RedisCacheBackend | DisabledCacheBackend:
     """Create a cache backend from runtime config."""
     redis_url = str(config.get("CACHE_REDIS_URL") or "").strip()
-    cache_required = to_bool(config.get("CACHE_REQUIRED"), default=True)
+    cache_required = to_bool(
+        config.get("CACHE_REQUIRED"), default=api_default("runtime.CACHE_REQUIRED", bool)
+    )
     if not redis_url:
         msg = f"cache_backend_unavailable namespace={namespace} reason=missing_url"
         if cache_required:
@@ -233,10 +236,20 @@ def create_cache_backend(
         logger.warning("%s", msg)
         return DisabledCacheBackend(reason="missing_url")
 
-    socket_connect_timeout = float(config.get("CACHE_REDIS_CONNECT_TIMEOUT", 1.0))
-    socket_timeout = float(config.get("CACHE_REDIS_SOCKET_TIMEOUT", 1.0))
-    key_prefix = str(config.get("CACHE_KEY_PREFIX", "coyote3_cache"))
-    default_timeout = int(config.get("CACHE_DEFAULT_TIMEOUT", 300))
+    socket_connect_timeout = float(
+        config.get(
+            "CACHE_REDIS_CONNECT_TIMEOUT", api_default("runtime.CACHE_REDIS_CONNECT_TIMEOUT", float)
+        )
+    )
+    socket_timeout = float(
+        config.get(
+            "CACHE_REDIS_SOCKET_TIMEOUT", api_default("runtime.CACHE_REDIS_SOCKET_TIMEOUT", float)
+        )
+    )
+    key_prefix = str(config.get("CACHE_KEY_PREFIX", api_default("runtime.CACHE_KEY_PREFIX", str)))
+    default_timeout = int(
+        config.get("CACHE_DEFAULT_TIMEOUT", api_default("runtime.CACHE_DEFAULT_TIMEOUT", int))
+    )
     full_prefix = f"{key_prefix}:{namespace}"
 
     try:

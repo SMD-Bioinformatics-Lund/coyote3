@@ -93,39 +93,24 @@ def _worker_runtime_details(
 def default_app_controls(config: dict[str, Any] | None = None) -> AppControlsDoc:
     """Build default application controls from runtime configuration."""
     config = config or {}
-    controls = AppControlsDoc(
+    retention = AppControlsDoc().retention
+    return AppControlsDoc(
         control_id=APP_CONTROLS_ID,
-        celery={
-            "enabled": True,
-            "sample_ingest_enabled": True,
-            "collection_writes_enabled": True,
-            "maintenance_enabled": True,
-        },
         retention={
             "audit_events_days": get_audit_retention_days(config),
-            "notification_days": int(config.get("NOTIFICATION_RETENTION_DAYS", 180) or 180),
-            "disk_log_days": int(config.get("LOG_RETENTION_DAYS", 30) or 30),
-            "gzip_disk_logs_after_days": int(config.get("LOG_GZIP_AFTER_DAYS", 7) or 7),
-        },
-        modules={
-            "dna_analysis_enabled": True,
-            "rna_analysis_enabled": True,
-            "reports_enabled": True,
-            "variant_search_enabled": True,
-            "knowledgebases_enabled": True,
-            "ingest_workspace_enabled": True,
-            "assay_catalog_enabled": True,
-        },
-        curation={
-            "tiering": {
-                "small_variant_enabled": True,
-                "cnv_enabled": True,
-                "fusion_enabled": True,
-                "translocation_enabled": True,
-            }
+            "notification_days": int(
+                config.get("NOTIFICATION_RETENTION_DAYS", retention.notification_days)
+                or retention.notification_days
+            ),
+            "disk_log_days": int(
+                config.get("LOG_RETENTION_DAYS", retention.disk_log_days) or retention.disk_log_days
+            ),
+            "gzip_disk_logs_after_days": int(
+                config.get("LOG_GZIP_AFTER_DAYS", retention.gzip_disk_logs_after_days)
+                or retention.gzip_disk_logs_after_days
+            ),
         },
     )
-    return controls
 
 
 def merge_controls(defaults: AppControlsDoc, stored: dict[str, Any] | None) -> AppControlsDoc:

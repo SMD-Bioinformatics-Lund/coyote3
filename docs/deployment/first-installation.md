@@ -494,7 +494,7 @@ See [Installed defaults and demonstration configuration](../administration/insta
 for the complete group inventory, exact query-rule conditions, optional demo assays,
 diagnoses, gene lists, report rules and default role responsibilities.
 
-The image packages `clinical_capabilities.toml` and `clinical_query_defaults.toml`
+The image packages the shared `factory_defaults.toml` catalog
 under `src/coyote3/config/`, collection mappings at `api/config/collections.toml`,
 and installation criteria at `api/bootstrap/catalogs/reference/clinical_query_seed.toml`.
 These are application-owned; do not copy them into the editable center directory.

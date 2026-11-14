@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
+from api.config.factory_defaults import api_default
 from api.config.mongo import mongo_endpoints
 
 
@@ -28,20 +29,49 @@ class MongoConnections:
         self._clients: dict[str, Any] = {}
         self.databases: dict[str, Any] = {}
         options = {
-            "maxPoolSize": int(config.get("MONGO_MAX_POOL_SIZE", 100)),
-            "minPoolSize": int(config.get("MONGO_MIN_POOL_SIZE", 0)),
-            "connectTimeoutMS": int(config.get("MONGO_CONNECT_TIMEOUT_MS", 10_000)),
-            "serverSelectionTimeoutMS": int(
-                config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
+            "maxPoolSize": int(
+                config.get("MONGO_MAX_POOL_SIZE", api_default("runtime.MONGO_MAX_POOL_SIZE", int))
             ),
-            "waitQueueTimeoutMS": int(config.get("MONGO_WAIT_QUEUE_TIMEOUT_MS", 10_000)),
+            "minPoolSize": int(
+                config.get("MONGO_MIN_POOL_SIZE", api_default("runtime.MONGO_MIN_POOL_SIZE", int))
+            ),
+            "connectTimeoutMS": int(
+                config.get(
+                    "MONGO_CONNECT_TIMEOUT_MS", api_default("runtime.MONGO_CONNECT_TIMEOUT_MS", int)
+                )
+            ),
+            "serverSelectionTimeoutMS": int(
+                config.get(
+                    "MONGO_SERVER_SELECTION_TIMEOUT_MS",
+                    api_default("runtime.MONGO_SERVER_SELECTION_TIMEOUT_MS", int),
+                )
+            ),
+            "waitQueueTimeoutMS": int(
+                config.get(
+                    "MONGO_WAIT_QUEUE_TIMEOUT_MS",
+                    api_default("runtime.MONGO_WAIT_QUEUE_TIMEOUT_MS", int),
+                )
+            ),
         }
-        configured_w = config.get("MONGO_WRITE_CONCERN_W", "majority")
+        configured_w = config.get(
+            "MONGO_WRITE_CONCERN_W", api_default("runtime.MONGO_WRITE_CONCERN_W", str)
+        )
         write_concern = WriteConcern(
             w=int(configured_w) if str(configured_w).isdigit() else configured_w,
-            j=bool(config.get("MONGO_WRITE_CONCERN_JOURNAL", True)),
+            j=bool(
+                config.get(
+                    "MONGO_WRITE_CONCERN_JOURNAL",
+                    api_default("runtime.MONGO_WRITE_CONCERN_JOURNAL", bool),
+                )
+            ),
         )
-        read_concern = ReadConcern(str(config.get("MONGO_READ_CONCERN_LEVEL", "majority")))
+        read_concern = ReadConcern(
+            str(
+                config.get(
+                    "MONGO_READ_CONCERN_LEVEL", api_default("runtime.MONGO_READ_CONCERN_LEVEL", str)
+                )
+            )
+        )
         try:
             for service, endpoint in self.endpoints.items():
                 if endpoint.uri not in self._clients:

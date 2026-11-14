@@ -3,13 +3,20 @@
 from collections.abc import Mapping
 from typing import Any
 
+from coyote3.config.factory_defaults import factory_value
+
 
 def get_audit_retention_days(config: Mapping[str, Any]) -> int:
     """Return audit retention in days."""
     try:
-        return int(config.get("AUDIT_RETENTION_DAYS", 730))
+        return int(
+            config.get(
+                "AUDIT_RETENTION_DAYS",
+                factory_value("controls.RetentionControlDoc.audit_events_days"),
+            )
+        )
     except (TypeError, ValueError):
-        return 730
+        return int(factory_value("controls.RetentionControlDoc.audit_events_days"))
 
 
 def get_runtime_environment(config: Mapping[str, Any]) -> str:

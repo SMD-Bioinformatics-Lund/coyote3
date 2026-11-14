@@ -147,8 +147,7 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
     for name in FILES:
         shutil.copyfile(ROOT / "config/examples/center" / name, tmp_path / name)
     (tmp_path / "collections.toml").write_text("malformed = [")
-    (tmp_path / "clinical_capabilities.toml").write_text("malformed = [")
-    (tmp_path / "clinical_query_defaults.toml").write_text("malformed = [")
+    (tmp_path / "factory_defaults.toml").write_text("malformed = [")
     (tmp_path / "clinical_query_policy.toml").write_text("malformed = [")
     (tmp_path / "clinical_query_seed.toml").write_text("malformed = [")
     result = subprocess.run(

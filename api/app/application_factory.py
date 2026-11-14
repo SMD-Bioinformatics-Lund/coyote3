@@ -4,6 +4,7 @@ from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+from api.config.factory_defaults import api_default
 from coyote3.application.operations import (
     ApplicationRuntime,
     ApplicationServices,
@@ -144,7 +145,12 @@ def application_services() -> ApplicationServices:
             service_tokens=get_service_tokens,
         ),
         knowledgebase=get_common_query_service,
-        knowledgebase_search_limit=int(app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)),
+        knowledgebase_search_limit=int(
+            app.config.get(
+                "TIERED_VARIANT_SEARCH_LIMIT",
+                api_default("runtime.TIERED_VARIANT_SEARCH_LIMIT", int),
+            )
+        ),
         notifications=get_notification_service,
         administration=AdministrationServices(
             users=get_admin_user_service,

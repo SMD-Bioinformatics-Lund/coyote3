@@ -1,14 +1,11 @@
 """Public clinical knowledgebase contracts shared by application workflows."""
 
-EXTERNAL_KNOWLEDGEBASE_LINKS: dict[str, str] = {
-    "oncokb_gene": "https://www.oncokb.org/gene",
-}
+from coyote3.config.factory_defaults import factory_value
+
+EXTERNAL_KNOWLEDGEBASE_LINKS: dict[str, str] = factory_value("knowledgebases.external_links")
 
 # These are public vendor API contracts, not center deployment settings.
-PUBLIC_KNOWLEDGEBASE_API_URLS: dict[str, str] = {
-    "oncokb": "https://public.api.oncokb.org/api/v1",
-    "clinpgx": "https://api.clinpgx.org/v1",
-}
+PUBLIC_KNOWLEDGEBASE_API_URLS: dict[str, str] = factory_value("knowledgebases.public_api_urls")
 
 
 def oncokb_gene_url(symbol: object) -> str:

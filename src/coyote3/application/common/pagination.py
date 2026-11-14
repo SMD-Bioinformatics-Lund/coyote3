@@ -5,13 +5,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from coyote3.config.constants import (
-    DEFAULT_TABLE_PAGE_SIZE,
-    TABLE_PAGE_SIZE_OPTIONS,
-)
+from coyote3.config.factory_defaults import factory_value
 
-DEFAULT_PAGE_SIZE = DEFAULT_TABLE_PAGE_SIZE
-MAX_PAGE_SIZE = max(TABLE_PAGE_SIZE_OPTIONS)
+MAX_PAGE_SIZE: int = factory_value("pagination.max_page_size")
+# Requests without an explicit size use the permitted maximum.
+DEFAULT_PAGE_SIZE = MAX_PAGE_SIZE
 
 
 def query_pagination(

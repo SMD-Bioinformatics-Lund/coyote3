@@ -7,25 +7,44 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from coyote3.config.factory_defaults import factory_value
 from coyote3.contracts.schemas.base import _StrictCollectionDocBase
 
 
 class CeleryControlDoc(BaseModel):
     """Runtime switches for background task families."""
 
-    enabled: bool = True
-    sample_ingest_enabled: bool = True
-    collection_writes_enabled: bool = True
-    maintenance_enabled: bool = True
+    enabled: bool = factory_value("controls.CeleryControlDoc.enabled")
+    sample_ingest_enabled: bool = factory_value("controls.CeleryControlDoc.sample_ingest_enabled")
+    collection_writes_enabled: bool = factory_value(
+        "controls.CeleryControlDoc.collection_writes_enabled"
+    )
+    maintenance_enabled: bool = factory_value("controls.CeleryControlDoc.maintenance_enabled")
 
 
 class RetentionControlDoc(BaseModel):
     """Retention policy values controlled from the admin UI."""
 
-    audit_events_days: int = Field(default=730, ge=30, le=3650)
-    notification_days: int = Field(default=180, ge=7, le=3650)
-    disk_log_days: int = Field(default=30, ge=1, le=3650)
-    gzip_disk_logs_after_days: int = Field(default=7, ge=1, le=3650)
+    audit_events_days: int = Field(
+        default=factory_value("controls.RetentionControlDoc.audit_events_days"),
+        ge=30,
+        le=3650,
+    )
+    notification_days: int = Field(
+        default=factory_value("controls.RetentionControlDoc.notification_days"),
+        ge=7,
+        le=3650,
+    )
+    disk_log_days: int = Field(
+        default=factory_value("controls.RetentionControlDoc.disk_log_days"),
+        ge=1,
+        le=3650,
+    )
+    gzip_disk_logs_after_days: int = Field(
+        default=factory_value("controls.RetentionControlDoc.gzip_disk_logs_after_days"),
+        ge=1,
+        le=3650,
+    )
 
     @field_validator("gzip_disk_logs_after_days")
     @classmethod
@@ -51,22 +70,24 @@ class RetentionControlDoc(BaseModel):
 class ModuleControlDoc(BaseModel):
     """Runtime visibility switches for major application modules."""
 
-    dna_analysis_enabled: bool = True
-    rna_analysis_enabled: bool = True
-    reports_enabled: bool = True
-    variant_search_enabled: bool = True
-    knowledgebases_enabled: bool = True
-    ingest_workspace_enabled: bool = True
-    assay_catalog_enabled: bool = True
+    dna_analysis_enabled: bool = factory_value("controls.ModuleControlDoc.dna_analysis_enabled")
+    rna_analysis_enabled: bool = factory_value("controls.ModuleControlDoc.rna_analysis_enabled")
+    reports_enabled: bool = factory_value("controls.ModuleControlDoc.reports_enabled")
+    variant_search_enabled: bool = factory_value("controls.ModuleControlDoc.variant_search_enabled")
+    knowledgebases_enabled: bool = factory_value("controls.ModuleControlDoc.knowledgebases_enabled")
+    ingest_workspace_enabled: bool = factory_value(
+        "controls.ModuleControlDoc.ingest_workspace_enabled"
+    )
+    assay_catalog_enabled: bool = factory_value("controls.ModuleControlDoc.assay_catalog_enabled")
 
 
 class TieringControlDoc(BaseModel):
     """Runtime availability of tier mutations by finding resource."""
 
-    small_variant_enabled: bool = True
-    cnv_enabled: bool = True
-    fusion_enabled: bool = True
-    translocation_enabled: bool = True
+    small_variant_enabled: bool = factory_value("controls.TieringControlDoc.small_variant_enabled")
+    cnv_enabled: bool = factory_value("controls.TieringControlDoc.cnv_enabled")
+    fusion_enabled: bool = factory_value("controls.TieringControlDoc.fusion_enabled")
+    translocation_enabled: bool = factory_value("controls.TieringControlDoc.translocation_enabled")
 
 
 class CurationControlDoc(BaseModel):
@@ -78,13 +99,13 @@ class CurationControlDoc(BaseModel):
 class EmailControlDoc(BaseModel):
     """Runtime switch for all outgoing application email."""
 
-    enabled: bool = True
+    enabled: bool = factory_value("controls.EmailControlDoc.enabled")
 
 
 class AppControlsDoc(_StrictCollectionDocBase):
     """Single active runtime-control document stored in MongoDB."""
 
-    control_id: str = "default"
+    control_id: str = factory_value("contracts.app_controls_id")
     email: EmailControlDoc = Field(default_factory=EmailControlDoc)
     celery: CeleryControlDoc = Field(default_factory=CeleryControlDoc)
     retention: RetentionControlDoc = Field(default_factory=RetentionControlDoc)

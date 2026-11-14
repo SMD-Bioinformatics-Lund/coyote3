@@ -22,6 +22,8 @@ from ldap3.core.exceptions import LDAPBindError, LDAPException, LDAPInvalidDnErr
 from ldap3.utils.conv import escape_filter_chars
 from ldap3.utils.dn import parse_dn
 
+from api.config.factory_defaults import api_default
+
 LOG = logging.getLogger(__name__)
 
 
@@ -64,15 +66,21 @@ class LdapManager:
             or endpoint.fragment
         ):
             raise ValueError("LDAP_HOST must be a hostname or ldap:// or ldaps:// endpoint")
-        use_ssl = endpoint.scheme == "ldaps" or bool(config.get("LDAP_USE_SSL", False))
+        use_ssl = endpoint.scheme == "ldaps" or bool(
+            config.get("LDAP_USE_SSL", api_default("runtime.LDAP_USE_SSL", bool))
+        )
         port = int(config.get("LDAP_PORT") or endpoint.port or (636 if use_ssl else 389))
-        timeout = int(config.get("LDAP_CONNECT_TIMEOUT", 10))
+        timeout = int(
+            config.get("LDAP_CONNECT_TIMEOUT", api_default("runtime.LDAP_CONNECT_TIMEOUT", int))
+        )
         if not 1 <= port <= 65535 or timeout <= 0:
             raise ValueError("LDAP_PORT must be 1-65535 and LDAP_CONNECT_TIMEOUT must be positive")
         if bool(config.get("LDAP_BINDDN")) != bool(config.get("LDAP_SECRET")):
             raise ValueError("Configure both LDAP_BINDDN and LDAP_SECRET, or leave both empty")
         self._config = {**config, "LDAP_USE_SSL": use_ssl, "LDAP_PORT": port}
-        if not use_ssl and not config.get("LDAP_USE_TLS", True):
+        if not use_ssl and not config.get(
+            "LDAP_USE_TLS", api_default("runtime.LDAP_USE_TLS", bool)
+        ):
             LOG.warning(
                 "LDAP transport is unencrypted; enable StartTLS or LDAPS before production use"
             )
@@ -80,7 +88,9 @@ class LdapManager:
         tls = Tls(
             local_private_key_file=config.get("LDAP_CLIENT_PRIVATE_KEY"),
             local_certificate_file=config.get("LDAP_CLIENT_CERT"),
-            validate=ssl.CERT_REQUIRED if config.get("LDAP_VERIFY_CERT", True) else ssl.CERT_NONE,
+            validate=ssl.CERT_REQUIRED
+            if config.get("LDAP_VERIFY_CERT", api_default("runtime.LDAP_VERIFY_CERT", bool))
+            else ssl.CERT_NONE,
             version=config.get("LDAP_TLS_VERSION"),
             ca_certs_file=config.get("LDAP_CA_CERTS_FILE") or None,
             valid_names=config.get("LDAP_VALID_NAMES"),
@@ -107,7 +117,9 @@ class LdapManager:
 
     def _auto_bind_mode(self) -> int:
         """Use StartTLS before bind unless the socket already uses implicit TLS."""
-        if self._config.get("LDAP_USE_TLS", True) and not self._config.get("LDAP_USE_SSL", False):
+        if self._config.get(
+            "LDAP_USE_TLS", api_default("runtime.LDAP_USE_TLS", bool)
+        ) and not self._config.get("LDAP_USE_SSL", api_default("runtime.LDAP_USE_SSL", bool)):
             return AUTO_BIND_TLS_BEFORE_BIND
         return AUTO_BIND_NO_TLS
 
@@ -144,7 +156,11 @@ class LdapManager:
             raise_exceptions=False,
             read_only=read_only,
             auto_referrals=False,
-            receive_timeout=int(self._config.get("LDAP_CONNECT_TIMEOUT", 10)),
+            receive_timeout=int(
+                self._config.get(
+                    "LDAP_CONNECT_TIMEOUT", api_default("runtime.LDAP_CONNECT_TIMEOUT", int)
+                )
+            ),
         )
 
     def _lookup_user_dn(self, username: str, base_dn: str, attribute: str) -> str | None:

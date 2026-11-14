@@ -28,6 +28,7 @@ from coyote3.config.constants import (
     normalize_platform,
     normalize_read_mode,
 )
+from coyote3.config.factory_defaults import factory_value
 from coyote3.config.sequencing import derived_read_technology, validate_platform_read_mode
 from coyote3.contracts.schemas.base import (
     _CollectionDocBase,
@@ -68,10 +69,18 @@ class ReportableTiersDoc(_StrictDocBase):
     report selections remain available independently of tier inclusion.
     """
 
-    SNV: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
-    FUSION: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
-    CNV: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
-    TRANSLOCATION: list[Literal[1, 2, 3, 4]] = Field(default_factory=lambda: [1, 2, 3])
+    SNV: list[Literal[1, 2, 3, 4]] = Field(
+        default_factory=lambda: factory_value("reporting.reportable_tiers")
+    )
+    FUSION: list[Literal[1, 2, 3, 4]] = Field(
+        default_factory=lambda: factory_value("reporting.reportable_tiers")
+    )
+    CNV: list[Literal[1, 2, 3, 4]] = Field(
+        default_factory=lambda: factory_value("reporting.reportable_tiers")
+    )
+    TRANSLOCATION: list[Literal[1, 2, 3, 4]] = Field(
+        default_factory=lambda: factory_value("reporting.reportable_tiers")
+    )
 
     @field_validator("SNV", "FUSION", "CNV", "TRANSLOCATION", mode="before")
     @classmethod
@@ -93,7 +102,11 @@ class AspcReportingDoc(_StrictDocBase):
     summary_text_order: list[str] = Field(default_factory=list)
     summary_table_order: list[str] = Field(default_factory=list)
     reportable_tiers: ReportableTiersDoc = Field(default_factory=ReportableTiersDoc)
-    language: str = Field(default="sv", min_length=2, max_length=16)
+    language: str = Field(
+        default=factory_value("reporting.language"),
+        min_length=2,
+        max_length=16,
+    )
     report_header: str
     report_method: str
     plots_path: str
@@ -183,7 +196,7 @@ class AspcReportingDoc(_StrictDocBase):
 class AspcCatalogDoc(_StrictDocBase):
     """Public visibility control for one ASPC environment/diagnosis tuple."""
 
-    is_public: bool = True
+    is_public: bool = factory_value("assay_defaults.catalog_is_public")
 
     @model_validator(mode="before")
     @classmethod
@@ -208,16 +221,18 @@ class AspConfigDoc(_StrictCollectionDocBase):
     asp_group: str
     asp_category: str
     analysis_types: list[str] = Field(default_factory=list)
-    analysis_intents: list[str] = Field(default_factory=lambda: ["somatic"])
-    system_managed: bool = False
-    system_installed: bool = False
-    is_active: bool = True
+    analysis_intents: list[str] = Field(
+        default_factory=lambda: factory_value("assay_defaults.analysis_intents")
+    )
+    system_managed: bool = factory_value("records.system_managed")
+    system_installed: bool = factory_value("records.system_installed")
+    is_active: bool = factory_value("records.is_active")
     display_name: str
     description: str | None = None
     reference_genome: str | None = None
     platform: str | None = None
     verification_samples: dict[str, list[int]] = Field(default_factory=dict)
-    use_diagnosis_genelist: bool = False
+    use_diagnosis_genelist: bool = factory_value("assay_defaults.use_diagnosis_genelist")
 
     filters: DnaFilterProfilesDoc | RnaFilterProfilesDoc
     reporting: AspcReportingDoc
@@ -566,7 +581,7 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     required_files: list[str] = Field(default_factory=list)
     covered_genes: list[str] = Field(default_factory=list)
     germline_genes: list[str] = Field(default_factory=list)
-    accredited: bool = False
+    accredited: bool = factory_value("assay_defaults.accredited")
     kit_name: str | None = None
     kit_type: str | None = None
     kit_version: str | None = None
@@ -576,9 +591,9 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
     read_length: int | None = None
     capture_method: str | None = None
     target_region_size: int | None = None
-    system_managed: bool = False
-    system_installed: bool = False
-    is_active: bool = True
+    system_managed: bool = factory_value("records.system_managed")
+    system_installed: bool = factory_value("records.system_installed")
+    is_active: bool = factory_value("records.is_active")
     version: int = 1
     created_by: str | None = None
     created_on: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -834,11 +849,11 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
     displayname: str
     aliases: list[str] = Field(default_factory=list)
     list_type: list[str] = Field(default_factory=lambda: list(GENELIST_TYPE_OPTIONS))
-    adhoc: bool = False
-    is_public: bool = False
-    system_managed: bool = False
-    system_installed: bool = False
-    is_active: bool = True
+    adhoc: bool = factory_value("assay_defaults.adhoc")
+    is_public: bool = factory_value("assay_defaults.genelist_is_public")
+    system_managed: bool = factory_value("records.system_managed")
+    system_installed: bool = factory_value("records.system_installed")
+    is_active: bool = factory_value("records.is_active")
     asp_groups: list[str] = Field(default_factory=list)
     genes: list[str] = Field(default_factory=list)
     asp_ids: list[str] = Field(default_factory=list)

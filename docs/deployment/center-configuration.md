@@ -194,10 +194,14 @@ assay capabilities through ASP/ASPC administration.
 
 ## Application-owned definitions
 
-Python loads `src/coyote3/config/clinical_capabilities.toml` and
-`src/coyote3/config/clinical_query_defaults.toml` from the application package. Neither
-path can be redirected through the center directory. These are software release
-assets, like `api/config/collections.toml`; centers must not edit or copy them.
+Python loads `src/coyote3/config/factory_defaults.toml` from the application package.
+Its `capabilities` and `clinical_queries` tables supply the application definitions;
+the other tables hold [factory defaults](../configuration/README.md#factory-defaults).
+This path cannot be redirected through the center directory. It is a software release
+asset, like `api/config/collections.toml`; centers must not edit or copy it.
+API deployment fallbacks are separately packaged at `api/config/factory_defaults.toml`.
+Presentation defaults are owned by `frontend/src/lib/defaults.ts`; neither backend
+catalog defines a default theme, layout or browser table-size selection.
 New ASPs, groups, diagnoses and gene lists remain center-managed database resources.
 
 Before upgrading a deployment that has older center files:

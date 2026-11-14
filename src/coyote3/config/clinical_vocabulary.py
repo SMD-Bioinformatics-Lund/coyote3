@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from coyote3.config.factory_defaults import factory_value
 from coyote3.config.paths import PACKAGE_CONFIG_DIR
 from coyote3.config.selection import center_policy_path
 
@@ -228,8 +229,21 @@ def load_clinical_vocabulary(path: str | Path | None = None) -> ClinicalVocabula
     with path_obj.open("rb") as handle:
         raw = tomllib.load(handle)
 
-    with (PACKAGE_CONFIG_DIR / "clinical_capabilities.toml").open("rb") as handle:
-        capabilities = tomllib.load(handle)
+    capabilities = factory_value("capabilities")
+    # Families inherit modality capabilities; only narrower families need overrides.
+    analysis_defaults = capabilities["analysis"]
+    family_overrides = analysis_defaults.pop("family_overrides")
+    family_categories = capabilities["assay"]["family_categories"]
+    if set(family_overrides) - set(family_categories):
+        raise RuntimeError("analysis.family_overrides contains an unknown assay family")
+    analysis_defaults["allowed_by_family"] = {
+        family: family_overrides.get(family, analysis_defaults[category]["types"])
+        for family, category in family_categories.items()
+    }
+    capabilities["files"]["required_by_family"] = {
+        family: [capabilities["files"][category]["keys"][0]]
+        for family, category in family_categories.items()
+    }
     protected = set(raw) & (set(capabilities) - {"fusion"})
     if isinstance(raw.get("fusion"), dict) and "callers" in raw["fusion"]:
         protected.add("fusion.callers")

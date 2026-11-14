@@ -58,6 +58,25 @@ describe("analysisLayoutForUser", () => {
   })
 })
 
+it("fills unset preferences locally after a sparse API response", async () => {
+  vi.restoreAllMocks()
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const user: CurrentUserAccess = {
+    username: "tester", roles: [], role: "user", permissions: [], access_level: 1,
+  }
+  client.setQueryData(["whoami"], user)
+  const patch = vi.spyOn(api, "patch").mockResolvedValue({
+    status: 200, data: { status: "ok", ui_settings: { theme: "dark" } },
+  })
+  const { result } = renderHook(useUpdateUiSettings, {
+    wrapper: ({ children }: PropsWithChildren) => createElement(QueryClientProvider, { client }, children),
+  })
+  await act(async () => result.current.mutateAsync({ theme: "dark" }))
+  expect(client.getQueryData<CurrentUserAccess>(["whoami"])?.ui_settings)
+    .toEqual(normalizeUserUiSettings({ theme: "dark" }))
+  patch.mockRestore()
+})
+
 it.each([true, false])("does not overwrite a new account after a settings response (success: %s)", async success => {
   vi.restoreAllMocks()
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })

@@ -88,6 +88,11 @@ def test_app_controls_update_keeps_created_on_insert_only_metadata():
     assert result["controls"]["updated_by"] == "coyote3.admin"
     assert result["controls"]["celery"]["sample_ingest_enabled"] is False
     assert service.get_controls().email.enabled is False
+    restarted = build_service(
+        _Db(collection), identity_db=_Db(collection), config={"LOG_RETENTION_DAYS": 90}
+    )
+    assert restarted.get_controls().email.enabled is False
+    assert restarted.get_controls().retention.disk_log_days == 45
     service.update_controls({"email": {"enabled": True}})
     assert service.get_controls().email.enabled is True
     assert result["controls"]["retention"]["disk_log_days"] == 45
