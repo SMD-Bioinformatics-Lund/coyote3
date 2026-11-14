@@ -16,6 +16,13 @@ Version 4 replaces Flask with FastAPI and React.
 
 ### Detailed changes
 
+- Modern reports use `smd-reports` 0.5.3 with production-compatible compact result
+  tables, numbered reference captions, clinical-question conclusion headings,
+  compact bold summary labels, and consistent configured laboratory identity.
+  Additional version-four findings and detail cards remain available. Historical
+  report files and finding-selection rules are unchanged; approved template
+  revisions require review against the updated renderer.
+
 - Documentation navigation starts with six task/reference areas and direct action
   links. Complete review and assay setup guides no longer send readers through
   optional reference pages as required steps. Page titles precede reading controls;

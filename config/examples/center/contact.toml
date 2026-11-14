@@ -9,7 +9,7 @@ report_logo = "region-skane"
 # The wrapper rewrites this setting to the copied file's relative path.
 # Artwork contains Ackred. nr 1309, Provning, ISO 15189; review for the deploying center.
 accreditation_logo = "logos/swedac-iso-15189-example.svg"
-# Optional postal address and center telephone printed in modern report headers.
+# Optional postal address printed in modern report headers; phone is for public contact pages.
 address = ""
 phone = ""
 

@@ -4,8 +4,14 @@ Finding eligibility, transcript selection and clinical wording are resolved befo
 this boundary. This module supplies presentation values, never database lookups.
 """
 
+import math
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote, unquote
+from xml.etree import ElementTree
+
+from markdown import Markdown
+from markdown.treeprocessors import Treeprocessor
 
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC
@@ -35,6 +41,11 @@ def _table(key: str, heading: str, columns: list[str], rows: list[list[Any]], **
     }
 
 
+def _hgvs(value: Any) -> Any:
+    """Decode stored percent-encoded notation without replacing an unavailable value."""
+    return unquote(value) if isinstance(value, str) else _value(value)
+
+
 def _detail(key: str, title: str, fields: list[tuple[str, Any]]) -> dict:
     """Build one finding card without flattening its labels or exposing private fields."""
     fields = [(label, value) for label, value in fields if label != "Kommentar" or value]
@@ -60,9 +71,11 @@ def _comment(row: dict, *, selected: bool = False) -> str:
 
 
 def _annotation(row: dict) -> dict:
-    """Read the established MANE annotation or first structural annotation."""
+    """Read the selected structural annotation, then MANE or the first annotation."""
     info = row.get("INFO") or {}
-    return info.get("MANE_ANN") or (info.get("ANN") or [{}])[0]
+    annotations = info.get("ANN") or []
+    selected = next((item for item in annotations if item.get("selected") == 1), None)
+    return selected or info.get("MANE_ANN") or next(iter(annotations), {})
 
 
 def _read_support(value: Any) -> str:
@@ -70,6 +83,64 @@ def _read_support(value: Any) -> str:
     if isinstance(value, str):
         return value
     return "/".join(map(str, value)) if value is not None else "-"
+
+
+class _CompactSummaryHeadings(Treeprocessor):
+    """Format parsed Markdown headings without changing authored words or other blocks."""
+
+    def run(self, root: ElementTree.Element) -> None:
+        """Replace headings in the Markdown tree with body-sized bold paragraphs.
+
+        Args:
+            root: Parsed Markdown tree, modified before serialization and sanitization.
+        """
+        for parent in list(root.iter()):
+            children = list(parent)
+            for index, heading in enumerate(children):
+                if heading.tag not in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                    continue
+                heading.tag = "strong"
+                heading.attrib.clear()
+                following = children[index + 1] if index + 1 < len(children) else None
+                position = list(parent).index(heading)
+                parent.remove(heading)
+                if following is not None and following.tag == "p":
+                    line_break = ElementTree.Element("br")
+                    line_break.tail = following.text
+                    following.text = None
+                    heading.tail = None
+                    following.insert(0, heading)
+                    following.insert(1, line_break)
+                else:
+                    paragraph = ElementTree.Element("p")
+                    paragraph.tail = heading.tail
+                    heading.tail = None
+                    paragraph.append(heading)
+                    parent.insert(position, paragraph)
+
+
+def _summary_text(context: dict) -> str:
+    """Keep reviewed summary words while displaying headings as compact bold paragraphs."""
+    text = "\n\n".join(
+        value
+        for value in (context.get("report_scope_label"), context.get("latest_sample_comment_text"))
+        if value
+    )
+    processor = Markdown(extensions=["extra", "nl2br"], output_format="xhtml")
+    processor.preprocessors.deregister("html_block")
+    processor.inlinePatterns.deregister("html")
+    processor.treeprocessors.register(_CompactSummaryHeadings(processor), "summary_headings", 15)
+    return processor.convert(text)
+
+
+def _summary_copy_number(ratio: Any) -> str:
+    """Match master's copy-number rounding while retaining unavailable/invalid values."""
+    if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not math.isfinite(ratio):
+        return "-"
+    try:
+        return str(2 * round(2**ratio, 2))
+    except OverflowError:
+        return "-"
 
 
 def _metadata(context: dict, analyte: str) -> dict:
@@ -114,8 +185,17 @@ def _metadata(context: dict, analyte: str) -> dict:
             ("Analysmetod", reporting.get("report_method")),
         ]
     )
-    if context.get("organization_name"):
-        fields.append(("Analys genomförd av", context["organization_name"]))
+    branding = context.get("branding") or {}
+    laboratory = " och ".join(
+        str(value)
+        for value in (
+            branding.get("center_name") or context.get("organization_name"),
+            branding.get("center_department"),
+        )
+        if value
+    )
+    if laboratory:
+        fields.append(("Analys genomförd av", laboratory))
     fields.extend(
         [
             ("Rapportnummer", number),
@@ -130,6 +210,7 @@ def _metadata(context: dict, analyte: str) -> dict:
         ),
         "generated_at": generated.isoformat(),
         "author": context.get("generated_by") or "Unknown",
+        "author_label": "Rapport genererad av",
         "fields": [{"label": label, "value": _value(value)} for label, value in fields],
     }
 
@@ -196,17 +277,14 @@ def build_smd_report_input(
                 add_table(
                     key,
                     heading,
-                    ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"],
+                    ["Gen", "Mutation", "Variantfrekvens", "Klassificering"],
                     [
                         [
                             row.get("symbol"),
-                            row.get("chr"),
-                            (row.get("exon") or ["-"])[0],
                             row.get("cdna")
                             if (row.get("indel_size") or 0) > 20
-                            else row.get("variant"),
+                            else _hgvs(row.get("variant")),
                             _perc_no_dec(row.get("af")),
-                            _format_tier(row.get("class"), False),
                             row.get("class_short_desc")
                             if row.get("class") in (1, 2, 3, 4)
                             else "-",
@@ -215,24 +293,46 @@ def build_smd_report_input(
                     ],
                     empty_key,
                 )
+                sections[-1]["cell_options"] = {
+                    str(index): {"3": {"font_weight": "semibold"}}
+                    for index, row in enumerate(rows)
+                    if row.get("class") == 1
+                }
                 # Existing detailed cards belong to the somatic result section only.
                 if key != "snvs":
                     continue
                 for index, row in enumerate(rows):
-                    protein = (row.get("protein_changes") or [row.get("variant")])[-1]
+                    protein = "\n".join(
+                        str(value)
+                        for value in (row.get("protein_changes") or [row.get("variant")])
+                        if value is not None
+                    )
+                    feature = str(row.get("feature") or "")
+                    if row.get("exon"):
+                        feature += f", exon {row['exon'][0]}"
+                    elif row.get("intron"):
+                        feature += f", intron {row['intron'][0]}"
+                    name = str(_hgvs(row.get("variant")) or "")
+                    if len(name) >= 30:
+                        name = row.get("cdna") or ""
                     details.append(
                         _detail(
                             f"snv-{index}",
-                            f"{row.get('symbol', '')}: {protein or row.get('cdna', '')}",
+                            f"{row.get('symbol', '')}: {name or row.get('cdna', '')}",
                             [
                                 ("Gen", row.get("symbol")),
                                 (
                                     "Typ",
                                     f"{row.get('class_type', '')} {row.get('variant_class', '')}",
                                 ),
-                                ("Transkript", row.get("feature")),
+                                ("Transkript", feature),
                                 ("Konsekvens", row.get("consequence")),
-                                ("cDNA-förändring", row.get("cdna")),
+                                (
+                                    "cDNA-förändring",
+                                    _hgvs(row.get("cdna"))
+                                    if row.get("var_type") == "snv"
+                                    else row.get("cdna"),
+                                ),
                                 (
                                     "Proteinförändring",
                                     protein
@@ -254,6 +354,9 @@ def build_smd_report_input(
                             ],
                         )
                     )
+        sections.append(
+            {"key": "notation", "kind": "text", "text": "Note: p = protein, c = cDNA, g = genomic"}
+        )
         if "CNV" in enabled:
             cnvs = data.get("cnvs") or []
             rows = []
@@ -261,16 +364,19 @@ def build_smd_report_input(
                 genes = row.get("genes") or []
                 selected = [gene.get("gene", "") for gene in genes if gene.get("class")]
                 other = len(genes) - len(selected)
-                label = ", ".join(selected) + (f" + {other} other genes" if other else "")
+                label = " ".join(selected) + (f" + {other} other genes" if other else "")
                 tier = (row.get("classification") or {}).get("class")
+                ratio = row.get("ratio")
                 rows.append(
                     [
-                        label,
-                        row.get("chr"),
-                        f"{row.get('type') or '-'} ({_copy_number(row.get('ratio'))})",
+                        label.strip(),
                         f"{row.get('size', '-')} bp",
-                        _format_tier(tier, False),
-                        short.get(tier, "-") if tier in (1, 2, 3, 4) else "-",
+                        ("AMP" if ratio > 1 else "DUP" if ratio > 0 else "DEL")
+                        if isinstance(ratio, (int, float))
+                        and not isinstance(ratio, bool)
+                        and math.isfinite(ratio)
+                        else "-",
+                        _summary_copy_number(ratio),
                     ]
                 )
                 details.append(
@@ -293,14 +399,14 @@ def build_smd_report_input(
                 )
             add_table(
                 "cnvs",
-                "Kliniskt relevanta kopietalsförändringar",
-                ["Gen", "Kromosom", "Typ (CN)", "Storlek", "Tier", "Klassificering"],
+                "Kliniskt relevanta genspecifika kopietalsförändringar",
+                ["Gen(er)", "Storlek", "Typ", "Kopietal"],
                 rows,
                 "CNV",
             )
-        if "TRANSLOCATION" in enabled:
+        if "TRANSLOCATION" in enabled or "FUSION" in enabled:
             rows = []
-            for index, row in enumerate(data.get("translocs") or []):
+            for index, row in enumerate(data.get("translocs", data.get("fusions")) or []):
                 ann = _annotation(row)
                 tier = (row.get("classification") or {}).get("class")
                 title = (ann.get("Gene_Name") or "-").replace("&", "::")
@@ -308,10 +414,7 @@ def build_smd_report_input(
                 rows.append(
                     [
                         title,
-                        f"{row.get('CHROM', '')}:{row.get('POS', '')} {row.get('ALT', '')}",
-                        exon,
-                        _format_tier(tier, False),
-                        short.get(tier, "-") if tier in (1, 2, 3, 4) else "-",
+                        _hgvs(ann.get("HGVSp")),
                     ]
                 )
                 fields = [
@@ -336,8 +439,8 @@ def build_smd_report_input(
                 details.append(_detail(f"translocation-{index}", title, fields))
             add_table(
                 "translocations",
-                "Kliniskt relevanta fusioner (DNA)",
-                ["Fusion", "Lokus", "Exon", "Tier", "Klassificering"],
+                "Kliniskt relevanta fusioner",
+                ["Gener", "HGVS.p"],
                 rows,
                 "TRANSLOCATION",
             )
@@ -358,10 +461,7 @@ def build_smd_report_input(
             locus = f"{call.get('breakpoint1', '-')} | {call.get('breakpoint2', '-')}"
             rows.append(
                 [
-                    title,
-                    locus,
-                    "-",
-                    _format_tier(tier, False),
+                    f"{row.get('gene1', '')} - {row.get('gene2', '')}",
                     short.get(tier, "-") if tier in (1, 2, 3, 4) else "-",
                 ]
             )
@@ -374,9 +474,12 @@ def build_smd_report_input(
                         ("Gener", title),
                         ("Effekt", (call.get("effect") or "-") if supported else "NA"),
                         ("Fusionspunkter", locus if supported else "NA"),
-                        ("Split reads", call.get("spanreads")),
-                        ("Spanning pairs", call.get("spanpairs")),
-                        ("Längsta ankarsekvens", call.get("longestanchor")),
+                        ("Antal läsningar", call.get("spanreads")),
+                        ("Antal läs-par", call.get("spanpairs")),
+                        (
+                            "Längsta ankarsekvens",
+                            f"{call['longestanchor']} bp" if call.get("longestanchor") else "NA",
+                        ),
                         (
                             "Klassificering",
                             _format_classification(
@@ -390,7 +493,10 @@ def build_smd_report_input(
         add_table(
             "fusions",
             "Kliniskt relevanta fusioner",
-            ["Fusion", "Lokus", "Exon", "Tier", "Klassificering"],
+            [
+                "Fusion/exon skipping" if sample.get("asp_id") == "fusionrna" else "Fusion",
+                "Klassificering",
+            ],
             rows,
             "FUSION",
         )
@@ -422,16 +528,12 @@ def build_smd_report_input(
         {
             "key": "conclusion",
             "kind": "summary",
-            "heading": "Slutsats",
-            "page_break_before": True,
-            "text": "\n\n".join(
-                value
-                for value in [
-                    context.get("report_scope_label"),
-                    context.get("latest_sample_comment_text"),
-                ]
-                if value
+            "heading": (
+                f"Slutsats – {context['clinical_question']}"
+                if context.get("clinical_question")
+                else "Slutsats"
             ),
+            "text": _summary_text(context),
             "format": "markdown",
         }
     )
@@ -448,7 +550,7 @@ def build_smd_report_input(
     if details:
         details[0]["page_break_before"] = True
         details[0]["heading"] = (
-            "Detekterade varianter" if analyte == "dna" else "Detekterade fusioner"
+            "Detekterade mutationer" if analyte == "dna" else "Detekterade fusioner"
         )
         sections.extend(details)
     sections.append(
@@ -457,10 +559,11 @@ def build_smd_report_input(
             "kind": "description",
             "heading": "Analysbeskrivning",
             "page_break_before": not bool(details),
-            "text": context.get("analysis_description") or "",
+            "text": {"sv": context.get("analysis_description") or ""},
             "format": "markdown",
         }
     )
+    table_number = 1
     for index, (name, genes) in enumerate((context.get("genes_covered_in_panel") or {}).items()):
         if name != sample.get("asp_id"):
             covered = genes.get("covered") or []
@@ -468,15 +571,50 @@ def build_smd_report_input(
                 {
                     "key": f"gene-list-{index}",
                     "kind": "compact_table",
-                    "heading": f"Gener inkluderade i {name} insilico-panel",
+                    "caption": (
+                        f"Tabell {table_number}: Gener inkluderade i {name} insilico-panel"
+                    ),
                     "items": list(covered),
+                    "columns": 15,
                 }
             )
+            table_number += 1
+    branding = context.get("branding") or {}
+    public_url = branding.get("public_base_url")
+    assay_id = sample.get("asp_id")
+    if analyte == "dna" and public_url and assay_id:
+        lines = [
+            "För analysens genlista, se:",
+            f"{public_url}/public/asp/{quote(str(assay_id), safe='')}/genes",
+        ]
+        applied = {
+            name: genes
+            for name, genes in (context.get("genes_covered_in_panel") or {}).items()
+            if name != assay_id
+        }
+        if applied:
+            lines.extend(["", "För de in silico-genlistor som tillämpats i denna rapport, se:"])
+            for name, genes in applied.items():
+                if genes.get("adhoc"):
+                    lines.append(f"{name}: provspecifik genlista (ingen publik URL).")
+                else:
+                    lines.append(
+                        f"{name}: {public_url}/public/genelists/{quote(str(name), safe='')}/view"
+                        f"?assay={quote(str(assay_id), safe='')}"
+                    )
+        sections.append(
+            {
+                "key": "panel-reference",
+                "kind": "description",
+                "heading": "",
+                "text": {"sv": "\n".join(lines)},
+            }
+        )
     if not context.get("germline") or analyte == "rna":
         legend = {
-            1: "Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller riskstratifierande enligt gällande riktlinjer)",
-            2: "Variant av potentiell klinisk signifikans (varianter i gener beskrivna i ett flertal publikationer)",
-            3: "Variant av oklar klinisk signifikans (varianter i gener beskrivna i ett fåtal publikationer)",
+            1: "Variant av stark klinisk signifikans (genmutationer som är diagnostiska, behandlingsstyrande eller riskstratifierande enligt gällande riktlinjer)",
+            2: "Variant av potentiell klinisk signifikans (mutationer i gener beskrivna i ett flertal publikationer)",
+            3: "Variant av oklar klinisk signifikans (mutationer i gener beskrivna i ett fåtal publikationer)",
             4: "Variant bedömd som benign eller sannolikt benign",
         }
         if analyte == "rna":
@@ -490,9 +628,17 @@ def build_smd_report_input(
         sections.append(
             _table(
                 "classification",
-                "Förklaring av klassificering",
-                ["Tier", "Klassificering"],
+                "",
+                ["", ""],
                 [[_format_tier(tier), text] for tier, text in legend.items()],
+                caption=(
+                    f"Tabell {table_number}: Förklaring av klassificering"
+                    if analyte == "dna"
+                    else "Tabell: Förklaring av klassificering"
+                ),
+                style="reference",
+                show_header=False,
+                column_options={"0": {"width": 12}, "1": {"width": 88}},
             )
         )
         sections.append(
@@ -502,7 +648,6 @@ def build_smd_report_input(
                 "text": "[1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.",
             }
         )
-    branding = context.get("branding") or {}
     for key in ("coyote_logo", "center_logo", "accreditation_logo"):
         if branding.get(key) and not branding[key].startswith("data:image/"):
             raise ValueError("Report artwork must already be embedded")
@@ -517,12 +662,14 @@ def build_smd_report_input(
                 else context.get("report_header")
             )
             or ""
-        ),
+        )
+        + f" - {sample.get('name', '')}",
         "report": _metadata(context, analyte),
+        "layout": {"metadata_heading": "Patient/Analysinformation", "document_label": ""},
         "branding": {
-            "organization": context.get("organization_name") or "",
+            "organization": branding.get("center_name") or context.get("organization_name") or "",
+            "department": branding.get("center_department", ""),
             "address": branding.get("center_address", ""),
-            "telephone": branding.get("center_phone", ""),
             "application_logo": branding.get("coyote_logo"),
             "center_logo": branding.get("center_logo"),
             "accreditation_logo": branding.get("accreditation_logo")

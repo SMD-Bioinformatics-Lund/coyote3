@@ -87,7 +87,7 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
         text = " ".join(box.text for box in boxes if isinstance(box, TextBox))
         assert ("SYNTHETIC_CASE" if analyte == "dna" else inputs["sample"]["name"]) in text
         assert f"Sida {index} av {len(document.pages)}" in text
-        assert f"Coyote3 {analyte.upper()} · Mall 0.4.0" in text
+        assert f"Coyote3 {analyte.upper()} · Template 0.5.3" in text
         version = next(
             box
             for box in boxes
@@ -226,7 +226,7 @@ def test_legacy_rendering_does_not_require_modern_branding():
 
 
 def test_center_contact_details_are_optional_and_escaped_in_modern_header():
-    """Only configured center address and telephone appear alongside the identity."""
+    """Configured address appears in the header while phone remains outside the report."""
     config = {
         "CONTACT": {
             "organization": {
@@ -251,8 +251,8 @@ def test_center_contact_details_are_optional_and_escaped_in_modern_header():
         snapshot_rows=[],
     )
     assert "12345 Example &lt;center&gt;" in html
-    assert "+46 00 123456" in html
-    assert 'class="report-center-phone"' in html
+    assert "+46 00 123456" not in html
+    assert 'class="report-center-phone"' not in html
     assert render_pdf_bytes(html).startswith(b"%PDF-")
     absent = branding.load_report_branding({})
     assert "center_address" not in absent and "center_phone" not in absent

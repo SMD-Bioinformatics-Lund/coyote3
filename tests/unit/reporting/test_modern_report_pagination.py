@@ -202,7 +202,7 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
     findings = []
     for page in document.pages:
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        for label in ["Gen", "Kromosom", "Exon", "HGVS", "VAF", "Tier", "Klassificering"]:
+        for label in ["Gen", "Mutation", "Variantfrekvens", "Klassificering"]:
             assert label in words
         for box in page._page_box.descendants():
             if (
@@ -244,7 +244,7 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
     table_pages = {}
     for index, page in enumerate(document.pages):
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        assert "Coyote3 DNA · Mall 0.4.0 · smd-reports 0.4.0" in words
+        assert "Coyote3 DNA · Template 0.5.3 · smd-reports 0.5.3" in words
         for box in page._page_box.descendants():
             if box.element is not None and "report_variant" in box.element.get("class", "").split():
                 table_pages.setdefault(box.element, set()).add(index)

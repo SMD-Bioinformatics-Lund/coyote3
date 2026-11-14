@@ -18,8 +18,8 @@ the process location. A complete example is supplied in
 
 ```toml
 [empty_results]
-SNV = "Inga detekterade varianter"
-CNV = "Inga detekterade kopietalsförändringar."
+SNV = "Inga detekterade mutationer"
+CNV = "Inga detekterade genspecifika kopietalsförändringar."
 FUSION = "Inga detekterade fusioner"
 ```
 
@@ -32,9 +32,9 @@ HTML is escaped and is displayed as text.
 
 | Key under `empty_results` | Section | Default |
 | --- | --- | --- |
-| `SNV` | DNA SNVs and small INDELs | `Inga detekterade varianter` |
+| `SNV` | DNA SNVs and small INDELs | `Inga detekterade mutationer` |
 | `GERMLINE_SNV` | Separate germline SNV section | `Inga detekterade germline-varianter` |
-| `CNV` | Copy-number findings | `Inga detekterade kopietalsförändringar.` |
+| `CNV` | Copy-number findings | `Inga detekterade genspecifika kopietalsförändringar.` |
 | `TRANSLOCATION` | DNA fusions/translocations | `Inga detekterade fusioner` |
 | `FUSION` | RNA fusions | `Inga detekterade fusioner` |
 | `HRD` | HRD results | `Inga rapporterbara biomarkörresultat` |
@@ -47,37 +47,30 @@ HTML is escaped and is displayed as text.
 
 ### Modern report layout
 
-DNA and RNA presentation version 1.0.2 uses Source Sans 3 with 9.25 pt body text,
-8.5 pt screen tables and 8.25 pt compact print values, with 7.5 pt printed labels.
-Summary cells use 4 px × 10 px padding on screen and 2 px × 8 px in print;
-detailed cells use 2 px × 4 px. Summary tables have thin gray horizontal rules
-without vertical column borders. Summary body rows are uniformly white beneath
-the pale purple header. Detail and patient-information tables retain complete
-grids, including the detail heading row, without a colored left accent.
-Table headers and the patient-information heading are black on pale purple tints;
-section headings and branding retain purple/orange accents. Body text is black.
-Heading separators are omitted.
-The conclusion starts on its own page, with a page break after its text. Its
-subheading uses the registered diagnosis display name, or the captured panel
-display name for base/NA diagnoses, followed by paired/unpaired analysis context.
-The document title remains the ASPC `reporting.report_header`, followed by any
-clinical-rule `report_header_suffix`.
+Modern reports use the Coyote3 preset supplied by `smd-reports` 0.5.3. The package
+owns embedded fonts, paper geometry and HTML/PDF styles. Shared result tables,
+numbered gene-list captions and bordered classification reference tables match
+the production report format. The author caption is "Rapport genererad av".
+The conclusion heading is "Slutsats", followed by the evaluated clinical question
+when supplied. Headings inside its narrative render as body-sized bold paragraphs
+with one line break before the following text. The existing scope label and
+reviewed narrative remain present.
+The title combines the ASPC `reporting.report_header`, clinical-rule
+`report_header_suffix`, and sample name.
 
-SNV summaries contain gene, chromosome, exon, HGVS, VAF, tier and clinical
-significance description. CNV summaries contain genes, chromosome, type with
-copy-number estimate, size, tier and clinical significance. DNA/RNA fusion
-summaries use `Gene1::Gene2`, breakpoint locus, exon when recorded, tier and
-clinical significance. Cytogenetic arm notation is not inferred from breakend
-coordinates. RNA exon annotations are unavailable in the current caller contract
-and display `-`.
+SNV summaries contain gene, mutation, variant frequency and clinical significance.
+Tier I significance cells use semibold text. CNV summaries contain genes, size,
+type and copy number, using the production report's rounding expression. DNA fusion
+summaries contain gene pairs and HGVS protein notation; RNA summaries contain
+fusion names and classification. Detailed cards retain the additional version-four
+classification, chromosome, exon, intron and supporting-read evidence.
 
 Detailed tables include CNVs and DNA translocations, with stored paired/split
 read evidence where available. DNA translocation sample, paired-read and split-read
 values occupy separate bordered label/value cells. RNA details retain caller read support.
-SNV summaries use one-letter protein notation. All finding summaries use compact
-Roman tier numerals; detail tables retain the `Tier I`–`Tier IV` labels and
-three-letter SNV protein notation. SNV exon and intron ranks have their own labelled
-cells, separate from the transcript identifier.
+SNV summaries use one-letter protein notation. Detail tables retain the
+`Tier I`–`Tier IV` labels and all recorded protein changes. Transcript labels include
+the first exon or intron rank, while separate version-four rank cells retain all ranks.
 Missing classifications display exactly `-`. Generated classification separators
 and genomic ranges use plain hyphens.
 DNA SNV summary rows are ordered by ascending tier, then descending numeric VAF, with

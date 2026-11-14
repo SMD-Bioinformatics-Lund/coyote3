@@ -41,13 +41,13 @@ def test_projection_preserves_selected_values_and_does_not_mutate_context():
     assert "application" not in result
     projected = sections(result)
     assert projected["snvs"]["rows"] == [
-        ["TP53", "17", "4/11", "p.(K4E)", "40%", "I", "Synthetic clinical significance"]
+        ["TP53", "p.(K4E)", "40%", "Synthetic clinical significance"]
     ]
     snv = dict(zip(projected["snv-0"]["columns"]["sv"], projected["snv-0"]["rows"][0]))
-    assert snv["Proteinförändring"] == "p.(Lys4Glu)"
-    assert snv["Transkript"] == "ENST_SYNTHETIC_001"
+    assert snv["Proteinförändring"] == "p.(K4E)\np.(Lys4Glu)"
+    assert snv["Transkript"] == "ENST_SYNTHETIC_001, exon 4/11"
     assert snv["cDNA-förändring"] == "c.10A>G"
-    assert projected["cnvs"]["rows"][0][2] == "DUP (4.00)"
+    assert projected["cnvs"]["rows"][0] == ["MYC", "10000 bp", "DUP", "4"]
     assert "50/0" in projected["translocation-0"]["rows"][0]
     assert result["report"]["generated_at"] == "2026-01-02T12:00:00+00:00"
     assert inputs == original
@@ -107,13 +107,17 @@ def test_compact_gene_table_preserves_every_gene_in_html_and_paginated_pdf(count
         preview=False,
     )
     html = HTML(string=output)
-    table = html.etree_element.find('.//section[@id="gene-list-0"]/table')
+    table = html.etree_element.find('.//section[@id="gene-list-0"]//table')
     if count:
         assert table is not None
-        assert [cell.text for cell in table.findall(".//td")] == genes
+        assert [
+            cell.find("span").text
+            for cell in table.findall(".//td")
+            if cell.find("span") is not None
+        ] == genes
     else:
         assert table is None
-        assert html.etree_element.find('.//section[@id="gene-list-0"]/p[@class="empty"]').text
+        assert html.etree_element.find('.//section[@id="gene-list-0"]//p[@class="empty"]').text
     rendered_genes = []
     for page in html.render().pages:
         bounds = page._page_box
@@ -133,9 +137,9 @@ def test_narrative_and_legend_are_modality_specific(analyte):
     sentence = "En exakt svensk mening med å, ä och ö."
     inputs["clinical_rule_evaluation"] = {"sections": {"analysis_description": [sentence]}}
     projected = sections(document(inputs, analyte))
-    assert projected["description"]["text"] == sentence
+    assert projected["description"]["text"] == {"sv": sentence}
     tier_one = projected["classification"]["rows"][0][1]
-    assert ("genvarianter som är diagnostiska" in tier_one) is (analyte == "dna")
+    assert ("genmutationer som är diagnostiska" in tier_one) is (analyte == "dna")
     assert ("internationella/nationella riktlinjer" in tier_one) is (analyte == "rna")
 
 
@@ -159,7 +163,7 @@ def test_selected_fusion_call_and_annotation_are_preserved():
     detail = sections(document(inputs, "rna"))["fusion-0"]
     values = dict(zip(detail["columns"]["sv"], detail["rows"][0]))
     assert values["Effekt"] == values["Fusionspunkter"] == "NA"
-    assert values["Split reads"] == values["Spanning pairs"] == 0
+    assert values["Antal läsningar"] == values["Antal läs-par"] == 0
     assert values["Kommentar"] == "Reviewed annotation"
     assert 999 not in detail["rows"][0]
 
@@ -196,7 +200,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     assert "<script>" not in output and '<img src="https:' not in output
     assert "&lt;script&gt;" in output and "<strong>Reviewed</strong>" in output
     assert "Content-Security-Policy" in output
-    assert 'name="smd-reports:package_version" content="0.4.0"' in output
+    assert 'name="smd-reports:package_version" content="0.5.3"' in output
 
 
 def test_smd_identity_is_distinct_from_historical_templates_and_analytes():
