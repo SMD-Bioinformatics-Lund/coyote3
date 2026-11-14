@@ -312,14 +312,14 @@ class SampleReports:
         report_type: Literal["dna", "rna"],
         *,
         preview_fingerprint: str,
-        report_format: Literal["modern", "legacy"] = "modern",
+        report_format: Literal["modern"] = "modern",
     ) -> SavedReport:
         """Persist a report only when the reviewed preview still matches current inputs.
 
         Args:
             report_type: dna or rna, as used in the reviewed preview.
             preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
-            report_format: Presentation selected in the preview; modern is the default.
+            report_format: Compatibility value modern; reports use smd-reports.
 
         Returns:
             Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.

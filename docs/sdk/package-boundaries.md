@@ -12,7 +12,7 @@ separately from `clients/python/` and depends only on HTTPX and Pydantic.
 | `src/coyote3/domain/` | Clinical rules, DNA/RNA logic, filtering, finding identity and validation. |
 | `src/coyote3/contracts/` | Typed clinical and authored-resource contracts. `authoring/` describes editable inputs; it does not render browser widgets. |
 | `src/coyote3/config/` | Software invariants, clinical defaults and explicit policy loading. |
-| `src/coyote3/templates/reporting/` | Independently editable legacy/modern Jinja layouts, modality-specific components and embedded CSS. |
+| `src/coyote3/application/reporting/smd_input.py` | Native report JSON projection; the `smd-reports` dependency owns document assets. |
 | `clients/python/src/coyote3_client/` | Authenticated HTTP client, resource objects and typed responses. |
 | `api/app/` | Host composition, authentication adapters and runtime wiring. |
 | `api/interfaces/http/v1/` | HTTP routes and transport behavior. |
@@ -21,7 +21,7 @@ separately from `clients/python/` and depends only on HTTPX and Pydantic.
 | `api/bootstrap/catalogs/` | RBAC, initial query publications, reference snapshots and synthetic installation fixtures. |
 | `api/config/` | Deployment configuration, physical collection names, contact loading and the host logo. |
 | `api/infra/` | MongoDB repositories, driver objects, storage, integrations and worker adapters. |
-| `api/presentation/` | Web-host selection of the core's alternate report layout. |
+| `api/presentation/` | Host branding and presentation settings for package-owned reports. |
 | `demo_data/` | Synthetic connected demonstrations and ingest examples. |
 
 ## Clinical field names versus storage keys

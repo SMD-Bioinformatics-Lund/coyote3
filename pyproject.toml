@@ -263,11 +263,6 @@ coyote3 = [
     "py.typed",
     "config/*.toml",
     "config/*.yaml",
-    "templates/reporting/**/*.html",
-    "templates/reporting/**/*.css",
-    "templates/reporting/**/*.toml",
-    "templates/reporting/assets/*-LICENSE.md",
-    "templates/reporting/*.html",
 ]
 
 api = [

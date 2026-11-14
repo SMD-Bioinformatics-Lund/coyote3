@@ -188,28 +188,32 @@ def test_stale_preview_fails_before_any_artifact_or_number_allocation(boundary):
     boundary.workflow.persist_report.assert_not_called()
 
 
-def test_report_format_is_fingerprinted_and_saved_as_rendering_provenance(boundary):
-    modern = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
-    legacy = boundary.client.get(
-        "/api/v1/samples/synthetic-sample/reports/dna/preview?format=legacy"
-    ).json()
-    fingerprint = legacy["meta"]["preview_fingerprint"]
-    assert fingerprint != modern.fingerprint
-    mismatch = boundary.client.post(
-        "/api/v1/samples/synthetic-sample/reports/dna",
-        json={"preview_fingerprint": fingerprint, "report_format": "modern"},
-    )
-    assert mismatch.status_code == 409
-    boundary.workflow.next_report_num.assert_not_called()
+def test_smd_report_is_saved_with_canonical_rendering_provenance(boundary):
+    preview = boundary.sdk.preview("synthetic-sample", "dna", layout="modern")
     saved = boundary.client.post(
         "/api/v1/samples/synthetic-sample/reports/dna",
-        json={"preview_fingerprint": fingerprint, "report_format": "legacy"},
+        json={"preview_fingerprint": preview.fingerprint, "report_format": "modern"},
     )
     assert saved.status_code == 201
     receipt = boundary.workflow.persist_report.call_args.kwargs["resolution_snapshot"]
-    assert receipt["rendering"]["template"] == "dna_report.html"
+    assert receipt["rendering"]["template"] == "smd/dna_report.html"
     assert receipt["rendering"]["configured_template"] == "dna_report.html"
     assert receipt["rendering"]["content_hash"]
+
+
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_legacy_format_is_rejected_before_preview_pdf_or_save(boundary, analyte):
+    base = f"/api/v1/samples/synthetic-sample/reports/{analyte}"
+    assert boundary.client.get(base + "/preview?format=legacy").status_code == 422
+    assert boundary.client.get(base + "/preview/pdf?format=legacy").status_code == 422
+    assert (
+        boundary.client.post(
+            base, json={"preview_fingerprint": "a" * 64, "report_format": "legacy"}
+        ).status_code
+        == 422
+    )
+    boundary.render.assert_not_called()
+    boundary.workflow.persist_report.assert_not_called()
 
 
 def test_invalid_report_format_is_rejected_before_rendering(boundary):

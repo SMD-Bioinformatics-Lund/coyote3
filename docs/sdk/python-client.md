@@ -187,19 +187,20 @@ These writes occur on the computer running the script. The server renders HTML
 and PDF in memory and retains normal access auditing, without creating report
 records or server report files. See [Preview and save reports](../user-guide/try-new-report.md).
 
-Normal report previews default to the modern format. To review and explicitly save
-the legacy presentation, use the same format for both operations:
+Report previews and saves use `smd-reports` exclusively. Review the preview before
+saving with its fingerprint:
 
 ```python
-preview = sample.reports.preview("dna", format="legacy", include_snapshot=True)
+preview = sample.reports.preview("dna", include_snapshot=True)
 # Review preview.report.html before issuing the report.
 sample.reports.save(
-    "dna", preview_fingerprint=preview.meta.preview_fingerprint, report_format="legacy"
+    "dna", preview_fingerprint=preview.meta.preview_fingerprint
 )
 ```
 
-The sync and async clients support `report_format`. Saving with a different format
-from the preview returns HTTP 409 instead of issuing an unreviewed presentation.
+The sync and async clients retain `report_format="modern"` for compatibility.
+Legacy format requests return HTTP 422. A stale preview fingerprint returns
+HTTP 409 instead of issuing an unreviewed report.
 
 Review mutations are explicit:
 

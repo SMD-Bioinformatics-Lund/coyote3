@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from weasyprint import HTML
 
 from coyote3.application.reporting.report_renderer import render_report_html
 from coyote3.domain.exceptions import AppError
@@ -56,8 +57,8 @@ def test_rule_analysis_description_preserves_formatting_but_rejects_active_html(
         preview=True,
     )
     assert "<strong>validated</strong>" in html
-    assert "H<sub>2</sub>O" in html
-    assert 'href="https://example.org"' in html
+    assert "H2O" in html
+    assert "Reference" in html
     for unsafe in ("onclick=", "onerror=", "onload=", "javascript:", "<script", "<svg"):
         assert unsafe not in html
 
@@ -182,13 +183,13 @@ def test_dna_report_renderer_uses_master_style_template():
         preview=True,
     )
 
-    assert "*** PREVIEW OF REPORT ***" in html
+    assert "PREVIEW · UNSAVED REPORT" in html
     assert "Analysresultat" in html
     assert "Kliniskt relevanta SNVs och små INDELs" in html
     assert "Slutsats" in html
-    assert "Detekterade varianter" in html
+    assert "Detekterade mutationer" in html
     assert "Analysbeskrivning" in html
-    assert "table.report_general" in html
+    assert 'name="smd-reports:package_version"' in html
     assert "Latest sample conclusion" in html
     assert "Clinical conclusion" not in html
     assert '<img src=x onerror="alert(1)">' not in html
@@ -222,8 +223,8 @@ def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():
 
     assert "Inga rapporterbara fusioner påvisades." not in html
     assert "Slutsats saknas!" not in html
-    assert "<th>Fusion</th><th>Klassificering</th>" in html
-    assert "Detekterade fusioner" in html
+    conclusion = HTML(string=html).etree_element.find('.//section[@id="conclusion"]/div')
+    assert not "".join(conclusion.itertext()).strip()
 
 
 def test_rna_report_renderer_uses_only_latest_sample_comment_for_conclusion():

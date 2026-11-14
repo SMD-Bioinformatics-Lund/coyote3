@@ -159,8 +159,8 @@ def test_sample_context_comments_and_report_save(workflow_client):
         "preview_fingerprint": fingerprint,
         "report_format": "modern",
     }
-    sample.reports.save("dna", preview_fingerprint=fingerprint, report_format="legacy")
-    assert json.loads(requests[-1].content)["report_format"] == "legacy"
+    sample.reports.save("dna", preview_fingerprint=fingerprint, report_format="modern")
+    assert json.loads(requests[-1].content)["report_format"] == "modern"
     assert len(requests) == 6  # Neither save refreshes the preview or retries a mutation.
 
 

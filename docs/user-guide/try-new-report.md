@@ -1,8 +1,7 @@
 # Preview and save reports
 
-Open a DNA or RNA sample's **Reports** tab. **Modern report** is the default;
-**Legacy format** selects the older presentation. Both use the sample's applied
-configuration, selected findings and reporting rules.
+Open a DNA or RNA sample's **Reports** tab. Reports use `smd-reports` with the
+sample's applied configuration, selected findings and reporting rules.
 
 1. Review the **HTML preview** and **PDF preview**. **Refresh** reloads current inputs.
 2. Use **Download HTML** or **Download PDF** for an unsaved local copy.
@@ -11,7 +10,7 @@ configuration, selected findings and reporting rules.
 
 Preview and download require `report:preview`; saving requires `report:create`.
 All operations require sample access. Saving rejects a changed preview, including
-a changed clinical assessment or a different selected format. Refresh and review
+a changed clinical assessment or renderer revision. Refresh and review
 again before saving. Previously issued reports retain their original files.
 
 ## Modern presentation
@@ -46,4 +45,4 @@ Fonts, styles and logos are embedded for offline viewing.
 The existing `GET /api/v1/samples/{sample_id}/reports/{dna|rna}/try-new` operation
 remains available for integrations. It returns one temporary modern HTML/PDF pair
 without allocating a report number or saving files on the server. The normal UI
-uses the preview and save endpoints, with an explicit modern or legacy selection.
+uses the preview and save endpoints with the same `smd-reports` renderer.

@@ -16,14 +16,14 @@ async function loadPreviewPdf(endpoint: string, signal?: AbortSignal): Promise<B
 }
 
 /** Own preview requests, PDF reuse, save preconditions and report mutation feedback. */
-export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEnabled, onSaved, reportFormat = "modern" }: {
+export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEnabled, onSaved }: {
   sampleId: string
   reportType: ReportType
   includeSnapshot: boolean
   pdfEnabled: boolean
   onSaved: () => void
-  reportFormat?: "modern" | "legacy"
 }) {
+  const reportFormat = "modern"
   const queryClient = useQueryClient()
   const activeScope = useRef("")
   activeScope.current = JSON.stringify([sampleId, reportType, reportFormat])

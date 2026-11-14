@@ -16,9 +16,16 @@ Version 4 replaces Flask with FastAPI and React.
 
 ### Detailed changes
 
+- Report generation uses only `smd-reports`. Bundled Jinja report templates and
+  the legacy format selector are removed. Earlier template identifiers resolve
+  to the package renderer; existing saved artifacts remain available, while old
+  approved template hashes require a reviewed configuration revision.
+
 - Modern reports use `smd-reports` 0.5.3 with production-compatible compact result
   tables, numbered reference captions, clinical-question conclusion headings,
   compact bold summary labels, and consistent configured laboratory identity.
+  Sample comment previews and saved comments also display summary headings in
+  body-sized bold text with compact spacing before the following paragraph.
   Additional version-four findings and detail cards remain available. Historical
   report files and finding-selection rules are unchanged; approved template
   revisions require review against the updated renderer.

@@ -160,7 +160,7 @@ class Reports:
         analyte: Analyte,
         *,
         include_snapshot: bool = True,
-        layout: Literal["modern", "legacy"] | None = None,
+        layout: Literal["modern"] | None = None,
     ) -> Download:
         """Generate a PDF of the current authorized preview without saving report records.
 
@@ -187,7 +187,7 @@ class Reports:
         *,
         save: bool,
         include_snapshot: bool,
-        layout: Literal["modern", "legacy"] | None = None,
+        layout: Literal["modern"] | None = None,
     ) -> tuple[str, dict[str, Any], builtins.list[dict[str, Any]], dict[str, Any]]:
         """Validate modality and build the existing clinical report context and snapshots."""
         category = str(sample.get("asp_category") or "").lower()
@@ -264,21 +264,15 @@ class Reports:
             _, configured_layout = select_report_template(configured_template, analyte)
         except ValueError as exc:
             raise api_error(422, str(exc)) from exc
-        if layout is not None and layout not in {"modern", "legacy"}:
-            raise ValueError("Report layout must be legacy or modern")
-        effective_layout = layout or configured_layout
-        if layout is not None or effective_layout == "modern":
-            configured_leaf = "dna_report.html" if analyte == "dna" else "report_fusion.html"
-            actual_template = (
-                f"smd/{configured_leaf}" if effective_layout == "modern" else configured_leaf
-            )
-            context["report_layout"] = {
-                "layout": effective_layout,
-                "template": actual_template,
-                "content_hash": template_content_hash(actual_template),
-            }
-        if effective_layout == "modern":
-            context["report_presentation"] = self._services.presentation().model_dump(mode="json")
+        if layout not in {None, "modern"}:
+            raise ValueError("Reports use smd-reports; legacy layouts are not supported")
+        actual_template, _ = select_report_template(configured_template, analyte)
+        context["report_layout"] = {
+            "layout": configured_layout,
+            "template": actual_template,
+            "content_hash": template_content_hash(actual_template),
+        }
+        context["report_presentation"] = self._services.presentation().model_dump(mode="json")
         return template, context, rows or [], config
 
     def preview(
@@ -288,7 +282,7 @@ class Reports:
         *,
         include_snapshot: bool = False,
         save_context: bool = False,
-        layout: Literal["modern", "legacy"] | None = None,
+        layout: Literal["modern"] | None = None,
     ) -> ReportPreview:
         """Render current report inputs with the fingerprint required by save.
 
@@ -347,7 +341,7 @@ class Reports:
         analyte: Analyte,
         *,
         fingerprint: str,
-        layout: Literal["modern", "legacy"] | None = None,
+        layout: Literal["modern"] | None = None,
     ) -> SavedReport:
         """Save a reviewed report, rejecting changed inputs before creating artifacts.
 

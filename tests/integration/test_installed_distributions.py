@@ -99,9 +99,10 @@ assert Path(coyote3.__file__).is_relative_to(target)
 from coyote3.application.operations import CoyoteApplication
 from coyote3.application.reporting.report_renderer import render_report_html, render_pdf_bytes
 for analyte,name in [('dna','dna_report.html'),('rna','report_fusion.html')]:
-    for layout in ['legacy','modern']:
+    for layout in [None,'modern']:
         html=render_report_html(template_name=name,template_context={'sample':{'name':'SYNTHETIC'},'assay_config':{'reporting':{}},'report_sections':[],'report_sections_data':{},'fusions':[],'genes_covered_in_panel':{}},snapshot_rows=[],analyte=analyte,preview=True,layout=layout)
         assert 'SYNTHETIC' in html and '<style' in html
+        assert 'name="smd-reports:package_version"' in html
         assert render_pdf_bytes(html).startswith(b'%PDF-')
 """,
     )
@@ -176,7 +177,8 @@ def test_wheel_metadata_declares_extras_and_excludes_the_other_distribution(
         assert not any(n.startswith(("coyote3/client/", "coyote3_client/")) for n in names)
         assert "api/app/main.py" in names and "api/release.toml" in names
         assert "api/bootstrap/catalogs/reference/LICENSE.txt" in names
-        assert "coyote3/templates/reporting/base.html" in names
+        assert "coyote3/application/reporting/smd_input.py" in names
+        assert not any(name.startswith("coyote3/templates/reporting/") for name in names)
         requirements = metadata.get_all("Requires-Dist")
         assert not any("fastapi" in r.lower() and ";" not in r for r in requirements)
     with zipfile.ZipFile(client) as wheel:

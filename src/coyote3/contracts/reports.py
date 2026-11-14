@@ -29,7 +29,7 @@ class ReportSaveRequest(BaseModel):
     """Require the reviewed preview's input fingerprint when creating a report."""
 
     preview_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
-    report_format: Literal["modern", "legacy"] = "modern"
+    report_format: Literal["modern"] = "modern"
 
 
 class ReportPreviewBody(BaseModel):

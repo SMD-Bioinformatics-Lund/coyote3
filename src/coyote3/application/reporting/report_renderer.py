@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import bleach
-import markdown
-from jinja2 import Environment, PackageLoader, select_autoescape
-
 from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.application.reporting.report_context import prepare_render_context
 from coyote3.application.reporting.report_service import (
@@ -18,27 +14,6 @@ from coyote3.application.reporting.report_service import (
 from coyote3.domain.common.errors import api_error
 from coyote3.domain.common.reporting import TIER_NAME
 from coyote3.domain.dna.cnv_metrics import copy_number_from_log2
-
-
-def _environment() -> Environment:
-    """Return the retained Legacy template environment and its established filters.
-
-    Returns:
-        An escaping Jinja environment independent of the current working directory.
-    """
-    loader = PackageLoader("coyote3", "templates/reporting")
-    env = Environment(
-        loader=loader,
-        autoescape=select_autoescape(["html", "xml"]),
-    )
-    env.filters["perc_no_dec"] = _perc_no_dec
-    env.filters["unesc"] = _unesc
-    env.filters["format_comment"] = _format_comment
-    env.filters["sanitize_report_html"] = _sanitize_report_html
-    env.filters["format_tier"] = _format_tier
-    env.filters["format_classification"] = _format_classification
-    env.filters["copy_number"] = _copy_number
-    return env
 
 
 def _copy_number(value: Any) -> str:
@@ -69,11 +44,6 @@ def _perc_no_dec(value: Any) -> str:
         return f"{float(value) * 100:.0f}%"
     except (TypeError, ValueError):
         return str(value)
-
-
-def _unesc(value: Any) -> str:
-    """Return a text value without HTML escaping entities twice."""
-    return str(value or "")
 
 
 def _format_tier(value: Any, include_label: bool = True) -> str:
@@ -116,64 +86,6 @@ def _format_classification(value: Any, description: Any = None) -> str:
     return f"{label} - {wording}" if wording and wording != "-" else label
 
 
-def _format_comment(value: Any) -> str:
-    """Render a stored comment safely for report output."""
-    text = str(value or "")
-    html = markdown.markdown(text, extensions=["extra", "sane_lists"])
-    return _sanitize_report_html(html)
-
-
-def _sanitize_report_html(value: Any) -> str:
-    """Retain report formatting without executable content or embedded resources.
-
-    Args:
-        value: Authored HTML; null produces empty text.
-
-    Returns:
-        Allowlisted HTML safe for insertion into a report's body, not attributes.
-    """
-    return bleach.clean(
-        str(value or ""),
-        tags=[
-            "p",
-            "br",
-            "strong",
-            "em",
-            "b",
-            "i",
-            "ul",
-            "ol",
-            "li",
-            "code",
-            "pre",
-            "blockquote",
-            "a",
-            "table",
-            "thead",
-            "tbody",
-            "tr",
-            "th",
-            "td",
-            "div",
-            "span",
-            "u",
-            "sub",
-            "sup",
-            "h2",
-            "h3",
-            "h4",
-            "hr",
-        ],
-        attributes={
-            "a": ["href", "title"],
-            "td": ["colspan", "rowspan"],
-            "th": ["colspan", "rowspan"],
-        },
-        protocols={"http", "https", "mailto"},
-        strip=True,
-    )
-
-
 def render_report_html(
     *,
     template_name: str,
@@ -197,10 +109,9 @@ def render_report_html(
         preview: Whether to display the preview marker.
         organization_name: Configured performing institution; empty omits the row.
         generated_by: Authenticated user's display name or username; empty shows Unknown.
-        layout: Optional presentation override, legacy or modern. None uses the
-            approved template profile, falling back to the established legacy layout.
-        branding: Host-provided embedded logo URLs for modern presentation. None omits images.
-        presentation: Validated modern-report wording. None retains the existing Swedish text.
+        layout: Optional compatibility value, modern. All reports use smd-reports.
+        branding: Host-provided embedded logo URLs. None omits images.
+        presentation: Validated report wording. None retains the existing Swedish text.
 
     Returns:
         Escaped HTML suitable for browser preview and PDF rendering.
@@ -213,9 +124,7 @@ def render_report_html(
     _ = snapshot_rows
     context = prepare_render_context(template_context, analyte=analyte, preview=preview)
     context.update(organization_name=organization_name, generated_by=generated_by)
-    selected_template = "report_fusion.html" if analyte == "rna" else "dna_report.html"
-    if template_name in REPORT_TEMPLATES:
-        selected_template = template_name
+    selected_template = template_name
     template_release = (template_context.get("assay_config") or {}).get("template_release")
     if template_release:
         selected_template = template_release.get("template_name", "")
@@ -224,52 +133,45 @@ def render_report_html(
         ):
             raise api_error(422, "The approved report template revision is not installed")
     try:
-        leaf, configured_layout = select_report_template(selected_template, analyte)
+        _, configured_layout = select_report_template(selected_template, analyte)
     except ValueError as exc:
         raise api_error(422, str(exc)) from exc
     selected_layout = layout or configured_layout
-    if selected_layout not in {"legacy", "modern"}:
-        raise ValueError("Report layout must be legacy or modern")
+    if selected_layout != "modern":
+        raise ValueError("Reports use smd-reports; legacy layouts are not supported")
     context.update(report_analyte=analyte, branding=branding or {})
     context["assay_accredited"] = (
         (context["assay_config"].get("assay_resource_release") or {}).get("content") or {}
     ).get("accredited") is True
-    if selected_layout == "modern":
-        import json
+    import json
 
-        from smd_reports import ReportLoader, ReportRenderer
+    from smd_reports import ReportLoader, ReportRenderer
 
-        from coyote3.application.reporting.smd_input import build_smd_report_input
-
-        settings = presentation or ReportPresentation.model_validate(
-            context.get("report_presentation") or {}
-        )
-        document = ReportLoader().loads(
-            json.dumps(
-                build_smd_report_input(
-                    context,
-                    analyte=analyte,
-                    preview=preview,
-                    presentation=settings,
-                ),
-                ensure_ascii=False,
-                allow_nan=False,
-            )
-        )
-        html = ReportRenderer().render_html(document)
-        # Keep the application's browser policy around the package-owned document.
-        policy = (
-            '<meta http-equiv="Content-Security-Policy" '
-            "content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; "
-            "font-src data:; base-uri 'none'; form-action 'none'\">"
-        )
-        return html.replace("<head>", "<head>" + policy, 1)
+    from coyote3.application.reporting.smd_input import build_smd_report_input
 
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )
-    context["empty_result_messages"] = settings.empty_results.model_dump()
-    return _environment().get_template(leaf).render(**context)
+    document = ReportLoader().loads(
+        json.dumps(
+            build_smd_report_input(
+                context,
+                analyte=analyte,
+                preview=preview,
+                presentation=settings,
+            ),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    )
+    html = ReportRenderer().render_html(document)
+    # Keep the application's browser policy around the package-owned document.
+    policy = (
+        '<meta http-equiv="Content-Security-Policy" '
+        "content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; "
+        "font-src data:; base-uri 'none'; form-action 'none'\">"
+    )
+    return html.replace("<head>", "<head>" + policy, 1)
 
 
 def render_pdf_bytes(html: str) -> bytes:

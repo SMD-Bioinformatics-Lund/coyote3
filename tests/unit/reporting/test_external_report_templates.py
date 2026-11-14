@@ -1,13 +1,9 @@
 """Registered templates retain deterministic hashes and HTML/PDF presentation."""
 
 from copy import deepcopy
-from pathlib import Path
-from tomllib import TOMLDecodeError
 
 import pytest
-from pydantic import ValidationError
 
-from coyote3.application.reporting import report_service
 from coyote3.application.reporting.report_renderer import (
     render_pdf_bytes,
     render_report_html,
@@ -30,61 +26,38 @@ def context():
     }
 
 
-@pytest.mark.parametrize("analyte", ["dna", "rna"])
-def test_template_version_participates_in_its_analyte_identity_only(monkeypatch, analyte):
-    """Historical manifests retain their hashes independently of the SMD renderer."""
-    names = {"dna": "dna_report.html", "rna": "report_fusion.html"}
-    hashes = {name: template_content_hash(name) for name in report_service.REPORT_TEMPLATES}
-    versions = {key: report_service.modern_template_version(key) for key in names}
-    versions[analyte] = "1.99.0"
-    source = "\n".join(f'[{key}]\nversion = "{value}"' for key, value in versions.items())
-    original_source = report_service._expanded_source
-    monkeypatch.setattr(
-        report_service,
-        "_expanded_source",
-        lambda name: source if name == "modern/manifest.toml" else original_source(name),
-    )
-    for modality, name in names.items():
-        assert report_service.modern_template_version(modality) == versions[modality]
-        assert template_content_hash(name) == hashes[name]
-        assert (template_content_hash(f"modern/{name}") != hashes[f"modern/{name}"]) == (
-            modality == analyte
-        )
+@pytest.mark.parametrize(
+    "analyte,name", [("dna", "dna_report.html"), ("rna", "report_fusion.html")]
+)
+def test_every_template_alias_uses_the_same_smd_renderer_and_identity(analyte, name):
+    """Earlier identifiers select package-owned rendering without a filesystem fallback."""
+    expected = template_content_hash(f"smd/{name}")
+    for alias in (name, f"modern/{name}", f"smd/{name}"):
+        assert select_report_template(alias, analyte) == (f"smd/{name}", "modern")
+        assert template_content_hash(alias) == expected
         html = render_report_html(
-            template_name=name,
+            template_name=alias,
             template_context=context(),
             snapshot_rows=[],
-            analyte=modality,
+            analyte=analyte,
             preview=True,
-            layout="modern",
         )
         assert 'name="smd-reports:package_version" content="0.5.3"' in html
-        assert template_content_hash(f"smd/{name}") == hashes[f"smd/{name}"]
+        assert render_pdf_bytes(html).startswith(b"%PDF-")
 
 
-@pytest.mark.parametrize(
-    "source",
-    [
-        "",
-        '[dna]\nversion = "1.0.0"',
-        '[dna]\nversion = "1.0"\n[rna]\nversion = "1.0.0"',
-        '[dna]\nversion = 1\n[rna]\nversion = "1.0.0"',
-        '[dna]\nversion = "01.0.0"\n[rna]\nversion = "1.0.0"',
-        '[dna]\nversion = "1.0.0"\nunknown = true\n[rna]\nversion = "1.0.0"',
-        "not valid TOML",
-    ],
-)
-def test_template_manifest_rejects_invalid_metadata_without_a_default(monkeypatch, source):
-    """A missing or invalid version cannot silently label a report with a fallback release."""
-    monkeypatch.setattr(report_service, "_expanded_source", lambda name: source)
-    with pytest.raises((ValidationError, TOMLDecodeError)):
-        report_service.modern_template_version("dna")
-
-
-def test_template_version_rejects_unsupported_analyte():
-    """An unsupported modality cannot silently receive another report's template version."""
-    with pytest.raises(ValueError, match="DNA or RNA"):
-        report_service.modern_template_version("protein")
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_legacy_layout_cannot_be_rendered(analyte):
+    """Explicit requests for a removed layout fail instead of silently changing format."""
+    with pytest.raises(ValueError, match="legacy layouts are not supported"):
+        render_report_html(
+            template_name="dna_report.html" if analyte == "dna" else "report_fusion.html",
+            template_context=context(),
+            snapshot_rows=[],
+            analyte=analyte,
+            preview=True,
+            layout="legacy",
+        )
 
 
 @pytest.mark.parametrize(
@@ -105,45 +78,6 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
         )
         assert 'name="smd-reports:package_version" content="0.5.3"' in html
         assert 'name="smd-reports:template_version" content="0.5.3"' in html
-
-
-@pytest.mark.parametrize(
-    "analyte,name,digest",
-    [
-        (
-            "dna",
-            "dna_report.html",
-            "74900d7ee97eb1e956c4347903f9205d4772e0933e223ff2a557d316249c4c8a",
-        ),
-        (
-            "rna",
-            "report_fusion.html",
-            "3706c04884402ff098802909cb9d066957c5ee63cf6912ccf076cee2bfb47907",
-        ),
-    ],
-)
-def test_registered_layout_matches_html_fixture_and_template_digest(analyte, name, digest):
-    layout = "legacy"
-    inputs = context()
-    original = deepcopy(inputs)
-    html = render_report_html(
-        template_name=name,
-        template_context=inputs,
-        snapshot_rows=[],
-        analyte=analyte,
-        preview=True,
-        layout=layout,
-    )
-    expected = (
-        (Path("tests/fixtures/report-templates") / f"{analyte}-{layout}.html")
-        .read_text()
-        .removesuffix("\n")
-    )
-    assert html == expected
-    assert inputs == original
-    assert template_content_hash(name) == digest
-    pdf = render_pdf_bytes(html)
-    assert pdf.startswith(b"%PDF-") and len(pdf) > 1000
 
 
 @pytest.mark.parametrize(

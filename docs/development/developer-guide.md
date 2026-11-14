@@ -61,7 +61,7 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/services/` | Authorized demo/deployment installation and public-page composition. |
 | `api/contracts/` | Host-only HTTP, session, diagnostic and installation contracts. |
 | `api/presentation/` | Host selection of packaged report presentation. |
-| `src/coyote3/templates/reporting/` | Legacy/modern Jinja layouts, components and embedded CSS. |
+| `src/coyote3/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
 | `api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `config/examples/center/` | Examples for an external reviewed center directory. |
@@ -276,8 +276,8 @@ behavior. Parser input formats are specified in
 
 ## Reporting
 
-The **Try new report** feature renders the established clinical inputs through
-the alternate Jinja layout in `src/coyote3/templates/reporting/modern/`. The authorized
+Report previews and the **Try new report** integration render evaluated clinical
+inputs through the native `smd-reports` interface. The authorized
 `Reports.try_new` operation returns matching HTML/PDF content in memory without
 report numbering or persistence. See the [user workflow](../user-guide/try-new-report.md)
 and [package boundaries](../sdk/package-boundaries.md).

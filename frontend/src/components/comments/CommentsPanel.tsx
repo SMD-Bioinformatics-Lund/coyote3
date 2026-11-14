@@ -262,7 +262,7 @@ export function CommentsPanel({
   ]
 
   return (
-    <section className={cn("glass-card p-2.5", fillHeight && "flex h-full min-h-0 flex-col")}>
+    <section className={cn("glass-card p-2.5", !resourceType && "sample-comments", fillHeight && "flex h-full min-h-0 flex-col")}>
       <div className="mb-2 flex items-center gap-2">
         <icon.messageSquare className="h-4 w-4 text-tier2" />
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>

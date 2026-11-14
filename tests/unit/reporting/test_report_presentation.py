@@ -613,7 +613,7 @@ def test_populated_dna_sections_retain_every_finding_table():
         pgx=[{"gene": "SYNTHETIC_GENE", "result": "Synthetic phenotype"}],
     )
     outputs = {}
-    for layout in ["legacy", "modern"]:
+    for layout in [None, "modern"]:
         output = render_report_html(
             template_name="dna_report.html",
             template_context=inputs,
@@ -623,15 +623,11 @@ def test_populated_dna_sections_retain_every_finding_table():
             layout=layout,
         )
         root = HTML(string=output).etree_element
-        tables = (
-            root.findall('.//table[@class="variant_table"]')
-            if layout == "legacy"
-            else [
-                root.find(f'.//section[@id="{key}"]/table')
-                for key in ["snvs", "germline_snvs", "cnvs", "translocations", "pgx"]
-            ]
-        )
-        assert len(tables) == (9 if layout == "legacy" else 5)
+        tables = [
+            root.find(f'.//section[@id="{key}"]/table')
+            for key in ["snvs", "germline_snvs", "cnvs", "translocations", "pgx"]
+        ]
+        assert len(tables) == 5 and all(table is not None for table in tables)
         assert not root.findall('.//p[@class="report-empty-result"]')
         outputs[layout] = [
             [
@@ -662,7 +658,8 @@ def test_populated_dna_sections_retain_every_finding_table():
     assert "SYNTHETIC_GENE" in outputs["modern"][0]
     assert "Synthetic class" in outputs["modern"][0]
     assert "SYNTHETIC_A::SYNTHETIC_B" in outputs["modern"][3]
-    assert outputs["modern"][-1] == outputs["legacy"][-1]
+    assert "Synthetic phenotype" in outputs["modern"][-1]
+    assert outputs[None] == outputs["modern"]
 
 
 def test_center_wording_is_optional_and_reloaded_without_aspc_edits(monkeypatch, tmp_path):

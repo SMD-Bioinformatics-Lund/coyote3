@@ -12,6 +12,7 @@ from weasyprint.formatting_structure.boxes import ReplacedBox, TextBox
 from api.presentation.reports import branding
 from coyote3.application.reporting.pdf_resources import ReportResourceFetcher, validate_report_svg
 from coyote3.application.reporting.report_renderer import render_pdf_bytes, render_report_html
+from tests.unit.reporting.test_external_report_templates import context
 
 
 def test_bundled_branding_contains_both_embedded_vector_logos():
@@ -206,23 +207,17 @@ def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(
     assert render_pdf_bytes(html).startswith(b"%PDF-")
 
 
-def test_legacy_rendering_does_not_require_modern_branding():
-    html = branding.render_branded_report_html(
-        config={"CONTACT": {"organization": {"report_logo": "missing.svg"}}},
-        template_name="dna_report.html",
-        analyte="dna",
-        preview=True,
-        snapshot_rows=[],
-        template_context={
-            "sample": {"name": "SYNTHETIC_REPORT", "case": {}, "control": {}},
-            "assay_config": {"reporting": {"report_header": "Synthetic report"}},
-            "report_sections": [],
-            "report_sections_data": {},
-            "genes_covered_in_panel": {},
-        },
-    )
-    assert "SYNTHETIC_REPORT" in html
-    assert 'src="data:image/svg+xml' not in html
+def test_default_rendering_validates_branding_without_a_legacy_fallback():
+    """The default renderer must not bypass missing configured artwork."""
+    with pytest.raises((ValueError, FileNotFoundError)):
+        branding.render_branded_report_html(
+            config={"CONTACT": {"organization": {"report_logo": "missing.svg"}}},
+            template_name="dna_report.html",
+            analyte="dna",
+            preview=True,
+            snapshot_rows=[],
+            template_context=context(),
+        )
 
 
 def test_center_contact_details_are_optional_and_escaped_in_modern_header():
@@ -313,7 +308,13 @@ def test_report_font_resource_rejects_content_without_woff2_signature(content):
 
 def test_self_contained_svg_font_is_preserved_and_embedded_in_pdf(tmp_path, monkeypatch):
     """Supplied logo-style WOFF2 text renders offline without rewriting the SVG."""
-    fonts_css = Path("src/coyote3/templates/reporting/assets/fonts.css").read_text()
+    fonts_css = render_report_html(
+        template_name="dna_report.html",
+        template_context=context(),
+        snapshot_rows=[],
+        analyte="dna",
+        preview=True,
+    )
     font_url = re.search(r"data:font/woff2;base64,[A-Za-z0-9+/=]+", fonts_css).group()
     artwork = (
         '<svg xmlns="http://www.w3.org/2000/svg" width="184" height="209" '

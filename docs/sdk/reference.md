@@ -7003,7 +7003,7 @@ Returns:
 #### `SampleReports.save`
 
 ```python
-SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern', 'legacy']" = 'modern') -> 'SavedReport'
+SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern']" = 'modern') -> 'SavedReport'
 ```
 
 ```text
@@ -7012,7 +7012,7 @@ Persist a report only when the reviewed preview still matches current inputs.
 Args:
     report_type: dna or rna, as used in the reviewed preview.
     preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
-    report_format: Presentation selected in the preview; modern is the default.
+    report_format: Compatibility value modern; reports use smd-reports.
 
 Returns:
     Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.
@@ -7488,16 +7488,16 @@ Read an existing preview and its fingerprint without saving a report.
 #### `AsyncReports.save`
 
 ```python
-AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern', 'legacy']" = 'modern') -> 'SavedReport'
+AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern']" = 'modern') -> 'SavedReport'
 ```
 
 ```text
-Save the reviewed fingerprint using the same modern or legacy presentation.
+Save the reviewed fingerprint using the smd-reports presentation.
 
 Args:
     report_type: DNA or RNA modality from the reviewed preview.
     preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
-    report_format: Modern by default, or legacy if selected in the preview.
+    report_format: Compatibility value modern; reports use smd-reports.
 
 Returns:
     Saved report identifiers and artifact metadata.

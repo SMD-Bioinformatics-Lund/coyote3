@@ -9217,7 +9217,7 @@ export type ReportSaveRequest = {
     /**
      * Report Format
      */
-    report_format?: 'modern' | 'legacy';
+    report_format?: 'modern';
 };
 
 /**
@@ -25770,7 +25770,7 @@ export type Request_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet
         /**
          * Format
          */
-        format?: 'modern' | 'legacy';
+        format?: 'modern';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview';
 };
@@ -25839,7 +25839,7 @@ export type Request_previewReportPdfApiV1SamplesSampleIdReportsReportTypePreview
         /**
          * Format
          */
-        format?: 'modern' | 'legacy';
+        format?: 'modern';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf';
 };

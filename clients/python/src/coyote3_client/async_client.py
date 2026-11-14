@@ -299,14 +299,14 @@ class AsyncReports:
         report_type: Literal["dna", "rna"],
         *,
         preview_fingerprint: str,
-        report_format: Literal["modern", "legacy"] = "modern",
+        report_format: Literal["modern"] = "modern",
     ) -> SavedReport:
-        """Save the reviewed fingerprint using the same modern or legacy presentation.
+        """Save the reviewed fingerprint using the smd-reports presentation.
 
         Args:
             report_type: DNA or RNA modality from the reviewed preview.
             preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
-            report_format: Modern by default, or legacy if selected in the preview.
+            report_format: Compatibility value modern; reports use smd-reports.
 
         Returns:
             Saved report identifiers and artifact metadata.

@@ -76,13 +76,13 @@ def preview_report(
     report_type: Analyte,
     include_snapshot: bool = Query(default=False),
     save: bool = Query(default=False),
-    report_format: Literal["modern", "legacy"] = Query(default="modern", alias="format"),
+    report_format: Literal["modern"] = Query(default="modern", alias="format"),
     user: ApiUser = Depends(require_access(permission="report:preview")),
     application: CoyoteApplication = Depends(get_application),
 ):
     """Render an authorized report preview; requires report:preview.
 
-    Modern format is the default; use format=legacy for the previous layout.
+    Reports are rendered exclusively by smd-reports.
     The save flag selects presentation context and does not persist a report.
     """
     result = application.reports.preview(
@@ -116,13 +116,13 @@ def preview_report_pdf(
     sample_id: str,
     report_type: Analyte,
     include_snapshot: bool = Query(default=True),
-    report_format: Literal["modern", "legacy"] = Query(default="modern", alias="format"),
+    report_format: Literal["modern"] = Query(default="modern", alias="format"),
     user: ApiUser = Depends(require_access(permission="report:preview")),
     application: CoyoteApplication = Depends(get_application),
 ):
     """Download a current report preview without persisting it; requires report:preview.
 
-    Modern format is the default; use format=legacy for the previous layout.
+    Reports are rendered exclusively by smd-reports.
     """
     artifact = application.reports.preview_pdf(
         sample_id, report_type, include_snapshot=include_snapshot, layout=report_format

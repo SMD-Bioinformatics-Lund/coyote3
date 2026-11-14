@@ -364,7 +364,7 @@ describe("sample analysis table tabs", () => {
     expect(screen.getByRole("combobox", { name: "Coverage gene list" })).toHaveTextContent("Assay scope")
   })
 
-  it.each(["modern", "legacy"] as const)("reviews and saves the selected %s format", async (reportFormat) => {
+  it("reviews and saves the smd-reports preview without a legacy format selector", async () => {
     mocks.get.mockResolvedValue({ data: {
       sample: { name: "DNA_REPORT" },
       meta: { snapshot_count: 1, preview_fingerprint: "a".repeat(64), template_status: { status: "ready", has_html: true } },
@@ -379,17 +379,13 @@ describe("sample analysis table tabs", () => {
     fireEvent.click(screen.getByText("Report rule details"))
     expect(screen.getByText(/assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
     expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false&format=modern")
-    if (reportFormat === "legacy") {
-      fireEvent.click(screen.getByRole("tab", { name: "Legacy format" }))
-      await waitFor(() => expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false&format=legacy"))
-      await screen.findByRole("heading", { name: "Legacy report preview" })
-    }
+    expect(screen.queryByRole("tab", { name: "Legacy format" })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
     expect(mocks.post).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }))
 
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64), report_format: reportFormat }))
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64), report_format: "modern" }))
     expect(mocks.notifySuccess).toHaveBeenCalledWith(
       "Report saved",
       "DNA report was saved for DNA_REPORT.",

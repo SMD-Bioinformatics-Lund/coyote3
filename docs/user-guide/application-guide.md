@@ -402,8 +402,8 @@ finding-count columns.
 
 ### Preview and save
 
-The Modern format is selected by default. Choose Legacy format to use the previous
-layout. Review and save the same format; switching formats requires a new preview.
+Reports use `smd-reports` exclusively. Review the current preview before saving;
+changes to clinical inputs or the renderer require a new preview.
 See [report formats](try-new-report.md) for PDF headers, accreditation and template versions.
 
 | Stage | Stored state |

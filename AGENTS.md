@@ -24,7 +24,7 @@ The system consists of:
 | --- | --- |
 | `api/app/` | FastAPI composition, lifecycle, dependency wiring, and runtime setup. |
 | `src/coyote3/` | Core application library; never imports `api` or the external client. |
-| `src/coyote3/templates/reporting/` | Packaged Jinja report layouts, components and embedded stylesheets. |
+| `src/coyote3/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independently installable HTTP-only `coyote3-client` distribution and tests. |
 | `api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
 | `src/coyote3/application/` | Use-case and workflow services. |
@@ -138,7 +138,7 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 - Keep overview cards and configured-filter cards equal in height within each grid row;
   retain natural heights when stacked. Do not clip card outlines or shadows with outer
   rounded wrappers or overflow rules.
-- Report paper has its own embedded styles in `src/coyote3/templates/reporting/assets/`.
+- Report paper uses the embedded styles and assets supplied by `smd-reports`.
   Preserve embedded Source Sans 3 typography, neutral tables, restrained purple/orange accents,
   the pale yellow conclusion and shared HTML/PDF geometry when changing report presentation.
 - Fix confirmed visual regressions within this baseline without requesting additional

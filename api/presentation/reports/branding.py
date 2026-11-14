@@ -98,7 +98,7 @@ def load_report_branding(config: dict[str, Any]) -> dict[str, str]:
 
 
 def render_branded_report_html(*, config: dict[str, Any], **report_inputs: Any) -> str:
-    """Resolve host branding only when rendering a modern report.
+    """Resolve host branding for the smd-reports renderer.
 
     Args:
         config: Trusted center configuration used to resolve report logos.
@@ -108,19 +108,13 @@ def render_branded_report_html(*, config: dict[str, Any], **report_inputs: Any) 
         Standalone report HTML with embedded host-owned branding.
     """
     context = report_inputs.get("template_context") or {}
-    release = (context.get("assay_config") or {}).get("template_release") or {}
-    template = release.get("template_name", report_inputs.get("template_name", ""))
-    layout = report_inputs.get("layout")
-    modern = layout == "modern" or (layout is None and template.startswith(("modern/", "smd/")))
-    presentation = None
-    if modern:
-        presentation = (
-            ReportPresentation.model_validate(context["report_presentation"])
-            if "report_presentation" in context
-            else load_report_presentation()
-        )
+    presentation = (
+        ReportPresentation.model_validate(context["report_presentation"])
+        if "report_presentation" in context
+        else load_report_presentation()
+    )
     return render_report_html(
         **report_inputs,
-        branding=load_report_branding(config) if modern else None,
+        branding=load_report_branding(config),
         presentation=presentation,
     )

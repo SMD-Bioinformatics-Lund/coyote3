@@ -203,7 +203,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     assert 'name="smd-reports:package_version" content="0.5.3"' in output
 
 
-def test_smd_identity_is_distinct_from_historical_templates_and_analytes():
+def test_smd_identity_is_shared_by_aliases_and_distinct_between_analytes():
     names = [
         "dna_report.html",
         "modern/dna_report.html",
@@ -211,6 +211,7 @@ def test_smd_identity_is_distinct_from_historical_templates_and_analytes():
         "smd/report_fusion.html",
     ]
     hashes = [template_content_hash(name) for name in names]
-    assert len(set(hashes)) == len(names)
+    assert hashes[0] == hashes[1] == hashes[2]
+    assert hashes[2] != hashes[3]
     assert all(len(digest) == 64 for digest in hashes)
     assert hashes == [template_content_hash(name) for name in names]

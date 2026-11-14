@@ -63,7 +63,8 @@ Source inputs remain in their existing locations. `MANIFEST.in` includes them in
 source distributions, so building from an sdist retains the same resources.
 
 API documentation templates, installation catalogs and logo assets ship as API
-package data. Report templates/CSS ship under `coyote3/templates/reporting/`.
+package data. Report templates, styles and fonts come from the pinned `smd-reports`
+dependency; Coyote3 packages the JSON adapter rather than duplicate report assets.
 Environment files, credentials, patient data and runtime output are not packaged.
 Operators should supply their reviewed external center profile; bundled examples
 are not a substitute for center configuration.

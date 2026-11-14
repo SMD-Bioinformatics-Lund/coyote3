@@ -4,6 +4,5 @@ recursive-include demo_data/clinical_workflows *
 recursive-include api/app/templates *.html *.css *.js
 recursive-include api/bootstrap/catalogs *
 recursive-include api/config *.toml *.png *.svg
-recursive-include src/coyote3/templates *.html *.css
 global-exclude *.pyc
 global-exclude __pycache__

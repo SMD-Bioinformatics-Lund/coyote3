@@ -42,7 +42,12 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
     deleted = (
         ["coyote3_client/auth.py"]
         if distribution == "client"
-        else ["api/app/deps/auth.py", "coyote3/obsolete_compatibility.py"]
+        else [
+            "api/app/deps/auth.py",
+            "coyote3/obsolete_compatibility.py",
+            "coyote3/templates/reporting/legacy/dna.html",
+            "coyote3/templates/reporting/assets/modern.css",
+        ]
     )
     for name in deleted:
         stale = project / "build/lib" / name
@@ -73,4 +78,5 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         assert "coyote3_client/py.typed" in names
     else:
         assert "api/app/main.py" in names
-        assert "coyote3/templates/reporting/assets/modern.css" in names
+        assert "coyote3/application/reporting/smd_input.py" in names
+        assert not any(name.startswith("coyote3/templates/reporting/") for name in names)

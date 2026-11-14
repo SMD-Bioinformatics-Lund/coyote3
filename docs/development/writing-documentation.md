@@ -225,7 +225,7 @@ not establish when it is applied, which permissions are required or what is save
 | Accounts and access | `api/security/`, `src/coyote3/application/operations/`, RBAC seed catalogs | Role responsibilities, route permissions, sample scope and temporary-password behavior. |
 | Assays and configuration | `src/coyote3/contracts/schemas/`, `src/coyote3/application/resources/` | Required versus optional resources, Base fallback, scope immutability and activation checks. |
 | Finding selection | `src/coyote3/application/query_rules/`, `src/coyote3/domain/dna/`, `src/coyote3/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |
-| Reporting | `src/coyote3/application/reporting/`, `src/coyote3/templates/reporting/` | Suggestion versus saved comment, eligibility, preview/save boundaries and resolution receipts. |
+| Reporting | `src/coyote3/application/reporting/`, `api/presentation/reports/` | Suggestion versus saved comment, eligibility, preview/save boundaries, package rendering and resolution receipts. |
 | Ingest formats | `src/coyote3/application/ingest/`, collection contracts | Parse downloadable examples through the actual adapters and validate the resulting documents. |
 | HTTP and Python interfaces | Route modules, generated OpenAPI, `clients/python/`, supported operations | HTTP methods/paths, authorization, import boundaries and release compatibility. Hidden internal routes must also be checked in route source. |
 | Navigation and diagrams | `mkdocs.yml`, reading paths, rendered HTML and SVGs | Direct procedure destinations, anchors, return context, keyboard controls, readable labels and correct dependency direction. |

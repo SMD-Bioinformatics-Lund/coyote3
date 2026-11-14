@@ -2405,6 +2405,18 @@
   .markdown-body a {
     @apply text-primary underline underline-offset-2;
   }
+
+  .sample-comments .markdown-body :is(h1, h2, h3, h4, h5, h6) {
+    @apply mb-0 mt-2 font-bold;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  .sample-comments .markdown-body :is(h1, h2, h3, h4, h5, h6):first-child {
+    @apply mt-0;
+  }
+  .sample-comments .markdown-body :is(h1, h2, h3, h4, h5, h6) + p {
+    @apply mt-0;
+  }
 }
 
 @media (min-width: 1280px) {

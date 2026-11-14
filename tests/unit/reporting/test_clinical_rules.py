@@ -18,6 +18,7 @@ from coyote3.application.reporting.clinical_rules.service import (
     rendered_summary,
 )
 from coyote3.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
+from coyote3.application.reporting.presentation import ReportPresentation
 from coyote3.contracts.schemas.clinical_rules import (
     ClinicalRule,
     ClinicalRuleBlock,
@@ -538,6 +539,7 @@ def test_publication_changes_report_resolution_without_aspc_update_and_invalidat
         SimpleNamespace(
             configuration=lambda sample: configuration,
             workflow=lambda analyte: workflow,
+            presentation=ReportPresentation,
             logger=None,
         ),
     )

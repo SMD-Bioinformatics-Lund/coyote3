@@ -22,11 +22,10 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
   const [selectedReportType, setSelectedReportType] = useState<ReportType>("dna")
   const [includeSnapshot, setIncludeSnapshot] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [reportFormat, setReportFormat] = useState<"modern" | "legacy">("modern")
   const [previewFormat, setPreviewFormat] = useState<"html" | "pdf">("html")
   const reportType = fixedReportType ?? selectedReportType
   const { data, isLoading, error, refetch, hasRenderedHtml, pdfPreview, saveReport, downloadPreviewPdf } = useReportPreview({
-    sampleId, reportType, includeSnapshot, reportFormat, pdfEnabled: previewFormat === "pdf",
+    sampleId, reportType, includeSnapshot, pdfEnabled: previewFormat === "pdf",
     onSaved: () => setConfirmOpen(false),
   })
 
@@ -45,7 +44,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
         <div className="flex min-w-0 items-center gap-3">
           <span className="report-title-icon"><icon.fileText className="size-5" aria-hidden="true" /></span>
           <div className="min-w-0 space-y-1">
-            <h2 className="type-card-title text-foreground">{reportFormat === "legacy" ? "Legacy report preview" : "Report preview"}</h2>
+            <h2 className="type-card-title text-foreground">Report preview</h2>
             <p className="type-body-sm text-muted-foreground">Review your document before saving</p>
             <span className="report-ready type-meta" data-state={isLoading ? "loading" : hasRenderedHtml ? "ready" : "unavailable"}>
               {isLoading ? <icon.activity className="size-3 motion-safe:animate-spin" aria-hidden="true" /> : hasRenderedHtml
@@ -55,8 +54,6 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
           </div>
         </div>
         <div className="report-actions">
-            <SegmentedControl ariaLabel="Report format" value={reportFormat} onValueChange={setReportFormat}
-              items={[{ value: "modern", label: "Modern report" }, { value: "legacy", label: "Legacy format" }]} />
             {!fixedReportType && (
               <SegmentedControl
                 ariaLabel="Report type"
@@ -141,7 +138,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
             <p>Save this rendered {reportType.toUpperCase()} report and preserve its included finding snapshot.</p>
             <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 rounded-lg border border-border bg-muted/40 p-3">
               <dt>Sample</dt><dd className="font-semibold text-foreground">{sampleName}</dd>
-              <dt>Format</dt><dd>{reportFormat === "modern" ? "Modern report" : "Legacy format"}</dd>
+              <dt>Format</dt><dd>smd-reports</dd>
               <dt>Included findings</dt><dd className="type-numeric font-semibold text-foreground">{snapshotCount}</dd>
             </dl>
           </div>
