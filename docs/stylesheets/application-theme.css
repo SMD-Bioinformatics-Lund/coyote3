@@ -261,6 +261,10 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   color-scheme: light;
   background: transparent;
 }
+.rst-content img[src$="-logo.svg"] {
+  width: auto;
+  max-width: 100%;
+}
 
 /* Task navigation is separate from optional references and the full sidebar index. */
 .docs-reading-tools { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; margin-bottom: 1.5rem; }

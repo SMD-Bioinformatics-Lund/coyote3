@@ -11,7 +11,8 @@ Choose one procedure. These are alternatives, not a sequence of manuals to read.
 | New application database and initial account | [First installation](first-installation.md) |
 | Existing installation, new application release | [Upgrade](application-upgrades.md) |
 | Existing installation, same release | [Restart or redeploy](application-redeployment.md) |
-| Local evaluation with synthetic samples | [Local quickstart](../getting-started/local-quickstart.md) |
+| Local evaluation with synthetic samples | [Isolated demo installation](demo-installation.md) |
+| Ordinary development containers | [Local development stack](../getting-started/local-quickstart.md) |
 | Data from Coyote version 2 or 3 | [Clinical data conversion](../operations/migrations/clinical-data.md#select-the-source-version) |
 
 Before a center deployment, review the [production requirements](production-requirements.md).

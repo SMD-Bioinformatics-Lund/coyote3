@@ -1,4 +1,4 @@
-<img src="assets/coyote4-logo.svg" alt="Coyote4" width="320">
+![Coyote4](assets/coyote4-logo.svg)
 
 <!-- badges:start -->
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
@@ -14,7 +14,7 @@ interfaces are documented in their own package guides below.
 
 - **[Review and report a sample](user-guide/clinical-review-workflow.md):** check findings, save your interpretation and issue a report.
 - **[Configure an assay](administration/assay-setup.md#step-by-step-add-a-new-assay):** prepare its settings, activate them and check a validation sample.
-- **[Try Coyote4 locally](getting-started/local-quickstart.md):** start an application with synthetic starter data.
+- **[Try Coyote4 with synthetic samples](deployment/demo-installation.md):** choose Docker or native processes with dedicated demo storage.
 - **[Install at a center](deployment/first-installation.md):** prepare services, baseline data and the initial account.
 - **Update an existing installation:** [upgrade the release](deployment/application-upgrades.md) or [restart the same release](deployment/application-redeployment.md).
 - **Connect a pipeline:** [arrange authentication](api/authentication.md), then [submit and track samples](api/sample-ingestion.md).
@@ -53,6 +53,8 @@ and [writing documentation](development/writing-documentation.md) for contributi
 - [MongoDB adapter](../adapters/mongo/docs/README.md): persistence and transactions.
 - [Python HTTP client](../clients/python/docs/README.md): remote integration.
 - [Ingestion service](../services/relay/docs/README.md): submission tools and workers.
+- [Atlas references](../services/atlas/docs/README.md): inspect and install HGNC/VEP reference bundles.
+- [Demo datasets](../services/demo/docs/README.md): synthetic resources and guarded installation.
 - [Frontend](../frontend/docs/README.md): browser application development.
 
 The [packaging decision](architecture/decisions/0004-installable-application-packages.md)

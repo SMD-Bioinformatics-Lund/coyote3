@@ -1,4 +1,4 @@
-<img src="docs/assets/coyote4-logo.svg" alt="Coyote4" width="320">
+![Coyote4](docs/assets/coyote4-logo.svg)
 
 <!-- badges:start -->
 
@@ -32,7 +32,7 @@ remains named `coyote3`; the production version 3 application is maintained sepa
 | --- | --- |
 | Review a sample and save its report | [Clinical review](docs/user-guide/clinical-review-workflow.md) |
 | Configure an assay | [Assay setup](docs/administration/assay-setup.md#step-by-step-add-a-new-assay) |
-| Try the application with synthetic data | [Local quickstart](docs/getting-started/local-quickstart.md) |
+| Try the application with synthetic data | [Isolated demo installation](docs/deployment/demo-installation.md) |
 | Install at a center | [First installation](docs/deployment/first-installation.md) |
 | Update an existing installation | [Upgrade procedure](docs/deployment/application-upgrades.md) |
 | Submit data from a pipeline | [Sample ingestion](docs/api/sample-ingestion.md) |

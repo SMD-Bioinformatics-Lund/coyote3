@@ -88,7 +88,7 @@ nav:
   - Restart or redeploy: deployment/application-redeployment.md
   - Investigate a service failure: operations/troubleshooting.md
   - Deployment reference:
-    - Try Coyote4 locally: getting-started/local-quickstart.md
+    - Run the local development stack: getting-started/local-quickstart.md
     - Browse deployment topics: deployment/README.md
     - Choose a procedure: deployment/production-deployment.md
     - Production requirements: deployment/production-requirements.md

@@ -7,7 +7,8 @@
 Choose the operation you want to perform on the
 [documentation home page](../README.md#start-with-a-task).
 
-- To evaluate Coyote4, follow the [local quickstart](local-quickstart.md).
+- To evaluate Coyote4 with synthetic samples, follow the [isolated demo installation](../deployment/demo-installation.md).
+- To run the ordinary development containers, use the [local development stack](local-quickstart.md).
 - To work on source code, use the [developer environment](developer-environment.md).
 - To deploy at a center, use [first installation](../deployment/first-installation.md).
 - To review a sample, use the [clinical review workflow](../user-guide/clinical-review-workflow.md).

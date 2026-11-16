@@ -1,9 +1,20 @@
 # Getting started
 
-Install the built wheel with its API integration dependencies:
+## Run a complete demonstration
+
+Follow the [local and Docker demo installation](../../../docs/deployment/demo-installation.md).
+It prepares dedicated databases, credentials and storage, installs the application
+baseline, and starts the API, frontend and background workers. Use that procedure
+to try Coyote with synthetic samples.
+
+## Install the package into an existing demo environment
+
+Use this option only when the isolated application is already configured. Install
+the reviewed wheel and dependencies from your organization's artifact directory;
+replace `/path/to/wheels` with that directory. Public PyPI publication is not required.
 
 ```bash
-python -m pip install 'coyote-demo[api]==1.0.0'
+python -m pip install --no-index --find-links /path/to/wheels 'coyote-demo[api]==1.0.0'
 ```
 
 The base `coyote-demo` package supplies synthetic resources and validation without

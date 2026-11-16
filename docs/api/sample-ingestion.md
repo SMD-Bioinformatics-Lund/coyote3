@@ -1,5 +1,13 @@
 # Ingestion API
 
+To submit a pipeline result, use the
+[Relay submission procedure](../../services/relay/docs/usage.md).
+This page is the detailed HTTP and operations reference. Common starting points:
+
+- [Endpoints and request modes](#endpoints) for a direct API integration.
+- [Authorization and write boundaries](#authorization-and-write-boundaries) for required access.
+- [Diagnosing ingestion failures](#diagnosing-ingestion-failures) for a failed submission.
+
 A sample submission describes the case in a [sample manifest](../reference/sample-manifest.md)
 and supplies the analysis files listed by that manifest. The
 [raw input format reference](../reference/ingest-files/README.md) defines each

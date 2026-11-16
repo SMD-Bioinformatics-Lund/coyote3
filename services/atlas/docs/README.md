@@ -1,4 +1,4 @@
-<img src="../src/coyote_atlas/assets/coyote-atlas-logo.svg" alt="Coyote Atlas" width="320">
+![Coyote Atlas](../src/coyote_atlas/assets/coyote-atlas-logo.svg)
 
 <!-- badges:start -->
 ![coyote-atlas: 1.0.0](https://img.shields.io/badge/coyote--atlas-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
@@ -8,9 +8,11 @@ Atlas packages reference resources and verifies their integrity. It can be
 installed on a workstation for offline review or with a server for explicit,
 authenticated installation into that server's configured knowledgebase.
 
-1. [Install Atlas](getting-started.md).
-2. [Inspect, validate and install a reviewed bundle](usage.md).
-3. [Configure API access](configuration.md).
-4. [Understand package and host responsibilities](architecture.md).
-5. [Find commands, resource identities and API contracts](reference.md).
-6. [Develop, test and build independently](development.md).
+## Start with a task
+
+- **Check the bundled data offline:** [install Atlas and validate its resources](getting-started.md).
+- **Install references into Coyote:** [configure API access](configuration.md), then follow the [installation steps](usage.md#explicit-installation).
+- **Change the package:** use [editable development, tests and builds](development.md).
+
+Use the [command reference](reference.md) to look up arguments and resource
+identities. [Architecture](architecture.md) explains package and server ownership.

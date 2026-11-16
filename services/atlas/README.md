@@ -1,4 +1,4 @@
-<img src="src/coyote_atlas/assets/coyote-atlas-logo.svg" alt="Coyote Atlas" width="320">
+![Coyote Atlas](src/coyote_atlas/assets/coyote-atlas-logo.svg)
 
 <!-- badges:start -->
 ![coyote-atlas: 1.0.0](https://img.shields.io/badge/coyote--atlas-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
@@ -14,11 +14,16 @@ server's existing administrator authorization, audit and preservation rules.
 Installation is explicit; package imports and application startup do not write
 reference data.
 
+From the repository root:
+
 ```bash
-pip install coyote-atlas
-coyote-atlas inspect
-coyote-atlas validate
+uv sync --all-packages
+.venv/bin/coyote-atlas inspect
+.venv/bin/coyote-atlas validate
 ```
+
+For an independent installation, use the [reviewed wheel instructions](docs/getting-started.md#install-from-release-wheels).
+These commands do not assume that Coyote packages have been published on PyPI.
 
 See [installation](docs/getting-started.md), [usage](docs/usage.md),
 [configuration](docs/configuration.md), [architecture](docs/architecture.md),
