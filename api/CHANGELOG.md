@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Apply authentication, CSRF, rate limits and documentation security headers to
+  mounted API paths as well as paths already stripped by a reverse proxy.
 - Fail startup consistently when runtime initialization fails, including under
   tests; mark readiness only after successful initialization and allow retry.
 - Own HTTP, security, worker, configuration and branding regression tests with

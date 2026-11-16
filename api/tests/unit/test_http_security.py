@@ -5,6 +5,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from coyote_api.app import middleware as http_middleware
+from coyote_api.app.deps import services
 from coyote_api.app.middleware import build_security_headers_middleware
 from coyote_api.security import access
 from starlette.requests import Request
@@ -50,16 +52,19 @@ async def test_security_headers_cover_browser_and_swagger_assets():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/api/v1/docs", "/api/v1/redoc"])
-@pytest.mark.parametrize("root_path", ["", "/center"])
-async def test_openapi_ui_security_policy_allows_its_inline_bootstrap(path: str, root_path: str):
+@pytest.mark.parametrize(
+    "root_path,prefix",
+    [("", ""), ("/center", "/center"), ("/center", ""), ("/api/v", "")],
+)
+async def test_openapi_ui_security_policy_allows_its_inline_bootstrap(
+    path: str, root_path: str, prefix: str
+):
     middleware = build_security_headers_middleware()
 
     async def downstream(_request: Request) -> Response:
         return Response()
 
-    response = await middleware(
-        _request(path=f"{root_path}{path}", root_path=root_path), downstream
-    )
+    response = await middleware(_request(path=f"{prefix}{path}", root_path=root_path), downstream)
 
     policy = response.headers["Content-Security-Policy"]
     assert "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in policy
@@ -146,3 +151,105 @@ def test_csrf_rejects_non_ascii_header_without_raising(monkeypatch: pytest.Monke
         headers=[(b"cookie", b"session_cookie=session"), (b"x-csrf-token", b"invalid-\xff")],
     )
     assert access.validate_request_csrf(request) is False
+
+
+@pytest.fixture
+def authenticated_boundary(monkeypatch: pytest.MonkeyPatch):
+    """Use real session resolution and CSRF checks against one synthetic session."""
+    user = SimpleNamespace(username="reviewer")
+    session = SimpleNamespace(user=user, csrf_token="expected-csrf")
+    repository = SimpleNamespace(get=lambda token: session if token == "session" else None)
+    events, mutations = [], []
+    monkeypatch.setattr(http_middleware, "ensure_runtime_initialized", lambda **_: None)
+    monkeypatch.setattr(http_middleware, "_get_api_limiter", lambda: None)
+    monkeypatch.setattr(http_middleware, "emit_request_event", lambda **event: events.append(event))
+    monkeypatch.setattr(
+        http_middleware, "emit_mutation_event", lambda **event: mutations.append(event)
+    )
+    monkeypatch.setitem(http_middleware.runtime_app.config, "API_CSRF_ENABLED", True)
+    monkeypatch.setattr(access, "get_api_session_repository", lambda: repository)
+    monkeypatch.setattr(access, "get_api_session_cookie_name", lambda: "session_cookie")
+    monkeypatch.setattr(services, "get_audit_service", lambda: None)
+    return SimpleNamespace(
+        run=http_middleware.build_authentication_middleware(testing=True, development=False),
+        events=events,
+        mutations=mutations,
+    )
+
+
+@pytest.fixture(
+    params=[("", ""), ("/center", "/center"), ("/center", ""), ("/api/v", "")],
+    ids=["root", "mounted", "proxy-stripped", "partial-segment"],
+)
+def deployment_path(request):
+    """Supply equivalent ASGI deployment paths without changing application routes."""
+    return request.param
+
+
+@pytest.mark.asyncio
+async def test_deployment_prefix_cannot_bypass_authentication(
+    authenticated_boundary, deployment_path
+):
+    root_path, prefix = deployment_path
+
+    async def protected(_request):
+        pytest.fail("Unauthenticated request reached the protected handler")
+
+    response = await authenticated_boundary.run(
+        _request(path=f"{prefix}/api/v1/samples", root_path=root_path), protected
+    )
+    assert response.status_code == 401
+    assert response.headers["X-Request-ID"]
+    assert authenticated_boundary.events[0]["extra"] == {"kind": "authentication"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "csrf_token,expected_status", [(None, 403), (b"wrong", 403), (b"expected-csrf", 200)]
+)
+async def test_deployment_prefix_preserves_cookie_csrf_and_mutation_audit(
+    authenticated_boundary, deployment_path, csrf_token, expected_status
+):
+    root_path, prefix = deployment_path
+    calls = []
+
+    async def protected(request):
+        calls.append(request)
+        return Response(status_code=200)
+
+    headers = [(b"cookie", b"session_cookie=session")]
+    if csrf_token is not None:
+        headers.append((b"x-csrf-token", csrf_token))
+    response = await authenticated_boundary.run(
+        _request(
+            method="POST", path=f"{prefix}/api/v1/samples", root_path=root_path, headers=headers
+        ),
+        protected,
+    )
+    assert response.status_code == expected_status
+    assert bool(calls) is (expected_status == 200)
+    if expected_status == 403:
+        assert authenticated_boundary.events[0]["extra"] == {"kind": "csrf_validation_failed"}
+        assert authenticated_boundary.mutations == []
+    else:
+        assert authenticated_boundary.mutations[0]["target"] == "/api/v1/samples"
+        assert authenticated_boundary.mutations[0]["username"] == "reviewer"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method,path", [("GET", "/api/v1/health"), ("POST", "/api/v1/auth/sessions")]
+)
+async def test_deployment_prefix_preserves_explicit_public_entry_points(
+    authenticated_boundary, deployment_path, method, path
+):
+    root_path, prefix = deployment_path
+
+    async def public(_request):
+        return Response(status_code=200)
+
+    response = await authenticated_boundary.run(
+        _request(method=method, path=f"{prefix}{path}", root_path=root_path), public
+    )
+    assert response.status_code == 200
+    assert authenticated_boundary.mutations == []

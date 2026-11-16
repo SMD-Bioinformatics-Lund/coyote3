@@ -71,6 +71,24 @@ _OPENAPI_UI_CONTENT_SECURITY_POLICY = (
 _OPENAPI_UI_PATHS = frozenset({"/api/v1/docs", "/api/v1/redoc"})
 
 
+def _application_path(request: Request) -> str:
+    """Return the application path with an enclosing ASGI mount removed.
+
+    Args:
+        request: ASGI request whose path may retain the deployment's root_path,
+            or already have that prefix removed by a reverse proxy.
+
+    Returns:
+        The path relative to the application mount. Only a complete path-segment
+        prefix is removed; an already stripped path is retained unchanged.
+    """
+    path = request.scope["path"]
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    if root_path and (path == root_path or path.startswith(root_path + "/")):
+        return path[len(root_path) :] or "/"
+    return path
+
+
 def _get_api_limiter() -> RedisFixedWindowRateLimiter | None:
     """Reuse or rebuild the process-wide limiter for the current cache and settings.
 
@@ -143,7 +161,7 @@ def build_authentication_middleware(
         """
         ensure_runtime_initialized(testing=testing, development=development)
         start = time.perf_counter()
-        path = request.url.path
+        path = _application_path(request)
         authenticated_user = None
         user_token = None
         request_context = request_context_from_request(request)
@@ -321,7 +339,7 @@ def build_security_headers_middleware():
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"
         )
-        route_path = request.url.path.removeprefix(request.scope.get("root_path", "").rstrip("/"))
+        route_path = _application_path(request)
         content_security_policy = (
             _OPENAPI_UI_CONTENT_SECURITY_POLICY
             if route_path in _OPENAPI_UI_PATHS
@@ -361,10 +379,11 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
     response = error_response(request, exc.status_code, payload.get("error"))
     response.headers["X-Request-ID"] = request_id
     duration_ms = (time.perf_counter() - start) * 1000.0
+    path = _application_path(request)
     _log_api_request(
         request_id=request_id,
         method=request.method,
-        path=request.url.path,
+        path=path,
         status_code=exc.status_code,
         duration_ms=duration_ms,
         username="anonymous",
@@ -372,7 +391,7 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
     )
     observe_request(
         method=request.method,
-        path=request.url.path,
+        path=path,
         status_code=exc.status_code,
         duration_ms=duration_ms,
     )
@@ -395,7 +414,7 @@ def _unauthorized_response(*, request: Request, request_id: str, start: float) -
             outcome="denied",
             actor="anonymous",
             resource_type="api_route",
-            resource_id=request.url.path,
+            resource_id=path,
             tags=["authentication", "session", "access-denied"],
             metadata={"status_code": exc.status_code, "request_id": request_id},
         )

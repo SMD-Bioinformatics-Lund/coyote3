@@ -155,9 +155,13 @@ def test_blocked_mutation_records_request_failure_without_a_mutation_event(bound
     assert boundary.mutations == []
 
 
-def test_authentication_and_csrf_still_precede_module_checks(boundary, monkeypatch):
+@pytest.mark.parametrize("root_path,prefix", [("", ""), ("/center", "/center"), ("/center", "")])
+def test_authentication_and_csrf_still_precede_module_checks(
+    boundary, monkeypatch, root_path, prefix
+):
     """Disabled availability does not replace authentication or CSRF failures."""
     boundary.disabled.add("reports")
+    boundary.app.root_path = root_path
 
     @boundary.app.post("/api/v1/protected", dependencies=[Depends(RequireModules("reports"))])
     def endpoint():
@@ -165,12 +169,15 @@ def test_authentication_and_csrf_still_precede_module_checks(boundary, monkeypat
 
     with TestClient(boundary.app) as client:
         monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: None)
-        assert client.post("/api/v1/protected").status_code == 401
+        assert client.post(f"{prefix}/api/v1/protected").status_code == 401
         monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: api_user())
         monkeypatch.setitem(middleware.runtime_app.config, "API_CSRF_ENABLED", True)
         monkeypatch.setattr(middleware, "validate_request_csrf", lambda _request: False)
-        assert client.post("/api/v1/protected").status_code == 403
-    assert boundary.checked == []
+        assert client.post(f"{prefix}/api/v1/protected").status_code == 403
+        assert boundary.checked == []
+        monkeypatch.setattr(middleware, "validate_request_csrf", lambda _request: True)
+        assert client.post(f"{prefix}/api/v1/protected").status_code == 503
+    assert boundary.checked == ["reports"]
 
 
 def _required(dependant):

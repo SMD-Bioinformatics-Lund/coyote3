@@ -48,13 +48,16 @@ def _user() -> ApiUser:
     )
 
 
-def _request(*, path: str, method: str = "GET", ip: str = "127.0.0.1") -> Request:
+def _request(
+    *, path: str, root_path: str = "", method: str = "GET", ip: str = "127.0.0.1"
+) -> Request:
     """Build a minimal Starlette request object for middleware testing."""
     scope: dict[str, Any] = {
         "type": "http",
         "http_version": "1.1",
         "method": method,
         "path": path,
+        "root_path": root_path,
         "raw_path": path.encode("latin-1"),
         "query_string": b"",
         "headers": [],
@@ -66,7 +69,10 @@ def _request(*, path: str, method: str = "GET", ip: str = "127.0.0.1") -> Reques
 
 
 @pytest.mark.asyncio
-async def test_api_rate_limit_returns_429_and_retry_after(monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.parametrize("root_path,prefix", [("", ""), ("/center", "/center"), ("/center", "")])
+async def test_api_rate_limit_returns_429_and_retry_after(
+    monkeypatch: pytest.MonkeyPatch, root_path: str, prefix: str
+):
     """When the API limit is exceeded the middleware should return a 429 response."""
     monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
     monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user())
@@ -85,8 +91,12 @@ async def test_api_rate_limit_returns_429_and_retry_after(monkeypatch: pytest.Mo
     async def _call_next(_request: Request) -> JSONResponse:
         return JSONResponse(status_code=200, content={"status": "ok"})
 
-    first = await auth_mw(_request(path="/api/v1/reports"), _call_next)
-    second = await auth_mw(_request(path="/api/v1/reports"), _call_next)
+    first = await auth_mw(
+        _request(path=f"{prefix}/api/v1/reports", root_path=root_path), _call_next
+    )
+    second = await auth_mw(
+        _request(path=f"{prefix}/api/v1/reports", root_path=root_path), _call_next
+    )
 
     assert first.status_code == 200
     assert second.status_code == 429
@@ -96,7 +106,10 @@ async def test_api_rate_limit_returns_429_and_retry_after(monkeypatch: pytest.Mo
 
 
 @pytest.mark.asyncio
-async def test_api_excluded_health_route_is_not_rate_limited(monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.parametrize("root_path,prefix", [("", ""), ("/center", "/center"), ("/center", "")])
+async def test_api_excluded_health_route_is_not_rate_limited(
+    monkeypatch: pytest.MonkeyPatch, root_path: str, prefix: str
+):
     """Excluded API routes should bypass limiter checks."""
     monkeypatch.setattr(middleware, "ensure_runtime_initialized", lambda **_: None)
     monkeypatch.setattr(middleware, "resolve_request_user", lambda _request: _user())
@@ -115,8 +128,10 @@ async def test_api_excluded_health_route_is_not_rate_limited(monkeypatch: pytest
     async def _call_next(_request: Request) -> JSONResponse:
         return JSONResponse(status_code=200, content={"status": "ok"})
 
-    first = await auth_mw(_request(path="/api/v1/health"), _call_next)
-    second = await auth_mw(_request(path="/api/v1/health"), _call_next)
+    first = await auth_mw(_request(path=f"{prefix}/api/v1/health", root_path=root_path), _call_next)
+    second = await auth_mw(
+        _request(path=f"{prefix}/api/v1/health", root_path=root_path), _call_next
+    )
 
     assert first.status_code == 200
     assert second.status_code == 200
