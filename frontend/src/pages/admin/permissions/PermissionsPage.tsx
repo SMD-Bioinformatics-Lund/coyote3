@@ -9,7 +9,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { PermissionCategoryOverview } from "../permission-category-overview"
-import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../resource-list"
+import { adminTableColumns, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
 
 export function PermissionsPage() {
@@ -17,19 +17,7 @@ export function PermissionsPage() {
   const { data, rows, visibleRows, canCreate, canList, canEdit } = state
   const fields = adminFields(preferredColumns, rows)
   const tableColumns: ColumnDef<Record<string, unknown>>[] = [
-    ...fields.map((field): ColumnDef<Record<string, unknown>> => ({
-      id: field,
-      header: adminColumnTitle(field),
-      accessorFn: (row) => adminExportValue(field, row),
-      cell: ({ row }) => adminCell(field, row.original, {
-        roleColors: data?.roles || {},
-        primaryIdentifier: field === spec.idKeys[0],
-      }),
-      meta: {
-        exportValue: (row: Record<string, unknown>) => adminExportValue(field, row),
-        cellClassName: field === "permissions" ? "min-w-64" : undefined,
-      },
-    })),
+    ...adminTableColumns(fields, spec.idKeys[0], data?.roles || {}),
     { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <AdminRowActions state={state} spec={spec} row={row.original} /> },
   ]
   return (

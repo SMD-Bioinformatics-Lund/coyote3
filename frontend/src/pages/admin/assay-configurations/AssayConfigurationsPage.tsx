@@ -15,7 +15,7 @@ import { hasPermission } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { notifyActionError } from "@/lib/notifications"
 import { CopySetupConfiguration } from "./CopySetupConfiguration"
-import { adminCell, adminColumnTitle, adminExportValue, adminFields } from "../resource-list"
+import { adminTableColumns, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
 
 export function AssayConfigurationsPage() {
@@ -31,19 +31,7 @@ export function AssayConfigurationsPage() {
   })
   const fields = adminFields(preferredColumns, rows)
   const tableColumns: ColumnDef<Record<string, unknown>>[] = [
-    ...fields.map((field): ColumnDef<Record<string, unknown>> => ({
-      id: field,
-      header: adminColumnTitle(field),
-      accessorFn: (row) => adminExportValue(field, row),
-      cell: ({ row }) => adminCell(field, row.original, {
-        roleColors: data?.roles || {},
-        primaryIdentifier: field === spec.idKeys[0],
-      }),
-      meta: {
-        exportValue: (row: Record<string, unknown>) => adminExportValue(field, row),
-        cellClassName: field === "permissions" ? "min-w-64" : undefined,
-      },
-    })),
+    ...adminTableColumns(fields, spec.idKeys[0], data?.roles || {}),
     { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => <div className="flex flex-wrap items-center gap-2"><AdminRowActions state={state} spec={spec} row={row.original} />{canCreate && state.canView && <Button variant="outline" size="sm" disabled={copy.isPending} onClick={() => copy.mutate(String(row.original.aspc_id))} aria-label={`Copy ${String(row.original.aspc_id)} as new`}>Copy as new</Button>}</div> },
   ]
   return (

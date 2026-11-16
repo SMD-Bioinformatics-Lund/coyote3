@@ -2,7 +2,8 @@
 
 ## v4.0.0
 
-- FastAPI backend and React interface with light/dark themes and Coyote4 branding.
+- FastAPI backend and React interface with shared admin tables, light/dark themes
+  and Coyote4 branding.
 - Independent clinical core and Python HTTP client, with API and MongoDB components
   in one server distribution, editable uv development and verified wheel deployments.
 - Unified DNA/RNA review, structural variants, coverage, biomarkers, classification

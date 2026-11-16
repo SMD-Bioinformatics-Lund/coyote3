@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 /* eslint-disable react/only-export-components -- shared admin renderers and value helpers are intentionally colocated */
+import type { ColumnDef } from "@tanstack/react-table"
 import { TableBadge } from "@/components/ui/table-badge"
 import { TimeDisplay } from "@/components/ui/time-display"
 import { accentColor, configuredValueDescription, valueBadgeClass } from "@/lib/badge-colors"
@@ -313,6 +314,26 @@ const identityDisplayFields: Record<string, string[]> = {
 export function adminColumnTitle(field: string) {
   const labels: Record<string, string> = { permission_id: "Permission", role_id: "Role", username: "User", asp_id: "Assay", aspc_id: "Configuration", isgl_id: "Gene list", updated_by: "Updated by" }
   return labels[field] || titleize(field)
+}
+
+export function adminTableColumns(
+  fields: string[],
+  primaryIdentifier: string,
+  roleColors: Record<string, string> = {},
+): ColumnDef<Record<string, unknown>>[] {
+  return fields.map((field) => ({
+    id: field,
+    header: adminColumnTitle(field),
+    accessorFn: (row) => adminExportValue(field, row),
+    cell: ({ row }) => adminCell(field, row.original, {
+      roleColors,
+      primaryIdentifier: field === primaryIdentifier,
+    }),
+    meta: {
+      exportValue: (row: Record<string, unknown>) => adminExportValue(field, row),
+      cellClassName: field === "permissions" ? "min-w-64" : undefined,
+    },
+  }))
 }
 
 export function adminFields(preferred: string[], rows: any[]) {
