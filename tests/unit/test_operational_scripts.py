@@ -42,6 +42,7 @@ def test_proxy_mounts_standalone_error_page_in_every_stack(definition: str) -> N
         "scripts/deployment/compose-with-version.sh",
         "scripts/deployment/install_center.sh",
         "scripts/quality/run_quality_suite.sh",
+        "scripts/quality/run_package_tests.sh",
         "scripts/database/mongo_backup_archive.sh",
         "scripts/database/mongo_restore_archive.sh",
     ],
