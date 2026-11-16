@@ -15,7 +15,7 @@ Existing installations skip application bootstrap. Host networking is never crea
 Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
        --compose-file FILE [--compose-file OVERLAY] [--skip-build]
        [--sys-admin-email EMAIL] [--email EMAIL]
-       [--skip-users] [--skip-application] [--skip-knowledgebase] [--skip-demo]
+       [--skip-users] [--skip-application] [--skip-knowledgebase]
        [--knowledgebase-maintenance-uri-file FILE]
        [--identity-maintenance-uri-file FILE]
        [--steps network,directories,build,validate,bootstrap,indexes,start,health]
@@ -23,7 +23,8 @@ Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
 
 Fresh targets create coyote4.sysadmin and coyote4.superuser with generated temporary
 passwords displayed once. Existing accounts and passwords are preserved.
-Fresh installation includes accounts, application catalogs, bundled knowledgebases and both demos.
+Fresh installation includes accounts, application catalogs and bundled knowledgebases.
+Synthetic demos use the separately installed coyote-demo package in an isolated deployment.
 Existing deployments preserve all data; later additions/repairs use deployment/manage_data.py.
 --setup-center selects all stages; cannot combine with --steps.
 Knowledgebase indexes remain a separate opt-in. Maintenance credentials may seed a fresh knowledgebase.
@@ -44,7 +45,7 @@ setup_center=0 steps_explicit=0
 steps="network,directories,build,validate,bootstrap,indexes,start,health"
 kb_seeds=1 kb_indexes=0
 compose_files=()
-with_demo=1 skip_users=0 skip_application=0
+skip_users=0 skip_application=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h) usage; exit 0 ;;
@@ -54,7 +55,6 @@ while [[ $# -gt 0 ]]; do
     --skip-users) skip_users=1; shift ;;
     --skip-application) skip_application=1; shift ;;
     --skip-knowledgebase) kb_seeds=0; shift ;;
-    --skip-demo) with_demo=0; shift ;;
     --env-file|--project|--compose-file|--sys-admin-username|--sys-admin-email|--username|--email|--knowledgebase-maintenance-uri-file|--identity-maintenance-uri-file|--steps)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo "Missing value for $1" >&2; exit 2; }
       case "$1" in
@@ -79,11 +79,8 @@ if [[ "$setup_center" == 1 ]]; then
     exit 2
   }
 fi
-if [[ "$skip_users" == 1 && ( "$skip_application" == 0 || "$kb_seeds" == 1 || "$with_demo" == 1 ) ]]; then
-  echo "--skip-users requires --skip-application --skip-knowledgebase --skip-demo" >&2; exit 2
-fi
-if [[ "$skip_application" == 1 && "$with_demo" == 1 ]]; then
-  echo "--skip-application requires --skip-demo" >&2; exit 2
+if [[ "$skip_users" == 1 && ( "$skip_application" == 0 || "$kb_seeds" == 1 ) ]]; then
+  echo "--skip-users requires --skip-application --skip-knowledgebase" >&2; exit 2
 fi
 [[ "$steps" =~ ^(network|directories|build|validate|bootstrap|indexes|start|health)(,(network|directories|build|validate|bootstrap|indexes|start|health))*$ ]] || {
   echo "Invalid --steps selection" >&2; exit 2;
@@ -221,7 +218,6 @@ if selected bootstrap && [[ "$state" == fresh ]]; then
   [[ "$skip_users" == 0 ]] || bootstrap_args+=(--skip-users)
   [[ "$skip_application" == 0 ]] || bootstrap_args+=(--skip-application)
   [[ "$kb_seeds" == 1 ]] || bootstrap_args+=(--skip-knowledgebase)
-  [[ "$with_demo" == 1 ]] || bootstrap_args+=(--skip-demo)
   maintenance_compose run --rm --no-deps -T "${maintenance_env_args[@]}" api \
     python3 scripts/bootstrap/bootstrap_database.py --require-empty-target \
     --db "${settings[1]}" --identity-db "${settings[2]}" \

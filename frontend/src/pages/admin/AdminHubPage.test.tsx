@@ -6,18 +6,18 @@ import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AdminHubPage } from "./AdminHubPage"
 
-const state = vi.hoisted(() => ({ permissions: [] as string[], roles: [] as string[], loading: false, ingest: true, error: false, modulesError: false, retry: vi.fn() }))
+const state = vi.hoisted(() => ({ permissions: [] as string[], roles: [] as string[], loading: false, ingest: true, demo: true, error: false, modulesError: false, retry: vi.fn() }))
 vi.mock("@/lib/access-control", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/access-control")>(),
   useCurrentUserAccess: () => ({ data: state, isLoading: state.loading, isError: state.error, refetch: state.retry }),
 }))
 vi.mock("@/lib/app-module-state", () => ({
-  useApplicationModules: () => ({ data: {}, isError: state.modulesError, refetch: state.retry }),
+  useApplicationModules: () => ({ data: { extensions: state.demo ? ["demo"] : [] }, isError: state.modulesError, refetch: state.retry }),
   moduleIsEnabled: () => state.ingest,
 }))
 
 describe("Admin navigation permissions", () => {
-  beforeEach(() => { state.permissions = []; state.roles = []; state.loading = false; state.ingest = true; state.error = false; state.modulesError = false; state.retry.mockClear() })
+  beforeEach(() => { state.permissions = []; state.roles = []; state.loading = false; state.ingest = true; state.demo = true; state.error = false; state.modulesError = false; state.retry.mockClear() })
   const show = () => render(<MemoryRouter><AdminHubPage /></MemoryRouter>)
   it("shows service tokens under Identity and access for token issuers", () => {
     state.permissions = ["ingest.token:issue"]
@@ -124,6 +124,11 @@ describe("Admin navigation permissions", () => {
     state.permissions = ["app.controls:view"]
     show()
     expect(screen.getByRole("link", { name: /^Application Controls/ })).toBeVisible()
+    expect(screen.queryByRole("link", { name: /^Demo installation/ })).not.toBeInTheDocument()
+  })
+  it("hides demo installation when the optional package is inactive", () => {
+    state.permissions = ["demo:install"]; state.demo = false
+    show()
     expect(screen.queryByRole("link", { name: /^Demo installation/ })).not.toBeInTheDocument()
   })
 })

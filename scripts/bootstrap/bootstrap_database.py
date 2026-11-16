@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Install initial accounts, bundled catalogs, knowledgebases and demos on fresh targets.
+"""Install initial accounts, application catalogs and references on fresh targets.
 
 This is an operator-run deployment step. It connects directly to MongoDB and
 never starts Compose services, calls the Coyote4 API, or queues ingest work.
@@ -41,7 +41,7 @@ SYSADMIN_USERNAME = "coyote4.sysadmin"
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse database, first-user, and optional demonstration seed settings.
+    """Parse database, first-user and selected baseline installation settings.
 
     Returns:
         Process command-line options with bundled seed directories as defaults.
@@ -82,9 +82,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--reference-dir",
         default=str(REFERENCE_CATALOG_DIR),
-        help="Bundled application catalog and knowledgebase seed directory",
+        help="Bundled application catalog directory; Atlas supplies reference datasets",
     )
-    for module in ("users", "application", "knowledgebase", "demo"):
+    for module in ("users", "application", "knowledgebase"):
         parser.add_argument(f"--skip-{module}", action="store_true")
     return parser.parse_args()
 
@@ -328,6 +328,7 @@ def _install_initial_data(databases: dict, seed: dict, args: argparse.Namespace)
         seed: Validated documents attributed to the system actor.
         args: Initial installation module skip flags.
     """
+    from coyote_api.bootstrap.references import reference_bundle
     from coyote_api.config.backend import audit_context_from_runtime
     from coyote_mongo.repositories.deployment_data import DeploymentDataRepository
 
@@ -339,16 +340,18 @@ def _install_initial_data(databases: dict, seed: dict, args: argparse.Namespace)
     )
     for module in ("application", "knowledgebase"):
         if not getattr(args, f"skip_{module}", False):
-            results = repository.install(seed, scope=module, actor="system")
+            results = repository.install(
+                seed,
+                scope=module,
+                actor="system",
+                **(
+                    {"reference_metadata": reference_bundle().plan().model_dump(mode="json")}
+                    if module == "knowledgebase"
+                    else {}
+                ),
+            )
             for name, status in results.items():
                 print(f"[{status}] {name}")
-    if not getattr(args, "skip_demo", False):
-        from scripts.bootstrap.demo_service import build_demo_service
-
-        result = build_demo_service(
-            databases["primary"], databases["knowledgebase"]
-        ).install_starter("system")
-        print(f"[{result['status']}] demo")
 
 
 def main() -> int:
@@ -372,12 +375,9 @@ def main() -> int:
     args = parse_args()
     _fail_if_placeholder_values(args)
     if getattr(args, "skip_users", False) and not all(
-        getattr(args, f"skip_{module}", False)
-        for module in ("application", "knowledgebase", "demo")
+        getattr(args, f"skip_{module}", False) for module in ("application", "knowledgebase")
     ):
-        raise SystemExit("--skip-users requires skipping application, knowledgebase and demo data")
-    if getattr(args, "skip_application", False) and not getattr(args, "skip_demo", False):
-        raise SystemExit("--skip-application requires --skip-demo")
+        raise SystemExit("--skip-users requires skipping application and knowledgebase data")
     config = {
         **os.environ,
         "COYOTE4_MONGO_URI": args.mongo_uri or "",
@@ -385,6 +385,9 @@ def main() -> int:
         "COYOTE4_DB": args.db,
         "IDENTITY_DB": args.identity_db,
     }
+    from coyote_api.config.extensions import validate_runtime_extensions
+
+    validate_runtime_extensions(config)
     connections = MongoConnections(config, client_factory=MongoClient)
     try:
         databases = connections.databases
@@ -407,11 +410,9 @@ def main() -> int:
             include_knowledgebase=not getattr(args, "skip_knowledgebase", False),
         )
         if not getattr(args, "skip_knowledgebase", False):
-            from coyote_api.infra.seed.diagrams import load_seed_diagrams
+            from coyote_api.bootstrap.references import reference_bundle
 
-            seed["vep_diagrams"] = load_seed_diagrams(
-                seed["vep_metadata"], Path(args.reference_dir).expanduser().resolve()
-            )
+            seed["vep_diagrams"] = reference_bundle().load_diagrams()
         if has_documents(primary) or has_documents(identity):
             raise SystemExit(
                 "Target changed during installation; no bootstrap writes were performed"

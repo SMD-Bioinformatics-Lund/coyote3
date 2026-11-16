@@ -22,8 +22,9 @@ sequence; it cannot be combined with `--steps`. `--skip-build` uses existing ima
 `--steps` selects individual stages in their canonical order.
 
 Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
-installs application catalogs, bundled HGNC/VEP references, connected DNA/RNA demo
-configuration and both synthetic starter samples in their configured databases.
+installs application catalogs and the installed Atlas provider's HGNC/VEP
+references in their configured databases. It installs no synthetic samples or
+demo assay configuration; use the separate [demo deployment](demo-installation.md).
 The fixed logins are `coyote4.sysadmin` and `coyote4.superuser`. Independent temporary
 passwords are generated and printed once after account creation. Both accounts must
 change their password on first API or browser use. Existing accounts are preserved.
@@ -40,17 +41,14 @@ upgrade and recovery commands. Development and staging exclude this overlay.
 | Identity | Emergency superuser, named system administrator, permissions and roles | `--skip-users` |
 | Application | Five biological groups, six group-scoped SNV policies and immutable baseline revisions | `--skip-application` |
 | Knowledgebase | Bundled HGNC genes, VEP metadata and associated binary diagrams | `--skip-knowledgebase` |
-| Demo | Connected DNA/RNA assays, configurations, gene lists, diagnoses, rules, catalog and two synthetic samples | `--skip-demo` |
 
-`--skip-application` requires `--skip-demo`. `--skip-users` requires all three
-data modules to be skipped too: unauthenticated data installation is authorized only
+`--skip-users` requires application and knowledgebase installation to be skipped
+too: unauthenticated data installation is authorized only
 by successful initial account creation in that same invocation. On a deployment with
 existing accounts, use authenticated maintenance to add disabled modules later.
 
-Automated creations use `created_by: "system"`; starter sample provenance uses
-`ingested_by: "system"`. Existing populated reference collections are preserved.
-The demo catalog is published only when no public catalog exists; otherwise its
-version remains a draft. No application data is seeded by ordinary API startup.
+Automated creations use `created_by: "system"`. Existing populated reference
+collections are preserved. No application data is seeded by ordinary API startup.
 
 Existing deployments skip the entire bootstrap operation, even when a selected
 module is missing. A partially recognized application/identity target is rejected.
@@ -59,7 +57,7 @@ seeding. Rerun deployment to finish indexes and startup while preserving existin
 data, then complete missing modules with the maintenance command.
 
 Update deployment automation to remove the former `--with-demo-center` and
-`--with-knowledgebase-seeds` opt-in flags; these options are rejected. Use skip
+`--with-knowledgebase-seeds` opt-in flags and `--skip-demo`; these options are rejected. Use skip
 flags for fresh installation and the separate maintenance command for later work.
 
 ### Stages and operational flags
@@ -115,7 +113,7 @@ coyote_compose run --rm --no-deps -it api sh -c '
 '
 ```
 
-The Python command supports the same four module skip flags. It has no `--force`
+The Python command supports the same three module skip flags. It has no `--force`
 option and never uses an existing account name as unauthenticated authorization.
 Configured connections need write access to the selected destination databases.
 Knowledgebase installation can use the deployment installer's maintenance URI
@@ -139,13 +137,13 @@ virtual environment is needed for that path.
   --modules application knowledgebase
 ```
 
-Without `--force`, populated catalog collections and existing demo samples are
-skipped. To repair selected bundled modules:
+Without `--force`, populated catalog collections are skipped. To repair selected
+bundled modules:
 
 ```bash
 .venv/bin/python scripts/deployment/manage_data.py \
   --api-url https://coyote.example.org/coyote4 \
-  --modules application demo --force
+  --modules application knowledgebase --force
 ```
 
 Inside Compose, use `coyote_compose run --rm --no-deps -it api python3
@@ -159,7 +157,7 @@ because password changes invalidate previous sessions. It then calls
 `POST /api/v1/admin/installation/data` and revokes its session afterward.
 Passwords are never command arguments or stored in credential files.
 
-The write request is `{"modules":["application","demo"],"force":true}`.
+The write request is `{"modules":["application","knowledgebase"],"force":true}`.
 The application service checks the authenticated administrator role and rejects
 temporary-password sessions. Client actors, seed paths and arbitrary documents are
 not accepted. Newly created seed records use the system creator; updates and API
@@ -170,7 +168,11 @@ audit events record the authenticated administrator.
 | `identity` | Restore missing bundled permissions/roles and union missing grants into system roles. Preserve local grants, activation state, every user, membership and password. Account creation/reset uses the normal account administration workflow. |
 | `application` | Repair bundled group labels/descriptions and add missing identities. Preserve group availability, center-owned scopes and custom records. Changed bundled query content is published as a new version with retained hash-linked history; retired-only scopes stay retired. |
 | `knowledgebase` | Repair system-created bundled reference IDs and content-addressed diagrams. A bundled publication or surviving system provenance identifies recoverable initial batches; active external releases are preserved. Preserve unknown/unattributed records and unrelated gene/release IDs. |
-| `demo` | Restore missing packaged configuration without overwriting existing configuration or rule history. Reingest only system-owned starter samples with their exact testing assay/diagnosis, preserving sample IDs. Samples with reports, comments, RNA classifications or human ingest provenance are preserved. |
+
+Demo installation is a separate package operation. It is available only in a
+guarded demo deployment and does not appear as a maintenance module on ordinary
+deployments. See [demo installation](demo-installation.md) for its CLI and
+permission-protected administration page.
 
 ## Knowledgebase operations
 

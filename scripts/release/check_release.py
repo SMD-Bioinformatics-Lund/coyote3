@@ -96,6 +96,8 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         release["server_version"],
         release["client_version"],
         release["relay_version"],
+        release["atlas_version"],
+        release["demo_version"],
         project["version"],
     ):
         if not isinstance(value, str) or not VERSION_PATTERN.fullmatch(value):
@@ -111,6 +113,8 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
             (".", "coyote-server", release["server_version"]),
             ("clients/python", "coyote-pyclient", release["client_version"]),
             ("services/relay", "coyote-relay", release["relay_version"]),
+            ("services/atlas", "coyote-atlas", release["atlas_version"]),
+            ("services/demo", "coyote-demo", release["demo_version"]),
         ):
             package = tomllib.loads((root / relative / "pyproject.toml").read_text())["project"]
             if package["name"] != distribution or package["version"] != selected:
@@ -134,6 +138,26 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                         raise ValueError(
                             f"Relay {extra} dependency differs from the server selection"
                         )
+            if distribution in {"coyote-atlas", "coyote-demo"}:
+                if f"coyote-core=={release['sdk_version']}" not in package["dependencies"]:
+                    raise ValueError(f"{distribution} core dependency differs from selection")
+                if package.get("optional-dependencies", {}).get("api") != [
+                    f"coyote-server=={release['server_version']}"
+                ]:
+                    raise ValueError(f"{distribution} API dependency differs from selection")
+                if (
+                    distribution == "coyote-atlas"
+                    and f"coyote-pyclient=={release['client_version']}"
+                    not in package["dependencies"]
+                ):
+                    raise ValueError("Atlas client dependency differs from selection")
+                if distribution == "coyote-demo" and package.get("optional-dependencies", {}).get(
+                    "worker"
+                ) != [
+                    f"coyote-server=={release['server_version']}",
+                    f"coyote-relay=={release['relay_version']}",
+                ]:
+                    raise ValueError("Demo worker dependencies differ from selection")
         application_identity = tomllib.loads(
             (root / "api/src/coyote_api/config/application_release.toml").read_text()
         )
@@ -212,6 +236,8 @@ def wheel_record(
             "coyote-server": ("coyote_api/", "coyote_mongo/"),
             "coyote-pyclient": ("coyote_pyclient/",),
             "coyote-relay": ("coyote_relay/",),
+            "coyote-atlas": ("coyote_atlas/",),
+            "coyote-demo": ("coyote_demo/",),
         }
         forbidden = tuple(
             prefix
@@ -284,6 +310,8 @@ def main() -> None:
                     "coyote-server": record["server_version"],
                     "coyote-pyclient": record["client_version"],
                     "coyote-relay": record["relay_version"],
+                    "coyote-atlas": record["atlas_version"],
+                    "coyote-demo": record["demo_version"],
                 }
             )
         artifacts = {}

@@ -15,10 +15,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
-    """Build the four deployment distributions without stale generated sources.
+    """Build the selected application distributions without stale generated sources.
 
     Args:
-        output_directory: Destination for the four built wheels, created if absent.
+        output_directory: Destination for the built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
 
@@ -28,7 +28,14 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    for project in (ROOT / "core", ROOT, ROOT / "clients/python", ROOT / "services/relay"):
+    for project in (
+        ROOT / "core",
+        ROOT,
+        ROOT / "clients/python",
+        ROOT / "services/relay",
+        ROOT / "services/atlas",
+        ROOT / "services/demo",
+    ):
         with tempfile.TemporaryDirectory(prefix="coyote-package-build-") as temporary:
             staging = Path(temporary)
             for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
@@ -40,6 +47,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
                 "package_build.py",
                 "client_build.py",
                 "relay_build.py",
+                "demo_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
                 "CHANGELOG.md",

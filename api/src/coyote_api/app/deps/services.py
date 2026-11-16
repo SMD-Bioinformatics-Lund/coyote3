@@ -73,7 +73,6 @@ from coyote_api.infra.notifications.email import send_email, smtp_configured
 from coyote_api.infra.observability.prometheus_metrics import observe_operation
 from coyote_api.infra.report_images import get_plot
 from coyote_api.security.passwords import hash_password
-from coyote_api.services.provisioning.demo_installation import DemoInstallationService
 from coyote_api.services.provisioning.deployment_data import DeploymentDataService
 
 ServiceT = TypeVar("ServiceT")
@@ -329,22 +328,6 @@ def get_internal_ingest_service() -> InternalIngestService:
     )
 
 
-def get_demo_installation_service() -> DemoInstallationService:
-    """Bind the private demonstration installer to application storage and normal ingest."""
-    from coyote_mongo.repositories.demo_installation import DemoInstallationRepository
-
-    from coyote_api.config.paths import DEMO_WORKFLOW_BUNDLE_PATH
-
-    return DemoInstallationService(
-        DemoInstallationRepository(
-            get_store().coyote_db, context=audit_context_from_runtime(runtime_app.config)
-        ),
-        get_internal_ingest_service(),
-        bundle=DEMO_WORKFLOW_BUNDLE_PATH,
-        identifier_factory=DemoInstallationRepository.identifier,
-    )
-
-
 def get_service_tokens() -> ServiceTokens:
     """Bind managed service credentials to identity storage and current deployment registries."""
     from coyote.config.policy import get_runtime_environment
@@ -477,7 +460,7 @@ def get_deployment_data_service() -> DeploymentDataService:
     from coyote_mongo.repositories.deployment_data import DeploymentDataRepository
 
     from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
-    from coyote_api.infra.seed.diagrams import load_seed_diagrams
+    from coyote_api.bootstrap.references import reference_bundle
     from coyote_api.infra.seed.documents import (
         build_seed_documents,
     )
@@ -491,9 +474,7 @@ def get_deployment_data_service() -> DeploymentDataService:
             include_knowledgebase=scope != "application",
         )
         if scope != "application":
-            documents["vep_diagrams"] = load_seed_diagrams(
-                documents["vep_metadata"], REFERENCE_CATALOG_DIR
-            )
+            documents["vep_diagrams"] = reference_bundle().load_diagrams()
         return documents
 
     store = get_store()
@@ -505,7 +486,7 @@ def get_deployment_data_service() -> DeploymentDataService:
             context=audit_context_from_runtime(runtime_app.config),
         ),
         load,
-        get_demo_installation_service(),
+        reference_metadata=lambda: reference_bundle().plan().model_dump(mode="json"),
     )
 
 

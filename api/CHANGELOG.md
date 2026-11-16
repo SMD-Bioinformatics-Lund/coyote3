@@ -2,6 +2,11 @@
 
 ## 1.0.0
 
+- Load optional Atlas and Demo extensions, validate declared deployment constraints
+  before persistence initialization, and expose enabled extensions to the frontend.
+- Keep synthetic data out of normal bootstrap; support isolated native storage and
+  an explicit process protection mode.
+
 - Discover installed API router extensions; expose ingestion endpoints and their
   documentation when Coyote Relay is installed, without a required Relay dependency.
 - Publish allowlisted ingestion jobs to the separately installable `coyote-relay`

@@ -16,6 +16,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from coyote_atlas.authoring import draft_bundle  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 
 from scripts.knowledgebase.update_vep_diagrams import install  # noqa: E402
@@ -48,7 +49,7 @@ def embedded_diagrams(documents: list[dict]) -> dict[str, dict]:
     return diagrams
 
 
-def migrate_seed(path: Path = SEED) -> int:
+def migrate_seed(path: Path) -> int:
     """Write binary seed assets before atomically removing embedded image strings.
 
     Args:
@@ -82,7 +83,15 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--backup", type=Path)
     parser.add_argument("--update-seed", action="store_true")
+    parser.add_argument("--output-bundle", type=Path)
+    parser.add_argument("--bundle-version")
     args = parser.parse_args()
+    if args.update_seed and (not args.output_bundle or not args.bundle_version):
+        parser.error("--update-seed requires --output-bundle and --bundle-version")
+    if not args.update_seed and (args.output_bundle or args.bundle_version):
+        parser.error("Bundle output options require --update-seed")
+    if args.output_bundle and args.output_bundle.exists():
+        parser.error("--output-bundle must be a new directory")
     if args.apply and not args.backup:
         parser.error("--apply requires a new --backup path")
     if args.apply:
@@ -97,7 +106,9 @@ def main() -> int:
                 install(collection, diagrams, args.backup)
             print(f"Migrated {len(diagrams)} database diagrams")
     if args.update_seed:
-        print(f"Migrated {migrate_seed()} seed diagrams")
+        with draft_bundle(args.output_bundle, args.bundle_version):
+            count = migrate_seed(args.output_bundle / SEED.name)
+        print(f"Migrated {count} seed diagrams")
     return 0
 
 

@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-DeploymentDataModule = Literal["identity", "application", "knowledgebase", "demo"]
+DeploymentDataModule = Literal["identity", "application", "knowledgebase"]
 
 
 class DeploymentDataRequest(BaseModel):

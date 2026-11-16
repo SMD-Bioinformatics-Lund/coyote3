@@ -1,21 +1,23 @@
 # Demo data bundle
 
 Demo samples use the same YAML manifest and raw analysis formats as pipeline
-ingestion. The packaged source is `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`. The installer
+ingestion. The packaged source is `services/demo/src/coyote_demo/data/clinical_workflows/`. The installer
 reads these files through `InternalIngestService`; it does not import stored
 sample or finding snapshots.
 
 Use the [installation workflow](clinical-workflow-demo.md) to load the bundle
-into an isolated deployment. All sample identities and measurements are synthetic.
+into an [explicitly enabled isolated demo deployment](../deployment/demo-installation.md).
+Normal application bootstrap does not install this optional package or its data.
+All sample identities and measurements are synthetic.
 
 ## Files and ownership
 
 | Path within the bundle | Content | Consumer |
 | --- | --- | --- |
-| `starter/` | Connected starter DNA and RNA sample manifests | Initial installation and the demo installation page |
+| `starter/` | Connected starter DNA and RNA sample manifests | Explicit demo installation and the demo installation page |
 | `manifests/` | Additional DNA/RNA workflow manifests | Demo installation page and offline replay |
 | `raw/` | VCF, JSON and image inputs referenced by the manifests | Normal ingest parsers |
-| `setup/` | One shared bundle of assays, diagnoses, configurations, gene lists, catalog offerings and published rules | Default installation and additional demo scenarios |
+| `setup/` | One shared bundle of assays, diagnoses, configurations, gene lists, catalog offerings and published rules | Explicit starter installation and additional demo scenarios |
 
 Test-only resources live under `tests/fixtures/clinical_workflows/`:
 

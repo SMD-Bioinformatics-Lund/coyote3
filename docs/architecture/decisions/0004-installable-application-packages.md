@@ -16,9 +16,9 @@ API and MongoDB adapter are delivered together as the application's server.
 
 ## Decision
 
-Maintain four installable Python distributions in one uv workspace: the core
-library, server application, ingestion service and HTTP client. The root project builds
-the server; `core/`, `services/relay/` and `clients/python/` are workspace projects.
+Maintain six installable Python distributions in one uv workspace. The root
+project builds the server; core, client, ingestion, reference and demonstration
+packages have their own workspace projects.
 
 | Distribution and source | Responsibility | Local dependencies |
 | --- | --- | --- |
@@ -26,11 +26,13 @@ the server; `core/`, `services/relay/` and `clients/python/` are workspace proje
 | `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
 | `coyote-pyclient`, in `clients/python/` | Remote HTTP access and client-owned response models | None |
 | `coyote-relay`, in `services/relay/` | Pipeline submission tools, optional HTTP routes and ingestion workers | Core and client; API/worker extras use server composition |
+| `coyote-atlas`, in `services/atlas/` | Reference bundles, provenance, validation and publication | Core and client; optional API integration uses server composition |
+| `coyote-demo`, in `services/demo/` | Synthetic datasets and guarded demo installation | Core; optional API integration uses server, and worker integration uses Relay |
 
 The root `pyproject.toml` owns the server version, dependencies and wheel build.
 API and MongoDB code retain their `src/` namespaces, documentation, changelogs and
 test suites. Their component `pyproject.toml` files configure tests and coverage;
-they do not define separate distributions or releases. Core and client own their
+they do not define separate distributions or releases. Each other package owns its
 independent distribution metadata. The frontend remains a separate Node application
 in the same repository. Packaging does not introduce additional deployed services.
 
@@ -47,6 +49,14 @@ extensions through `coyote.api.routers`. It has no required Relay dependency.
 API and worker installation include server composition and MongoDB integration,
 while submission-only installation requires no server.
 
+Atlas owns reference artifacts and their lifecycle independently of clinical
+interpretation policy. The server selects its provider through an installed entry
+point and supplies repository implementations. Demo owns synthetic data and
+installation, with a separate guarded deployment. Its extension stays disabled
+unless explicitly configured for restricted demo databases and local services.
+The ordinary application image excludes Demo. These packages supply commands and
+optional integrations; neither requires an always-running service of its own.
+
 The independent client communicates through HTTP and imports no server or core code.
 The deployment image includes its verified wheel for administration commands such
 as `manage_data.py`; the API runtime does not depend on or import the client.
@@ -60,7 +70,7 @@ as `manage_data.py`; the API runtime does not depend on or import the client.
 - **Testable artifacts:** wheel-isolation tests run outside the checkout and
   detect missing resources or accidental imports from local source directories.
 - **Deployment traceability:** release records retain the selected versions and
-  SHA-256 hashes of the core, server, ingestion and administration-client wheels.
+  SHA-256 hashes of all six selected wheels.
 - **Fast local iteration:** editable workspace installs expose Python edits after
   process reload. Ordinary edits do not require wheel rebuilds.
 - **Coordinated changes:** one repository retains shared integration tests,
@@ -86,7 +96,7 @@ string does not supply that equivalence automatically.
 
 ## Documentation ownership
 
-Core and client guides describe their independent packages. API and adapter guides
+Core, client, Relay, Atlas and Demo guides describe their own packages. API and adapter guides
 describe their respective server components, including configuration, interfaces
 and tests. Root documentation describes the complete application, clinical user
 workflows, deployment, integration and architecture decisions. The documentation
@@ -98,6 +108,12 @@ Maintain package and component tests, architecture guards, installed-wheel isola
 source-distribution builds and shared application regressions. Verify release
 metadata and artifact hashes before deployment. External-service tests require
 their documented synthetic environments.
+
+Each package owns its unit, smoke and integration tests and coverage floor. Root
+tests verify composition. Reusable test helpers may form a development-only
+testkit when there is demonstrated duplication; this does not move component
+suites into a central testing service. Frozen clinical regression inputs stay
+with their tests rather than following changes to interactive demo datasets.
 
 See [package boundaries](../../sdk/package-boundaries.md),
 [editable development](../../sdk/uv-development.md) and

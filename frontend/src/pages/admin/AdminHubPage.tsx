@@ -166,7 +166,12 @@ export function AdminHubPage() {
     hasPermission(user, module.permission)
     && (!["/admin/diagnoses", "/admin/assay-diagnoses", "/admin/assay-setups"].includes(module.href) || hasPermission(user, "assay.panel:list"))
   )
-  const visibleUtilities = authorizedUtilities.filter(module => module.href !== "/admin/ingest" || (!modulesQuery.isLoading && !modulesQuery.isError && moduleIsEnabled(modulesQuery.data, "ingest_workspace")))
+  const visibleUtilities = authorizedUtilities.filter(module => {
+    if (module.href === "/admin/demo-installation") {
+      return !modulesQuery.isLoading && !modulesQuery.isError && modulesQuery.data?.extensions?.includes("demo")
+    }
+    return module.href !== "/admin/ingest" || (!modulesQuery.isLoading && !modulesQuery.isError && moduleIsEnabled(modulesQuery.data, "ingest_workspace"))
+  })
   const links = [
     ...visibleResources.map((spec) => ({
       title: spec.title, description: spec.description, href: `/admin/${spec.key}`,

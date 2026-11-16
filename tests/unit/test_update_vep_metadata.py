@@ -139,6 +139,47 @@ def test_seed_merge_preserves_103_and_untouched_releases(tmp_path, document):
         importer.merge_seed([protected], path)
 
 
+def test_review_output_preserves_package_and_rebuilds_complete_atlas_manifest(tmp_path, document):
+    original = importer.ReferenceBundle.packaged()
+    before = original.plan()
+    output = tmp_path / "reference-review"
+    importer.write_reference_bundle([document], {"synthetic_review": {}}, output, "review-2")
+    reviewed = importer.ReferenceBundle(output)
+    assert reviewed.plan().collections == before.collections
+    assert reviewed.inspect().bundle_version == "review-2"
+    assert original.plan() == before
+    originals = original.load_documents()["vep_metadata"]
+    revisions = reviewed.load_documents()["vep_metadata"]
+    assert next(row for row in revisions if row["vep_id"] == "103") == next(
+        row for row in originals if row["vep_id"] == "103"
+    )
+
+
+def test_update_seed_requires_new_bundle_arguments_before_download(monkeypatch):
+    monkeypatch.setattr(
+        importer.sys,
+        "argv",
+        [
+            "update_vep_metadata.py",
+            "--to-release",
+            "116",
+            "--actor",
+            "synthetic-reviewer",
+            "--output-dir",
+            "/tmp/unused-atlas-review",
+            "--update-seed",
+        ],
+    )
+
+    def request(*args, **kwargs):
+        pytest.fail("Configuration error must precede downloads")
+
+    monkeypatch.setattr(importer.httpx, "Client", request)
+    with pytest.raises(SystemExit) as error:
+        importer.main()
+    assert error.value.code == 2
+
+
 def test_install_backs_up_preserves_ids_and_protected_release(tmp_path, document, monkeypatch):
     collection = mongomock.MongoClient().kb.vep_metadata
     original = {**document, "_id": "existing"}

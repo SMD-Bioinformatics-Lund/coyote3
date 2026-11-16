@@ -752,8 +752,8 @@ application services:
 Behavior:
 
 - It creates the first local superuser and system administrator with `permissions`
-  and `roles`, then installs application catalogs, knowledgebase references and the
-  connected starter demonstrations by default, attributed to `system`.
+  and `roles`, then installs selected application catalogs and Atlas knowledgebase
+  references, attributed to `system`. It does not install demonstration data.
 - It rejects a partially initialized identity database rather than merging
   uncertain state.
 - Use module skip flags to disable unwanted initial data. Once accounts exist,
@@ -764,10 +764,11 @@ Seed source policy for a new deployment:
 - The application-owned RBAC catalog is `core/src/coyote/config/catalogs/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
   direct bootstrap or explicit catalog synchronization.
-- `api/src/coyote_api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL
-  records for installation verification. Replace these with reviewed center
-  definitions before clinical use.
-- HGNC and VEP metadata are bundled release snapshots. The optional
+- `services/demo/src/coyote_demo/data/demo_center` provides synthetic ASP, ASPC, and ISGL
+  records for isolated verification. These are not normal bootstrap inputs. Use
+  the [isolated demo workflow](../deployment/demo-installation.md) for demonstration
+  installation and reviewed center definitions for clinical work.
+- HGNC and VEP metadata belong to the checked Atlas reference bundle. The optional
   `scripts/deployment/manage_data.py --api-url API_URL --modules knowledgebase` command
   uses API login and a server-side administrator-role check for later additions;
   it never takes data from
@@ -784,7 +785,10 @@ Validate assay consistency before ingesting sample bundles:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/src/coyote_api/bootstrap/catalogs/demo_center \
+  --seed-file services/demo/src/coyote_demo/data/demo_center \
+  --reference-seed-data core/src/coyote/config/catalogs/rbac \
+  --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
+  --reference-seed-data services/atlas/src/coyote_atlas/data/reference \
   --yaml tests/fixtures/ingest/generic_case_control.yaml
 ```
 

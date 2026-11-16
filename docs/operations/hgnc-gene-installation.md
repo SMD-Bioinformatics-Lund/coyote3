@@ -1,11 +1,18 @@
 # HGNC gene reference installation
 
-The bundled file `api/src/coyote_api/bootstrap/catalogs/reference/hgnc_genes.seed.ndjson.gz`
-belongs to the `coyote-server` reference pack. Core owns its document contract and
+The bundled file `services/atlas/src/coyote_atlas/data/reference/hgnc_genes.seed.ndjson.gz`
+belongs to the `coyote-atlas` reference pack. Core owns its document contract and
 gene/transcript interpretation; it does not ship the installed gene database.
 The server's first-installation workflow installs the bundled snapshot through the
 Mongo adapter into `KNOWLEDGEBASE_DB`. Package installation and imports perform
-no database writes. Later reference changes require the explicit procedure below.
+no database writes. Atlas checks the resource inventory and core contracts before
+installation. Later reference changes require an explicit reviewed operation.
+
+Use `coyote-atlas plan` for an offline bundle identity and
+`GET /api/v1/admin/references/plan` for authenticated target status. The Atlas
+installation API applies a reviewed manifest hash through the same administrator
+and preservation rules. The maintenance procedure below installs separately
+reviewed upstream inputs and retains its backup and transaction requirements.
 
 `scripts/knowledgebase/install_hgnc_genes.py` joins a reviewed HGNC TSV file and an
 Ensembl BioMart CSV export by HGNC ID. It validates the resulting documents against

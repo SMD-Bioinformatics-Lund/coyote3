@@ -146,6 +146,7 @@ class PublicModulesPayload(BaseModel):
 
     modules: dict[str, PublicModuleAvailability]
     curation: PublicCurationAvailability
+    extensions: list[str] = Field(default_factory=list)
 
 
 class PublicAssayCatalogMatrixPayload(BaseModel):

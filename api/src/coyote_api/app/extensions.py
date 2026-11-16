@@ -49,7 +49,7 @@ def load_api_extensions(existing: Iterable[APIRouter]) -> ApiExtensions:
 
     Returns:
         Installed entry-point names and routers, in deterministic name order.
-        No installed entry points produces an empty extension set.
+        No installed or enabled entry points produces an empty extension set.
 
     Raises:
         RuntimeError: An installed extension cannot load, duplicates a name or
@@ -59,17 +59,23 @@ def load_api_extensions(existing: Iterable[APIRouter]) -> ApiExtensions:
         Installing an extension is a trusted code deployment. Extension routes
         run behind the same host middleware and retain their own authorization
         dependencies. A broken installation prevents startup; it is not silently
-        treated as an absent optional package.
+        treated as an absent optional package. A factory may explicitly return
+        None to disable an installed extension through its reviewed configuration.
     """
     occupied = set().union(*(_route_keys(router) for router in existing))
     names: list[str] = []
+    seen: set[str] = set()
     routers: list[APIRouter] = []
     for entry in sorted(entry_points(group=API_ROUTER_ENTRY_POINT), key=lambda item: item.name):
-        if entry.name in names:
+        if entry.name in seen:
             raise RuntimeError(f"Duplicate API extension name: {entry.name}")
+        seen.add(entry.name)
         try:
             factory = entry.load()
-            candidates = tuple(factory())
+            selected = factory()
+            if selected is None:
+                continue
+            candidates = tuple(selected)
         except Exception as exc:
             raise RuntimeError(f"Cannot load installed API extension: {entry.name}") from exc
         if not candidates or any(not isinstance(router, APIRouter) for router in candidates):

@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
         "scripts.bootstrap.bootstrap_database",
         "scripts.bootstrap.install_assay_groups",
         "scripts.bootstrap.validate_assay_consistency",
-        "scripts.bootstrap.demo_service",
+        "coyote_demo.host",
         "scripts.knowledgebase.update_vep_metadata",
         "scripts.identity.sync_rbac_catalog",
     ],

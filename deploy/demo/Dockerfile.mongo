@@ -1,0 +1,7 @@
+FROM mongo:7.0.41
+
+COPY mongo-entrypoint.sh /opt/coyote-demo/mongo-entrypoint.sh
+COPY mongo-init.js /docker-entrypoint-initdb.d/10-demo-user.js
+COPY mongo-replica.sh /opt/coyote-demo/mongo-replica.sh
+ENTRYPOINT ["/bin/sh", "/opt/coyote-demo/mongo-entrypoint.sh"]
+CMD ["mongod", "--replSet", "coyote-demo-rs", "--bind_ip_all", "--keyFile", "/run/coyote-demo/keyfile"]

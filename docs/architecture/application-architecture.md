@@ -53,6 +53,12 @@ Relay's optional API integration supplies ingestion routers through installed
 `coyote.api.routers` entry points, preserving the server's access checks. Without
 Relay installed, the server omits those routes and their OpenAPI entries.
 Reusable ingestion coordination, parsing and clinical decisions belong to core.
+`services/atlas/` owns HGNC/VEP resources and reference publication. Its installed
+provider supplies validated bundles to server installation; clinical VEP grouping
+policy remains in core. `services/demo/` owns synthetic datasets and demonstration
+installation. Its optional routes activate only after explicit isolated-target
+configuration, and its runtime guard checks credential scope before connecting the
+application. Installing a package does not start a separate network service.
 See [installation boundaries](../sdk/server-installation.md) and
 [editable uv development](../sdk/uv-development.md).
 
@@ -97,6 +103,8 @@ Workers / trusted Python ----------> Application SDK operations
 | `core/src/coyote/config/catalogs/rbac/` | Canonical permission definitions and built-in role templates. | Server installation consumes these resources; core imports do not install data. |
 | `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the server wheel, outside the core namespace. |
 | `services/relay/src/coyote_relay/` | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
+| `services/atlas/src/coyote_atlas/` | HGNC/VEP reference resources, validation and publication. | Base package uses core; optional host integration supplies persistence and authorized API operations. |
+| `services/demo/src/coyote_demo/` | Synthetic datasets, guarded installation and optional demo API routes. | Base package uses core; host integration requires isolated targets and restricted credentials. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |
 | `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
 | `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |

@@ -284,22 +284,6 @@ def test_report_drafts_have_passing_embedded_cases():
 
 
 @pytest.mark.parametrize(
-    "uri,database",
-    [
-        ("mongodb://remote.example:27017", "coyote4_demo"),
-        ("mongodb://localhost:27017", "coyote4_smd_prod"),
-        ("mongodb://localhost:27017,remote.example:27017", "coyote4_demo"),
-    ],
-)
-def test_demo_installer_rejects_non_demo_targets(uri, database):
-    """The reusable setup loader cannot select an ordinary or remote database."""
-    from scripts.bootstrap.install_demo_workflows import validate_target
-
-    with pytest.raises(ValueError):
-        validate_target(uri, database)
-
-
-@pytest.mark.parametrize(
     "filename", ["missing_required_file.yaml", "missing_aspc.yaml", "rna_with_snv.yaml"]
 )
 def test_negative_manifests_reject_before_writes(filename):

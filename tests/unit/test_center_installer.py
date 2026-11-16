@@ -597,10 +597,9 @@ def test_setup_center_defaults_to_complete_bootstrap_only_when_fresh(fake_instal
 @pytest.mark.parametrize(
     "flags",
     [
-        ["--skip-demo"],
         ["--skip-knowledgebase"],
-        ["--skip-application", "--skip-demo"],
-        ["--skip-users", "--skip-application", "--skip-knowledgebase", "--skip-demo"],
+        ["--skip-application"],
+        ["--skip-users", "--skip-application", "--skip-knowledgebase"],
     ],
 )
 def test_fresh_module_skip_flags_are_passed_to_bootstrap(fake_installation, flags):
@@ -618,7 +617,7 @@ def test_fresh_module_skip_flags_are_passed_to_bootstrap(fake_installation, flag
     "flags",
     [
         ["--skip-users"],
-        ["--skip-application"],
+        ["--skip-demo"],
         ["--force"],
         ["--with-demo-center"],
         ["--with-knowledgebase-seeds"],

@@ -11,7 +11,6 @@ audit delivery are outside this in-memory reference export.
 from __future__ import annotations
 
 import argparse
-import gzip
 import hashlib
 import json
 import sys
@@ -24,14 +23,13 @@ from bson.json_util import dumps, loads
 from coyote.domain.annotation_identity import primary_small_variant_identity
 from coyote.domain.annotation_scope import annotation_namespace
 from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_atlas.bundle import ReferenceBundle
+from coyote_demo.resources import WORKFLOW_BUNDLE
 from coyote_mongo.config.settings import AuditContext
 
-ROOT = (
-    Path(__file__).resolve().parents[2]
-    / "api/src/coyote_api/bootstrap/demo_data/clinical_workflows"
-)
+ROOT = WORKFLOW_BUNDLE
 FIXTURES = Path(__file__).resolve().parents[2] / "tests/fixtures/clinical_workflows"
-sys.path.insert(0, str(ROOT.parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from coyote.application.common.release_resources import (  # noqa: E402
     capture_assay_resource,
@@ -88,9 +86,7 @@ def replay():
     """
     db = mongomock.MongoClient().synthetic_demo
     # Use the same bundled HGNC reference as deployment, without inventing MANE flags.
-    reference = BOOTSTRAP_ROOT / "reference/hgnc_genes.seed.ndjson.gz"
-    with gzip.open(reference, "rt") as source:
-        genes = [json.loads(line) for line in source]
+    genes = ReferenceBundle.packaged().load_documents()["hgnc_genes"]
     db.hgnc_genes.insert_many(
         [row for row in genes if row.get("hgnc_symbol") in {"BCR", "ABL1", "TP53", "CEBPA"}]
     )

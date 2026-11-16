@@ -15,6 +15,8 @@
 - Exact assay/environment access, scoped credentials and durable audit records.
 - Coyote Relay ingestion tools, optional API routes and workers with core-owned
   workflows, recovery support, container deployment and migration tools.
+- Coyote Atlas reference bundles with integrity checks and recorded provenance;
+  isolated Coyote Demo installations for local and Docker use.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
 - GNU GPL version 3 only, with separate copyright and contributor notices.

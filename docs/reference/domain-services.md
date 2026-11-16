@@ -182,7 +182,7 @@ and naming conventions while retaining the same API and UI contract.
 | In-app and broadcast notices | `core/src/coyote/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
 | Audit events | `core/src/coyote/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
 | Diagnostic logging and error mail | `api/src/coyote_api/infra/observability/` | Daily service logs and an independent monitor. |
-| Bundled installation data | `api/src/coyote_api/services/provisioning/deployment_data.py`, `api/src/coyote_api/services/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
+| Bundled installation data | `api/src/coyote_api/services/provisioning/deployment_data.py`, `services/demo/src/coyote_demo/installation.py` | Normal bootstrap installs factory catalogs and Atlas references. Synthetic inputs require the separate isolated demo installation; later maintenance uses administrator authentication through the API. |
 
 These are packages in one application, with worker processes providing execution
 isolation. See [background delivery and recovery](../operations/background-delivery.md)

@@ -30,6 +30,7 @@ def release_root(tmp_path):
     (tmp_path / "release.toml").write_text(
         'application_version="4.2.0"\nsdk_version="1.3.1"\nserver_version="1.5.0"\n'
         'client_version="1.2.0"\nrelay_version="1.1.0"\n'
+        'atlas_version="1.1.0"\ndemo_version="1.1.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     (tmp_path / "core").mkdir()
@@ -50,6 +51,23 @@ def release_root(tmp_path):
         '[project.optional-dependencies]\napi=["coyote-server==1.5.0"]\n'
         'worker=["coyote-server==1.5.0"]\n'
     )
+    for service in ("atlas", "demo"):
+        directory = tmp_path / "services" / service
+        directory.mkdir(parents=True)
+        dependencies = (
+            '["coyote-core==1.3.1", "coyote-pyclient==1.2.0"]'
+            if service == "atlas"
+            else '["coyote-core==1.3.1"]'
+        )
+        (directory / "pyproject.toml").write_text(
+            f'[project]\nname="coyote-{service}"\nversion="1.1.0"\ndependencies={dependencies}\n'
+            '[project.optional-dependencies]\napi=["coyote-server==1.5.0"]\n'
+            + (
+                'worker=["coyote-server==1.5.0", "coyote-relay==1.1.0"]\n'
+                if service == "demo"
+                else ""
+            )
+        )
     for path in ("package.json", "frontend/package.json"):
         (tmp_path / path).write_text(json.dumps({"version": "4.2.0"}))
     routers = tmp_path / "api/src/coyote_api/interfaces/http/v1"
@@ -124,6 +142,23 @@ def test_application_cannot_silently_build_with_another_sdk(release_root):
     with pytest.raises(ValueError, match="pin differs"):
         release_identity(release_root)
     assert release_identity(release_root, sdk_only=True)["sdk_source_version"] == "1.4.0"
+
+
+@pytest.mark.parametrize(
+    "service,old,new,message",
+    [
+        ("atlas", "coyote-pyclient==1.2.0", "coyote-pyclient==0.9.0", "Atlas client"),
+        ("demo", "coyote-relay==1.1.0", "coyote-relay==0.9.0", "Demo worker"),
+    ],
+)
+def test_optional_service_dependencies_match_release_selection(
+    release_root, service, old, new, message
+):
+    """Independent service extras cannot silently pull incompatible release components."""
+    project = release_root / "services" / service / "pyproject.toml"
+    project.write_text(project.read_text().replace(old, new))
+    with pytest.raises(ValueError, match=message):
+        release_identity(release_root)
 
 
 def test_application_rejects_stale_frontend_identity(release_root):
@@ -221,7 +256,14 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     (source / "core/docs/architecture.md").write_text("Synthetic core documentation")
     for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
         (source / name).write_text("synthetic")
-    for package in ("api", "adapters/mongo", "clients/python", "services/relay"):
+    for package in (
+        "api",
+        "adapters/mongo",
+        "clients/python",
+        "services/relay",
+        "services/atlas",
+        "services/demo",
+    ):
         directory = source / package
         (directory / "src").mkdir(parents=True)
         (directory / "docs").mkdir()
@@ -258,7 +300,7 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(build_sdk.subprocess, "run", inspect_build)
     build_sdk.build_sdk(tmp_path / "wheels", build_isolation=False)
-    assert len(inspected) == 4
+    assert len(inspected) == 6
     assert all(not path.exists() for path in inspected)
 
 

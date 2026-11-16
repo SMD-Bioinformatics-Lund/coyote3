@@ -8,7 +8,6 @@ import pytest
 from coyote.contracts.schemas.variant_annotations import (
     VepConsequenceDiagramDoc,
 )
-from coyote_api.infra.seed.diagrams import load_seed_diagrams
 from pydantic import ValidationError
 
 from scripts.knowledgebase.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
@@ -59,9 +58,7 @@ def test_seed_migration_is_lossless_and_idempotent(tmp_path):
         result = json.loads(stream.readline())
     assert result["conseq_translations"] == row["conseq_translations"]
     assert "data_base64" not in result["consequence_diagram"]
-    assets = load_seed_diagrams([result], tmp_path)
-    assert assets[0]["data"] == split_diagram(source)[1]
+    descriptor, content = split_diagram(source)
+    assert result["consequence_diagram"] == descriptor
+    assert (tmp_path / "vep_diagrams" / source["sha256"]).read_bytes() == content
     assert embedded_diagrams([result]) == {}
-    (tmp_path / "vep_diagrams" / source["sha256"]).write_bytes(b"corrupt")
-    with pytest.raises(ValueError, match="checksum"):
-        load_seed_diagrams([result], tmp_path)

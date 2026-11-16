@@ -4,11 +4,12 @@
 ![Scope: Installation catalogs](https://img.shields.io/badge/Scope-Installation%20catalogs-4F46A5?style=flat)
 <!-- badges:end -->
 
-This directory contains server-owned installation data for an empty Coyote4
-database. The shared permission and role catalog belongs to the core library at
+This directory contains server-owned application installation catalogs for an
+empty Coyote4 database. The shared permission and role catalog belongs to core at
 `core/src/coyote/config/catalogs/rbac`; the server reads that packaged catalog
-when installing identity data. Bootstrap is explicit; importing a package does
-not write documents.
+when installing identity data. Atlas owns reference snapshots and the optional
+Demo package owns synthetic workflows. Bootstrap is explicit; importing a package
+does not write documents.
 
 Software defaults are packaged separately in `core/src/coyote/config/`; physical
 collection configuration belongs to `adapters/mongo/src/coyote_mongo/config/`. These files are loaded
@@ -21,8 +22,8 @@ copy these application-owned files into the external center directory.
 | --- | --- | --- | --- |
 | Core `config/catalogs/rbac/` | `permissions`, `roles` | Core release | Installed before the first local superuser is created. Bundled permissions and roles cannot be edited, deactivated or deleted through the UI. Centers can create their own roles. |
 | `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote4 application release | Five biological groups and six group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
-| `reference/` knowledgebase snapshots | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Separate optional reference installation imports only into empty destination collections. Existing reference collections are never merged or replaced. |
-| `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic configuration fixtures | Used for bootstrap validation and isolated collection-import exercises. The starter installer uses `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` for its connected catalog and samples. |
+| Atlas `data/reference/` | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Checked, versioned reference bundle in `coyote-atlas` | Explicit reference installation imports empty targets. Existing collections are preserved unless the operator explicitly requests the controlled bundled repair workflow. |
+| Demo `data/demo_center/` and `data/clinical_workflows/` | Synthetic configuration and pipeline inputs | Optional `coyote-demo` package | Only the isolated demonstration workflow installs these resources; normal bootstrap does not load them. |
 
 See [Installed defaults and demonstration configuration](../../../../../docs/administration/installed-defaults.md)
 for the complete inventory, query conditions, demo filters and role responsibilities.
@@ -37,10 +38,11 @@ MongoDB document shape.
 connects directly to the configured MongoDB URI before API, worker, or UI
 services are started. On fresh application/identity targets it creates a named system
 administrator and an emergency superuser with RBAC, then installs application
-catalogs, bundled HGNC/VEP references and both connected starter demonstrations by
-default. Use `--skip-users`, `--skip-application`, `--skip-knowledgebase` and
-`--skip-demo` to disable modules subject to their documented dependencies.
-Populated reference collections are preserved.
+catalogs and selected Atlas HGNC/VEP references. Use `--skip-users`,
+`--skip-application` and `--skip-knowledgebase` to disable modules subject to their
+documented dependencies. Populated reference collections are preserved. Demonstrations
+require the optional package and the separate
+[isolated demo workflow](../../../../../docs/deployment/demo-installation.md).
 
 Only the invocation that creates the initial accounts may add data without API login.
 Existing deployments skip bootstrap completely, including missing modules. Later
@@ -55,8 +57,8 @@ The operator supplies distinct usernames, email addresses, and temporary passwor
 for the two accounts. No default credential is stored in this repository. Both
 accounts are marked `system_managed` and must change their passwords at first sign-in.
 
-Automated creations use `created_by: "system"`; starter samples record the system
-submitter. Authenticated maintenance updates and audit events identify the operator.
+Automated catalog creations use `created_by: "system"`. Authenticated maintenance
+updates and audit events identify the operator.
 Supported catalogs are marked `system_managed`, and document versions start
 at `1`. Clinical rule content versions and revisions also start at `1`; their
 synthetic review, publication, and lifecycle metadata use the administrator and
@@ -78,10 +80,12 @@ Application upgrades use dedicated synchronization or release procedures:
 - HGNC and VEP releases are loaded as an intentional reference-data operation.
 - `scripts/knowledgebase/update_vep_metadata.py` downloads release-specific Ensembl website
   tables. The bundled VEP seed covers releases 98 through 116, with release 103
-  preserved from the existing snapshot. `reference/vep_metadata.sources.json`
-  records source commits and hashes; `reference/NOTICE.txt` records attribution.
-- `reference/vep_diagrams/` contains original binary images named by SHA-256.
-  Keep these assets with the reference pack. Bootstrap checks their hashes and
+  preserved from the existing snapshot. Atlas `data/reference/vep_metadata.sources.json`
+  records source commits and hashes; its `NOTICE.txt` records attribution.
+  Seed updates produce a new review directory and regenerate its checked manifest;
+  they do not modify installed package resources.
+- Atlas `data/reference/vep_diagrams/` contains original binary images named by SHA-256.
+  Keep these assets with the reference pack. Atlas checks their hashes and bootstrap
   installs them as BSON binary in `vep_diagrams`; VEP metadata contains only
   compact descriptors, never embedded base64 image strings.
 - ASP, ASPC, and ISGL revisions are created through their managed versioned
@@ -91,4 +95,5 @@ Application upgrades use dedicated synchronization or release procedures:
 
 This directory must not contain users, credentials, samples, findings,
 annotations, reports, patient identifiers, or center-specific clinical data.
-Synthetic ingest and collection examples live under `demo_data/`.
+Synthetic ingest and collection examples belong to `coyote-demo`, outside this
+server package. Reference data and notices belong to `coyote-atlas`.

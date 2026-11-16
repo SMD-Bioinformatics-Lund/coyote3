@@ -24,7 +24,7 @@ temporary host paths rather than different application code.
 >
 >
 > Use only the synthetic files under
-> `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`. Do not copy clinical
+> `services/demo/src/coyote_demo/data/clinical_workflows/`. Do not copy clinical
 > samples, patient identifiers, production credentials, or a production
 > database archive into this environment.
 >
@@ -408,8 +408,8 @@ Bootstrap loads:
 
 - system-managed permissions and roles;
 - the first local superuser and named system administrator;
-- application groups/query policies, bundled HGNC/VEP references, and both connected
-  starter demonstrations, with system creation provenance.
+- application groups/query policies and selected Atlas HGNC/VEP references,
+  with system creation provenance. No demonstration samples are installed.
 
 Existing deployments skip bootstrap, including missing modules. Partial targets
 are rejected. Later additions or repairs use authenticated API maintenance.
@@ -463,8 +463,9 @@ bash scripts/deployment/compose-with-version.sh \
 
 Enter the initial administrator password, then complete the new-password and
 confirmation prompts. The command signs in again before maintenance.
-Default starter content is described in the
-[demo installation workflow](clinical-workflow-demo.md).
+Demonstration content requires the separate
+[isolated demo installation](../deployment/demo-installation.md). It is not
+installed by this normal application bootstrap or by `manage_data.py`.
 
 Verify the public application surfaces:
 
@@ -477,8 +478,9 @@ curl -fsS "$VALIDATION_PUBLIC_URL/api/v1/docs" >/dev/null
 ## 8. Submit a live watch-folder ingest
 
 The generic fixture below targets legacy `assay_1` configuration rather than the
-default starter assays. Provision its ASP, ASPC and ISGL definitions from
-`api/src/coyote_api/bootstrap/catalogs/demo_center` through managed administration before submitting it;
+optional starter demo assays. In this disposable validation target, provision its
+ASP, ASPC and ISGL definitions from
+`services/demo/src/coyote_demo/data/demo_center` through managed administration before submitting it;
 see the [bundled configuration examples](../administration/installed-defaults.md#low-level-bootstrap-configuration-examples).
 
 Create one sample bundle through the running worker, which owns the mounted

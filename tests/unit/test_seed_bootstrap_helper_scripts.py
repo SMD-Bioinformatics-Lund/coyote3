@@ -291,7 +291,7 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
     from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
     from coyote_api.infra.seed.bundle import load_seed
 
-    source = load_seed(ROOT_DIR / "api/src/coyote_api/bootstrap/catalogs/demo_center")
+    source = load_seed(ROOT_DIR / "services/demo/src/coyote_demo/data/demo_center")
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
     for collection, documents in source.items():
         for document in documents:

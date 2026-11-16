@@ -377,7 +377,7 @@ The installer executes the following sequence:
    connections from a temporary API container. Validate mounted center configuration.
 4. Verify all four MongoDB endpoints and inspect application/identity installation state.
 5. On a fresh target only, prompt for initial accounts and install users, application
-   catalogs, bundled knowledgebases and both starter demonstrations by default.
+   catalogs and bundled knowledgebases by default. Demonstrations use their own isolated installation.
 6. Check application, identity and BAM indexes, stop on conflicts, create compatible missing indexes, and
    verify that every required index is present before starting services.
 7. Apply knowledgebase indexes separately when explicitly selected.
@@ -420,7 +420,7 @@ default, prerequisite and standalone command.
 
 | Detected state | Installer behavior |
 | --- | --- |
-| Application and identity databases contain no documents | Create accounts/RBAC, install application, knowledgebase and demo modules by default, then start services. Empty collections do not count as installed data. |
+| Application and identity databases contain no documents | Create accounts/RBAC, install application and knowledgebase modules by default, then start services. Empty collections do not count as installed data. |
 | The initial governance baseline exists, including before application catalogs are installed | Skip all initial data installation. Preserve existing data and continue index checks/startup. Missing modules require authenticated maintenance. |
 | Only part of application/identity initialization is recognized | Stop before bootstrap or index writes. Inspect the target selection and initialization state; do not drop databases to retry. |
 | Fresh bootstrap includes knowledgebase data | Populate empty bundled HGNC/VEP collections and preserve populated reference collections. |
@@ -461,15 +461,14 @@ password change and signs in again before adding data. The service checks the
 | `--env-file FILE` | Required private deployment environment file. |
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
-| `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs, bundled references and demos. Preserves existing deployments. Cannot combine with `--steps`. |
+| `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs and bundled references. Preserves existing deployments. Cannot combine with `--steps`. |
 | `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote4.sysadmin`. |
 | `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote4.superuser`. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
 | `--identity-maintenance-uri-file FILE` | Explicit restricted runtime-role upgrade before validation, using a separate maintenance connection. It does not enable MongoDB authorization or create passwords. |
-| `--skip-demo` | Disable the otherwise included connected DNA/RNA starter configuration and samples. |
 | `--skip-knowledgebase` | Disable bundled reference installation. |
-| `--skip-application` | Disable application catalogs; requires `--skip-demo`. |
-| `--skip-users` | Disable initial accounts/RBAC; requires all three data modules to be skipped. |
+| `--skip-application` | Disable application catalogs. |
+| `--skip-users` | Disable initial accounts/RBAC; requires both data modules to be skipped. |
 | `--skip-build` | Use already-built images after confirming that they match the selected release and deployment settings. |
 | `--steps LIST` | Comma-separated stages; default `network,directories,build,validate,bootstrap,indexes,start,health`. Executes selected stages in dependency order. |
 | `--with-knowledgebase-indexes` | Opt in to knowledgebase index planning, creation and verification. Large collections can take considerable time. |
@@ -486,9 +485,10 @@ on exit. The script never runs database drop, restore or reset operations.
 
 ### Installed application definitions and baseline
 
-The single installer invocation above includes both demo workflows by default.
-Do not run it a second time for this subsection. Select `--skip-demo` in that
-invocation when a new center should start without synthetic demonstrations.
+The installer above creates the ordinary application baseline without synthetic
+samples. For demonstration workflows, follow the separate
+[isolated demo installation](demo-installation.md). It selects dedicated demo
+databases and restricted credentials; it does not add demos to a clinical deployment.
 
 See [Installed defaults and demonstration configuration](../administration/installed-defaults.md)
 for the complete group inventory, exact query-rule conditions, optional demo assays,
@@ -500,8 +500,8 @@ and installation criteria at `api/src/coyote_api/bootstrap/catalogs/reference/cl
 These are application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
-emergency `superuser`, assay groups, query-rule publications, bundled HGNC/VEP data
-and both connected starter demonstrations unless their skip flags are selected.
+emergency `superuser`, assay groups, query-rule publications and bundled HGNC/VEP
+data unless their skip flags are selected.
 Automated creations are attributed to `system`, and document versions start at
 1; external reference release identifiers retain their original values. Installation
 metadata is not evidence of clinical review. Optional demonstration records are

@@ -47,9 +47,9 @@ VEP consequences.
 ## Ownership and installation
 
 The compressed `vep_metadata.seed.ndjson.gz`, its provenance manifest and the
-content-addressed `vep_diagrams/` files belong to the server reference pack under
-`api/src/coyote_api/bootstrap/catalogs/reference/`. The authoritative location is
-`coyote_api.bootstrap.paths.REFERENCE_CATALOG_DIR`. Core owns the metadata
+content-addressed `vep_diagrams/` files belong to the Atlas reference pack under
+`services/atlas/src/coyote_atlas/data/reference/`. The authoritative installed location is
+`coyote_atlas.bundle.ReferenceBundle.packaged().directory`. Core owns the metadata
 contracts, release interpretation and Coyote grouping policy; it does not own a
 database connection or automatically install references.
 
@@ -180,9 +180,15 @@ continue if those records changed after backup. Other releases, collections,
 samples, findings, annotations and reports are untouched. Keep the backup and
 source manifest with the maintenance record. Existing release IDs must be unique.
 
-After review, add `--update-seed` to write the compressed application seed and
-its source manifest. This flag can be used without `--apply` for a seed-only
-update. Release 103 and other unrequested seed records remain unchanged.
+After review, add `--update-seed --output-bundle /path/to/new-reference-pack
+--bundle-version REVIEWED_VERSION` to create a separate Atlas review copy. The
+output directory must not exist, and the bundle version must differ from the
+installed pack. Its inventory, source manifest, dataset hashes and counts are
+regenerated and validated together. Installed package files are never changed.
+This operation can run without `--apply`; release 103 and other unrequested seed
+records remain unchanged. Validate the output with
+`coyote-atlas --bundle /path/to/new-reference-pack validate`, then review and
+publish the intended package artifact through the normal release process.
 First-run bootstrap still imports references only into an empty collection;
 deploying a new image does not silently replace an existing collection.
 
@@ -201,7 +207,8 @@ New metadata imports also download the diagram linked by each release's
 ```
 
 The diagram command downloads images for releases present in the bundled seed,
-including 103. Add `--update-seed` to enrich the seed, and use the following flags
+including 103. Add `--update-seed`, `--output-bundle` and `--bundle-version` to
+create a checked review pack as above, and use the following flags
 for a database update:
 
 ```bash
@@ -219,7 +226,7 @@ Release 103 remains protected from the metadata importer; its diagram can be
 updated independently. Image provenance is retained inside each diagram document.
 
 The seed stores original binary files under
-`api/src/coyote_api/bootstrap/catalogs/reference/vep_diagrams/<sha256>`. Bootstrap validates hashes
+`services/atlas/src/coyote_atlas/data/reference/vep_diagrams/<sha256>`. Atlas validates hashes
 and installs these into the configured image collection before metadata. Keep
 this directory with the reference seed when copying a seed pack to another center.
 The downloader's review output may contain base64 as JSON transport data; import
@@ -237,8 +244,10 @@ Pause other reference importers, then migrate an existing installation:
 
 The migration validates each original image, preserves its bytes and hash, and
 atomically removes embedded base64 while inserting its binary asset. Release 103
-is included. A second run finds nothing to migrate. Use `--update-seed` to convert
-an older seed pack. Deploy the binary image API and refreshed frontend together
+is included. A second run finds nothing to migrate. The optional `--update-seed`
+path operates on a new review copy and requires `--output-bundle` and
+`--bundle-version`; its manifest is regenerated and validated. Deploy the binary
+image API and refreshed frontend together
 with this migration; older clients expect inline images. Normal application
 credentials need read access to both knowledgebase collections, not write access.
 
@@ -256,5 +265,6 @@ label, use the targeted repair with a maintenance connection:
 This backs up all installed records and corrects only the three documentation
 URL fields and unresolved cache version labels in a transaction. Definitions,
 groups, IDs, creation provenance and diagrams are unchanged, including release
-103. `--update-seed` applies the same corrections to the bundled seed without
-requiring a database connection. Repeating the repair makes no further changes.
+103. `--update-seed --output-bundle NEW_DIRECTORY --bundle-version REVIEWED_VERSION`
+applies the same corrections to a separate checked review pack without requiring
+a database connection. Repeating the database repair makes no further changes.

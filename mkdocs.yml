@@ -83,6 +83,7 @@ nav:
     - Application control settings: administration/application-controls.md
 - Install and operate:
   - Install at a new center: deployment/first-installation.md
+  - Run an isolated demonstration: deployment/demo-installation.md
   - Upgrade an installation: deployment/application-upgrades.md
   - Restart or redeploy: deployment/application-redeployment.md
   - Investigate a service failure: operations/troubleshooting.md
@@ -191,6 +192,23 @@ nav:
     - Reference: packages/relay/reference.md
     - Development: packages/relay/development.md
     - Architecture: packages/relay/architecture.md
+  - Atlas reference service:
+    - Start here: packages/atlas/README.md
+    - Getting started: packages/atlas/getting-started.md
+    - Usage: packages/atlas/usage.md
+    - Configuration: packages/atlas/configuration.md
+    - Reference: packages/atlas/reference.md
+    - Development: packages/atlas/development.md
+    - Architecture: packages/atlas/architecture.md
+  - Demo service:
+    - Start here: packages/demo/README.md
+    - Getting started: packages/demo/getting-started.md
+    - Usage: packages/demo/usage.md
+    - Configuration: packages/demo/configuration.md
+    - Datasets: packages/demo/datasets.md
+    - Reference: packages/demo/reference.md
+    - Development: packages/demo/development.md
+    - Architecture: packages/demo/architecture.md
   - Frontend:
     - Start here: packages/frontend/README.md
     - Getting started: packages/frontend/getting-started.md

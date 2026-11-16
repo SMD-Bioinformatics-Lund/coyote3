@@ -47,7 +47,8 @@ from coyote.config.vep_reference import (  # noqa: E402
 from coyote.contracts.schemas.variant_annotations import (  # noqa: E402
     VepMetadataDoc,
 )
-from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR  # noqa: E402
+from coyote_atlas.authoring import draft_bundle  # noqa: E402
+from coyote_atlas.bundle import ReferenceBundle  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
@@ -60,7 +61,7 @@ from scripts.knowledgebase.vep_diagram_storage import (  # noqa: E402
     store_diagram,
 )
 
-SEED = REFERENCE_CATALOG_DIR / "vep_metadata.seed.ndjson.gz"
+SEED = ReferenceBundle.packaged().directory / "vep_metadata.seed.ndjson.gz"
 CONSEQUENCES = "modules/EnsEMBL/Web/Document/HTML/ConsequenceTable.pm"
 CLASSIFICATION = "ensembl/htdocs/info/genome/variation/prediction/classification.html"
 CACHE = "docs/htdocs/info/docs/tools/vep/script/vep_cache.html"
@@ -540,6 +541,34 @@ def install(collection, documents: list[dict], backup: Path) -> None:
     run_transaction(collection.database.client, replace)
 
 
+def write_reference_bundle(
+    documents: list[dict], provenance: dict, output: Path, version: str
+) -> None:
+    """Create a separate reviewed Atlas pack with a complete regenerated inventory.
+
+    Args:
+        documents: Validated VEP releases, excluding protected release 103.
+        provenance: Retained release-source URLs, checksums and interpretation-policy digest.
+        output: New output directory; existing files and installed packages are never overwritten.
+        version: Explicit new reference-bundle version, distinct from the installed one.
+
+    Raises:
+        ValueError: Version is unchanged/blank, or reference validation fails.
+        FileExistsError: The output directory already exists.
+        OSError: Resources cannot be read, copied or written.
+
+    Notes:
+        Changes only the newly created output pack. Database installation and package
+        publication remain separate operations; a failed validation leaves review files.
+    """
+    with draft_bundle(output, version):
+        merge_seed(documents, output / "vep_metadata.seed.ndjson.gz")
+        provenance_path = output / "vep_metadata.sources.json"
+        sources = json.loads(provenance_path.read_text())
+        sources.update(provenance)
+        provenance_path.write_text(json.dumps(sources, indent=2) + "\n")
+
+
 def main() -> int:
     """Download and preview by default; explicitly opt into database or seed writes.
 
@@ -556,11 +585,19 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--backup", type=Path)
     parser.add_argument("--update-seed", action="store_true")
+    parser.add_argument("--output-bundle", type=Path, help="New reviewed Atlas bundle directory")
+    parser.add_argument("--bundle-version", help="New Atlas reference-bundle version")
     args = parser.parse_args()
     if args.cpus < 1 or args.from_release < 98 or args.to_release < args.from_release:
         parser.error("Invalid release range or CPU count")
     if args.apply and not args.backup:
         parser.error("--apply requires --backup")
+    if args.update_seed and (not args.output_bundle or not args.bundle_version):
+        parser.error("--update-seed requires --output-bundle and --bundle-version")
+    if not args.update_seed and (args.output_bundle or args.bundle_version):
+        parser.error("Bundle output options require --update-seed")
+    if args.output_bundle and args.output_bundle.exists():
+        parser.error("--output-bundle must be a new directory")
     policy = load_vep_metadata_policy()
     releases = [n for n in range(args.from_release, args.to_release + 1) if n != 103]
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -604,11 +641,7 @@ def main() -> int:
             name = load_collection_section("knowledgebase")["vep_metadata_collection"]
             install(client[database][name], documents, args.backup)
     if args.update_seed:
-        merge_seed(documents, SEED)
-        provenance_path = SEED.with_name("vep_metadata.sources.json")
-        previous = json.loads(provenance_path.read_text()) if provenance_path.exists() else {}
-        previous.update(manifest)
-        provenance_path.write_text(json.dumps(previous, indent=2) + "\n")
+        write_reference_bundle(documents, manifest, args.output_bundle, args.bundle_version)
     return 0
 
 

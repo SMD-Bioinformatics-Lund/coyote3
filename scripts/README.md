@@ -28,16 +28,16 @@ Clinical-data conversion lives in `migrations_scripts/`. Follow the
 [execution order and commands](../docs/operations/migrations/clinical-data.md).
 Export and preparation do not write to the source databases.
 
-Fresh deployment includes the connected DNA/RNA starter configuration and both samples
-unless `--skip-demo` is selected. Later additions and repairs use
-`python3 scripts/deployment/manage_data.py --api-url API_URL --modules demo`, with
-`--force` for explicit repair. This command authenticates through the API and does not
-deploy services. The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
-documents `bootstrap/install_demo_workflows.py` (plan/apply configuration in an explicit
-local demo database) and `quality/export_demo_workflows.py` (offline ingest replay and
-collection/report snapshot verification). Neither belongs in production startup.
+Normal deployment does not install demonstration code or samples. The optional
+`coyote-demo` package supplies `coyote-demo-install` and its authenticated API
+routes for an [explicitly isolated demo environment](../docs/deployment/demo-installation.md).
+`manage_data.py` manages identity, application and knowledgebase catalogs only.
+The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
+documents the packaged installer and `quality/export_demo_workflows.py` for offline
+ingest replay and collection/report verification. Neither belongs in production startup.
 
-`quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `client`, or `all`
+`quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `client`, `relay`,
+`atlas`, `demo`, or `all`
 from each package directory. The default is its full suite; `--smoke` selects fast
 checks and `--coverage` enforces that package's branch-coverage floor and writes
 its local reports. It uses `PYTHON_BIN`, the active virtual environment, or root

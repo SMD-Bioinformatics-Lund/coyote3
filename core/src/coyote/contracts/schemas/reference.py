@@ -468,6 +468,7 @@ class KnowledgebaseReleaseDoc(_CollectionDocBase):
     published_at: datetime | None = None
     retired_at: datetime | None = None
     failed_at: datetime | None = None
+    bundle: dict[str, Any] | None = None
 
 
 class HgncAdditionalTranscriptInfoDoc(_DocBase):

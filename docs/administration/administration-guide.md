@@ -127,11 +127,13 @@ in it.
 | Permission policy | Every permission understood by the shipped API and UI. | Assign through center-owned roles. | Edit, activation changes, and delete. |
 | Role | Standard clinical, operational, and administrative role baselines. | Assign to authorized accounts; create a separate center-owned role for custom grants. | Edit, activation changes, and delete. |
 | Initial administrators | Fixed `coyote4.sysadmin` and `coyote4.superuser` logins, with independently generated temporary passwords printed once during fresh bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
-| Demo ASP, ASPC, and ISGL | Synthetic starter configuration included by default on first installation; disable with `--skip-demo`. | Edit and deactivate for disposable validation. | Delete. |
+| Demo ASP, ASPC, and ISGL | Synthetic configuration installed only by the optional Demo package in an isolated demo deployment. | Edit and deactivate for disposable validation. | Delete. |
 
 Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do
 not receive this protection. Avoid using the demo configuration for clinical
 work; create reviewed center configuration before ingesting clinical samples.
+Normal bootstrap installs no demo resources. The Demo administration page appears
+only when its extension is enabled for an [isolated demonstration](../deployment/demo-installation.md).
 
 | Resource | Read access | Mutation access |
 | --- | --- | --- |

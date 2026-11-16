@@ -7,7 +7,7 @@
 These files are privacy-safe, compact fixtures for sample ingestion flows.
 
 For multi-sample query, filter, tiering, comment and reporting exercises, use the
-[clinical workflow bundle](../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md).
+[clinical workflow bundle](../../../services/demo/src/coyote_demo/data/clinical_workflows/README.md).
 
 - `generic_case_control.yaml`: Canonical DNA case-control ingestion manifest,
   including an explicit database-version snapshot.

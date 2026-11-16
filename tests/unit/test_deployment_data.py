@@ -188,7 +188,6 @@ def fresh_installation(monkeypatch):
         skip_users=False,
         skip_application=False,
         skip_knowledgebase=False,
-        skip_demo=False,
     )
     documents = build_seed_documents(
         rbac_dir=RBAC_CATALOG_DIR,
@@ -205,22 +204,22 @@ def fresh_installation(monkeypatch):
         lambda *args, **kwargs: SimpleNamespace(databases=databases, close=lambda: None),
     )
     monkeypatch.setattr(
-        "coyote_api.infra.seed.diagrams.load_seed_diagrams",
-        lambda *args: [{"_id": "asset"}],
+        "coyote_api.bootstrap.references.reference_bundle",
+        lambda: SimpleNamespace(
+            load_diagrams=lambda: [{"_id": "asset"}],
+            plan=lambda: SimpleNamespace(model_dump=lambda **kwargs: {}),
+        ),
     )
     monkeypatch.setattr(
         "coyote_mongo.transactions.run_transaction", lambda client, write: write(None)
     )
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
-    demo = Mock()
-    demo.install_starter.return_value = {"status": "installed"}
-    monkeypatch.setattr("scripts.bootstrap.demo_service.build_demo_service", lambda *args: demo)
-    return databases, args, loader, demo
+    return databases, args, loader
 
 
 def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_installation):
-    databases, _, loader, demo = fresh_installation
+    databases, _, loader = fresh_installation
     assert bootstrap_database.main() == 0
     identity, application = databases["identity"], databases["primary"]
     assert identity.users.count_documents({}) == 2
@@ -230,7 +229,8 @@ def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_
     assert application.query_rule_sets.count_documents({}) == 6
     assert databases["knowledgebase"].hgnc_genes.count_documents({}) == 1
     assert loader.call_args.kwargs["actor"] == "system"
-    demo.install_starter.assert_called_once_with("system")
+    assert application.samples.count_documents({}) == 0
+    assert application.assay_specific_panels.count_documents({}) == 0
 
 
 def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
@@ -239,7 +239,7 @@ def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
     """Only successful first creation displays plaintext; MongoDB stores password hashes."""
     from werkzeug.security import check_password_hash
 
-    databases, args, _, _ = fresh_installation
+    databases, args, _ = fresh_installation
     args.password = args.sys_admin_password = None
     passwords = ["Synthetic-Superuser-123", "Synthetic-Sysadmin-456"]
     generate = Mock(side_effect=passwords)
@@ -263,13 +263,12 @@ def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
 def test_existing_accounts_prevent_unauthenticated_additions_even_to_empty_modules(
     fresh_installation, monkeypatch
 ):
-    databases, _, loader, demo = fresh_installation
+    databases, _, loader = fresh_installation
     assert bootstrap_database.main() == 0
     users = list(databases["identity"].users.find())
     databases["primary"].assay_groups.delete_many({})
     databases["knowledgebase"].hgnc_genes.delete_many({})
     loader.reset_mock()
-    demo.reset_mock()
     monkeypatch.setattr(
         bootstrap_database.secrets,
         "token_urlsafe",
@@ -280,49 +279,47 @@ def test_existing_accounts_prevent_unauthenticated_additions_even_to_empty_modul
     assert databases["primary"].assay_groups.count_documents({}) == 0
     assert databases["knowledgebase"].hgnc_genes.count_documents({}) == 0
     loader.assert_not_called()
-    demo.install_starter.assert_not_called()
 
 
 def test_skip_flags_control_fresh_modules(fresh_installation):
-    databases, args, _, demo = fresh_installation
-    args.skip_knowledgebase = args.skip_demo = True
+    databases, args, _ = fresh_installation
+    args.skip_knowledgebase = True
     assert bootstrap_database.main() == 0
     assert databases["identity"].users.count_documents({}) == 2
     assert databases["primary"].assay_groups.count_documents({}) == 5
     assert databases["knowledgebase"].list_collection_names() == []
-    demo.install_starter.assert_not_called()
 
 
 def test_skipping_users_can_disable_all_bootstrap_writes(fresh_installation):
-    databases, args, loader, demo = fresh_installation
-    args.skip_users = args.skip_application = args.skip_knowledgebase = args.skip_demo = True
+    databases, args, loader = fresh_installation
+    args.skip_users = args.skip_application = args.skip_knowledgebase = True
     assert bootstrap_database.main() == 0
     assert all(not database.list_collection_names() for database in databases.values())
     loader.assert_not_called()
-    demo.install_starter.assert_not_called()
 
 
 def test_partial_target_cannot_create_accounts_or_seed_data(fresh_installation):
-    databases, _, loader, demo = fresh_installation
+    databases, _, loader = fresh_installation
     databases["identity"].roles.insert_one({"role_id": "unrecognized"})
     with pytest.raises(ValueError, match="Partial"):
         bootstrap_database.main()
     assert databases["identity"].users.count_documents({}) == 0
     loader.assert_not_called()
-    demo.install_starter.assert_not_called()
 
 
-def test_failed_initial_module_must_be_resumed_through_api(fresh_installation):
-    databases, _, loader, demo = fresh_installation
-    demo.install_starter.side_effect = RuntimeError("synthetic ingest failure")
-    with pytest.raises(RuntimeError, match="synthetic ingest"):
+def test_failed_initial_module_must_be_resumed_through_api(fresh_installation, monkeypatch):
+    databases, _, loader = fresh_installation
+    monkeypatch.setattr(
+        bootstrap_database,
+        "_install_initial_data",
+        Mock(side_effect=RuntimeError("synthetic catalog installation failure")),
+    )
+    with pytest.raises(RuntimeError, match="synthetic catalog"):
         bootstrap_database.main()
     assert databases["identity"].users.count_documents({}) == 2
-    demo.reset_mock()
     loader.reset_mock()
     assert bootstrap_database.main() == 0
     loader.assert_not_called()
-    demo.install_starter.assert_not_called()
 
 
 def test_service_rejects_temporary_password_before_any_data_access():
@@ -339,14 +336,13 @@ def test_service_rejects_temporary_password_before_any_data_access():
 
 
 def test_force_is_limited_to_explicit_modules():
-    repository, loader, demo = Mock(), Mock(return_value={}), Mock()
+    repository, loader = Mock(), Mock(return_value={})
     repository.install.return_value = {"assay_groups": "repaired"}
-    service = DeploymentDataService(repository, loader, demo)
+    service = DeploymentDataService(repository, loader)
     service.install(
         user=SimpleNamespace(username="admin", roles=["admin"]), modules=["application"], force=True
     )
     repository.install.assert_called_once_with({}, scope="application", actor="admin", force=True)
-    demo.install_starter.assert_not_called()
 
 
 def test_force_identity_repairs_grants_without_touching_users(monkeypatch):
@@ -481,6 +477,24 @@ def test_force_reference_preserves_external_releases_and_unrelated_genes():
     result = repository.install(documents, scope="knowledgebase", actor="admin", force=True)
     assert result["hgnc_genes"] == "preserved"
     assert list(client.knowledgebase.hgnc_genes.find()) == before
+
+
+def test_reference_installation_records_selected_bundle_and_preserves_skipped_provenance():
+    """Published data retains the checked source identity, including on later no-op installs."""
+    client = mongomock.MongoClient()
+    repository = deployment_data.DeploymentDataRepository(
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
+    )
+    metadata = {"bundle_id": "synthetic", "bundle_version": "1", "manifest_sha256": "a" * 64}
+    documents = {"hgnc_genes": [{"hgnc_id": "HGNC:synthetic", "created_by": "system"}]}
+    repository.install(
+        documents, scope="knowledgebase", actor="system", reference_metadata=metadata
+    )
+    assert client.knowledgebase.versions.find_one({"source": "hgnc_genes"})["bundle"] == metadata
+    repository.install(
+        documents, scope="knowledgebase", actor="system", reference_metadata={"bundle_version": "2"}
+    )
+    assert client.knowledgebase.versions.find_one({"source": "hgnc_genes"})["bundle"] == metadata
 
 
 def test_force_recovers_system_reference_batch_before_publication_receipt():

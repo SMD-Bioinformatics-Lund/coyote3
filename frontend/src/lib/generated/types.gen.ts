@@ -4578,6 +4578,59 @@ export type DashboardRefreshQueuedPayload = {
 };
 
 /**
+ * Dataset
+ *
+ * One collection snapshot and its independently identified dataset version.
+ */
+export type Dataset = {
+    /**
+     * Dataset Id
+     */
+    dataset_id: 'hgnc_genes' | 'vep_metadata';
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Records
+     */
+    records: number;
+    source: DatasetSource;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
+ * DatasetSource
+ *
+ * Retained source evidence without inventing an upstream release or acquisition date.
+ */
+export type DatasetSource = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Notice Files
+     */
+    notice_files?: Array<string>;
+    /**
+     * Provenance Files
+     */
+    provenance_files?: Array<string>;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Upstream Version
+     */
+    upstream_version?: string | null;
+};
+
+/**
  * DeploymentDataRequest
  *
  * Select packaged deployment catalogs; client paths and installer identities are forbidden.
@@ -4590,7 +4643,7 @@ export type DeploymentDataRequest = {
     /**
      * Modules
      */
-    modules: Array<'identity' | 'application' | 'knowledgebase' | 'demo'>;
+    modules: Array<'identity' | 'application' | 'knowledgebase'>;
 };
 
 /**
@@ -6539,6 +6592,36 @@ export type IngestTokenIssueResponse = {
 };
 
 /**
+ * InstallationPlan
+ *
+ * A validated bundle identity reviewed before the host decides whether to write.
+ */
+export type InstallationPlan = {
+    /**
+     * Bundle Id
+     */
+    bundle_id: string;
+    /**
+     * Bundle Version
+     */
+    bundle_version: string;
+    /**
+     * Collections
+     */
+    collections: {
+        [key: string]: number;
+    };
+    /**
+     * Datasets
+     */
+    datasets: Array<Dataset>;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+};
+
+/**
  * InternalCollectionBulkInsertRequest
  *
  * Represent request body for bulk document insert.
@@ -8434,6 +8517,10 @@ export type PublicModuleAvailability = {
 export type PublicModulesPayload = {
     curation: PublicCurationAvailability;
     /**
+     * Extensions
+     */
+    extensions?: Array<string>;
+    /**
      * Modules
      */
     modules: {
@@ -9216,6 +9303,50 @@ export type QueryRuleUpdate = {
      */
     reason: string;
     scope: QueryRuleScope;
+};
+
+/**
+ * ReferenceApplyRequest
+ *
+ * Pin the reviewed package identity without accepting client data or filesystem paths.
+ */
+export type ReferenceApplyRequest = {
+    /**
+     * Expected Manifest Sha256
+     */
+    expected_manifest_sha256: string;
+    /**
+     * Force
+     */
+    force?: boolean;
+};
+
+/**
+ * ReferenceApplyResult
+ *
+ * Collection results and the package identity submitted to the authorized installer.
+ */
+export type ReferenceApplyResult = {
+    /**
+     * Collections
+     */
+    collections: {
+        [key: string]: 'loaded' | 'skipped' | 'empty' | 'repaired' | 'preserved' | 'installed' | 'already_installed';
+    };
+    plan: InstallationPlan;
+};
+
+/**
+ * ReferencePlanResult
+ *
+ * A validated package plan and currently empty logical target collections.
+ */
+export type ReferencePlanResult = {
+    /**
+     * Pending
+     */
+    pending: Array<string>;
+    plan: InstallationPlan;
 };
 
 /**
@@ -14490,6 +14621,92 @@ export type Responses_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPre
 };
 
 export type Response_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPreviewPost = Responses_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPreviewPost[keyof Responses_previewSampleApiV1AdminQueryRuleSetsTestSamplesSampleIdPreviewPost];
+
+export type Request_applyReferencesApiV1AdminReferencesApplyPost = {
+    body: ReferenceApplyRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/references/apply';
+};
+
+export type ApplyReferencesApiV1AdminReferencesApplyPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ApplyReferencesApiV1AdminReferencesApplyPostError = ApplyReferencesApiV1AdminReferencesApplyPostErrors[keyof ApplyReferencesApiV1AdminReferencesApplyPostErrors];
+
+export type Responses_applyReferencesApiV1AdminReferencesApplyPost = {
+    /**
+     * Successful Response
+     */
+    200: ReferenceApplyResult;
+};
+
+export type Response_applyReferencesApiV1AdminReferencesApplyPost = Responses_applyReferencesApiV1AdminReferencesApplyPost[keyof Responses_applyReferencesApiV1AdminReferencesApplyPost];
+
+export type Request_planReferencesApiV1AdminReferencesPlanGet = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/references/plan';
+};
+
+export type PlanReferencesApiV1AdminReferencesPlanGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type PlanReferencesApiV1AdminReferencesPlanGetError = PlanReferencesApiV1AdminReferencesPlanGetErrors[keyof PlanReferencesApiV1AdminReferencesPlanGetErrors];
+
+export type Responses_planReferencesApiV1AdminReferencesPlanGet = {
+    /**
+     * Successful Response
+     */
+    200: ReferencePlanResult;
+};
+
+export type Response_planReferencesApiV1AdminReferencesPlanGet = Responses_planReferencesApiV1AdminReferencesPlanGet[keyof Responses_planReferencesApiV1AdminReferencesPlanGet];
 
 export type Request_adminSchemasReadApiV1AdminSchemasGet = {
     body?: never;

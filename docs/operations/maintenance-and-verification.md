@@ -1,7 +1,5 @@
 # Operational Maintenance and Quality Verification
 
-**Last reviewed:** 10 August 2026.
-
 This document lists the routine checks for code quality, seed integrity, and environment validation.
 
 ## Pre-Release Quality Check
@@ -41,15 +39,20 @@ Validate seed data and cross-collection assay relationships before using them.
 ```bash
 # Validate core seed structures and assay relations
 .venv/bin/python scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/src/coyote_api/bootstrap/catalogs/demo_center \
+  --seed-file services/demo/src/coyote_demo/data/demo_center \
   --reference-seed-data core/src/coyote/config/catalogs/rbac \
   --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
+  --reference-seed-data services/atlas/src/coyote_atlas/data/reference \
   --validate-all-contracts
 ```
 
+This validates packaged synthetic examples without installing them. Demonstration
+installation requires the [isolated demo workflow](../deployment/demo-installation.md).
+
 ## Database Bootstrap Command
 
-Example staging command:
+Normal bootstrap installs selected application and reference catalogs; it does
+not install demonstrations. Example staging command:
 
 ```bash
 .venv/bin/python scripts/bootstrap/bootstrap_database.py \

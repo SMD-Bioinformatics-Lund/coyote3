@@ -10,6 +10,8 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `clients/python/src/coyote_pyclient/` | None; communicates over HTTP |
 | `coyote-relay` | `services/relay/src/coyote_relay/` | Core and Python client; optional API and worker integrations use the server |
+| `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and Python client; optional API integration uses the server |
+| `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
 
 ## Shared core and request flow
 
@@ -35,7 +37,7 @@ For a variant-review request:
 4. The Mongo implementation translates repository operations into database queries.
 5. Results return through the interfaces, core operation and API to the caller.
 
-The diagram separates code dependencies, runtime calls and ingestion dependencies.
+The diagram separates code dependencies, runtime calls and optional package responsibilities.
 Calling an injected repository does not make core import MongoDB. API, core and
 adapter run inside the same backend process; packaging does not create additional
 network services. Workers also invoke core operations through host composition.
@@ -60,7 +62,7 @@ Host callbacks provide optional operation metrics; importing the adapter does no
 import the API or start connections.
 
 The API owns web authentication, environment loading, request handling,
-composition, reference installation and maintenance workers. Routes delegate
+composition, installation orchestration and maintenance workers. Routes delegate
 clinical behavior to core operations. The HTTP client owns independent wire models
 and never imports the core or adapter.
 
@@ -70,9 +72,17 @@ to core. HTTP uploads, process entry points and task-queue integration stay outs
 core. See the [ingestion service guide](../../services/relay/docs/README.md).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
-policy. The server packages HGNC/VEP reference snapshots and installs them explicitly
-through the Mongo adapter. Installed accounts, grants and reference selections remain
-deployment state; importing packages or redeploying does not reset them.
+policy. Atlas owns HGNC/VEP snapshots, provenance, validation and reference
+publication workflows. The server discovers its installed reference provider and
+supplies Mongo persistence. Installed accounts, grants and reference selections
+remain deployment state; importing packages or redeploying does not reset them.
+
+Demo owns synthetic resources and demonstration installation. Its API extension
+registers only when explicitly enabled with isolated demo databases, restricted
+credentials and disabled external integrations. Installation in an ordinary
+workspace does not activate its routes. The runtime validator receives only its
+declared configuration keys and checks the target before database initialization.
+See [isolated demo deployment](../deployment/demo-installation.md).
 
 The API's `config/backend.py` assembles and validates package-specific deployment
 inputs. The Mongo adapter accepts `MongoSettings` and explicit logger/cache ports,
@@ -92,6 +102,13 @@ string supports another engine.
 Architecture tests reject reverse dependencies. Installed-wheel tests execute
 outside the checkout with editable lookup removed, checking imports and assets.
 See [uv development](uv-development.md) for package tests and builds.
+
+Each component keeps its own tests, synthetic helpers, smoke checks and coverage
+gate. Root tests cover composition and repository workflows. Shared test utilities
+belong in a development-only testkit only when multiple packages need the same
+stable helper; they must not make package tests depend on another package's test
+tree. There is no deployed testing service. Demonstration data can support
+acceptance runs, while frozen regression fixtures remain owned by their tests.
 
 Relay can be built and installed from its package directory without a repository
 checkout at runtime. Its planned repository extraction and publication are tracked

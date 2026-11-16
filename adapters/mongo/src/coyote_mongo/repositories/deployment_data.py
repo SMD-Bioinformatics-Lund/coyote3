@@ -100,7 +100,13 @@ class DeploymentDataRepository:
         return {name: "skipped" for _, name, _, _ in self._targets(scope)}
 
     def install(
-        self, documents: dict, *, scope: DeploymentDataScope, actor: str, force: bool = False
+        self,
+        documents: dict,
+        *,
+        scope: DeploymentDataScope,
+        actor: str,
+        force: bool = False,
+        reference_metadata: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Install empty catalogs or repair explicitly selected installation-owned records.
 
@@ -109,6 +115,7 @@ class DeploymentDataRepository:
             scope: Selected deployment-data group.
             actor: Authenticated administrator username recorded in audit events.
             force: Repair known installation records without deleting unrelated documents.
+            reference_metadata: Checked source-bundle identity retained only after reference writes.
 
         Returns:
             Loaded, skipped, empty, repaired or preserved status for each selected collection.
@@ -149,7 +156,11 @@ class DeploymentDataRepository:
                     )
                 if group == "knowledgebase":
                     record_reference_publication(
-                        database, source=name, release="bundled", session=session
+                        database,
+                        source=name,
+                        release="bundled",
+                        session=session,
+                        bundle=reference_metadata,
                     )
                 else:
                     enqueue_audit(

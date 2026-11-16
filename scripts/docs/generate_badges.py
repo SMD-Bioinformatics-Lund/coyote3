@@ -22,6 +22,8 @@ PROJECTS = {
     "server": ".",
     "client": "clients/python",
     "relay": "services/relay",
+    "atlas": "services/atlas",
+    "demo": "services/demo",
 }
 EXTERNAL_BADGE = re.compile(
     r"(?m)^.*(?:img\.shields\.io/|actions/workflows/[^\s)]+/badge\.svg)[^\n]*\n"
@@ -195,6 +197,8 @@ def generate(root: Path, *, check: bool = False) -> list[str]:
         ("adapters/mongo", "server"),
         ("clients/python", "client"),
         ("services/relay", "relay"),
+        ("services/atlas", "atlas"),
+        ("services/demo", "demo"),
     ):
         meta = metadata[name]
         component[directory] = [
@@ -222,7 +226,7 @@ def generate(root: Path, *, check: bool = False) -> list[str]:
             badges = [version, license_badge]
         elif relative.startswith("migrations_scripts/"):
             badges = [scope["migration"]]
-        elif "bootstrap/demo_data/" in relative:
+        elif relative.startswith("services/demo/src/coyote_demo/data/"):
             badges = [scope["synthetic"]]
         elif relative.startswith("tests/"):
             badges = [scope["tests"]]

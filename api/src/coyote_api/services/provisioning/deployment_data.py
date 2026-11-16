@@ -19,28 +19,30 @@ class DeploymentDataService:
         self,
         repository: Any,
         seed_loader: Callable[[str, DeploymentDataScope], dict[str, Any]],
-        demo: Any = None,
+        *,
+        reference_metadata: Callable[[], dict[str, Any]] | None = None,
     ) -> None:
-        """Bind configured storage and the server-owned, validated seed-pack loader."""
-        self.repository = repository
-        self.seed_loader = seed_loader
-        self.demo = demo
-
-    def install(
-        self, *, user: Any, modules: list[DeploymentDataModule], force: bool = False
-    ) -> dict[str, dict[str, str]]:
-        """Install missing packaged catalogs for an authenticated administrator.
+        """Bind storage, validated seed loading and optional reference provenance.
 
         Args:
-            user: Current API-session principal; its username supplies provenance.
-            modules: Explicitly selected catalogs or the packaged demonstration.
-            force: Repair selected bundled records; unrelated data and accounts are preserved.
+            repository: Persistence adapter for the selected deployment databases.
+            seed_loader: Validates and normalizes documents for the requested scope.
+            reference_metadata: Lazy source-bundle metadata saved with successful
+                knowledgebase installations; absent for callers without a bundle.
+        """
+        self.repository = repository
+        self.seed_loader = seed_loader
+        self.reference_metadata = reference_metadata
 
-        Returns:
-            Per-collection loaded/skipped results; populated collections are preserved.
+    @staticmethod
+    def authorize(user: Any) -> None:
+        """Require an authenticated installation administrator with a permanent password.
+
+        Args:
+            user: Current verified session principal, never caller-supplied role data.
 
         Raises:
-            AppError: The session principal is not an administrator or superuser.
+            AppError: The user is absent, lacks an installation role or must change password.
         """
         if (
             not user
@@ -50,14 +52,28 @@ class DeploymentDataService:
             raise api_error(403, "Only an administrator or superuser can install deployment data")
         if getattr(user, "must_change_password", False):
             raise api_error(403, "Change your temporary password before installing data")
+
+    def install(
+        self, *, user: Any, modules: list[DeploymentDataModule], force: bool = False
+    ) -> dict[str, dict[str, str]]:
+        """Install missing packaged catalogs for an authenticated administrator.
+
+        Args:
+            user: Current API-session principal; its username supplies provenance.
+            modules: Explicitly selected identity, application or reference catalogs.
+            force: Repair selected bundled records; unrelated data and accounts are preserved.
+
+        Returns:
+            Per-collection loaded/skipped results; populated collections are preserved.
+
+        Raises:
+            AppError: The session principal is not an administrator or superuser.
+        """
+        self.authorize(user)
         documents = None
         results = {}
-        # Prerequisites are applied before demonstration data, regardless of argument order.
-        for module in ("identity", "application", "knowledgebase", "demo"):
+        for module in ("identity", "application", "knowledgebase"):
             if module not in modules:
-                continue
-            if module == "demo":
-                results["demo"] = self.demo.install_starter(user.username, force=force)["status"]
                 continue
             if not force and not self.repository.pending(module):
                 results.update(self.repository.skipped(module))
@@ -67,6 +83,16 @@ class DeploymentDataService:
                     "system", "all" if "knowledgebase" in modules else "application"
                 )
             results.update(
-                self.repository.install(documents, scope=module, actor=user.username, force=force)
+                self.repository.install(
+                    documents,
+                    scope=module,
+                    actor=user.username,
+                    force=force,
+                    **(
+                        {"reference_metadata": self.reference_metadata()}
+                        if module == "knowledgebase" and self.reference_metadata is not None
+                        else {}
+                    ),
+                )
             )
         return {"collections": results}

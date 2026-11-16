@@ -52,9 +52,10 @@ COPY CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
 COPY clients/python/ ./clients/python/
 COPY services/relay/ ./services/relay/
+COPY services/atlas/ ./services/atlas/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY release.toml ./
-RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/relay
+RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/relay -e services/atlas
 
 USER coyote4:coyote4
 

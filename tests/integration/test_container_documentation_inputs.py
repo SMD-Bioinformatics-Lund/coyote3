@@ -53,9 +53,11 @@ def test_documentation_image_inputs_publish_component_guides(tmp_path: Path, doc
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    for component in ("core", "api", "mongo", "client", "relay", "frontend"):
+    for component in ("core", "api", "mongo", "client", "relay", "atlas", "demo", "frontend"):
         assert (tmp_path / "site/packages" / component / "index.html").is_file()
         assert (tmp_path / "site/packages" / component / "overview/index.html").is_file()
     assert (tmp_path / "site/packages/api/assets/coyote-api-logo.svg").is_file()
     assert (tmp_path / "site/packages/relay/assets/coyote-relay-logo.svg").is_file()
+    assert (tmp_path / "site/packages/atlas/assets/coyote-atlas-logo.svg").is_file()
+    assert (tmp_path / "site/packages/demo/assets/coyote-demo-logo.svg").is_file()
     assert (tmp_path / "site/packages/server/pyproject.toml").is_file()

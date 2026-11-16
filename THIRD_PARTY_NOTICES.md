@@ -24,9 +24,9 @@ rights. Components expressly identified under separate terms retain those terms.
 
 ## Bundled materials
 
-- [Reference catalog notice](api/src/coyote_api/bootstrap/catalogs/reference/NOTICE.txt).
+- [Reference catalog notice](services/atlas/src/coyote_atlas/data/reference/NOTICE.txt).
   The bundled Ensembl-derived materials retain their
-  [Apache License 2.0](api/src/coyote_api/bootstrap/catalogs/reference/LICENSE.txt).
+  [Apache License 2.0](services/atlas/src/coyote_atlas/data/reference/LICENSE.txt).
 - [Logo sources and attribution](frontend/public/logos/README.md).
 - [Local icon sources and attribution](frontend/public/icons/README.md)
   (Lucide Icons and Contributors, ISC).

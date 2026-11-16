@@ -34,6 +34,21 @@ def test_no_extensions_keeps_server_standalone(monkeypatch):
     assert extensions.load_api_extensions([]) == extensions.ApiExtensions((), ())
 
 
+def test_explicitly_disabled_extension_exposes_no_capability(monkeypatch):
+    _installed(monkeypatch, SimpleNamespace(name="demo", load=lambda: lambda: None))
+    assert extensions.load_api_extensions([]) == extensions.ApiExtensions((), ())
+
+
+def test_disabled_extension_cannot_hide_duplicate_registration(monkeypatch):
+    _installed(
+        monkeypatch,
+        SimpleNamespace(name="demo", load=lambda: lambda: None),
+        _entry("demo", _router()),
+    )
+    with pytest.raises(RuntimeError, match="Duplicate API extension name"):
+        extensions.load_api_extensions([])
+
+
 def test_extensions_register_in_deterministic_order(monkeypatch):
     first, second = _router("/api/v1/first"), _router("/api/v1/second")
     _installed(monkeypatch, _entry("second", second), _entry("first", first))

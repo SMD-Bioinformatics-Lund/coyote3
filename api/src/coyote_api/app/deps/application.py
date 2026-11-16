@@ -259,7 +259,6 @@ def get_controls(application: CoyoteApplication = Depends(get_application)) -> C
 def get_installation(request: Request) -> Installation:
     """Bind host installation workflows to current session permissions and access auditing."""
     from coyote_api.app.deps.services import (
-        get_demo_installation_service,
         get_deployment_data_service,
     )
     from coyote_api.services.installation import InstallationServices
@@ -267,9 +266,7 @@ def get_installation(request: Request) -> Installation:
     session = get_request_api_session(request)
     return Installation(
         open_authenticated_runtime(session.token, correlation_id=current_request_id()),
-        InstallationServices(
-            demo=get_demo_installation_service, deployment=get_deployment_data_service
-        ),
+        InstallationServices(deployment=get_deployment_data_service),
     )
 
 

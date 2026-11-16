@@ -21,6 +21,7 @@ export type ApplicationModuleState = {
 
 export type ApplicationModulesPayload = {
   modules: Partial<Record<ApplicationModuleKey, ApplicationModuleState>>
+  extensions?: string[]
   curation?: {
     tiering?: Partial<Record<TieringResourceKey, boolean>>
   }

@@ -57,6 +57,8 @@ COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
 COPY clients/python/ ./clients/python/
 COPY services/relay/ ./services/relay/
+COPY services/atlas/ ./services/atlas/
+COPY services/demo/ ./services/demo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
 RUN python scripts/release/build_sdk.py --output-dir /wheels
 
@@ -73,12 +75,15 @@ COPY --chown=coyote4:coyote4 release.toml ./
 FROM coyote4_server_files AS coyote4_source_api
 LABEL coyote4.artifact.mode="source"
 COPY --from=coyote4_sdk_builder /wheels/ /opt/coyote4-sdk/
-RUN pip install --no-cache-dir --no-deps /opt/coyote4-sdk/*.whl
+RUN pip install --no-cache-dir --no-deps \
+    /opt/coyote4-sdk/coyote_core-*.whl /opt/coyote4-sdk/coyote_server-*.whl \
+    /opt/coyote4-sdk/coyote_pyclient-*.whl /opt/coyote4-sdk/coyote_relay-*.whl \
+    /opt/coyote4-sdk/coyote_atlas-*.whl
 USER coyote4:coyote4
 CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
 
 # Release CI can instead require an already tested, immutable wheel and record.
-FROM coyote4_server_files AS coyote4_api
+FROM coyote4_server_files AS coyote4_verified_api
 ARG GIT_COMMIT="unknown"
 ARG COYOTE4_ARTIFACT_MODE="production"
 LABEL coyote4.artifact.mode="${COYOTE4_ARTIFACT_MODE}"
@@ -86,8 +91,25 @@ COPY --from=sdk_artifact / /opt/coyote4-sdk/
 RUN python scripts/release/verify_sdk_artifact.py \
       --directory /opt/coyote4-sdk --release /app/release.toml \
       --mode "${COYOTE4_ARTIFACT_MODE}" --source-commit "${GIT_COMMIT}" && \
-    pip install --no-cache-dir --no-deps /opt/coyote4-sdk/*.whl
+    pip install --no-cache-dir --no-deps \
+      /opt/coyote4-sdk/coyote_core-*.whl /opt/coyote4-sdk/coyote_server-*.whl \
+      /opt/coyote4-sdk/coyote_pyclient-*.whl /opt/coyote4-sdk/coyote_relay-*.whl \
+      /opt/coyote4-sdk/coyote_atlas-*.whl
 
 USER coyote4:coyote4
 
 CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+
+# A separate image adds the guarded demonstration package to the reviewed application.
+FROM coyote4_source_api AS demo_source
+USER root
+RUN pip install --no-cache-dir --no-deps /opt/coyote4-sdk/coyote_demo-*.whl
+USER coyote4:coyote4
+
+FROM coyote4_verified_api AS demo
+USER root
+RUN pip install --no-cache-dir --no-deps /opt/coyote4-sdk/coyote_demo-*.whl
+USER coyote4:coyote4
+
+# The default build remains the normal application without demonstration code.
+FROM coyote4_verified_api AS coyote4_api

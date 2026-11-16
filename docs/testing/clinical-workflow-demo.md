@@ -3,7 +3,7 @@
 For the directory layout, sample manifest, analysis formats and offline mongomock
 replay, see the [demo data bundle reference](demo-data-bundle.md).
 
-The `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` bundle provides
+The `services/demo/src/coyote_demo/data/clinical_workflows/` bundle provides
 raw pipeline files and matching database examples for ingest, query policies,
 filters, classification, comments and reporting. Use an isolated demonstration
 deployment. It contains artificial evidence, including intentionally mismatched
@@ -12,11 +12,12 @@ are not expected and must not be treated as validation results.
 
 ## 1. Prepare the demonstration deployment
 
-Follow [Local disposable full-stack validation](disposable-stack-validation.md) or
-[First installation](../deployment/first-installation.md). Use separate application,
-identity, cache and storage settings from clinical work. MongoDB must be a writable
-replica-set member. The administrative installer uses the deployment's configured
-application database and requires an authenticated, authorized operator.
+Follow [Isolated demo installation](../deployment/demo-installation.md), which
+installs the optional `coyote-demo` package and enables its guarded environment.
+Normal bootstrap does not install demonstrations. The demo installer requires the
+dedicated demo database names, restricted credentials, local endpoints and separate
+cache/storage settings in that guide. MongoDB must be a writable replica-set member.
+API installation additionally requires an authenticated, authorized operator.
 
 Install the normal baseline first: active assay groups, installed query sets,
 roles and initial accounts. The bundle uses the release's group/query catalogs;
@@ -34,7 +35,8 @@ for responsibilities. No credentials or accounts are included in the fixtures.
 
 ### Administration interface
 
-Open **Administration → Demo installation** with the `demo:install` permission.
+In the enabled demonstration deployment, open **Administration → Demo installation**
+with the `demo:install` permission.
 The bundled `demo_installer`, `admin` and `sys_admin` roles include this permission.
 The emergency `superuser` can also install demonstrations. Existing
 installations must synchronize their [RBAC catalog](../administration/system-role-catalog.md)
@@ -49,7 +51,7 @@ is synthetic, then choose:
 
 ## Demo resource relationships
 
-One `setup/` bundle supplies both default installation and additional scenarios.
+One `setup/` bundle supplies both starter installation and additional demo scenarios.
 Biological groups are `hematology` and `solid`. The registry also retains `myeloid`
 and `lymphoid` for legacy samples and `pgx` for pharmacogenomics. None of the new
 demo assays use a technology or analysis type as their group.
@@ -88,9 +90,9 @@ independently from current published scopes. MPN panel and
 WGS reporting rules have distinct assay scopes. Classification reuse and report
 eligibility follow the annotation context, not a shared gene-list name.
 
-### Default samples and catalog
+### Starter samples and catalog
 
-The default samples are `DEMO_STARTER_DNA` on `demo-hematology-training` / `myeloid`
+The starter samples are `DEMO_STARTER_DNA` on `demo-hematology-training` / `myeloid`
 and `DEMO_STARTER_RNA` on `demo-rna-training` / `lymphoid`. Both belong to hematology.
 The installation includes 11 assays, six shared diagnoses, 15 explicit diagnosis
 links, eight reusable lists and 39 configurations. Testing configurations serve
@@ -113,7 +115,7 @@ examples, not center approval for clinical use. No saved report is created.
 
 Under **Additional workflow scenarios**, select **Install configuration only**
 or **Install configuration and samples**. Both use the same resource bundle as
-the default installation. The page skips configuration already present and
+the explicit starter installation. The page skips configuration already present and
 ingests missing samples independently. A failed sample does not remove completed
 samples. Conflicting resource identities require administrator review.
 
@@ -124,7 +126,7 @@ ingest service must already be available.
 
 ## 3. Validate and ingest the raw files
 
-The bundle is at `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`. Copy the entire directory to a
+The bundle is at `services/demo/src/coyote_demo/data/clinical_workflows/`. Copy the entire directory to a
 private working directory before uploading: the submission tool acknowledges
 successful manifests, so the tracked originals should remain unchanged.
 
@@ -142,7 +144,7 @@ a design BED supplies an optional target track. See
 
 ```bash
 DEMO_WORK="$(mktemp -d /tmp/coyote4-demo.XXXXXX)"
-cp -R api/src/coyote_api/bootstrap/demo_data/clinical_workflows/. "$DEMO_WORK/"
+cp -R services/demo/src/coyote_demo/data/clinical_workflows/. "$DEMO_WORK/"
 for manifest in "$DEMO_WORK"/manifests/*.yaml; do
   .venv/bin/coyote-relay-validate \
     --yaml "$manifest" --check-files

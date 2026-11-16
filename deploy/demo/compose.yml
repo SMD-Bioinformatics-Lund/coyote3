@@ -1,0 +1,169 @@
+name: ${COYOTE_DEMO_PROJECT:?Use scripts/deployment/demo.py to prepare a private demo}
+
+x-demo-environment: &demo-environment
+  COYOTE_DEMO_ENABLED: "1"
+  COYOTE_DEMO_MODE: docker
+  ENV_NAME: testing
+  COYOTE4_RUNTIME_MODE: production
+  TESTING: "0"
+  DEVELOPMENT: "0"
+  COYOTE4_DB: coyote4_demo
+  IDENTITY_DB: coyote4_demo_identity
+  KNOWLEDGEBASE_DB: coyote4_demo_knowledgebase
+  BAM_DB: coyote4_demo_bam
+  COYOTE4_MONGO_URI: mongodb://coyote_demo:${COYOTE_DEMO_MONGO_PASSWORD:?}@demo-mongo:27017/?authSource=admin&replicaSet=coyote-demo-rs&directConnection=true
+  IDENTITY_MONGO_URI: mongodb://coyote_demo:${COYOTE_DEMO_MONGO_PASSWORD:?}@demo-mongo:27017/?authSource=admin&replicaSet=coyote-demo-rs&directConnection=true
+  KNOWLEDGEBASE_MONGO_URI: mongodb://coyote_demo:${COYOTE_DEMO_MONGO_PASSWORD:?}@demo-mongo:27017/?authSource=admin&replicaSet=coyote-demo-rs&directConnection=true
+  BAM_MONGO_URI: mongodb://coyote_demo:${COYOTE_DEMO_MONGO_PASSWORD:?}@demo-mongo:27017/?authSource=admin&replicaSet=coyote-demo-rs&directConnection=true
+  CACHE_REDIS_URL: redis://default:${COYOTE_DEMO_REDIS_PASSWORD:?}@demo-redis:6379/0
+  CELERY_BROKER_URL: redis://default:${COYOTE_DEMO_REDIS_PASSWORD:?}@demo-redis:6379/1
+  CELERY_RESULT_BACKEND: redis://default:${COYOTE_DEMO_REDIS_PASSWORD:?}@demo-redis:6379/2
+  CACHE_REQUIRED: "1"
+  SECRET_KEY: ${SECRET_KEY:?}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?}
+  PASSWORD_TOKEN_SALT: ${PASSWORD_TOKEN_SALT:?}
+  AUTHENTICATION_PROVIDERS: local
+  LDAP_HOST: ""
+  SMTP_HOST: ""
+  GENS_URI: ""
+  IGV_URI: ""
+  ONCOKB_PUBLIC_LOOKUPS_ENABLED: "0"
+  CLINPGX_PUBLIC_LOOKUPS_ENABLED: "0"
+  COYOTE4_INGEST_WATCH_ENABLED: "0"
+  PUBLIC_BASE_URL: http://127.0.0.1:${COYOTE_DEMO_PORT:?}
+  ORGANIZATION_NAME: Coyote4 demonstration — synthetic data
+  SCRIPT_NAME: ""
+  API_CSRF_ENABLED: "1"
+  API_RATE_LIMIT_ENABLED: "1"
+  COYOTE4_RUNTIME_ROOT: /app
+  COYOTE4_DATA_ROOT: /data
+  LOG_FILE_ENABLED: "0"
+
+x-demo-runtime: &demo-runtime
+  image: coyote4-demo-api:4.0.0
+  environment: *demo-environment
+  networks: [demo]
+  volumes: [demo-data:/data]
+
+services:
+  demo-mongo:
+    image: coyote4-demo-mongo:7.0.41
+    build:
+      context: .
+      dockerfile: Dockerfile.mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: demo_root
+      MONGO_INITDB_ROOT_PASSWORD: ${COYOTE_DEMO_MONGO_ROOT_PASSWORD:?}
+      COYOTE_DEMO_MONGO_PASSWORD: ${COYOTE_DEMO_MONGO_PASSWORD:?}
+      COYOTE_DEMO_MONGO_KEY: ${COYOTE_DEMO_MONGO_KEY:?}
+    networks: [demo]
+    volumes: [demo-mongo:/data/db, demo-mongo-config:/data/configdb]
+    healthcheck:
+      test: [CMD-SHELL, 'mongosh --quiet --eval "db.adminCommand({ping: 1}).ok" >/dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  demo-replica:
+    image: coyote4-demo-mongo:7.0.41
+    entrypoint: [/bin/sh, /opt/coyote-demo/mongo-replica.sh]
+    environment:
+      MONGO_INITDB_ROOT_PASSWORD: ${COYOTE_DEMO_MONGO_ROOT_PASSWORD:?}
+    networks: [demo]
+    depends_on:
+      demo-mongo: {condition: service_healthy}
+
+  demo-redis:
+    image: redis:7.4.3
+    environment:
+      REDIS_PASSWORD: ${COYOTE_DEMO_REDIS_PASSWORD:?}
+    command: [/bin/sh, -c, 'exec redis-server --appendonly yes --appendfsync always --maxmemory-policy noeviction --requirepass "$${REDIS_PASSWORD}"']
+    networks: [demo]
+    volumes: [demo-redis:/data]
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  demo-storage:
+    <<: *demo-runtime
+    user: root
+    entrypoint: [/bin/sh, -c]
+    command: ['mkdir -p /data/coyote4_test && chown 10001:10001 /data /data/coyote4_test']
+
+  demo-bootstrap:
+    <<: *demo-runtime
+    environment:
+      <<: *demo-environment
+      COYOTE_DEMO_ADMIN_PASSWORD: ${COYOTE_DEMO_ADMIN_PASSWORD:?}
+      COYOTE_DEMO_SUPERUSER_PASSWORD: ${COYOTE_DEMO_SUPERUSER_PASSWORD:?}
+    command: [python3, scripts/deployment/demo_bootstrap.py]
+    depends_on:
+      demo-replica: {condition: service_completed_successfully}
+      demo-storage: {condition: service_completed_successfully}
+      demo-redis: {condition: service_healthy}
+
+  api:
+    <<: *demo-runtime
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+      target: demo_source
+    command: [python3, -m, uvicorn, 'coyote_api.app.main:app', --host, 0.0.0.0, --port, "8001"]
+    depends_on:
+      demo-bootstrap: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    <<: *demo-runtime
+    command: [python3, -m, coyote_demo.runtime, ingest, --concurrency=1]
+    depends_on:
+      api: {condition: service_healthy}
+
+  maintenance-worker:
+    <<: *demo-runtime
+    command: [python3, -m, coyote_demo.runtime, maintenance, --concurrency=1]
+    depends_on:
+      api: {condition: service_healthy}
+
+  beat:
+    <<: *demo-runtime
+    command: [python3, -m, coyote_demo.runtime, beat]
+    depends_on:
+      api: {condition: service_healthy}
+
+  frontend:
+    image: coyote4-demo-frontend:4.0.0
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        ENV_NAME: testing
+        ORGANIZATION_NAME: Coyote4 demonstration — synthetic data
+    entrypoint: [nginx, -g, 'daemon off;']
+    configs:
+      - source: demo-frontend
+        target: /etc/nginx/conf.d/default.conf
+    ports: ['127.0.0.1:${COYOTE_DEMO_PORT:?}:3000']
+    networks: [demo]
+    depends_on:
+      api: {condition: service_healthy}
+
+networks:
+  demo:
+    internal: true
+
+volumes:
+  demo-data:
+  demo-mongo:
+  demo-mongo-config:
+  demo-redis:
+
+configs:
+  demo-frontend:
+    file: frontend.conf

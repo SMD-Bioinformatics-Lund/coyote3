@@ -13,6 +13,26 @@ from coyote_api.app.runtime_state import app as runtime_app
 from coyote_api.interfaces.http.v1.public import routes as public
 
 
+@pytest.mark.parametrize("extensions", [(), ("relay",), ("atlas", "demo", "relay")])
+def test_module_capabilities_include_only_active_runtime_extensions(extensions):
+    """Expose active extensions separately from saved clinical feature controls."""
+    payload = {"modules": {}, "curation": {"tiering": {"small_variant": True}}}
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(api_extensions=extensions)))
+    response = public.public_modules_read(
+        request=request, service=SimpleNamespace(modules=lambda: payload)
+    )
+    assert response == {**payload, "extensions": list(extensions)}
+    assert "extensions" not in payload
+
+
+def test_unextended_host_reports_no_optional_capabilities():
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
+    response = public.public_modules_read(
+        request=request, service=SimpleNamespace(modules=lambda: {"modules": {}})
+    )
+    assert response == {"modules": {}, "extensions": []}
+
+
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
     monkeypatch.setattr(
         PublicCatalogService, "genelist_view_context", lambda self, *_args, **_kwargs: None

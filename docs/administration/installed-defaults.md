@@ -13,7 +13,7 @@ create an assay, enable an analysis, or grant users access to samples.
 | Finding query rules | Six published SNV sets across hematology, myeloid and solid, with immutable baseline revisions | Default first installation; disable with `--skip-application` |
 | System roles | 32 role definitions for clinical, configuration, governance and operational responsibilities | Standard bootstrap |
 | Initial accounts | One named system administrator and one separate emergency superuser | Operator supplies identities and temporary passwords during bootstrap |
-| Starter demonstration | One connected resource bundle: 11 assays, six diagnoses, eight lists, 39 configurations, query and reporting rules, 15 catalog offerings and two default samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | Default first installation; disable with `--skip-demo`. Later additions use authenticated maintenance or Administration → Demo installation |
+| Starter demonstration | One connected resource bundle: 11 assays, six diagnoses, eight lists, 39 configurations, query and reporting rules, 15 catalog offerings and two default samples. The catalog is published if no public catalog exists; otherwise it remains a draft. | Optional `coyote-demo` package in an [isolated demonstration deployment](../deployment/demo-installation.md) only; normal installations contain no demo samples |
 | Knowledgebase references | HGNC genes, VEP metadata and associated diagrams | Default first installation; disable with `--skip-knowledgebase` |
 
 Installed versioned catalogs start at version 1 and are attributed to `system`.
@@ -154,7 +154,7 @@ not a runtime center-editable policy.
 
 ## Low-level bootstrap configuration examples
 
-`api/src/coyote_api/bootstrap/catalogs/demo_center/` contains configuration fixtures for isolated
+`services/demo/src/coyote_demo/data/demo_center/` contains configuration fixtures for isolated
 bootstrap and collection-import checks. These fixtures are not installed by the
 starter demo workflow and do not describe its catalog.
 

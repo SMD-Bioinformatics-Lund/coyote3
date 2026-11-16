@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from coyote_api.app.main import app
+from coyote_demo.api.routes import router as demo_router
 from fastapi.routing import APIRoute, iter_route_contexts
 
 REGISTRY_PATH = Path("frontend/src/lib/routes/ui-route-registry.ts")
@@ -39,9 +40,10 @@ def _declared_page_api_contracts() -> list[tuple[str, str]]:
 
 def test_each_literal_page_api_contract_has_a_backend_route() -> None:
     """Prevent UI registry entries from drifting away from documented FastAPI routes."""
+    # Include the opt-in router for structural checking only; no demo deployment is started.
     api_routes = [
         route
-        for route in iter_route_contexts(app.routes)
+        for route in iter_route_contexts([*app.routes, *demo_router.routes])
         if isinstance(route.original_route, APIRoute)
     ]
     missing: list[str] = []

@@ -1,8 +1,11 @@
 # Run Coyote4 locally
 
-This procedure starts the container-based development stack with the connected
-synthetic DNA and RNA starter samples. It uses the same installer as a normal
-first installation, with the development overlay. For host-run API development,
+This procedure starts the ordinary container-based development stack. It uses the
+same installer as a normal first installation, with the development overlay.
+For synthetic DNA/RNA samples, use the separate
+[isolated demonstration installation](../deployment/demo-installation.md), which
+has its own databases, credentials and storage and supports Docker or native processes.
+For host-run API development,
 use the [developer environment](developer-environment.md).
 
 ## 1. Prepare tools and the checkout
@@ -74,10 +77,10 @@ The installer builds images, validates mounted configuration and database/Redis
 connectivity, installs a fresh baseline and starts the stack. It creates a distinct
 `coyote4.superuser` and `coyote4.sysadmin` with separate generated temporary passwords
 displayed once in the terminal, then
-installs application catalogs, bundled references and `DEMO_STARTER_DNA` /
-`DEMO_STARTER_RNA` by default. Creations use `system` provenance.
+installs application catalogs and bundled references by default. Synthetic
+demonstrations belong to the separate demo installation. Creations use `system` provenance.
 
-Use `--skip-demo` or `--skip-knowledgebase` when appropriate. Existing initialized
+Use `--skip-knowledgebase` when appropriate. Existing initialized
 deployments preserve their data. A partial baseline stops for investigation rather
 than being dropped. See [module defaults and authenticated repairs](../deployment/installation-operations.md).
 A host `.venv` is not needed for this container-based bootstrap.
@@ -95,7 +98,7 @@ For the settings above:
 - [Documentation](http://localhost:6801/coyote4_dev/docs-site/)
 
 Sign in with an account created during bootstrap and complete its required password
-change. Open both starter samples if demonstration installation was selected.
+change. Synthetic starter samples are available in the separate demo deployment.
 The stack includes API/frontend/docs/proxy, Redis, an ingest worker, a maintenance
 worker, beat and the log/error monitor. A healthy Redis alone is not proof of API
 or worker connectivity; retain the installer's checks and inspect service logs on failure.

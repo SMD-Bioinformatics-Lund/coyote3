@@ -16,6 +16,7 @@ def artifact(tmp_path):
     release.write_text(
         'application_version="4.0.0"\nsdk_version="4.0.0"\nserver_version="1.0.0"\n'
         'client_version="1.0.0"\nrelay_version="1.0.0"\n'
+        'atlas_version="1.0.0"\ndemo_version="1.0.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     artifacts = {}
@@ -24,6 +25,8 @@ def artifact(tmp_path):
         ("coyote-server", "1.0.0"),
         ("coyote-pyclient", "1.0.0"),
         ("coyote-relay", "1.0.0"),
+        ("coyote-atlas", "1.0.0"),
+        ("coyote-demo", "1.0.0"),
     ):
         wheel = tmp_path / f"{package.replace('-', '_')}-{version}-py3-none-any.whl"
         with zipfile.ZipFile(wheel, "w") as archive:
@@ -43,6 +46,8 @@ def artifact(tmp_path):
         "server_version": "1.0.0",
         "client_version": "1.0.0",
         "relay_version": "1.0.0",
+        "atlas_version": "1.0.0",
+        "demo_version": "1.0.0",
         "http_api_major": 1,
         "center_configuration_format": 1,
         "source_commit": "a" * 40,
@@ -69,7 +74,9 @@ def test_image_rejects_modified_wheel(artifact):
 
 
 @pytest.mark.parametrize("failure", ["missing", "modified"])
-@pytest.mark.parametrize("package", ["coyote-pyclient", "coyote-relay"])
+@pytest.mark.parametrize(
+    "package", ["coyote-pyclient", "coyote-relay", "coyote-atlas", "coyote-demo"]
+)
 def test_independent_services_are_part_of_verified_deployment_artifacts(artifact, failure, package):
     directory, release, _, record = artifact
     client = record["artifacts"][package]
@@ -79,7 +86,7 @@ def test_independent_services_are_part_of_verified_deployment_artifacts(artifact
     else:
         wheel = directory / client["filename"]
         wheel.write_bytes(wheel.read_bytes() + b"modified")
-    with pytest.raises(ValueError, match="exactly the core, server, client and ingestion|checksum"):
+    with pytest.raises(ValueError, match="exactly the selected|checksum"):
         verify_sdk_artifact(directory, release, production=True, source_commit="a" * 40)
 
 
@@ -93,6 +100,8 @@ def test_independent_services_are_part_of_verified_deployment_artifacts(artifact
         ("server_version", "2.0.0"),
         ("client_version", "2.0.0"),
         ("relay_version", "2.0.0"),
+        ("atlas_version", "2.0.0"),
+        ("demo_version", "2.0.0"),
         ("http_api_major", 2),
     ],
 )

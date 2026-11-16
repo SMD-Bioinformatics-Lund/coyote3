@@ -22,7 +22,7 @@ from coyote.contracts.public import (
     PublicVepVersionsPayload,
 )
 from coyote.contracts.schemas.catalog_offerings import CatalogDiscoveryDoc
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from coyote_api.app.deps.application import get_public_application, get_public_pages
 from coyote_api.app.deps.modules import RequireModules
@@ -90,9 +90,16 @@ def public_contact_read(service: PublicPages = Depends(get_public_pages)):
 
 
 @router.get("/api/v1/public/modules", response_model=PublicModulesPayload)
-def public_modules_read(service: PublicApplication = Depends(get_public_application)):
-    """Return effective availability for software-defined application modules."""
-    return convert_to_serializable(service.modules())
+def public_modules_read(
+    request: Request, service: PublicApplication = Depends(get_public_application)
+):
+    """Return effective application modules and enabled installed API extensions."""
+    return convert_to_serializable(
+        {
+            **service.modules(),
+            "extensions": list(getattr(request.app.state, "api_extensions", ())),
+        }
+    )
 
 
 @router.get("/api/v1/public/about", response_model=PublicAboutPayload)

@@ -17,6 +17,8 @@ PROJECTS = {
     "mongo": "adapters/mongo",
     "client": "clients/python",
     "relay": "services/relay",
+    "atlas": "services/atlas",
+    "demo": "services/demo",
     "frontend": "frontend",
 }
 _published: dict[Path, str] = {}
@@ -70,12 +72,19 @@ def on_files(files, config):
                 logical = f"packages/{name}/assets/coyote-api-logo.svg"
                 files.append(File.generated(config, logical, abs_src_path=str(source)))
                 _published[source.resolve()] = logical
-        if name == "relay":
-            source = project / "src/coyote_relay/assets/coyote-relay-logo.svg"
+        if name in {"relay", "atlas", "demo"}:
+            source = project / f"src/coyote_{name}/assets/coyote-{name}-logo.svg"
             if source.is_file():
-                logical = f"packages/{name}/assets/coyote-relay-logo.svg"
+                logical = f"packages/{name}/assets/coyote-{name}-logo.svg"
                 files.append(File.generated(config, logical, abs_src_path=str(source)))
                 _published[source.resolve()] = logical
+        if name == "atlas":
+            for filename in ("NOTICE.txt", "LICENSE.txt"):
+                source = project / "src/coyote_atlas/data/reference" / filename
+                if source.is_file():
+                    logical = f"packages/atlas/reference-data/{filename}"
+                    files.append(File.generated(config, logical, abs_src_path=str(source)))
+                    _published[source.resolve()] = logical
         for filename, public_name in (
             ("README.md", "overview.md"),
             ("CHANGELOG.md", "changelog.md"),

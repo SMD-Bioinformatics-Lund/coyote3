@@ -43,6 +43,9 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
     Returns:
         True for development or testing only. Staging uses production safeguards.
     """
+    mode = _explicit_runtime_mode(config)
+    if mode is not None:
+        return mode in {"development", "testing"}
     if config is None:
         env_name = str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
     else:
@@ -52,6 +55,32 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
             .lower()
         )
     return env_name in {"dev", "development", "test", "testing"}
+
+
+def _explicit_runtime_mode(config: Mapping[str, Any] | None = None) -> str | None:
+    """Resolve an explicit security mode independently of the assay environment.
+
+    Args:
+        config: Host settings, or None to read the process override. A supplied
+            COYOTE4_RUNTIME_MODE takes precedence over the process environment.
+
+    Returns:
+        The validated mode, or None when ordinary environment selection applies.
+
+    Raises:
+        RuntimeError: An explicit mode is blank or unsupported.
+    """
+    mode = (
+        config["COYOTE4_RUNTIME_MODE"]
+        if config is not None and "COYOTE4_RUNTIME_MODE" in config
+        else os.getenv("COYOTE4_RUNTIME_MODE")
+    )
+    if mode is None:
+        return None
+    mode = str(mode).strip().lower()
+    if mode not in {"production", "development", "testing"}:
+        raise RuntimeError("COYOTE4_RUNTIME_MODE must be production, development or testing")
+    return mode
 
 
 def _require_setting(config: Mapping[str, Any], key: str) -> str:
@@ -81,13 +110,18 @@ def _require_production_safe_setting(config: Mapping[str, Any], key: str) -> str
 
 
 def get_runtime_mode_flags() -> dict[str, bool]:
-    """Read runtime mode flags from ``ENV_NAME``.
+    """Select process protections independently of the clinical environment label.
 
     Returns:
         A mapping containing the normalized ``testing`` and ``development``
-        runtime flags.
+        runtime flags. COYOTE4_RUNTIME_MODE explicitly selects production,
+        development or testing; when absent, ENV_NAME preserves existing behavior.
+
+    Raises:
+        RuntimeError: An explicit process mode is unsupported.
     """
-    env_name = str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
+    mode = _explicit_runtime_mode()
+    env_name = mode or str(os.getenv("ENV_NAME") or DEFAULT_ENVIRONMENT).strip().lower()
     return {
         "testing": env_name in {"test", "testing"},
         "development": env_name in {"dev", "development"},

@@ -1,0 +1,5 @@
+include demo_build.py
+include LICENSE.txt COPYRIGHT.txt NOTICE.txt CHANGELOG.md
+recursive-include docs *.md *.svg
+recursive-include tests *.py
+recursive-include src/coyote_demo/data *

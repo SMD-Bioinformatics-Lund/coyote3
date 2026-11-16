@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from coyote_api.app.main import app
+from coyote_demo.api.routes import router as demo_router
 from fastapi.routing import APIRoute, iter_route_contexts
 
 ROUTE_REGISTRY = Path("frontend/src/lib/routes/ui-route-registry.ts")
@@ -41,7 +42,8 @@ def _path_shape(path: str) -> str:
 
 def _api_route_shapes() -> set[tuple[str, str]]:
     shapes: set[tuple[str, str]] = set()
-    for route in iter_route_contexts(app.routes):
+    # Validate optional page contracts without enabling demo storage or starting its host.
+    for route in iter_route_contexts([*app.routes, *demo_router.routes]):
         if not isinstance(route.original_route, APIRoute):
             continue
         if not route.path.startswith("/api/v1/"):

@@ -137,7 +137,6 @@ def authorized_operations(resource, service, user=None):
         ports = SimpleNamespace(
             dashboard=lambda: service,
             controls=lambda: service,
-            demo=lambda: service,
             deployment=lambda: service,
             audit=lambda: service,
             enqueue=enqueue_operation,

@@ -19,9 +19,10 @@ For application development use the [uv workspace](uv-development.md):
 uv sync --all-packages --group test --group dev --group docs
 ```
 
-Deployment builds four wheels: core, server, HTTP client and ingestion service.
-The API and MongoDB adapter share the server wheel. No public-index publication
-is required. See [server installation](server-installation.md).
+Release builds produce six wheels: core, server, HTTP client, Relay, Atlas and
+Demo. The normal application image installs the first five; the isolated demo
+image additionally installs Demo. API and MongoDB share the server wheel. No
+public-index publication is required. See [server installation](server-installation.md).
 
 After configuring the deployment environment and databases, run
 `coyote4-api --host 127.0.0.1 --port 8001`, or

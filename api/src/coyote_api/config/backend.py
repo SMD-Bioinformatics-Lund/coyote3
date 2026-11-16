@@ -15,6 +15,8 @@ from coyote_mongo.config.defaults import MONGO_DEFAULTS
 from coyote_mongo.config.endpoints import MongoEndpoint
 from coyote_mongo.config.settings import AuditContext, MongoSettings
 
+from coyote_api.config.extensions import validate_runtime_extensions
+
 
 @dataclass(frozen=True)
 class BackendSettings:
@@ -37,6 +39,7 @@ class BackendSettings:
             ValueError: A setting has the wrong type or a MongoDB selection is invalid.
             RuntimeError: A MongoDB URI or database name is missing or collides.
         """
+        validate_runtime_extensions(config)
         connection = {
             "max_pool_size": "MONGO_MAX_POOL_SIZE",
             "min_pool_size": "MONGO_MIN_POOL_SIZE",

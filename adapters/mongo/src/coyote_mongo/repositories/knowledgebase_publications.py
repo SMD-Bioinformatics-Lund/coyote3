@@ -10,7 +10,12 @@ from coyote_mongo.config.collections import load_collection_section
 
 
 def record_reference_publication(
-    database: Any, *, source: str, release: str, session: Any = None
+    database: Any,
+    *,
+    source: str,
+    release: str,
+    session: Any = None,
+    bundle: dict[str, Any] | None = None,
 ) -> None:
     """Record a successfully installed or replaced reference release for notification delivery.
 
@@ -19,6 +24,7 @@ def record_reference_publication(
         source: Stable reference collection or maintenance operation name.
         release: Producer release identifier, or bundled for the packaged baseline.
         session: Owning reference-write transaction when available; never another client's session.
+        bundle: Validated reference-bundle provenance, or None for an external publication.
 
     Notes:
         Replacing a release advances published_at, producing a distinct activity event.
@@ -34,6 +40,7 @@ def record_reference_publication(
                 "status": "active",
                 "published_at": datetime.now(timezone.utc),
                 "updated_by": "system",
+                **({"bundle": bundle} if bundle is not None else {}),
             },
             "$setOnInsert": {"created_by": "system"},
         },

@@ -93,6 +93,12 @@ it; JSON is available only for portable import and export. It is not a file in
 > `ENV_NAME` is the environment selector. Use values such as `development`,
 > `testing`, `staging`, or `production`. Coyote4 does not use separate
 > `DEVELOPMENT=1` or `TESTING=1` flags.
+
+`COYOTE4_RUNTIME_MODE` can explicitly select `production`, `development`, or
+`testing` protections independently of the clinical environment label. Without
+this override, existing `ENV_NAME` behavior is unchanged. Isolated demonstrations
+use `ENV_NAME=testing` with `COYOTE4_RUNTIME_MODE=production` so authentication,
+CSRF, persistence, and background workers retain their normal protections.
 >
 
 ## Browser Entry Points
@@ -260,6 +266,8 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | Variable | Required | Accepted value / units | Default when omitted | Purpose |
 | --- | --- | --- | --- | --- |
 | `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | None; a nonempty value is required | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
+| `COYOTE4_RUNTIME_MODE` | Optional | `production`, `development`, `testing` | Derived from `ENV_NAME` | Explicit process protections; does not change clinical assay environment selection. |
+| `COYOTE4_DATA_ROOT` | Optional | Absolute filesystem path | `/data` | Base for environment-specific stored files. Native demo launchers select a private directory. |
 | `COYOTE4_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Environment-specific primary database, independent of the URI path and authSource. |
 | `IDENTITY_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
 | `KNOWLEDGEBASE_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |

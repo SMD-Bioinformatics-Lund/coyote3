@@ -6,11 +6,12 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from coyote.application.common.installation import compile_bundle_configurations
 from coyote.application.reporting.clinical_rules.validation import content_hash
 from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote.contracts.schemas.registry import normalize_collection_document
 
-from coyote_api.bootstrap.compilation import compile_bundle_configurations
+from coyote_api.bootstrap.references import reference_bundle
 from coyote_api.infra.seed.bundle import (
     canonicalize_seed_contract,
     load_reference_seed_pack,
@@ -44,9 +45,9 @@ def build_seed_documents(
         OSError: A selected seed file cannot be read.
     """
     payload = load_reference_seed_pack(rbac_dir)
-    payload.update(
-        load_reference_seed_pack(reference_dir, include_knowledgebase=include_knowledgebase)
-    )
+    payload.update(load_reference_seed_pack(reference_dir, include_knowledgebase=False))
+    if include_knowledgebase:
+        payload.update(reference_bundle().load_documents())
 
     canonicalize_seed_contract(payload)
     lower_business_keys(payload)

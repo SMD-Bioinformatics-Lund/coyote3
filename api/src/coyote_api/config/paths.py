@@ -18,7 +18,6 @@ API_LOGO_PATH = API_CONFIG_DIR / "assets" / "coyote-api-logo.svg"
 APPLICATION_FAVICON_PATH = API_CONFIG_DIR / "assets" / "coyote4-favicon.ico"
 EMAIL_LOGO_PATH = API_CONFIG_DIR / "assets" / "coyote4-email-logo.png"
 BUNDLED_CENTER_CONFIG_DIR = API_CONFIG_DIR / "examples" / "center"
-DEMO_WORKFLOW_BUNDLE_PATH = API_CONFIG_DIR.parent / "bootstrap" / "demo_data" / "clinical_workflows"
 CENTER_CONFIG_DIR = center_directory_from_environment() or BUNDLED_CENTER_CONFIG_DIR
 
 if not CENTER_CONFIG_DIR.is_dir():
@@ -31,10 +30,11 @@ for _center_filename in (
     if not (CENTER_CONFIG_DIR / _center_filename).is_file():
         raise RuntimeError(f"Required center configuration file is missing: {_center_filename}")
 
-# Container filesystem contract. Compose mounts the center-owned host data root
-# at /data for every API and Celery container; runtime code never receives host
-# filesystem paths.
-DATA_CONTAINER_ROOT = Path("/data")
+# Containers mount their selected storage at /data. Native installations can
+# explicitly select an isolated absolute data directory.
+DATA_CONTAINER_ROOT = Path(os.getenv("COYOTE4_DATA_ROOT") or "/data")
+if not DATA_CONTAINER_ROOT.is_absolute():
+    raise RuntimeError("COYOTE4_DATA_ROOT must be an absolute directory")
 
 
 def environment_storage_root(environment: str, root: Path = DATA_CONTAINER_ROOT) -> Path:
@@ -42,7 +42,7 @@ def environment_storage_root(environment: str, root: Path = DATA_CONTAINER_ROOT)
 
     Args:
         environment: ENV_NAME label; long and short deployment names are accepted.
-        root: Mounted application storage root, defaulting to /data.
+        root: Application storage root, defaulting to COYOTE4_DATA_ROOT or /data.
 
     Returns:
         Environment directory beneath root.

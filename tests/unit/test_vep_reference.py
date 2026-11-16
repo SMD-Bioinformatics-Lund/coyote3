@@ -14,8 +14,8 @@ from coyote.application.public.catalog import PublicCatalogService
 from coyote.contracts.public import PublicVepReferencePayload
 from coyote.domain.exceptions import AppError
 from coyote_api.app.deps import services
-from coyote_api.infra.seed.diagrams import load_seed_diagrams
 from coyote_api.interfaces.http.v1.public import routes
+from coyote_atlas.bundle import ReferenceBundle
 from coyote_mongo.repositories.vep_metadata import VEPMetaRepository
 from PIL import Image
 
@@ -120,7 +120,7 @@ def test_binary_endpoint_is_release_scoped_and_metadata_has_no_image_bytes(monke
     with gzip.open(SEED, "rt") as stream:
         rows = list(map(json.loads, stream))
     database.vep_metadata.insert_many(copy.deepcopy(rows))
-    assets = load_seed_diagrams(rows, SEED.parent)
+    assets = ReferenceBundle.packaged().load_diagrams()
     database.vep_diagrams.insert_many(assets)
     assert len(assets) < len(rows)
     repository = object.__new__(VEPMetaRepository)

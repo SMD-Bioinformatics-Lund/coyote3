@@ -21,6 +21,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from coyote_atlas.authoring import draft_bundle  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
@@ -100,7 +101,15 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--backup", type=Path)
     parser.add_argument("--update-seed", action="store_true")
+    parser.add_argument("--output-bundle", type=Path)
+    parser.add_argument("--bundle-version")
     args = parser.parse_args()
+    if args.update_seed and (not args.output_bundle or not args.bundle_version):
+        parser.error("--update-seed requires --output-bundle and --bundle-version")
+    if not args.update_seed and (args.output_bundle or args.bundle_version):
+        parser.error("Bundle output options require --update-seed")
+    if args.output_bundle and args.output_bundle.exists():
+        parser.error("--output-bundle must be a new directory")
     if args.cpus < 1 or (args.apply and not args.backup):
         parser.error("Positive --cpus and --backup for --apply are required")
     with gzip.open(SEED, "rt") as stream:
@@ -126,13 +135,16 @@ def main() -> int:
             name = load_collection_section("knowledgebase")["vep_metadata_collection"]
             install(client[config["KNOWLEDGEBASE_DB"]][name], diagrams, args.backup)
     if args.update_seed:
-        for row in documents:
-            row["consequence_diagram"] = seed_diagram(diagrams[row["vep_id"]], SEED.parent)
-        temporary = SEED.with_suffix(".tmp")
-        temporary.write_bytes(
-            gzip.compress(("".join(json.dumps(row) + "\n" for row in documents)).encode(), mtime=0)
-        )
-        temporary.replace(SEED)
+        with draft_bundle(args.output_bundle, args.bundle_version):
+            for row in documents:
+                row["consequence_diagram"] = seed_diagram(
+                    diagrams[row["vep_id"]], args.output_bundle
+                )
+            (args.output_bundle / SEED.name).write_bytes(
+                gzip.compress(
+                    ("".join(json.dumps(row) + "\n" for row in documents)).encode(), mtime=0
+                )
+            )
     print(f"Validated {len(diagrams)} release-specific diagrams")
     return 0
 

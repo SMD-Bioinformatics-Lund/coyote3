@@ -24,7 +24,7 @@ bundle and deployment exercises.
 
 | Tool | Inputs and behavior |
 | --- | --- |
-| `scripts/bootstrap/install_demo_workflows.py` | Requires `--mongo-uri`, `--db`, `--actor`; plans validated configuration by default, inserts atomically with `--apply`. Restricted to loopback MongoDB and `coyote4_demo` database names. Requires the standard baseline, rejects existing fixture identities, and leaves report rules as drafts. |
+| `coyote-demo-install` (Demo package) | Requires `--actor` and explicit guarded demo settings. Plans configuration by default; `--starter` includes the two synthetic starter samples, and `--apply` performs installation through normal workflows. Checks all demo databases, credential scope and local services before connecting; preserves reviewed samples and rejects identifier collisions. See [demo deployment](../deployment/demo-installation.md). |
 | `scripts/quality/export_demo_workflows.py` | Replays the bundle offline through ingest and report evaluation using development dependencies. Writes deterministic expected artifacts; `--check` compares them without writes. Never reads deployment credentials or contacts a database. |
 
 The [script directory index](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/README.md) groups commands by purpose.
@@ -51,8 +51,7 @@ and preserve original sample ObjectIds; they do not use SQLite.
 
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
-| `bootstrap/bootstrap_database.py` | First installation | First-deployment runbooks; composed CI verification | Creates initial accounts and installs application, knowledgebase and demo modules by default on fresh targets only; supports explicit module skip flags |
-| `bootstrap/demo_service.py` | Internal helper | First installation | Binds the fixed starter bundle to normal transactional ingestion and configured databases |
+| `bootstrap/bootstrap_database.py` | First installation | First-deployment runbooks; composed CI verification | Creates initial accounts and installs application catalogs plus the Atlas reference bundle on fresh targets only; supports explicit module skip flags and installs no demo data |
 | `deployment/manage_data.py` | Authenticated maintenance | [Installation operations](../deployment/installation-operations.md) | Uses API login and required password setup to add or force-repair explicitly selected modules; never deploys services |
 | `deployment/install_center.sh` | Manual operation | First-installation guide | `--setup-center` installs the application baseline and bundled HGNC/VEP references; `--steps` selects individual stages; external imports and knowledgebase-wide indexing remain separate |
 | `deployment/installation_checks.py` | Standalone command and helper | `install_center.sh` and guarded bootstrap | Read-only configuration, endpoint, installation-state and scoped index-readiness checks |

@@ -13,12 +13,10 @@ and `runtime_settings.py`. Complete center-file examples are in
 `src/coyote_api/config/examples/center/`. See the [configuration guide](docs/configuration.md)
 for environment loading and ownership.
 
-The actual synthetic demo files live in
-`src/coyote_api/bootstrap/demo_data/clinical_workflows/`, with `setup/`, `raw/`,
-`starter/` and `manifests/` directories. They belong to the API component because the
-API's installation service consumes them. The server wheel includes the same bundle, so
-installation does not depend on a repository checkout. The core and MongoDB
-adapter do not own demo installation resources.
+Reference snapshots belong to [Coyote Atlas](../services/atlas/README.md), and
+synthetic data belongs to [Coyote Demo](../services/demo/README.md). Their optional
+API extensions use this host's authentication and persistence. Normal bootstrap
+never installs synthetic samples; the demo requires explicitly isolated storage.
 
 ## Documentation
 

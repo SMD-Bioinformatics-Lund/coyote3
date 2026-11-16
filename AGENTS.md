@@ -27,6 +27,8 @@ The system consists of:
 | `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independently installable HTTP-only `coyote-pyclient` distribution and tests. |
 | `services/relay/` | Installable ingestion worker and submission tools; reusable workflows belong to core. |
+| `services/atlas/` | Independently installable HGNC/VEP resources, validation and reference publication. |
+| `services/demo/` | Optional synthetic datasets and guarded installation for isolated demonstrations. |
 | `api/src/coyote_api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
 | `core/src/coyote/application/` | Use-case and workflow services. |
 | `core/src/coyote/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
@@ -34,7 +36,7 @@ The system consists of:
 | `api/src/coyote_api/infra/` | Host integrations, observability and infrastructure composition. |
 | `adapters/mongo/src/coyote_mongo/` | MongoDB repositories and persistence adapters in the server distribution. |
 | `core/src/coyote/config/` | Typed policy inputs, software defaults and validation. |
-| `api/src/coyote_api/bootstrap/` | Server-owned reference snapshots and installation assembly; shared RBAC catalogs belong to core. |
+| `api/src/coyote_api/bootstrap/` | Baseline catalogs and installation assembly; reference snapshots belong to Atlas and shared RBAC catalogs to core. |
 | `api/src/coyote_api/services/` | Host installation operations and public-page composition. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
 | `api/src/coyote_api/config/` | Host environment loading, API security, storage paths and database settings. |
@@ -44,14 +46,14 @@ The system consists of:
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
 | `core/src/coyote/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
-| `core/tests/`, `api/tests/`, `adapters/mongo/tests/`, `clients/python/tests/`, `services/relay/tests/` | Component-owned unit, smoke and integration coverage. |
+| `core/tests/`, `api/tests/`, `adapters/mongo/tests/`, `clients/python/tests/`, `services/*/tests/` | Component-owned unit, smoke and integration coverage. |
 | `tests/` | Application integration, architecture contracts, repository tooling and smoke coverage. |
 | `tests/load/` | Optional Locust HTTP workloads, target checks and synthetic smoke server. |
 | `deploy/` | Compose definitions, proxy configuration, and environment examples. |
 | `docker/` | Container build definitions and frontend proxy templates. |
 | `scripts/` | Quality, bootstrap, deployment, maintenance, and contract-generation tools. |
 | `docs/` | MkDocs user, developer, API, configuration, and operations documentation. |
-| `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` | Packaged synthetic inputs, setup resources and demonstration manifests. |
+| `services/demo/src/coyote_demo/data/clinical_workflows/` | Packaged synthetic inputs, setup resources and demonstration manifests. |
 
 Important entry points are `api/src/coyote_api/app/main.py`, `asgi.py`, `run_api.py`,
 `api/src/coyote_api/celery_app.py`, `services/relay/src/coyote_relay/worker.py`,
@@ -174,8 +176,9 @@ and `frontend/src/main.tsx`.
   SDK selection belong to `release.toml`. Keep HTTP and clinical configuration revisions separate.
 - The root builds `coyote-server` from the separate `api/src/coyote_api` and
   `adapters/mongo/src/coyote_mongo` trees. Its uv workspace also contains `core`
-  (`coyote-core`), `clients/python` (`coyote-pyclient`) and `services/relay`
-  (`coyote-relay`). API and Mongo retain
+  (`coyote-core`), `clients/python` (`coyote-pyclient`), `services/relay`
+  (`coyote-relay`), `services/atlas` (`coyote-atlas`) and `services/demo`
+  (`coyote-demo`). API and Mongo retain
   component-owned tests, coverage and docs while sharing one server distribution.
   Dependencies point API -> adapter -> core. The adapter never imports the API.
   The HTTP client has its own distribution and imports none of those packages.
@@ -185,8 +188,13 @@ and `frontend/src/main.tsx`.
   Relay dependency. Preserve the existing authentication and authorization dependencies
   when registering optional routes. Shared ingestion workflows belong to core;
   CLI configuration, HTTP transports and Celery entry points belong to Relay.
-  Use the uv workspace for editable development; deployment installs core, server,
-  ingestion and independent client wheels. The client supports administrative HTTP tools;
+  Atlas owns reference resources and publication; the server discovers its provider
+  through an installed entry point. Demo owns synthetic resources and guarded
+  installation, and remains disabled unless isolated targets are explicitly selected.
+  Preserve runtime validation before connections and enforce restricted demo credentials.
+  Use the uv workspace for editable development; normal deployment installs core, server,
+  Relay, Atlas and client wheels. Dedicated demo images additionally install Demo.
+  The client supports administrative HTTP tools;
   API request handlers and core operations must not import it.
 
 - HTTP routers declare paths, permissions, dependencies, and response contracts, then

@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coyote-atlas"
+version = "1.0.0"
+description = "Coyote Atlas: checked reference bundles and explicit authenticated installation"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"]
+authors = [{ name = "Ram Nanduri" }]
+dependencies = ["coyote-core==4.0.0", "coyote-pyclient==1.0.0"]
+
+[project.optional-dependencies]
+api = ["coyote-server==1.0.0"]
+test = ["pytest==9.0.3", "pytest-cov==7.1.0"]
+
+[project.scripts]
+coyote-atlas = "coyote_atlas.cli:main"
+
+[project.entry-points."coyote.reference_bundles"]
+atlas = "coyote_atlas.bundle:ReferenceBundle.packaged"
+
+[project.entry-points."coyote.api.routers"]
+atlas = "coyote_atlas.api:routers"
+
+[tool.coyote4.attribution]
+contributors = ["Sailendra Pradhananga", "Viktor Henmyr"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["coyote_atlas", "coyote_atlas.*"]
+
+[tool.setuptools.package-data]
+coyote_atlas = ["py.typed", "assets/*.svg", "data/reference/*", "data/reference/vep_diagrams/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests", "src"]
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+markers = [
+  "smoke: fast offline checks without external services",
+  "unit: isolated reference and client behavior",
+  "integration: optional authenticated host composition",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["coyote_atlas"]
+data_file = ".coverage"
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+precision = 2
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:", "raise NotImplementedError"]
+
+[tool.coverage.html]
+directory = "coverage/html"
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"

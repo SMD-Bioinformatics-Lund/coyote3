@@ -68,6 +68,8 @@ export type ApiOperations = {
   "POST /admin/query-rule-sets/{identifier}/publish": { request: T.Request_publishRuleApiV1AdminQueryRuleSetsIdentifierPublishPost; response: T.Response_publishRuleApiV1AdminQueryRuleSetsIdentifierPublishPost }
   "POST /admin/query-rule-sets/{identifier}/retire": { request: T.Request_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost; response: T.Response_retireRuleApiV1AdminQueryRuleSetsIdentifierRetirePost }
   "GET /admin/query-rule-sets/{identifier}/revisions": { request: T.Request_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet; response: T.Response_ruleRevisionsApiV1AdminQueryRuleSetsIdentifierRevisionsGet }
+  "POST /admin/references/apply": { request: T.Request_applyReferencesApiV1AdminReferencesApplyPost; response: T.Response_applyReferencesApiV1AdminReferencesApplyPost }
+  "GET /admin/references/plan": { request: T.Request_planReferencesApiV1AdminReferencesPlanGet; response: T.Response_planReferencesApiV1AdminReferencesPlanGet }
   "GET /admin/schemas": { request: T.Request_adminSchemasReadApiV1AdminSchemasGet; response: T.Response_adminSchemasReadApiV1AdminSchemasGet }
   "GET /admin/service-tokens": { request: T.Request_listTokensApiV1AdminServiceTokensGet; response: T.Response_listTokensApiV1AdminServiceTokensGet }
   "POST /admin/service-tokens": { request: T.Request_createTokenApiV1AdminServiceTokensPost; response: T.Response_createTokenApiV1AdminServiceTokensPost }

@@ -183,9 +183,9 @@ def test_server_publishes_ingestion_without_importing_the_worker_service() -> No
         f"{path}:{line}: {module}"
         for path in _python_files(Path("api/src/coyote_api"))
         for line, module in _imported_modules(path)
-        if module.split(".")[0] == "coyote_relay"
+        if module.split(".")[0] in {"coyote_relay", "coyote_atlas", "coyote_demo"}
     ]
-    assert not offenders, "Server imports ingestion service:\n" + "\n".join(offenders)
+    assert not offenders, "Server imports an optional service:\n" + "\n".join(offenders)
 
 
 def test_mongo_adapter_has_no_application_host_imports() -> None:
@@ -195,7 +195,15 @@ def test_mongo_adapter_has_no_application_host_imports() -> None:
         for path in _python_files(Path("adapters/mongo/src/coyote_mongo"))
         for line, module in _imported_modules(path)
         if module.split(".")[0]
-        in {"coyote_api", "fastapi", "starlette", "coyote_pyclient", "coyote_relay"}
+        in {
+            "coyote_api",
+            "fastapi",
+            "starlette",
+            "coyote_pyclient",
+            "coyote_relay",
+            "coyote_atlas",
+            "coyote_demo",
+        }
     ]
     assert not offenders, "Adapter imports its consumer:\n" + "\n".join(offenders)
 

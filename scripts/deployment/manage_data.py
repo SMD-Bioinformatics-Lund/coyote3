@@ -35,7 +35,7 @@ def manage_data(
 
     Args:
         api_url: Running API URL including any proxy prefix; TLS verification remains enabled.
-        modules: Explicit identity, application, knowledgebase or demo selections.
+        modules: Explicit identity, application or knowledgebase selections.
         force: Request repair of selected installation-owned records.
         username: Optional login hint; otherwise prompted interactively.
         provider: Explicit local or ldap authentication provider; defaults to local
@@ -100,7 +100,7 @@ def main() -> int:
         "--modules",
         nargs="+",
         required=True,
-        choices=("identity", "application", "knowledgebase", "demo"),
+        choices=("identity", "application", "knowledgebase"),
     )
     parser.add_argument("--force", action="store_true", help="Repair selected bundled modules")
     parser.add_argument("--username", default="", help="Optional API login username")

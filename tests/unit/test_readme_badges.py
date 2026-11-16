@@ -33,7 +33,7 @@ def repository(tmp_path, monkeypatch):
         "adapters/mongo/README.md",
         "services/relay/README.md",
         "services/relay/docs/README.md",
-        "api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md",
+        "services/demo/src/coyote_demo/data/clinical_workflows/README.md",
     ):
         path = tmp_path / filename
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,7 +71,7 @@ def test_generation_is_idempotent_and_preserves_explanations(repository):
         assert text.count(badges.START) == 1
         assert "Keep this explanation." in text
         assert "img.shields.io" in text
-    demo = repository / "api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md"
+    demo = repository / "services/demo/src/coyote_demo/data/clinical_workflows/README.md"
     assert "Synthetic%20data" in demo.read_text()
     assert "License" not in demo.read_text()
     readme = (repository / "README.md").read_text()

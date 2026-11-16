@@ -8,10 +8,13 @@ import { beforeEach, expect, it, vi } from "vitest"
 import DemoInstallationPage from "./DemoInstallationPage"
 
 const calls = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
+const modules = vi.hoisted(() => ({ data: { extensions: ["demo"] as string[] }, isError: false, isLoading: false, refetch: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: calls }))
+vi.mock("@/lib/app-module-state", () => ({ useApplicationModules: () => modules }))
 
 beforeEach(() => {
   vi.clearAllMocks()
+  modules.data.extensions = ["demo"]; modules.isError = false; modules.isLoading = false
   calls.get.mockResolvedValue({ data: {
     configuration: { assay_specific_panels: 9 }, configuration_installed: false,
     samples: [{ key: "demo_group_dna", name: "DEMO_GROUP_DNA", installed: false }],
@@ -67,4 +70,22 @@ it("does not reinstall existing samples or configuration", async () => {
   fireEvent.click(screen.getByRole("checkbox"))
   expect(screen.getByRole("button", { name: "Install configuration and samples" })).toBeDisabled()
   expect(calls.post).not.toHaveBeenCalled()
+})
+
+it("does not query demo routes or offer writes when the extension is absent", async () => {
+  modules.data.extensions = []
+  show()
+  expect(screen.getByRole("status")).toHaveTextContent("not enabled")
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+  expect(calls.get).not.toHaveBeenCalled()
+  expect(calls.post).not.toHaveBeenCalled()
+})
+
+it("keeps demo routes disabled when extension discovery fails", () => {
+  modules.isError = true
+  show()
+  expect(screen.getByRole("alert")).toHaveTextContent("Unable to check demo availability")
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+  expect(modules.refetch).toHaveBeenCalledOnce()
+  expect(calls.get).not.toHaveBeenCalled()
 })

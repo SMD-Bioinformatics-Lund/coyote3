@@ -72,12 +72,14 @@ The packaging rationale is recorded in
 | `adapters/mongo/` | MongoDB adapter component; code in `src/coyote_mongo/`, distributed with the API |
 | `clients/python/` | Independent HTTP client |
 | `services/relay/` | Installable ingestion workers and pipeline submission commands; workflows live in core |
+| `services/atlas/` | Installable HGNC/VEP reference bundles, validation and explicit publication |
+| `services/demo/` | Optional synthetic datasets and installation for an isolated demonstration deployment |
 | `frontend/` | React interface and frontend tests |
 | `deploy/` | Compose definitions, environment examples and deployment configuration |
 | `docker/` | Container build definitions and frontend proxy templates |
 | [api/src/coyote_api/config/](api/src/coyote_api/config/) | Backend environment loading, settings, defaults and center configuration examples |
 | `scripts/` | Maintained installation, operations and validation commands |
-| [api/src/coyote_api/bootstrap/demo_data/clinical_workflows/](api/src/coyote_api/bootstrap/demo_data/clinical_workflows/) | Actual synthetic demo files: setup resources, raw inputs and manifests |
+| [services/demo/src/coyote_demo/data/clinical_workflows/](services/demo/src/coyote_demo/data/clinical_workflows/) | Synthetic demo setup resources, raw inputs and manifests |
 | `migrations_scripts/` | Supported version 2 and version 3 data converters |
 | `tests/` | Backend tests and synthetic fixtures |
 | `docs/` | Procedures and technical references |

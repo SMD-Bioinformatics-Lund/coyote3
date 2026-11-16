@@ -5,29 +5,32 @@ import json
 import tomllib
 from pathlib import Path
 
+from coyote_atlas.bundle import ReferenceBundle
+from coyote_demo.resources import DEMO_CENTER
 
-def test_reference_seeds_are_host_data_excluded_from_the_sdk():
-    """API deployment retains reference seeds without bundling them into the library."""
+
+def test_reference_seeds_are_atlas_data_excluded_from_the_sdk_and_server():
+    """Atlas owns snapshots while application installation catalogs remain server resources."""
     root = Path(__file__).resolve().parents[2]
     config = tomllib.loads((root / "core/pyproject.toml").read_text())
     patterns = config["tool"]["setuptools"]["package-data"]["coyote"]
-    seeds = list((root / "api/src/coyote_api/bootstrap/catalogs/reference").glob("*.ndjson*"))
-    assets = list((root / "api/src/coyote_api/bootstrap/catalogs/reference/vep_diagrams").iterdir())
+    reference = ReferenceBundle.packaged().directory
+    seeds = list(reference.glob("*.ndjson*"))
+    assets = list((reference / "vep_diagrams").iterdir())
     assert assets
     seeds.extend(assets)
     assert seeds
     for seed in seeds:
         assert seed.is_file()
-        path = (
-            "config/bootstrap/"
-            + seed.relative_to(root / "api/src/coyote_api/bootstrap/catalogs").as_posix()
-        )
+        path = "data/reference/" + seed.relative_to(reference).as_posix()
         assert not any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns), path
+    assert not list((root / "api/src/coyote_api/bootstrap/catalogs/reference").glob("*.gz"))
     server = tomllib.loads((root / "pyproject.toml").read_text())
     assert "bootstrap/catalogs/**/*" in server["tool"]["setuptools"]["package-data"]["coyote_api"]
     dockerfile = (root / "docker/Dockerfile").read_text()
     assert "COPY --chown=coyote4:coyote4 api/ ./api/" not in dockerfile
-    assert "pip install --no-cache-dir --no-deps /opt/coyote4-sdk/*.whl" in dockerfile
+    assert "/opt/coyote4-sdk/coyote_atlas-*.whl" in dockerfile
+    assert "/opt/coyote4-sdk/coyote_core-*.whl" in dockerfile
 
 
 def test_demo_rules_have_current_facts_valid_hashes_and_passing_embedded_cases():
@@ -38,10 +41,7 @@ def test_demo_rules_have_current_facts_valid_hashes_and_passing_embedded_cases()
     )
     from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "api/src/coyote_api/bootstrap/catalogs/demo_center/clinical_rule_sets.json"
-    )
+    path = DEMO_CENTER / "clinical_rule_sets.json"
     for raw in json.loads(path.read_text()):
         document = ClinicalRuleSetDoc.model_validate(raw)
         assert document.test_cases

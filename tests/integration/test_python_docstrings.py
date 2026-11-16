@@ -13,6 +13,8 @@ SOURCE_DIRECTORIES = (
     "api/src/coyote_api",
     "adapters/mongo/src/coyote_mongo",
     "services/relay/src/coyote_relay",
+    "services/atlas/src/coyote_atlas",
+    "services/demo/src/coyote_demo",
     "scripts",
     "deploy/gunicorn",
     "tests/load",

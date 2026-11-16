@@ -8,6 +8,7 @@
     "published_at": "2026-01-01T00:01:00+00:00",
     "retired_at": null,
     "failed_at": null,
+    "bundle": null,
     "files": [
       {
         "name": "synthetic.tsv",

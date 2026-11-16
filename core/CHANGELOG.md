@@ -2,6 +2,9 @@
 
 ## 4.0.0
 
+- Own reusable installation configuration compilation, reference-bundle provenance
+  contracts and enabled host extension capabilities.
+
 - Own durable ingestion job execution and manifest acknowledgement through
   explicit host ports, preserving fenced claims, transaction completion and retry recovery.
 - Own the shared permission catalog and built-in role templates, with explicit

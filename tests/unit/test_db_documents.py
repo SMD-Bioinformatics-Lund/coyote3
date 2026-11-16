@@ -24,6 +24,7 @@ from coyote.contracts.schemas.variant_annotations import (
     VepAnnoTranscriptDoc,
 )
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote_atlas.bundle import ReferenceBundle
 
 
 def test_isgl_diagnosis_is_the_canonical_multi_diagnosis_scope():
@@ -49,11 +50,12 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
-    base = (
-        Path("core/src/coyote/config/catalogs/rbac")
-        if filename.startswith(("permissions.", "roles."))
-        else Path("api/src/coyote_api/bootstrap/catalogs/reference")
-    )
+    if filename.startswith(("permissions.", "roles.")):
+        base = Path("core/src/coyote/config/catalogs/rbac")
+    elif filename.startswith(("hgnc_genes.", "vep_metadata.")):
+        base = ReferenceBundle.packaged().directory
+    else:
+        base = Path("api/src/coyote_api/bootstrap/catalogs/reference")
     path = base / filename
     if not path.exists() and filename.endswith(".gz"):
         path = base / filename[:-3]

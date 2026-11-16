@@ -1687,3 +1687,4 @@ Optional keys:
 - `published_at` (datetime.datetime | None)
 - `retired_at` (datetime.datetime | None)
 - `failed_at` (datetime.datetime | None)
+- `bundle` (dict[str, Any] | None)

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 840" width="1360" height="840" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 1130" width="1360" height="1130" role="img" aria-labelledby="title description">
   <title id="title">Application architecture: ownership and import boundaries</title>
-  <desc id="description">Outer entry points compose the runtime. Clinical rules and workflows remain inside the core library.</desc>
+  <desc id="description">Outer entry points compose the runtime. Clinical rules, RBAC catalogs and VEP interpretation remain inside the core library. The server distribution contains API and MongoDB components. Optional packages own ingestion transport and workers, HGNC/VEP reference bundles, and isolated synthetic demonstration resources. Hosts supply persistence and explicit installation pathways.</desc>
   <defs>
     <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
 text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
@@ -68,9 +68,10 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <title>Application host</title>
     <use href="#icon-server" x="888.5" y="138.0" width="42" height="42" aria-hidden="true" />
     <text x="909.5" y="198.0" text-anchor="middle" class="entity-title">Application host</text>
-    <text x="909.5" y="220.0" text-anchor="middle" class="entity-detail">coyote_api: HTTP routes, security and Celery entry points.</text>
+    <text x="909.5" y="220.0" text-anchor="middle" class="entity-detail">coyote_api: HTTP routes, security and maintenance tasks.</text>
     <text x="909.5" y="238.0" text-anchor="middle" class="entity-detail">Authenticate callers, bind permissions and validate transport.</text>
     <text x="909.5" y="256.0" text-anchor="middle" class="entity-detail">Compose repositories and integrations; delegate workflows.</text>
+    <text x="909.5" y="274.0" text-anchor="middle" class="entity-detail">Own application catalogs; discover optional package providers.</text>
   </g>
   <path class="connection blue" d="M342 210 H410" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <text x="427.43" y="194" class="figure-note">HTTP</text>
@@ -105,6 +106,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="1132.93" y="486.0" text-anchor="middle" class="entity-detail">validated vocabulary and</text>
     <text x="1132.93" y="504.0" text-anchor="middle" class="entity-detail">application-owned constants.</text>
     <text x="1132.93" y="522.0" text-anchor="middle" class="entity-detail">Select center profile explicitly.</text>
+    <text x="1132.93" y="540.0" text-anchor="middle" class="entity-detail">Own RBAC and VEP interpretation policy.</text>
   </g>
   <path class="connection blue" d="M749 285 V315 H197 V365" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <path class="connection blue" d="M362 470 H405" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
@@ -136,5 +138,31 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
   </g>
   <path class="connection blue" d="M197 660 V610 H570 V575" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <path class="connection blue" d="M570 660 V575" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
-  <text x="38.86" y="821" class="figure-note">Code dependencies point inward. Core, MongoDB adapter and API have separate distributions; hosts supply repository implementations.</text>
+  <text x="38.86" y="821" class="figure-note">API and MongoDB share coyote-server. The independent coyote-core accepts repository implementations supplied by hosts.</text>
+  <text x="38.86" y="876" class="entity-title">OPTIONAL PACKAGES OWN THEIR RESOURCES AND ENTRY POINTS</text>
+  <g class="blue">
+    <use href="#icon-processor" x="218.21" y="910" width="42" height="42" aria-hidden="true" />
+    <text x="239.21" y="970" text-anchor="middle" class="entity-title">Coyote Relay</text>
+    <text x="239.21" y="992" text-anchor="middle" class="entity-detail">services/relay/</text>
+    <text x="239.21" y="1010" text-anchor="middle" class="entity-detail">Submission tools, HTTP routes and workers.</text>
+    <text x="239.21" y="1028" text-anchor="middle" class="entity-detail">Shared parsing and workflow rules remain in core.</text>
+    <text x="239.21" y="1046" text-anchor="middle" class="entity-detail">API and workers use server composition.</text>
+  </g>
+  <g class="purple">
+    <use href="#icon-layers" x="671.14" y="910" width="42" height="42" aria-hidden="true" />
+    <text x="692.14" y="970" text-anchor="middle" class="entity-title">Coyote Atlas</text>
+    <text x="692.14" y="992" text-anchor="middle" class="entity-detail">services/atlas/</text>
+    <text x="692.14" y="1010" text-anchor="middle" class="entity-detail">HGNC/VEP snapshots, diagrams and provenance.</text>
+    <text x="692.14" y="1028" text-anchor="middle" class="entity-detail">Inspect and validate reference bundles offline.</text>
+    <text x="692.14" y="1046" text-anchor="middle" class="entity-detail">Install explicitly through the authorized API.</text>
+  </g>
+  <g class="amber">
+    <use href="#icon-layers" x="1111.93" y="910" width="42" height="42" aria-hidden="true" />
+    <text x="1132.93" y="970" text-anchor="middle" class="entity-title">Coyote Demo</text>
+    <text x="1132.93" y="992" text-anchor="middle" class="entity-detail">services/demo/</text>
+    <text x="1132.93" y="1010" text-anchor="middle" class="entity-detail">Synthetic catalogs and raw workflow inputs.</text>
+    <text x="1132.93" y="1028" text-anchor="middle" class="entity-detail">Explicitly enabled isolated deployments only.</text>
+    <text x="1132.93" y="1046" text-anchor="middle" class="entity-detail">Excluded from ordinary server bootstrap.</text>
+  </g>
+  <text x="38.86" y="1103" class="figure-note">Optional API routes use installed entry points. Discovering or importing a package does not install its data.</text>
 </svg>

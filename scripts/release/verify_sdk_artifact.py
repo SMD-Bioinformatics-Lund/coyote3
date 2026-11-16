@@ -42,6 +42,8 @@ def verify_sdk_artifact(
         "server_version",
         "client_version",
         "relay_version",
+        "atlas_version",
+        "demo_version",
         "http_api_major",
         "center_configuration_format",
     ):
@@ -52,11 +54,13 @@ def verify_sdk_artifact(
         "coyote-server": release["server_version"],
         "coyote-pyclient": release["client_version"],
         "coyote-relay": release["relay_version"],
+        "coyote-atlas": release["atlas_version"],
+        "coyote-demo": release["demo_version"],
     }
     artifacts = record.get("artifacts") or {}
     if set(artifacts) != set(selected):
         raise ValueError(
-            "Release record must identify exactly the core, server, client and ingestion wheels"
+            "Release record must identify exactly the selected core, server, client, Relay, Atlas and Demo wheels"
         )
     filenames = []
     for distribution, expected in selected.items():
@@ -130,7 +134,7 @@ def verify_compose_artifacts(config_path: Path, release_path: Path) -> None:
         except (OSError, ValueError, zipfile.BadZipFile) as error:
             raise ValueError(
                 f"SDK artifact preflight failed for {name} at {artifact_path}: {error}. "
-                "Stage the four tested release wheels and release-record.json in this directory, "
+                "Stage the tested release wheels and release-record.json in this directory, "
                 "or set COYOTE4_SDK_ARTIFACT_DIR to their absolute directory. "
                 "Use the matching source checkout and GIT_COMMIT. "
                 "See docs/sdk/compatibility.md#build-and-record-an-application-release. "

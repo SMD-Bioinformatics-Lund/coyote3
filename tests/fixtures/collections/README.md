@@ -5,7 +5,7 @@
 <!-- badges:end -->
 
 For collection snapshots derived from raw VCF/JSON inputs, use the
-[clinical workflow bundle](../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md). Its post-ingest and
+[clinical workflow bundle](../../../services/demo/src/coyote_demo/data/clinical_workflows/README.md). Its post-ingest and
 illustrative post-review states retain consistent sample/finding references.
 
 `all_collections_dummy/` contains one non-empty `*.json` file for every MongoDB

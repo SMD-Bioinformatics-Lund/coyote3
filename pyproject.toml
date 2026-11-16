@@ -73,7 +73,7 @@ where = ["api/src", "adapters/mongo/src"]
 include = ["coyote_api", "coyote_api.*", "coyote_mongo", "coyote_mongo.*"]
 
 [tool.setuptools.package-data]
-coyote_api = ["py.typed", "app/templates/*", "config/*.toml", "config/assets/*", "config/examples/center/*", "bootstrap/catalogs/**/*", "bootstrap/demo_data/clinical_workflows/**/*"]
+coyote_api = ["py.typed", "app/templates/*", "config/*.toml", "config/assets/*", "config/examples/center/*", "bootstrap/catalogs/**/*"]
 coyote_mongo = ["py.typed", "config/*.toml"]
 
 [dependency-groups]
@@ -165,6 +165,11 @@ convention = "google"
 "api/**/*.py" = ["TID251"]
 "adapters/**/*.py" = ["TID251"]
 "services/relay/**/*.py" = ["TID251"]
+"services/atlas/src/coyote_atlas/api/**/*.py" = ["TID251"]
+"services/atlas/tests/**/*.py" = ["TID251"]
+"services/demo/src/coyote_demo/api/**/*.py" = ["TID251"]
+"services/demo/src/coyote_demo/host.py" = ["TID251"]
+"services/demo/tests/**/*.py" = ["TID251"]
 "core/src/coyote/**/*.py" = ["TID251"]
 "core/tests/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
@@ -206,7 +211,7 @@ files = [
     "core/src/coyote/application/notifications/service.py",
     "core/src/coyote/application/notifications/activity.py",
     "api/src/coyote_api/services/provisioning/deployment_data.py",
-    "api/src/coyote_api/services/provisioning/demo_installation.py",
+    "services/demo/src/coyote_demo/installation.py",
     "core/src/coyote/application/common/alignment_files.py",
     "core/src/coyote/application/common/change_payload.py",
     "api/src/coyote_api/infra/artifact_paths.py",
@@ -243,10 +248,12 @@ module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pyte
 follow_imports = "normal"
 
 [tool.uv.workspace]
-members = ["core", "clients/python", "services/relay"]
+members = ["core", "clients/python", "services/relay", "services/atlas", "services/demo"]
 
 [tool.uv.sources]
 coyote-core = { workspace = true }
 coyote-pyclient = { workspace = true }
 coyote-server = { workspace = true }
 coyote-relay = { workspace = true }
+coyote-atlas = { workspace = true }
+coyote-demo = { workspace = true }

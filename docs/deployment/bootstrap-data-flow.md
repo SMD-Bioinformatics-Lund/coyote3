@@ -26,7 +26,7 @@ loads them together with the three editable center files before bootstrap writes
 2. Run `scripts/deployment/install_center.sh --setup-center` to build images and validate configuration
    and database readiness.
 3. On fresh targets, bootstrap creates initial accounts and RBAC, then installs
-   application catalogs, bundled HGNC/VEP references and both starter demonstrations
+   application catalogs and bundled HGNC/VEP references
    by default, with system creation provenance. Module skip flags disable selected parts.
 4. The installer checks and applies compatible application indexes, starts services
    and verifies health. Existing deployments skip all initial data installation.
@@ -64,10 +64,10 @@ collections are managed independently of whether rules have been authored.
 The explicit database bootstrap installs the application-owned RBAC catalog,
 creates a named system administrator and an emergency superuser. It
 runs only against empty governance collections.
-Bundled HGNC/VEP references and connected demonstrations are installed by default;
-use `--skip-knowledgebase` and `--skip-demo` to disable them. Later additions and
+Bundled HGNC/VEP references are installed by default;
+use `--skip-knowledgebase` to disable them. Later additions and
 repairs use `scripts/deployment/manage_data.py --api-url API_URL --modules
-application knowledgebase demo`. Add `--force` to repair explicitly selected modules.
+application knowledgebase`. Add `--force` to repair explicitly selected modules.
 API login, administrator roles and required password changes apply to maintenance.
 Knowledgebase indexing is a separate opt-in operation.
 See [installation operations](installation-operations.md).
@@ -78,8 +78,8 @@ See [installation operations](installation-operations.md).
   read by the server's explicit installer.
 - Bundled permission documents are installed with `system_managed: true`; their
   definitions are immutable at runtime but remain assignable through roles.
-- `api/src/coyote_api/bootstrap/catalogs/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
-- `api/src/coyote_api/bootstrap/catalogs/reference` contains the release-bundled HGNC and VEP
+- `services/demo/src/coyote_demo/data/demo_center` contains synthetic ASP, ASPC, and ISGL documents for isolated installation checks.
+- `services/atlas/src/coyote_atlas/data/reference` contains the release-bundled HGNC and VEP
   snapshots loaded by the reference installer when their collections are
   empty.
 - Normal application startup does not seed or synchronize governance documents.
@@ -131,19 +131,20 @@ in the API, worker, and Beat containers.
 
 ## Packaged configuration location
 
-The API configuration package is `core/src/coyote/config` in the repository and
-`/app/core/src/coyote/config` in the API image. It must be present because it contains typed
-software settings, center configuration, and the first-deployment RBAC catalog.
+The core configuration package lives at `core/src/coyote/config`; host settings
+live at `api/src/coyote_api/config`. Deployment installs their wheels and resolves
+packaged resources through Python; it does not depend on source checkout paths.
+The core supplies typed software policy and the first-deployment RBAC catalog.
 Current Dockerfiles do not copy or mount a separate `/app/config` directory. If
 that directory appears in a running container, the container was built from an
 older image or an external deployment mount; rebuild and recreate the container
 from the current Compose definition.
 
-The default fresh installation includes connected hematology DNA and RNA fusion
-configuration and both starter samples. `--skip-demo` disables this module.
-After an installation that skipped demos, use authenticated maintenance with
-`--modules demo` to add them. Forced demo repair preserves existing configuration
-history and reviewed or human-owned samples.
+The optional `coyote-demo` package owns connected DNA/RNA configuration and
+synthetic starter samples. It is installed and enabled only for an
+[isolated demonstration deployment](demo-installation.md), using dedicated
+databases and restricted credentials. Normal bootstrap and general data maintenance
+do not install demonstration records.
 
 Start Coyote4 after database bootstrap:
 

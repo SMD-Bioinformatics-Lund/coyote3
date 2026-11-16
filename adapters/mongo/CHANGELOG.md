@@ -2,6 +2,9 @@
 
 ## 1.0.0
 
+- Record checked source-bundle provenance with reference publication and inspect
+  authenticated privileges for isolated demonstration deployments.
+
 - Verify assay-configuration repository defaults, scope and typed rollups against
   the core contract without changing dashboard results.
 - Strictly type the assay repository, shared collection operations and transaction

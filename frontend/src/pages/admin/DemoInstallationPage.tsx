@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import { useApplicationModules } from "@/lib/app-module-state"
 import { AdminHomeLink } from "./AdminHomeLink"
 
 type Plan = {
@@ -20,14 +21,17 @@ type Plan = {
 export default function DemoInstallationPage() {
   const [confirmed, setConfirmed] = useState(false)
   const [progress, setProgress] = useState("")
+  const modules = useApplicationModules()
+  const available = !modules.isError && modules.data?.extensions?.includes("demo") === true
   const plan = useQuery({
     queryKey: ["demo-installation"],
     queryFn: () => api.get<Plan>("/admin/demo-installation").then((response) => response.data),
     retry: false,
+    enabled: available,
   })
   const install = useMutation({
     mutationFn: async (samples: boolean | "starter") => {
-      if (!plan.data || !confirmed) return
+      if (!available || !plan.data || !confirmed) return
       if (samples === "starter") {
         setProgress("Installing the hematology DNA and RNA fusion demos and ingesting both samples…")
         await api.post("/admin/demo-installation/starter")
@@ -47,8 +51,19 @@ export default function DemoInstallationPage() {
       setProgress(samples ? "Demo configuration and samples are installed." : "Demo configuration is installed.")
     },
     onError: () => setProgress("Installation stopped. Completed items are preserved; refresh the status before retrying."),
-    onSettled: () => { void plan.refetch() },
+    onSettled: () => { if (available) void plan.refetch() },
   })
+  if (!available) {
+    return (
+      <PageShell eyebrow="Administration" title="Demo installation" description="Install the packaged synthetic workflow bundle in this deployment." actions={<AdminHomeLink />}>
+        <section className="surface-panel space-y-4 p-4">
+          {modules.isLoading ? <p role="status" className="type-body-sm">Checking demo availability…</p>
+            : modules.isError ? <p role="alert" className="type-body-sm">Unable to check demo availability. <Button variant="outline" onClick={() => void modules.refetch()}>Retry</Button></p>
+              : <p role="status" className="type-body-sm">Demo installation is not enabled in this deployment.</p>}
+        </section>
+      </PageShell>
+    )
+  }
   return (
     <PageShell eyebrow="Administration" title="Demo installation" description="Install the packaged synthetic workflow bundle in this deployment." actions={<AdminHomeLink />}>
       <section className="surface-panel space-y-4 p-4">

@@ -1,4 +1,4 @@
-# Core, server, ingestion service and client installations
+# Python package installations
 
 Packages are built locally; public-index publication is not required.
 
@@ -8,6 +8,8 @@ Packages are built locally; public-index publication is not required.
 | `coyote_server` wheel | API, maintenance workers and MongoDB adapter; requires the selected core |
 | `coyote_pyclient` wheel | Independent HTTP client |
 | `coyote_relay` wheel | Submission tools with core/client dependencies; optional API routes and workers use server composition |
+| `coyote_atlas` wheel | HGNC/VEP reference bundles and validation; optional API integration uses server composition |
+| `coyote_demo` wheel | Synthetic datasets; optional server and worker integrations enforce isolated demo targets |
 
 ## Local development
 
@@ -16,11 +18,14 @@ pip setup, from the repository root in a prepared development environment, is:
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pip install --no-deps -e core -e . -e clients/python -e 'services/relay[api,worker]'
+python -m pip install --no-deps -e core -e . -e clients/python \
+  -e 'services/relay[api,worker]' -e 'services/atlas[api]'
 ```
 
 Python edits require process reload, not wheel builds. Metadata and dependency
 changes require reinstalling or running `uv sync`.
+For isolated demonstration development, also install `services/demo[api,worker]`
+and follow the [demo deployment guide](../deployment/demo-installation.md).
 
 ## Core boundary
 
@@ -52,24 +57,26 @@ Server maintenance uses `coyote_api.celery_app`. See
 ## Packaged resources
 
 The core wheel contains canonical permission/role catalogs and the VEP grouping
-policy. The server wheel contains documentation templates, logos, reference snapshots,
-example center configuration and synthetic demo workflows. These resources live
-in the API source tree and also ship in the server source distribution. The same
-wheel contains the Mongo adapter's collection mappings and connection defaults.
-The API and adapter retain separate folders and imports.
+policy. The server wheel contains documentation templates, logos, baseline
+installation catalogs and example center configuration, together with the Mongo
+adapter's collection mappings and connection defaults. Atlas owns HGNC/VEP reference
+snapshots and provenance. Demo owns synthetic workflows and demonstration catalogs.
+Each distribution carries its own resources; API and adapter retain separate
+folders and imports within the server distribution.
 
 Credentials, deployment environment files, runtime outputs and patient data are
 excluded. Operators supply a reviewed external center profile.
 
 ## Deployment
 
-Ordinary Docker builds create core, server, Python client and ingestion wheels in an isolated build stage
-and install them normally into the runtime image. API source directories do not
-override the installed wheels. API and worker services use the same image.
+Ordinary Docker builds create release wheels in an isolated build stage and install
+core, server, Python client, Relay and Atlas into the runtime image. Demo is added
+only by the dedicated demo image target. API source directories do not override
+the installed wheels. API and worker services use the same image.
 
 The independent Python client supports the administrative commands shipped with
 the image. API request handling and core operations do not import that client.
 
-The retained-artifact release path verifies all four wheels against their
+The retained-artifact release path verifies all six release wheels against their
 versions, SHA-256 digests and source provenance before installation.
 See [release compatibility](compatibility.md#build-and-record-an-application-release).

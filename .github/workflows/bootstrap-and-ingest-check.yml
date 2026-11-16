@@ -52,6 +52,8 @@ jobs:
             core/tests/unit/test_configuration_resource_receipts.py \
             adapters/mongo/tests/integration/test_configuration_resource_receipts.py \
             services/relay/tests/smoke
+            services/atlas/tests/smoke
+            services/demo/tests/smoke
           python scripts/release/check_release.py --production \
             --wheel-dir .release/sdk --output .release/sdk/release-record.json
 

@@ -119,7 +119,9 @@ def test_temporary_password_is_changed_and_reauthenticated_before_data(api_trans
         "getpass",
         Mock(side_effect=["temporary-example", "PermanentExample!123", "PermanentExample!123"]),
     )
-    manage_data.manage_data(api_url="https://synthetic.invalid", modules=["demo"], force=True)
+    manage_data.manage_data(
+        api_url="https://synthetic.invalid", modules=["knowledgebase"], force=True
+    )
     assert [request.url.path for request in requests] == [
         "/api/v1/auth/sessions",
         "/api/v1/auth/password/change",
@@ -173,7 +175,7 @@ def test_password_confirmation_mismatch_keeps_data_untouched(api_transport, monk
         manage_data.getpass, "getpass", Mock(side_effect=["old", "first", "second"])
     )
     with pytest.raises(ValueError, match="confirmation"):
-        manage_data.manage_data(api_url="https://synthetic.invalid", modules=["demo"])
+        manage_data.manage_data(api_url="https://synthetic.invalid", modules=["knowledgebase"])
     assert len(requests) == 2
     assert requests[-1].method == "DELETE"
 
@@ -183,6 +185,14 @@ def test_missing_terminal_cannot_bypass_authentication(api_transport, monkeypatc
     monkeypatch.setattr(manage_data.sys.stdin, "isatty", lambda: False)
     with pytest.raises(PermissionError, match="Run interactively"):
         manage_data.manage_data(api_url="https://synthetic.invalid", modules=["application"])
+    assert not requests
+
+
+def test_general_data_maintenance_rejects_demo_before_http(api_transport):
+    """Synthetic installation belongs to the isolated Demo workflow, not general maintenance."""
+    requests, _ = api_transport
+    with pytest.raises(ValueError):
+        manage_data.manage_data(api_url="https://synthetic.invalid", modules=["demo"])
     assert not requests
 
 

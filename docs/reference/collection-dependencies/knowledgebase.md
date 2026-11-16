@@ -1158,7 +1158,7 @@ Binding: `knowledgebase_versions_collection`.
 
 Provenance and publication state for one imported knowledgebase snapshot.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `source`, `release`, `status`, `import_cpus`, `started_at`, `files`, `collections`, `published_at`, `retired_at`, `failed_at`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `source`, `release`, `status`, `import_cpus`, `started_at`, `files`, `collections`, `published_at`, `retired_at`, `failed_at`, `bundle`.
 
 [Field types and validation](../mongodb-collections.md#versions). `_id` may also be retained by an open collection model.
 
