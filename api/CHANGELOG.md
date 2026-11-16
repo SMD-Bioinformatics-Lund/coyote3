@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Fail startup consistently when runtime initialization fails, including under
+  tests; mark readiness only after successful initialization and allow retry.
 - Own HTTP, security, worker, configuration and branding regression tests with
   package-local fixtures, smoke checks and independent branch coverage.
 - Include the separate copyright/affiliation notice in distributions and identify

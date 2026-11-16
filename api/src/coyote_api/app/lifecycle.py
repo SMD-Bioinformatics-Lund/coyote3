@@ -5,14 +5,11 @@
 
 from __future__ import annotations
 
-import os
 import threading
 from contextlib import asynccontextmanager
 from importlib import import_module
 
-from coyote_api.app.container import store
 from coyote_api.app.runtime_setup import create_runtime_context
-from coyote_api.app.runtime_state import app as runtime_app
 from coyote_api.app.runtime_state import bind_runtime_context
 from coyote_api.config.paths import initialize_storage_directories
 
@@ -29,10 +26,14 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
         testing: Whether the application is running under the test runtime.
         development: Whether development-mode runtime settings should be used.
 
+    Raises:
+        Exception: Dependency creation or runtime binding fails. The original
+            exception propagates and a later call may retry initialization.
+
     Notes:
-        Serializes first initialization with a lock. Bootstrap failures normally
-        propagate; during PYTEST_CURRENT_TEST they are logged, the store's prior
-        attribute mapping is restored, and initialization is still marked complete.
+        Serializes initialization and marks completion only after dependencies
+        have been created and bound successfully. Test hosts must supply their
+        dependencies explicitly; the presence of a test runner changes no behavior.
     """
     global _runtime_initialized
     if _runtime_initialized:
@@ -40,20 +41,8 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
     with _runtime_bootstrap_lock:
         if _runtime_initialized:
             return
-        store_state_before = dict(store.__dict__)
-        try:
-            runtime_context = create_runtime_context(testing=testing, development=development)
-            bind_runtime_context(runtime_context)
-        except Exception:
-            if os.environ.get("PYTEST_CURRENT_TEST"):
-                store.__dict__.clear()
-                store.__dict__.update(store_state_before)
-                runtime_app.logger.warning(
-                    "Skipping runtime DB bootstrap during pytest due to initialization failure.",
-                    exc_info=True,
-                )
-            else:
-                raise
+        runtime_context = create_runtime_context(testing=testing, development=development)
+        bind_runtime_context(runtime_context)
         _runtime_initialized = True
 
 
