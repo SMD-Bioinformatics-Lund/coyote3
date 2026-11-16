@@ -172,17 +172,16 @@ def fresh_installation(monkeypatch):
     client = mongomock.MongoClient()
     databases = {name: client[name] for name in ("primary", "identity", "knowledgebase", "bam")}
     args = Namespace(
-        username="emergency",
-        email="emergency@example.org",
-        password="emergency-example",
-        sys_admin_username="operator",
-        sys_admin_email="operator@example.org",
-        sys_admin_password="operator-example",
+        superuser_username="emergency",
+        superuser_email="emergency@example.org",
+        superuser_password="emergency-example",
+        system_admin_username="operator",
+        system_admin_email="operator@example.org",
+        system_admin_password="operator-example",
         mongo_uri="mongodb://unused",
         identity_mongo_uri="",
         db="primary",
         identity_db="identity",
-        role_id="superuser",
         rbac_dir=str(RBAC_CATALOG_DIR),
         reference_dir=str(REFERENCE_CATALOG_DIR),
         skip_users=False,
@@ -223,6 +222,10 @@ def test_first_installation_defaults_to_all_modules_and_system_provenance(fresh_
     assert bootstrap_database.main() == 0
     identity, application = databases["identity"], databases["primary"]
     assert identity.users.count_documents({}) == 2
+    assert {row["roles"][0]: row["email"] for row in identity.users.find()} == {
+        "sys_admin": "operator@example.org",
+        "superuser": "emergency@example.org",
+    }
     assert {row["created_by"] for row in identity.users.find()} == {"system"}
     assert identity.users.count_documents({"must_change_password": True}) == 2
     assert application.assay_groups.count_documents({}) == 5
@@ -240,7 +243,7 @@ def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
     from werkzeug.security import check_password_hash
 
     databases, args, _ = fresh_installation
-    args.password = args.sys_admin_password = None
+    args.superuser_password = args.system_admin_password = None
     passwords = ["Synthetic-Superuser-123", "Synthetic-Sysadmin-456"]
     generate = Mock(side_effect=passwords)
     monkeypatch.setattr(bootstrap_database.secrets, "token_urlsafe", generate)

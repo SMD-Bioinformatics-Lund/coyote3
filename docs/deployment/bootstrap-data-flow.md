@@ -88,8 +88,8 @@ See [installation operations](installation-operations.md).
 
 - Run `scripts/bootstrap/bootstrap_database.py` before application services are started.
 - The initial logins are fixed to `coyote4.superuser` and `coyote4.sysadmin`.
-  Optionally set their contacts using `--email` and `--sys-admin-email`.
-- Omit `--password` and `--sys-admin-password` to generate independent temporary
+  Optionally set their contacts using `--superuser-email` and `--system-admin-email`.
+- Omit `--superuser-password` and `--system-admin-password` to generate independent temporary
   passwords, displayed once after account creation.
   Both accounts must replace their temporary password at first sign-in.
 - Bootstrap assigns `superuser` and `sys_admin` respectively. The clinical
@@ -107,8 +107,8 @@ Standard command shape:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
-  --sys-admin-email "operator@example.org" \
-  --email "admin@your-center.org"
+  --system-admin-email "operator@example.org" \
+  --superuser-email "admin@your-center.org"
 ```
 
 Configure `COYOTE4_MONGO_URI` for the independently operated database before this

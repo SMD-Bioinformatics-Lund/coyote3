@@ -22,15 +22,20 @@ def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkey
 
     monkeypatch.setattr("sys.argv", ["bootstrap", "--db", "synthetic", "--identity-db", "identity"])
     args = bootstrap_database.parse_args()
-    assert args.username == "coyote4.superuser"
-    assert args.sys_admin_username == "coyote4.sysadmin"
+    assert args.superuser_username == "coyote4.superuser"
+    assert args.system_admin_username == "coyote4.sysadmin"
     credentials = bootstrap_database._prepare_initial_credentials(args)
     assert len(credentials) == 2
-    assert args.password != args.sys_admin_password
-    assert min(len(args.password), len(args.sys_admin_password)) >= 16
+    assert args.superuser_password != args.system_admin_password
+    assert min(len(args.superuser_password), len(args.system_admin_password)) >= 16
     for username, email, password, role in (
-        (args.username, args.email, args.password, "superuser"),
-        (args.sys_admin_username, args.sys_admin_email, args.sys_admin_password, "sys_admin"),
+        (args.superuser_username, args.superuser_email, args.superuser_password, "superuser"),
+        (
+            args.system_admin_username,
+            args.system_admin_email,
+            args.system_admin_password,
+            "sys_admin",
+        ),
     ):
         document = _make_bootstrap_user(
             argparse.Namespace(username=username, email=email, password=password, role_id=role),

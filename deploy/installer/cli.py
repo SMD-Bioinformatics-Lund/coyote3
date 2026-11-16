@@ -85,8 +85,34 @@ def _installation_arguments(parser: argparse.ArgumentParser) -> None:
             type=Path,
             help="Owner-only credential file, scoped to the selected maintenance operation",
         )
-    for name in ("sys-admin-username", "sys-admin-email", "username", "email"):
-        parser.add_argument("--" + name, help="Initial account value, used only for a fresh target")
+    system_admin = parser.add_argument_group(
+        "Initial system administrator (sys_admin)",
+        "Manages accounts, access and system operations; the clinical admin role is separate.",
+    )
+    system_admin.add_argument(
+        "--system-admin-username",
+        metavar="USERNAME",
+        help="Fixed login: coyote4.sysadmin; used only on a fresh target",
+    )
+    system_admin.add_argument(
+        "--system-admin-email",
+        metavar="EMAIL",
+        help="Contact email for the initial system administrator",
+    )
+    superuser = parser.add_argument_group(
+        "Initial emergency superuser (superuser)",
+        "Privileged account for initial setup and controlled recovery.",
+    )
+    superuser.add_argument(
+        "--superuser-username",
+        metavar="USERNAME",
+        help="Fixed login: coyote4.superuser; used only on a fresh target",
+    )
+    superuser.add_argument(
+        "--superuser-email",
+        metavar="EMAIL",
+        help="Contact email for the initial emergency superuser",
+    )
 
 
 def _compose(argv: list[str]) -> int:

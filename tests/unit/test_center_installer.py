@@ -262,13 +262,13 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         "synthetic",
         "--compose-file",
         str(compose),
-        "--sys-admin-username",
+        "--system-admin-username",
         "coyote4.sysadmin",
-        "--sys-admin-email",
+        "--system-admin-email",
         "admin@example.test",
-        "--username",
+        "--superuser-username",
         "coyote4.superuser",
-        "--email",
+        "--superuser-email",
         "emergency@example.test",
     ]
     return command, env, log
@@ -497,6 +497,10 @@ def test_bootstrap_runs_only_for_fresh_databases(fake_installation, state):
         assert "deploy.installer.checks indexes" not in calls
     if state == "fresh":
         assert "--require-empty-target" in calls
+        assert "--system-admin-username coyote4.sysadmin" in calls
+        assert "--system-admin-email admin@example.test" in calls
+        assert "--superuser-username coyote4.superuser" in calls
+        assert "--superuser-email emergency@example.test" in calls
     if state != "partial":
         assert calls.index("manage_mongo_indexes.py apply") < calls.index("up -d --no-build --wait")
         assert (

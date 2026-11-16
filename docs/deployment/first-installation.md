@@ -453,8 +453,8 @@ password change and signs in again before adding data. The service checks the
 | `--env-file FILE` | Required private deployment environment file. |
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
-| `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote4.sysadmin`. |
-| `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote4.superuser`. |
+| `--system-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote4.sysadmin`. |
+| `--superuser-email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote4.superuser`. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
 | `--identity-maintenance-uri-file FILE` | Explicit restricted runtime-role upgrade before validation, using a separate maintenance connection. It does not enable MongoDB authorization or create passwords. |
 | `--skip-knowledgebase` | Disable bundled reference installation. |

@@ -46,9 +46,9 @@ def main() -> int:
             "coyote4_demo",
             "--identity-db",
             "coyote4_demo_identity",
-            "--password",
+            "--superuser-password",
             os.environ["COYOTE_DEMO_SUPERUSER_PASSWORD"],
-            "--sys-admin-password",
+            "--system-admin-password",
             os.environ["COYOTE_DEMO_ADMIN_PASSWORD"],
         ]
         status = bootstrap()

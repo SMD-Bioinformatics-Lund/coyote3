@@ -60,8 +60,8 @@ not install demonstrations. Example staging command:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
-  --sys-admin-email "operator@example.org" \
-  --email "admin@coyote4.local"
+  --system-admin-email "operator@example.org" \
+  --superuser-email "admin@coyote4.local"
 ```
 
 ## Audit and Logging

@@ -30,10 +30,10 @@ class Options:
     with_knowledgebase_indexes: bool = False
     identity_maintenance_uri_file: Path | None = None
     knowledgebase_maintenance_uri_file: Path | None = None
-    sys_admin_username: str | None = None
-    sys_admin_email: str | None = None
-    username: str | None = None
-    email: str | None = None
+    system_admin_username: str | None = None
+    system_admin_email: str | None = None
+    superuser_username: str | None = None
+    superuser_email: str | None = None
 
     def validate(self) -> None:
         """Reject contradictory selections before any service is contacted."""
@@ -311,7 +311,12 @@ class Installer:
                     "--identity-db",
                     target.identity_db,
                 ]
-                for name in ("sys_admin_username", "sys_admin_email", "username", "email"):
+                for name in (
+                    "system_admin_username",
+                    "system_admin_email",
+                    "superuser_username",
+                    "superuser_email",
+                ):
                     if value := getattr(options, name):
                         arguments.extend(["--" + name.replace("_", "-"), value])
                 for name in ("skip_users", "skip_application", "skip_knowledgebase"):

@@ -67,6 +67,10 @@ demo assay configuration; use the separate [demo deployment](demo-installation.m
 The fixed logins are `coyote4.sysadmin` and `coyote4.superuser`. Independent temporary
 passwords are generated and printed once after account creation. Both accounts must
 change their password on first API or browser use. Existing accounts are preserved.
+The `--system-admin-*` options apply to the `sys_admin` account for account, access
+and system operations. The `--superuser-*` options apply to the privileged recovery
+account. The clinical administrator role, `admin`, is assigned separately through
+authenticated user administration.
 MongoDB connections without authentication produce a warning and do not block installation.
 
 Production Redis TLS is optional. When selected, prepare the
@@ -107,8 +111,10 @@ data, then complete missing modules with the maintenance command.
 | `indexes` | Plan, apply and verify application, identity and BAM indexes. Conflicts stop execution. |
 | `start` | Verify initial accounts and required indexes, start services and wait for health. |
 | `health` | Check API/browser routes through the rendered local proxy address. |
-| `--sys-admin-email EMAIL` | Optional contact address for the fixed `coyote4.sysadmin` login. |
-| `--email EMAIL` | Optional contact address for the fixed `coyote4.superuser` login. |
+| `--system-admin-username USERNAME` | Initial system-administrator login, fixed to `coyote4.sysadmin`. Omit to use this default. |
+| `--system-admin-email EMAIL` | Contact address for the initial system administrator (`sys_admin`). |
+| `--superuser-username USERNAME` | Initial emergency superuser login, fixed to `coyote4.superuser`. Omit to use this default. |
+| `--superuser-email EMAIL` | Contact address for the initial emergency superuser (`superuser`). |
 | `--with-knowledgebase-indexes` | Separately plan, apply and verify knowledgebase indexes. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional restricted URI file for fresh knowledgebase installation and selected knowledgebase indexes. It must target the configured endpoint/database; runtime credentials remain unchanged. |
 | `--identity-maintenance-uri-file FILE` | Explicitly upgrade the restricted identity runtime role using a maintenance connection before validation. It does not enable MongoDB authorization or create runtime passwords. |

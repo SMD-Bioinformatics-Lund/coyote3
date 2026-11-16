@@ -398,10 +398,9 @@ bash install.sh compose \
     --identity-mongo-uri "$(grep '^IDENTITY_MONGO_URI=' "$VALIDATION_ENV_FILE" | cut -d= -f2-)" \
     --db coyote4_validation \
     --identity-db coyote4_identity_validation \
-    --sys-admin-email "operator@example.org" \
-    --email admin@validation.invalid \
-    --password "$VALIDATION_ADMIN_PASSWORD" \
-    --role-id superuser
+    --system-admin-email "operator@example.org" \
+    --superuser-email admin@validation.invalid \
+    --superuser-password "$VALIDATION_ADMIN_PASSWORD"
 ```
 
 Bootstrap loads:

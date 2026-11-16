@@ -747,8 +747,8 @@ application services:
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
   --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
-  --sys-admin-email "operator@example.org" \
-  --email "admin@your-center.org"
+  --system-admin-email "operator@example.org" \
+  --superuser-email "admin@your-center.org"
 ```
 
 Behavior:

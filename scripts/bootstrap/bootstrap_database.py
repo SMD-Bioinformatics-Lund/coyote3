@@ -59,20 +59,36 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--identity-mongo-uri", default=os.getenv("IDENTITY_MONGO_URI", ""))
     parser.add_argument("--db", required=True, help="Application database name")
     parser.add_argument("--identity-db", required=True, help="Identity database name")
-    parser.add_argument("--username", default=SUPERUSER_USERNAME, choices=[SUPERUSER_USERNAME])
-    parser.add_argument(
-        "--email", default="superuser@coyote4.invalid", help="Superuser contact email"
+    superuser = parser.add_argument_group(
+        "Initial emergency superuser (superuser)",
+        "Privileged account for initial setup and controlled recovery; login and role are fixed.",
     )
-    parser.add_argument("--password", help="Temporary superuser password; omit to generate one")
-    parser.add_argument("--role-id", default="superuser", choices=["superuser"])
-    parser.add_argument(
-        "--sys-admin-username", default=SYSADMIN_USERNAME, choices=[SYSADMIN_USERNAME]
+    superuser.add_argument(
+        "--superuser-username", default=SUPERUSER_USERNAME, choices=[SUPERUSER_USERNAME]
     )
-    parser.add_argument(
-        "--sys-admin-email", default="sysadmin@coyote4.invalid", help="Admin contact email"
+    superuser.add_argument(
+        "--superuser-email",
+        default="superuser@coyote4.invalid",
+        help="Emergency superuser contact email",
     )
-    parser.add_argument(
-        "--sys-admin-password", help="Temporary system-admin password; omit to generate one"
+    superuser.add_argument(
+        "--superuser-password", help="Temporary emergency superuser password; omit to generate one"
+    )
+    system_admin = parser.add_argument_group(
+        "Initial system administrator (sys_admin)",
+        "Manages accounts, access and system operations; the clinical admin role is separate.",
+    )
+    system_admin.add_argument(
+        "--system-admin-username", default=SYSADMIN_USERNAME, choices=[SYSADMIN_USERNAME]
+    )
+    system_admin.add_argument(
+        "--system-admin-email",
+        default="sysadmin@coyote4.invalid",
+        help="System administrator contact email",
+    )
+    system_admin.add_argument(
+        "--system-admin-password",
+        help="Temporary system administrator password; omit to generate one",
     )
     parser.add_argument(
         "--rbac-dir",
@@ -134,14 +150,14 @@ def _prepare_initial_credentials(args: argparse.Namespace) -> list[tuple[str, st
     Raises:
         SystemExit: Contact emails or temporary passwords collide, or a password is too short.
     """
-    args.username = SUPERUSER_USERNAME
-    args.sys_admin_username = SYSADMIN_USERNAME
-    if args.email.strip().lower() == args.sys_admin_email.strip().lower():
+    args.superuser_username = SUPERUSER_USERNAME
+    args.system_admin_username = SYSADMIN_USERNAME
+    if args.superuser_email.strip().lower() == args.system_admin_email.strip().lower():
         raise SystemExit("Use distinct email addresses for the two bootstrap accounts")
     generated = []
     for field, username in (
-        ("password", SUPERUSER_USERNAME),
-        ("sys_admin_password", SYSADMIN_USERNAME),
+        ("superuser_password", SUPERUSER_USERNAME),
+        ("system_admin_password", SYSADMIN_USERNAME),
     ):
         if not getattr(args, field):
             password = secrets.token_urlsafe(18)
@@ -149,7 +165,7 @@ def _prepare_initial_credentials(args: argparse.Namespace) -> list[tuple[str, st
             generated.append((username, password))
         if len(getattr(args, field)) < 12:
             raise SystemExit("Temporary passwords must contain at least 12 characters")
-    if args.password == args.sys_admin_password:
+    if args.superuser_password == args.system_admin_password:
         raise SystemExit("Use different temporary passwords for the two bootstrap accounts")
     return generated
 
@@ -421,12 +437,20 @@ def main() -> int:
         governance = _initialize_governance(
             identity,
             seed=seed,
-            user_document=_make_bootstrap_user(args, actor="system"),
+            user_document=_make_bootstrap_user(
+                argparse.Namespace(
+                    username=args.superuser_username,
+                    email=args.superuser_email,
+                    password=args.superuser_password,
+                    role_id="superuser",
+                ),
+                actor="system",
+            ),
             system_admin_document=_make_bootstrap_user(
                 argparse.Namespace(
-                    username=args.sys_admin_username,
-                    email=args.sys_admin_email,
-                    password=args.sys_admin_password,
+                    username=args.system_admin_username,
+                    email=args.system_admin_email,
+                    password=args.system_admin_password,
                     role_id="sys_admin",
                 ),
                 actor="system",

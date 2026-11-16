@@ -19,7 +19,8 @@
 - Coyote Atlas reference bundles with integrity checks and recorded provenance;
   isolated Coyote Demo installations for local and Docker use.
 - One installation command for deployment profiles, local planning, configuration
-  checks and isolated demos, with staged logging and existing-data safeguards.
+  checks and isolated demos, with staged logging, explicit system-administrator
+  and emergency-superuser options, and existing-data safeguards.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
 - Minimal GitHub smoke checks, focused contribution templates and a documented
