@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { KnowledgebaseStatus } from "@/components/knowledgebase/KnowledgebaseStatus"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -36,7 +39,7 @@ export function AboutPage() {
     <PageShell
       className="material-page static-material-page"
       eyebrow="About"
-      title="Coyote3"
+      title="Coyote4"
       description={`Application, reference, version, and support information for ${orgName}.`}
       actions={
         <>
@@ -68,7 +71,7 @@ export function AboutPage() {
         <ContentSection
           icon={icon.workflow}
           title="Clinical interpretation and reporting workspace"
-          description={application.description || "Coyote3 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
+          description={application.description || "Coyote4 brings assay-aware review, variant interpretation, knowledgebase context, and traceable report generation into one application."}
           tone="primary"
           bodyClassName="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4"
         >
@@ -85,7 +88,7 @@ export function AboutPage() {
             ]}
           />
           <InfoCard tone="success" icon={icon.fileText} label="VEP metadata" value={references.vep_metadata?.length ? `${references.vep_metadata.length} version${references.vep_metadata.length === 1 ? "" : "s"}` : "None recorded"} hint="Observed in the VEP metadata collection." />
-          <InfoCard tone="warning" icon={icon.building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote3 deployment"} />
+          <InfoCard tone="warning" icon={icon.building2} label="Deployment" value={orgName} hint={organization.department || "Center-managed Coyote4 deployment"} />
         </ContentSection>
 
         <ContentSection

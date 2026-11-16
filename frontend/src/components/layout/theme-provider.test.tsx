@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { act, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -42,7 +45,7 @@ describe("ThemeProvider", () => {
   })
   it("delegates theme behavior and configuration to next-themes", () => {
     render(
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="coyote3-theme">
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="coyote4-theme">
         <p>Application content</p>
       </ThemeProvider>,
     )
@@ -53,7 +56,7 @@ describe("ThemeProvider", () => {
         attribute: "class",
         defaultTheme: "system",
         enableSystem: true,
-        storageKey: "coyote3-theme",
+        storageKey: "coyote4-theme",
       }),
       undefined,
     )

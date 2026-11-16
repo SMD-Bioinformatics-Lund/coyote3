@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -245,7 +248,7 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
                 Query: {oncokbPublic.data.query?.genomicLocation || "-"} ({oncokbPublic.data.query?.referenceGenome || "-"})
               </p>
               <p className="type-meta text-muted-foreground">
-                Coyote3 context: {oncokbPublic.data.analysis_context?.analysis_intents?.length
+                Coyote4 context: {oncokbPublic.data.analysis_context?.analysis_intents?.length
                   ? oncokbPublic.data.analysis_context.analysis_intents.join(", ")
                   : "not recorded"}
               </p>

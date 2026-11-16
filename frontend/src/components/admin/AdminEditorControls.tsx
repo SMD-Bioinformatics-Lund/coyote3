@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { AppLoader } from "@/components/layout/AppLoader"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { Button } from "@/components/ui/button"
@@ -94,7 +97,7 @@ export function SystemRecordNotice({ state }: { state: AdminEditorState }) {
         <div>
           <h2 className="text-sm font-semibold">System-installed record</h2>
           <p className="text-xs text-muted-foreground">
-            This record is maintained by Coyote3 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
+            This record is maintained by Coyote4 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
           </p>
         </div>
       </section>

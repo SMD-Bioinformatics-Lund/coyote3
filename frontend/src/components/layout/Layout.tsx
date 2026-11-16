@@ -1,10 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
 import { ThemeToggle } from "./theme-toggle"
 import { EnvironmentBanner } from "./EnvironmentBanner"
-import { icon, logo } from "@/lib/assets"
+import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { api, ApiClientError } from "@/lib/api"
@@ -13,10 +16,10 @@ import { appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
-import { BrandWordmark } from "@/components/layout/BrandWordmark"
+import { BrandLogo } from "@/components/layout/BrandLogo"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, hasPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
-import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { DEFAULT_ENVIRONMENT } from "@/lib/defaults"
 import { USER_UI_DEFAULTS } from "@/lib/defaults"
 import { useTheme } from "next-themes"
 import { useUpdateUiSettings } from "@/lib/user-settings"
@@ -326,12 +329,7 @@ export function Layout() {
             {isCollapsed ? <icon.panelRightClose className="h-8 w-8" /> : <icon.panelLeftClose className="h-8 w-8" />}
           </Button>
           <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
-            <div className="py-1">
-              <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-7 w-11 shrink-0 brightness-0 invert" />
-            </div>
-            <div className="hidden sm:flex flex-col leading-tight">
-              <BrandWordmark variant="chrome" />
-            </div>
+            <BrandLogo className="h-10" />
           </Link>
 
           {!publicOnlyMode && canViewSamples && (
@@ -475,7 +473,7 @@ export function Layout() {
                   </Link>
                   <div className="my-1 border-t border-border/50"></div>
                   <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
-                    <icon.fileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote3
+                    <icon.fileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote4
                   </Link>
                   <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
                     <icon.lifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact

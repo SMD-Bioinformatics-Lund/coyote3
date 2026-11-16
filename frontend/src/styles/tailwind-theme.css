@@ -25,7 +25,7 @@
 /*
  * Fluid-scaling contract
  * ----------------------
- * Coyote3 is a workstation application. UI density scales continuously with
+ * Coyote4 is a workstation application. UI density scales continuously with
  * available viewport width instead of relying on discrete device classes.
  *
  * Fluid: typography, page gutters, card padding, section gaps, table padding,

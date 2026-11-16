@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { CurrentUserAccess } from "@/lib/access-control"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
@@ -99,7 +102,7 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     try {
       stageImport(JSON.parse(await file.text()))
     } catch {
-      setEditorError("The selected file is not valid JSON. Export a configuration from Coyote3 or correct the JSON file and try again.")
+      setEditorError("The selected file is not valid JSON. Export a configuration from Coyote4 or correct the JSON file and try again.")
     }
   }
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
@@ -107,15 +110,15 @@ describe("PublicCatalogMatrix", () => {
   })
 
   it("keeps annotation visibility separate and remembers the matrix preference", async () => {
-    localStorage.setItem("coyote3:catalog:annotations", "false")
+    localStorage.setItem("coyote4:catalog:annotations", "false")
     const view = renderPage(<PublicCatalogMatrix />)
     const toggle = await screen.findByRole("checkbox", { name: "Annotations" })
     expect(toggle).not.toBeChecked()
     expect(screen.queryByRole("columnheader", { name: "Annotations" })).not.toBeInTheDocument()
     fireEvent.click(toggle)
     expect(screen.getByRole("columnheader", { name: "Annotations" })).toBeVisible()
-    expect(localStorage.getItem("coyote3:matrix:annotations")).toBe("true")
-    expect(localStorage.getItem("coyote3:catalog:annotations")).toBe("false")
+    expect(localStorage.getItem("coyote4:matrix:annotations")).toBe("true")
+    expect(localStorage.getItem("coyote4:catalog:annotations")).toBe("false")
     view.unmount()
     renderPage(<PublicCatalogMatrix />)
     expect(await screen.findByRole("checkbox", { name: "Annotations" })).toBeChecked()

@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { createContext, useContext } from "react"
 
-import { DEFAULT_TABLE_PAGE_SIZE } from "@/lib/user-settings"
+import { DEFAULT_TABLE_PAGE_SIZE } from "@/lib/defaults"
 
 export type TablePreferences = {
   pageSize: number

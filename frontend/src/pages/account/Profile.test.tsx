@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
@@ -24,7 +27,7 @@ describe("Profile", () => {
 
   it("shows identity, access scope, roles, and effective permissions", async () => {
     mount({
-      username: "coyote3.user", fullname: "Coyote User", firstname: "Coyote", lastname: "User",
+      username: "coyote4.user", fullname: "Coyote User", firstname: "Coyote", lastname: "User",
       email: "user@example.org", job_title: "Scientist", role: "user", roles: ["user", "viewer"],
       auth_type: ["local", "ldap"], environments: ["production"], asp_ids: ["hema_gmsv1"],
       asp_groups: ["hematology"], permissions: ["sample:view", "variant:comment:add"],
@@ -39,7 +42,7 @@ describe("Profile", () => {
 
   it("updates only editable profile fields", async () => {
     mocks.patch.mockResolvedValue({ data: { ok: true } })
-    mount({ username: "coyote3.user", firstname: "Old", auth_type: ["local"] })
+    mount({ username: "coyote4.user", firstname: "Old", auth_type: ["local"] })
     const firstName = await screen.findByLabelText("First name")
     fireEvent.change(firstName, { target: { value: "New" } })
     fireEvent.click(screen.getByRole("button", { name: "Save profile" }))

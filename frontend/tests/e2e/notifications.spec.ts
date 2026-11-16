@@ -54,10 +54,10 @@ test("broadcast editor previews Markdown and sends expiry and severity", async (
 test("branded email renders its bundled logo without external resources", async ({ page }, testInfo) => {
   const root = resolve(process.cwd(), "..")
   const html = execFileSync(resolve(root, ".venv/bin/python"), ["-c",
-    "import base64; from api.infra.notifications.templates import render_email; from api.config.paths import EMAIL_LOGO_PATH; print(render_email(subject='Coyote3 service notice',text_body='A new message is available in your inbox.',severity='important',environment='test',action_url='https://example.test/notifications').replace('cid:coyote3-logo','data:image/png;base64,'+base64.b64encode(EMAIL_LOGO_PATH.read_bytes()).decode()))",
+    "import base64; from coyote_api.infra.notifications.templates import render_email; from coyote_api.config.paths import EMAIL_LOGO_PATH; print(render_email(subject='Coyote4 service notice',text_body='A new message is available in your inbox.',severity='important',environment='test',action_url='https://example.test/notifications').replace('cid:coyote4-logo','data:image/png;base64,'+base64.b64encode(EMAIL_LOGO_PATH.read_bytes()).decode()))",
   ], { cwd: root, encoding: "utf8" })
   await page.setContent(html)
-  await expect(page.getByRole("heading", { name: "Coyote3 service notice" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Coyote4 service notice" })).toBeVisible()
   expect(await page.locator("img").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath("email-desktop.png"), fullPage: true })
   await page.setViewportSize({ width: 390, height: 850 })

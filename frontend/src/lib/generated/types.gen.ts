@@ -2658,6 +2658,10 @@ export type ClinicalRuleBlockInput = {
      */
     analysis?: string | null;
     /**
+     * Analysis Intent
+     */
+    analysis_intent?: 'somatic' | 'germline' | null;
+    /**
      * Block Id
      */
     block_id: string;
@@ -2706,6 +2710,10 @@ export type ClinicalRuleBlockOutput = {
      * Analysis
      */
     analysis?: string | null;
+    /**
+     * Analysis Intent
+     */
+    analysis_intent?: 'somatic' | 'germline' | null;
     /**
      * Block Id
      */
@@ -6235,6 +6243,14 @@ export type HomeEditContextPayload = {
         [key: string]: unknown;
     };
     /**
+     * Snv Filter Intents
+     */
+    snv_filter_intents?: Array<string>;
+    /**
+     * Snv Filter Mode
+     */
+    snv_filter_mode?: 'shared' | 'independent' | null;
+    /**
      * Snv Flag Options
      */
     snv_flag_options?: Array<string>;
@@ -9089,6 +9105,34 @@ export type ReportPreviewBody = {
 };
 
 /**
+ * ReportPreviewBundlePayload
+ *
+ * Deliver matching temporary HTML/PDF content for browser preview and local download.
+ */
+export type ReportPreviewBundlePayload = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Html
+     */
+    html: string;
+    /**
+     * Pdf Base64
+     */
+    pdf_base64: string;
+    /**
+     * Reporting Warning
+     */
+    reporting_warning?: string | null;
+    /**
+     * Snapshot Count
+     */
+    snapshot_count: number;
+};
+
+/**
  * ReportPreviewMeta
  *
  * Provide the report preview meta type.
@@ -9214,38 +9258,6 @@ export type ReportSaveRequest = {
      * Preview Fingerprint
      */
     preview_fingerprint: string;
-    /**
-     * Report Format
-     */
-    report_format?: 'modern';
-};
-
-/**
- * ReportTrialPayload
- *
- * Deliver matching temporary HTML/PDF content for browser preview and local download.
- */
-export type ReportTrialPayload = {
-    /**
-     * Filename
-     */
-    filename: string;
-    /**
-     * Html
-     */
-    html: string;
-    /**
-     * Pdf Base64
-     */
-    pdf_base64: string;
-    /**
-     * Reporting Warning
-     */
-    reporting_warning?: string | null;
-    /**
-     * Snapshot Count
-     */
-    snapshot_count: number;
 };
 
 /**
@@ -25767,10 +25779,6 @@ export type Request_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet
          * Save
          */
         save?: boolean;
-        /**
-         * Format
-         */
-        format?: 'modern';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview';
 };
@@ -25813,6 +25821,66 @@ export type Responses_previewReportApiV1SamplesSampleIdReportsReportTypePreviewG
 
 export type Response_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet = Responses_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet[keyof Responses_previewReportApiV1SamplesSampleIdReportsReportTypePreviewGet];
 
+export type Request_previewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+        /**
+         * Report Type
+         */
+        report_type: 'dna' | 'rna';
+    };
+    query?: never;
+    url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview/bundle';
+};
+
+export type PreviewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type PreviewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGetError = PreviewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGetErrors[keyof PreviewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGetErrors];
+
+export type Responses_previewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGet = {
+    /**
+     * Successful Response
+     */
+    200: ReportPreviewBundlePayload;
+};
+
+export type Response_previewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGet = Responses_previewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGet[keyof Responses_previewReportBundleApiV1SamplesSampleIdReportsReportTypePreviewBundleGet];
+
 export type Request_previewReportPdfApiV1SamplesSampleIdReportsReportTypePreviewPdfGet = {
     body?: never;
     headers?: {
@@ -25836,10 +25904,6 @@ export type Request_previewReportPdfApiV1SamplesSampleIdReportsReportTypePreview
          * Include Snapshot
          */
         include_snapshot?: boolean;
-        /**
-         * Format
-         */
-        format?: 'modern';
     };
     url: '/api/v1/samples/{sample_id}/reports/{report_type}/preview/pdf';
 };
@@ -25879,66 +25943,6 @@ export type Responses_previewReportPdfApiV1SamplesSampleIdReportsReportTypePrevi
      */
     200: unknown;
 };
-
-export type Request_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet = {
-    body?: never;
-    headers?: {
-        /**
-         * X-Edit-Session
-         */
-        'x-edit-session'?: string | null;
-    };
-    path: {
-        /**
-         * Sample Id
-         */
-        sample_id: string;
-        /**
-         * Report Type
-         */
-        report_type: 'dna' | 'rna';
-    };
-    query?: never;
-    url: '/api/v1/samples/{sample_id}/reports/{report_type}/try-new';
-};
-
-export type TryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGetErrors = {
-    /**
-     * Unauthorized
-     */
-    401: ApiErrorPayload;
-    /**
-     * Forbidden
-     */
-    403: ApiErrorPayload;
-    /**
-     * Validation Error
-     */
-    422: ApiErrorPayload;
-    /**
-     * Wait before retrying. Follow Retry-After when provided.
-     */
-    429: ApiErrorPayload;
-    /**
-     * Check the operation status before retrying. Contact support with the reference ID.
-     */
-    500: ApiErrorPayload;
-    /**
-     * The service is temporarily unavailable. Check the operation status before retrying.
-     */
-    503: ApiErrorPayload;
-};
-
-export type TryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGetError = TryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGetErrors[keyof TryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGetErrors];
-
-export type Responses_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet = {
-    /**
-     * Successful Response
-     */
-    200: ReportTrialPayload;
-};
-
-export type Response_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet = Responses_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet[keyof Responses_tryNewReportApiV1SamplesSampleIdReportsReportTypeTryNewGet];
 
 export type Request_readRnaAnalysisApiV1SamplesSampleIdRnaAnalysisGet = {
     body?: never;

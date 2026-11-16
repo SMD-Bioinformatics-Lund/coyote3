@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { fireEvent, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -89,11 +92,19 @@ function sampleContext(overrides: Record<string, unknown> = {}) {
       data_counts: { snvs: 12, cnvs: 3, cov: true },
       ...overrides,
     },
+    snv_filter_intents: overrides.analysis_intents || ["somatic", "germline"],
+    snv_filter_mode: "independent",
     analysis_sections: ["SNV", "CNV", "COVERAGE"],
   }
 }
 
 describe("SampleDetail", () => {
+  it("uses one SNV tab for the backend-selected shared flow", () => {
+    mocks.context = { ...sampleContext(), snv_filter_mode: "shared", snv_filter_intents: ["somatic"] }
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001")
+    expect(screen.getByRole("tab", { name: "SNVs" })).toBeVisible()
+    expect(screen.queryByRole("tab", { name: "Germline SNVs" })).not.toBeInTheDocument()
+  })
   beforeEach(() => {
     mocks.context = sampleContext()
     mocks.analysisLayout = "modern"

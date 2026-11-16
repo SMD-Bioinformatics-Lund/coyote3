@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
 import { readFile } from "node:fs/promises"
 
-const username = process.env.COYOTE3_E2E_USERNAME
-const password = process.env.COYOTE3_E2E_PASSWORD
-const dnaSample = process.env.COYOTE3_E2E_DNA_SAMPLE
-const rnaSample = process.env.COYOTE3_E2E_RNA_SAMPLE
+const username = process.env.COYOTE4_E2E_USERNAME
+const password = process.env.COYOTE4_E2E_PASSWORD
+const dnaSample = process.env.COYOTE4_E2E_DNA_SAMPLE
+const rnaSample = process.env.COYOTE4_E2E_RNA_SAMPLE
 
 async function signIn(page: import("@playwright/test").Page) {
   test.skip(!username || !password, "Set controlled deployment smoke credentials.")
@@ -30,7 +30,7 @@ test("authenticated deployment opens dashboard and sample workspace", async ({ p
 })
 
 test("DNA validation sample exposes its configured analysis and report preview", async ({ page }) => {
-  test.skip(!dnaSample, "COYOTE3_E2E_DNA_SAMPLE must name a controlled DNA validation sample.")
+  test.skip(!dnaSample, "COYOTE4_E2E_DNA_SAMPLE must name a controlled DNA validation sample.")
   await signIn(page)
   await page.goto(`samples/${encodeURIComponent(dnaSample!)}`)
   await page.getByRole("tab", { name: "Modern", exact: true }).click()
@@ -42,7 +42,7 @@ test("DNA validation sample exposes its configured analysis and report preview",
 })
 
 test("RNA validation sample exposes fusion and configured RNA result tabs", async ({ page }) => {
-  test.skip(!rnaSample, "COYOTE3_E2E_RNA_SAMPLE must name a controlled RNA validation sample.")
+  test.skip(!rnaSample, "COYOTE4_E2E_RNA_SAMPLE must name a controlled RNA validation sample.")
   await signIn(page)
   await page.goto(`samples/${encodeURIComponent(rnaSample!)}`)
   await page.getByRole("tab", { name: "Modern", exact: true }).click()

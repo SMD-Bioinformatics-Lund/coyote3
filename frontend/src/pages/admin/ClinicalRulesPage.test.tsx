@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -568,6 +571,25 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Last selected")
   })
 
+  it("persists a germline reporting profile without adding clinical text", async () => {
+    const block = newRuleBlock([])
+    const document = { ...existingDraft, blocks: [block] }
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      if (path.endsWith("/versions/rule-version-1")) return Promise.resolve({ data: document })
+      return Promise.resolve({ data: { items: [document], total: 1 } })
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole("button", { name: /Existing solid rules/ }))
+    await userEvent.click(await screen.findByText("Section settings", { exact: true }))
+    await userEvent.selectOptions(screen.getByLabelText(/SNV reporting profile/), "germline")
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith(
+      "/admin/clinical-rule-sets/drafts/rule-version-1",
+      expect.objectContaining({ blocks: [expect.objectContaining({ analysis_intent: "germline", rules: block.rules })] }), editSessionOptions,
+    ))
+  })
+
   it("opens imported sections and rules in their evaluation order", async () => {
     const first = newRuleBlock([])
     first.block_id = "first_block"
@@ -701,6 +723,8 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Section identifier")).toHaveValue("report_section_1")
     expect(screen.getByLabelText("Clinical rule name")).toHaveValue("Report section 1 rule 1")
     await user.click(screen.getByText("Section settings", { exact: true }))
+    await user.selectOptions(screen.getByLabelText(/SNV reporting profile/), "germline")
+    expect(screen.getByLabelText(/SNV reporting profile/)).toHaveValue("germline")
     await user.click(screen.getByText("Rule details and identifier", { exact: true }))
     expect(screen.getByLabelText("Rule identifier")).toHaveValue("report_section_1_rule_1")
     expect(screen.getByLabelText("Match behavior")).toHaveValue("at_most_one")
@@ -721,6 +745,7 @@ describe("ClinicalRulesPage", () => {
     expect(screen.getByLabelText("Text placement")).not.toBeDisabled()
 
     await user.selectOptions(screen.getByLabelText("Output destination"), "clinical_question")
+    expect(screen.queryByLabelText(/SNV reporting profile/)).not.toBeInTheDocument()
     expect(screen.getByLabelText("Section")).toHaveValue("clinical_question")
     expect(screen.getByLabelText("Section")).toBeDisabled()
     expect(screen.getByLabelText("Evaluate")).toHaveValue("once")

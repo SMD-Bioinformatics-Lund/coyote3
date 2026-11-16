@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
@@ -49,7 +52,7 @@ describe("UiRouteAuditPage", () => {
     expect(screen.getByTestId("route-audit-table")).toHaveTextContent(`${uiRouteRegistry.length} routes`)
     expect(mocks.table).toHaveBeenCalledWith(expect.objectContaining({
       data: uiRouteRegistry,
-      filename: "coyote3-ui-route-audit.csv",
+      filename: "coyote4-ui-route-audit.csv",
     }))
     expect(screen.getByTestId("audit-cell-0-api")).toHaveTextContent(uiRouteRegistry.find((route) => route.api.length)?.api[0] || "")
     expect(screen.getByTestId("audit-cell-0-dataUsed")).not.toBeEmptyDOMElement()

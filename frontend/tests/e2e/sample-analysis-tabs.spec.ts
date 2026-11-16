@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test"
 type SampleContext = {
   sample: Record<string, unknown>
   analysis_sections: string[]
+  snv_filter_mode?: "shared" | "independent"
+  snv_filter_intents?: Array<"somatic" | "germline">
 }
 
 const dnaContext: SampleContext = {
@@ -23,6 +25,8 @@ const dnaContext: SampleContext = {
     data_counts: { snvs: 1, cnvs: 1, cov: true, transloc: 1 },
   },
   analysis_sections: ["SNV", "CNV", "TRANSLOCATION", "COVERAGE"],
+  snv_filter_mode: "independent",
+  snv_filter_intents: ["somatic"],
 }
 
 const rnaContext: SampleContext = {
@@ -47,6 +51,8 @@ const dnaSomaticAndGermlineContext: SampleContext = {
     analysis_intents: ["somatic", "germline"],
   },
   analysis_sections: ["SNV"],
+  snv_filter_mode: "independent",
+  snv_filter_intents: ["somatic", "germline"],
 }
 
 async function installApiFixtures(

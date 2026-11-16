@@ -40,7 +40,7 @@ for (const supported of [true, false]) {
         meta: { template_status: { has_html: true }, preview_fingerprint: "synthetic-preview" },
         report: { html: "<h1>Synthetic report</h1>", snapshot_rows: [] },
       } }
-      if (path.endsWith("/reports/dna/try-new")) return { json: {
+      if (path.endsWith("/reports/dna/preview/bundle")) return { json: {
         html: "<h1>Synthetic modern report</h1>", pdf_base64: pdf.toString("base64"),
         filename: "synthetic-modern", snapshot_count: 0,
       } }
@@ -79,11 +79,7 @@ for (const supported of [true, false]) {
     await page.getByRole("button", { name: "Download this PDF" }).click()
     expect((await downloaded).suggestedFilename()).toBe("SYNTHETIC_REPORT_dna_preview.pdf")
     expect(requests).toBe(2)
-    await page.getByRole("tab", { name: "Legacy format", exact: true }).click()
-    await expect(page.getByRole("heading", { name: "Legacy report preview" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Open PDF" })).toHaveAttribute("href", /^blob:/)
-    if (supported) await expect(page.getByTitle("Report PDF preview")).toBeVisible()
-    else await expect(page.getByRole("status").filter({ hasText: "does not support embedded" })).toBeVisible()
-    expect(requests).toBe(3)
+    await expect(page.getByRole("tablist", { name: "Report preview format" }).getByRole("tab"))
+      .toHaveText(["HTML preview", "PDF preview"])
   })
 }

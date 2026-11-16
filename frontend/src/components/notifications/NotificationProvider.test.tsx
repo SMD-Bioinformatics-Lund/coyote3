@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -46,7 +49,7 @@ describe("NotificationProvider", () => {
   })
 
   it("ignores a malformed saved local inbox", async () => {
-    window.sessionStorage.setItem("coyote3:notification-tray:reader", '{"local":{}}')
+    window.sessionStorage.setItem("coyote4:notification-tray:reader", '{"local":{}}')
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => response(
       String(input).includes("whoami") ? { username: "reader" } : { notifications: [] },
     )))

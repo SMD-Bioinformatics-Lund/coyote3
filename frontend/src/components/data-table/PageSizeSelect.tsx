@@ -1,4 +1,7 @@
-import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 import { cn } from "@/lib/utils"
 
 type PageSizeSelectProps = {

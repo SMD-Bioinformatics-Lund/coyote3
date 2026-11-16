@@ -9,7 +9,9 @@ for (const theme of ["light", "dark"]) {
   for (const width of [1440, 390]) {
     test(`documentation reading path, reference return and diagram in ${theme} at ${width}px`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 })
-      await page.addInitScript(value => localStorage.setItem("coyote3-docs-theme", value), theme)
+      await page.addInitScript(value => localStorage.setItem("coyote4-docs-theme", value), theme)
+      // External badge availability is separate from the local documentation contract.
+      await page.route("https://img.shields.io/**", route => route.abort())
       await page.route("**/docs-site/**", async route => {
         const pathname = decodeURIComponent(new URL(route.request().url()).pathname.slice("/docs-site/".length))
         let file = resolve(site, pathname)
@@ -23,11 +25,17 @@ for (const theme of ["light", "dark"]) {
       })
       await page.goto("/docs-site/")
       const article = page.locator('[itemprop="articleBody"]')
-      await expect(article.locator("li > strong > a")).toHaveCount(6)
-      await expect(page.locator(".docs-nav-section > summary")).toHaveCount(6)
+      await expect(article.locator("ul").first().getByRole("listitem")).toHaveCount(8)
+      for (const name of ["Review and report a sample", "Configure an assay", "Install at a center", "Change the code"]) {
+        await expect(article.getByRole("link", { name, exact: true })).toBeVisible()
+      }
+      await expect(page.locator(".docs-nav-section-label")).toHaveText([
+        "Review samples", "Configure assays", "Install and operate", "Integrate pipelines",
+        "Package guides", "Develop and validate", "Reference",
+      ])
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1)
       await page.screenshot({ path: testInfo.outputPath("start-here.png") })
-      await page.evaluate(() => sessionStorage.setItem("coyote3.docs.reference-trail", JSON.stringify([{
+      await page.evaluate(() => sessionStorage.setItem("coyote4.docs.reference-trail", JSON.stringify([{
         from: new URL("/docs-site/reference/clinical-concepts/", location.href).href,
         to: "/docs-site/user-guide/clinical-review-workflow/", label: "A previous task",
       }])))
@@ -136,6 +144,15 @@ for (const theme of ["light", "dark"]) {
           return box.x + box.width > right - 8 || box.y + box.height > bottom - 4 ? [text.textContent] : []
         }))
         expect.soft(overflow, `${filename}: labels must fit their cards`).toEqual([])
+      }
+      for (const project of ["core", "api", "mongo", "client", "frontend"]) {
+        await page.goto(`/docs-site/packages/${project}/overview/`)
+        const badges = page.locator('[itemprop="articleBody"] img[src^="https://img.shields.io/badge/"]')
+        await expect(badges).toHaveCount(project === "frontend" ? 4 : 3)
+        for (const source of await badges.evaluateAll(images => images.map(image => image.getAttribute("src")!))) {
+          expect(new URL(source).searchParams.get("style")).toBe("flat")
+        }
+        await expect(page.locator('[itemprop="articleBody"] img[src*="logo="]')).toHaveCount(project === "frontend" ? 2 : 1)
       }
     })
   }

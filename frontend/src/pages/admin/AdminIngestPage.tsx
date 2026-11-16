@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { PageShell } from "@/components/layout/PageShell"
 import { FileUpload } from "@/components/ui/file-upload"
 import { api } from "@/lib/api"
@@ -25,7 +28,7 @@ export function AdminIngestPage() {
   })
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!yamlFile) throw new Error("Select a coyote3 YAML manifest before submitting.")
+      if (!yamlFile) throw new Error("Select a coyote4 YAML manifest before submitting.")
       const formData = new FormData()
       formData.append("yaml_file", yamlFile)
       if (dataArchive) formData.append("data_archive", dataArchive)

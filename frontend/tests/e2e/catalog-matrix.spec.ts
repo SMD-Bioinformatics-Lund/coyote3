@@ -19,7 +19,7 @@ for (const theme of ["light", "dark"]) {
       rna: Object.fromEntries(rna.map(col => [col.cat, { genes: true }])),
     }]))
     const keyWarnings: string[] = []
-    await page.addInitScript(() => localStorage.setItem("coyote3:matrix:annotations", "false"))
+    await page.addInitScript(() => localStorage.setItem("coyote4:matrix:annotations", "false"))
     page.on("console", message => {
       if (message.type() === "error" && message.text().includes("same key")) keyWarnings.push(message.text())
     })

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,7 +34,7 @@ export function ForgotPassword() {
   return (
     <AuthShell
       title="Reset local access"
-      description="Request a password reset token for a local Coyote3 account."
+      description="Request a password reset token for a local Coyote4 account."
     >
       <h2 className="text-2xl font-bold">Forgot password</h2>
       <p className="mb-6 mt-1.5 text-sm text-muted-foreground">

@@ -18,7 +18,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       const response = await page.goto("/unavailable-test?context=synthetic")
       expect(response?.status()).toBe(503)
       await expect(page.getByRole("heading", { name: "Service temporarily unavailable" })).toBeVisible()
-      await expect(page.getByText("COYOT3", { exact: true })).toBeVisible()
+      await expect(page.getByRole("img", { name: "Coyote4", exact: true })).toBeVisible()
       await page.keyboard.press("Tab")
       const retry = page.getByRole("link", { name: "Try again" })
       await expect(retry).toBeFocused()

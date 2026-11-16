@@ -5,6 +5,7 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: true,
+  workers: 2,
   reporter: "line",
   use: {
     baseURL: "http://127.0.0.1:4173",

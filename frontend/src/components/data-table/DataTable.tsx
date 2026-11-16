@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import {
   ColumnDef,
   flexRender,
@@ -108,7 +111,7 @@ export function DataTable<TData, TValue>({
   const { pageSize: preferredPageSize, setPageSize: persistPageSize } = useTablePreferences();
   const serverPaginated = Boolean(onPageChange);
   const effectivePageSize = perPage ?? preferredPageSize;
-  const tableStateKey = `coyote3.table.${stateKey || filename}`;
+  const tableStateKey = `coyote4.table.${stateKey || filename}`;
   const [internalSorting, setInternalSorting] = useState<SortingState>(() => {
     if (typeof window === "undefined" || sortingState) return [];
     try {

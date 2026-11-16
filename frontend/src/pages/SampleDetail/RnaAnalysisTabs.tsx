@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -289,7 +292,7 @@ export function RnaAnalysisTab({ sampleId, header }: { sampleId: string; header?
         <ResizableSplitPane
           primary={expressionPanel}
           secondary={classificationPanel}
-          storageKey="coyote3:rna-analysis-split"
+          storageKey="coyote4:rna-analysis-split"
           initialPrimarySize={65}
           minPrimarySize={35}
           maxPrimarySize={80}

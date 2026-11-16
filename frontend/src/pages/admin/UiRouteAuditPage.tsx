@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
@@ -98,7 +101,7 @@ export function UiRouteAuditPage() {
         <DataTable
           columns={columns}
           data={uiRouteRegistry}
-          filename="coyote3-ui-route-audit.csv"
+          filename="coyote4-ui-route-audit.csv"
         />
       </section>
     </PageShell>

@@ -1,11 +1,12 @@
 {
   "name": "frontend",
   "private": true,
+  "license": "GPL-3.0-only",
   "version": "4.0.0",
   "author": "Ram Nanduri",
   "contributors": [
-    { "name": "Sailendra Pradhananga" },
-    { "name": "Viktor Henmyr" }
+    { "name": "Viktor Henmyr" },
+    { "name": "Sailendra Pradhananga" }
   ],
   "type": "module",
   "engines": {
@@ -20,6 +21,7 @@
     "lint": "oxlint && npm run lint:design-system",
     "lint:design-system": "node scripts/check-design-system.mjs",
     "test:unit": "vitest run",
+    "test:smoke": "vitest run tests/smoke",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:real": "playwright test --config=playwright.real.config.ts",

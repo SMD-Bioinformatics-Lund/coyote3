@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { ReactNode } from "react"
 import { icon } from "@/lib/assets"
 import { Badge } from "@/components/ui/badge"
@@ -6,7 +9,7 @@ import { QueryConditionSummary } from "./QueryConditionSummary"
 
 type Exception = { id: string; mode: string; condition?: QueryCondition; [key: string]: unknown }
 type Layer = {
-  source: string; version: number | null; fields?: string[]; application?: string
+  source: string; version: number | null; fields?: string[]
   name?: string
   scope?: { assay_group: string | null; asp_id: string | null; diagnosis_id: string | null; family?: string | null; environment?: string | null }
   content?: { evidence_mode: string | null; exceptions: Exception[] | null; exception_mode?: string }
@@ -22,7 +25,6 @@ export type PolicyResolution = {
 const label = (value: string) => value.replaceAll("_", " ")
 const sourceName = (row: Layer) => row.source === "default" ? "Application defaults"
   : row.source === "preview" ? "Selected version" : row.name || row.source
-const sameBranch = (a: Layer, b: Layer) => a.application === b.application
 
 function RuleDetail({ rule }: { rule: Exception }) {
   return <div className="min-w-0 space-y-2 rounded-lg border border-border bg-background/60 p-3">
@@ -46,7 +48,7 @@ function Inheritance({ value }: { value: PolicyResolution }) {
     <summary className="cursor-pointer type-label">Sources and overridden rules</summary>
     <p className="my-2 type-supporting text-muted-foreground">Read top to bottom. Replaced settings remain visible here; only the final flow below is applied.</p>
     <ol className="space-y-3">{value.lineage.map((row, index) => {
-      const later = value.lineage.slice(index + 1).filter(next => sameBranch(row, next) && !next.superseded_by_preview)
+      const later = value.lineage.slice(index + 1).filter(next => !next.superseded_by_preview)
       const replacement = row.superseded_by_preview ? later.find(next => next.source === "preview") : undefined
       const modeReplacement = replacement ?? later.find(next => next.content?.evidence_mode != null)
       const exceptionReplacement = replacement ?? later.find(next => next.content?.exceptions != null && next.content.exception_mode !== "extend")
@@ -61,13 +63,12 @@ function Inheritance({ value }: { value: PolicyResolution }) {
             row.scope.family, row.scope.environment,
           ].filter(Boolean).join(" · ")}</p>}
           {row.superseded_by_preview && <p className="type-supporting">Published version replaced in this preview. Inherited settings come from its ancestors.</p>}
-          {row.application === "somatic_snv_exceptions" && <p className="type-supporting">Germline exception branch; does not replace somatic evidence.</p>}
           {!row.content ? <p className="type-supporting text-muted-foreground">{row.fields?.map(label).join(", ") || "Inherited settings"}</p> : <>
-            {row.content.evidence_mode != null && row.application !== "somatic_snv_exceptions" && <div className="type-supporting">
+            {row.content.evidence_mode != null && <div className="type-supporting">
               <span className={modeReplacement ? "line-through text-muted-foreground" : "font-medium"}>Evidence: {label(row.content.evidence_mode)}</span>
               <p>{modeReplacement ? `Replaced by ${sourceName(modeReplacement)}` : "Active evidence setting"}</p>
             </div>}
-            {row.content.evidence_mode === null && row.application !== "somatic_snv_exceptions" && <p className="type-supporting text-muted-foreground">Evidence: inherit previous setting</p>}
+            {row.content.evidence_mode === null && <p className="type-supporting text-muted-foreground">Evidence: inherit previous setting</p>}
             {row.content.exceptions === null ? <p className="type-supporting text-muted-foreground">Exceptions: inherit previous list</p> : <>
               <p className="type-supporting">{row.content.exception_mode === "extend" ? "Add to inherited exceptions" : "Replace inherited exceptions"} · {row.content.exceptions.length} rule(s)</p>
               {exceptionReplacement && <p className="type-label">Exceptions replaced by {sourceName(exceptionReplacement)}</p>}
@@ -88,7 +89,7 @@ export function QueryPolicyFlow({ value, analysis }: { value: PolicyResolution; 
   const admissions = value.exceptions.filter(rule => rule.mode === "admit")
   const consequences = value.exceptions.filter(rule => rule.mode === "extend_consequence")
   const exclusions = value.exceptions.filter(rule => rule.mode === "exclude")
-  const frequencyFields = value.lineage.find(row => row.source === "default" && !row.application)?.population_frequency_fields ?? []
+  const frequencyFields = value.lineage.find(row => row.source === "default")?.population_frequency_fields ?? []
   const rules = (items: Exception[]) => items.map(rule => <RuleDetail key={rule.id} rule={rule} />)
   const baseline = analysis === "snv" ? <Branch title="Ordinary evidence" operator="AND">
     <p>One genotype: AF ≥ sample.filters.min_freq and ≤ sample.filters.max_freq; DP ≥ sample.filters.min_depth; VD ≥ sample.filters.min_alt_reads.{value.evidence_mode === "paired" ? " Genotype type must be case." : " A genotype role label is not required."}</p>
@@ -121,7 +122,6 @@ export function QueryPolicyFlow({ value, analysis }: { value: PolicyResolution; 
         {analysis === "snv" && <Branch title="Excluded flags"><p>Reject FILTER values selected in sample.filters.exclude_flags, including findings admitted by an exception. An empty exclusion list adds no restriction.</p></Branch>}
         {analysis === "cnv" && <Branch title="After query selection"><p>Apply the selected CNV effects to the retrieved findings.</p></Branch>}
       </Branch>
-      {value.lineage.some(row => row.application === "somatic_snv_exceptions") && <p className="type-supporting">Published germline exceptions are included in the somatic flow with a germline__ ID prefix. Somatic evidence remains active.</p>}
       {value.requires_sample_context && <p className="type-supporting">Conditions containing sample.filters references are shown symbolically until a sample is selected in Test rules.</p>}
       <p className="type-supporting text-muted-foreground">Save this version and open Test rules for the complete MongoDB predicate, resolved values, post-filters and finding counts for an authorized sample.</p>
     </section>

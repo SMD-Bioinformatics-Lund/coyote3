@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Authoritative frontend icon components and bundled image assets. */
 import {
   Activity,
@@ -319,7 +322,8 @@ export const icon = {
 } as const
 
 export const logo = {
-  coyote: { src: "/logos/coyote-vector.svg", alt: "Coyote3" },
+  coyote: { src: "/logos/coyote4-logo.svg", alt: "Coyote4" },
+  coyoteEmblem: { src: "/logos/coyote4-emblem.svg", alt: "Coyote4" },
   regionSkane: { src: "/logos/region-skane-vector.svg", alt: "Region Skåne" },
   brcaExchange: { src: "/logos/brca-exchange-vector.svg", alt: "BRCA Exchange logo" },
   civic: { src: "/logos/civic-vector.svg", alt: "CIViC logo" },

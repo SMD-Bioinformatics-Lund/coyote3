@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
@@ -398,7 +401,7 @@ export function CNVTab({
         <ResizableSplitPane
           primary={tablePane}
           secondary={profilePane}
-          storageKey="coyote3:cnv-profile-split"
+          storageKey="coyote4:cnv-profile-split"
           initialPrimarySize={65}
           minPrimarySize={35}
           maxPrimarySize={80}

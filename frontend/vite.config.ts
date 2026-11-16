@@ -1,4 +1,7 @@
-import { defineConfig } from 'vite'
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'fs'
@@ -14,8 +17,8 @@ const scriptName = normalizeScriptName(process.env.SCRIPT_NAME)
 const publicHostname = process.env.PUBLIC_BASE_URL
   ? new URL(process.env.PUBLIC_BASE_URL).hostname
   : undefined
-const apiTarget = process.env.COYOTE3_API_INTERNAL_URL || 'http://api:8001'
-const organizationName = process.env.ORGANIZATION_NAME || 'Coyote3'
+const apiTarget = process.env.COYOTE4_API_INTERNAL_URL || 'http://api:8001'
+const organizationName = process.env.ORGANIZATION_NAME || 'Coyote4'
 const localTimeZone = process.env.LOCAL_TIME_ZONE || process.env.TZ || 'UTC'
 const stripScriptName = (requestPath: string) =>
   scriptName ? requestPath.replace(new RegExp(`^${scriptName}(?=/)`), '') : requestPath
@@ -32,6 +35,21 @@ function readAppVersion() {
   }
 }
 
+function licenseNotices(): Plugin {
+  return {
+    name: 'coyote-license-notices',
+    generateBundle() {
+      for (const filename of ['LICENSE.txt', 'COPYRIGHT.txt', 'NOTICE.txt']) {
+        this.emitFile({
+          type: 'asset',
+          fileName: filename,
+          source: fs.readFileSync(path.resolve(__dirname, filename), 'utf-8'),
+        })
+      }
+    },
+  }
+}
+
 const environment = String(process.env.ENV_NAME || 'development').trim().toLowerCase()
 const environmentSuffix = ({ development: 'dev', testing: 'test', staging: 'stage', production: 'prod' } as Record<string, string>)[environment] || environment
 const appVersion = `${readAppVersion()}${environmentSuffix === 'prod' ? '' : `-${environmentSuffix}`}`
@@ -39,9 +57,9 @@ const appVersion = `${readAppVersion()}${environmentSuffix === 'prod' ? '' : `-$
 // https://vite.dev/config/
 export default defineConfig({
   base: scriptName ? `${scriptName}/` : '/',
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), licenseNotices()],
   define: {
-    __COYOTE3_RUNTIME__: JSON.stringify({
+    __COYOTE4_RUNTIME__: JSON.stringify({
       appVersion,
       environment,
       gensUri: String(process.env.GENS_URI || '').trim().replace(/\/+$/, ''),

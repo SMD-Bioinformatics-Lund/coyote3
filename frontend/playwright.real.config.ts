@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test"
 
-const baseURL = process.env.COYOTE3_E2E_BASE_URL
+const baseURL = process.env.COYOTE4_E2E_BASE_URL
 
 if (!baseURL) {
-  throw new Error("COYOTE3_E2E_BASE_URL is required for real-deployment browser tests.")
+  throw new Error("COYOTE4_E2E_BASE_URL is required for real-deployment browser tests.")
 }
 
 const deploymentBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`

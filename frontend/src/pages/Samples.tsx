@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
@@ -20,15 +23,10 @@ import { useUrlTableState } from "@/hooks/useUrlTableState"
 import { useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import type { HomeSamplesPayload } from "@/lib/generated"
-import { DEFAULT_ENVIRONMENT } from "@/lib/application-constants"
+import { DEFAULT_ENVIRONMENT } from "@/lib/defaults"
 import { shortCount } from "@/lib/detail-formatters"
-import {
-  sampleListLayoutForUser,
-  sampleListModernViewTriedForUser,
-  TABLE_PAGE_SIZE_OPTIONS,
-  useUpdateUiSettings,
-  type SampleListLayout,
-} from "@/lib/user-settings"
+import { sampleListLayoutForUser, sampleListModernViewTriedForUser, useUpdateUiSettings, type SampleListLayout } from "@/lib/user-settings"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 import { useQuery } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
 import { useEffect, useMemo, useState } from "react"

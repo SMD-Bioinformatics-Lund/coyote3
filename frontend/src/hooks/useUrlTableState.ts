@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import type { SortingState } from "@tanstack/react-table"
-import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 
 export type UrlTableState = {
   page: number

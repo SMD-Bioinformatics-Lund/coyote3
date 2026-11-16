@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
@@ -204,7 +207,7 @@ export function PublicAssayCatalogPage() {
     <label className="flex items-center gap-2 type-body-sm"><input type="checkbox" checked={includeMetadata} onChange={event => setIncludeMetadata(event.target.checked)} />Include metadata</label>
     <Button variant="outline" onClick={() => downloadJson("assay_catalog.json", exportContent(displayedCatalog))}><icon.download /> Export catalog</Button>
     {section && displayedCatalog.modalities[section] && <Button variant="outline" onClick={() => downloadJson(`catalog_${section}.json`, exportContent({
-      kind: "coyote3.public_assay_catalog_modality", schema_version: 1, modality: section,
+      kind: "coyote4.public_assay_catalog_modality", schema_version: 1, modality: section,
       definition: displayedCatalog.modalities[section],
     }))}><icon.download /> Export section</Button>}
 

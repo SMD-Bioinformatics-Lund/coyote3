@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 
 export function useAnnotationVisibility(table: "catalog" | "matrix") {
-  const key = `coyote3:${table}:annotations`
+  const key = `coyote4:${table}:annotations`
   const [visible, setVisible] = useState(() => {
     try {
       const stored = localStorage.getItem(key)

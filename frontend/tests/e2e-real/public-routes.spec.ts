@@ -73,7 +73,7 @@ test("API explorer groups endpoints and keeps the overview collapsible", async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test("API reference introduces Coyote3 and its clinical reporting context", async ({ page }) => {
+test("API reference introduces Coyote4 and its clinical reporting context", async ({ page }) => {
   await page.goto("api/v1/redoc")
   const reference = page.locator("#api-renderer")
   await expect(reference).toContainText("Section for Molecular Diagnostics (SMD), Lund", { timeout: 30_000 })

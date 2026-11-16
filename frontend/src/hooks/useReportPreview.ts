@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
 import type { ReportType } from "@/components/reports/report-snapshot"
@@ -23,20 +26,19 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
   pdfEnabled: boolean
   onSaved: () => void
 }) {
-  const reportFormat = "modern"
   const queryClient = useQueryClient()
   const activeScope = useRef("")
-  activeScope.current = JSON.stringify([sampleId, reportType, reportFormat])
+  activeScope.current = JSON.stringify([sampleId, reportType])
   const requestContext = () => ({ sampleId, reportType, sampleName: data?.sample?.name || sampleId,
     scope: activeScope.current })
   const reportEndpoint = `/samples/${encodeURIComponent(sampleId)}/reports/${reportType}`
-  const pdfEndpoint = `${reportEndpoint}/preview/pdf?include_snapshot=${includeSnapshot}&format=${reportFormat}`
+  const pdfEndpoint = `${reportEndpoint}/preview/pdf?include_snapshot=${includeSnapshot}`
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["report-preview", sampleId, reportType, includeSnapshot, reportFormat],
+    queryKey: ["report-preview", sampleId, reportType, includeSnapshot],
     queryFn: () =>
       api
-        .get<ReportPreviewPayload>(`${reportEndpoint}/preview?include_snapshot=${includeSnapshot}&save=false&format=${reportFormat}`)
+        .get<ReportPreviewPayload>(`${reportEndpoint}/preview?include_snapshot=${includeSnapshot}&save=false`)
         .then((response) => response.data),
     retry: false,
     refetchOnMount: "always",
@@ -44,7 +46,7 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
 
   const hasRenderedHtml = Boolean(data?.meta?.template_status?.has_html && data?.report?.html)
   const pdfPreview = useQuery({
-    queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint, reportFormat],
+    queryKey: ["report-pdf-preview", sampleId, reportType, includeSnapshot, data?.meta?.preview_fingerprint],
     queryFn: ({ signal }) => loadPreviewPdf(pdfEndpoint, signal),
     enabled: hasRenderedHtml && pdfEnabled,
     retry: (attempt, failure) => attempt < 1 && failure instanceof ApiClientError
@@ -57,7 +59,6 @@ export function useReportPreview({ sampleId, reportType, includeSnapshot, pdfEna
     onMutate: requestContext,
     mutationFn: () => api.post(reportEndpoint, {
       preview_fingerprint: data?.meta?.preview_fingerprint,
-      report_format: reportFormat,
     }),
     onSuccess: (_response, _variables, context) => {
       const { sampleId, reportType, sampleName } = context

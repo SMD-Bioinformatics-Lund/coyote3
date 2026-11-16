@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -378,14 +381,14 @@ describe("sample analysis table tabs", () => {
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered DNA report")
     fireEvent.click(screen.getByText("Report rule details"))
     expect(screen.getByText(/assay__base__sv/)).toHaveTextContent("v2 · sv · Assay Base scope")
-    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false&format=modern")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna/preview?include_snapshot=true&save=false")
     expect(screen.queryByRole("tab", { name: "Legacy format" })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Save report" }))
     expect(screen.getByRole("heading", { name: "Confirm report save" })).toBeVisible()
     expect(mocks.post).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }))
 
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64), report_format: "modern" }))
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith("/samples/DNA_REPORT/reports/dna", { preview_fingerprint: "a".repeat(64) }))
     expect(mocks.notifySuccess).toHaveBeenCalledWith(
       "Report saved",
       "DNA report was saved for DNA_REPORT.",
@@ -475,7 +478,7 @@ describe("sample analysis table tabs", () => {
     mount(<ReportsTab sampleId="RNA_REPORT" reportType="rna" />, "/samples/RNA_REPORT?tab=reports")
 
     expect(await screen.findByTestId("report-frame")).toHaveTextContent("Rendered RNA report")
-    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_REPORT/reports/rna/preview?include_snapshot=true&save=false&format=modern")
+    expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_REPORT/reports/rna/preview?include_snapshot=true&save=false")
     expect(screen.queryByRole("button", { name: "dna" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "rna" })).not.toBeInTheDocument()
     expect(screen.getByText("KMT2A::AFF1")).toBeVisible()

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
@@ -51,7 +54,7 @@ export default function VepReferencePage() {
   const ontology = (term?: string, kind = "current_svn") => term && /^SO:\d{7}$/.test(term)
     ? <SourceLink href={`http://www.sequenceontology.org/miso/${kind}/term/${term}`}>{term}</SourceLink> : <span>{term || "-"}</span>
 
-  return <PageShell title="VEP Reference" eyebrow="Reference library" actions={<Link to="/about" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2"><icon.arrowLeft className="size-4" />About Coyote3</Link>}>
+  return <PageShell title="VEP Reference" eyebrow="Reference library" actions={<Link to="/about" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2"><icon.arrowLeft className="size-4" />About Coyote4</Link>}>
     <section className="surface-panel space-y-4 p-4">
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 type-label">VEP release
@@ -83,7 +86,7 @@ export default function VepReferencePage() {
           </>}
         </div>}
         {tab === "consequences" && <>
-          <p className="type-meta text-muted-foreground">Ensembl impact ratings describe predicted effects, not clinical pathogenicity. Groups are Coyote3 filter categories. {terms.length} matching terms.</p>
+          <p className="type-meta text-muted-foreground">Ensembl impact ratings describe predicted effects, not clinical pathogenicity. Groups are Coyote4 filter categories. {terms.length} matching terms.</p>
           <div className="overflow-x-auto"><div className="min-w-[760px]"><DetailDataTable key={`${release}-${group}-${impact}-${search}`} rows={terms} initialRows={10} tableLayout="fixed" empty="No matching consequence terms." columns={[
             { key: "term", header: "Consequence", className: "w-1/4 break-words", render: row => <ConsequenceBadges value={row.term} translations={data.conseq_translations} compact={false} wide /> },
             { key: "group", header: "Group", className: "w-1/6 break-words", render: row => row.group?.replaceAll("_", " ") },

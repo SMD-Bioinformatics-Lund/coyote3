@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 // A lightweight typed wrapper around native fetch.
 
 import { notify } from "@/components/notifications/notification-store"
@@ -91,7 +94,7 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
     response = await fetch(url, { ...options, headers })
   } catch (error) {
     if (recordValue(error).name === "AbortError" || options.signal?.aborted) throw error
-    const message = "Could not reach Coyote3. Check your connection and whether the operation completed before retrying."
+    const message = "Could not reach Coyote4. Check your connection and whether the operation completed before retrying."
     if (errorNotice === "toast") notify({ tone: "error", title: "Connection interrupted", message, source: `${method} ${endpoint}` })
     const failure = new ApiClientError(message, 0, endpoint)
     failure.notificationShown = errorNotice === "toast"
@@ -197,7 +200,7 @@ function userFacingApiError(status: number, value: unknown) {
   if (status >= 500) {
     const titles: Record<number, string> = {
       502: "A dependent service failed.",
-      503: "Coyote3 is temporarily unavailable.",
+      503: "Coyote4 is temporarily unavailable.",
       504: "A dependent service timed out.",
     }
     return `${titles[status] || "The server could not complete the request."} Check whether the operation completed before retrying. Contact support with the reference ID when available.`

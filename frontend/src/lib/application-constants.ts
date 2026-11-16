@@ -1,7 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Software-owned UI constants. Centre and deployment settings are not defined here. */
 import { NOMENCLATURE_METADATA } from "@/lib/defaults"
 
-export { DEFAULT_ENVIRONMENT, NOMENCLATURE_METADATA } from "@/lib/defaults"
 
 export type NomenclatureCode = keyof typeof NOMENCLATURE_METADATA
 

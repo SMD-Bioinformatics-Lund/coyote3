@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
-import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/user-settings"
+import { TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 import type { ResourceListFilter } from "@/pages/admin/resource-list"
 import {
   mutationDisplayName,

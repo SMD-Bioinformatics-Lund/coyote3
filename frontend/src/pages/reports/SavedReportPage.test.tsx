@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom"
@@ -6,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ get: vi.fn(), getBlob: vi.fn(), table: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, getBlob: mocks.getBlob } }))
 vi.mock("@/lib/runtime-paths", () => ({
-  apiPath: (path: string) => `/coyote3/api/v1${path}`,
+  apiPath: (path: string) => `/coyote4/api/v1${path}`,
 }))
 vi.mock("@/components/data-table/DataTable", () => ({
   DataTable: (props: Record<string, unknown>) => {
@@ -68,7 +71,7 @@ describe("SavedReportPage", () => {
     expect(mocks.table).toHaveBeenCalledWith(expect.objectContaining({ data: context.findings }))
     expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute(
       "href",
-      "/coyote3/api/v1/samples/SAMPLE_001/reports/REPORT_7/download",
+      "/coyote4/api/v1/samples/SAMPLE_001/reports/REPORT_7/download",
     )
     expect(screen.getByRole("link", { name: "All reports" })).toHaveAttribute("href", "/reports")
   })

@@ -23,14 +23,14 @@ test("a signed-in public-page refresh retains CSRF protection for UI settings", 
     }
   })
   await page.goto("/public/catalog")
-  await expect(page.getByRole("banner").getByText("COYOT3", { exact: true }))
-    .toHaveCSS("color", "rgb(255, 255, 255)")
+  await expect(page.getByRole("banner").getByRole("img", { name: "Coyote4", exact: true }))
+    .toHaveCSS("filter", "none")
   let saved = page.waitForResponse(response => response.url().endsWith("/users/me/ui-settings"))
   await page.getByRole("button", { name: "Theme: light. Switch to dark", exact: true }).click()
   expect((await saved).status()).toBe(200)
   await expect(page.locator("html")).toHaveClass(/dark/)
-  await expect(page.getByRole("banner").getByText("COYOT3", { exact: true }))
-    .toHaveCSS("color", "rgb(255, 255, 255)")
+  await expect(page.getByRole("banner").getByRole("img", { name: "Coyote4", exact: true }))
+    .toHaveCSS("filter", "none")
   await page.getByRole("banner").screenshot({ path: testInfo.outputPath("dark-navigation.png") })
   token = "synthetic-public-csrf-2"
   await page.reload()

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type RuleStatus =
   | "draft"
   | "submitted"
@@ -81,6 +84,7 @@ export type RuleBlock = {
   block_id: string
   name: string
   analysis?: string | null
+  analysis_intent?: "somatic" | "germline" | null
   evaluation: {
     mode: "once" | "each_finding" | "each_item"
     collection?: "findings" | "hrd" | "msi" | "tmb" | "applied_gene_lists" | "tier_summaries" | null

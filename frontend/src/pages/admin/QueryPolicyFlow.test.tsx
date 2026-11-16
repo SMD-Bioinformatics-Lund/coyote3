@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { expect, it } from "vitest"
 import { QueryPolicyFlow, type PolicyResolution } from "./QueryPolicyFlow"
@@ -54,13 +57,6 @@ it("marks the previous published leaf as replaced even when the selected version
   const flow = screen.getByRole("region", { name: "Final selection flow" })
   expect(within(flow).queryByText("old-rule")).not.toBeInTheDocument()
   expect(within(flow).getByRole("region", { name: "Control evidence" })).toBeVisible()
-})
-
-it("keeps somatic replacements separate from germline source layers", () => {
-  render(<QueryPolicyFlow value={{ ...policy, lineage: [...policy.lineage, { source: "default", version: null, application: "somatic_snv_exceptions", content: { evidence_mode: "exception_only", exceptions: [parent], exception_mode: "replace" } }] }} analysis="snv" />)
-  fireEvent.click(screen.getByText("Sources and overridden rules"))
-  expect(screen.getAllByText("Exceptions replaced by Selected version")).toHaveLength(1)
-  expect(screen.getByText("Germline exception branch; does not replace somatic evidence.")).toBeVisible()
 })
 
 it.each(["cnv", "translocation", "fusion"])("shows %s application selection instead of SNV evidence", analysis => {

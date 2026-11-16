@@ -29,7 +29,7 @@ for (const width of [1440, 390]) {
     await expect(image).toBeVisible()
     await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
     await expect(page.getByLabel("VEP release")).toHaveValue("116")
-    await page.screenshot({ path: `/tmp/coyote3-vep-${width}.png`, fullPage: true })
+    await page.screenshot({ path: `/tmp/coyote4-vep-${width}.png`, fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
     await page.getByLabel("Search VEP terms").fill("SO:0001583")
     await expect(page.getByRole("link", { name: "SO:0001583", exact: true })).toBeVisible()

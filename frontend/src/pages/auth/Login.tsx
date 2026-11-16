@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { clearSessionState } from "@/lib/session-state"
@@ -7,8 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { EnvironmentBanner } from "@/components/layout/EnvironmentBanner"
-import { BrandWordmark } from "@/components/layout/BrandWordmark"
-import { icon, logo, illustration } from "@/lib/assets"
+import { BrandLogo } from "@/components/layout/BrandLogo"
+import { icon, illustration } from "@/lib/assets"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
@@ -143,12 +146,7 @@ export function Login() {
 
         <header className="login-header relative z-10">
           <div className="inline-flex min-w-max items-center gap-2.5">
-            <img
-              src={appPath(logo.coyote.src)}
-              alt={organizationName}
-              className="w-11 h-7"
-            />
-            <BrandWordmark />
+            <BrandLogo />
           </div>
           <ThemeToggle />
         </header>
@@ -159,7 +157,7 @@ export function Login() {
               From genomic data to confident clinical insight.
             </h1>
             <p className="login-description">
-              Coyote3 brings variant analysis, interpretation, and traceable reporting
+              Coyote4 brings variant analysis, interpretation, and traceable reporting
               together in one focused clinical genomics workspace.
             </p>
           </div>
@@ -273,7 +271,7 @@ export function Login() {
         </section>
 
         <footer className="login-footer">
-          <span>Coyote3 {appVersion}</span>
+          <span>Coyote4 {appVersion}</span>
           <span className="login-organization-name">{organizationName}</span>
         </footer>
       </main>

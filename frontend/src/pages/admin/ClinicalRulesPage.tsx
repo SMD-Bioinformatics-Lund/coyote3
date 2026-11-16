@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { AppLoader } from "@/components/layout/AppLoader"
 import { MarkdownComposer } from "@/components/comments/MarkdownComposer"
 import { MarkdownText } from "@/components/comments/MarkdownText"
@@ -412,13 +415,15 @@ export function ClinicalRulesPage() {
                         current.match_strategy = "all_matches"
                       } else if (destination !== "summary") {
                         current.analysis = null
+                        current.analysis_intent = undefined
                         current.evaluation = { mode: "once", collection: null }
                         current.match_strategy = "at_most_one"
                         current.rules.forEach(item => { item.presentation = "paragraph" })
                       }
                     })}><option value="summary">Report summary</option><option value="analysis_description">Analysis description</option><option value="report_header_suffix">Header suffix</option><option value="clinical_question">Clinical question</option></select></label>
                     <label className="type-label">Section identifier<Input className="mt-1" value={block.block_id} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].block_id = event.target.value })} /></label>
-                    <label className="type-label">Analysis<select disabled={metadataOutput} className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.analysis || ""} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].analysis = event.target.value || null })}><option value="">Whole report</option>{Object.keys(draft.analysis_declarations).map((analysis) => <option key={analysis} value={analysis}>{analysis}</option>)}</select></label>
+                    <label className="type-label">Analysis<select disabled={metadataOutput} className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.analysis || ""} onChange={(event) => mutateDraft((document) => { const current = document.blocks[selectedBlock]; current.analysis = event.target.value || null; if (current.analysis && current.analysis !== "SNV") current.analysis_intent = undefined })}><option value="">Whole report</option>{Object.keys(draft.analysis_declarations).map((analysis) => <option key={analysis} value={analysis}>{analysis}</option>)}</select></label>
+                    {draft.scope.analyte === "dna" && !metadataOutput && (!block.analysis || block.analysis === "SNV") && <label className="type-label">SNV reporting profile<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.analysis_intent || ""} onChange={event => mutateDraft(document => { document.blocks[selectedBlock].analysis_intent = event.target.value ? event.target.value as "somatic" | "germline" : undefined })}><option value="">Primary/shared flow</option><option value="somatic">Somatic SNV profile</option><option value="germline">Germline SNV profile</option></select><span className="type-supporting text-muted-foreground">Uses the selected profile’s filtered findings and counts. Germline text requires explicitly targeted rules; existing primary text is not copied into the separate germline summary.</span></label>}
                     <label className="type-label">Evaluate<select disabled={metadataOutput} className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.evaluation.mode} onChange={(event) => mutateDraft((document) => { const mode = event.target.value as RuleBlock["evaluation"]["mode"]; document.blocks[selectedBlock].evaluation = mode === "each_item" ? { mode, collection: "findings" } : { mode, collection: null } })}><option value="once">Once per report</option><option value="each_finding">For each finding</option><option value="each_item">For each collection item</option></select></label>
                     <label className="type-label">Match behavior<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={block.match_strategy} onChange={(event) => mutateDraft((document) => { document.blocks[selectedBlock].match_strategy = event.target.value as RuleBlock["match_strategy"] })}><option value="first_match" disabled={!!block.conflict_group}>First match</option><option value="all_matches" disabled={!!block.conflict_group}>All matches</option><option value="exactly_one">Exactly one</option><option value="at_most_one">At most one</option></select></label>
                     <label className="type-label">Conflict group (optional)<Input className="mt-1" value={block.conflict_group || ""} onChange={(event) => mutateDraft((document) => {

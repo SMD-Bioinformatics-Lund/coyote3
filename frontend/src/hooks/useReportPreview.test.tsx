@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { PropsWithChildren } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -44,10 +47,10 @@ it("encodes sample identifiers consistently for report previews and saves", asyn
   }), { wrapper })
   await waitFor(() => expect(result.current.data).toBeDefined())
   expect(mocks.get).toHaveBeenCalledWith(
-    "/samples/CASE%231%3Fscope%3Dtest/reports/dna/preview?include_snapshot=false&save=false&format=modern",
+    "/samples/CASE%231%3Fscope%3Dtest/reports/dna/preview?include_snapshot=false&save=false",
   )
   await act(async () => { await result.current.saveReport.mutateAsync() })
   expect(mocks.post).toHaveBeenCalledWith("/samples/CASE%231%3Fscope%3Dtest/reports/dna", {
-    preview_fingerprint: "synthetic", report_format: "modern",
+    preview_fingerprint: "synthetic",
   })
 })

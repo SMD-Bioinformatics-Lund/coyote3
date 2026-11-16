@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -15,11 +18,11 @@ describe("password recovery pages", () => {
     vi.mocked(api.post).mockResolvedValue({ data: {} } as never)
     renderWithRouter(<ForgotPassword />, "/forgot-password")
 
-    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "coyote3.user" } })
+    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "coyote4.user" } })
     fireEvent.click(screen.getByRole("button", { name: "Request reset" }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith(
-      "/auth/password/reset/request", { username: "coyote3.user" },
+      "/auth/password/reset/request", { username: "coyote4.user" },
     ))
     expect(await screen.findByText(/reset email has been sent/i)).toBeVisible()
   })

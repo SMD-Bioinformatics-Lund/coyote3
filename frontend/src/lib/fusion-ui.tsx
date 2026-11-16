@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { normalizedCallerList } from "@/lib/variant-helpers"
 import { InfoTooltipBadge } from "@/lib/variant-ui"
 
@@ -35,7 +38,7 @@ export function FusionCallerBadges({ callers }: { callers: unknown }) {
 function fusionEffectDescription(effect: string) {
   const normalized = effect.toLowerCase()
   if (normalized === "in-frame") {
-    return "The selected fusion call is predicted to preserve the coding reading frame. This value is supplied by the fusion caller, not recalculated by Coyote3."
+    return "The selected fusion call is predicted to preserve the coding reading frame. This value is supplied by the fusion caller, not recalculated by Coyote4."
   }
   return `The fusion caller reported "${effect}". In the RNA review model, every non-empty effect other than the exact in-frame value is treated as out-of-frame.`
 }
@@ -83,7 +86,7 @@ function fusionEvidenceMetadata(value: string, metadata: FusionAnnotationMetadat
   if ((metadata.important || []).includes(normalized)) {
     return {
       severity: "pass",
-      description: configuredDescription || "The upstream caller associated this fusion with a cancer or curated fusion reference set. This is supporting caller evidence, not a Coyote3 clinical classification.",
+      description: configuredDescription || "The upstream caller associated this fusion with a cancer or curated fusion reference set. This is supporting caller evidence, not a Coyote4 clinical classification.",
     }
   }
   if ((metadata.not_important || []).includes(normalized)) {

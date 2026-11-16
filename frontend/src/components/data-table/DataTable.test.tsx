@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { ColumnDef } from "@tanstack/react-table"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -48,7 +51,7 @@ describe("DataTable", () => {
     expect(screen.getByLabelText("Selected genes")).not.toHaveTextContent("ABL1")
   })
   it("ignores malformed persisted sorting instead of crashing the table", () => {
-    window.sessionStorage.setItem("coyote3.table.broken.sorting", '{"id":"gene"}')
+    window.sessionStorage.setItem("coyote4.table.broken.sorting", '{"id":"gene"}')
     render(<DataTable data={data} columns={columns} stateKey="broken" />)
     expect(screen.getByText("TP53")).toBeVisible()
   })
@@ -115,7 +118,7 @@ describe("DataTable", () => {
     await user.type(search, "TP53")
     expect(screen.getByText("TP53")).toBeVisible()
     expect(screen.queryByText("ABL1")).not.toBeInTheDocument()
-    expect(sessionStorage.getItem("coyote3.table.variants.csv.search")).toBeNull()
+    expect(sessionStorage.getItem("coyote4.table.variants.csv.search")).toBeNull()
 
     rerender(<DataTable columns={columns} data={data} filename="variants.csv" />)
     expect(search).toHaveValue("TP53")
@@ -131,7 +134,7 @@ describe("DataTable", () => {
     render(<DataTable columns={columns} data={data} stateKey="variant-list" />)
     await user.click(screen.getByText("Gene"))
     await user.click(screen.getByText("Tier"))
-    expect(JSON.parse(sessionStorage.getItem("coyote3.table.variant-list.sorting") || "[]")).toEqual([
+    expect(JSON.parse(sessionStorage.getItem("coyote4.table.variant-list.sorting") || "[]")).toEqual([
       { id: "gene", desc: false },
       { id: "tier", desc: true },
     ])

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient } from "@tanstack/react-query"
 import { describe, expect, it, vi } from "vitest"
 import { clearSessionState, SESSION_CHANGED_EVENT } from "./session-state"
@@ -10,8 +13,8 @@ describe("session boundaries", () => {
     const pending = client.fetchQuery({
       queryKey: ["late"], queryFn: () => new Promise<string>(done => { resolve = done }),
     }).catch(() => undefined)
-    localStorage.setItem("coyote3:notification-tray:synthetic", "private")
-    sessionStorage.setItem("coyote3.table.synthetic.search", "private")
+    localStorage.setItem("coyote4:notification-tray:synthetic", "private")
+    sessionStorage.setItem("coyote4.table.synthetic.search", "private")
     localStorage.setItem("theme", "dark")
     const listener = vi.fn()
     window.addEventListener(SESSION_CHANGED_EVENT, listener)
@@ -19,8 +22,8 @@ describe("session boundaries", () => {
     resolve("private")
     await pending
     expect(client.getQueryCache().getAll()).toEqual([])
-    expect(localStorage.getItem("coyote3:notification-tray:synthetic")).toBeNull()
-    expect(sessionStorage.getItem("coyote3.table.synthetic.search")).toBeNull()
+    expect(localStorage.getItem("coyote4:notification-tray:synthetic")).toBeNull()
+    expect(sessionStorage.getItem("coyote4.table.synthetic.search")).toBeNull()
     expect(localStorage.getItem("theme")).toBe("dark")
     expect(listener).toHaveBeenCalledOnce()
     window.removeEventListener(SESSION_CHANGED_EVENT, listener)

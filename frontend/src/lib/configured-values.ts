@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type ConfiguredValueMetadata = {
   description: string
   className: string
@@ -6,7 +9,7 @@ export type ConfiguredValueMetadata = {
 /**
  * UI metadata for configuration values that are persisted by the API.
  *
- * The API owns allowed values in `src/coyote3/config/constants.py`; this module owns
+ * Allowed values belong to `core/src/coyote/config/constants.py`; this module owns
  * their concise browser labels, colors, and explanatory hover text.
  */
 export const GENELIST_TYPE_METADATA: Record<string, ConfiguredValueMetadata> = {

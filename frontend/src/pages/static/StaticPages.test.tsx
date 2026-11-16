@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
@@ -6,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ get: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get } }))
 vi.mock("@/lib/runtime-config", () => ({ runtimeConfig: { organizationName: "Fallback Center" } }))
-vi.mock("@/lib/runtime-paths", () => ({ appPath: (path: string) => `/coyote3${path}` }))
+vi.mock("@/lib/runtime-paths", () => ({ appPath: (path: string) => `/coyote4${path}` }))
 
 import { AboutPage } from "./AboutPage"
 import { ContactPage } from "./ContactPage"
@@ -44,13 +47,13 @@ const publicPayload = {
     { label: "External help", url: "https://example.org/help", icon: "issue" },
   ],
   codebase: {
-    repository_url: "https://github.com/example/coyote3",
-    license_url: "https://github.com/example/coyote3/LICENSE.txt",
-    bug_report_url: "https://github.com/example/coyote3/issues/new?template=bug.md",
-    feature_request_url: "https://github.com/example/coyote3/issues/new?template=feature.md",
-    support_request_url: "https://github.com/example/coyote3/issues/new?template=support.md",
+    repository_url: "https://github.com/example/coyote4",
+    license_url: "https://github.com/example/coyote4/LICENSE.txt",
+    bug_report_url: "https://github.com/example/coyote4/issues/new?template=bug.md",
+    feature_request_url: "https://github.com/example/coyote4/issues/new?template=feature.md",
+    support_request_url: "https://github.com/example/coyote4/issues/new?template=support.md",
   },
-  application: { version: "4.0.0", sdk_version: "4.0.0", client_sdk_version: "1.0.0", environment: "production", description: "Coyote3" },
+  application: { version: "4.0.0", sdk_version: "4.0.0", client_sdk_version: "1.0.0", environment: "production", description: "Coyote4" },
   references: {
     vep_metadata: ["103", "110"],
     sample_database_versions: { assembly: ["GRCh38.p13", "GRCh38"], clinvar: ["202008"] },
@@ -58,8 +61,8 @@ const publicPayload = {
   software: { pipelines: { SomaticPanelPipeline: "3.2.0" } },
   software_links: [{ label: "GENS", url: "https://gens.example.org", description: "Genome visualization", icon: "external" }],
   databases: {
-    primary: "coyote3",
-    identity: "coyote3_identity",
+    primary: "coyote4",
+    identity: "coyote4_identity",
     bam_service: "BAM_Service",
     knowledgebases: { oncokb: "https://public.api.oncokb.org/api/v1" },
   },
@@ -92,7 +95,7 @@ describe("public static pages", () => {
     expect(screen.getByRole("link", { name: /\+465678/ })).toHaveAttribute("href", "tel:+465678")
     expect(screen.getByText("Weekdays 08:00-16:30")).toBeVisible()
     expect(screen.getByText(/Hospital Road 1/)).toBeVisible()
-    expect(screen.getByRole("link", { name: /Documentation/ })).toHaveAttribute("href", "/coyote3/docs-site/")
+    expect(screen.getByRole("link", { name: /Documentation/ })).toHaveAttribute("href", "/coyote4/docs-site/")
     expect(screen.getByRole("link", { name: /External help/ })).toHaveAttribute("target", "_blank")
     expect(mocks.get).toHaveBeenCalledWith("/public/contact")
   })
@@ -115,9 +118,9 @@ describe("public static pages", () => {
     expect(screen.getByText("Core SDK")).toBeVisible()
     expect(screen.getByText("Python client SDK")).toBeVisible()
     expect(screen.getByText("1.0.0")).toBeVisible()
-    expect(screen.getByText("coyote3")).toBeVisible()
+    expect(screen.getByText("coyote4")).toBeVisible()
     expect(screen.getByText("Identity")).toBeVisible()
-    expect(screen.getByText("coyote3_identity")).toBeVisible()
+    expect(screen.getByText("coyote4_identity")).toBeVisible()
     expect(screen.getByText("BAM service")).toBeVisible()
     expect(screen.getByText("BAM_Service")).toBeVisible()
     expect(screen.getByText("SomaticPanelPipeline")).toBeVisible()

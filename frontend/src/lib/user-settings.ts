@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
@@ -7,7 +10,6 @@ import { DEFAULT_TABLE_PAGE_SIZE, TABLE_PAGE_SIZE_OPTIONS, USER_UI_DEFAULTS } fr
 export type AnalysisLayout = "classic" | "modern"
 export type SampleListLayout = "classic" | "modern"
 export type UserUiSettings = Required<NonNullable<CurrentUserAccess["ui_settings"]>>
-export { DEFAULT_TABLE_PAGE_SIZE, TABLE_PAGE_SIZE_OPTIONS } from "@/lib/defaults"
 
 type AuthSession = {
   user?: CurrentUserAccess

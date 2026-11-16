@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Generate/check TypeScript contracts from a running API or the canonical source app. */
 import { spawnSync } from "node:child_process"
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
@@ -11,9 +14,9 @@ const root = path.dirname(frontend)
 const output = path.join(frontend, "src/lib/generated")
 const check = process.argv.includes("--check")
 const urlIndex = process.argv.indexOf("--url")
-const sourceUrl = urlIndex >= 0 ? process.argv[urlIndex + 1] : process.env.COYOTE3_OPENAPI_URL
+const sourceUrl = urlIndex >= 0 ? process.argv[urlIndex + 1] : process.env.COYOTE4_OPENAPI_URL
 if (urlIndex >= 0 && !sourceUrl) throw new Error("--url requires the server's complete OpenAPI URL")
-const temporary = await mkdtemp(path.join(tmpdir(), "coyote3-openapi-"))
+const temporary = await mkdtemp(path.join(tmpdir(), "coyote4-openapi-"))
 /** Sort object keys so a running server and a source export generate identical types. */
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -34,7 +37,7 @@ try {
     const schema = await response.json()
     if (!schema.openapi || !schema.paths || !schema.components) throw new Error("Server did not return an OpenAPI contract")
     delete schema.servers
-    schema.info = { title: "Coyote3 API", version: "1" }
+    schema.info = { title: "Coyote4 API", version: "1" }
     await writeFile(input, JSON.stringify(schema))
   } else {
     const python = process.env.PYTHON_BIN || path.join(root, ".venv/bin/python")

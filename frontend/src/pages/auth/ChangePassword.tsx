@@ -1,9 +1,12 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useState, type FormEvent } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { icon, logo } from "@/lib/assets"
+import { icon } from "@/lib/assets"
+import { BrandLogo } from "@/components/layout/BrandLogo"
 import { api } from "@/lib/api"
-import { appPath } from "@/lib/runtime-paths"
 import { clearSessionState } from "@/lib/session-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,8 +73,7 @@ export function ChangePassword() {
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-10 w-16 object-contain" />
-          <span className="text-xl font-semibold">Coyote3</span>
+          <BrandLogo />
         </div>
         <Button variant="ghost" onClick={signOut} disabled={pending}>
           <icon.logOut className="h-4 w-4" />Sign out

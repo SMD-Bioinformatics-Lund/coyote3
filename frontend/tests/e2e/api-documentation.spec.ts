@@ -13,7 +13,7 @@ test.beforeAll(async ({ request }) => {
 import asyncio
 import json
 from starlette.requests import Request
-from api.app.main import create_api_app
+from coyote_api.app.main import create_api_app
 app = create_api_app()
 async def page(path):
     route = next(route for route in app.routes if getattr(route, "path", None) == path)
@@ -95,7 +95,7 @@ for (const theme of ["light", "dark"] as const) {
         } else {
           const authentication = page.locator("#api-renderer table").filter({ hasText: "When changing data" })
           await expectReadable(authentication.getByRole("columnheader", { name: "Client", exact: true }))
-          await expectReadable(authentication.getByRole("cell", { name: "Your Coyote3 session cookie", exact: true }))
+          await expectReadable(authentication.getByRole("cell", { name: "Your Coyote4 session cookie", exact: true }))
           await expectReadable(page.locator("#api-renderer [role=tab].tab-error").first())
           await expectReadable(page.locator("#api-renderer .redoc-json .token.string").first())
           await expectReadable(page.getByRole("tab", { name: "Payload", exact: true }).first())
@@ -150,7 +150,7 @@ for (const theme of ["light", "dark"] as const) {
           expect(await page.locator("#api-renderer *").count()).toBeLessThan(15_000)
           await page.getByRole("button", { name: theme === "dark" ? "Use light theme" : "Use dark theme" }).click()
           await expect(page.locator("#docs-loading")).toBeHidden()
-          await expectReadable(authentication.getByRole("cell", { name: "Your Coyote3 session cookie", exact: true }))
+          await expectReadable(authentication.getByRole("cell", { name: "Your Coyote4 session cookie", exact: true }))
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
         expect(errors).toEqual([])
@@ -160,7 +160,7 @@ for (const theme of ["light", "dark"] as const) {
         if (view === "explorer") {
           await page.getByRole("button", { name: theme === "dark" ? "Use light theme" : "Use dark theme" }).click()
         }
-        expect(await page.evaluate(() => localStorage.getItem("coyote3-docs-theme"))).toBe(selectedTheme)
+        expect(await page.evaluate(() => localStorage.getItem("coyote4-docs-theme"))).toBe(selectedTheme)
         await page.reload()
         await expect(page.locator("#docs-loading")).toBeHidden()
         expect(await page.locator("html").evaluate(element => element.classList.contains("dark")))

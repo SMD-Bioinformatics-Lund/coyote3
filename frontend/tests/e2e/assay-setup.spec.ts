@@ -124,7 +124,7 @@ for (const width of [1440, 1024, 390]) {
       } }
       if (path === "/api/v1/admin/assay-setups") {
         if (route.request().method() === "POST") {
-          saved = { _id: "setup-1", asp_id: "synthetic-assay", content: route.request().postDataJSON(), status: "draft", revision: 1, created_by: "coyote3.admin", content_editors: ["coyote3.admin"] }
+          saved = { _id: "setup-1", asp_id: "synthetic-assay", content: route.request().postDataJSON(), status: "draft", revision: 1, created_by: "coyote4.admin", content_editors: ["coyote4.admin"] }
           expect((saved.content as { scopes: string[] }).scopes).toEqual(["base"])
           return { status: 201, json: saved }
         }

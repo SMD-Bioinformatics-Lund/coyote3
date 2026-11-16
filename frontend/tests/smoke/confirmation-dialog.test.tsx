@@ -1,9 +1,12 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
 
-import { ConfirmationDialog } from "./confirmation-dialog"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 describe("ConfirmationDialog", () => {
   it("keeps focus while typing into controlled fields and traps keyboard navigation", async () => {

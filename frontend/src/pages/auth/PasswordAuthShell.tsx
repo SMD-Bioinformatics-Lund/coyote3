@@ -1,7 +1,8 @@
-import { BrandWordmark } from "@/components/layout/BrandWordmark"
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
+import { BrandLogo } from "@/components/layout/BrandLogo"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { appPath } from "@/lib/runtime-paths"
-import { logo } from "@/lib/assets"
 import { ReactNode } from "react"
 import { Link } from "react-router-dom"
 
@@ -19,8 +20,7 @@ export function AuthShell({
     <main className="login-page relative">
       <header className="login-header relative z-10">
         <Link to="/login" className="inline-flex min-w-max items-center gap-2.5">
-          <img src={appPath(logo.coyote.src)} alt={logo.coyote.alt} className="h-8 w-10" />
-          <BrandWordmark />
+          <BrandLogo />
         </Link>
         <ThemeToggle />
       </header>
@@ -34,7 +34,7 @@ export function AuthShell({
       </section>
 
       <footer className="login-footer">
-        <span>Coyote3 v4.0.0</span>
+        <span>Coyote4 v4.0.0</span>
         <span className="font-semibold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
         <span>Section for Molecular Diagnostics</span>
       </footer>

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -33,7 +36,6 @@ export function QueryRuleSampleTestPanel({ scope, content, readOnly = false }: {
   return <section className="surface-panel space-y-4 rounded-lg border p-4" aria-label="Test with a sample">
     <h2 className="type-section-title">Test with a sample</h2>
     <p className="text-muted-foreground type-supporting">Compare the live policy with {readOnly ? "this selected version" : "this draft"} using a ready sample’s saved filters and ASPC. More-specific published rules still apply. Testing does not change data.</p>
-    {scope.analysis === "snv" && scope.intent === "germline" && <p className="type-supporting text-muted-foreground">This test evaluates germline exceptions within the combined somatic SNV workflow, using the sample’s somatic filters.</p>}
     <div className="grid gap-4 xl:grid-cols-2">
     <section className="min-w-0 space-y-3 rounded-lg border bg-background p-4" aria-label="Sample selection">
     <h3 className="type-section-title">1. Select a sample</h3>

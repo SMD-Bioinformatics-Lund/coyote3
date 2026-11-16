@@ -1,10 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { describe, expect, it } from "vitest"
 
 import {
   NOMENCLATURE_CODES,
-  NOMENCLATURE_METADATA,
   nomenclatureLabel,
 } from "./application-constants"
+import { NOMENCLATURE_METADATA } from "./defaults"
 
 describe("application constants", () => {
   it("defines nomenclature codes and display labels from one mapping", () => {

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type UiRouteAudit = {
   path: string
   page: string
@@ -141,7 +144,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
       "POST /samples/:id/comments",
       "PUT /samples/:id/filters",
       "GET /samples/:id/aspc/preview",
-      "GET /samples/:id/reports/:report_type/try-new",
+      "GET /samples/:id/reports/:report_type/preview/bundle",
       "POST /samples/:id/aspc/apply-latest",
     ],
     dataUsed: ["sample", "assay_config", "filters", "display_sections_data", "comments", "coverage payload", "report previews"],

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import {
@@ -270,7 +273,7 @@ describe("variant UI semantics", () => {
   it("treats only the exact in-frame fusion effect as in-frame", () => {
     const { rerender } = render(<FusionEffectBadge effect="in-frame" />)
     fireEvent.focus(screen.getByText("in-frame"))
-    expect(screen.getByText("not recalculated by Coyote3", { exact: false })).toBeInTheDocument()
+    expect(screen.getByText("not recalculated by Coyote4", { exact: false })).toBeInTheDocument()
 
     rerender(<FusionEffectBadge effect="UTR/CDS(truncated)" />)
     fireEvent.focus(screen.getByLabelText("UTR/CDS(truncated)"))

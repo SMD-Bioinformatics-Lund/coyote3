@@ -6,14 +6,14 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   define: {
-    __COYOTE3_RUNTIME__: JSON.stringify({
+    __COYOTE4_RUNTIME__: JSON.stringify({
       appVersion: "test",
       environment: "test",
       gensUri: "",
       igvUri: "",
       igvDataRoot: "",
       localTimeZone: "UTC",
-      organizationName: "Coyote3 Test",
+      organizationName: "Coyote4 Test",
       scriptName: "",
     }),
   },
@@ -26,7 +26,7 @@ export default defineConfig({
     environment: "jsdom",
     maxWorkers: 4,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "tests/smoke/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "lcov"],

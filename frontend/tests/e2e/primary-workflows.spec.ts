@@ -90,7 +90,7 @@ test("samples switch between live and reported records without a reload", async 
     if (path === "/api/v1/auth/whoami") {
       return {
         json: {
-          username: "coyote3.admin",
+          username: "coyote4.admin",
           role: "admin",
           roles: ["superuser", "admin"],
           access_level: 99_999,

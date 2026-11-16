@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { api } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
@@ -73,7 +76,7 @@ function visibleTabs(sample: any, context: any, modules?: any) {
   const hasAnalysis = (...keys: string[]) => keys.some((key) => configured.has(key))
   const omicsLayer = String(sample?.asp_category || "").toLowerCase()
   const analysisIntents = new Set(
-    (Array.isArray(sample?.analysis_intents) ? sample.analysis_intents : ["somatic"])
+    (context?.snv_filter_intents || [])
       .map((intent: unknown) => String(intent).toLowerCase()),
   )
   return TABS.filter((tab) => {
@@ -113,7 +116,8 @@ function visibleTabs(sample: any, context: any, modules?: any) {
       return omicsLayer === "rna" && (hasExpression || hasClassification)
     }
     return configured.has(String(tab.analysis).toUpperCase())
-  })
+  }).map(tab => "intent" in tab && context?.snv_filter_mode === "shared"
+    ? { ...tab, label: "SNVs" } : tab)
 }
 
 export function SampleDetail() {

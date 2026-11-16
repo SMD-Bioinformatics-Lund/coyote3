@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { icon } from "@/lib/assets"
@@ -294,6 +297,8 @@ export function FiltersSidebar({
   const documentEditor = sharedEditor || localEditor
   const canEdit = mayEdit && documentEditor.owned
   const activeSection = activeFilterSectionForTab(activeTab)
+  const filterLabel = activeSection === "snv" && context?.snv_filter_mode === "shared"
+    ? "SNVs" : `${intent} ${activeTab}`
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
   const [filters, setFilters] = useState(activeSection ? sampleFilterSection(sample, activeSection, intent) : {})
   const queryClient = useQueryClient()
@@ -387,7 +392,7 @@ export function FiltersSidebar({
   if (!inline && isCollapsed) {
     return (
       <CollapsedFiltersRail
-        label={collapsedLabel || `${intent} ${activeTab} filters`}
+        label={collapsedLabel || `${filterLabel} filters`}
         onExpand={() => setIsCollapsed(false)}
       />
     )
@@ -398,7 +403,7 @@ export function FiltersSidebar({
       <div className="flex items-center justify-between border-b border-primary/10 bg-gradient-to-r from-dna/10 via-card/80 to-rna/10 px-3 py-2">
         <div>
           <h3 className="text-sm font-semibold">Filters</h3>
-          <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{intent} {activeTab}</p>
+          <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{filterLabel}</p>
           {context?.aspc_update?.current_aspc_id && (
             <p className="mt-0.5 type-label text-muted-foreground">
               Configuration: <span className="font-semibold text-foreground">{context.aspc_update.current_aspc_id}</span>
