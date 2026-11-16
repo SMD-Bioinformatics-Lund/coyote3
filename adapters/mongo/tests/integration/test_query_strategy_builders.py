@@ -1,11 +1,44 @@
 """Unit tests for ASPC-driven CNV/fusion/translocation query strategy."""
 
-from coyote.config.clinical_query_policy import FindingQueryException, FindingQueryPolicy
-from coyote.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+import mongomock
+import pytest
+from coyote.config.clinical_query_policy import (
+    FindingQueryException,
+    FindingQueryPolicy,
+    factory_query_policy,
+)
+from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.dna.translocqueries import build_transloc_query, filter_translocations_by_genes
 from coyote.domain.dna.varqueries import build_pos_genes_filter
 from coyote.domain.rna.fusion_query_builder import build_fusion_query
 from coyote_mongo.selection import compile_selection
+
+
+@pytest.mark.parametrize(
+    "ratio,size,selected",
+    [
+        (0.3, 1000, False),
+        (-0.3, 1000, False),
+        (0.5, 100, False),
+        (0.5, 10000, False),
+        (0.5, 1000, True),
+        (-0.5, 1000, True),
+    ],
+)
+def test_cnv_ratio_and_size_cutoffs_select_strictly_between_boundaries(ratio, size, selected):
+    """A record on a configured ratio or size boundary does not pass the ordinary query."""
+    collection = mongomock.MongoClient().synthetic.cnvs
+    collection.insert_one({"SAMPLE_ID": "sample", "ratio": ratio, "size": size})
+    query = build_cnv_query(
+        "sample",
+        {
+            "cnv_loss_cutoff": -0.3,
+            "cnv_gain_cutoff": 0.3,
+            "min_cnv_size": 100,
+            "max_cnv_size": 10000,
+        },
+    )
+    assert bool(collection.find_one(compile_selection(query))) is selected
 
 
 def _finding_policy(*rules: FindingQueryException) -> FindingQueryPolicy:
@@ -181,14 +214,11 @@ def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:
         "min_cnv_size": 100,
         "max_cnv_size": 10000,
     }
-    query = compile_selection(build_cnv_query("SAMPLE_1", filters, include_normal=True))
+    query = compile_selection(
+        build_cnv_query("SAMPLE_1", filters, policy=factory_query_policy("cnv", family="wgs"))
+    )
 
     assert all("NORMAL" not in str(clause) for clause in query["$and"])
-    assert include_normal_cnvs({"asp_family": "wgs"}) is True
-    assert include_normal_cnvs({}, {"asp_group": "tumwgs"}) is False
-    assert include_normal_cnvs({}, {"asp_group": "new_center_group", "asp_family": "wgs"}) is True
-    assert include_normal_cnvs({"asp_group": "tumwgs", "asp_family": "panel-dna"}) is False
-    assert include_normal_cnvs({"asp_family": "panel-dna"}, {"asp_group": "solid"}) is False
 
 
 def test_cnv_policy_admission_extends_the_normal_filter_query() -> None:

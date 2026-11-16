@@ -209,9 +209,9 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     monkeypatch.setattr(
         dna_service_module,
         "build_cnv_query",
-        lambda sample_id, filters, include_normal=False, policy=None: {
+        lambda sample_id, filters, policy=None: {
             "sample_id": sample_id,
-            "include_normal": include_normal,
+            "policy": policy,
             **filters,
         },
     )

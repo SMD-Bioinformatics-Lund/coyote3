@@ -13,10 +13,10 @@ from typing import Any, Literal
 from coyote.application.common.protected_records import reject_system_managed_change
 from coyote.application.query_rules.compilation import resolved_policy_snapshot
 from coyote.config.clinical_query_policy import (
-    CLINICAL_QUERY_POLICY,
     FindingQueryPolicy,
     SnvQueryPolicy,
     exception_payload,
+    factory_query_policy,
     resolved_query_policy,
 )
 from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY
@@ -62,7 +62,7 @@ def effective_policy(
         Validated typed policy for the requested sample scope.
     """
     if service is None:
-        return getattr(CLINICAL_QUERY_POLICY, analysis)
+        return factory_query_policy(analysis, family=sample.get("asp_family"))
     return service.policy_for_sample(
         analysis=analysis,
         sample=sample,
@@ -357,7 +357,7 @@ class QueryRuleService:
                         "modality": assay["asp_category"],
                     }
                 )
-        baseline = getattr(CLINICAL_QUERY_POLICY, scope.analysis)
+        baseline = factory_query_policy(scope.analysis, family=scope.family)
         mode = (
             baseline.policy_for(assay_group=scope.assay_group, intent=scope.intent)
             if scope.analysis == "snv"

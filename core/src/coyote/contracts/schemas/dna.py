@@ -284,6 +284,13 @@ class CnvsDoc(_FindingDocBase):
     size: int
     ratio: float | None = None
     type: str | None = None
+    NORMAL: int | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        exclude_if=lambda value: value is None,
+        description="Normal/control call marker; omitted when unavailable",
+    )
     nprobes: int = 0
     genes: list[CnvGeneDoc] = Field(default_factory=list)
     callers: list[str] = Field(default_factory=list)

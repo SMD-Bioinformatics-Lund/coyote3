@@ -657,13 +657,17 @@ def load_application_query_policy() -> ClinicalQueryPolicy:
     """Load immutable query defaults without consulting center policy or database rules.
 
     Returns:
-        Evidence modes and field bindings with no clinical exceptions. Published
-        database rule sets supply additional criteria during runtime resolution.
+        Evidence modes, field bindings and factory finding rules. Published
+        database rule sets can inherit, extend or replace the factory rules.
     """
     defaults = factory_value("clinical_queries.snv")
     return ClinicalQueryPolicy(
         snv=_parse_snv_policy(defaults),
-        cnv=_finding_policy({}, analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS),
+        cnv=_finding_policy(
+            factory_value("clinical_queries.cnv.default"),
+            analysis="cnv",
+            allowed_keys=_CNV_EXCEPTION_KEYS,
+        ),
         translocation=_finding_policy(
             {}, analysis="translocation", allowed_keys=_TRANSLOCATION_EXCEPTION_KEYS
         ),
@@ -673,3 +677,25 @@ def load_application_query_policy() -> ClinicalQueryPolicy:
 
 
 CLINICAL_QUERY_POLICY = load_application_query_policy()
+
+
+def factory_query_policy(
+    analysis: str, *, family: str | None = None
+) -> SnvQueryPolicy | FindingQueryPolicy:
+    """Resolve software query defaults for an analysis and sequencing family.
+
+    Args:
+        analysis: Supported lowercase query namespace.
+        family: Registered assay family, independent of its clinical group name.
+
+    Returns:
+        The factory baseline before published scope rules are applied. CNV normal
+        exclusion is an ordinary rule: WGS inherits no exclusion, other families
+        exclude NORMAL=1, and published rules can replace either choice.
+    """
+    if analysis == "cnv":
+        overrides = factory_value("clinical_queries.cnv.families")
+        values = overrides.get(str(family or "").strip().lower())
+        if values is not None:
+            return _finding_policy(values, analysis="cnv", allowed_keys=_CNV_EXCEPTION_KEYS)
+    return getattr(CLINICAL_QUERY_POLICY, analysis)

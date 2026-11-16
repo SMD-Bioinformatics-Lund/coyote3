@@ -44,6 +44,7 @@ from coyote.domain.common.sample_filters import (
     merged_dna_variant_filters,
     snv_filter_intents,
 )
+from coyote.domain.dna.cnv_selection import CnvGeneScope
 from coyote.domain.dna.dna_variants import format_pon
 from coyote.domain.dna.notation import one_letter_p
 from coyote.domain.dna.transcript_payloads import (
@@ -455,10 +456,11 @@ def list_variants_payload(
     )
     checked_cnvlists = cnv_filters.get("cnvlists", [])
     checked_cnvlists_genes_dict = gene_list_resources(assay_config, checked_cnvlists)
-    _cnv_genes_covered_in_panel, cnv_filter_genes = get_sample_effective_genes(
-        sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
+    cnv_scope = CnvGeneScope.resolve(
+        {**sample, "filters": sample_filters}, assay_panel_doc, checked_cnvlists_genes_dict
     )
-    cnv_filters["restrict_to_genes"] = True
+    cnv_filter_genes = list(cnv_scope.genes)
+    cnv_filters["restrict_to_genes"] = cnv_scope.restricted
     translocation_filters = merged_dna_translocation_filters(sample_filters)
     checked_translocation_lists = translocation_filters.get("fusionlists", [])
     checked_translocation_docs = gene_list_resources(assay_config, checked_translocation_lists)

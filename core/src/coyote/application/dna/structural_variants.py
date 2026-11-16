@@ -37,7 +37,8 @@ from coyote.domain.common.sample_filters import (
     merged_dna_translocation_filters,
 )
 from coyote.domain.dna.cnv_metrics import copy_number_from_log2
-from coyote.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+from coyote.domain.dna.cnv_selection import CnvGeneScope
+from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -354,11 +355,13 @@ class DnaStructuralService:
                 "diagnosis_id": sample.get("diagnosis_id"),
                 "intent": "somatic",
             },
-            include_normal=include_normal_cnvs(sample, assay_panel),
             policy=effective_policy(
                 self.query_rule_service,
                 "cnv",
-                sample,
+                {
+                    **sample,
+                    "asp_family": (assay_panel or {}).get("asp_family") or sample.get("asp_family"),
+                },
                 assay_group=assay_group or (assay_panel or {}).get("asp_group"),
             ),
         )
@@ -409,10 +412,9 @@ class DnaStructuralService:
         assay_panel_doc = assay_resource(assay_config)
         checked_cnvlists = cnv_filters.get("cnvlists", [])
         checked_cnvlists_genes_dict = gene_list_resources(assay_config, checked_cnvlists)
-        _genes_covered_in_panel, filter_genes = get_sample_effective_genes(
-            sample, assay_panel_doc, checked_cnvlists_genes_dict, target="cnv"
-        )
-        cnv_filters["restrict_to_genes"] = True
+        cnv_scope = CnvGeneScope.resolve(sample, assay_panel_doc, checked_cnvlists_genes_dict)
+        filter_genes = list(cnv_scope.genes)
+        cnv_filters["restrict_to_genes"] = cnv_scope.restricted
         cnvs = self.load_cnvs_for_sample(
             sample=sample,
             sample_filters=cnv_filters,

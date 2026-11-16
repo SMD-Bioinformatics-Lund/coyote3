@@ -186,7 +186,7 @@ def _catalog() -> dict[str, dict[str, dict[str, Any]]]:
         },
         "cnv": {
             "string": "chr type genes.gene genes.class genes.cnv_type",
-            "integer": "start end size nprobes",
+            "integer": "start end size nprobes NORMAL",
             "number": "ratio",
             "string_list": "callers",
             "object_list": "genes",

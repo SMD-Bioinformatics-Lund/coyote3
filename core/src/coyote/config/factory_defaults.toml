@@ -73,6 +73,12 @@ default_somatic_policy = "paired"
 default_germline_policy = "case_only"
 population_frequency_fields = ["gnomad_frequency", "gnomad_max", "exac_frequency", "thousandG_frequency"]
 
+[clinical_queries.cnv.default]
+exceptions = [{ id = "exclude_normal_calls", mode = "exclude", condition = { type = "predicate", field = "NORMAL", operator = "eq", value = 1 } }]
+
+[clinical_queries.cnv.families.wgs]
+exceptions = []
+
 [contracts]
 app_controls_id = "default"
 permission_categories = ["Analysis Actions", "Application Control Management", "Assay Configuration Management", "Assay Panel Management", "Audit & Monitoring", "Clinical Reporting Rules", "Query Rules", "Data Downloads", "Gene List Management", "Permission Policy Management", "Reports", "Role Management", "Sample Management", "Schema Management", "User Management", "Variant Curation", "Visualization"]

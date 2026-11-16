@@ -46,8 +46,10 @@ replace the supported evidence mode and exception conditions through the editor'
 inheritance settings. See [installed query sets](installed-defaults.md#finding-query-sets).
 
 CNV defaults use ratio, size and structural-read evidence with sample gene filters.
-The `wgs` sample scope or assay family includes normal/control CNVs; an assay-group
-name alone does not enable that behavior. Fusion and translocation defaults use
+The factory CNV rule excludes `NORMAL=1` outside the `wgs` family; WGS has no
+factory exclusion. This rule appears in the effective policy and its provenance,
+and can be extended or replaced through the query-rule editor. An assay-group
+name alone does not change the factory rule. Fusion and translocation defaults use
 their respective evidence fields and saved filters. Group-specific inclusion or
 exclusion conditions belong in database rule sets.
 
@@ -55,7 +57,8 @@ exclusion conditions belong in database rule sets.
 
 These are the application defaults **before any published database policy is
 applied**. They are implemented query behavior, not profiles that an administrator
-must create or select. The application baseline contains no clinical exceptions.
+must create or select. The factory CNV normal-call exclusion is a replaceable rule;
+the ratio, size and structural evidence branches belong to the query implementation.
 Installation can also publish group rule sets; those are a separate policy layer,
 listed under [installed query sets](installed-defaults.md#published-set-identifiers).
 
@@ -105,9 +108,16 @@ The ordinary query restricts results to the sample and applies these branches:
 - Calls with missing or null ratio instead require a present `SR` or `PR` value
   that is not null, an empty string or an empty array. This branch does not apply
   ratio or size thresholds and does not impose a numeric read-count minimum.
-- Selected genes match `genes.gene` or `panel_gene`.
-- Records marked `NORMAL = 1` are excluded unless the sample or assay family is
-  `wgs`. The assay group name does not control this behavior.
+- Selected CNV lists restrict genes, intersected with panel coverage when provided.
+  With no selected list, use the panel genes. If neither supplies a restriction,
+  genes are unrestricted. An explicitly selected empty, inactive or unavailable
+  list matches nothing. Genes match `genes.gene` or `panel_gene`.
+- The factory `exclude_normal_calls` rule excludes `NORMAL = 1` outside WGS.
+  Missing markers and zero pass. WGS has no factory normal-call exclusion.
+  To exclude normal calls for WGS, publish an `exclude` condition on the integer
+  field `NORMAL`, operator `eq`, value `1`. Replacing inherited exceptions with
+  an empty list removes the exclusion for that scope. Exclusions apply after
+  admission rules and do not change sample ownership or the ordinary evidence tests.
 
 CNV effect selection is a separate post-retrieval filter, not part of this base
 MongoDB predicate. The query-testing preview identifies post-filters separately.

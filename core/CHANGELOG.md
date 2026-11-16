@@ -2,6 +2,13 @@
 
 ## 4.0.0
 
+- Resolve CNV genes from selected CNV lists, then panel coverage, then an
+  unrestricted scope when neither is present. Preserve explicit empty selections
+  across analysis, query previews and report eligibility.
+- Express normal/control CNV exclusion as a visible, replaceable query rule, with
+  the existing WGS inclusion default, typed `NORMAL` field and captured provenance.
+- Verify that DNA translocation MANE selection matches each gene partner's own
+  transcript; preserve fallback selection and separate RNA fusion handling.
 - Separate administration by managed resource, clinical-rule authoring by scope,
   assignments and lifecycle, and DNA reports by evidence selection, snapshots and
   document sections. Preserve review transitions, clinical eligibility and rendered

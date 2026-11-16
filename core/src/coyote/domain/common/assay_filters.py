@@ -53,7 +53,7 @@ def get_genes_covered_in_panel(
     genelists: dict[str, Any], assay_panel_doc: dict[str, Any]
 ) -> dict[str, Any]:
     """Annotate each genelist with covered and uncovered genes for the assay panel."""
-    covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
+    covered_genes_set = set(assay_panel_doc.get("covered_genes") or [])
     updated_genelists = {}
 
     for genelist_id, genelist_values in genelists.items():
@@ -104,8 +104,9 @@ def get_sample_effective_genes(
     that target; it does not make a selection in one analysis apply to another.
 
     Without a target-specific selection, use the assay's validated eligible genes.
-    Sequencing family does not grant eligibility. Empty selections and empty
-    eligibility remain restrictive; an empty scope selects no findings.
+    Sequencing family does not grant eligibility. For CNVs an absent panel gene
+    boundary does not discard genes from a selected list. Callers distinguish an
+    unrestricted CNV scope from an explicitly selected list with no eligible genes.
     """
     sample_filters = normalize_sample_filters(
         sample.get("filters"),
@@ -179,6 +180,16 @@ def get_sample_effective_genes(
 
     genes_covered_in_panel = get_genes_covered_in_panel(target_gl_dict, asp_doc)
     effective_filter_genes = create_filter_genelist(genes_covered_in_panel)
+    if target == "cnv" and not asp_doc.get("covered_genes"):
+        effective_filter_genes = sorted(
+            {
+                str(gene).strip()
+                for document in target_gl_dict.values()
+                if document.get("is_active", False)
+                for gene in (document.get("genes") or [])
+                if str(gene).strip()
+            }
+        )
     if not target_gl_dict and not selected_ids:
         effective_filter_genes = sorted(
             {

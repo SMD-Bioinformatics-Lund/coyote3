@@ -94,6 +94,7 @@ quoted numbers are not converted. A string-list comparison matches its elements.
 | `end` | integer | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod`, `$bitsAllSet`, `$bitsAnySet`, `$bitsAllClear`, `$bitsAnyClear` | - |
 | `size` | integer | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod`, `$bitsAllSet`, `$bitsAnySet`, `$bitsAllClear`, `$bitsAnyClear` | `min_cnv_size`, `max_cnv_size` |
 | `nprobes` | integer | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod`, `$bitsAllSet`, `$bitsAnySet`, `$bitsAllClear`, `$bitsAnyClear` | - |
+| `NORMAL` | integer | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod`, `$bitsAllSet`, `$bitsAnySet`, `$bitsAllClear`, `$bitsAnyClear` | - |
 | `ratio` | number | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$gt`, `$gte`, `$lt`, `$lte`, `$mod` | `cnv_loss_cutoff`, `cnv_gain_cutoff` |
 | `callers` | string list | `$eq`, `$ne`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$all`, `$size` | - |
 | `genes` | object list | `$exists`, `$type`, `$size` | - |

@@ -10,6 +10,8 @@
   and annotation workflows.
 - Versioned assay, diagnosis, gene-list and environment configuration; shared or
   independent SNV filtering and configurable report section order.
+- Consistent CNV gene-list/panel fallback and configurable normal-call query rules;
+  DNA translocation transcript selection requires both gene partners for a MANE match.
 - Governed query and reporting rules with drafts, review, publication and provenance.
 - Focused administration, clinical-rule lifecycle and report-building services with
   unchanged review transitions and report presentation.

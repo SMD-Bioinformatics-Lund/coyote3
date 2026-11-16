@@ -330,7 +330,7 @@ The CNV tab lists copy-number events and opens CNV detail pages.
 | CN | Diploid copy-number estimate calculated as `2 × 2^ratio`, with the source log2 ratio in parentheses. Structural callers without a ratio display `-`; Coyote does not invent a copy-number estimate for them. |
 | Purity | Purity-adjusted copy-number estimate. The column heading includes the case purity used for the calculation when one is available. Gains use `copy number / purity`; losses use `copy number × purity`, preserving the established clinical review convention. |
 | SR (ref/alt) | Caller-supplied split-read evidence. This is the primary table evidence for Manta-style calls that do not contain a copy-number ratio. The value is displayed as stored and is not recalculated by Coyote. |
-| Status | Review state such as false positive, report inclusion, noteworthy, or normal/control call. Each marker has an explanatory tooltip. Whole-genome review retains records marked `NORMAL`; targeted-panel review excludes them from the tumour CNV table. |
+| Status | Review state such as false positive, report inclusion, noteworthy, or normal/control call. Each marker has an explanatory tooltip. Factory query rules retain `NORMAL` calls for WGS and exclude `NORMAL=1` for other families; the assay's published query rules can override this. |
 | Artefact | One badge for each caller-supplied `AFRQ_*` field. Hovering shows the frequency and its matching `ACOUNT_*` reference-case count. These values are upstream evidence, not frequencies calculated by Coyote. |
 | Unlabeled detail column | Opens the CNV detail page. Review-state and report-inclusion actions are available through the permitted bulk actions and detail controls. |
 

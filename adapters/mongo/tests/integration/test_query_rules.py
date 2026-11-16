@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 from coyote.application.query_rules.service import QueryRuleService
+from coyote.config.clinical_query_policy import resolved_query_policy
 from coyote.contracts.schemas.query_rules import (
     QueryRuleContent,
     QueryRuleDoc,
@@ -13,11 +14,51 @@ from coyote.contracts.schemas.query_rules import (
     QueryRuleTransition,
     QueryRuleUpdate,
 )
+from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories import query_rules as persistence
 from coyote_mongo.selection import compile_selection
 from mongo_test_support.settings import mongo_runtime
 from pydantic import ValidationError
+
+
+@pytest.mark.parametrize("family,normal_selected", [("wgs", True), ("panel-dna", False)])
+def test_cnv_normal_rule_is_visible_and_can_be_replaced(service, family, normal_selected):
+    """Normal exclusion follows the effective rules, including scoped draft overrides."""
+    scope = QueryRuleScope(analysis="cnv", assay_group="example", modality="dna", family=family)
+    baseline = service.resolve(scope, explain=True)
+    assert baseline.lineage[0]["content"]["exceptions"] == baseline.exceptions
+    exclusion = {
+        "id": "exclude_normal_calls",
+        "mode": "exclude",
+        "condition": {"type": "predicate", "field": "NORMAL", "operator": "eq", "value": 1},
+    }
+    replacement = service.resolve(
+        scope,
+        override=QueryRuleContent(exceptions=[exclusion] if normal_selected else []),
+    )
+    collection = mongomock.MongoClient().synthetic.cnvs
+    collection.insert_many(
+        [
+            {"_id": "normal", "SAMPLE_ID": "s", "NORMAL": 1, "ratio": 0.5, "size": 1000},
+            {"_id": "tumour", "SAMPLE_ID": "s", "NORMAL": 0, "ratio": 0.5, "size": 1000},
+            {"_id": "unspecified", "SAMPLE_ID": "s", "ratio": 0.5, "size": 1000},
+            {"_id": "below-cutoff", "SAMPLE_ID": "s", "NORMAL": 1, "ratio": 0.2, "size": 1000},
+            {"_id": "other-sample", "SAMPLE_ID": "other", "ratio": 0.5, "size": 1000},
+        ]
+    )
+    filters = {
+        "cnv_loss_cutoff": -0.3,
+        "cnv_gain_cutoff": 0.3,
+        "min_cnv_size": 100,
+        "max_cnv_size": 10000,
+    }
+    for resolution, include in [(baseline, normal_selected), (replacement, not normal_selected)]:
+        policy = resolved_query_policy("cnv", None, resolution.exceptions)
+        query = compile_selection(build_cnv_query("s", filters, policy=policy))
+        assert {doc["_id"] for doc in collection.find(query)} == (
+            {"tumour", "unspecified", "normal"} if include else {"tumour", "unspecified"}
+        )
 
 
 @pytest.fixture

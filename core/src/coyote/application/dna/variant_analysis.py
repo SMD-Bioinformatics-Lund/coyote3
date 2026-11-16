@@ -25,7 +25,7 @@ from coyote.application.query_rules.service import QueryRuleService, effective_p
 from coyote.application.reporting.clinical_rules.service import ClinicalRuleService
 from coyote.config.database_versions import require_sample_vep_version, sample_vep_version
 from coyote.contracts.operations import OperationResult
-from coyote.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -199,7 +199,6 @@ class DnaService:
                 "diagnosis_id": sample.get("diagnosis_id"),
                 "intent": "somatic",
             },
-            include_normal=include_normal_cnvs(sample),
             policy=effective_policy(
                 self.query_rule_service, "cnv", sample, assay_group=assay_group
             ),

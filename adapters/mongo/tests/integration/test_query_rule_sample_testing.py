@@ -107,6 +107,49 @@ def preview(service, req, sample):
     )
 
 
+@pytest.mark.parametrize("selected,expected", [([], 2), (["focus"], 1), (["empty"], 0)])
+def test_cnv_preview_without_panel_genes_retains_the_selected_list_boundary(
+    context, selected, expected
+):
+    """Stored-sample trials honor unrestricted, selected and explicitly empty CNV scopes."""
+    service, db, sample, config = context
+    config["assay_resource_release"] = capture_assay_resource(
+        {"asp_id": "example", "asp_group": "group", "covered_genes": []}
+    )
+    config["gene_list_release"] = capture_gene_lists(
+        [
+            {"isgl_id": "focus", "list_type": ["cnv"], "genes": ["BRAF"], "is_active": True},
+            {"isgl_id": "empty", "list_type": ["cnv"], "genes": [], "is_active": True},
+        ]
+    )
+    config["filters"] = {
+        "somatic": {
+            "cnv": {
+                "cnvlists": selected,
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 10000,
+            }
+        }
+    }
+    db.copy_number_variant.insert_many(
+        [
+            {
+                "_id": gene,
+                "SAMPLE_ID": "sample",
+                "chr": "1",
+                "ratio": 0.5,
+                "size": 1000,
+                "genes": [{"gene": gene}],
+            }
+            for gene in ["ALK", "BRAF"]
+        ]
+    )
+    result = preview(service, request("cnv", "chr", "9"), sample)
+    assert result["published_count"] == result["draft_count"] == expected
+
+
 @pytest.mark.parametrize(
     "analysis,repository,field,rows",
     [

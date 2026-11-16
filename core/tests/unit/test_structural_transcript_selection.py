@@ -37,6 +37,21 @@ def test_ingest_does_not_accept_swapped_partner_mane_accessions():
     assert criterion == "first_protein_coding"
 
 
+def test_ingest_prefers_a_row_matching_both_partners_over_one_partner():
+    """A single MANE-matching gene cannot select a fusion transcript combination."""
+    partial = {
+        "Gene_Name": "A&B",
+        "Gene_ID": "1&2",
+        "Feature_ID": "ENST000001&ENST000099",
+        "Transcript_BioType": "protein_coding",
+    }
+    complete = {**partial, "Feature_ID": "ENST000001.2&ENST000002.3"}
+    genes = {"A": {"ensembl_mane_select": "ENST000001"}, "B": {"ensembl_mane_select": "ENST000002"}}
+    selected, criterion = select_structural_annotation([partial, complete], {}, genes)
+    assert selected == complete
+    assert criterion == "ensembl_mane_select"
+
+
 @pytest.mark.parametrize(
     "owner,key,status",
     [

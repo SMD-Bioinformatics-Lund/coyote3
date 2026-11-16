@@ -25,7 +25,8 @@ from coyote.domain.common.sample_filters import (
     merged_dna_variant_filters,
     snv_filter_intents,
 )
-from coyote.domain.dna.cnvqueries import build_cnv_query, include_normal_cnvs
+from coyote.domain.dna.cnv_selection import CnvGeneScope
+from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.dna.dna_filters import (
     cnvtype_variant,
     create_cnveffectlist,
@@ -346,6 +347,10 @@ class QueryRuleTestingService:
                 "diagnosis_id": scope.diagnosis_id,
                 "intent": scope.intent,
             }
+            if analysis == "cnv":
+                cnv_scope = CnvGeneScope.resolve(effective_sample, panel, lists)
+                settings["filter_genes"] = list(cnv_scope.genes)
+                settings["restrict_to_genes"] = cnv_scope.restricted
             if analysis == "snv":
                 groups = self.store.vep_metadata_repository.get_consequence_group_map(
                     require_sample_vep_version(sample)
@@ -367,7 +372,6 @@ class QueryRuleTestingService:
                 query = build_cnv_query(
                     str(sample["_id"]),
                     filters=settings,
-                    include_normal=include_normal_cnvs(sample, panel),
                     policy=policy,
                 )
                 repository = self.store.copy_number_variant_repository

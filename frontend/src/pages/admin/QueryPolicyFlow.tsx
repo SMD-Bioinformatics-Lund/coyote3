@@ -97,12 +97,12 @@ export function QueryPolicyFlow({ value, analysis }: { value: PolicyResolution; 
     <Branch title="Population frequencies" operator="AND"><p>Each configured numeric frequency must be ≤ sample.filters.max_popfreq. Missing, null and string values pass this check.</p>{frequencyFields.map(field => <p key={field} className="break-all font-mono">{field}</p>)}</Branch>
     <Branch title="Eligible consequences" operator="OR"><p>consequence_terms matches the VEP consequences selected in the sample filters.</p>{rules(consequences)}</Branch>
   </Branch> : analysis === "cnv" ? <Branch title="Ordinary CNV selection" operator="AND">
-    <p>Normal-control calls are excluded unless the sample/assay configuration includes them.</p>
+    <p>Normal-control eligibility follows the resolved exclusion rules shown below.</p>
     <Branch title="Copy-number evidence" operator="OR">
       <p>ratio &lt; sample.filters.cnv_loss_cutoff or ratio &gt; sample.filters.cnv_gain_cutoff, AND (sample.filters.min_cnv_size &lt; size &lt; sample.filters.max_cnv_size OR ratio &gt; 3).</p>
       <p>Missing/null ratio AND nonempty SR or PR evidence.</p>
     </Branch>
-    <p>Match the effective CNV gene scope. A restricted empty gene scope matches no findings.</p>
+    <p>Match selected CNV lists, otherwise panel genes. Without either, genes are unrestricted. An explicitly selected empty list matches no findings.</p>
   </Branch> : analysis === "fusion" ? <Branch title="Ordinary fusion selection" operator="AND">
     <p>Match the effective fusion gene scope. A restricted empty gene scope matches no findings.</p>
     <p>A single calls element must meet the selected effect, caller and description filters, plus minimum spanning reads/pairs. Arriba does not require spanning pairs when callers are selected. Unselected filters add no restriction.</p>

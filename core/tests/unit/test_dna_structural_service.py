@@ -147,9 +147,9 @@ def test_load_cnvs_for_sample_applies_query_and_filter(monkeypatch):
     monkeypatch.setattr(
         service_module,
         "build_cnv_query",
-        lambda sample_id, filters, include_normal=False, policy=None: {
+        lambda sample_id, filters, policy=None: {
             "sample": sample_id,
-            "include_normal": include_normal,
+            "policy": policy,
             **filters,
         },
     )

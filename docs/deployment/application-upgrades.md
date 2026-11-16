@@ -337,9 +337,10 @@ sample scopes after startup.
 > `genes` field. Existing published policies are preserved by the installer. If
 > they use `INFO.selected_CSQ.SYMBOL`, prepare and test successor versions in the
 > query-rule editor before publishing the broader annotated-gene match.
-> CNV normal/control inclusion uses sample sequencing scope or assay family `wgs`;
-> a group named `tumwgs` alone does not select it. Verify WGS assay metadata during
-> upgrade validation.
+> CNV normal/control exclusion is a factory query rule outside the `wgs` family.
+> A group named `tumwgs` alone does not change the factory rule. Published exception
+> lists can replace it, including by explicitly supplying an empty list. Review the
+> effective CNV rules and normal-call examples for each assay before clinical use.
 
 For automatic annotations, author complete conditional templates under
 `bulk_annotation_rules` on reviewed reporting-rule successors. The single

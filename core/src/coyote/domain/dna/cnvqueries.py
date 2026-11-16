@@ -67,38 +67,14 @@ def _cnv_exception_clause(
     return select(clauses[0] if len(clauses) == 1 else {Operator.ALL: clauses})
 
 
-def include_normal_cnvs(sample: dict[str, Any], assay_panel: dict[str, Any] | None = None) -> bool:
-    """Return whether the sample scope includes normal/control CNV records.
-
-    Targeted panels review tumour calls separately from records marked as
-    normal. Whole-genome analysis retains both in the same review table, as in
-    the whole-genome workflow. Group identifiers never select a query strategy.
-    """
-    panel = assay_panel or {}
-    asp_family = str(sample.get("asp_family") or "").strip().lower()
-    panel_family = str(panel.get("asp_family") or "").strip().lower()
-    return asp_family == "wgs" or panel_family == "wgs"
-
-
 def build_cnv_query(
     sample_id: str,
     filters: dict[str, Any],
     *,
-    include_normal: bool = False,
     policy: FindingQueryPolicy = CLINICAL_QUERY_POLICY.cnv,
 ) -> Selection:
     """Build a CNV query for a sample based on configured filter criteria."""
     clauses: list[Any] = []
-
-    if not include_normal:
-        clauses.append(
-            {
-                Operator.ANY: [
-                    {"NORMAL": {Operator.NOT_EQUAL: 1}},
-                    {"NORMAL": {Operator.PRESENT: False}},
-                ]
-            }
-        )
 
     if filters:
         ratio_outside_thresholds = {

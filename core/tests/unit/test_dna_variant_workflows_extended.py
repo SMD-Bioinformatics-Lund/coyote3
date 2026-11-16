@@ -61,9 +61,6 @@ def test_variant_state_load_require_and_repository_delegates(monkeypatch) -> Non
         lambda sample_id, **kwargs: {"sample": sample_id, **kwargs},
     )
     monkeypatch.setattr(
-        "coyote.application.dna.variant_analysis.include_normal_cnvs", lambda sample: True
-    )
-    monkeypatch.setattr(
         "coyote.application.dna.variant_analysis.create_cnveffectlist", lambda values: ["gain"]
     )
     monkeypatch.setattr(

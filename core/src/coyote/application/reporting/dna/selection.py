@@ -28,6 +28,7 @@ from coyote.domain.common.sample_filters import (
     merged_dna_translocation_filters,
     merged_dna_variant_filters,
 )
+from coyote.domain.dna.cnv_selection import CnvGeneScope
 from coyote.domain.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -81,24 +82,22 @@ def _resolve_filter_genes(
     )
 
 
-def _resolve_cnv_filter_genes(
+def _resolve_cnv_gene_scope(
     sample: dict,
     sample_filters: dict,
     assay_panel_doc: dict,
     *,
     assay_config: dict,
-) -> list[str]:
-    """Resolve effective CNV report filter genes from selected CNV lists."""
+) -> CnvGeneScope:
+    """Resolve the same CNV gene boundary used by analysis and query previews."""
     cnv_filters = merged_dna_cnv_filters(sample_filters)
     checked_cnvlists = cnv_filters.get("cnvlists", [])
     checked_cnvlists_genes_dict = gene_list_resources(assay_config, checked_cnvlists)
-    _genes_covered_in_panel, filter_genes = get_sample_effective_genes(
-        sample,
+    return CnvGeneScope.resolve(
+        {**sample, "filters": sample_filters},
         assay_panel_doc,
         checked_cnvlists_genes_dict,
-        target="cnv",
     )
-    return filter_genes
 
 
 def _resolve_translocation_filter_genes(

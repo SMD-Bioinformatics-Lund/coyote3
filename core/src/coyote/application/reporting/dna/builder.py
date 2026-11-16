@@ -62,7 +62,7 @@ from .selection import (
     _ensure_sample_filters,
     _filter_cnvs_for_report,
     _filter_translocations_for_report,
-    _resolve_cnv_filter_genes,
+    _resolve_cnv_gene_scope,
     _resolve_disp_positions,
     _resolve_filter_genes,
     _resolve_sample_vep_version,
@@ -337,7 +337,7 @@ class DnaReportBuilder:
     def _load_copy_numbers(self, state: DnaReportState) -> None:
         """Select reportable CNVs within the configured copy-number gene scope."""
         if "CNV" in state.report_sections:
-            cnv_filter_genes = _resolve_cnv_filter_genes(
+            cnv_scope = _resolve_cnv_gene_scope(
                 state.sample,
                 state.sample_filters,
                 state.assay_panel_doc,
@@ -360,8 +360,8 @@ class DnaReportBuilder:
             state.report_sections_data["cnvs"] = _filter_cnvs_for_report(
                 [row for row in structural_cnvs if structural_report_inclusion(row, cnv_tiers)],
                 sample_filters=state.sample_filters,
-                filter_genes=cnv_filter_genes,
-                restricted=True,
+                filter_genes=list(cnv_scope.genes),
+                restricted=cnv_scope.restricted,
             )
             state.rule_sections_data["cnvs"] = state.report_sections_data["cnvs"]
             if state.include_snapshot:

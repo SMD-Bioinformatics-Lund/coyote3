@@ -494,6 +494,7 @@ Optional keys:
 - `system_installed` (bool)
 - `ratio` (float | None)
 - `type` (str | None)
+- `NORMAL` (int | None)
 - `nprobes` (int)
 - `genes` (list[coyote.contracts.schemas.dna.CnvGeneDoc])
 - `callers` (list[str])
