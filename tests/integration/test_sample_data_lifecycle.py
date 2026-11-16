@@ -14,6 +14,7 @@ from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
 from coyote_mongo.repositories.revision_rotation import rotate_active_revision
 from coyote_mongo.repositories.sample_deletion import delete_all_sample_traces
+from coyote_mongo.repositories.samples import SampleRepository
 from pymongo import MongoClient
 
 from tests.fixtures.mongo_settings import audit_context, mongo_runtime
@@ -295,11 +296,12 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(
     artifact = tmp_path / "synthetic.html"
     artifact.write_text("synthetic report")
     database.reports.update_one({"sample_oid": oid}, {"$set": {"filepath": str(artifact)}})
-    samples = SimpleNamespace(
-        app=mongo_runtime(),
-        adapter=SimpleNamespace(client=database.client),
-        get_collection=lambda: database.samples,
-        invalidate_dashboard_metrics=lambda: None,
+    samples = SampleRepository(
+        SimpleNamespace(
+            app=mongo_runtime(),
+            client=database.client,
+            samples_collection=database.samples,
+        )
     )
     monkeypatch.setattr(
         "coyote_mongo.repositories.sample_deletion.invalidate_samples_cache",
@@ -326,6 +328,13 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(
         )
     assert database.samples.count_documents({}) == (1 if fail else 0)
     assert database.report_artifact_erasure.count_documents({}) == (0 if fail else 1)
+    assert database.audit_outbox.count_documents({}) == (0 if fail else 1)
+    if not fail:
+        erasure = database.report_artifact_erasure.find_one()
+        receipt = database.audit_outbox.find_one()
+        assert erasure["route"] == receipt["route"] == samples.audit_context.route
+        assert receipt["event"]["event_type"] == "sample.deleted"
+        assert receipt["event"]["resource"]["id"] == str(oid)
     assert artifact.exists()
     for name in specs.values():
         assert database[name].count_documents({}) == (2 if fail else 1)
