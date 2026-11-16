@@ -31,6 +31,12 @@ Use the [module guidance](docs/project/contributing.md#module-update-checklist)
 for changes to clinical rules, interfaces or deployment. Avoid patient data,
 credentials, private environment files and internal discussion in public records.
 
+Issue templates in `.github/ISSUE_TEMPLATE/*.yml` define GitHub forms with text
+fields, dropdowns and required answers. Submitted issues remain editable Markdown.
+The Markdown PR template, `.github/pull_request_template.md`, pre-fills a new PR's
+description. Templates become available on GitHub after they are merged into the
+repository's default branch.
+
 ## Verification and releases
 
 Run relevant package tests and the [fast smoke checks](docs/testing/test-strategy-and-quality-gates.md#fast-smoke-checks).

@@ -1,20 +1,26 @@
 ## Summary
 
-<!-- Explain the problem, the resulting behavior and why this change is needed.
-Use a short before/after example when it helps. -->
+Describe the problem and the resulting behavior. Include a short before/after
+example when useful.
 
 ## Scope
 
-- Issue: <!-- Fixes #123, or explain why an issue is not needed. -->
-- Modules: <!-- Core / API / Mongo / frontend / client / Relay / Atlas / Demo / deployment / docs. -->
-- Change type: <!-- Fix / feature / refactor / documentation. -->
+- Related issue: Fixes #
+- Affected modules:
+- Change type: fix / feature / refactor / documentation / release
+
+Choose the affected modules: Core, API, Mongo, Frontend, pyClient, Relay, Atlas,
+Demo, Deployment or Docs.
 
 ## Verification
 
-<!-- List the tests or manual steps actually completed and their results.
-Include synthetic screenshots for intentional UI changes and note checks not run. -->
+- Checks completed and results:
+- Checks not run and reason (or None):
+
+For intentional UI or report changes, include synthetic screenshots or an example.
 
 ## Compatibility and rollout
 
-<!-- State "None" or describe required configuration/data changes, affected public
-contracts or clinical behavior. For a release PR, link its changelog and validation record. -->
+State **None**, or describe affected interfaces, configuration, stored data,
+permissions or clinical behavior, with deployment and recovery steps.
+For a release PR, link the changelog and validation record.
