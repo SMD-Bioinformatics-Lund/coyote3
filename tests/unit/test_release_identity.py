@@ -29,7 +29,7 @@ def release_root(tmp_path):
     (tmp_path / "frontend").mkdir()
     (tmp_path / "release.toml").write_text(
         'application_version="4.2.0"\nsdk_version="1.3.1"\nserver_version="1.5.0"\n'
-        'client_version="1.2.0"\ningest_version="1.1.0"\n'
+        'client_version="1.2.0"\nrelay_version="1.1.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     (tmp_path / "core").mkdir()
@@ -42,12 +42,13 @@ def release_root(tmp_path):
     (client / "pyproject.toml").write_text(
         '[project]\nname="coyote-pyclient"\nversion="1.2.0"\ndependencies=[]\n'
     )
-    ingest = tmp_path / "services/ingest"
+    ingest = tmp_path / "services/relay"
     ingest.mkdir(parents=True)
     (ingest / "pyproject.toml").write_text(
-        '[project]\nname="coyote-ingest"\nversion="1.1.0"\n'
+        '[project]\nname="coyote-relay"\nversion="1.1.0"\n'
         'dependencies=["coyote-core==1.3.1", "coyote-pyclient==1.2.0"]\n'
-        '[project.optional-dependencies]\nworker=["coyote-server==1.5.0"]\n'
+        '[project.optional-dependencies]\napi=["coyote-server==1.5.0"]\n'
+        'worker=["coyote-server==1.5.0"]\n'
     )
     for path in ("package.json", "frontend/package.json"):
         (tmp_path / path).write_text(json.dumps({"version": "4.2.0"}))
@@ -69,7 +70,7 @@ def test_application_and_sdk_versions_can_differ(release_root):
     assert identity["sdk_source_version"] == "1.3.1"
     assert identity["server_version"] == "1.5.0"
     assert identity["client_version"] == "1.2.0"
-    assert identity["ingest_version"] == "1.1.0"
+    assert identity["relay_version"] == "1.1.0"
 
 
 def test_application_rejects_a_stale_server_package_selection(release_root):
@@ -96,14 +97,23 @@ def test_application_rejects_a_stale_packaged_application_label(release_root):
 @pytest.mark.parametrize(
     "old,new,match",
     [
-        ('version="1.1.0"', 'version="1.0.0"', "coyote-ingest version differs"),
-        ("coyote-core==1.3.1", "coyote-core==1.3.0", "Ingest dependencies differ"),
-        ("coyote-pyclient==1.2.0", "coyote-pyclient==1.1.0", "Ingest dependencies differ"),
-        ("coyote-server==1.5.0", "coyote-server==1.4.0", "Ingest worker dependency differs"),
+        ('version="1.1.0"', 'version="1.0.0"', "coyote-relay version differs"),
+        ("coyote-core==1.3.1", "coyote-core==1.3.0", "Relay dependencies differ"),
+        ("coyote-pyclient==1.2.0", "coyote-pyclient==1.1.0", "Relay dependencies differ"),
+        (
+            'api=["coyote-server==1.5.0"]',
+            'api=["coyote-server==1.4.0"]',
+            "Relay api dependency differs",
+        ),
+        (
+            'worker=["coyote-server==1.5.0"]',
+            'worker=["coyote-server==1.4.0"]',
+            "Relay worker dependency differs",
+        ),
     ],
 )
 def test_ingestion_selection_and_dependencies_are_release_checked(release_root, old, new, match):
-    path = release_root / "services/ingest/pyproject.toml"
+    path = release_root / "services/relay/pyproject.toml"
     path.write_text(path.read_text().replace(old, new))
     with pytest.raises(ValueError, match=match):
         release_identity(release_root)
@@ -211,7 +221,7 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     (source / "core/docs/architecture.md").write_text("Synthetic core documentation")
     for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
         (source / name).write_text("synthetic")
-    for package in ("api", "adapters/mongo", "clients/python", "services/ingest"):
+    for package in ("api", "adapters/mongo", "clients/python", "services/relay"):
         directory = source / package
         (directory / "src").mkdir(parents=True)
         (directory / "docs").mkdir()

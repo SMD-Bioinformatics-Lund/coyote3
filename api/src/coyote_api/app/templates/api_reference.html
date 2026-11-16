@@ -42,7 +42,7 @@
     <div>
       <span class="eyebrow">Developer portal</span>
       <div class="heading-title"><h1 id="page-title">Coyote4 API</h1><span class="badge">Application {{ version }}</span><span class="badge access-badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
-      <p>Integrate sample ingestion, finding review and governed reporting with your laboratory workflows.</p>
+      <p>Integrate {% if relay_installed %}sample ingestion, {% endif %}finding review and governed reporting with your laboratory workflows.</p>
     </div>
     <nav class="view-tabs" aria-label="API documentation views">
       <a href="{{ prefix }}/api/v1/redoc" {% if view == 'reference' %}aria-current="page"{% endif %}>Reference</a>
@@ -72,7 +72,7 @@
       </section>
       <section class="integration-card" aria-labelledby="overview-access">
         <span class="card-kicker">02 / Authorize</span><h2 id="overview-access">Choose the right credentials</h2>
-        <dl class="access-methods"><div><dt><span class="badge">Browser session</span></dt><dd>Sign in to Coyote4 in this browser. The explorer sends your cookie and retrieves <code>X-CSRF-Token</code> for changes.</dd></div><div><dt><span class="badge access-badge">Bearer token</span></dt><dd>Use <strong>Authorize</strong> for an opaque session token. Bearer requests do not need a CSRF header. Credentials are not persisted by this explorer.</dd></div><div><dt><span class="badge">Pipeline ingestion</span></dt><dd><code>X-Coyote-Ingest-Token</code> applies to the synchronous sample-bundle upload endpoint. Async ingestion and task polling require a user session.</dd></div></dl>
+        <dl class="access-methods"><div><dt><span class="badge">Browser session</span></dt><dd>Sign in to Coyote4 in this browser. The explorer sends your cookie and retrieves <code>X-CSRF-Token</code> for changes.</dd></div><div><dt><span class="badge access-badge">Bearer token</span></dt><dd>Use <strong>Authorize</strong> for an opaque session token. Bearer requests do not need a CSRF header. Credentials are not persisted by this explorer.</dd></div>{% if relay_installed %}<div><dt><span class="badge">Pipeline ingestion</span></dt><dd><code>X-Coyote-Ingest-Token</code> applies to the synchronous sample-bundle upload endpoint. Async ingestion and task polling require a user session.</dd></div>{% endif %}</dl>
         <a href="{{ prefix }}/docs-site/api/routes-and-workflows/">Integration workflows <span aria-hidden="true">&#8594;</span></a>
       </section>
       <section class="integration-card" aria-labelledby="overview-requests">

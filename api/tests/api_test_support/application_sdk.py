@@ -162,23 +162,6 @@ def public_pages():
     return get_public_pages()
 
 
-def ingestion_operations(service, user):
-    """Bind real ingestion operations to synthetic implementations and durable job ports."""
-    from coyote.application.operations.ingest import Ingestion
-    from coyote_api.app.application_factory import ingest_submission_services
-
-    runtime = finding_operations(service, "small_variant", user)._runtime
-    runtime.policy_factory = lambda actor: SimpleNamespace(
-        permission_allowed=lambda actor, permission_id, **kwargs: (
-            permission_id != "sample:edit:own" or permission_id in actor.permissions
-        ),
-        scope_allowed=lambda actor, context: (
-            context.get("asp_id") in actor.asp_ids and context.get("environment") in actor.envs
-        ),
-    )
-    return Ingestion(runtime, lambda: service, ingest_submission_services())
-
-
 def internal_reference_operations(*, roles=None, gene_lists=None, request):
     """Exercise SDK reference reads while retaining the static-token adapter check."""
     from coyote.application.operations.internal_references import (

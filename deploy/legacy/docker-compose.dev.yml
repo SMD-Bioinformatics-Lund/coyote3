@@ -181,7 +181,7 @@ services:
       - ../../adapters/mongo:/app/adapters/mongo
       - ../../core:/app/core
       - ../../clients/python:/app/clients/python
-      - ../../services/ingest:/app/services/ingest
+      - ../../services/relay:/app/services/relay
       - ../../docs:/app/docs
       - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
       - ../../README.md:/app/README.md:ro
@@ -208,7 +208,7 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: worker
     volumes: *dev-app-volumes
-    command: python3 -m coyote_api.infra.observability.run_service worker coyote-ingest-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker coyote-relay-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
       redis:
         condition: service_healthy

@@ -10,7 +10,7 @@ selection and rule evaluation remain in the core; persistence remains in the
 MongoDB adapter.
 
 Maintenance workers and beat use `coyote_api.celery_app`. Ingestion workers use
-`coyote_ingest.celery_app` from the separately installed ingestion service. API and
+`coyote_relay.celery_app` from the separately installed ingestion service. API and
 workers must use the tested core/server/ingestion combination and compatible
 configuration. Uvicorn reload does not restart separate workers.
 

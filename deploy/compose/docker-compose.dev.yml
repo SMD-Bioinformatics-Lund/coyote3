@@ -44,7 +44,7 @@ services:
       - ../../adapters/mongo:/app/adapters/mongo
       - ../../core:/app/core
       - ../../clients/python:/app/clients/python
-      - ../../services/ingest:/app/services/ingest
+      - ../../services/relay:/app/services/relay
       - ../../release.toml:/app/release.toml:ro
       - ${COYOTE4_LOGS_HOST_ROOT:?COYOTE4_LOGS_HOST_ROOT is required}:/app/logs
       - ../../docs:/app/docs

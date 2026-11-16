@@ -26,7 +26,7 @@ The system consists of:
 | `core/src/coyote/` | Core application library; never imports `coyote_api`, MongoDB adapters or the external client. |
 | `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independently installable HTTP-only `coyote-pyclient` distribution and tests. |
-| `services/ingest/` | Installable ingestion worker and submission tools; reusable workflows belong to core. |
+| `services/relay/` | Installable ingestion worker and submission tools; reusable workflows belong to core. |
 | `api/src/coyote_api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
 | `core/src/coyote/application/` | Use-case and workflow services. |
 | `core/src/coyote/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
@@ -40,11 +40,11 @@ The system consists of:
 | `api/src/coyote_api/config/` | Host environment loading, API security, storage paths and database settings. |
 | `api/src/coyote_api/config/examples/center/` | Center examples copied into an external reviewed deployment directory. |
 | `docs/sdk/` | SDK installation, usage, host development, generated reference and release compatibility. |
-| `api/src/coyote_api/tasks/` | Server maintenance task entry points; ingestion tasks belong to `coyote_ingest`. |
+| `api/src/coyote_api/tasks/` | Server maintenance task entry points; ingestion tasks belong to `coyote_relay`. |
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
 | `core/src/coyote/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
-| `core/tests/`, `api/tests/`, `adapters/mongo/tests/`, `clients/python/tests/`, `services/ingest/tests/` | Component-owned unit, smoke and integration coverage. |
+| `core/tests/`, `api/tests/`, `adapters/mongo/tests/`, `clients/python/tests/`, `services/relay/tests/` | Component-owned unit, smoke and integration coverage. |
 | `tests/` | Application integration, architecture contracts, repository tooling and smoke coverage. |
 | `tests/load/` | Optional Locust HTTP workloads, target checks and synthetic smoke server. |
 | `deploy/` | Compose definitions, proxy configuration, and environment examples. |
@@ -54,7 +54,7 @@ The system consists of:
 | `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` | Packaged synthetic inputs, setup resources and demonstration manifests. |
 
 Important entry points are `api/src/coyote_api/app/main.py`, `asgi.py`, `run_api.py`,
-`api/src/coyote_api/celery_app.py`, `services/ingest/src/coyote_ingest/worker.py`,
+`api/src/coyote_api/celery_app.py`, `services/relay/src/coyote_relay/worker.py`,
 and `frontend/src/main.tsx`.
 
 ## Development conventions
@@ -174,14 +174,17 @@ and `frontend/src/main.tsx`.
   SDK selection belong to `release.toml`. Keep HTTP and clinical configuration revisions separate.
 - The root builds `coyote-server` from the separate `api/src/coyote_api` and
   `adapters/mongo/src/coyote_mongo` trees. Its uv workspace also contains `core`
-  (`coyote-core`), `clients/python` (`coyote-pyclient`) and `services/ingest`
-  (`coyote-ingest`). API and Mongo retain
+  (`coyote-core`), `clients/python` (`coyote-pyclient`) and `services/relay`
+  (`coyote-relay`). API and Mongo retain
   component-owned tests, coverage and docs while sharing one server distribution.
   Dependencies point API -> adapter -> core. The adapter never imports the API.
   The HTTP client has its own distribution and imports none of those packages.
-  Ingestion workers depend on core and server composition; the server publishes
-  named ingestion tasks without importing the service. Shared ingestion workflows
-  belong to core; transports and Celery entry points belong to the service.
+  Relay workers depend on core and server composition; the server publishes
+  named ingestion tasks without importing worker code. Relay supplies optional HTTP
+  routers through the `coyote.api.routers` entry-point group; the server has no required
+  Relay dependency. Preserve the existing authentication and authorization dependencies
+  when registering optional routes. Shared ingestion workflows belong to core;
+  CLI configuration, HTTP transports and Celery entry points belong to Relay.
   Use the uv workspace for editable development; deployment installs core, server,
   ingestion and independent client wheels. The client supports administrative HTTP tools;
   API request handlers and core operations must not import it.

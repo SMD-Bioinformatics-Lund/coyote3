@@ -46,9 +46,12 @@ builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
 documentation and tests, but share one server version and wheel. The adapter
 depends on core; API code depends on both. Neither core nor adapter imports the
 API. `clients/python/` builds the independent HTTP-only `coyote-pyclient`.
-`services/ingest/` builds `coyote-ingest`, with submission commands and separately
+`services/relay/` builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
-worker dependency; API code publishes task messages without importing the service.
+worker dependency; API code publishes task messages without importing worker code.
+Relay's optional API integration supplies ingestion routers through installed
+`coyote.api.routers` entry points, preserving the server's access checks. Without
+Relay installed, the server omits those routes and their OpenAPI entries.
 Reusable ingestion coordination, parsing and clinical decisions belong to core.
 See [installation boundaries](../sdk/server-installation.md) and
 [editable uv development](../sdk/uv-development.md).
@@ -93,7 +96,7 @@ Workers / trusted Python ----------> Application SDK operations
 | `core/src/coyote/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
 | `core/src/coyote/config/catalogs/rbac/` | Canonical permission definitions and built-in role templates. | Server installation consumes these resources; core imports do not install data. |
 | `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the server wheel, outside the core namespace. |
-| `services/ingest/src/coyote_ingest/` | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
+| `services/relay/src/coyote_relay/` | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |
 | `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
 | `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |

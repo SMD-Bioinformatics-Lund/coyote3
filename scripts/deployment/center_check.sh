@@ -88,7 +88,7 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     printf '\n' >&2
   fi
   echo "[step] login and resolve bearer token"
-  AUTH_JSON="$(COYOTE_CENTER_CHECK_PASSWORD="$PASSWORD" "$PYTHON_BIN" -m coyote_ingest.login \
+  AUTH_JSON="$(COYOTE_CENTER_CHECK_PASSWORD="$PASSWORD" "$PYTHON_BIN" -m coyote_relay.login \
     --base-url "$API_BASE_URL" \
     --mode password \
     --username "$USERNAME" \
@@ -118,9 +118,9 @@ curl -fsS "${API_BASE_URL%/}/api/v1/health" >/dev/null
 
 echo "[step] local ingest spec validation"
 if [[ "$SKIP_FILE_CHECK" -eq 1 || -n "$DATA_ARCHIVE" ]]; then
-  "$PYTHON_BIN" -m coyote_ingest.validate --yaml "$YAML_FILE" >/dev/null
+  "$PYTHON_BIN" -m coyote_relay.validate --yaml "$YAML_FILE" >/dev/null
 else
-  "$PYTHON_BIN" -m coyote_ingest.validate --yaml "$YAML_FILE" --check-files >/dev/null
+  "$PYTHON_BIN" -m coyote_relay.validate --yaml "$YAML_FILE" --check-files >/dev/null
 fi
 
 echo "[step] submit ingest sample-bundle upload"
@@ -131,7 +131,7 @@ import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from coyote_ingest.submit import upload
+from coyote_relay.submit import upload
 
 token = os.environ["COYOTE_CENTER_CHECK_TOKEN"]
 if any(char in token for char in '\r\n"\\'):

@@ -94,7 +94,7 @@ Test each configured provider independently:
 | Restricted account | Protected admin routes return `403`; permitted clinical routes remain available |
 | Logout | Server session is revoked and the browser returns to the login page |
 
-Use `coyote-ingest-login` for an API-level local-provider check and complete
+Use `coyote-relay-login` for an API-level local-provider check and complete
 the LDAP and browser-session checks through the public reverse proxy. Store
 credentials in the shell or the center's secret runner, never in command files
 or screenshots.

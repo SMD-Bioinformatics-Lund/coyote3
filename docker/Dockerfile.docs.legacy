@@ -19,8 +19,9 @@ COPY adapters/mongo/docs/ ./adapters/mongo/docs/
 COPY adapters/mongo/README.md adapters/mongo/CHANGELOG.md adapters/mongo/LICENSE.txt adapters/mongo/COPYRIGHT.txt adapters/mongo/NOTICE.txt adapters/mongo/pyproject.toml ./adapters/mongo/
 COPY clients/python/docs/ ./clients/python/docs/
 COPY clients/python/README.md clients/python/CHANGELOG.md clients/python/LICENSE.txt clients/python/COPYRIGHT.txt clients/python/NOTICE.txt clients/python/pyproject.toml ./clients/python/
-COPY services/ingest/docs/ ./services/ingest/docs/
-COPY services/ingest/README.md services/ingest/CHANGELOG.md services/ingest/LICENSE.txt services/ingest/COPYRIGHT.txt services/ingest/NOTICE.txt services/ingest/pyproject.toml ./services/ingest/
+COPY services/relay/docs/ ./services/relay/docs/
+COPY services/relay/src/coyote_relay/assets/ ./services/relay/src/coyote_relay/assets/
+COPY services/relay/README.md services/relay/CHANGELOG.md services/relay/LICENSE.txt services/relay/COPYRIGHT.txt services/relay/NOTICE.txt services/relay/pyproject.toml ./services/relay/
 COPY frontend/docs/ ./frontend/docs/
 COPY frontend/README.md frontend/LICENSE.txt frontend/COPYRIGHT.txt frontend/NOTICE.txt frontend/package.json ./frontend/
 COPY api/src/coyote_api/config/examples/center/contact.toml ./api/src/coyote_api/config/examples/center/contact.toml

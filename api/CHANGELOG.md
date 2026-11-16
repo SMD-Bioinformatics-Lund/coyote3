@@ -2,7 +2,9 @@
 
 ## 1.0.0
 
-- Publish allowlisted ingestion jobs to the separately installable `coyote-ingest`
+- Discover installed API router extensions; expose ingestion endpoints and their
+  documentation when Coyote Relay is installed, without a required Relay dependency.
+- Publish allowlisted ingestion jobs to the separately installable `coyote-relay`
   workers; retain server composition, maintenance tasks and beat scheduling.
 - Apply authentication, CSRF, rate limits and documentation security headers to
   mounted API paths as well as paths already stripped by a reverse proxy.

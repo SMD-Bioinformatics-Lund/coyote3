@@ -1,16 +1,12 @@
-"""Verify that unattended sample ingestion never grants general user administration."""
+"""Host-owned authentication and policy for machine sample ingestion."""
 
 from types import SimpleNamespace
-from unittest.mock import Mock
 
 import pytest
 from coyote.application.operations.ingest_permissions import enforce_sample_ingest_permission
-from coyote_api.app.deps import services
 from coyote_api.infra.security.ingest_policy import SampleIngestPolicy
-from coyote_api.interfaces.http.v1.operations import internal
 from coyote_api.security import access
-from fastapi import FastAPI, HTTPException
-from fastapi.testclient import TestClient
+from fastapi import HTTPException
 from starlette.requests import Request
 
 
@@ -110,47 +106,3 @@ def test_user_session_authentication_remains_supported(monkeypatch):
 
     monkeypatch.setattr(access, "require_access", lambda **kwargs: dependency)
     assert list(access.require_sample_ingest_access(request(None))) == [user]
-
-
-def test_upload_accepts_internal_token_but_collection_routes_do_not(token_policy, monkeypatch):
-    monkeypatch.setattr(
-        services,
-        "get_app_controls_service",
-        lambda: SimpleNamespace(module_enabled=lambda _key: True),
-    )
-    app = FastAPI()
-    app.include_router(internal.router)
-    result = {
-        "status": "ok",
-        "sample_id": "synthetic",
-        "sample_name": "synthetic",
-        "written": {},
-        "data_counts": {},
-    }
-    service = SimpleNamespace(ingest_sample_bundle=lambda *a, **kw: result)
-    monkeypatch.setattr(services, "get_internal_ingest_service", lambda: service)
-    monkeypatch.setattr(
-        services, "get_audit_service", lambda: SimpleNamespace(record=Mock(return_value="audit-id"))
-    )
-    monkeypatch.setattr(
-        "coyote.application.ingest.upload_bundle.prepare_uploaded_bundle",
-        lambda **kw: {"asp_id": "synthetic", "environment": "production"},
-    )
-    monkeypatch.setattr(
-        access,
-        "_decode_session_user",
-        lambda req: (_ for _ in ()).throw(HTTPException(401, "Login required")),
-    )
-    monkeypatch.setattr(access, "_audit_access_event", lambda **kwargs: None)
-    client = TestClient(app)
-    headers = {"X-Coyote-Internal-Token": "synthetic-internal-token"}
-    response = client.post(
-        "/api/v1/internal/ingest/sample-bundle/upload",
-        headers=headers,
-        files={"yaml_file": ("synthetic.yaml", "name: synthetic")},
-        data={"acknowledge": "true"},
-    )
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    response = client.get("/api/v1/internal/tasks/synthetic", headers=headers)
-    assert response.status_code == 401

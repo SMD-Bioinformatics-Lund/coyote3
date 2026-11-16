@@ -159,8 +159,8 @@ def test_core_server_client_and_ingest_have_independent_distributions() -> None:
         dependency.lower().startswith(("coyote-core", "coyote-server"))
         for dependency in client["project"]["dependencies"]
     )
-    ingest = tomllib.loads(Path("services/ingest/pyproject.toml").read_text())["project"]
-    assert ingest["name"] == "coyote-ingest"
+    ingest = tomllib.loads(Path("services/relay/pyproject.toml").read_text())["project"]
+    assert ingest["name"] == "coyote-relay"
     assert ingest["dependencies"] == [
         f"coyote-core=={library['project']['version']}",
         f"coyote-pyclient=={client['project']['version']}",
@@ -168,8 +168,12 @@ def test_core_server_client_and_ingest_have_independent_distributions() -> None:
     assert ingest["optional-dependencies"]["worker"] == [
         f"coyote-server=={server['project']['version']}"
     ]
+    assert ingest["optional-dependencies"]["api"] == [
+        f"coyote-server=={server['project']['version']}"
+    ]
+    assert ingest["entry-points"]["coyote.api.routers"] == {"relay": "coyote_relay.api:routers"}
     assert not any(
-        dependency.startswith("coyote-ingest") for dependency in server["project"]["dependencies"]
+        dependency.startswith("coyote-relay") for dependency in server["project"]["dependencies"]
     )
 
 
@@ -179,7 +183,7 @@ def test_server_publishes_ingestion_without_importing_the_worker_service() -> No
         f"{path}:{line}: {module}"
         for path in _python_files(Path("api/src/coyote_api"))
         for line, module in _imported_modules(path)
-        if module.split(".")[0] == "coyote_ingest"
+        if module.split(".")[0] == "coyote_relay"
     ]
     assert not offenders, "Server imports ingestion service:\n" + "\n".join(offenders)
 
@@ -191,7 +195,7 @@ def test_mongo_adapter_has_no_application_host_imports() -> None:
         for path in _python_files(Path("adapters/mongo/src/coyote_mongo"))
         for line, module in _imported_modules(path)
         if module.split(".")[0]
-        in {"coyote_api", "fastapi", "starlette", "coyote_pyclient", "coyote_ingest"}
+        in {"coyote_api", "fastapi", "starlette", "coyote_pyclient", "coyote_relay"}
     ]
     assert not offenders, "Adapter imports its consumer:\n" + "\n".join(offenders)
 
@@ -239,7 +243,10 @@ def test_http_workflows_use_the_application_sdk() -> None:
         "coyote.application.common.change_payload",
     }
     offenders = []
-    for path in _python_files(Path("api/src/coyote_api/interfaces/http")):
+    for path in [
+        *_python_files(Path("api/src/coyote_api/interfaces/http")),
+        *_python_files(Path("services/relay/src/coyote_relay/api")),
+    ]:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if not isinstance(node, ast.ImportFrom) or not node.module:
                 continue
@@ -289,7 +296,7 @@ def test_core_has_no_runtime_adapter_or_transport_dependencies() -> None:
         "coyote_api.infra",
         "coyote_api.security",
         "coyote_pyclient",
-        "coyote_ingest",
+        "coyote_relay",
         "fastapi",
         "starlette",
         "pymongo",
@@ -461,6 +468,7 @@ def test_api_boundaries_do_not_expose_pymongo_result_types() -> None:
     offenders: list[str] = []
     for root in (
         Path("api/src/coyote_api/interfaces"),
+        Path("services/relay/src/coyote_relay/api"),
         Path("core/src/coyote/application"),
         Path("core/src/coyote/domain"),
     ):
@@ -479,6 +487,7 @@ def test_domain_and_interface_layers_do_not_reach_into_repository_collections() 
     offenders: list[str] = []
     for root in (
         Path("api/src/coyote_api/interfaces"),
+        Path("services/relay/src/coyote_relay/api"),
         Path("core/src/coyote/application"),
         Path("core/src/coyote/domain"),
     ):
@@ -495,7 +504,10 @@ def test_domain_and_interface_layers_do_not_reach_into_repository_collections() 
 def test_http_routes_declare_response_contracts() -> None:
     """Every documented route must declare a response model or a non-JSON response class."""
     offenders: list[str] = []
-    for path in _python_files(Path("api/src/coyote_api/interfaces/http")):
+    for path in [
+        *_python_files(Path("api/src/coyote_api/interfaces/http")),
+        *_python_files(Path("services/relay/src/coyote_relay/api")),
+    ]:
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):

@@ -58,6 +58,7 @@ core/coverage/
 api/coverage/
 adapters/mongo/coverage/
 clients/python/coverage/
+services/relay/coverage/
 *.cover
 *.py,cover
 .hypothesis/

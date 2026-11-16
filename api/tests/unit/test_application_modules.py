@@ -204,7 +204,6 @@ def _required(dependant):
         ("show_dna_variant_public_clinpgx", {"dna_analysis", "knowledgebases"}),
         ("common_tiered_variant_search_read", {"variant_search"}),
         ("common_tiered_variant_context_read", {"variant_search"}),
-        ("ingest_sample_bundle_internal", {"ingest_workspace"}),
         ("public_assay_catalog_matrix_context_read", {"assay_catalog"}),
         ("admin_controls_public_oncokb_refresh", {"knowledgebases"}),
     ],

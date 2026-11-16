@@ -68,6 +68,9 @@ is opaque, not a JWT; treat it like a password.
 
 ## Sample ingestion
 
+Coyote Relay supplies the optional ingestion endpoints. Install `coyote-relay[api]`
+alongside the server and restart the API to include them in this reference.
+
 Check `GET /api/v1/health`, then submit the manifest and optional ZIP through
 `POST /api/v1/internal/ingest/sample-bundle/upload` with `acknowledge=true`.
 Use `X-Coyote-Ingest-Token` for an administrator-issued expiring pipeline token;
@@ -75,7 +78,7 @@ no user login is required. A terminal `status=ok` acknowledgement permits the
 helper to rename the YAML to `.done`; `status=failed` permits `.failed`.
 A timeout or missing acknowledgement is an unknown outcome: inspect the audit
 before retrying. Async endpoints and task polling require a user session token.
-The built-in Celery watcher reads mounted files directly and uses no HTTP token.
+The Relay worker can scan mounted manifests directly and uses no HTTP token.
 
 DNA manifests declare a single `biomarkers` file. Ingestion separates its HRD, MSI
 and TMB measurements into the corresponding analyses. Declare alignment resources
@@ -151,6 +154,7 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
                 schema_url=f"{prefix}{app.openapi_url}",
                 logo=logo,
                 favicon=favicon,
+                relay_installed="relay" in getattr(app.state, "api_extensions", ()),
             ),
             headers={"Cache-Control": "no-store"},
         )

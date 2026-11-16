@@ -7,7 +7,7 @@ Packages are built locally; public-index publication is not required.
 | `coyote_core` wheel | Clinical core and its own dependencies |
 | `coyote_server` wheel | API, maintenance workers and MongoDB adapter; requires the selected core |
 | `coyote_pyclient` wheel | Independent HTTP client |
-| `coyote_ingest` wheel | Submission tools and ingestion workers; core/client dependencies, with server composition for workers |
+| `coyote_relay` wheel | Submission tools with core/client dependencies; optional API routes and workers use server composition |
 
 ## Local development
 
@@ -16,7 +16,7 @@ pip setup, from the repository root in a prepared development environment, is:
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pip install --no-deps -e core -e . -e clients/python -e 'services/ingest[worker]'
+python -m pip install --no-deps -e core -e . -e clients/python -e 'services/relay[api,worker]'
 ```
 
 Python edits require process reload, not wheel builds. Metadata and dependency
@@ -41,7 +41,10 @@ coyote4-api --host 127.0.0.1 --port 8001 --workers 1
 uvicorn coyote_api.app.main:app --host 127.0.0.1 --port 8001 --workers 1
 ```
 
-The ingestion worker entry point is `coyote_ingest.celery_app:celery_app`.
+The ingestion worker entry point is `coyote_relay.celery_app:celery_app`.
+Installing `coyote-relay[api]` alongside the server registers ingestion routes
+on API startup. They appear in `/api/v1/docs` and `/api/v1/redoc`; a server
+without Relay omits them. Installation does not start a worker automatically.
 Server maintenance uses `coyote_api.celery_app`. See
 [deployment configuration](../deployment/configuration-reference.md) and
 [center configuration](../deployment/center-configuration.md).

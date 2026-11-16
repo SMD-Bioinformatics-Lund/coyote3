@@ -1580,6 +1580,28 @@ export type BodyEnqueueIngestSampleBundleUploadInternalApiV1InternalIngestSample
 };
 
 /**
+ * Body_ingest_collection_upload_internal_api_v1_internal_ingest_collection_upload_post
+ */
+export type BodyIngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Documents File
+     */
+    documents_file: Blob | File;
+    /**
+     * Match Json
+     */
+    match_json?: string | null;
+    /**
+     * Mode
+     */
+    mode?: string;
+};
+
+/**
  * Body_ingest_sample_bundle_upload_internal_api_v1_internal_ingest_sample_bundle_upload_post
  */
 export type BodyIngestSampleBundleUploadInternalApiV1InternalIngestSampleBundleUploadPost = {
@@ -6514,6 +6536,210 @@ export type IngestTokenIssueResponse = {
      * Token Id
      */
     token_id: string;
+};
+
+/**
+ * InternalCollectionBulkInsertRequest
+ *
+ * Represent request body for bulk document insert.
+ */
+export type InternalCollectionBulkInsertRequest = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Documents
+     */
+    documents: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Ignore Duplicates
+     */
+    ignore_duplicates?: boolean;
+};
+
+/**
+ * InternalCollectionInsertPayload
+ *
+ * Represent collection insert response payload.
+ */
+export type InternalCollectionInsertPayload = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Inserted Count
+     */
+    inserted_count: number;
+    /**
+     * Inserted Id
+     */
+    inserted_id?: string | null;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * InternalCollectionInsertRequest
+ *
+ * Represent request body for single document insert.
+ */
+export type InternalCollectionInsertRequest = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Document
+     */
+    document: {
+        [key: string]: unknown;
+    };
+    /**
+     * Ignore Duplicate
+     */
+    ignore_duplicate?: boolean;
+};
+
+/**
+ * InternalCollectionStatusPayload
+ *
+ * Represent collection occupancy for first-deployment bootstrap decisions.
+ */
+export type InternalCollectionStatusPayload = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Document Count
+     */
+    document_count: number;
+    /**
+     * Empty
+     */
+    empty: boolean;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * InternalCollectionSupportPayload
+ *
+ * Represent supported collection list response payload.
+ */
+export type InternalCollectionSupportPayload = {
+    /**
+     * Collections
+     */
+    collections: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * InternalCollectionUploadPayload
+ *
+ * Represent multipart collection-upload ingest response payload.
+ */
+export type InternalCollectionUploadPayload = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Inserted Count
+     */
+    inserted_count?: number | null;
+    /**
+     * Inserted Id
+     */
+    inserted_id?: string | null;
+    /**
+     * Matched Count
+     */
+    matched_count?: number | null;
+    /**
+     * Mode
+     */
+    mode: string;
+    /**
+     * Modified Count
+     */
+    modified_count?: number | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Upserted Id
+     */
+    upserted_id?: string | null;
+};
+
+/**
+ * InternalCollectionUpsertPayload
+ *
+ * Represent collection replace/update response payload.
+ */
+export type InternalCollectionUpsertPayload = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Matched Count
+     */
+    matched_count: number;
+    /**
+     * Modified Count
+     */
+    modified_count: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Upserted Id
+     */
+    upserted_id?: string | null;
+};
+
+/**
+ * InternalCollectionUpsertRequest
+ *
+ * Represent request body for replace/update in one collection.
+ */
+export type InternalCollectionUpsertRequest = {
+    /**
+     * Collection
+     */
+    collection: string;
+    /**
+     * Document
+     */
+    document: {
+        [key: string]: unknown;
+    };
+    /**
+     * Match
+     */
+    match: {
+        [key: string]: unknown;
+    };
+    /**
+     * Upsert
+     */
+    upsert?: boolean;
 };
 
 /**
@@ -16014,6 +16240,470 @@ export type Responses_healthApiV1HealthGet = {
 };
 
 export type Response_healthApiV1HealthGet = Responses_healthApiV1HealthGet[keyof Responses_healthApiV1HealthGet];
+
+export type Request_ingestCollectionDocumentInternalApiV1InternalIngestCollectionPost = {
+    body: InternalCollectionInsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection';
+};
+
+export type IngestCollectionDocumentInternalApiV1InternalIngestCollectionPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type IngestCollectionDocumentInternalApiV1InternalIngestCollectionPostError = IngestCollectionDocumentInternalApiV1InternalIngestCollectionPostErrors[keyof IngestCollectionDocumentInternalApiV1InternalIngestCollectionPostErrors];
+
+export type Responses_ingestCollectionDocumentInternalApiV1InternalIngestCollectionPost = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionInsertPayload;
+};
+
+export type Response_ingestCollectionDocumentInternalApiV1InternalIngestCollectionPost = Responses_ingestCollectionDocumentInternalApiV1InternalIngestCollectionPost[keyof Responses_ingestCollectionDocumentInternalApiV1InternalIngestCollectionPost];
+
+export type Request_upsertCollectionDocumentInternalApiV1InternalIngestCollectionPut = {
+    body: InternalCollectionUpsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection';
+};
+
+export type UpsertCollectionDocumentInternalApiV1InternalIngestCollectionPutErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type UpsertCollectionDocumentInternalApiV1InternalIngestCollectionPutError = UpsertCollectionDocumentInternalApiV1InternalIngestCollectionPutErrors[keyof UpsertCollectionDocumentInternalApiV1InternalIngestCollectionPutErrors];
+
+export type Responses_upsertCollectionDocumentInternalApiV1InternalIngestCollectionPut = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionUpsertPayload;
+};
+
+export type Response_upsertCollectionDocumentInternalApiV1InternalIngestCollectionPut = Responses_upsertCollectionDocumentInternalApiV1InternalIngestCollectionPut[keyof Responses_upsertCollectionDocumentInternalApiV1InternalIngestCollectionPut];
+
+export type Request_getIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Collection
+         */
+        collection: string;
+    };
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/{collection}/status';
+};
+
+export type GetIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type GetIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGetError = GetIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGetErrors[keyof GetIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGetErrors];
+
+export type Responses_getIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGet = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionStatusPayload;
+};
+
+export type Response_getIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGet = Responses_getIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGet[keyof Responses_getIngestCollectionStatusInternalApiV1InternalIngestCollectionCollectionStatusGet];
+
+export type Request_enqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPost = {
+    body: InternalCollectionInsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/async';
+};
+
+export type EnqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type EnqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPostError = EnqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPostErrors[keyof EnqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPostErrors];
+
+export type Responses_enqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPost = {
+    /**
+     * Successful Response
+     */
+    202: InternalTaskSubmitPayload;
+};
+
+export type Response_enqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPost = Responses_enqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPost[keyof Responses_enqueueIngestCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPost];
+
+export type Request_enqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPut = {
+    body: InternalCollectionUpsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/async';
+};
+
+export type EnqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPutErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type EnqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPutError = EnqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPutErrors[keyof EnqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPutErrors];
+
+export type Responses_enqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPut = {
+    /**
+     * Successful Response
+     */
+    202: InternalTaskSubmitPayload;
+};
+
+export type Response_enqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPut = Responses_enqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPut[keyof Responses_enqueueUpsertCollectionDocumentInternalApiV1InternalIngestCollectionAsyncPut];
+
+export type Request_ingestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPost = {
+    body: InternalCollectionBulkInsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/bulk';
+};
+
+export type IngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type IngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPostError = IngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPostErrors[keyof IngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPostErrors];
+
+export type Responses_ingestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPost = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionInsertPayload;
+};
+
+export type Response_ingestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPost = Responses_ingestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPost[keyof Responses_ingestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkPost];
+
+export type Request_enqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPost = {
+    body: InternalCollectionBulkInsertRequest;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/bulk/async';
+};
+
+export type EnqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type EnqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPostError = EnqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPostErrors[keyof EnqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPostErrors];
+
+export type Responses_enqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPost = {
+    /**
+     * Successful Response
+     */
+    202: InternalTaskSubmitPayload;
+};
+
+export type Response_enqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPost = Responses_enqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPost[keyof Responses_enqueueIngestCollectionDocumentsInternalApiV1InternalIngestCollectionBulkAsyncPost];
+
+export type Request_ingestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost = {
+    body: BodyIngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collection/upload';
+};
+
+export type IngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type IngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPostError = IngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPostErrors[keyof IngestCollectionUploadInternalApiV1InternalIngestCollectionUploadPostErrors];
+
+export type Responses_ingestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionUploadPayload;
+};
+
+export type Response_ingestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost = Responses_ingestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost[keyof Responses_ingestCollectionUploadInternalApiV1InternalIngestCollectionUploadPost];
+
+export type Request_listSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/internal/ingest/collections';
+};
+
+export type ListSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type ListSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGetError = ListSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGetErrors[keyof ListSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGetErrors];
+
+export type Responses_listSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGet = {
+    /**
+     * Successful Response
+     */
+    200: InternalCollectionSupportPayload;
+};
+
+export type Response_listSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGet = Responses_listSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGet[keyof Responses_listSupportedIngestCollectionsInternalApiV1InternalIngestCollectionsGet];
 
 export type Request_ingestSampleBundleInternalApiV1InternalIngestSampleBundlePost = {
     body: InternalIngestSampleBundleRequest;

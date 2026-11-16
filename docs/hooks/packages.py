@@ -16,7 +16,7 @@ PROJECTS = {
     "api": "api",
     "mongo": "adapters/mongo",
     "client": "clients/python",
-    "ingest": "services/ingest",
+    "relay": "services/relay",
     "frontend": "frontend",
 }
 _published: dict[Path, str] = {}
@@ -68,6 +68,12 @@ def on_files(files, config):
             source = project / "src/coyote_api/config/assets/coyote-api-logo.svg"
             if source.is_file():
                 logical = f"packages/{name}/assets/coyote-api-logo.svg"
+                files.append(File.generated(config, logical, abs_src_path=str(source)))
+                _published[source.resolve()] = logical
+        if name == "relay":
+            source = project / "src/coyote_relay/assets/coyote-relay-logo.svg"
+            if source.is_file():
+                logical = f"packages/{name}/assets/coyote-relay-logo.svg"
                 files.append(File.generated(config, logical, abs_src_path=str(source)))
                 _published[source.resolve()] = logical
         for filename, public_name in (

@@ -23,6 +23,21 @@ this repository. Repository extraction and publication follow that readiness rev
 frontend continues to use its TypeScript HTTP client; backend services continue
 to invoke core operations directly.
 
+## Independent Coyote Relay repository and release
+
+**Status: package implemented here; repository extraction and publication are pending.**
+
+- [ ] Move `services/relay/` into its own repository after independent installation
+  and release validation, retaining its docs, tests, coverage and GPL-3.0-only notices.
+- [ ] Publish `coyote-relay` with its own version and tested core/client/server
+  compatibility. Public package-name availability must be checked before publication.
+- [ ] Update application builds to consume the reviewed released artifact.
+
+The base package connects to a running API through explicit command-line or
+`COYOTE_RELAY_*` settings. Optional API and worker integrations declare the server
+dependency. Neither installation nor importing the base package provisions a
+database, starts a worker or submits data.
+
 ## Shared findings with separate somatic and germline interpretation
 
 **Status: proposed; not implemented as a complete workflow.**

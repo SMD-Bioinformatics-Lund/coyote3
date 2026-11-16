@@ -184,13 +184,13 @@ nav:
     - Reference: packages/client/reference.md
     - Development: packages/client/development.md
   - Ingestion service:
-    - Start here: packages/ingest/README.md
-    - Getting started: packages/ingest/getting-started.md
-    - Usage: packages/ingest/usage.md
-    - Configuration: packages/ingest/configuration.md
-    - Reference: packages/ingest/reference.md
-    - Development: packages/ingest/development.md
-    - Architecture: packages/ingest/architecture.md
+    - Start here: packages/relay/README.md
+    - Getting started: packages/relay/getting-started.md
+    - Usage: packages/relay/usage.md
+    - Configuration: packages/relay/configuration.md
+    - Reference: packages/relay/reference.md
+    - Development: packages/relay/development.md
+    - Architecture: packages/relay/architecture.md
   - Frontend:
     - Start here: packages/frontend/README.md
     - Getting started: packages/frontend/getting-started.md

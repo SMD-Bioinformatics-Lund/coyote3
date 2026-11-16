@@ -151,6 +151,6 @@ def test_watcher_acknowledges_only_completed_stable_inputs(tmp_path, outcome):
 
 
 def test_message_contract_rejects_unknown_jobs():
-    assert ingest_task_name("sample_bundle") == "coyote_ingest.tasks.ingest_sample_bundle"
+    assert ingest_task_name("sample_bundle") == "coyote_relay.tasks.ingest_sample_bundle"
     with pytest.raises(KeyError):
         ingest_task_name("execute_arbitrary_code")

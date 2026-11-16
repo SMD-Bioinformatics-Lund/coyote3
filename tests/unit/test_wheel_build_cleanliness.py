@@ -18,7 +18,7 @@ def stage_project(tmp_path, distribution):
         "client": ROOT / "clients/python",
         "core": ROOT / "core",
         "server": ROOT,
-        "ingest": ROOT / "services/ingest",
+        "relay": ROOT / "services/relay",
     }[distribution]
     project = tmp_path / "project"
     project.mkdir()
@@ -33,7 +33,7 @@ def stage_project(tmp_path, distribution):
         "CHANGELOG.md",
         "MANIFEST.in",
         "client_build.py",
-        "ingest_build.py",
+        "relay_build.py",
         "build_support.py",
         "package_build.py",
     ):
@@ -85,7 +85,7 @@ def build_wheel(project, output):
         return set(wheel.namelist())
 
 
-@pytest.mark.parametrize("distribution", ["client", "core", "server", "ingest"])
+@pytest.mark.parametrize("distribution", ["client", "core", "server", "relay"])
 def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
     """All distributions discard files removed since a previous wheel build."""
     project = stage_project(tmp_path, distribution)
@@ -103,7 +103,7 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
             "coyote/templates/reporting/assets/modern.css",
         ],
         "server": ["coyote_api/removed_module.py", "coyote_mongo/removed_module.py"],
-        "ingest": ["coyote_ingest/removed_module.py", "coyote_api/tasks/ingest.py"],
+        "relay": ["coyote_relay/removed_module.py", "coyote_api/tasks/ingest.py"],
     }[distribution]
     for name in deleted:
         stale = project / "build/lib" / name
@@ -123,8 +123,9 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         assert "coyote_mongo/selection.py" in names
         assert not any(name.startswith(("coyote/", "coyote_pyclient/")) for name in names)
     else:
-        assert "coyote_ingest/worker.py" in names
-        assert "coyote_ingest/py.typed" in names
+        assert "coyote_relay/worker.py" in names
+        assert "coyote_relay/py.typed" in names
+        assert "coyote_relay/assets/coyote-relay-logo.svg" in names
         assert not any(
             name.startswith(("coyote/", "coyote_pyclient/", "coyote_api/", "coyote_mongo/"))
             for name in names
@@ -180,3 +181,49 @@ def test_server_source_distribution_rebuilds_both_components_without_checkout(tm
         "coyote_mongo/selection.py",
         "coyote_mongo/config/collections.toml",
     } <= names
+
+
+def test_relay_source_distribution_builds_without_repository_siblings(tmp_path):
+    """The Relay source archive can build its wheel with no application checkout."""
+    project = stage_project(tmp_path, "relay")
+    output = tmp_path / "sdist"
+    output.mkdir()
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"from setuptools.build_meta import build_sdist; build_sdist({str(output)!r})",
+        ],
+        cwd=project,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    archive_path = next(output.glob("*.tar.gz"))
+    with tarfile.open(archive_path) as archive:
+        members = {str(Path(name).relative_to(Path(name).parts[0])) for name in archive.getnames()}
+    assert {
+        "relay_build.py",
+        "pyproject.toml",
+        "README.md",
+        "LICENSE.txt",
+        "COPYRIGHT.txt",
+        "NOTICE.txt",
+        "docs/README.md",
+        "docs/configuration.md",
+        "src/coyote_relay/worker.py",
+        "src/coyote_relay/assets/coyote-relay-logo.svg",
+    } <= members
+    assert any(name.startswith("tests/") for name in members)
+    assert not any(name.startswith(("api/", "adapters/", "core/", "clients/")) for name in members)
+    names = build_wheel(archive_path, tmp_path / "rebuilt-wheels")
+    assert {
+        "coyote_relay/submit.py",
+        "coyote_relay/worker.py",
+        "coyote_relay/py.typed",
+        "coyote_relay/assets/coyote-relay-logo.svg",
+    } <= names
+    assert not any(
+        name.startswith(("coyote/", "coyote_api/", "coyote_mongo/", "coyote_pyclient/"))
+        for name in names
+    )

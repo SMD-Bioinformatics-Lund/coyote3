@@ -31,8 +31,8 @@ def repository(tmp_path, monkeypatch):
         "core/docs/README.md",
         "api/README.md",
         "adapters/mongo/README.md",
-        "services/ingest/README.md",
-        "services/ingest/docs/README.md",
+        "services/relay/README.md",
+        "services/relay/docs/README.md",
         "api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md",
     ):
         path = tmp_path / filename
@@ -91,13 +91,13 @@ def test_generation_is_idempotent_and_preserves_explanations(repository):
             f"![coyote-server: {server_version}]"
             in (repository / component / "README.md").read_text()
         )
-    ingest_version = tomllib.loads((repository / "services/ingest/pyproject.toml").read_text())[
+    relay_version = tomllib.loads((repository / "services/relay/pyproject.toml").read_text())[
         "project"
     ]["version"]
     for filename in ("README.md", "docs/README.md"):
         assert (
-            f"![coyote-ingest: {ingest_version}]"
-            in (repository / "services/ingest" / filename).read_text()
+            f"![coyote-relay: {relay_version}]"
+            in (repository / "services/relay" / filename).read_text()
         )
 
 

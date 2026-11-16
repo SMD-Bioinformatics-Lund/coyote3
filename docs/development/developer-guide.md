@@ -64,7 +64,7 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
 | `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
-| `services/ingest/` | Installable ingestion submission tools and worker host. |
+| `services/relay/` | Installable ingestion submission tools and worker host. |
 | `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |
 | `docs/sdk/` | SDK installation, usage, development, generated reference and version compatibility. |

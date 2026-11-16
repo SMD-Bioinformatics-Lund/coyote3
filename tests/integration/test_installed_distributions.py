@@ -26,14 +26,14 @@ def installed_distributions(tmp_path_factory):
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))
     client = next(wheels.glob("coyote_pyclient-*.whl"))
-    ingest = next(wheels.glob("coyote_ingest-*.whl"))
+    relay = next(wheels.glob("coyote_relay-*.whl"))
     for name, selected in (
         ("core", [core]),
         ("adapter", [core, server]),
         ("server", [core, server]),
         ("client", [client]),
-        ("ingest", [core, client, ingest]),
-        ("worker", [core, server, client, ingest]),
+        ("relay", [core, client, relay]),
+        ("worker", [core, server, client, relay]),
     ):
         subprocess.run(
             [
@@ -49,7 +49,7 @@ def installed_distributions(tmp_path_factory):
             check=True,
             capture_output=True,
         )
-    return root, {"coyote-core": core, "coyote-server": server, "coyote-ingest": ingest}, client
+    return root, {"coyote-core": core, "coyote-server": server, "coyote-relay": relay}, client
 
 
 def run_installed(root, target, code):
@@ -58,6 +58,15 @@ def run_installed(root, target, code):
         "import sys; from pathlib import Path; "
         f"target=Path({str(root / target)!r}); sys.path.insert(0,str(target)); "
         "sys.meta_path[:]=[f for f in sys.meta_path if not getattr(f,'__module__',type(f).__module__).startswith('__editable__')];\n"
+        # Keep third-party dependencies, but isolate installed first-party plugin metadata too.
+        "import importlib.metadata as metadata\n"
+        "ambient_distributions = metadata.distributions\n"
+        "def installed_distributions(**kwargs):\n"
+        "    for package in ambient_distributions(**kwargs):\n"
+        "        if package.metadata['Name'] in {'coyote-core','coyote-server','coyote-pyclient','coyote-relay'} and Path(package.locate_file('')).resolve() != target.resolve():\n"
+        "            continue\n"
+        "        yield package\n"
+        "metadata.distributions = installed_distributions\n"
     )
     env = {
         **os.environ,
@@ -87,7 +96,7 @@ def test_actual_deployment_wheels_pass_retained_record_verification(installed_di
         "coyote-core": record["sdk_version"],
         "coyote-server": record["server_version"],
         "coyote-pyclient": record["client_version"],
-        "coyote-ingest": record["ingest_version"],
+        "coyote-relay": record["relay_version"],
     }
     record.update(
         source_commit="a" * 40,
@@ -112,7 +121,7 @@ def test_core_wheel_imports_and_renders_without_server_or_client(installed_distr
 import importlib.abc
 class BlockHost(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','fastapi','starlette','pymongo','bson','coyote_pyclient','coyote_ingest'}:
+        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','fastapi','starlette','pymongo','bson','coyote_pyclient','coyote_relay'}:
             raise AssertionError('Core imported host dependency: '+fullname)
 sys.meta_path.insert(0,BlockHost())
 import coyote
@@ -147,7 +156,7 @@ def test_mongo_component_imports_without_api_or_http_frameworks(installed_distri
 import importlib.abc
 class BlockHost(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'coyote_api','fastapi','starlette','coyote_pyclient','coyote_ingest'}:
+        if fullname.split('.')[0] in {'coyote_api','fastapi','starlette','coyote_pyclient','coyote_relay'}:
             raise AssertionError('Adapter imported host: '+fullname)
 sys.meta_path.insert(0,BlockHost())
 import coyote_mongo
@@ -173,7 +182,7 @@ def test_client_wheel_imports_without_core_or_server(installed_distributions):
 import importlib.abc
 class BlockCore(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','coyote','fastapi','starlette','pymongo','bson','coyote_ingest'}:
+        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','coyote','fastapi','starlette','pymongo','bson','coyote_relay'}:
             raise AssertionError('Client imported server: '+fullname)
 sys.meta_path.insert(0,BlockCore())
 import asyncio, coyote_pyclient
@@ -212,6 +221,9 @@ from importlib.metadata import version
 assert app.version == __version__ == version('coyote-server')
 assert environment_version('production') == APPLICATION_VERSION
 assert '/api/v1/samples/{sample_id}/reports/{report_type}/preview/bundle' in app.openapi()['paths']
+assert app.state.api_extensions == ()
+assert not any('/internal/ingest/' in path for path in app.openapi()['paths'])
+assert 'Sample ingestion' not in {tag['name'] for tag in app.openapi()['tags']}
 from coyote_api.config.paths import CENTER_CONFIG_DIR,DEMO_WORKFLOW_BUNDLE_PATH
 from coyote.config.governance_catalog import RBAC_CATALOG_DIR
 assert CENTER_CONFIG_DIR.is_relative_to(target)
@@ -232,7 +244,7 @@ def test_ingestion_submission_entrypoints_work_without_server(installed_distribu
     root, _, _ = installed_distributions
     run_installed(
         root,
-        "ingest",
+        "relay",
         """
 import importlib.abc
 class BlockHost(importlib.abc.MetaPathFinder):
@@ -240,16 +252,20 @@ class BlockHost(importlib.abc.MetaPathFinder):
         if fullname.split('.')[0] in {'coyote_api','coyote_mongo','fastapi','starlette','pymongo','bson','celery'}:
             raise AssertionError('Ingestion submission imported server: '+fullname)
 sys.meta_path.insert(0,BlockHost())
-import coyote_ingest
-assert Path(coyote_ingest.__file__).is_relative_to(target)
+import coyote_relay
+assert Path(coyote_relay.__file__).is_relative_to(target)
 from importlib.metadata import distribution
-package = distribution('coyote-ingest')
+package = distribution('coyote-relay')
 assert package.version == '1.0.0'
 assert {e.name for e in package.entry_points if e.group == 'console_scripts'} == {
-    'coyote-ingest-submit', 'coyote-ingest-login', 'coyote-ingest-validate', 'coyote-ingest-worker'
+    'coyote-relay-submit', 'coyote-relay-login', 'coyote-relay-validate', 'coyote-relay-worker'
 }
+assert [(e.name, e.value) for e in package.entry_points if e.group == 'coyote.api.routers'] == [
+    ('relay', 'coyote_relay.api:routers')
+]
+assert (target/'coyote_relay/assets/coyote-relay-logo.svg').is_file()
 for entry in package.entry_points:
-    if entry.group == 'console_scripts' and entry.name != 'coyote-ingest-worker':
+    if entry.group == 'console_scripts' and entry.name != 'coyote-relay-worker':
         sys.argv = [entry.name, '--help']
         try: entry.load()()
         except SystemExit as exc: assert exc.code == 0, entry.name
@@ -264,13 +280,20 @@ def test_installed_ingestion_worker_registers_durable_tasks(installed_distributi
         root,
         "worker",
         """
-from coyote_ingest.celery_app import celery_app
+from coyote_relay.celery_app import celery_app
 celery_app.loader.import_default_modules()
-assert 'coyote_ingest.tasks.ingest_sample_bundle' in celery_app.tasks
-assert 'coyote_ingest.tasks.dispatch_pending_jobs' in celery_app.tasks
+assert 'coyote_relay.tasks.ingest_sample_bundle' in celery_app.tasks
+assert 'coyote_relay.tasks.dispatch_pending_jobs' in celery_app.tasks
 from importlib.metadata import distribution
-entry = next(e for e in distribution('coyote-ingest').entry_points if e.name == 'coyote-ingest-worker')
+entry = next(e for e in distribution('coyote-relay').entry_points if e.name == 'coyote-relay-worker')
 assert callable(entry.load())
+from coyote_api.app.main import app
+assert app.state.api_extensions == ('relay',)
+paths = app.openapi()['paths']
+assert '/api/v1/internal/ingest/sample-bundle/upload' in paths
+assert '/api/v1/internal/ingest/collection' in paths
+assert '/api/v1/internal/tasks/{task_id}' in paths
+assert {'IngestToken': []} in paths['/api/v1/internal/ingest/sample-bundle/upload']['post']['security']
 """,
     )
 
@@ -282,7 +305,7 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
     expected = {
         "coyote-core": ("coyote/",),
         "coyote-server": ("coyote_api/", "coyote_mongo/"),
-        "coyote-ingest": ("coyote_ingest/",),
+        "coyote-relay": ("coyote_relay/",),
     }
     for package, artifact in packages.items():
         with zipfile.ZipFile(artifact) as wheel:
@@ -321,13 +344,14 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
             elif package == "coyote-server":
                 assert "coyote_api/bootstrap/catalogs/reference/LICENSE.txt" in names
                 assert not any(
-                    r.lower().startswith("coyote-ingest") for r in metadata.get_all("Requires-Dist")
+                    r.lower().startswith("coyote-relay") for r in metadata.get_all("Requires-Dist")
                 )
-            elif package == "coyote-ingest":
+            elif package == "coyote-relay":
                 requirements = metadata.get_all("Requires-Dist")
                 assert "coyote-core==4.0.0" in requirements
                 assert "coyote-pyclient==1.0.0" in requirements
                 assert 'coyote-server==1.0.0; extra == "worker"' in requirements
+                assert 'coyote-server==1.0.0; extra == "api"' in requirements
     with zipfile.ZipFile(client) as wheel:
         names = wheel.namelist()
         assert not any(

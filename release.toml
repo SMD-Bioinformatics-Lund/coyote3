@@ -3,6 +3,6 @@ application_version = "4.0.0"
 sdk_version = "4.0.0"
 server_version = "1.0.0"
 client_version = "1.0.0"
-ingest_version = "1.0.0"
+relay_version = "1.0.0"
 http_api_major = 1
 center_configuration_format = 1

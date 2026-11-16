@@ -7,7 +7,7 @@ The repository is one uv workspace with four independently buildable distributio
 | `core` | `coyote-core` | `coyote` | `core/pyproject.toml` |
 | Repository root | `coyote-server` | `coyote_api`, `coyote_mongo` | Root `pyproject.toml` |
 | `clients/python` | `coyote-pyclient` | `coyote_pyclient` | Its `pyproject.toml` |
-| `services/ingest` | `coyote-ingest` | `coyote_ingest` | Its `pyproject.toml` |
+| `services/relay` | `coyote-relay` | `coyote_relay` | Its `pyproject.toml` |
 
 Workspace dependencies come from this checkout, not a public package index.
 uv installs workspace members editable. One lockfile resolves their dependencies
@@ -49,10 +49,10 @@ Run `uv sync` again after changing dependencies, versions or entry points.
 Start an ingestion worker with the same reviewed host configuration:
 
 ```bash
-uv run --package coyote-ingest --extra worker coyote-ingest-worker --loglevel INFO
+uv run --package coyote-relay --extra worker coyote-relay-worker --loglevel INFO
 ```
 
-Restart this process after editing `services/ingest/src` or its core dependencies.
+Restart this process after editing `services/relay/src` or its core dependencies.
 Submission commands use the base package and do not need database credentials.
 
 Frontend development remains separate:
@@ -68,7 +68,7 @@ scripts/quality/run_package_tests.sh core
 scripts/quality/run_package_tests.sh mongo
 scripts/quality/run_package_tests.sh api
 scripts/quality/run_package_tests.sh client
-scripts/quality/run_package_tests.sh ingest
+scripts/quality/run_package_tests.sh relay
 scripts/quality/run_package_tests.sh all --smoke
 scripts/quality/run_package_tests.sh all --coverage
 uv run --package coyote-server pytest tests
@@ -102,7 +102,7 @@ To build one package directly:
 uv build --package coyote-core
 uv build --package coyote-server
 uv build --package coyote-pyclient
-uv build --package coyote-ingest
+uv build --package coyote-relay
 ```
 
 See [uv workspace behavior](https://docs.astral.sh/uv/concepts/projects/workspaces/)

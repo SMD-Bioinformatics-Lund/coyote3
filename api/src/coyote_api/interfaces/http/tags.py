@@ -30,8 +30,13 @@ TAG_ADMIN_USERS = "Admin: Users"
 TAG_ADMIN_ACCESS = "Admin: Roles & Permissions"
 TAG_CLINICAL_RULES = "Clinical Reporting Rules"
 TAG_INTERNAL = "Internal Ingest & Maintenance"
+TAG_INGESTION = "Sample ingestion"
 
 OPENAPI_TAGS = [
+    {
+        "name": TAG_SYSTEM,
+        "description": "Application process health and service availability.",
+    },
     {
         "name": TAG_AUTH,
         "description": "Session creation, logout, current-user context, and password workflows.",
@@ -110,14 +115,14 @@ OPENAPI_TAGS = [
 
 OPENAPI_TAGS.append(
     {
-        "name": "Sample ingestion",
-        "description": "Submit YAML and optional ZIP bundles. Synchronous endpoints accept expiring ingestion tokens; async submission and task polling require user authentication. Health checks require no token.",
+        "name": TAG_INGESTION,
+        "description": "Coyote Relay: submit sample bundles, validate collection writes and inspect durable jobs. User and managed credentials retain their configured grants and scope; expiring ingestion tokens are accepted only by synchronous sample endpoints.",
     }
 )
 OPENAPI_TAG_NAMES = tuple(tag["name"] for tag in OPENAPI_TAGS)
 
 OPENAPI_TAG_GROUPS = [
-    {"name": "Access & discovery", "tags": [TAG_AUTH, TAG_PUBLIC, "Sample ingestion"]},
+    {"name": "Access & discovery", "tags": [TAG_SYSTEM, TAG_AUTH, TAG_PUBLIC, TAG_INGESTION]},
     {
         "name": "Clinical review",
         "tags": [
@@ -166,6 +171,7 @@ __all__ = [
     "TAG_DNA_CNV",
     "TAG_DNA_VARIANTS",
     "TAG_INTERNAL",
+    "TAG_INGESTION",
     "TAG_KNOWLEDGEBASE",
     "TAG_NOTIFICATIONS",
     "TAG_PUBLIC",

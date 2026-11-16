@@ -21,7 +21,7 @@ PROJECTS = {
     "core": "core",
     "server": ".",
     "client": "clients/python",
-    "ingest": "services/ingest",
+    "relay": "services/relay",
 }
 EXTERNAL_BADGE = re.compile(
     r"(?m)^.*(?:img\.shields\.io/|actions/workflows/[^\s)]+/badge\.svg)[^\n]*\n"
@@ -194,7 +194,7 @@ def generate(root: Path, *, check: bool = False) -> list[str]:
         ("api", "server"),
         ("adapters/mongo", "server"),
         ("clients/python", "client"),
-        ("services/ingest", "ingest"),
+        ("services/relay", "relay"),
     ):
         meta = metadata[name]
         component[directory] = [

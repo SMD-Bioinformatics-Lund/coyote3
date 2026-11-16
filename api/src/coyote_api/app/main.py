@@ -15,12 +15,13 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from coyote_api.app.documentation import API_DESCRIPTION, register_api_documentation
+from coyote_api.app.extensions import load_api_extensions
 from coyote_api.app.lifecycle import create_lifespan, register_route_modules
 from coyote_api.app.middleware import (
     build_authentication_middleware,
     build_security_headers_middleware,
 )
-from coyote_api.app.openapi import SAMPLE_INGEST_PATHS, apply_openapi_security_schema
+from coyote_api.app.openapi import apply_openapi_security_schema
 from coyote_api.app.runtime_state import app as runtime_app
 from coyote_api.config.runtime_settings import DefaultConfig
 from coyote_api.config.security import get_runtime_mode_flags
@@ -189,21 +190,16 @@ def create_api_app() -> FastAPI:
     app.middleware("http")(build_security_headers_middleware())
     app.add_exception_handler(Exception, unhandled_exception_handler)
     app.openapi = lambda: apply_openapi_security_schema(app)
-    register_api_documentation(app, environment=environment)
     for registration in ROUTERS:
-        selected = SAMPLE_INGEST_PATHS | {"/api/v1/health"}
-        has_selected = any(
-            getattr(route, "path", "") in selected for route in registration.router.routes
-        )
-        if has_selected:
-            for route in registration.router.routes:
-                route.include_in_schema = getattr(route, "path", "") in selected
-                if route.include_in_schema:
-                    route.tags = ["Sample ingestion"]
         app.include_router(
             registration.router,
-            include_in_schema=registration.include_in_schema or has_selected,
+            include_in_schema=registration.include_in_schema,
         )
+    extensions = load_api_extensions(registration.router for registration in ROUTERS)
+    app.state.api_extensions = extensions.names
+    for router in extensions.routers:
+        app.include_router(router)
+    register_api_documentation(app, environment=environment)
     register_route_modules()
     return app
 

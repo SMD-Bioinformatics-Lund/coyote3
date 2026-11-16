@@ -11,7 +11,7 @@ Coyote has four independently installable Python distributions in one repository
 | `coyote-core` | Framework-independent clinical rules, contracts and application operations |
 | `coyote-server` | Separate API and Mongo components: HTTP, authentication, maintenance, queries and persistence |
 | `coyote-pyclient` | Synchronous and asynchronous clients for a running API |
-| `coyote-ingest` | Pipeline submission commands and ingestion workers using core workflows |
+| `coyote-relay` | Pipeline submission commands and ingestion workers using core workflows |
 
 ## Choose the Python interface
 
@@ -29,5 +29,5 @@ Use the individual guides for installation, usage, configuration, interfaces and
 package development: [core](../../core/docs/README.md),
 [API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
 [HTTP client](../../clients/python/docs/README.md), and
-[ingestion service](../../services/ingest/docs/README.md). This section describes how
+[ingestion service](../../services/relay/docs/README.md). This section describes how
 those interfaces participate in the complete application.

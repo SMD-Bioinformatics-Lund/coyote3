@@ -9,7 +9,7 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-core` | `core/src/coyote/` | None |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `clients/python/src/coyote_pyclient/` | None; communicates over HTTP |
-| `coyote-ingest` | `services/ingest/src/coyote_ingest/` | Core and Python client; the worker extra uses server composition |
+| `coyote-relay` | `services/relay/src/coyote_relay/` | Core and Python client; optional API and worker integrations use the server |
 
 ## Shared core and request flow
 
@@ -23,7 +23,9 @@ those interfaces; the API constructs the repositories and supplies them to core
 services. Both components depend on core, and the API also depends on the adapter.
 Core does not import either implementation. The ingestion service also uses core;
 its workers obtain database and authentication wiring from the server. The server
-publishes named ingestion tasks without importing the ingestion service.
+publishes named ingestion tasks without importing worker code. Installed Relay
+API routes are discovered through the `coyote.api.routers` entry-point group.
+The server distribution has no required dependency on Relay.
 
 For a variant-review request:
 
@@ -62,10 +64,10 @@ composition, reference installation and maintenance workers. Routes delegate
 clinical behavior to core operations. The HTTP client owns independent wire models
 and never imports the core or adapter.
 
-The ingestion package owns pipeline submission commands and Celery ingestion tasks.
+Relay owns pipeline submission commands, ingestion HTTP routes and Celery tasks.
 Reusable parsing, validation, job execution and manifest-watching workflows belong
 to core. HTTP uploads, process entry points and task-queue integration stay outside
-core. See the [ingestion service guide](../../services/ingest/docs/README.md).
+core. See the [ingestion service guide](../../services/relay/docs/README.md).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
 policy. The server packages HGNC/VEP reference snapshots and installs them explicitly
@@ -75,8 +77,10 @@ deployment state; importing packages or redeploying does not reset them.
 The API's `config/backend.py` assembles and validates package-specific deployment
 inputs. The Mongo adapter accepts `MongoSettings` and explicit logger/cache ports,
 while public core operations accept `PublicSettings` availability flags. Center
-policy uses the existing explicit `CenterConfiguration`. Independent packages do
-not load environment files or discover deployment settings from process variables.
+policy uses the existing explicit `CenterConfiguration`. Core and the database
+adapter do not discover deployment settings from process variables. Relay's CLI
+accepts its own `COYOTE_RELAY_*` connection settings, with command-line values
+taking precedence. Its optional API and worker hosts reuse server configuration.
 Installing from a wheel or using an editable checkout has the same configuration
 contract. Libraries sharing a process are not isolated from its environment.
 
@@ -88,3 +92,7 @@ string supports another engine.
 Architecture tests reject reverse dependencies. Installed-wheel tests execute
 outside the checkout with editable lookup removed, checking imports and assets.
 See [uv development](uv-development.md) for package tests and builds.
+
+Relay can be built and installed from its package directory without a repository
+checkout at runtime. Its planned repository extraction and publication are tracked
+in [future work](../project/future-work.md#independent-coyote-relay-repository-and-release).

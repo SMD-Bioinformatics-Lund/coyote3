@@ -15,7 +15,7 @@ def artifact(tmp_path):
     release = tmp_path / "release.toml"
     release.write_text(
         'application_version="4.0.0"\nsdk_version="4.0.0"\nserver_version="1.0.0"\n'
-        'client_version="1.0.0"\ningest_version="1.0.0"\n'
+        'client_version="1.0.0"\nrelay_version="1.0.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     artifacts = {}
@@ -23,7 +23,7 @@ def artifact(tmp_path):
         ("coyote-core", "4.0.0"),
         ("coyote-server", "1.0.0"),
         ("coyote-pyclient", "1.0.0"),
-        ("coyote-ingest", "1.0.0"),
+        ("coyote-relay", "1.0.0"),
     ):
         wheel = tmp_path / f"{package.replace('-', '_')}-{version}-py3-none-any.whl"
         with zipfile.ZipFile(wheel, "w") as archive:
@@ -42,7 +42,7 @@ def artifact(tmp_path):
         "sdk_version": "4.0.0",
         "server_version": "1.0.0",
         "client_version": "1.0.0",
-        "ingest_version": "1.0.0",
+        "relay_version": "1.0.0",
         "http_api_major": 1,
         "center_configuration_format": 1,
         "source_commit": "a" * 40,
@@ -69,7 +69,7 @@ def test_image_rejects_modified_wheel(artifact):
 
 
 @pytest.mark.parametrize("failure", ["missing", "modified"])
-@pytest.mark.parametrize("package", ["coyote-pyclient", "coyote-ingest"])
+@pytest.mark.parametrize("package", ["coyote-pyclient", "coyote-relay"])
 def test_independent_services_are_part_of_verified_deployment_artifacts(artifact, failure, package):
     directory, release, _, record = artifact
     client = record["artifacts"][package]
@@ -92,7 +92,7 @@ def test_independent_services_are_part_of_verified_deployment_artifacts(artifact
         ("sdk_version", "2.0.0"),
         ("server_version", "2.0.0"),
         ("client_version", "2.0.0"),
-        ("ingest_version", "2.0.0"),
+        ("relay_version", "2.0.0"),
         ("http_api_major", 2),
     ],
 )

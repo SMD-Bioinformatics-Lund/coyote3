@@ -102,7 +102,7 @@ each module; do not invent a new version for each internal service or directory.
 | Core SDK | `[project].version` in `core/pyproject.toml` |
 | Server: API, workers and MongoDB adapter | `[project].version` in root `pyproject.toml` |
 | Python HTTP client | `[project].version` in `clients/python/pyproject.toml` |
-| Ingestion service and submission tools | `[project].version` in `services/ingest/pyproject.toml` |
+| Ingestion service and submission tools | `[project].version` in `services/relay/pyproject.toml` |
 | DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
 | RNA report template | `coyote3.rna` in the same SMD package manifest |
 

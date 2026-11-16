@@ -18,14 +18,14 @@ API and MongoDB adapter are delivered together as the application's server.
 
 Maintain four installable Python distributions in one uv workspace: the core
 library, server application, ingestion service and HTTP client. The root project builds
-the server; `core/`, `services/ingest/` and `clients/python/` are workspace projects.
+the server; `core/`, `services/relay/` and `clients/python/` are workspace projects.
 
 | Distribution and source | Responsibility | Local dependencies |
 | --- | --- | --- |
 | `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
 | `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
 | `coyote-pyclient`, in `clients/python/` | Remote HTTP access and client-owned response models | None |
-| `coyote-ingest`, in `services/ingest/` | Pipeline submission tools and ingestion workers | Core and client; worker extra uses server composition |
+| `coyote-relay`, in `services/relay/` | Pipeline submission tools, optional HTTP routes and ingestion workers | Core and client; API/worker extras use server composition |
 
 The root `pyproject.toml` owns the server version, dependencies and wheel build.
 API and MongoDB code retain their `src/` namespaces, documentation, changelogs and
@@ -41,9 +41,11 @@ clinical SDK. API and worker entry points consume installed code and resources,
 including templates, logos, configuration defaults and installation catalogs.
 
 Ingestion parsing and clinical workflows belong to core. The ingestion service
-owns worker entry points and submission transports; the server publishes named
-tasks without importing the service. Worker installation includes server composition
-and MongoDB integration, while submission-only installation requires no server.
+owns submission transports, ingestion HTTP routes and worker entry points. The server
+publishes named tasks without importing worker code and discovers installed API
+extensions through `coyote.api.routers`. It has no required Relay dependency.
+API and worker installation include server composition and MongoDB integration,
+while submission-only installation requires no server.
 
 The independent client communicates through HTTP and imports no server or core code.
 The deployment image includes its verified wheel for administration commands such

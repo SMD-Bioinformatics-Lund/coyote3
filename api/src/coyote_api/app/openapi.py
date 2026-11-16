@@ -10,7 +10,7 @@ from fastapi.openapi.utils import get_openapi
 
 from coyote_api.contracts.http import ApiErrorPayload
 from coyote_api.interfaces.http.errors import ERROR_GUIDANCE
-from coyote_api.interfaces.http.tags import OPENAPI_TAG_GROUPS
+from coyote_api.interfaces.http.tags import OPENAPI_TAG_GROUPS, TAG_INGESTION
 from coyote_api.security.access import get_api_session_cookie_name, is_public_api_path
 
 _PROTECTED_OPENAPI_EXACT = {
@@ -18,13 +18,6 @@ _PROTECTED_OPENAPI_EXACT = {
     "/api/v1/auth/whoami",
 }
 
-SAMPLE_INGEST_PATHS = {
-    "/api/v1/internal/ingest/sample-bundle",
-    "/api/v1/internal/ingest/sample-bundle/upload",
-    "/api/v1/internal/ingest/sample-bundle/async",
-    "/api/v1/internal/ingest/sample-bundle/upload/async",
-    "/api/v1/internal/tasks/{task_id}",
-}
 MACHINE_INGEST_PATHS = {
     "/api/v1/internal/ingest/sample-bundle",
     "/api/v1/internal/ingest/sample-bundle/upload",
@@ -52,7 +45,19 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
         tags=app.openapi_tags,
         servers=app.servers,
     )
-    schema["x-tagGroups"] = OPENAPI_TAG_GROUPS
+    used_tags = {
+        tag
+        for operations in schema.get("paths", {}).values()
+        for method, operation in operations.items()
+        if method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE"}
+        for tag in operation.get("tags", [])
+    }
+    schema["tags"] = [tag for tag in schema.get("tags", []) if tag["name"] in used_tags]
+    schema["x-tagGroups"] = [
+        {**group, "tags": [tag for tag in group["tags"] if tag in used_tags]}
+        for group in OPENAPI_TAG_GROUPS
+        if any(tag in used_tags for tag in group["tags"])
+    ]
     components = schema.setdefault("components", {})
     components.setdefault("schemas", {})["ApiErrorPayload"] = ApiErrorPayload.model_json_schema()
     security_schemes = components.setdefault("securitySchemes", {})
@@ -97,7 +102,7 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
             if path.startswith("/api/v1/") and (
                 not is_public_api_path(path)
                 or path in _PROTECTED_OPENAPI_EXACT
-                or path in SAMPLE_INGEST_PATHS
+                or TAG_INGESTION in operation.get("tags", [])
             ):
                 operation["security"] = [{"ApiSessionCookie": []}, {"BearerAuth": []}]
                 if path in MACHINE_INGEST_PATHS:

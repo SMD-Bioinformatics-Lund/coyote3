@@ -144,7 +144,7 @@ a design BED supplies an optional target track. See
 DEMO_WORK="$(mktemp -d /tmp/coyote4-demo.XXXXXX)"
 cp -R api/src/coyote_api/bootstrap/demo_data/clinical_workflows/. "$DEMO_WORK/"
 for manifest in "$DEMO_WORK"/manifests/*.yaml; do
-  .venv/bin/coyote-ingest-validate \
+  .venv/bin/coyote-relay-validate \
     --yaml "$manifest" --check-files
 done
 ```
@@ -155,9 +155,9 @@ Obtain a scoped ingest token using the
 including its configured prefix and port. Then upload one sample first:
 
 ```bash
-.venv/bin/coyote-ingest-submit \
+.venv/bin/coyote-relay-submit \
   "$DEMO_WORK/manifests/demo_myeloid.yaml" \
-  --base-url "$COYOTE4_BASE_URL" --auth ingest
+  --base-url "$COYOTE4_BASE_URL" --auth ingest --token-env COYOTE4_INGEST_TOKEN
 ```
 
 After its terminal success acknowledgement, ingest the remaining manifests in the

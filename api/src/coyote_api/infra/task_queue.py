@@ -64,7 +64,7 @@ def create_celery_app(name: str, *, include: tuple[str, ...]) -> Celery:
         },
         visibility_timeout=DefaultConfig.CELERY_TASK_TIME_LIMIT + 120,
         task_routes={
-            "coyote_ingest.tasks.*": {"queue": DefaultConfig.CELERY_INGEST_QUEUE},
+            "coyote_relay.tasks.*": {"queue": DefaultConfig.CELERY_INGEST_QUEUE},
         },
     )
     return celery_app

@@ -28,7 +28,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    for project in (ROOT / "core", ROOT, ROOT / "clients/python", ROOT / "services/ingest"):
+    for project in (ROOT / "core", ROOT, ROOT / "clients/python", ROOT / "services/relay"):
         with tempfile.TemporaryDirectory(prefix="coyote-package-build-") as temporary:
             staging = Path(temporary)
             for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
@@ -39,7 +39,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
                 "build_support.py",
                 "package_build.py",
                 "client_build.py",
-                "ingest_build.py",
+                "relay_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
                 "CHANGELOG.md",

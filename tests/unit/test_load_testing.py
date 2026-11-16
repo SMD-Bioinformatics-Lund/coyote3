@@ -406,7 +406,7 @@ def test_preview_requires_report_type(inputs):
 
 def test_example_ingest_matches_api_contract(inputs):
     """Keep the shipped template aligned with the actual canonical ingest contract."""
-    from coyote_api.contracts.internal import InternalIngestSampleBundleRequest
+    from coyote_relay.api.contracts import InternalIngestSampleBundleRequest
 
     sample = inputs[2]["ingest_sample_template"]
     payload = InternalIngestSampleBundleRequest.model_validate(

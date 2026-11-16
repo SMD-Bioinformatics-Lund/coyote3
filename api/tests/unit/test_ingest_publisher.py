@@ -13,7 +13,7 @@ def test_publisher_sends_only_retained_identity(monkeypatch):
     monkeypatch.setattr(celery_app, "send_task", send)
     publish_ingest_job("sample_bundle", "synthetic-job")
     send.assert_called_once_with(
-        "coyote_ingest.tasks.ingest_sample_bundle",
+        "coyote_relay.tasks.ingest_sample_bundle",
         kwargs={"job_id": "synthetic-job"},
         task_id="synthetic-job",
         queue=DefaultConfig.CELERY_INGEST_QUEUE,

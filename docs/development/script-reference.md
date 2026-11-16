@@ -144,11 +144,11 @@ it against its temporary MkDocs output.
 
 ## Installed ingestion commands
 
-The `coyote-ingest` distribution owns `coyote-ingest-validate`, `coyote-ingest-login`
-and `coyote-ingest-submit`; these are installed commands, not repository scripts.
-Worker installations add `coyote-ingest-worker`. Shared parsing, validation and
+The `coyote-relay` distribution owns `coyote-relay-validate`, `coyote-relay-login`
+and `coyote-relay-submit`; these are installed commands, not repository scripts.
+Worker installations add `coyote-relay-worker`. Shared parsing, validation and
 job workflows belong to core. See the
-[ingestion service guide](../../services/ingest/docs/README.md).
+[ingestion service guide](../../services/relay/docs/README.md).
 
 ## Operational prerequisites
 

@@ -61,7 +61,7 @@ COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
 COPY clients/python/ ./clients/python/
-COPY services/ingest/ ./services/ingest/
+COPY services/relay/ ./services/relay/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
 RUN python scripts/release/build_sdk.py --output-dir /wheels
 
@@ -89,11 +89,11 @@ RUN apt-get update -o Acquire::Retries=5 && \
 COPY tests/ ./tests/
 COPY core/ ./core/
 COPY clients/python/ ./clients/python/
-COPY services/ingest/ ./services/ingest/
+COPY services/relay/ ./services/relay/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/ingest
+RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/relay
 USER coyote4:coyote4
 CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
 

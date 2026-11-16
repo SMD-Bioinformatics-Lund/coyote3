@@ -646,7 +646,7 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
     )
 
     result = _run_script(
-        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--check-files"]
+        ["-m", "coyote_relay.validate", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode != 0
@@ -678,14 +678,14 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
     )
 
     result = _run_script(
-        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--check-files"]
+        ["-m", "coyote_relay.validate", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode == 0
     assert "[ok] ingest spec is valid" in result.stdout
 
     listed = _run_script(
-        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--list-files"]
+        ["-m", "coyote_relay.validate", "--yaml", str(manifest_path), "--list-files"]
     )
 
     assert listed.returncode == 0

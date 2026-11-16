@@ -125,8 +125,10 @@ def test_response_samples_use_application_dark_theme_tokens():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/api/v1/docs", "/api/v1/redoc"])
 @pytest.mark.parametrize("environment", ["production", "staging"])
-async def test_documentation_branding_prefix_and_environment(path, environment):
+@pytest.mark.parametrize("relay_installed", [False, True])
+async def test_documentation_branding_prefix_and_environment(path, environment, relay_installed):
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url="/api/v1/openapi.json")
+    app.state.api_extensions = ("relay",) if relay_installed else ()
     register_api_documentation(app, environment=environment)
     route = next(route for route in app.routes if route.path == path)
     response = await route.endpoint(Request({"type": "http", "root_path": "/center", "path": path}))
@@ -154,7 +156,6 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
     assert "https://YOUR_HOST/center/api/v1/auth/whoami" in html
     for text in (
         "Your first authenticated request",
-        "X-Coyote-Ingest-Token",
         "X-CSRF-Token",
         "X-Request-ID",
         "current revision",
@@ -162,6 +163,7 @@ async def test_documentation_branding_prefix_and_environment(path, environment):
         "COYOTE4_SESSION_TOKEN",
     ):
         assert text in html
+    assert ("X-Coyote-Ingest-Token" in html) is relay_installed
     assert 'href="/center/docs-site/administration/document-editing/"' in html
     for paragraph in PRODUCT_OVERVIEW:
         assert str(escape(paragraph)) not in html
@@ -204,8 +206,6 @@ def test_documentation_groups_include_every_tag_once(monkeypatch):
     assert {"IngestToken": []} not in async_security
     routes = list(iter_route_contexts(app.routes))
     assert any(route.path == "/api/v1/health" for route in routes)
-    from coyote_api.app.openapi import SAMPLE_INGEST_PATHS
-
-    assert {
-        path for path in schema["paths"] if path.startswith("/api/v1/internal/")
-    } == SAMPLE_INGEST_PATHS
+    assert "/api/v1/internal/ingest/collection" in schema["paths"]
+    assert "/api/v1/internal/ingest/collections" in schema["paths"]
+    assert "/api/v1/internal/metrics" not in schema["paths"]

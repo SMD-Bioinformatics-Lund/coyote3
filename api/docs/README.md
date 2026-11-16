@@ -8,7 +8,7 @@ The API component hosts Coyote's HTTP API and maintenance workers. It handles
 authentication, transport, runtime composition and application resources. It ships
 with the MongoDB adapter in `coyote-server`, while retaining its own source,
 documentation and test suites. Ingestion workers and submission commands ship
-in the separate `coyote-ingest` distribution.
+in the separate `coyote-relay` distribution.
 
 1. [Install and start the API](getting-started.md).
 2. [Configure its runtime](configuration.md).

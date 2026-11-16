@@ -6,6 +6,13 @@ and supplies the analysis files listed by that manifest. The
 supported file's fields, requirements and examples before ingestion. These input
 contracts are separate from the database documents produced by the service.
 
+Coyote Relay supplies the ingestion HTTP routes. Install `coyote-relay[api]`
+alongside the server and restart it to register these routes in `/api/v1/docs`
+and `/api/v1/redoc`. The standard application image includes Relay. A server
+installed without Relay omits these routes. See the
+[package installation guide](../../services/relay/docs/getting-started.md) for
+standalone submission tools and worker installation.
+
 ## Sample-bundle JSON request fields
 
 | Field | Required | Default when omitted | Meaning |
@@ -161,7 +168,7 @@ Async response:
 {
   "status": "accepted",
   "task_id": "6f3a...",
-  "task_name": "coyote_ingest.tasks.ingest_sample_bundle",
+  "task_name": "coyote_relay.tasks.ingest_sample_bundle",
   "queue": "ingest"
 }
 ```
@@ -220,8 +227,9 @@ INFO or DEBUG for progress messages. Only this submission's ingest logs are sent
 not other requests or background services.
 
 ```bash
-coyote-ingest-submit /mounted/path/synthetic.coyote4.yaml \
-  --base-url https://example.org/coyote4_dev --auth ingest --verbose
+coyote-relay-submit /mounted/path/synthetic.coyote4.yaml \
+  --base-url https://example.org/coyote4_dev --auth ingest \
+  --token-env COYOTE4_INGEST_TOKEN --verbose
 ```
 
 The existing upload endpoint accepts `verbose=true` as a multipart form field.
@@ -296,7 +304,8 @@ maximum 8760 hours); wildcard assay and environment scopes are rejected.
 
 The submission helper accepts these credentials with `--auth bearer` and either
 `--token-file /secure/path/token` or `--token '<token>'`. Explicit arguments take
-precedence over `API_BEARER_TOKEN`, which remains supported. A literal `--token`
+precedence over `COYOTE_RELAY_TOKEN`. Select an existing variable explicitly with
+`--token-env API_BEARER_TOKEN`. A literal `--token`
 can appear in shell history and process listings; a protected token file avoids
 putting the secret in command arguments. Credentials are passed to curl through
 stdin and are never written to submission receipts. No password or interactive
@@ -356,7 +365,7 @@ Select **Upload a background sample bundle** and **Read status and results of
 jobs submitted with this token**, then run:
 
 ```bash
-coyote-ingest-submit \
+coyote-relay-submit \
   /path/to/sample.yaml --base-url https://coyote.example.org \
   --auth bearer --token-file /secure/path/coyote-token --async --wait
 ```
@@ -405,7 +414,7 @@ retrieval endpoint. Issuance records the authenticated issuer, credential ID,
 scope, and expiry in the audit, never the credential value. If the audit cannot
 be persisted, issuance fails without returning a token.
 
-Use `--auth ingest` with `coyote-ingest-submit`, or send the token in
+Use `--auth ingest --token-env COYOTE4_INGEST_TOKEN` with `coyote-relay-submit`, or send the token in
 `X-Coyote-Ingest-Token`. Keep the file private. The token can be reused until its
 expiry (default 24 hours, maximum 720 hours); it is not a single-use token. Issue
 a replacement before expiry for scheduled pipelines. Its audit identity includes
@@ -451,7 +460,7 @@ fails, the error is logged without retrying committed ingestion. The audit is no
 an API-wide duplicate-prevention mechanism and contains no uploaded file contents
 or credentials. A request that fails authentication remains in the security audit.
 
-Install `coyote-ingest` and run `coyote-ingest-submit` on the submission host. Use
+Install `coyote-relay` and run `coyote-relay-submit` on the submission host. Use
 `--remote-host USER@ANALYSIS_SERVER` to fetch the YAML and optional ZIP with SCP,
 submit them to the API, then rename the original YAML through SSH after a terminal
 acknowledgement. SCP cannot rename remote files; SSH command access is required.
@@ -473,16 +482,18 @@ this helper cannot complete acknowledgement. It does not edit fields inside
 filename after the API returns a terminal result. It also does not install a cron
 entry or scan directories; invoke it once per manifest from the center's scheduler.
 
-By default the helper reads `INTERNAL_API_TOKEN` and sends the internal
-header, so unattended pipelines do not log in. Use the same secret value as the
-target deployment's private env file; do not generate a different client token.
+The helper reads `COYOTE_RELAY_TOKEN` by default. Select another protected variable
+with `--token-env`; `--auth` determines the header sent. An internal credential
+must match the target deployment's secret. Expiring ingestion credentials use
+`--auth ingest` instead.
 
 ```bash
 read -rsp 'Internal API token: ' INTERNAL_API_TOKEN; echo
 export INTERNAL_API_TOKEN
-coyote-ingest-submit /pipeline/outgoing/sample.yaml \
+coyote-relay-submit /pipeline/outgoing/sample.yaml \
   --remote-host pipeline@analysis.example.org \
   --base-url https://coyote.example.org/coyote4_dev \
+  --auth internal --token-env INTERNAL_API_TOKEN \
   --archive /pipeline/outgoing/sample.upload.zip
 ```
 
@@ -490,7 +501,7 @@ Include the application path prefix in `--base-url`, but not `/api/v1`.
 For cron or a pipeline service, supply `INTERNAL_API_TOKEN` through its protected
 environment/secret configuration instead of prompting. Do not put the value in
 the command line or commit it. Existing user session tokens remain supported
-with `--auth bearer` and `API_BEARER_TOKEN`.
+with `--auth bearer --token-env API_BEARER_TOKEN`.
 
 Check connectivity without any credentials before submitting:
 
@@ -503,7 +514,8 @@ The expected response is `{"status":"ok"}`. This lightweight endpoint checks API
 reachability, not all database permissions or ingest readiness. Configure a trusted
 CA bundle if needed; do not disable certificate verification.
 
-Alternatively set `COYOTE4_BASE_URL`. Omit `--archive` when every required
+Alternatively set `COYOTE_RELAY_API_URL`. Explicit `--base-url` takes precedence.
+Omit `--archive` when every required
 input path in the YAML is already readable inside the API container. A YAML
 upload alone does not transfer its referenced data. ZIP entries must match the
 manifest paths or have unique matching basenames, as for the UI upload.
@@ -617,7 +629,7 @@ checking the acknowledgement `status`.
 
 Compose also defines the stable `beat` scheduler service. When
 `COYOTE4_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
-`coyote_ingest.tasks.ingest_watch_directory_once`, which scans
+`coyote_relay.tasks.ingest_watch_directory_once`, which scans
 the fixed `/data/coyote4_<env>/copied_sample_files/yaml` directory for `coyote4.yaml`.
 
 Watcher settings:
@@ -716,7 +728,7 @@ export BASE_URL="${BASE_URL%/}"
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
-coyote-ingest-login \
+coyote-relay-login \
   --base-url "${BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \

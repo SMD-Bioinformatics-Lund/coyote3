@@ -14,7 +14,7 @@ The test suite is grouped by runtime boundary:
 - **MongoDB adapter (`adapters/mongo/tests`)**: query compilation, repository behavior and core-port integration.
 - **REST interface (`api/tests`)**: HTTP contracts, host composition, workers and permissions.
 - **HTTP client (`clients/python/tests`)**: transport, authentication, typed resources and failures.
-- **Ingestion (`services/ingest/tests`)**: submission tools and worker composition.
+- **Ingestion (`services/relay/tests`)**: submission tools and worker composition.
 - **Repository tooling (`tests/unit`)**: deployment definitions, maintenance tools, documentation and releases.
 - **Integration Layer (`tests/integration`)**: cross-component contracts, architecture boundaries, and recovery behavior.
 - **Frontend (`frontend`)**: TypeScript build, linting, Vitest unit coverage,
@@ -30,7 +30,7 @@ Python tests are grouped by the behavior they protect:
 | `api/tests/unit`, `api/tests/http` | Host configuration, workers, authentication, HTTP validation and permission matrices. |
 | `adapters/mongo/tests/unit`, `adapters/mongo/tests/integration` | Repository behavior, query compilation and adapter/core integration without an external server. |
 | `clients/python/tests` | Independent synchronous and asynchronous HTTP client behavior. |
-| `services/ingest/tests/unit`, `services/ingest/tests/worker` | Submission receipts, CLI validation and server-backed worker composition. |
+| `services/relay/tests/unit`, `services/relay/tests/worker` | Submission receipts, CLI validation and server-backed worker composition. |
 | `tests/unit` | Repository tooling, deployment configuration, documentation and release validation. |
 | `tests/integration` | Installed distributions, application transactions, architecture boundaries and frontend/API contracts. |
 | Each package's `tests/smoke`, root `tests/smoke` | Fast package checks and in-process application composition. |

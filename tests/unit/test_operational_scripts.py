@@ -263,7 +263,7 @@ def test_production_images_build_dependencies_outside_runtime(dockerfile: str) -
 def test_deployments_start_ingest_and_maintenance_from_their_own_apps(relative_path) -> None:
     """Both deployment variants keep ingestion and maintenance on their owning task apps."""
     services = yaml.safe_load((REPOSITORY_ROOT / relative_path).read_text())["services"]
-    assert "coyote-ingest-worker" in services["worker"]["command"]
+    assert "coyote-relay-worker" in services["worker"]["command"]
     assert "--queues=ingest " in services["worker"]["command"]
     assert "coyote_api.celery_app:celery_app" in services["maintenance-worker"]["command"]
     assert "--queues=default " in services["maintenance-worker"]["command"]
@@ -274,6 +274,6 @@ def test_deployments_start_ingest_and_maintenance_from_their_own_apps(relative_p
 def test_source_images_include_the_ingestion_distribution(dockerfile) -> None:
     """Source and editable image builds have the complete independently packaged service."""
     definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
-    assert "COPY services/ingest/ ./services/ingest/" in definition
+    assert "COPY services/relay/ ./services/relay/" in definition
     if dockerfile in {"Dockerfile.dev", "Dockerfile.legacy"}:
-        assert "-e clients/python -e services/ingest" in definition
+        assert "-e clients/python -e services/relay" in definition

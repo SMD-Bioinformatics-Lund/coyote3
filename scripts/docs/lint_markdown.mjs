@@ -16,7 +16,7 @@ const defaultInputs = [
   "api/README.md", "api/docs",
   "adapters/mongo/README.md", "adapters/mongo/docs",
   "clients/python/README.md", "clients/python/docs",
-  "services/ingest/README.md", "services/ingest/docs",
+  "services/relay/README.md", "services/relay/docs",
   "frontend/README.md", "frontend/docs",
 ].map((name) => path.join(repository, name))
 const readmes = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: repository, encoding: "utf8" })

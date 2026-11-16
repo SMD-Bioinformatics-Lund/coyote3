@@ -10,7 +10,7 @@ combination; package installation and public-index publication are separate task
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
 | HTTP client version | `clients/python/pyproject.toml` |
-| Ingestion service version | `services/ingest/pyproject.toml` |
+| Ingestion service version | `services/relay/pyproject.toml` |
 | Application selection | `release.toml`: application, core, server, ingestion and administrative client versions |
 | HTTP generation | Declared `/api/vN` routes, checked against `http_api_major` |
 | Center configuration format | Core loader, checked against `center_configuration_format` |
@@ -18,7 +18,7 @@ combination; package installation and public-index publication are separate task
 
 `sdk_version` selects the core; `server_version` selects the API and adapter together;
 `client_version` selects the Python client used by administrative tools;
-`ingest_version` selects the ingestion service and submission commands.
+`relay_version` selects the ingestion service and submission commands.
 Each distribution version is independent of `application_version`.
 Declared package dependencies must agree with the selected combination. The initial
 Coyote4 application selects core `4.0.0`, server `1.0.0`, ingestion service `1.0.0`

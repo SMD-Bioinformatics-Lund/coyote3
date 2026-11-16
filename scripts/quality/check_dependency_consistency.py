@@ -92,8 +92,8 @@ def main() -> int:
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     optional = config["dependency-groups"]
     runtime = []
-    local_names = {"coyote-core", "coyote-server", "coyote-pyclient", "coyote-ingest"}
-    for relative in (".", "core", "clients/python", "services/ingest"):
+    local_names = {"coyote-core", "coyote-server", "coyote-pyclient", "coyote-relay"}
+    for relative in (".", "core", "clients/python", "services/relay"):
         project = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
         for dependency in project["dependencies"]:
             name = re.split(r"[\[<>=!~; ]", _normalize(dependency), maxsplit=1)[0]

@@ -75,7 +75,7 @@ ROUTERS = (
     RouterRegistration(personal_tokens_router),
     RouterRegistration(service_tokens_router),
     RouterRegistration(editing_router),
-    RouterRegistration(health_router, include_in_schema=False),
+    RouterRegistration(health_router),
     RouterRegistration(client_errors_router, include_in_schema=False),
     RouterRegistration(auth_router),
     RouterRegistration(admin_operations_router),

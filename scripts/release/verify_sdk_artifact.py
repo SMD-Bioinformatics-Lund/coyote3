@@ -41,7 +41,7 @@ def verify_sdk_artifact(
         "sdk_version",
         "server_version",
         "client_version",
-        "ingest_version",
+        "relay_version",
         "http_api_major",
         "center_configuration_format",
     ):
@@ -51,7 +51,7 @@ def verify_sdk_artifact(
         "coyote-core": release["sdk_version"],
         "coyote-server": release["server_version"],
         "coyote-pyclient": release["client_version"],
-        "coyote-ingest": release["ingest_version"],
+        "coyote-relay": release["relay_version"],
     }
     artifacts = record.get("artifacts") or {}
     if set(artifacts) != set(selected):
