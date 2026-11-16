@@ -250,7 +250,7 @@ for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
 done
 
 coyote_compose() {
-  bash scripts/deployment/compose-with-version.sh \
+  bash install.sh compose \
     -p "$COYOTE_PROJECT" --env-file "$COYOTE_ENV_FILE" \
     "${COYOTE_COMPOSE_ARGS[@]}" "$@"
 }
@@ -305,7 +305,7 @@ Validate secrets, resolve the complete configuration and create missing applicat
 directories without starting any service:
 
 ```bash
-bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
+bash install.sh check --env-file "$COYOTE_ENV_FILE"
 coyote_compose --prepare-directories config --quiet
 ```
 
@@ -333,27 +333,20 @@ sudo install -d -o "$COYOTE4_UID" -g "$COYOTE4_GID" -m 0750 "$COYOTE4_DATA_HOST_
 sudo install -d -o "$COYOTE4_UID" -g "$COYOTE4_GID" -m 0750 "$COYOTE4_LOGS_HOST_ROOT"
 ```
 
-If the deploying account cannot create or assign directories for that UID/GID,
-have a host administrator prepare the complete tree using the same resolved
-Compose definition. The helper needs only the supported host interpreter, not
-the installed API or SDK:
+Once the host administrator has prepared the roots, use the same entry point to
+verify and prepare the application tree:
 
 ```bash
-source scripts/deployment/python_runtime.sh
-select_deployment_python "$PWD"
-coyote_compose config --format json | \
-  sudo -- "$PYTHON_BIN" scripts/deployment/prepare_host_directories.py
 coyote_compose --prepare-directories config --quiet
 ```
 
-This streams resolved settings directly to the helper; do not print or save them
-in shared logs. Existing ownership and modes are not changed. Container access is
-checked inside each bind mount, not through private host parents above its source.
-The Docker daemon must still be able to mount the host source. The wrapper does
-not invoke sudo automatically.
-Deployments with a host virtual environment can run `center_preflight.sh` for
-additional checks. The installer validates configuration inside the API container
-and does not require a host virtual environment.
+Resolved settings stay in memory. Existing ownership and modes are retained.
+Container access is checked inside each bind mount; Docker must be able to mount
+the selected host sources. The installer never invokes privilege escalation.
+For additional host-side center-file validation, use `bash install.sh check --resolved`
+with the same environment and Compose selections. This optional check requires the
+server packages in the host interpreter; normal installation validates them inside
+the API image.
 
 ## 8. Build images and install the database baseline
 
@@ -362,8 +355,7 @@ MongoDB and database-user prerequisites in steps 1–7. Use the same shell sessi
 and the `COYOTE_ENV_FILE` and `COYOTE_PROJECT` values defined in **step 2**:
 
 ```bash
-bash scripts/deployment/install_center.sh \
-  --setup-center \
+bash install.sh deploy \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
   "${COYOTE_INSTALL_ARGS[@]}"
@@ -401,7 +393,7 @@ collection and index name; it is not resolved by dropping data or indexes automa
 Use the index status command in **step 10** to inspect a conflicting contract.
 
 > [!IMPORTANT]
-> `--setup-center` includes bundled HGNC and VEP references. Populated reference
+> Fresh installation includes bundled HGNC and VEP references. Populated reference
 > collections are preserved. It does not import external knowledgebases such as
 > CIViC, COSMIC or BRCA Exchange; follow their separate
 > [import procedures](../reference/knowledgebases/README.md).
@@ -411,7 +403,7 @@ operation because large existing collections can take considerable time. Review
 [required data](required-data.md) before clinical use; a successful installation
 does not certify reference completeness or clinical readiness.
 
-For individual operations, replace `--setup-center` with `--steps` and the required
+For individual operations, add `--steps` and the required
 reference flags. The
 [installation operations reference](installation-operations.md) lists every stage,
 default, prerequisite and standalone command.
@@ -451,7 +443,7 @@ reset, and their passwords are never redisplayed. Contact emails default to
 `sysadmin@coyote4.invalid` and `superuser@coyote4.invalid`; set real distinct contact
 addresses with the email options. Protect installer output containing the passwords.
 
-For later additions or forced repairs, run `scripts/deployment/manage_data.py` with
+For later additions or forced repairs, run `install.sh data` with
 explicit modules and an existing administrator's API login. It completes a required
 password change and signs in again before adding data. The service checks the
 `admin`, `sys_admin` or `superuser` role and records the authenticated operator.
@@ -461,7 +453,6 @@ password change and signs in again before adding data. The service checks the
 | `--env-file FILE` | Required private deployment environment file. |
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
-| `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs and bundled references. Preserves existing deployments. Cannot combine with `--steps`. |
 | `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote4.sysadmin`. |
 | `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote4.superuser`. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
@@ -477,7 +468,7 @@ For separately prepared HGNC and Ensembl BioMart files, use the
 [standalone gene installer](../operations/hgnc-gene-installation.md), including its
 input-column and parameter reference. External knowledgebase importers have their
 own parameters in the [knowledgebase guides](../reference/knowledgebases/README.md);
-they are not selected by `--setup-center`.
+they are not part of a default deployment.
 
 Password values are not installer command-line options. Do not enable shell tracing
 when handling credentials. The temporary Compose rendering is private and removed

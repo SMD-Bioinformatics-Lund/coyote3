@@ -91,7 +91,7 @@ an absolute path to an SVG, PNG, or JPEG on the Docker host:
 accreditation_logo = "/srv/branding/swedac.svg"
 ```
 
-Before `up`, `create`, `start`, or `run`, `scripts/deployment/compose-with-version.sh`
+Before `up`, `create`, `start`, or `run`, `install.sh compose`
 copies that file into `logos/` inside the mounted center configuration directory.
 It rewrites the host's `contact.toml` to a relative path such as
 `logos/accreditation-<sha256>.svg`, which the container resolves under

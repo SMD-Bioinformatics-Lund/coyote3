@@ -124,8 +124,8 @@ From the repository root:
 
 ```bash
 COYOTE_ENV_FILE="/srv/coyote/config/production.env"
-bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh check --env-file "$COYOTE_ENV_FILE"
+bash install.sh compose \
   --env-file "$COYOTE_ENV_FILE" -f deploy/compose/docker-compose.yml config --quiet
 ```
 

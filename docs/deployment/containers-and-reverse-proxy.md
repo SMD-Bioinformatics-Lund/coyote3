@@ -84,7 +84,7 @@ commands, select [first installation, upgrade, or redeployment](production-deplo
 ### Image versions
 
 The application release version is defined in `release.toml`. The
-`scripts/deployment/compose-with-version.sh` wrapper reads that file and exports transient
+`install.sh compose` wrapper reads that file and exports transient
 Compose variables for image names. Supply `GIT_COMMIT` explicitly from the reviewed
 checkout when building release images. Do not store
 `COYOTE4_VERSION`, `COYOTE4_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
@@ -185,7 +185,7 @@ must already be accessible on the deployment host.
 Pass the override last on every deployment command:
 
 ```bash
-./scripts/deployment/compose-with-version.sh --env-file .coyote4_env \
+./install.sh compose --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml -f .coyote4_storage.yml up -d --build
 ```
 
@@ -197,7 +197,7 @@ Include the same override for config validation, recreation, and maintenance.
 For example, a legacy remote-development deployment using compiled images uses:
 
 ```bash
-./scripts/deployment/compose-with-version.sh -p coyote4-dev --env-file .coyote4_dev_env \
+./install.sh compose -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/legacy/docker-compose.yml \
   -f .coyote4_storage.yml up -d
 ```
@@ -330,7 +330,7 @@ or existing Docker networks. The CIDR controls the allocation pool; services
 still communicate by Compose DNS names rather than fixed container IPs.
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build
@@ -375,13 +375,13 @@ Do not assign static container IPs; Compose DNS names such as `api`, `worker`,
 
 ```bash
 # Staging deployment
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_stage_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
   up -d --build
 
 # Development deployment
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -412,7 +412,7 @@ set +a
 APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
 
 # Check container status
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   ps
@@ -440,10 +440,10 @@ curl -f "$APP_URL/api/v1/internal/metrics" \
 For upgrades:
 
 1. **Verification**: Check required non-placeholder secrets with
-   `bash scripts/deployment/validate_env_secrets.sh --env-file <path>` and validate
+   `bash install.sh check --env-file <path>` and validate
    the selected Compose model with `config -q`.
 2. **Execution**: Update the containerized services with
-   `scripts/deployment/compose-with-version.sh` and the same environment and Compose
+   `install.sh compose` and the same environment and Compose
    file selection.
 3. **Maintenance**: Run only the RBAC, index, or stored-data procedure named by the release notes.
 4. **Validation**: Execute the established health and functional verification suite.

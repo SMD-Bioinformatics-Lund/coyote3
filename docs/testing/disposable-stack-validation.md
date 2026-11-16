@@ -233,8 +233,8 @@ mounts. Do not add center clinical input mounts to the disposable deployment.
 Validate the file before starting services:
 
 ```bash
-bash scripts/deployment/validate_env_secrets.sh --env-file "$VALIDATION_ENV_FILE"
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh check --env-file "$VALIDATION_ENV_FILE"
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml config --quiet
@@ -368,7 +368,7 @@ it is not exposed on external host interfaces.
 Use the version-aware wrapper so image tags use the application release in `release.toml`:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -388,7 +388,7 @@ application that a center would deploy.
 Initialize the empty database before starting the API:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -422,7 +422,7 @@ to provision both application and knowledgebase indexes explicitly.
 Start the complete immutable service stack:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -432,7 +432,7 @@ bash scripts/deployment/compose-with-version.sh \
 Inspect service state:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -454,10 +454,10 @@ done
 Exercise authenticated maintenance after startup with explicitly selected modules:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml run --rm --no-deps -it api \
-  python scripts/deployment/manage_data.py \
+  bash install.sh data \
     --api-url http://api:8001 --modules application --force --username coyote4.sysadmin
 ```
 
@@ -465,7 +465,7 @@ Enter the initial administrator password, then complete the new-password and
 confirmation prompts. The command signs in again before maintenance.
 Demonstration content requires the separate
 [isolated demo installation](../deployment/demo-installation.md). It is not
-installed by this normal application bootstrap or by `manage_data.py`.
+installed by this normal application bootstrap or by `install.sh data`.
 
 Verify the public application surfaces:
 
@@ -594,31 +594,27 @@ fallback.
 
 ## 10. Run API-level verification
 
-The center check exercises authentication, manifest validation and the upload
-intake endpoint. Pass an optional `--data-archive inputs.zip` when the referenced
-files are not already mounted and readable inside the API. Individual
-`data_files` multipart fields are not accepted. Run it against a fresh disposable
-database or use a second unique sample manifest; it must not overwrite the
-watch-ingested sample:
+Coyote Relay validates the manifest and submits it to the upload endpoint. Pass
+`--archive inputs.zip` when referenced files are not already readable inside the
+API container. Use a new sample in the disposable database; this writes data and
+must not overwrite the watch-ingested sample.
+
+Obtain a short-lived bearer token using the
+[Relay login workflow](../../services/relay/docs/usage.md) and the local validation
+account. Store it in an owner-only file. Copy the manifest before submission:
+Relay saves a receipt and renames the copy according to the terminal result.
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_check.sh \
-    --api-base-url "$VALIDATION_PUBLIC_URL" \
-    --username coyote4.superuser \
-    --password "$VALIDATION_ADMIN_PASSWORD" \
-    --provider local \
-    --yaml-file tests/fixtures/ingest/generic_case_control.yaml
+cp tests/fixtures/ingest/generic_case_control.yaml "$VALIDATION_ROOT/upload.yaml"
+coyote-relay-validate --yaml "$VALIDATION_ROOT/upload.yaml"
+coyote-relay-submit "$VALIDATION_ROOT/upload.yaml" \
+  --base-url "$VALIDATION_PUBLIC_URL" \
+  --auth bearer --token-file "$COYOTE_VALIDATION_TOKEN_FILE" --increment
 ```
 
-The disposable bootstrap creates `coyote4.superuser` as a local account, so this
-check uses the `local` authentication provider explicitly. Use
-`--provider ldap` only when validating a configured LDAP account in a
-deployment where LDAP connectivity is part of the test scope.
-
-Skip this optional step when the same sample already exists and update is
-disabled. The watch-folder result remains the required live-ingest evidence.
-This command runs on the host with the repository's Python environment and fixture
-files, through the public proxy; it does not require fixtures inside the API image.
+Skip this optional step if no independent validation sample is available. The
+watch-folder result remains the required live-ingest evidence. Run the submission
+from the host workspace; the API image does not need the test fixtures.
 
 ## 11. Capture evidence before cleanup
 
@@ -627,13 +623,13 @@ Save service state and logs outside the containers:
 ```bash
 mkdir -p "$VALIDATION_ROOT/evidence"
 
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
   ps > "$VALIDATION_ROOT/evidence/application-services.txt"
 
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \
@@ -657,7 +653,7 @@ reviewer with the release evidence.
 Stop the application before MongoDB:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   -p "$VALIDATION_APP_PROJECT" \
   --env-file "$VALIDATION_ENV_FILE" \
   -f deploy/compose/docker-compose.yml \

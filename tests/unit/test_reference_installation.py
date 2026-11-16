@@ -10,10 +10,10 @@ from coyote.config.governance_catalog import RBAC_CATALOG_DIR
 from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 from coyote_api.infra.seed.bundle import load_reference_seed_pack
 
+from deploy.installer import data as manage_data
 from scripts.bootstrap.bootstrap_database import (
     build_seed_documents,
 )
-from scripts.deployment import manage_data
 
 
 def test_application_seed_loading_does_not_read_reference_snapshots(tmp_path):
@@ -200,7 +200,8 @@ def test_force_requires_explicit_modules():
     result = subprocess.run(
         [
             ".venv/bin/python",
-            "scripts/deployment/manage_data.py",
+            "-m",
+            "deploy.installer.data",
             "--api-url",
             "https://synthetic.invalid",
             "--force",

@@ -34,7 +34,7 @@ uv sync --all-packages --group dev
 ```
 
 Source checkouts provide the operational launcher at
-`scripts/deployment/demo.py`. The individual `coyote-demo` wheel can also be
+`install.sh demo`. The individual `coyote-demo` wheel can also be
 installed with its `api` extra alongside the selected core and server artifacts.
 This guide assumes the checkout launcher and a local Docker Engine or local
 MongoDB and Redis services.
@@ -45,16 +45,16 @@ Prepare a new directory and inspect the Compose configuration without printing
 credentials:
 
 ```bash
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" prepare --mode docker --port 8089
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" compose config
 ```
 
 Start the prepared deployment when ready:
 
 ```bash
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" compose up
 ```
 
@@ -83,11 +83,11 @@ the normal first-login password change.
 Inspect or stop only this demo project:
 
 ```bash
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" compose ps
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" compose logs
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-local" compose stop
 ```
 
@@ -115,26 +115,26 @@ must be URL-encoded.
 Prepare the native settings using those explicitly selected files:
 
 ```bash
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" prepare --mode native --port 8089 \
   --mongo-uri-file "$HOME/demo-mongo-uri" \
   --redis-url-file "$HOME/demo-redis-url"
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run bootstrap
 ```
 
 Run each process in its own terminal:
 
 ```bash
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run api
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run frontend
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run worker
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run maintenance-worker
-.venv/bin/python scripts/deployment/demo.py \
+bash install.sh demo \
   --directory "$HOME/coyote-demo-native" run beat
 ```
 

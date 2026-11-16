@@ -5,12 +5,11 @@ import os
 import shutil
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 
 import pytest
 
-from scripts.deployment import installation_checks
+from deploy.installer import checks as installation_checks
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -36,7 +35,8 @@ def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid
     result = subprocess.run(
         [
             "bash",
-            str(ROOT / "scripts/deployment/validate_env_secrets.sh"),
+            str(ROOT / "install.sh"),
+            "check",
             "--env-file",
             str(environment),
         ],
@@ -45,7 +45,7 @@ def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid
         check=False,
     )
     assert (result.returncode == 0) is valid
-    assert ("at least 16 characters" in result.stdout) is not valid
+    assert ("at least 16 characters" in result.stderr) is not valid
 
 
 def test_configuration_gate_reports_field_errors_without_echoing_input(monkeypatch, capsys):
@@ -138,7 +138,8 @@ def deployment(tmp_path):
         return subprocess.run(
             [
                 "bash",
-                str(ROOT / "scripts/deployment" / script),
+                str(ROOT / "install.sh"),
+                *(["check", "--resolved"] if script == "check" else ["deploy"]),
                 "--env-file",
                 str(env_file),
                 "--compose-file",
@@ -158,9 +159,9 @@ def deployment(tmp_path):
 def test_preflight_uses_resolved_mounts_and_the_supported_interpreter(deployment):
     """Host preflight must not parse container paths as host paths or use old python3."""
     _, _, _, run = deployment
-    result = run("center_preflight.sh")
+    result = run("check")
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "preflight passed" in result.stdout
+    assert "passed local validation" in result.stderr
     assert "obsolete-python-used" not in result.stderr
 
 
@@ -168,7 +169,7 @@ def test_preflight_checks_optional_report_wording(deployment):
     """An invalid optional center file must fail before application deployment."""
     _, center, _, run = deployment
     (center / "report_presentation.toml").write_text('[empty_results]\nSNVV = "Unknown key"\n')
-    result = run("center_preflight.sh")
+    result = run("check")
     assert result.returncode != 0
     assert "SNVV" in result.stderr
 
@@ -180,7 +181,7 @@ def test_preflight_rejects_read_only_application_storage(deployment, target):
     for mount in config["services"]["api"]["volumes"]:
         if mount["target"] == target:
             mount["read_only"] = True
-    result = run("center_preflight.sh")
+    result = run("check")
     assert result.returncode != 0
     assert f"API requires {target} to be writable" in result.stderr
 
@@ -190,7 +191,7 @@ def test_install_validation_accepts_an_origin_without_starting_services(deployme
     """The validation stage can run without triggering build, bootstrap or startup."""
     config, _, log, run = deployment
     config["services"]["api"]["environment"]["PUBLIC_BASE_URL"] = origin
-    result = run("install_center.sh", "--project", "synthetic", "--steps", "validate")
+    result = run("deploy", "--project", "synthetic", "--steps", "validate")
     assert result.returncode == 0, result.stdout + result.stderr
     calls = [json.loads(line) for line in log.read_text().splitlines()]
     assert any("state" in call for call in calls)
@@ -203,63 +204,8 @@ def test_install_rejects_a_duplicated_public_prefix_before_container_operations(
     """Origin/path confusion produces a useful error before build or container execution."""
     config, _, log, run = deployment
     config["services"]["api"]["environment"]["PUBLIC_BASE_URL"] += "/synthetic"
-    result = run("install_center.sh", "--project", "synthetic", "--steps", "validate")
+    result = run("deploy", "--project", "synthetic", "--steps", "validate")
     assert result.returncode != 0
-    assert "Put the application prefix in SCRIPT_NAME only" in result.stderr
+    assert "put the application prefix in SCRIPT_NAME" in result.stderr
     calls = [json.loads(line) for line in log.read_text().splitlines()]
     assert not any("run" in call or "build" in call or "up" in call for call in calls)
-
-
-@pytest.mark.parametrize("status", ["ok", "failed"])
-def test_center_check_uses_zip_upload_and_requires_terminal_success(tmp_path, status):
-    """A 200 response with a failed acknowledgement must not be reported as acceptance."""
-    manifest = tmp_path / "synthetic.yaml"
-    shutil.copyfile(ROOT / "tests/fixtures/ingest/generic_case_control.yaml", manifest)
-    archive = tmp_path / "inputs.zip"
-    with zipfile.ZipFile(archive, "w"):
-        pass
-    log = tmp_path / "curl-calls.jsonl"
-    curl = tmp_path / "curl"
-    curl.write_text(
-        f"#!{sys.executable}\n"
-        "import json, os, sys\n"
-        "args = sys.argv[1:]\n"
-        "with open(os.environ['TEST_CURL_LOG'], 'a') as stream: stream.write(json.dumps(args) + '\\n')\n"
-        "if '--form' in args:\n"
-        " assert 'Authorization: Bearer synthetic-token' in sys.stdin.read()\n"
-        " print(json.dumps({'status': os.environ['TEST_UPLOAD_STATUS'], 'message': 'Synthetic outcome', 'sample_id': 'synthetic-id'}))\n"
-        " print('200', end='')\n"
-    )
-    curl.chmod(0o755)
-    result = subprocess.run(
-        [
-            "bash",
-            str(ROOT / "scripts/deployment/center_check.sh"),
-            "--api-base-url",
-            "https://synthetic.invalid/coyote4",
-            "--bearer-token",
-            "synthetic-token",
-            "--yaml-file",
-            str(manifest),
-            "--data-archive",
-            str(archive),
-        ],
-        cwd=tmp_path,
-        env={
-            **os.environ,
-            "PATH": str(tmp_path) + os.pathsep + os.environ["PATH"],
-            "PYTHON_BIN": sys.executable,
-            "TEST_CURL_LOG": str(log),
-            "TEST_UPLOAD_STATUS": status,
-        },
-        text=True,
-        capture_output=True,
-        timeout=30,
-    )
-    assert (result.returncode == 0) == (status == "ok"), result.stdout + result.stderr
-    calls = [json.loads(line) for line in log.read_text().splitlines()]
-    upload = calls[-1]
-    assert any(item.startswith("data_archive=@") for item in upload)
-    assert "acknowledge=true" in upload
-    assert not any("data_files" in item or "synthetic-token" in item for item in upload)
-    assert manifest.is_file()

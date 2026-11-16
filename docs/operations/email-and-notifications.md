@@ -144,7 +144,7 @@ Add the optional Compose override to the same deployment command and environment
 file used for the application:
 
 ```bash
-./scripts/deployment/compose-with-version.sh --env-file .coyote4_dev_env \
+./install.sh compose --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   -f deploy/compose/docker-compose.mail.yml --profile mail up -d mailpit

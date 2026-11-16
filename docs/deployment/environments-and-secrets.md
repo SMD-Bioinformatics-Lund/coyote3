@@ -154,7 +154,7 @@ application secrets, including `REDIS_PASSWORD`, remain deployment requirements.
 - Keep real values out of git
 - Use `deploy/env/example.env` only as a template
 - Rotate secrets on team membership changes
-- Validate before deployment with `scripts/deployment/validate_env_secrets.sh`
+- Validate before deployment with `install.sh check`
 
 ## SMTP relay strategy
 

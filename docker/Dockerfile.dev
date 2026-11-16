@@ -47,6 +47,7 @@ COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
 COPY scripts/ ./scripts/
+COPY deploy/installer/ ./deploy/installer/
 COPY tests/ ./tests/
 COPY CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./

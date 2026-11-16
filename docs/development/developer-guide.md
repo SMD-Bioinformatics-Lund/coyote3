@@ -26,7 +26,7 @@ A single-member replica set can host the logical databases on one local instance
 The development stack uses the base Compose definition with the development overlay:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \

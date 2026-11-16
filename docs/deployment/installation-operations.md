@@ -1,8 +1,48 @@
 # Installation and data maintenance
 
 First installation and later data maintenance are separate operations. The deployment
-installer builds and starts services. The Python maintenance command uses a running API
+installer builds and starts services. The data maintenance command uses a running API
 and does not build, start or recreate services.
+
+## Entry point and profiles
+
+Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `compose`,
+`check`, `center`, `data` and `demo` share this entry point; implementation modules
+live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
+`PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
+Ordinary Docker installation needs no server packages installed on the host.
+
+| Selection | Default Compose files | Image tag |
+| --- | --- | --- |
+| `--environment prod` | Base | Application version |
+| `--environment dev` | Base + dev | Version + `-dev` |
+| `--environment stage` | Base + stage | Version + `-stage` |
+| `--environment test` | Base + test | Version + `-test` |
+| `demo` | Dedicated isolated demo stack | Demo build targets |
+
+The profile must agree with `ENV_NAME` when explicitly selected. Without
+`--environment`, the command derives it from the environment file, allowing an
+explicit process-environment override. Use `--legacy` for the maintained older-host
+Compose definitions. `--overlay FILE` appends an overlay; repeated
+`--compose-file FILE` options replace the default file selection entirely.
+Keep the same environment file, project name and ordered overlays for every operation.
+
+Preview a regular deployment using local files only:
+
+```bash
+bash install.sh plan --environment stage --env-file .stage.env --project coyote4-stage
+bash install.sh deploy --environment stage --env-file .stage.env --project coyote4-stage
+bash install.sh compose --env-file .stage.env --project coyote4-stage ps
+```
+
+`plan` does not execute subprocesses, contact services or prepare storage. It
+checks local selections and secret placeholders; it cannot establish that a
+network, database or image is ready. `deploy` logs timestamped stages, streams
+build output and stops at the first failure. It does not automatically roll back
+completed database operations. `NO_COLOR=1` disables terminal colors.
+
+Use [demo installation](demo-installation.md) for Docker or native demonstrations.
+Demo settings cannot be substituted into an ordinary production profile.
 
 ## First installation
 
@@ -10,15 +50,14 @@ MongoDB endpoints and the application network must be configured
 before installation. Follow [first installation](first-installation.md) for provisioning.
 
 ```bash
-bash scripts/deployment/install_center.sh \
+bash install.sh deploy \
   --env-file "$COYOTE_ENV_FILE" \
   --project "$COYOTE_PROJECT" \
   --compose-file deploy/compose/docker-compose.yml
 ```
 
 All eight stages run by default: network, directories, build, validate, bootstrap,
-indexes, start and health. `--setup-center` explicitly selects the same complete
-sequence; it cannot be combined with `--steps`. `--skip-build` uses existing images.
+indexes, start and health. `--skip-build` uses existing images.
 `--steps` selects individual stages in their canonical order.
 
 Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
@@ -56,10 +95,6 @@ An initial data failure after account creation does not reopen unauthenticated
 seeding. Rerun deployment to finish indexes and startup while preserving existing
 data, then complete missing modules with the maintenance command.
 
-Update deployment automation to remove the former `--with-demo-center` and
-`--with-knowledgebase-seeds` opt-in flags and `--skip-demo`; these options are rejected. Use skip
-flags for fresh installation and the separate maintenance command for later work.
-
 ### Stages and operational flags
 
 | Stage or option | Behavior |
@@ -89,7 +124,7 @@ before image builds or container operations. Provision missing infrastructure us
 The installer does not change firewall rules, forwarding settings or Docker daemon
 configuration, and does not restart the Docker daemon.
 
-For a configuration-only host preflight, use `center_preflight.sh` with the same
+For a configuration-only host preflight, use `bash install.sh check --resolved` with the same
 environment file and ordered Compose files. It needs a supported host interpreter
 with the application installed. It validates the resolved mounts, center files
 (including optional report presentation) and directory mode bits. It does not
@@ -132,7 +167,7 @@ Alternatively run the command in the built API image, as shown below; no host
 virtual environment is needed for that path.
 
 ```bash
-.venv/bin/python scripts/deployment/manage_data.py \
+bash install.sh data \
   --api-url https://coyote.example.org/coyote4 \
   --modules application knowledgebase
 ```
@@ -141,13 +176,13 @@ Without `--force`, populated catalog collections are skipped. To repair selected
 bundled modules:
 
 ```bash
-.venv/bin/python scripts/deployment/manage_data.py \
+bash install.sh data \
   --api-url https://coyote.example.org/coyote4 \
   --modules application knowledgebase --force
 ```
 
 Inside Compose, use `coyote_compose run --rm --no-deps -it api python3
-scripts/deployment/manage_data.py --api-url http://api:8001 --modules knowledgebase --force`.
+-m deploy.installer data --api-url http://api:8001 --modules knowledgebase --force`.
 The API's configured connection needs write privileges on each selected database.
 
 The command requests a username and hidden password, signs in using
@@ -201,7 +236,7 @@ coyote_compose run --rm --no-deps -T api \
 coyote_compose run --rm --no-deps -T api \
   python3 scripts/database/manage_mongo_indexes.py apply --scope application --summary
 coyote_compose run --rm --no-deps -T api \
-  python3 -m scripts.deployment.installation_checks indexes-ready --scope application
+  python3 -m deploy.installer.checks indexes-ready --scope application
 ```
 
 Replace `application` with `knowledgebase` for separately scheduled reference index

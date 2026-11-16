@@ -66,7 +66,7 @@ for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
 done
 
 coyote_compose() {
-  bash scripts/deployment/compose-with-version.sh \
+  bash install.sh compose \
     -p "$COYOTE_PROJECT" --env-file "$COYOTE_ENV_FILE" \
     "${COYOTE_COMPOSE_ARGS[@]}" "$@"
 }
@@ -170,7 +170,7 @@ Reload the environment after edits and validate/build before interrupting servic
 set -a
 . "$COYOTE_ENV_FILE"
 set +a
-bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
+bash install.sh check --env-file "$COYOTE_ENV_FILE"
 coyote_compose config --quiet
 coyote_compose pull --ignore-buildable
 coyote_compose build
@@ -271,11 +271,6 @@ Use the exact migration instructions supplied with the reviewed release. Review
 its dry-run/plan, scope, counts and recovery requirements before applying changes.
 If those instructions are missing for a changed stored contract, keep the old
 installation in service or restore it without applying the new release.
-
-For installations retaining the notification `expires_on` TTL index, follow the
-[notification retention procedure](../operations/email-and-notifications.md#existing-installations).
-Review the dry run before applying changes. It preserves remaining records but cannot
-recover notifications already removed by the old index.
 
 Application and identity indexes use the index tool's default `application` scope.
 For declared knowledgebase index changes, separately plan and apply

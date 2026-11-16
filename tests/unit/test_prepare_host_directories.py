@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.deployment.prepare_host_directories import (
+from deploy.installer.storage import (
     check_directory_access,
     prepare,
     prepare_accreditation_logo,
@@ -163,7 +163,18 @@ def test_bind_mount_access_does_not_require_container_access_to_host_parents(tmp
 def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):
     """Deployment creates storage before Compose up; ordinary config stays read-only."""
     config = tmp_path / "render.json"
-    config.write_text(json.dumps(configuration(tmp_path)))
+    rendered = configuration(tmp_path)
+    secrets = {
+        "SECRET_KEY": "synthetic-secret-key",
+        "INTERNAL_API_TOKEN": "synthetic-token-value",
+        "PASSWORD_TOKEN_SALT": "synthetic-token-salt",
+        "REDIS_PASSWORD": "a" * 32,
+        "COYOTE4_MONGO_URI": "mongodb://synthetic.invalid",
+    }
+    rendered["services"]["api"]["environment"].update(secrets)
+    config.write_text(json.dumps(rendered))
+    env_file = tmp_path / "deployment.env"
+    env_file.write_text("".join(f"{key}={value}\n" for key, value in secrets.items()))
     binary = tmp_path / "docker"
     binary.write_text(
         "#!/usr/bin/env python3\nimport sys,os,pathlib\n"
@@ -182,7 +193,7 @@ def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):
         TEST_STORAGE_ROOT=str(tmp_path),
     )
     root = Path(__file__).resolve().parents[2]
-    command = ["bash", str(root / "scripts/deployment/compose-with-version.sh")]
+    command = ["bash", str(root / "install.sh"), "compose", "--env-file", str(env_file)]
     subprocess.run([*command, "config"], env=env, check=True, capture_output=True)
     assert not (tmp_path / "data").exists()
     subprocess.run([*command, "up", "-d"], env=env, check=True, capture_output=True)

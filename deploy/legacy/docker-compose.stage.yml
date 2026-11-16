@@ -1,14 +1,14 @@
 # Combine with docker-compose.yml; select the project with -p.
 services:
   frontend:
-    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
   docs:
-    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
   api:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
   worker:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
   beat:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
   proxy:
     ports: ["${COYOTE4_PORT:-8804}:8088"]

@@ -19,6 +19,10 @@ clinical behavior and traceability unless the requested change explicitly alters
 - `frontend/`: React presentation, UI defaults and API client abstractions.
 - Each component owns its tests and documentation. Root tests cover composed
   behavior, packaging, security and integration boundaries.
+- `install.sh` is the single installation and deployment entry point. Shared
+  orchestration belongs in `deploy/installer/`; extend its commands rather than
+  adding another launcher. Keep production, development, staging and test profile
+  selection consistent, and preserve the demo's independent credentials and storage.
 
 Load deployment configuration once in the API and pass typed, scoped settings to
 packages. Keep defaults in their existing authoritative modules; reuse them instead

@@ -78,7 +78,7 @@ the existing permission and assay/environment checks. See
 
 The web UI and remote Python client SDK are separate consumers of the HTTP API.
 The deployment image also installs the client for HTTP-based administration commands
-such as `manage_data.py`; API runtime code does not import it.
+such as `install.sh data`; API runtime code does not import it.
 The application SDK owns the shared use-case entry points:
 
 ```text

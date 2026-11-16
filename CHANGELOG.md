@@ -18,6 +18,8 @@
   workflows, recovery support, container deployment and migration tools.
 - Coyote Atlas reference bundles with integrity checks and recorded provenance;
   isolated Coyote Demo installations for local and Docker use.
+- One installation command for deployment profiles, local planning, configuration
+  checks and isolated demos, with staged logging and existing-data safeguards.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
 - Minimal GitHub smoke checks, focused contribution templates and a documented
@@ -66,7 +68,7 @@ record package-specific changes.
 - Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
 - Added version-aware compose workflow:
   - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
-  - Added `scripts/deployment/compose-with-version.sh` to export version from `api/version.py` and run `docker compose`.
+  - Added `install.sh compose` to export version from `api/version.py` and run `docker compose`.
 - Added npm package version sync from Python version source:
   - Added `scripts/release/sync-package-version.js`.
   - Wired package version sync from `api/version.py`.

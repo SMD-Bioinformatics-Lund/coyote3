@@ -23,7 +23,7 @@ if [[ -z "$SHELLCHECK_BIN" ]]; then
 fi
 
 echo "[check] shellcheck on scripts"
-mapfile -d '' shell_scripts < <(find scripts -type f -name '*.sh' -print0)
-"$SHELLCHECK_BIN" "${shell_scripts[@]}"
+mapfile -d '' shell_scripts < <(rg --files --null --glob '*.sh' scripts)
+"$SHELLCHECK_BIN" install.sh "${shell_scripts[@]}"
 
 echo "[ok] shell quality checks passed"

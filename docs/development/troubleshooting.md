@@ -21,7 +21,7 @@ Checks:
 Quick probe:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \

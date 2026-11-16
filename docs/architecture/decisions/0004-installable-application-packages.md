@@ -59,7 +59,7 @@ optional integrations; neither requires an always-running service of its own.
 
 The independent client communicates through HTTP and imports no server or core code.
 The deployment image includes its verified wheel for administration commands such
-as `manage_data.py`; the API runtime does not depend on or import the client.
+as `install.sh data`; the API runtime does not depend on or import the client.
 
 ## Benefits
 

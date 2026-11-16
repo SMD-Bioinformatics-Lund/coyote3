@@ -4,7 +4,9 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Run commands from the repository root with the application virtual environment.
+Use `bash install.sh --help` for installation and deployment operations. Internal
+installer modules live in `deploy/installer/`. Run the operational scripts below
+from the repository root with the application virtual environment.
 The [script reference](../docs/development/script-reference.md) describes individual
 commands, their callers, and operational prerequisites.
 
@@ -12,11 +14,9 @@ commands, their callers, and operational prerequisites.
 | --- | --- |
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
 | `branding/` | One blueprint for the approved application and package logos |
-| `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
 | `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
 | `identity/` | Identity database migration and permission/role maintenance |
-| `knowledgebase/` | HGNC and external reference imports, storage migrations, and repairs |
-| `maintenance/` | Operational data maintenance |
+| `knowledgebase/` | HGNC and external reference imports, reference publication and supported database relocation |
 | `docs/` | Reproducible schema/permission reference generators, Markdown lint and link validation |
 | `quality/` | Repository checks, secret scanning, and test orchestration |
 | `release/` | Version synchronization, SDK wheel builds, and release artifact verification |
@@ -36,7 +36,7 @@ provided by [Coyote Relay](../services/relay/docs/usage.md), not a scripts direc
 Normal deployment does not install demonstration code or samples. The optional
 `coyote-demo` package supplies `coyote-demo-install` and its authenticated API
 routes for an [explicitly isolated demo environment](../docs/deployment/demo-installation.md).
-`manage_data.py` manages identity, application and knowledgebase catalogs only.
+`install.sh data` manages identity, application and knowledgebase catalogs only.
 The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
 documents the packaged installer. Offline ingest and reporting fixtures belong in
 `tests/fixtures/clinical_workflows/`; they are not production startup tools.

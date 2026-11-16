@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 import pytest
 import yaml
 
-from scripts.deployment import demo, demo_bootstrap
+from deploy.installer import demo, demo_bootstrap
 
 
 def test_prepare_ignores_ambient_connections_and_generates_distinct_credentials(

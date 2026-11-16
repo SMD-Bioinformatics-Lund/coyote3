@@ -238,7 +238,7 @@ not establish when it is applied, which permissions are required or what is save
 
 | Documentation area | Code to cross-check | Evidence to retain |
 | --- | --- | --- |
-| Deployment and upgrades | `scripts/deployment/`, `deploy/compose/`, `api/src/coyote_api/config/` | Shell syntax, real script flags, Compose precedence, environment defaults and rollback boundaries. Do not execute writes just to validate prose. |
+| Deployment and upgrades | `deploy/installer/`, `deploy/compose/`, `api/src/coyote_api/config/` | Shell syntax, real script flags, Compose precedence, environment defaults and rollback boundaries. Do not execute writes just to validate prose. |
 | Accounts and access | `api/src/coyote_api/security/`, `core/src/coyote/application/operations/`, RBAC seed catalogs | Role responsibilities, route permissions, sample scope and temporary-password behavior. |
 | Assays and configuration | `core/src/coyote/contracts/schemas/`, `core/src/coyote/application/resources/` | Required versus optional resources, Base fallback, scope immutability and activation checks. |
 | Finding selection | `core/src/coyote/application/query_rules/`, `core/src/coyote/domain/dna/`, `core/src/coyote/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |

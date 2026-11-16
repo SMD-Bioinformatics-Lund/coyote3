@@ -39,8 +39,7 @@ def test_proxy_mounts_standalone_error_page_in_every_stack(definition: str) -> N
 @pytest.mark.parametrize(
     "script",
     [
-        "scripts/deployment/compose-with-version.sh",
-        "scripts/deployment/install_center.sh",
+        "install.sh",
         "scripts/quality/run_quality_suite.sh",
         "scripts/quality/run_package_tests.sh",
         "scripts/database/mongo_backup_archive.sh",
@@ -182,54 +181,6 @@ def test_restore_does_not_print_database_credentials(tmp_path: Path, monkeypatch
     assert "restore complete" in result.stdout
     assert uri not in result.stdout + result.stderr
     assert "synthetic-password" not in result.stdout + result.stderr
-
-
-def test_preflight_checks_runtime_mount_write_access() -> None:
-    script = (REPOSITORY_ROOT / "scripts/deployment/center_preflight.sh").read_text(
-        encoding="utf-8"
-    )
-
-    assert (
-        "from scripts.deployment.prepare_host_directories import check_directory_access" in script
-    )
-    assert "check_directory_access(mounts[target], uid, gid, mount_root=mounts[target])" in script
-    assert 'for target in ("/data", "/app/logs")' in script
-    assert 'item.get("read_only")' in script
-
-
-def test_preflight_requires_explicit_database_names() -> None:
-    script = (REPOSITORY_ROOT / "scripts/deployment/center_preflight.sh").read_text(
-        encoding="utf-8"
-    )
-
-    assert "from coyote_mongo.config.endpoints import mongo_endpoints" in script
-    assert "mongo_endpoints(settings)" in script
-    assert "auth_source != db" not in script
-
-
-def test_center_check_forwards_an_explicit_authentication_provider() -> None:
-    script = (REPOSITORY_ROOT / "scripts/deployment/center_check.sh").read_text(encoding="utf-8")
-
-    assert 'PROVIDER="local"' in script
-    assert '--provider) PROVIDER="$2"; shift 2 ;;' in script
-    assert '--provider "$PROVIDER"' in script
-
-    invalid_result = _run_script("center_check.sh", "--provider", "unsupported")
-    assert invalid_result.returncode == 2
-    assert "--provider must be local or ldap" in invalid_result.stderr
-
-
-def test_api_images_include_center_check_runtime_dependencies() -> None:
-    for relative_path, stage in (
-        ("docker/Dockerfile", "coyote4_runtime_base"),
-        ("docker/Dockerfile.dev", "coyote4_dev_runtime_base"),
-        ("docker/Dockerfile.legacy", "coyote4_runtime_base"),
-    ):
-        dockerfile = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
-        runtime = dockerfile.split(f" AS {stage}\n", 1)[1].split("\nFROM ", 1)[0]
-        install_block = runtime.split("apt-get install -y --no-install-recommends", 1)[1]
-        install_block = install_block.split("&&", 1)[0]
-        assert "curl" in install_block.split()
 
 
 @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.legacy"])

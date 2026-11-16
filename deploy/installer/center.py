@@ -142,14 +142,14 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
         staging.rename(destination)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Parse a configuration source and publish one validated center release."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True, help="Local directory or Git repository URL")
     parser.add_argument("--destination", required=True, type=Path)
     parser.add_argument("--revision", help="Full Git commit SHA; required for a repository URL")
     parser.add_argument("--subdirectory", default=".")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     prepare(args.source, args.destination, args.revision, args.subdirectory)
     print(f"Validated center configuration: {args.destination}")
 

@@ -46,7 +46,7 @@ the [first-installation guide](first-installation.md) owns installation commands
 Run preflight against the exact files used for deployment:
 
 ```bash
-PYTHON_BIN=.venv/bin/python scripts/deployment/center_preflight.sh \
+PYTHON_BIN=.venv/bin/python install.sh check --resolved \
   --env-file .coyote4_validation_env \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.stage.yml
@@ -101,36 +101,31 @@ or screenshots.
 
 ## 4. Validate representative DNA and RNA ingestion
 
-Run each controlled manifest through the deployed API:
+Use Coyote Relay to validate and submit a copy of each controlled manifest.
+This writes sample data; `--increment` can create an additional sample on a
+repeated submission. Use a disposable validation deployment or an approved test
+sample. Obtain a short-lived bearer token through the documented
+[Relay login workflow](../../services/relay/docs/usage.md), stored in an owner-only
+file. Keep tokens out of command arguments and captured evidence.
 
-This is a write operation. The helper uses `increment=true`; rerunning can create
-another sample instead of updating an existing one. It does not rename the local
-manifest. Use a disposable validation deployment or an explicitly approved test
-sample. The password is prompted when omitted. A ZIP must preserve the relative
-paths referenced by its manifest; without a ZIP those paths must be readable
-inside the API container. ZIP contents are checked by the server; they need not
-also exist as loose files on the host running the check. The optional local `--skip-file-check` does not bypass
-server-side validation.
-
-Uploaded manifest paths accept forward slashes and Windows backslashes. If an
-exact archive path is unavailable, a unique basename can resolve it; duplicate
-basenames require an exact path. Unsupported ZIP compression is rejected before
-extraction, and corrupt compressed contents are reported as invalid uploads.
+A ZIP must preserve the relative paths referenced by its manifest. Without a ZIP,
+those paths must be readable inside the API container. The server validates archive
+paths, compression and contents before extraction. Relay records the terminal
+acknowledgement and renames the submitted copy to `.done` or `.failed`; preserve the
+original validation manifest separately.
 
 ```bash
-bash scripts/deployment/center_check.sh \
-  --api-base-url https://validation.example.org/coyote4 \
-  --username "$COYOTE4_VALIDATION_USER" \
-  --provider local \
-  --yaml-file /validation-data/dna/sample.coyote4.yaml \
-  --data-archive /validation-data/dna/inputs.zip
+coyote-relay-validate --yaml validation/dna/sample.coyote4.yaml
+coyote-relay-submit validation/dna/sample.coyote4.yaml \
+  --base-url https://validation.example.org/coyote4 \
+  --auth bearer --token-file "$COYOTE_VALIDATION_TOKEN_FILE" \
+  --archive validation/dna/inputs.zip --increment
 
-bash scripts/deployment/center_check.sh \
-  --api-base-url https://validation.example.org/coyote4 \
-  --username "$COYOTE4_VALIDATION_USER" \
-  --provider local \
-  --yaml-file /validation-data/rna/sample.coyote4.yaml \
-  --data-archive /validation-data/rna/inputs.zip
+coyote-relay-validate --yaml validation/rna/sample.coyote4.yaml
+coyote-relay-submit validation/rna/sample.coyote4.yaml \
+  --base-url https://validation.example.org/coyote4 \
+  --auth bearer --token-file "$COYOTE_VALIDATION_TOKEN_FILE" \
+  --archive validation/rna/inputs.zip --increment
 ```
 
 Then run the real-browser suite:

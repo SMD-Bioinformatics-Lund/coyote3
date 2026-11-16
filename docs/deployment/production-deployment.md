@@ -33,7 +33,7 @@ on one installation. Changing the project name can create a second application
 stack and a different Redis volume, even if MongoDB settings are unchanged.
 
 The application definition is `deploy/compose/docker-compose.yml`. Use
-`scripts/deployment/compose-with-version.sh` for deployment commands. No MongoDB
+`install.sh compose` for deployment commands. No MongoDB
 profile or development overlay is part of the production application procedure.
 The wrapper prepares application storage before startup and refuses `down -v`.
 

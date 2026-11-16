@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     clean.update(record["environment"])
     port = record["port"]
     commands = {
-        "bootstrap": [sys.executable, str(ROOT / "scripts/deployment/demo_bootstrap.py")],
+        "bootstrap": [sys.executable, str(ROOT / "deploy/installer/demo_bootstrap.py")],
         "api": [
             sys.executable,
             "-m",

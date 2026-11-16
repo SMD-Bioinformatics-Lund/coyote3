@@ -26,7 +26,7 @@ services:
       - frontend_node_modules:/app/node_modules
 
   api:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     build:
       additional_contexts: !reset {}
       dockerfile: docker/Dockerfile.dev
@@ -56,18 +56,18 @@ services:
     command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api/src --reload-dir /app/adapters/mongo/src --reload-dir /app/core/src
 
   worker:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 
   beat:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 
   maintenance-worker:
     volumes: *dev-app-volumes
 
   monitor:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 
   proxy:

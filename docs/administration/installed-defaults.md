@@ -202,7 +202,7 @@ See [Clinical vocabulary](clinical-vocabulary.md),
 [Sample manifest](../reference/sample-manifest.md) and
 [Clinical query policy](../configuration/clinical-query-policy-file.md).
 
-Center setup (`--setup-center`) loads the bundled HGNC snapshot and VEP releases
+Fresh deployment (`install.sh deploy`) loads the bundled HGNC snapshot and VEP releases
 98–116, including their diagram assets. Source attribution and release hashes are
 recorded under `api/src/coyote_api/bootstrap/catalogs/reference/`. These snapshots do not install
 every external knowledgebase used by the application; follow the relevant

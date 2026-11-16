@@ -172,6 +172,7 @@ convention = "google"
 "core/src/coyote/**/*.py" = ["TID251"]
 "core/tests/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
+"deploy/installer/**/*.py" = ["TID251"]
 "migrations_scripts/**/*.py" = ["TID251"]
 "tests/**/*.py" = ["TID251"]
 

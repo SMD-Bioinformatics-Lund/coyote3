@@ -771,7 +771,7 @@ Seed source policy for a new deployment:
   the [isolated demo workflow](../deployment/demo-installation.md) for demonstration
   installation and reviewed center definitions for clinical work.
 - HGNC and VEP metadata belong to the checked Atlas reference bundle. The optional
-  `scripts/deployment/manage_data.py --api-url API_URL --modules knowledgebase` command
+  `install.sh data --api-url API_URL --modules knowledgebase` command
   uses API login and a server-side administrator-role check for later additions;
   it never takes data from
   test fixtures.
@@ -1014,7 +1014,7 @@ Use this order for a clean deployment at a new center.
    - It creates the first superuser and system administrator and loads `permissions`
      and `roles` into `IDENTITY_DB`, then installs the selected default data modules.
 3. Start Coyote4 services. Later data additions use
-   `scripts/deployment/manage_data.py --api-url API_URL --modules application knowledgebase`.
+   `install.sh data --api-url API_URL --modules application knowledgebase`.
    Sign in with an administrator account and complete any required password change.
 4. Import approved center ASP, ASPC, and ISGL configuration.
 5. Optionally import filtering and annotation knowledgebase collections. The

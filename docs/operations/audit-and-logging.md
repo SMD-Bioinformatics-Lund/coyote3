@@ -436,7 +436,7 @@ The normal one-command installer can perform the upgrade before validation when
 the administrator explicitly supplies the maintenance URI file:
 
 ```bash
-bash scripts/deployment/install_center.sh --setup-center \
+bash install.sh deploy \
   --env-file "$COYOTE_ENV_FILE" --project "$COYOTE_PROJECT" \
   --compose-file deploy/compose/docker-compose.yml \
   --identity-maintenance-uri-file /protected/identity-maintenance-uri

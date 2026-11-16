@@ -204,10 +204,10 @@ stop installation without printing connection credentials.
 To repeat the check independently after Redis is running:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   --env-file "$COYOTE_ENV_FILE" -p "$COYOTE_PROJECT" \
   -f deploy/compose/docker-compose.yml \
-  run --rm --no-deps -T api python3 -m scripts.deployment.installation_checks redis
+  run --rm --no-deps -T api python3 -m deploy.installer.checks redis
 ```
 
 | Observation | Next check |

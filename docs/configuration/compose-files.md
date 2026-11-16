@@ -78,7 +78,7 @@ storage example includes API, both workers and beat.
 Pass the base file first and the private override afterward:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   --env-file /srv/coyote/config/production.env \
   -f deploy/compose/docker-compose.yml \
   -f /srv/coyote/config/storage.yml config --quiet

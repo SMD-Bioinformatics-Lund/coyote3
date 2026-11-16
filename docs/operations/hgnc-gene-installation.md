@@ -19,7 +19,7 @@ Ensembl BioMart CSV export by HGNC ID. It validates the resulting documents agai
 the application's `HgncGenesDoc` contract and writes a review artifact. Database
 writes require `--apply`; conversion alone does not connect to MongoDB.
 
-For a first installation, `install_center.sh --setup-center` already installs the
+For a first installation, `install.sh deploy` already installs the
 bundled HGNC snapshot into an empty collection. This standalone command prepares
 and installs a separately reviewed gene reference from source files. It does not
 download data or refresh references automatically.

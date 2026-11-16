@@ -96,18 +96,18 @@ def verify_sdk_artifact(
     return record
 
 
-def verify_compose_artifacts(config_path: Path, release_path: Path) -> None:
+def verify_compose_artifacts(config_path: Path | dict, release_path: Path) -> None:
     """Check resolved local SDK build contexts before installation stages run.
 
     Args:
-        config_path: JSON produced by Docker Compose's config command.
+        config_path: Resolved Compose settings or a path to their JSON representation.
         release_path: Application release selection for this checkout.
 
     Raises:
         ValueError: A local SDK context, build mode or retained artifact is invalid.
         OSError: The rendered configuration or artifact inputs cannot be read.
     """
-    config = json.loads(config_path.read_text())
+    config = json.loads(config_path.read_text()) if isinstance(config_path, Path) else config_path
     for name, service in config.get("services", {}).items():
         build = service.get("build")
         if not isinstance(build, dict):

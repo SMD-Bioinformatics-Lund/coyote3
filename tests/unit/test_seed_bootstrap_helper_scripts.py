@@ -582,7 +582,7 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
     )
 
     result = subprocess.run(
-        ["bash", "scripts/deployment/validate_env_secrets.sh", "--env-file", str(env_file)],
+        ["bash", "install.sh", "check", "--env-file", str(env_file)],
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
@@ -590,7 +590,7 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[ok] env validation passed" in result.stdout
+    assert "passed local validation" in result.stderr
 
 
 def test_env_secret_validation_requires_password_token_salt(tmp_path):
@@ -607,7 +607,7 @@ def test_env_secret_validation_requires_password_token_salt(tmp_path):
     )
 
     result = subprocess.run(
-        ["bash", "scripts/deployment/validate_env_secrets.sh", "--env-file", str(env_file)],
+        ["bash", "install.sh", "check", "--env-file", str(env_file)],
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
@@ -615,7 +615,7 @@ def test_env_secret_validation_requires_password_token_salt(tmp_path):
     )
 
     assert result.returncode == 1
-    assert "missing required key: PASSWORD_TOKEN_SALT" in result.stdout
+    assert "missing required key: PASSWORD_TOKEN_SALT" in result.stderr
 
 
 def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):

@@ -29,7 +29,7 @@ set -a
 set +a
 
 coyote_compose() {
-  bash scripts/deployment/compose-with-version.sh \
+  bash install.sh compose \
     -p "$COYOTE_PROJECT" --env-file "$COYOTE_ENV_FILE" \
     -f deploy/compose/docker-compose.yml "$@"
 }
@@ -53,7 +53,7 @@ before continuing. Do not select a new project name to work around startup error
 
 ```bash
 docker network inspect "$COYOTE4_APP_NETWORK" --format '{{.Name}} {{.Driver}}'
-bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
+bash install.sh check --env-file "$COYOTE_ENV_FILE"
 coyote_compose config --quiet
 ```
 

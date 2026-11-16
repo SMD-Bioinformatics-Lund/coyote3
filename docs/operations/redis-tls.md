@@ -85,7 +85,7 @@ production Compose project name and use that same name for every command; changi
 selects a different stack and different project-scoped volumes.
 
 ```bash
-./scripts/deployment/install_center.sh \
+./install.sh deploy \
   --env-file /path/to/production.env \
   --project coyote4-prod \
   --compose-file deploy/compose/docker-compose.yml \
@@ -95,7 +95,7 @@ selects a different stack and different project-scoped volumes.
 For subsequent production Compose commands:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file /path/to/production.env \
   -p coyote4-prod \
   -f deploy/compose/docker-compose.yml \
@@ -112,7 +112,7 @@ maintenance window. Development and staging commands remain unchanged.
 After starting production, check the authenticated TLS connection:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file /path/to/production.env \
   -p coyote4-prod \
   -f deploy/compose/docker-compose.yml \

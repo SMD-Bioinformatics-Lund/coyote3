@@ -366,11 +366,11 @@ def main() -> int:
 
     Notes:
         Only the invocation that creates initial governance may seed without API login.
-        Once accounts exist, later additions and repairs use manage_data.py.
+        Once accounts exist, later additions and repairs use install.sh data.
     """
     from coyote_mongo.connections import MongoConnections
 
-    from scripts.deployment.installation_checks import has_documents, installation_state
+    from deploy.installer.checks import has_documents, installation_state
 
     args = parse_args()
     _fail_if_placeholder_values(args)
@@ -395,7 +395,7 @@ def main() -> int:
         state = installation_state(primary, identity)
         if state == "existing":
             print(
-                "[skipped] Existing deployment; use manage_data.py for authenticated additions or repairs."
+                "[skipped] Existing deployment; use install.sh data for authenticated additions or repairs."
             )
             return 0
         if getattr(args, "skip_users", False):
@@ -448,7 +448,7 @@ def main() -> int:
                 _install_initial_data(databases, seed, args)
             except Exception:
                 print(
-                    "Initial accounts exist. Complete missing modules through manage_data.py "
+                    "Initial accounts exist. Complete missing modules through install.sh data "
                     "after starting the API.",
                     file=sys.stderr,
                 )

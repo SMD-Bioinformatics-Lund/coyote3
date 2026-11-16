@@ -23,7 +23,7 @@ loads them together with the three editable center files before bootstrap writes
 ![First-deployment bootstrap data flow](../assets/diagrams/bootstrap-data-flow.svg)
 
 1. Prepare deployment configuration, storage, MongoDB endpoints and database users.
-2. Run `scripts/deployment/install_center.sh --setup-center` to build images and validate configuration
+2. Run `install.sh deploy` to build images and validate configuration
    and database readiness.
 3. On fresh targets, bootstrap creates initial accounts and RBAC, then installs
    application catalogs and bundled HGNC/VEP references
@@ -66,7 +66,7 @@ creates a named system administrator and an emergency superuser. It
 runs only against empty governance collections.
 Bundled HGNC/VEP references are installed by default;
 use `--skip-knowledgebase` to disable them. Later additions and
-repairs use `scripts/deployment/manage_data.py --api-url API_URL --modules
+repairs use `install.sh data --api-url API_URL --modules
 application knowledgebase`. Add `--force` to repair explicitly selected modules.
 API login, administrator roles and required password changes apply to maintenance.
 Knowledgebase indexing is a separate opt-in operation.
@@ -149,7 +149,7 @@ do not install demonstration records.
 Start Coyote4 after database bootstrap:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build

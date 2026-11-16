@@ -1,4 +1,4 @@
-name: ${COYOTE_DEMO_PROJECT:?Use scripts/deployment/demo.py to prepare a private demo}
+name: ${COYOTE_DEMO_PROJECT:?Use install.sh demo to prepare a private demo}
 
 x-demo-environment: &demo-environment
   COYOTE_DEMO_ENABLED: "1"
@@ -98,7 +98,7 @@ services:
       <<: *demo-environment
       COYOTE_DEMO_ADMIN_PASSWORD: ${COYOTE_DEMO_ADMIN_PASSWORD:?}
       COYOTE_DEMO_SUPERUSER_PASSWORD: ${COYOTE_DEMO_SUPERUSER_PASSWORD:?}
-    command: [python3, scripts/deployment/demo_bootstrap.py]
+    command: [python3, deploy/installer/demo_bootstrap.py]
     depends_on:
       demo-replica: {condition: service_completed_successfully}
       demo-storage: {condition: service_completed_successfully}

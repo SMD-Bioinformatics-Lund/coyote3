@@ -41,12 +41,12 @@ new code pass.
 Validate the resolved Compose model before changing deployment files.
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   config -q
 
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
@@ -61,7 +61,7 @@ API logs are structured JSON. Authentication and mail outcomes use the
 `auth_metric` and `mail_metric` event names.
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \

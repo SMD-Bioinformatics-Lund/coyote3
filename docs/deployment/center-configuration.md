@@ -50,7 +50,7 @@ cp api/src/coyote_api/config/examples/center/{contact.toml,clinical_vocabulary.t
 # Optional: configure wording for empty modern-report sections.
 cp api/src/coyote_api/config/examples/center/report_presentation.toml /srv/coyote4/center-config-work/
 
-.venv/bin/python scripts/deployment/prepare_center_config.py \
+bash install.sh center \
   --source /srv/coyote4/center-config-work \
   --destination /srv/coyote4/center-releases/reviewed-001
 ```
@@ -58,7 +58,7 @@ cp api/src/coyote_api/config/examples/center/report_presentation.toml /srv/coyot
 Alternatively, stage the same files from a separate GitHub or other Git repository:
 
 ```bash
-.venv/bin/python scripts/deployment/prepare_center_config.py \
+bash install.sh center \
   --source https://github.com/EXAMPLE/center-configuration.git \
   --revision FULL_40_CHARACTER_COMMIT_SHA \
   --subdirectory center \
@@ -140,7 +140,7 @@ then install the reviewed clinical configuration in the
 Validate the edited files from a checkout with the development dependencies:
 
 ```bash
-PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_preflight.sh \
+PYTHON_BIN=.venv/bin/python bash install.sh check --resolved \
   --env-file .coyote4_env \
   --compose-file deploy/compose/docker-compose.yml
 ```
@@ -360,11 +360,11 @@ Center-file changes do not require rebuilding the API image. For the base
 production definition, rebuild documentation and recreate the affected services:
 
 ```bash
-scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml build docs
 
-scripts/deployment/compose-with-version.sh \
+bash install.sh compose \
   --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml up -d --force-recreate api worker beat monitor docs
 ```

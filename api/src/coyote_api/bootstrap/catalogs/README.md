@@ -46,7 +46,7 @@ require the optional package and the separate
 
 Only the invocation that creates the initial accounts may add data without API login.
 Existing deployments skip bootstrap completely, including missing modules. Later
-additions and repairs use `scripts/deployment/manage_data.py --api-url API_URL
+additions and repairs use `install.sh data --api-url API_URL
 --modules application knowledgebase`; add `--force` for selected bundled repairs.
 The API service requires `admin`, `sys_admin` or `superuser`. The maintenance client
 completes a required password change and signs in again before adding any data.

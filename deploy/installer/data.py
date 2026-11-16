@@ -10,17 +10,14 @@ import argparse
 import getpass
 import os
 import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-import httpx  # noqa: E402
-from coyote.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
-from coyote_api.contracts.deployment_data import (  # noqa: E402
+import httpx
+from coyote.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL
+from coyote_api.contracts.deployment_data import (
     DeploymentDataModule,
     DeploymentDataRequest,
 )
-from coyote_pyclient import CoyoteClient  # noqa: E402
+from coyote_pyclient import CoyoteClient
 
 
 def manage_data(
@@ -86,7 +83,7 @@ def manage_data(
                 pass
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     """Require explicit module selection and report the authenticated maintenance result.
 
     Returns:
@@ -107,7 +104,7 @@ def main() -> int:
     parser.add_argument(
         "--provider", choices=(AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_LDAP), default=AUTH_PROVIDER_LOCAL
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         results = manage_data(
             api_url=args.api_url,

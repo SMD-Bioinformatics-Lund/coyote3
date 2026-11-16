@@ -94,7 +94,8 @@ def test_wrapper_selects_environment(tmp_path, label, suffix, level, explicit):
     result = subprocess.run(
         [
             "bash",
-            str(ROOT / "scripts/deployment/compose-with-version.sh"),
+            str(ROOT / "install.sh"),
+            "compose",
             "--env-file",
             str(env_file),
             "config",
@@ -161,7 +162,9 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
     result = subprocess.run(
         [
             "bash",
-            str(ROOT / "scripts/deployment/center_preflight.sh"),
+            str(ROOT / "install.sh"),
+            "check",
+            "--resolved",
             "--env-file",
             str(env_file),
             "--compose-file",
@@ -173,4 +176,4 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[ok] preflight passed" in result.stdout
+    assert "passed local validation" in result.stderr

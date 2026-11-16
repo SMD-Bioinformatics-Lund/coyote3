@@ -1,7 +1,7 @@
 """Select a supported host Python independently of sudo's system PATH."""
 
 import os
-import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-HELPER = ROOT / "scripts/deployment/python_runtime.sh"
+LAUNCHER = ROOT / "install.sh"
 
 
 @pytest.mark.parametrize("explicit", [False, True])
@@ -27,16 +27,12 @@ def test_deployment_selects_supported_python_over_old_system_default(tmp_path, e
     environment.pop("PYTHON_BIN", None)
     if explicit:
         environment["PYTHON_BIN"] = str(interpreter)
+    shutil.copy(LAUNCHER, tmp_path / "install.sh")
+    package = tmp_path / "deploy/installer"
+    package.mkdir(parents=True)
+    (package / "__main__.py").write_text("import sys; print(sys.executable, end='')")
     result = subprocess.run(
-        [
-            "/bin/bash",
-            "-c",
-            'source "$1"; select_deployment_python "$2" && '
-            '"$PYTHON_BIN" -c "import tomllib" && printf "%s" "$PYTHON_BIN"',
-            "python-selection",
-            str(HELPER),
-            str(tmp_path),
-        ],
+        ["/bin/bash", str(tmp_path / "install.sh")],
         env=environment,
         capture_output=True,
         text=True,
@@ -51,11 +47,10 @@ def test_invalid_explicit_python_stops_before_deployment(tmp_path):
     obsolete.write_text("#!/bin/bash\nexit 1\n")
     obsolete.chmod(0o700)
     result = subprocess.run(
-        ["/bin/bash", "-c", f"source {shlex.quote(str(HELPER))}; select_deployment_python ."],
+        ["/bin/bash", str(LAUNCHER), "--help"],
         env={**os.environ, "PYTHON_BIN": str(obsolete)},
         capture_output=True,
         text=True,
     )
     assert result.returncode == 1
     assert "Python 3.12 or later" in result.stderr
-    assert "not a package to install" in result.stderr

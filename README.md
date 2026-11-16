@@ -36,6 +36,9 @@ access and traceable report snapshots.
 | Submit samples from a pipeline | [Submission guide](docs/api/submit-sample.md) |
 | Develop or troubleshoot | [Developer setup](docs/getting-started/developer-environment.md) · [Troubleshooting](docs/operations/troubleshooting.md) |
 
+Use `bash install.sh --help` for deployment commands and
+[profile selection](docs/deployment/installation-operations.md#entry-point-and-profiles).
+
 The [documentation index](docs/README.md) organizes user guides, configuration,
 operations and technical references. Each deploying center is responsible for
 validating its clinical configuration and approving its use.

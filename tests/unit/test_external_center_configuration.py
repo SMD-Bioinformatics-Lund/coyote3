@@ -12,9 +12,18 @@ import pytest
 from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
 from coyote.config.loaders.filter_flags import load_filter_flag_metadata
 
-from scripts.deployment.prepare_center_config import FILES, prepare
+from deploy.installer import center as center_installer
+from deploy.installer.center import FILES, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture(autouse=True)
+def staging_checkout(tmp_path, monkeypatch):
+    """Model an independent checkout while keeping all staging files in the test workspace."""
+    checkout = tmp_path / "application"
+    checkout.mkdir()
+    monkeypatch.setattr(center_installer, "ROOT", checkout)
 
 
 @pytest.mark.parametrize(

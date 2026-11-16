@@ -66,7 +66,7 @@ Development excludes the production Redis TLS overlay and needs no Redis certifi
 Run from the checkout after those prerequisites are ready:
 
 ```bash
-bash scripts/deployment/install_center.sh \
+bash install.sh deploy \
   --env-file .coyote4_dev_env \
   --project coyote4-dev \
   --compose-file deploy/compose/docker-compose.yml \
@@ -112,7 +112,7 @@ For programmatic login, follow [API authentication](../api/authentication.md).
 Retain the environment, project and both files:
 
 ```bash
-./scripts/deployment/compose-with-version.sh \
+./install.sh compose \
   --env-file .coyote4_dev_env -p coyote4-dev \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml down

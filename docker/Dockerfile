@@ -67,6 +67,7 @@ FROM coyote4_runtime_base AS coyote4_server_files
 EXPOSE 8001
 
 COPY --chown=coyote4:coyote4 scripts/ ./scripts/
+COPY --chown=coyote4:coyote4 deploy/installer/ ./deploy/installer/
 COPY --chown=coyote4:coyote4 CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY --chown=coyote4:coyote4 LICENSING.md THIRD_PARTY_NOTICES.md ./
 COPY --chown=coyote4:coyote4 release.toml ./

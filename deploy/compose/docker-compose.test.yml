@@ -2,13 +2,13 @@ name: coyote4_test
 
 services:
   frontend:
-    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     profiles: [with-ui]
   docs:
-    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     profiles: [with-ui]
   api:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     build:
       additional_contexts:
         sdk_artifact: ../..
@@ -16,7 +16,7 @@ services:
       target: coyote4_dev_api
       network: host
   worker:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
       target: coyote4_dev_api
@@ -25,7 +25,7 @@ services:
         COYOTE4_UID: ${COYOTE4_UID:-10001}
         COYOTE4_GID: ${COYOTE4_GID:-10001}
   beat:
-    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
       target: coyote4_dev_api
@@ -37,7 +37,7 @@ services:
     profiles: [with-ui]
     ports: ["${COYOTE4_PORT:-6811}:8088"]
   test_runner:
-    image: coyote4-all:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-all:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     profiles: [tests]
     build:
       context: ../..
