@@ -1,5 +1,6 @@
 include build_support.py LICENSE.txt COPYRIGHT.txt NOTICE.txt LICENSING.md THIRD_PARTY_NOTICES.md
-recursive-include src/coyote *.toml *.yaml py.typed
+recursive-include src/coyote *.toml *.yaml *.json py.typed
+recursive-include src/coyote/config/catalogs/rbac *.ndjson
 include CHANGELOG.md
 recursive-include docs *.md *.svg
 recursive-include tests *.py

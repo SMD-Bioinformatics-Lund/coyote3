@@ -50,7 +50,7 @@ Application bootstrap and test fixtures have separate ownership:
 
 | Location | Purpose | Production bootstrap |
 | --- | --- | --- |
-| `api/src/coyote_api/bootstrap/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
+| `core/src/coyote/config/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
 | `api/src/coyote_api/bootstrap/catalogs/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
 | `api/src/coyote_api/bootstrap/catalogs/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
 | `tests/fixtures/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |

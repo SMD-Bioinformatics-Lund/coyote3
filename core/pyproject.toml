@@ -76,7 +76,9 @@ namespaces = true
 coyote = [
     "py.typed",
     "config/*.toml",
+    "config/*.json",
     "config/*.yaml",
+    "config/catalogs/rbac/*.ndjson",
 ]
 
 

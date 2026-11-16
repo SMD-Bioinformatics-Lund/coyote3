@@ -68,11 +68,9 @@ def test_demo_routes_require_permission_and_are_not_documented(monkeypatch, meth
 
 def test_only_installation_roles_receive_demo_permission():
     """Clinical group membership alone never grants installation privileges."""
-    import json
-    from importlib.resources import files
+    from coyote.config.governance_catalog import load_governance_catalog
 
-    path = files("coyote_api.bootstrap").joinpath("catalogs/rbac/roles.seed.ndjson")
-    roles = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    roles = load_governance_catalog("roles")
     assert {role["role_id"] for role in roles if "demo:install" in role["permissions"]} == {
         "demo_installer",
         "admin",

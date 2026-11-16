@@ -3,6 +3,22 @@
 The core owns software capabilities, typed policy inputs and factory defaults.
 It does not read API environment files, database credentials or deployment secrets.
 
+## Shared permission catalog
+
+Core packages the canonical permission definitions and built-in role templates
+under `coyote/config/catalogs/rbac`. Hosts can read independent copies using
+`coyote.config.governance_catalog.load_governance_catalog("permissions")` or
+`load_governance_catalog("roles")`. These calls do not install records or connect
+to a database. The server's explicit installation and upgrade commands consume
+the same files through `RBAC_CATALOG_DIR`.
+
+Installed role assignments, user scopes and center-created roles remain deployment
+state. Built-in definitions are protected through normal administration; create
+center-owned roles when different grants are required. Package imports and normal
+redeployment do not reset installed state.
+
+## Host-supplied settings
+
 Anonymous catalog operations accept `coyote.config.public.PublicSettings` with
 reference-service availability flags. They do not receive reference-service URLs,
 database credentials or the backend settings dictionary. Hosts construct this

@@ -19,7 +19,7 @@ from scripts.knowledgebase import update_vep_metadata as importer
 @pytest.fixture
 def policy():
     """Load the reviewed application labels and group membership."""
-    return json.loads(importer.POLICY.read_text())
+    return importer.load_vep_metadata_policy()
 
 
 @pytest.fixture
@@ -188,7 +188,10 @@ def test_all_seed_releases_have_exhaustive_nonoverlapping_groups():
 
 def test_seed_provenance_records_every_downloaded_release():
     manifest = json.loads(importer.SEED.with_name("vep_metadata.sources.json").read_text())
-    assert manifest.pop("policy_sha256") == hashlib.sha256(importer.POLICY.read_bytes()).hexdigest()
+    assert (
+        manifest.pop("policy_sha256")
+        == hashlib.sha256(importer.VEP_METADATA_POLICY_PATH.read_bytes()).hexdigest()
+    )
     assert set(map(int, manifest)) == set(range(98, 117)) - {103}
     for release, sources in manifest.items():
         assert {"ConsequenceTable.pm", "classification.html", "vep_cache.html"} <= set(sources)

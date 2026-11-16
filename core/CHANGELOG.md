@@ -2,6 +2,10 @@
 
 ## 4.0.0
 
+- Own the shared permission catalog and built-in role templates, with explicit
+  server installation and no database access when loading packaged definitions.
+- Package VEP consequence grouping and label policy independently of server-owned
+  HGNC/VEP reference snapshots and their installation.
 - Reject boolean and nonfinite CNV measurements before normalization; preserve
   caller event labels and valid rounding, and handle unusable copy-number values
   safely in analysis, exports and report projection.

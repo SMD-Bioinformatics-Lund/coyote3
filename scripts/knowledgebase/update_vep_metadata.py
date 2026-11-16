@@ -40,10 +40,14 @@ from coyote_api.config.bootstrap import configure_center_from_environment  # noq
 # Bind the host profile before importing vocabulary-dependent contracts.
 configure_center_from_environment()
 
+from coyote.config.vep_reference import (  # noqa: E402
+    VEP_METADATA_POLICY_PATH,
+    load_vep_metadata_policy,
+)
 from coyote.contracts.schemas.variant_annotations import (  # noqa: E402
     VepMetadataDoc,
 )
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
@@ -56,8 +60,7 @@ from scripts.knowledgebase.vep_diagram_storage import (  # noqa: E402
     store_diagram,
 )
 
-SEED = BOOTSTRAP_ROOT / "reference/vep_metadata.seed.ndjson.gz"
-POLICY = Path(__file__).with_name("vep_metadata_policy.json")
+SEED = REFERENCE_CATALOG_DIR / "vep_metadata.seed.ndjson.gz"
 CONSEQUENCES = "modules/EnsEMBL/Web/Document/HTML/ConsequenceTable.pm"
 CLASSIFICATION = "ensembl/htdocs/info/genome/variation/prediction/classification.html"
 CACHE = "docs/htdocs/info/docs/tools/vep/script/vep_cache.html"
@@ -558,7 +561,7 @@ def main() -> int:
         parser.error("Invalid release range or CPU count")
     if args.apply and not args.backup:
         parser.error("--apply requires --backup")
-    policy = json.loads(POLICY.read_text())
+    policy = load_vep_metadata_policy()
     releases = [n for n in range(args.from_release, args.to_release + 1) if n != 103]
     args.output_dir.mkdir(parents=True, exist_ok=True)
     refs = {}
@@ -584,7 +587,7 @@ def main() -> int:
         results = [future.result() for future in futures]
     documents = [document for document, _ in results]
     manifest = {document["vep_id"]: source for document, source in results}
-    manifest["policy_sha256"] = hashlib.sha256(POLICY.read_bytes()).hexdigest()
+    manifest["policy_sha256"] = hashlib.sha256(VEP_METADATA_POLICY_PATH.read_bytes()).hexdigest()
     (args.output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (args.output_dir / "documents.json").write_text(json_util.dumps(documents, indent=2) + "\n")
     for row in documents:

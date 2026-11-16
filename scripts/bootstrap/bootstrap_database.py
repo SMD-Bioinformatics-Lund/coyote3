@@ -27,16 +27,15 @@ from coyote_api.config.bootstrap import configure_center_from_environment  # noq
 # Bind the host profile before importing vocabulary-dependent contracts.
 configure_center_from_environment()
 
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR  # noqa: E402
 from coyote.contracts.schemas.registry import normalize_collection_document  # noqa: E402
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR  # noqa: E402
 from coyote_api.infra.seed.documents import build_seed_documents  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
-DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
-DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
 SUPERUSER_USERNAME = "coyote4.superuser"
 SYSADMIN_USERNAME = "coyote4.sysadmin"
 
@@ -76,11 +75,13 @@ def parse_args() -> argparse.Namespace:
         "--sys-admin-password", help="Temporary system-admin password; omit to generate one"
     )
     parser.add_argument(
-        "--rbac-dir", default=str(DEFAULT_RBAC_DIR), help="Bundled RBAC seed directory"
+        "--rbac-dir",
+        default=str(RBAC_CATALOG_DIR),
+        help="Core permission and role catalog directory",
     )
     parser.add_argument(
         "--reference-dir",
-        default=str(DEFAULT_REFERENCE_DIR),
+        default=str(REFERENCE_CATALOG_DIR),
         help="Bundled application catalog and knowledgebase seed directory",
     )
     for module in ("users", "application", "knowledgebase", "demo"):

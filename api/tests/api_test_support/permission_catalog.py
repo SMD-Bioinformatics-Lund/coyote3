@@ -1,7 +1,6 @@
 """Active permission catalog for isolated authorization tests."""
 
-import json
-from importlib.resources import files
+from coyote.config.governance_catalog import load_governance_catalog
 
 
 class PermissionCatalog:
@@ -9,9 +8,8 @@ class PermissionCatalog:
 
     def get_all_permissions(self, *, is_active=True):
         """Return bundled permissions matching the requested activation state."""
-        path = files("coyote_api.bootstrap").joinpath("catalogs/rbac/permissions.seed.ndjson")
         return [
             document
-            for line in path.read_text().splitlines()
-            if line.strip() and (document := json.loads(line)).get("is_active", True) == is_active
+            for document in load_governance_catalog("permissions")
+            if document.get("is_active", True) == is_active
         ]

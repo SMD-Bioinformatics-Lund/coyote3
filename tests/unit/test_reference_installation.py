@@ -6,11 +6,11 @@ from unittest.mock import Mock
 
 import httpx
 import pytest
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR
+from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 from coyote_api.infra.seed.bundle import load_reference_seed_pack
 
 from scripts.bootstrap.bootstrap_database import (
-    DEFAULT_RBAC_DIR,
-    DEFAULT_REFERENCE_DIR,
     build_seed_documents,
 )
 from scripts.deployment import manage_data
@@ -25,8 +25,8 @@ def test_application_seed_loading_does_not_read_reference_snapshots(tmp_path):
         "assay_groups": [{"group_id": "synthetic"}]
     }
     seed = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="synthetic.admin",
         include_knowledgebase=False,
     )

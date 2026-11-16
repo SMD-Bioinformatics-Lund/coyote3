@@ -6,14 +6,14 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR
 from coyote.domain.exceptions import AppError
+from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 from coyote_api.services.provisioning.deployment_data import DeploymentDataService
 from coyote_mongo.repositories import deployment_data
 
 from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
-    DEFAULT_RBAC_DIR,
-    DEFAULT_REFERENCE_DIR,
     build_seed_documents,
 )
 from tests.fixtures.mongo_settings import audit_context, mongo_runtime
@@ -78,8 +78,8 @@ def test_repository_preserves_records_captures_policy_revisions_and_audits(monke
         deployment_data, "enqueue_audit", lambda *args, **kwargs: receipts.append(kwargs)
     )
     documents = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="authenticated.admin",
         include_knowledgebase=False,
     )
@@ -183,16 +183,16 @@ def fresh_installation(monkeypatch):
         db="primary",
         identity_db="identity",
         role_id="superuser",
-        rbac_dir=str(DEFAULT_RBAC_DIR),
-        reference_dir=str(DEFAULT_REFERENCE_DIR),
+        rbac_dir=str(RBAC_CATALOG_DIR),
+        reference_dir=str(REFERENCE_CATALOG_DIR),
         skip_users=False,
         skip_application=False,
         skip_knowledgebase=False,
         skip_demo=False,
     )
     documents = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="system",
         include_knowledgebase=False,
     )
@@ -399,8 +399,8 @@ def test_force_application_preserves_center_scopes_and_query_history(monkeypatch
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
     documents = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="system",
         include_knowledgebase=False,
     )

@@ -89,17 +89,17 @@ def test_installed_germline_rules_are_group_scoped():
 
 def test_fresh_bootstrap_loads_complete_query_catalog():
     """First installation includes catalog-only rules as well as TOML criteria."""
+    from coyote.config.governance_catalog import RBAC_CATALOG_DIR
     from coyote.contracts.schemas.query_rules import QueryRuleContent
+    from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 
     from scripts.bootstrap.bootstrap_database import (
-        DEFAULT_RBAC_DIR,
-        DEFAULT_REFERENCE_DIR,
         build_seed_documents,
     )
 
     seed = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="installer",
         include_knowledgebase=False,
     )
@@ -269,7 +269,7 @@ def test_repair_installs_missing_biological_scopes(monkeypatch):
 
 
 def test_query_roles_separate_lifecycle_grants():
-    path = ROOT / "api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson"
+    path = ROOT / "core/src/coyote/config/catalogs/rbac/roles.seed.ndjson"
     roles = {
         row["name"]: row
         for line in path.read_text().splitlines()

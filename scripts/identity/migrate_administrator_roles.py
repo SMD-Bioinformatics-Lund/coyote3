@@ -5,7 +5,6 @@
 """Install administrator responsibility boundaries with an explicitly selected system owner."""
 
 import argparse
-import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -16,7 +15,7 @@ from pymongo import MongoClient
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote.config.governance_catalog import load_governance_catalog  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 from coyote_mongo.transactions import run_transaction  # noqa: E402
@@ -44,11 +43,7 @@ def migrate(database, *, username: str, apply: bool = False) -> dict[str, str]:
     users = database[mapping["users_collection"]]
     roles = database[mapping["roles_collection"]]
     username = username.strip().lower()
-    definitions = [
-        json.loads(line)
-        for line in (BOOTSTRAP_ROOT / "rbac/roles.seed.ndjson").read_text().splitlines()
-        if line.strip()
-    ]
+    definitions = load_governance_catalog("roles")
 
     def operation(session):
         """Recheck the chosen account and atomically install the responsibility split."""

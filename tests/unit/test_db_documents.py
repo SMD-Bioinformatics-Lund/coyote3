@@ -50,7 +50,7 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
     base = (
-        Path("api/src/coyote_api/bootstrap/catalogs/rbac")
+        Path("core/src/coyote/config/catalogs/rbac")
         if filename.startswith(("permissions.", "roles."))
         else Path("api/src/coyote_api/bootstrap/catalogs/reference")
     )

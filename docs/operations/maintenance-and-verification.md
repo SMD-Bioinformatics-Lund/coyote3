@@ -42,7 +42,7 @@ Validate seed data and cross-collection assay relationships before using them.
 # Validate core seed structures and assay relations
 .venv/bin/python scripts/bootstrap/validate_assay_consistency.py \
   --seed-file api/src/coyote_api/bootstrap/catalogs/demo_center \
-  --reference-seed-data api/src/coyote_api/bootstrap/catalogs/rbac \
+  --reference-seed-data core/src/coyote/config/catalogs/rbac \
   --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
   --validate-all-contracts
 ```

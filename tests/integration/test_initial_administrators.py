@@ -1,12 +1,11 @@
 """Check first-installation identity transactions using disposable MongoDB databases."""
 
 import argparse
-import json
 import os
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from coyote.config.governance_catalog import load_governance_catalog
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
@@ -29,15 +28,7 @@ def bootstrap_database():
 
 
 def initialize(database, *, duplicate_email=False):
-    seed = {
-        name: [
-            json.loads(line)
-            for line in Path(f"api/src/coyote_api/bootstrap/catalogs/rbac/{name}.seed.ndjson")
-            .read_text()
-            .splitlines()
-        ]
-        for name in ("roles", "permissions")
-    }
+    seed = {name: load_governance_catalog(name) for name in ("roles", "permissions")}
     accounts = [
         _make_bootstrap_user(
             argparse.Namespace(

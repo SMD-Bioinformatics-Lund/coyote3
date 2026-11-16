@@ -6,4 +6,5 @@
 from pathlib import Path
 
 BOOTSTRAP_ROOT = Path(__file__).resolve().parent / "catalogs"
-CLINICAL_QUERY_SEED_PATH = BOOTSTRAP_ROOT / "reference" / "clinical_query_seed.toml"
+REFERENCE_CATALOG_DIR = BOOTSTRAP_ROOT / "reference"
+CLINICAL_QUERY_SEED_PATH = REFERENCE_CATALOG_DIR / "clinical_query_seed.toml"

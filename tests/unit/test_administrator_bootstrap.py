@@ -41,7 +41,7 @@ def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkey
 
 
 def test_role_bundles_separate_clinical_and_system_responsibilities():
-    path = Path("api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson")
+    path = Path("core/src/coyote/config/catalogs/rbac/roles.seed.ndjson")
     roles = {row["role_id"]: row for row in map(json.loads, path.read_text().splitlines())}
     clinical = set(roles["admin"]["permissions"])
     system = set(roles["sys_admin"]["permissions"])

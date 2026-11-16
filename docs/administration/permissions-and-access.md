@@ -6,7 +6,7 @@ Roles grant action permissions. User assignments pair each assay with its allowe
 environments, with optional biological-group restrictions. The server checks these against the target resource; sharing
 an assay group does not by itself grant a user permission to read or change data.
 
-Coyote4 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
+Coyote4 permissions are exact, data-backed authorization identifiers. Core owns the shipped definitions; the server installs them into MongoDB, roles grant permissions, and users receive one or more roles. API requests and supported core operations enforce current grants. The frontend uses the same identifiers to hide unavailable actions.
 
 ## Access by assay and environment
 
@@ -235,7 +235,7 @@ The registry documents and tests the frontend contract. It does not grant access
 ## Adding a permission
 
 1. Choose a stable identifier that follows `resource:action[:scope]`.
-2. Add it to `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
+2. Add it to `core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
 3. Require the exact identifier in the API route or application service that owns the operation.
 4. Add the identifier to the relevant system role definitions in `roles.seed.ndjson`.
 5. Add or update frontend gating for the corresponding route and controls.

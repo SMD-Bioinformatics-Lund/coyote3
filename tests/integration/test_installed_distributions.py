@@ -116,6 +116,13 @@ assert Path(coyote.__file__).is_relative_to(target)
 from importlib.metadata import version
 assert coyote.__version__ == version('coyote-core')
 from coyote.application.operations import CoyoteApplication
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR, load_governance_catalog
+assert RBAC_CATALOG_DIR.is_relative_to(target)
+assert 'sample:view' in {item['permission_id'] for item in load_governance_catalog('permissions')}
+assert 'superuser' in {item['role_id'] for item in load_governance_catalog('roles')}
+from coyote.config.vep_reference import VEP_METADATA_POLICY_PATH, load_vep_metadata_policy
+assert VEP_METADATA_POLICY_PATH.is_relative_to(target)
+assert load_vep_metadata_policy()['consequence_groups']
 from coyote.application.reporting.report_renderer import render_report_html, render_pdf_bytes
 for analyte,name in [('dna','smd/dna_report.html'),('rna','smd/report_fusion.html')]:
     html=render_report_html(template_name=name,template_context={'sample':{'name':'SYNTHETIC'},'assay_config':{'reporting':{}},'report_sections':[],'report_sections_data':{},'fusions':[],'genes_covered_in_panel':{}},snapshot_rows=[],analyte=analyte,preview=True)
@@ -202,10 +209,10 @@ assert app.version == __version__ == version('coyote-server')
 assert environment_version('production') == APPLICATION_VERSION
 assert '/api/v1/samples/{sample_id}/reports/{report_type}/preview/bundle' in app.openapi()['paths']
 from coyote_api.config.paths import CENTER_CONFIG_DIR,DEMO_WORKFLOW_BUNDLE_PATH
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR
 assert CENTER_CONFIG_DIR.is_relative_to(target)
 assert (CENTER_CONFIG_DIR/'contact.toml').is_file()
-assert (BOOTSTRAP_ROOT/'rbac/permissions.seed.ndjson').is_file()
+assert (RBAC_CATALOG_DIR/'permissions.seed.ndjson').is_file()
 assert (DEMO_WORKFLOW_BUNDLE_PATH/'README.md').is_file()
 assert (target/'coyote_api/app/templates/api_reference.html').is_file()
 from coyote_api.cli import main

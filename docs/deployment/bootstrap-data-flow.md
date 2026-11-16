@@ -74,7 +74,8 @@ See [installation operations](installation-operations.md).
 
 ## Seed Source Policy
 
-- `api/src/coyote_api/bootstrap/catalogs/rbac` is the application-owned permission and role catalog.
+- `core/src/coyote/config/catalogs/rbac` is the core-owned permission and role catalog,
+  read by the server's explicit installer.
 - Bundled permission documents are installed with `system_managed: true`; their
   definitions are immutable at runtime but remain assignable through roles.
 - `api/src/coyote_api/bootstrap/catalogs/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.

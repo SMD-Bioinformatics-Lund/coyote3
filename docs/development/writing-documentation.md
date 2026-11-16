@@ -224,7 +224,7 @@ page's actual display width; avoid relying on color alone.
 | Page | Authoritative source | Generator |
 | --- | --- | --- |
 | [MongoDB collection contracts](../reference/mongodb-collections.md) | `core/src/coyote/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
-| [System permission catalog](../administration/permission-catalog.md) | `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
+| [System permission catalog](../administration/permission-catalog.md) | `core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
 
 Change the authoritative source or generator and regenerate these pages. Do not
 edit their generated field or permission listings manually.

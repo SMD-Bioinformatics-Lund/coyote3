@@ -9,8 +9,8 @@ the named procedure to create or consume them; do not infer compatibility from a
 
 | Path or format | Contents | Owner and requirements | Consumer/reference |
 | --- | --- | --- | --- |
-| `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | One permission object per line | Application-owned permission IDs and grants; no credentials | [Bootstrap](../deployment/bootstrap-data-flow.md), [permission fields](mongodb-collections.md#permissions). |
-| `api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson` | One role object per line | Application-owned role definitions referencing permission IDs | [Roles contract](mongodb-collections.md#roles), [RBAC administration](../administration/permissions-and-access.md). |
+| `core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson` | One permission object per line | Application-owned permission IDs and grants; no credentials | [Bootstrap](../deployment/bootstrap-data-flow.md), [permission fields](mongodb-collections.md#permissions). |
+| `core/src/coyote/config/catalogs/rbac/roles.seed.ndjson` | One role object per line | Application-owned role definitions referencing permission IDs | [Roles contract](mongodb-collections.md#roles), [RBAC administration](../administration/permissions-and-access.md). |
 | `api/src/coyote_api/bootstrap/catalogs/reference/assay_groups.seed.ndjson` | Initial group registry | Stable IDs, not center assay definitions | [Assay groups](../administration/assay-groups.md). |
 | `hgnc_genes.seed.ndjson.gz`, `vep_metadata.seed.ndjson.gz` in the reference directory | Compressed line-delimited reference documents | Loaded only by explicit reference installation; populated collections are preserved | [Reference installation](../deployment/installation-operations.md#knowledgebase-operations), [HGNC contract](mongodb-collections.md#hgnc_genes), [VEP metadata](knowledgebases/vep-reference.md). |
 | `reference/vep_metadata.sources.json`, `reference/NOTICE.txt` | Release provenance and attribution | Release-owned; not runtime center overrides | [VEP updates](../operations/vep-metadata-updates.md). |

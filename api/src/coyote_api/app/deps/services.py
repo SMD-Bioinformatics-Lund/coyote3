@@ -473,26 +473,26 @@ def get_audit_service() -> AuditService | None:
 
 def get_deployment_data_service() -> DeploymentDataService:
     """Build the authenticated deployment-data service using the existing packaged seed loaders."""
+    from coyote.config.governance_catalog import RBAC_CATALOG_DIR
     from coyote_mongo.repositories.deployment_data import DeploymentDataRepository
 
+    from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
     from coyote_api.infra.seed.diagrams import load_seed_diagrams
     from coyote_api.infra.seed.documents import (
-        DEFAULT_RBAC_DIR,
-        DEFAULT_REFERENCE_DIR,
         build_seed_documents,
     )
 
     def load(actor: str, scope: DeploymentDataScope) -> dict[str, list[dict]]:
         """Validate packaged catalogs and stamp them with the authenticated installer identity."""
         documents = build_seed_documents(
-            rbac_dir=DEFAULT_RBAC_DIR,
-            reference_dir=DEFAULT_REFERENCE_DIR,
+            rbac_dir=RBAC_CATALOG_DIR,
+            reference_dir=REFERENCE_CATALOG_DIR,
             actor=actor,
             include_knowledgebase=scope != "application",
         )
         if scope != "application":
             documents["vep_diagrams"] = load_seed_diagrams(
-                documents["vep_metadata"], DEFAULT_REFERENCE_DIR
+                documents["vep_metadata"], REFERENCE_CATALOG_DIR
             )
         return documents
 

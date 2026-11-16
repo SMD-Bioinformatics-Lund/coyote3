@@ -163,15 +163,15 @@ Each protected route names the single `permission_id` required to call it, and
 the authorization layer resolves that identifier against active MongoDB
 permission and role documents.
 
-The application ships the canonical policy and built-in role catalogs in
-`api/src/coyote_api/bootstrap/catalogs/rbac`. They are installed explicitly during first
+The core library ships the canonical policy and built-in role catalogs in
+`core/src/coyote/config/catalogs/rbac`. They are installed explicitly during first
 deployment into an empty `IDENTITY_DB`. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
 permission documents. When a deployed application version contains a new
 policy, use the explicit `scripts/identity/sync_rbac_catalog.py` maintenance command.
 
 The synchronization operation is a union. It inserts missing bundled
-permissions and roles, marks bundled permissions active and system-managed, and
+permissions and roles, protects matching bundled definitions as system-managed, and
 adds missing bundled grants to matching roles. It does not delete center-created
 permissions or roles, remove extra grants, or replace role metadata. This makes
 the command suitable when a deployed application version introduces new
@@ -180,15 +180,16 @@ authorization capabilities.
 Bundled permission documents carry `system_managed: true`. They form the stable
 authorization vocabulary required by application routes and therefore cannot
 be edited, deactivated, or deleted through the API or administration UI. They
-remain assignable: administrators grant or revoke them by editing role
-documents. A center-created permission is stored with `system_managed: false`
+remain assignable through built-in roles or editable center-owned roles.
+Installed built-in roles are also protected against editing, deactivation and deletion.
+A center-created permission is stored with `system_managed: false`
 and remains editable through normal permission-policy workflows.
 
 This separation gives each layer one responsibility:
 
 | Layer | Responsibility |
 | --- | --- |
-| `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
+| `core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
 | MongoDB `permissions` | Deployed permission catalog used at runtime. |
 | MongoDB `roles` | Permission assignments for each role. |
 | MongoDB `users` | Role assignments and user scope. |
@@ -372,8 +373,8 @@ administration roles:
 | `user_account_manager` | User lifecycle management without password access |
 
 The catalog also includes `developer`, `tester`, `manager`, `user`, `intern`,
-`viewer`, and `external`. Centers may edit built-in grants and create additional
-roles after initialization.
+`viewer`, and `external`. Centers may assign these protected roles or create
+center-owned roles with a different combination of grants after initialization.
 
 ## Authentication providers
 

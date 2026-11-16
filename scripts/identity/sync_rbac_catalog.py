@@ -25,13 +25,11 @@ from coyote_api.config.bootstrap import configure_center_from_environment  # noq
 # Bind the host profile before importing vocabulary-dependent contracts.
 configure_center_from_environment()
 
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR  # noqa: E402
 from coyote.contracts.schemas.registry import normalize_collection_document  # noqa: E402
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
 from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 from coyote_mongo.transactions import run_transaction  # noqa: E402
-
-DEFAULT_SEED_DATA_DIR = BOOTSTRAP_ROOT / "rbac"
 
 
 def _load_ndjson(path: Path) -> list[dict[str, Any]]:
@@ -205,7 +203,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "identity"))
     parser.add_argument("--identity-db", default=os.getenv("IDENTITY_DB", ""))
-    parser.add_argument("--seed-data-dir", default=str(DEFAULT_SEED_DATA_DIR))
+    parser.add_argument("--seed-data-dir", default=str(RBAC_CATALOG_DIR))
     parser.add_argument(
         "--dry-run", action="store_true", help="Print planned counts without writes"
     )

@@ -4,9 +4,11 @@
 ![Scope: Installation catalogs](https://img.shields.io/badge/Scope-Installation%20catalogs-4F46A5?style=flat)
 <!-- badges:end -->
 
-This directory contains application-owned data that can initialize an empty
-Coyote4 database. Bootstrap is an explicit deployment operation; importing the
-Python package does not write these documents.
+This directory contains server-owned installation data for an empty Coyote4
+database. The shared permission and role catalog belongs to the core library at
+`core/src/coyote/config/catalogs/rbac`; the server reads that packaged catalog
+when installing identity data. Bootstrap is explicit; importing a package does
+not write documents.
 
 Software defaults are packaged separately in `core/src/coyote/config/`; physical
 collection configuration belongs to `adapters/mongo/src/coyote_mongo/config/`. These files are loaded
@@ -17,7 +19,7 @@ copy these application-owned files into the external center directory.
 
 | Directory | Collections | Authority | First-deployment behavior |
 | --- | --- | --- | --- |
-| `rbac/` | `permissions`, `roles` | Coyote4 application release | Installed before the first local superuser is created. Bundled records cannot be deleted through the UI. Roles may be deactivated or revised through their normal managed workflow. |
+| Core `config/catalogs/rbac/` | `permissions`, `roles` | Core release | Installed before the first local superuser is created. Bundled permissions and roles cannot be edited, deactivated or deleted through the UI. Centers can create their own roles. |
 | `reference/` application catalogs | `assay_groups`, `query_rule_sets` | Coyote4 application release | Five biological groups and six group-scoped SNV publications on a fresh installation; query publications also receive immutable baseline revisions. |
 | `reference/` knowledgebase snapshots | `hgnc_genes`, `vep_metadata`, `vep_diagrams` | Bundled reference snapshot in `KNOWLEDGEBASE_DB` | Separate optional reference installation imports only into empty destination collections. Existing reference collections are never merged or replaced. |
 | `demo_center/` | `assay_specific_panels`, `asp_configs`, `insilico_genelists`, `clinical_rule_sets` | Synthetic configuration fixtures | Used for bootstrap validation and isolated collection-import exercises. The starter installer uses `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` for its connected catalog and samples. |

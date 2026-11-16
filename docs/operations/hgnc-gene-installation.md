@@ -1,5 +1,12 @@
 # HGNC gene reference installation
 
+The bundled file `api/src/coyote_api/bootstrap/catalogs/reference/hgnc_genes.seed.ndjson.gz`
+belongs to the `coyote-server` reference pack. Core owns its document contract and
+gene/transcript interpretation; it does not ship the installed gene database.
+The server's first-installation workflow installs the bundled snapshot through the
+Mongo adapter into `KNOWLEDGEBASE_DB`. Package installation and imports perform
+no database writes. Later reference changes require the explicit procedure below.
+
 `scripts/knowledgebase/install_hgnc_genes.py` joins a reviewed HGNC TSV file and an
 Ensembl BioMart CSV export by HGNC ID. It validates the resulting documents against
 the application's `HgncGenesDoc` contract and writes a review artifact. Database

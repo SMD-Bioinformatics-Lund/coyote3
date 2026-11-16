@@ -39,10 +39,8 @@ def _populate_seed_dir(seed_path: Path) -> None:
         Path(
             "api/src/coyote_api/bootstrap/catalogs/reference/hgnc_genes.seed.ndjson"
         ): "hgnc_genes.json",
-        Path(
-            "api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson"
-        ): "permissions.json",
-        Path("api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson"): "roles.json",
+        Path("core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson"): "permissions.json",
+        Path("core/src/coyote/config/catalogs/rbac/roles.seed.ndjson"): "roles.json",
         Path(
             "api/src/coyote_api/bootstrap/catalogs/reference/vep_metadata.seed.ndjson"
         ): "vep_metadata.json",
@@ -81,7 +79,7 @@ def test_validate_assay_consistency_merges_separate_rbac_and_reference_packs(tmp
     result = _run_validator(
         seed_path,
         reference_dirs=(
-            Path("api/src/coyote_api/bootstrap/catalogs/rbac"),
+            Path("core/src/coyote/config/catalogs/rbac"),
             Path("api/src/coyote_api/bootstrap/catalogs/reference"),
         ),
     )

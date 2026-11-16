@@ -9,6 +9,8 @@ from pathlib import Path
 
 import mongomock
 import pytest
+from coyote.config.governance_catalog import RBAC_CATALOG_DIR
+from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 from coyote_api.infra.seed.bundle import (
     canonicalize_seed_contract,
     load_seed,
@@ -17,8 +19,6 @@ from coyote_api.infra.seed.bundle import (
 )
 
 from scripts.bootstrap.bootstrap_database import (
-    DEFAULT_RBAC_DIR,
-    DEFAULT_REFERENCE_DIR,
     _deployment_is_initialized,
     _initialize_governance,
     _superuser_exists,
@@ -216,8 +216,8 @@ def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_
 def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles():
     """The repository ships the complete first-deployment governance catalog."""
     payload = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="bootstrap.test",
     )
     permission_docs = payload["permissions"]
@@ -271,8 +271,8 @@ def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
 
 def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center():
     payload = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="bootstrap.test",
     )
 
@@ -307,13 +307,13 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
         "coyote_api.infra.seed.documents.load_reference_seed_pack",
         lambda directory, **kwargs: {
             **load_reference_seed_pack(directory, **kwargs),
-            **(source if directory == DEFAULT_REFERENCE_DIR else {}),
+            **(source if directory == REFERENCE_CATALOG_DIR else {}),
         },
     )
     actor = "installation.admin"
     payload = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor=actor,
     )
     managed = {
@@ -351,8 +351,8 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
 def test_initial_rbac_uses_system_creation_provenance():
     """Automated bootstrap records do not impersonate the initial administrator."""
     payload = build_seed_documents(
-        rbac_dir=DEFAULT_RBAC_DIR,
-        reference_dir=DEFAULT_REFERENCE_DIR,
+        rbac_dir=RBAC_CATALOG_DIR,
+        reference_dir=REFERENCE_CATALOG_DIR,
         actor="system",
         include_knowledgebase=False,
     )
@@ -646,7 +646,7 @@ def test_ingest_spec_file_check_uses_configured_file_key_catalog(tmp_path):
     )
 
     result = _run_script(
-        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode != 0
@@ -678,14 +678,14 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
     )
 
     result = _run_script(
-        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--check-files"]
+        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--check-files"]
     )
 
     assert result.returncode == 0
     assert "[ok] ingest spec is valid" in result.stdout
 
     listed = _run_script(
-        ["scripts/ingest/validate_ingest_spec.py", "--yaml", str(manifest_path), "--list-files"]
+        ["-m", "coyote_ingest.validate", "--yaml", str(manifest_path), "--list-files"]
     )
 
     assert listed.returncode == 0

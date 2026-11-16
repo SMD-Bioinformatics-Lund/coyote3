@@ -328,7 +328,7 @@ does not bypass API authentication or CSRF validation.
 Roles bundle permissions. API access checks combine the required permission with
 applicable assay and environment scope. Frontend visibility is not an authorization
 decision. Bootstrap permissions and roles are installed from
-`api/src/coyote_api/bootstrap/catalogs/rbac/`; MongoDB holds runtime assignments.
+`core/src/coyote/config/catalogs/rbac/`; MongoDB holds runtime assignments.
 
 System-managed identity definitions are protected by their resource policies.
 Password changes, session state and user preferences use their dedicated operations.

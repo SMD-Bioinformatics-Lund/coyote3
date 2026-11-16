@@ -11,7 +11,6 @@ from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote.contracts.schemas.registry import normalize_collection_document
 
 from coyote_api.bootstrap.compilation import compile_bundle_configurations
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT
 from coyote_api.infra.seed.bundle import (
     canonicalize_seed_contract,
     load_reference_seed_pack,
@@ -19,9 +18,6 @@ from coyote_api.infra.seed.bundle import (
     stamp_docs,
 )
 from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds
-
-DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
-DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
 
 
 def build_seed_documents(
