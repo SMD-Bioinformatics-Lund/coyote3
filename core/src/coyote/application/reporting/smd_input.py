@@ -142,7 +142,8 @@ def _summary_copy_number(ratio: Any) -> str:
     if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not math.isfinite(ratio):
         return "-"
     try:
-        return str(2 * round(2**ratio, 2))
+        estimate = 2 * round(2**ratio, 2)
+        return str(estimate) if math.isfinite(estimate) else "-"
     except OverflowError:
         return "-"
 

@@ -246,6 +246,8 @@ def build_cnv_export_rows(
         purity_cn_value = ""
         ref_alt_reads = "-"
         try:
+            if isinstance(ratio, bool):
+                raise ValueError("A boolean is not a copy-number measurement")
             ratio_num = float(ratio)
             copy_number = copy_number_from_log2(ratio_num)
             copy_number_value = f"{round(copy_number, 2)} ({safe_text(ratio)})"

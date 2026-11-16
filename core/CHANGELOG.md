@@ -2,6 +2,9 @@
 
 ## 4.0.0
 
+- Reject boolean and nonfinite CNV measurements before normalization; preserve
+  caller event labels and valid rounding, and handle unusable copy-number values
+  safely in analysis, exports and report projection.
 - Match assay-configuration repository contracts to the implemented active-state
   filters and typed analysis rollups.
 - Own portable clinical, contract and workflow regression tests, isolated synthetic

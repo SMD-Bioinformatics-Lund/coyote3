@@ -17,19 +17,31 @@ def normalize_copy_number_ratio(value: object) -> float | None:
     Returns:
         Numeric ratio; DEL/LOSS maps to -1, AMP to 1 and DUP/GAIN to 0.5.
         Missing, empty and unparseable values produce None.
+
+    Raises:
+        ValueError: A boolean or nonfinite numeric value is supplied as a measurement.
     """
     if value is None or value == "":
         return None
+    if isinstance(value, bool):
+        raise ValueError("Copy-number ratio must be a finite number, not a boolean")
     if isinstance(value, (int, float)):
-        return float(value)
-    raw = str(value).strip().upper()
-    symbolic = {"DEL": -1.0, "LOSS": -1.0, "AMP": 1.0, "DUP": 0.5, "GAIN": 0.5}
-    if raw in symbolic:
-        return symbolic[raw]
-    try:
-        return float(raw)
-    except ValueError:
-        return None
+        try:
+            ratio = float(value)
+        except OverflowError as error:
+            raise ValueError("Copy-number ratio must be a finite number") from error
+    else:
+        raw = str(value).strip().upper()
+        symbolic = {"DEL": -1.0, "LOSS": -1.0, "AMP": 1.0, "DUP": 0.5, "GAIN": 0.5}
+        if raw in symbolic:
+            return symbolic[raw]
+        try:
+            ratio = float(raw)
+        except ValueError:
+            return None
+    if not math.isfinite(ratio):
+        raise ValueError("Copy-number ratio must be a finite number")
+    return ratio
 
 
 def copy_number_from_log2(ratio: float) -> float:
@@ -42,9 +54,18 @@ def copy_number_from_log2(ratio: float) -> float:
         Twice two raised to the supplied ratio, without purity correction.
 
     Raises:
+        TypeError: The ratio is not a number or is a boolean.
+        ValueError: The ratio is nonfinite.
         OverflowError: The estimate exceeds floating-point range.
     """
-    return 2 * (2**ratio)
+    if isinstance(ratio, bool) or not isinstance(ratio, (int, float)):
+        raise TypeError("Copy-number ratio must be numeric")
+    if not math.isfinite(ratio):
+        raise ValueError("Copy-number ratio must be finite")
+    estimate = 2 * (2**ratio)
+    if not math.isfinite(estimate):
+        raise OverflowError("Copy-number estimate exceeds floating-point range")
+    return estimate
 
 
 def supporting_read_percent(value: object) -> float | None:

@@ -64,15 +64,18 @@ def _cnv_copy_number(cnv: dict[str, Any]) -> float | None:
         cnv: CNV row with a ratio interpreted as a log2 value.
 
     Returns:
-        Twice two raised to the ratio, or None when the ratio is absent or nonnumeric.
-
-    Raises:
-        OverflowError: The exponent exceeds floating-point range.
+        Twice two raised to the ratio, or None when the input or estimate is unusable.
     """
-    ratio = numeric_value(cnv.get("ratio"))
+    value = cnv.get("ratio")
+    if isinstance(value, bool):
+        return None
+    ratio = numeric_value(value)
     if ratio is None:
         return None
-    return copy_number_from_log2(ratio)
+    try:
+        return copy_number_from_log2(ratio)
+    except OverflowError:
+        return None
 
 
 def _cnv_gene_text(cnv: dict[str, Any]) -> str:

@@ -54,6 +54,11 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
 An alternative root is an object keyed by interval ID. Each value becomes one
 row and receives `_pipeline_key` from its object key when not already supplied.
 
+Numeric measurements must be finite. Boolean values, NaN and infinity (including
+numeric text that produces these values) reject the input at the parser and stored
+collection boundaries. An explicit textual `type` is retained independently of
+the numeric `ratio`; a type-only call does not supply a missing numeric measurement.
+
 ## Related contracts
 
 - [Bundle preparation and file index](README.md)
