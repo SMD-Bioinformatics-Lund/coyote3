@@ -241,10 +241,7 @@ def generate(root: Path, *, check: bool = False) -> list[str]:
             badges = component[owner] if owner else [version, license_badge]
         block = START + "\n" + " ".join(badges)
         if relative == "README.md":
-            workflows = (
-                "[Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml?query=branch%3Aapi) "
-                "[Bootstrap and Ingest](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml?query=branch%3Aapi)"
-            )
+            workflows = "[Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml)"
             block = START + "\n\n### Build and validation\n\n" + workflows + " "
             block += " ".join(badges)
             for title, group in (

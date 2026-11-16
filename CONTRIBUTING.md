@@ -1,134 +1,44 @@
-# Contributing to Coyote4
+# Contributing
 
-Thank you for contributing to Coyote4.
+Coyote4 changes must preserve clinical traceability, access control and saved
+results. Use synthetic examples in issues, tests and review evidence. Report
+security vulnerabilities through [SECURITY.md](SECURITY.md).
 
-Coyote4 is a clinical workflow platform used in molecular diagnostics. Contributions must prioritize correctness, traceability, security, and operational safety.
+## Development
 
-## Scope and ownership
-
-Coyote4 is maintained by the Section for Molecular Diagnostics (SMD), Lund.
-The application and its independently installable Python packages use GNU GPL
-version 3 only. Retain copyright, attribution and third-party notices when
-contributing. See [LICENSING.md](LICENSING.md) for component scope.
-
-- External public contributions may be limited.
-- Internal contributors should follow this guide for all code and documentation changes.
-
-## Before you start
-
-1. Open or review an issue describing the problem or change.
-2. Confirm expected behavior, scope, and affected modules.
-3. Verify whether the change affects interpretation logic, reporting, access control, or configuration behavior.
-
-## Branch and commit guidelines
-
-- Create a focused branch per change.
-- Keep commits small and logically grouped.
-- Use clear commit messages that describe intent and impact.
-- Avoid mixing unrelated refactors with feature or bug-fix changes.
-
-## Development standards
-
-- Keep route handlers thin; move business logic into utility/handler layers.
-- Preserve permission and sample-access checks for all relevant routes.
-- Keep templates presentation-focused.
-- Do not introduce breaking behavior in report lifecycle or historical traceability.
-- Update documentation whenever behavior or workflow changes.
-
-## Local validation
-
-At minimum, validate:
-
-1. The modified user flow works end-to-end.
-2. Access control behavior is correct for authorized and unauthorized users.
-3. Report preview/save/retrieval behavior still works if impacted.
-4. No obvious regression in related pages.
-
-Automated test coverage is evolving in this repository. Treat manual validation quality as a release-critical responsibility.
-
-## Commit gate requirement
-
-This repository uses a tracked Git pre-commit hook under `.githooks/` to block commits when checks fail.
-
-Run once per clone:
+Follow [developer setup](docs/getting-started/developer-environment.md) and
+[editable workspace development](docs/sdk/uv-development.md). Install the Git hooks:
 
 ```bash
 git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit
 ```
 
-After this, `git commit` is blocked unless pre-commit checks pass.
-Do not run `pre-commit install`: this repository uses the tracked
-`.githooks/pre-commit` wrapper so that every clone runs the same hook chain.
+Each component owns its tests and documentation. Shared workflows belong in core,
+HTTP composition in API, persistence in the Mongo adapter and presentation in the
+frontend. Reuse established contracts, components and theme tokens. A functional
+fix should preserve the approved design.
 
-## Documentation requirements
+## Submit a change
 
-For behavior changes, update the relevant section of the
-[documentation](docs/README.md):
+1. Create or reuse an issue with the problem, affected module and acceptance criteria.
+2. Branch from `dev` and keep the change focused on that issue.
+3. Implement and test the change; update the relevant documentation and changelog.
+4. Open a PR into `dev`, linking the issue and recording actual validation results.
+5. Resolve review feedback before merging.
 
-- user-facing chapters for workflow or UI changes
-- developer-facing chapters for architecture, route, or data model changes
+The short PR template covers behavior, modules, validation and release impact.
+Use the [module guidance](docs/project/contributing.md#module-update-checklist)
+for changes to clinical rules, interfaces or deployment. Avoid patient data,
+credentials, private environment files and internal discussion in public records.
 
-Follow the [documentation naming and navigation conventions](docs/development/writing-documentation.md).
-Update the section README and `mkdocs.yml` when adding or moving a page.
+## Verification and releases
 
-If documentation is not updated, the change is incomplete.
+Run relevant package tests and the [fast smoke checks](docs/testing/test-strategy-and-quality-gates.md#fast-smoke-checks).
+Substantive clinical, security, persistence and contract changes need focused
+regression tests beyond smoke coverage. Full suites remain available for release
+validation; CI intentionally runs only inexpensive checks.
 
-## Pull request expectations
-
-A PR should include:
-
-- clear problem statement
-- implementation summary
-- impacted routes/files/collections
-- validation steps performed
-- rollback considerations for risky changes
-
-Use the repository PR template and link related issues.
-
-For each affected module or workflow, maintain the
-[module update checklist](docs/project/contributing.md#module-update-checklist)
-through the PR's minimum checklist, module selection, and module checklists.
-Name an owner and record the version decision, changelog treatment,
-compatibility impacts, validation evidence, deployment and
-recovery needs, and unresolved follow-ups. Mark irrelevant items with a reason.
-Version decisions follow the existing application, SDK, client, and DNA/RNA
-template release rules; an internal module does not gain its own version counter.
-
-## PR CI gates
-
-Pull requests targeting `master` use the checks defined in:
-
-- `.github/workflows/quality.yml`
-
-Configure branch protection to require the applicable quality checks. Release-facing
-changes require a `CHANGELOG.md` update; maintainers may apply `skip-changelog-update`
-for changes with no release impact, with the reason recorded in the PR.
-
-## Change types with extra care
-
-Apply heightened review discipline for:
-
-- interpretation or classification logic
-- report generation and persistence
-- authentication, authorization, or permission changes
-- admin schema/configuration changes
-- database schema or migration behavior
-
-## Security and sensitive data
-
-- Never commit secrets, credentials, tokens, or private keys.
-- Never commit patient-identifiable data or sensitive production datasets.
-- The staged-content guard blocks common credentials, private environment files,
-  local paths, clinical sample identifiers, Swedish personal identity numbers,
-  and non-synthetic sample metadata under `tests/`. Run it against the current
-  tree with `python3 scripts/quality/check_staged_sensitive_data.py --all-files`.
-- The guard cannot establish that a de-identified genomic fixture is synthetic.
-  Keep provenance evidence outside the repository and require reviewer approval
-  for every fixture change.
-- Use sanitized or synthetic data for examples and debugging artifacts.
-- Report security concerns through the process in `SECURITY.md`.
-
-## Code of Conduct
-
-By participating in this project, you agree to follow `CODE_OF_CONDUCT.md`.
+Releases use a reviewed PR from `dev` into `master`, semantic versioning, an
+immutable version tag and a GitHub release. Follow the
+[release workflow](docs/project/releasing.md) for version ownership and validation.
+Contributions are distributed under [GPL-3.0-only](LICENSE.txt).

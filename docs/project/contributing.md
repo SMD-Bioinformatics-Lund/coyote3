@@ -1,191 +1,28 @@
 # Contributing
 
-This page summarizes how to contribute safely and efficiently.
+[CONTRIBUTING.md](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/dev/CONTRIBUTING.md)
+defines the contribution process. Start
+with one issue, branch from `dev` and target the PR at `dev`. The
+[release workflow](releasing.md) covers promotion into `master`, versioning and tags.
 
-## Basic contribution flow
-
-![Feature delivery flow](../assets/diagrams/feature-delivery.svg)
-
-1. Sync your branch with latest mainline.
-2. Implement focused change(s) with tests.
-3. Run local quality gates.
-4. Update docs for behavior/config changes.
-5. Open PR with clear scope and risk notes.
-
-First-party application source uses `SPDX-License-Identifier: GPL-3.0-only` and
-the copyright attribution recorded in [COPYRIGHT.txt](../../COPYRIGHT.txt).
-Preserve existing third-party notices and licenses. Contributor acknowledgments
-belong in the attribution notices, separately from the copyright-holder statement.
-
-## Required checks before PR
-
-```bash
-PYTHONPATH=. .venv/bin/ruff check core api adapters clients services tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check core api adapters clients services tests scripts
-scripts/quality/run_quality_suite.sh
-```
+For setup, use the [developer environment](../getting-started/developer-environment.md).
+For component boundaries, see the [developer guide](../development/developer-guide.md).
 
 ## Module update checklist
 
-Complete the PR template's general description, tags and linked issues, testing
-and validation, responsibility fields, and minimum checklist for every PR. Select
-each affected module under **Modules affected**, then complete its matching
-collapsible checklist. Leave unaffected module sections collapsed. Add a module
-section when the provided choices do not cover the change.
+Include only the evidence relevant to the changed module in the PR:
 
-Group related files under their owning module, such as reporting, ingestion, the
-API, either SDK, documentation, or deployment. Record versions and changelog
-treatment in the template's corresponding fields. The named implementer and
-validator own the selected modules unless a different module owner is recorded.
-List actual reviewers or mark review pending; a name in the PR description does
-not request a GitHub review or establish approval. Use **Notes for reviewers** for
-specific decisions, risks, and follow-ups.
-
-Name the responsible contributor and record decisions and evidence. Use
-**Done**, **Pending**, or **Not applicable with a reason** for each item. A check
-that was not run remains a validation gap; it is not a passing result. Link any
-deferred work to an issue with an owner and its effect on acceptance or release.
-
-### For every affected module
-
-- [ ] **Scope and owner:** describe the intended behavior, acceptance criteria,
-  affected consumers, and contributor responsible for completing the change.
-- [ ] **Version decision:** identify the affected release versions and record
-  `old -> new`, unchanged with a reason, or deferral to an owned release task.
-  Use the existing version authorities described below.
-- [ ] **Changelog:** record the user, integration, clinical, or operational effect
-  in the appropriate `CHANGELOG.md` release section. Use high-level outcomes,
-  compatibility notes, and required operator actions rather than a task log.
-  For changes without release impact, record the reason and obtain the existing
-  maintainer-approved `skip-changelog-update` label when the PR gate requires it.
-- [ ] **Contracts and dependencies:** review affected HTTP/Python interfaces,
-  collection schemas, configuration, events, and callers. Update authoritative
-  contracts and regenerate derived artifacts when needed. Record compatibility,
-  migration, dependency, and licensing impacts or explain why none apply.
-- [ ] **Clinical behavior and traceability:** identify changes to finding
-  eligibility, transcript choice, classifications, report wording, or saved
-  snapshots. Preserve historical artifacts and provenance; obtain the applicable
-  clinical review and regression evidence for deliberate changes.
-- [ ] **Security and concurrent edits:** verify changed permissions, sample scope,
-  CSRF/session behavior, editing leases, revision checks, and audit evidence where
-  applicable. Keep patient data, credentials, and private operational data out of
-  commits and review artifacts.
-- [ ] **Validation:** record actual commands, scenarios, results, and limitations.
-  Cover relevant success, failure, regression, and authorization boundaries.
-  For UI changes, check light/dark themes, narrow/wide layouts, keyboard use,
-  and loading/empty/error states. Assess performance for changed queries or
-  rendering paths with evidence proportionate to the change.
-- [ ] **Documentation:** update the maintained user, developer, API, or operator
-  references affected by the change. Validate links and the strict site build
-  for documentation changes; regenerate generated references from their source.
-- [ ] **Deployment and recovery:** identify configuration changes, database/index
-  migrations, worker coordination, rollout order, health checks, observability,
-  and recovery steps. State irreversible effects and restoration requirements.
-  For routine changes, record that no special deployment action is required.
-- [ ] **Review and completion:** resolve acceptance criteria and required review,
-  link remaining follow-ups, and record outstanding risks. Confirm required CI
-  checks pass before merge. Do not mark a blocked or unverified item as complete.
-
-Apply only the checks relevant to the change and explain exclusions. Documentation
-or template-only updates do not require application tests; they still need the
-applicable lint, metadata/link checks, and diff review. Keep deployment execution
-and release approval separate from evidence that the code is ready for review.
-
-### Version decisions
-
-Coyote4 tracks package and application versions separately. Review applicable identities for
-each module; do not invent a new version for each internal service or directory.
-
-| Release identity | Authoritative source |
+| Module | Review and verify |
 | --- | --- |
-| Application, including UI | `application_version` in `release.toml` |
-| Core SDK | `[project].version` in `core/pyproject.toml` |
-| Server: API, workers and MongoDB adapter | `[project].version` in root `pyproject.toml` |
-| Python HTTP client | `[project].version` in `clients/python/pyproject.toml` |
-| Ingestion service and submission tools | `[project].version` in `services/relay/pyproject.toml` |
-| DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
-| RNA report template | `coyote3.rna` in the same SMD package manifest |
+| Core and clinical rules | Selection, units, thresholds, missing inputs, assay scope and report reproducibility. |
+| API and identity | Request/response contracts, authentication, permission scope and safe errors. |
+| Mongo adapter | Stored contracts, indexes, atomicity, audit events and required migrations. |
+| Frontend | Shared components, existing theme, accessibility and successful, empty and failed states. |
+| Relay, Atlas and Demo | Package independence, input validation, configuration scope and installation safeguards. |
+| Client | Supported HTTP contracts, authentication and failure behavior. |
+| Deployment | Required settings, mounts, health checks, compatibility and rollback. |
+| Documentation | Accurate examples, relative paths, valid links and clear task-based instructions. |
 
-Working changes do not require every number to advance. Version increments
-belong to the affected release, and already published artifacts remain immutable.
-Shared report HTML, CSS, or font releases affect both template versions in
-`smd-reports`; updating that dependency or Coyote4's input adapter also requires
-a new version of the package containing the changed input adapter. An application
-selects the tested core, server, ingestion and Python client versions in `release.toml`.
-The server has its own version, shared by its API and MongoDB components. The UI has no
-independent release counter; application package metadata is synchronized through
-`npm run sync:version` when the application version changes.
-
-See [version identities and release decisions](../sdk/compatibility.md) and the
-[report-template release process](../development/report-templates.md#template-bundle-releases)
-for compatibility rules and release verification. HTTP API generations, center
-configuration formats, clinical-rule revisions, and patient report numbers have
-separate meanings; review their compatibility without treating them as substitutes
-for software or template versions.
-
-## Shared frontend controls
-
-Use `ChoiceGroup` and `ChoiceOption` from
-`frontend/src/components/ui/choice-group.tsx` for checkbox selections. The shared
-admin form builder also uses `ChoiceOption`. Keep option loading, dependency
-filtering and permission decisions in their existing feature owners.
-
-Selection groups use the raised card background and `--inner-card-shadow`;
-individual choices use inset control surfaces. Their selected, disabled, keyboard
-focus and forced-colors states belong to `frontend/src/styles/form-controls.css`.
-Use the shared layout variants for lists, grids and inline choices instead of
-adding page-specific card backgrounds or shadows. Page headings and outer panels
-retain their existing `PageShell` and card treatments.
-
-Apply the same elevation hierarchy to every UI surface, using the shared owners
-below. Depth follows the role and nesting of the surface. Text and icons inherit
-the depth of their containing control or surface.
-
-| Surface role | Shared owner | Depth token |
-| --- | --- | --- |
-| Page headings and grouping panels | `PageShell`, `SurfacePanel`, `.surface-panel` | `--panel-shadow` |
-| Content cards and selection groups | `Card`, `.glass-card`, `.form-option-group` | `--material-card-shadow`, `--inner-card-shadow` |
-| Raised buttons and controls | `Button`, `.paper-raised-control` | `--shadow-sm` |
-| Fields, selected tracks and recessed controls | `Input`, `.form-control`, `.paper-inset` | `--inset-shadow` |
-| Badges and small counters | `Badge`, `TableBadge` | `--material-badge-shadow` |
-| Floating menus and dialogs | Shared popup/dialog components | Shared menu treatment and `--shadow-lg` |
-
-Disabled and read-only fields retain recessed depth. Selection and keyboard focus
-remain distinguishable through the shared border and focus treatments. Preserve
-forced-colors shadow removal and the continuous application chrome. Reuse these
-owners when adding pages; introduce a role-specific treatment in the shared theme
-only when the hierarchy requires it.
-
-## Shared editor settings
-
-The tracked `.vscode/settings.json` file contains only
-shared, non-personal defaults: Python formatting, trailing-whitespace cleanup,
-test discovery, and the frontend Vitest/Playwright roots. It does not select an
-interpreter, contain credentials, or encode a local path. Personal editor
-settings remain untracked.
-
-## Documentation requirement
-
-If you change behavior, configuration, deployment, or API contracts, update corresponding docs in `docs/` in the same PR.
-
-Write documentation from the reader's perspective. Describe the supported
-behaviour, configuration, and limits. Keep change notes in release notes and
-keep data-transition instructions in a dedicated migration procedure.
-
-Reference pages describe current behavior, ownership, prerequisites, inputs, outputs,
-errors, and limitations. Verify technical claims against the implementation. Do not
-include task status, completed-work summaries, cleanup notes, speculative features,
-or claims of quality unsupported by tests or operational evidence. Keep internal
-planning outside the published documentation. Deployment and recovery procedures
-may use ordered steps and checklists when they describe actions an operator must take.
-Generated contract pages must be updated through their source schemas and generators.
-
-Use standard Markdown callouts so they render in both GitHub and MkDocs:
-
-> [!IMPORTANT]
->
-> Keep the callout short and place it directly beside the rule it qualifies.
-
-## Canonical file
-
-The authoritative contribution policy is in `CONTRIBUTING.md` at repository root.
+Clinical and access-control changes require an appropriate domain reviewer. Describe
+intended behavior and record test results; do not add checklists for unaffected modules.
+See [test selection](../testing/test-strategy-and-quality-gates.md) for commands.

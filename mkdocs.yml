@@ -265,6 +265,7 @@ nav:
     - Future work: project/future-work.md
     - Contributing: project/contributing.md
     - Maintainer guide: project/maintainer-guide.md
+    - Release workflow: project/releasing.md
     - Governance overview: project/governance.md
     - Code of Conduct: project/code-of-conduct.md
     - License and clinical use: project/license.md

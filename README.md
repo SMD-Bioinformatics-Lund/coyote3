@@ -4,7 +4,7 @@
 
 ### Build and validation
 
-[Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml?query=branch%3Aapi) [Bootstrap and Ingest](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/bootstrap-and-ingest-check.yml?query=branch%3Aapi) ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+[Quality Checks](https://github.com/SMD-Bioinformatics-Lund/coyote3/actions/workflows/quality.yml) ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 
 ### Core Stack
 
@@ -20,114 +20,78 @@
 <!-- badges:end -->
 
 Coyote4 is a clinical genomics application for reviewing DNA and RNA findings,
-recording interpretations and preparing reports. It is developed by the Section
-for Molecular Diagnostics (SMD), Lund.
+recording interpretations and preparing reports. Developed at the Section for
+Molecular Diagnostics (SMD), Lund, it combines assay-specific analysis, controlled
+access and traceable report snapshots.
 
-This branch contains the FastAPI and React application. The GitHub repository
-remains named `coyote3`; the production version 3 application is maintained separately.
+## Getting started
 
-## Start here
-
-| Your task | Guide |
+| Task | Documentation |
 | --- | --- |
-| Review a sample and save its report | [Clinical review](docs/user-guide/clinical-review-workflow.md) |
+| Review findings and prepare a report | [Clinical review](docs/user-guide/clinical-review-workflow.md) |
+| Try synthetic samples in an isolated environment | [Demo installation](docs/deployment/demo-installation.md) |
+| Install at a center | [Installation guide](docs/deployment/first-installation.md) |
+| Upgrade an existing installation | [Upgrade procedure](docs/deployment/application-upgrades.md) |
 | Configure an assay | [Assay setup](docs/administration/assay-setup.md#step-by-step-add-a-new-assay) |
-| Try the application with synthetic data | [Isolated demo installation](docs/deployment/demo-installation.md) |
-| Install at a center | [First installation](docs/deployment/first-installation.md) |
-| Update an existing installation | [Upgrade procedure](docs/deployment/application-upgrades.md) |
-| Submit data from a pipeline | [Submit and track a sample](docs/api/submit-sample.md) |
-| Work on the code | [Developer setup](docs/getting-started/developer-environment.md) |
-| Investigate a problem | [Troubleshooting](docs/operations/troubleshooting.md) |
+| Submit samples from a pipeline | [Submission guide](docs/api/submit-sample.md) |
+| Develop or troubleshoot | [Developer setup](docs/getting-started/developer-environment.md) · [Troubleshooting](docs/operations/troubleshooting.md) |
 
-The [documentation home](docs/README.md) links to the remaining guides and references.
-Follow one procedure for your task; references explain individual fields and settings.
+The [documentation index](docs/README.md) organizes user guides, configuration,
+operations and technical references. Each deploying center is responsible for
+validating its clinical configuration and approving its use.
 
-## How the application fits together
+## Architecture
 
-The React interface calls the FastAPI API. Application and domain services live
-in the `coyote` core package. MongoDB stores application, identity,
-knowledgebase and BAM-service records in separately configured databases.
-Celery workers process background jobs using Redis. `smd-reports` supplies the
-HTML and PDF report templates; the report conclusion uses the reviewed sample comment.
+The React interface calls the FastAPI API. Clinical workflows and contracts live
+in the independent `coyote` core; the MongoDB adapter implements its persistence
+interfaces. Celery and Redis handle background work. `smd-reports` renders HTML
+and PDF reports from the reviewed findings, comment and configuration snapshot.
 
-An assay definition (ASP) describes the physical assay. Its configuration (ASPC)
-controls analyses, filters and reporting for a diagnosis and environment. Optional
-gene lists (ISGLs) narrow the gene scope. Query rules select findings; reporting
-rules generate suggested wording. Saving a report preserves its files, selected
-findings and configuration provenance.
-
-See [application architecture](docs/architecture/application-architecture.md)
-for component boundaries and [clinical concepts](docs/reference/clinical-concepts.md)
-for resource definitions.
-
-The packaging rationale is recorded in
-[ADR 0004](docs/architecture/decisions/0004-installable-application-packages.md).
-
-## Repository layout
-
-| Directory | Contents |
+| Component | Responsibility |
 | --- | --- |
-| `core/` | Independent clinical core; importable code in `src/coyote/` |
-| `api/` | FastAPI host, maintenance tasks and reference installation; code in `src/coyote_api/` |
-| `adapters/mongo/` | MongoDB adapter component; code in `src/coyote_mongo/`, distributed with the API |
-| `clients/python/` | Independent HTTP client |
-| `services/relay/` | Installable ingestion workers and pipeline submission commands; workflows live in core |
-| `services/atlas/` | Installable HGNC/VEP reference bundles, validation and explicit publication |
-| `services/demo/` | Optional synthetic datasets and installation for an isolated demonstration deployment |
-| `frontend/` | React interface and frontend tests |
-| `deploy/` | Compose definitions, environment examples and deployment configuration |
-| `docker/` | Container build definitions and frontend proxy templates |
-| [api/src/coyote_api/config/](api/src/coyote_api/config/) | Backend environment loading, settings, defaults and center configuration examples |
-| `scripts/` | Maintained installation, operations and validation commands |
-| [services/demo/src/coyote_demo/data/clinical_workflows/](services/demo/src/coyote_demo/data/clinical_workflows/) | Synthetic demo setup resources, raw inputs and manifests |
-| `migrations_scripts/` | Supported version 2 and version 3 data converters |
-| `tests/` | Backend tests and synthetic fixtures |
-| `docs/` | Procedures and technical references |
+| [Core](core/README.md) | Domain rules, application workflows and portable contracts |
+| [API](api/README.md) and [Mongo](adapters/mongo/README.md) | HTTP host and persistence, distributed together as `coyote-server` |
+| [Frontend](frontend/README.md) | Clinical review and administration interface |
+| [pyClient](clients/python/README.md) | Independent Python HTTP client |
+| [Relay](services/relay/README.md) | Ingestion workers and pipeline submission tools |
+| [Atlas](services/atlas/README.md) | Reference resources and publication |
+| [Demo](services/demo/README.md) | Synthetic data and guarded demonstration installation |
 
-The root builds `coyote-server` from the separate API and Mongo source trees.
-Each component retains its tests, coverage, docs, README and changelog. Core and
-pyClient remain independently installable projects in the shared uv workspace. See
-[editable development](docs/sdk/uv-development.md) for setup and reload commands.
-
-Use [deployment requirements](docs/deployment/production-requirements.md) for
-server prerequisites. Container images supply the API interpreter. Host deployment
-helpers require Python 3.12 or later; the standard API development environment uses
-Python 3.14.7. The optional MongoDB Compose services pin their own image version.
+Each component owns its documentation and tests. Root `tests/` covers composed
+behavior; `deploy/`, `docker/` and `scripts/` contain maintained operational tools.
+See the [architecture](docs/architecture/application-architecture.md) and
+[packaging decision](docs/architecture/decisions/0004-installable-application-packages.md).
 
 ## Configuration
 
-The backend configuration entry point is
-[api/src/coyote_api/config/bootstrap.py](api/src/coyote_api/config/bootstrap.py).
-It loads `.env` from `COYOTE4_RUNTIME_ROOT`, or the working directory when unset,
-without overriding existing process environment variables. Settings are assembled
-in [runtime_settings.py](api/src/coyote_api/config/runtime_settings.py).
-The [backend settings assembler](api/src/coyote_api/config/backend.py) validates
-and distributes package-specific inputs. Packages receive their own settings,
-not the full backend runtime or unrelated secrets.
-There is no root `config/` directory in the current layout.
+The API loads the deployment environment and distributes typed settings to each
+component. Start with [deploy/env/example.env](deploy/env/example.env); keep private
+connections, credentials and storage settings outside Git. Center contact,
+vocabulary and presentation settings live in a separately reviewed configuration
+directory. Assays, gene lists, users and published rules are persisted resources.
 
-Copy [the environment example](deploy/env/example.env) for each deployment and
-set its connections, secrets, storage paths and public URL. Keep private environment
-files outside Git. Optional tuning settings are listed in the
+See [configuration ownership](docs/configuration/README.md) and the
 [environment reference](docs/deployment/configuration-reference.md).
 
-Center-owned contact, vocabulary and report presentation files live in an external
-reviewed configuration directory. Assays, gene lists, users and published rules
-are database-backed resources managed through the application. See
-[configuration ownership](docs/configuration/README.md).
+## Development and releases
 
-## Contributing and licensing
+The uv workspace installs packages in editable mode, so source changes do not
+require rebuilding wheels. Follow [editable development](docs/sdk/uv-development.md)
+for setup and reload commands, and [test selection](docs/testing/test-strategy-and-quality-gates.md)
+for component checks. GitHub CI runs fast smoke tests; broader validation is performed
+for substantive changes and release candidates.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before making a change. Report reproducible
-bugs in the [issue tracker](https://github.com/SMD-Bioinformatics-Lund/coyote3/issues)
-with synthetic examples; do not include patient information or credentials.
+Contributions follow issue → focused branch → PR into `dev`. Releases use a reviewed
+PR from `dev` into `master`, semantic versioning and an immutable version tag.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [release workflow](docs/project/releasing.md).
 
-The application and independent Python packages use [GNU GPL version 3 only](LICENSE.txt).
-See [LICENSING.md](LICENSING.md)
-for package boundaries, [COPYRIGHT.txt](COPYRIGHT.txt) for ownership and affiliation,
-and [NOTICE.txt](NOTICE.txt) for additional notices.
-Each deploying organization remains responsible for its clinical validation and approval.
+## License and attribution
 
+Coyote4 and its Python packages use [GNU GPL version 3 only](LICENSE.txt).
 Copyright holder and original developer: **Ram Nanduri**, affiliated with
 **Sektion för molekylär diagnostik (SMD), Lund, Region Skåne, Sweden**.
 Contributors: **Viktor Henmyr** and **Sailendra Pradhananga**.
+
+See [LICENSING.md](LICENSING.md), [COPYRIGHT.txt](COPYRIGHT.txt) and [NOTICE.txt](NOTICE.txt).
+Report vulnerabilities privately through [SECURITY.md](SECURITY.md); use synthetic
+examples in the [issue tracker](https://github.com/SMD-Bioinformatics-Lund/coyote3/issues).

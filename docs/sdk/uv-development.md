@@ -103,7 +103,6 @@ add it explicitly. The client supplies administrative HTTP tools, Relay supplies
 ingestion workers and submission commands, and Atlas supplies reference bundles.
 Deployment installs wheels without editable paths. The release workflow records
 their versions and SHA-256 digests together and verifies them before installation.
-No PyPI publication or PostgreSQL adapter is introduced.
 
 To build one package directly:
 

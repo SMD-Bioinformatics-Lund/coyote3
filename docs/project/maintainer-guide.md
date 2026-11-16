@@ -47,11 +47,9 @@ explains where each responsibility belongs.
 
 ## Review checklist
 
-Review the contributor's [module checklists](contributing.md#module-update-checklist)
-for every affected module. Confirm the owner, version decision, changelog entry
-or approved exemption, evidence, and any release-blocking follow-up. Require
-explicit reasons for items marked not applicable and distinguish reviewed code
-from an approved or completed deployment.
+Use the PR's affected modules to select [review criteria](contributing.md#module-update-checklist).
+Confirm the stated behavior, actual validation results and any upgrade requirements.
+Require appropriate clinical, security or operations review when those areas change.
 
 | Area | Review question |
 | --- | --- |
@@ -81,14 +79,8 @@ Run affected Playwright suites for user-facing changes. Run disposable
 full-stack validation for changes to ingest, deployment, authentication,
 background tasks, or reporting.
 
-## Merge and release
+## Releases
 
-- Require the protected quality check.
-- Resolve review comments before merge.
-- Keep commits coherent and avoid unrelated generated-file changes.
-- Use versioned immutable images for releases.
-- Record user-visible changes in the changelog.
-- Retain the evidence required by the target-center acceptance procedure.
-
-See [target-center acceptance](../deployment/acceptance-checklist.md) for
-deployment validation and evidence requirements.
+Follow the [release workflow](releasing.md): focused PRs into `dev`, a reviewed
+release PR into `master`, then the immutable version tag and GitHub release.
+Record full release validation separately from the inexpensive CI smoke checks.
