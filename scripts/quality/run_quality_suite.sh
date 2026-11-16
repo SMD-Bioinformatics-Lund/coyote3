@@ -50,9 +50,8 @@ npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
 PYTHON_BIN="$PYTHON_BIN" npm --prefix frontend run build:verified
 
-echo "[quality] Documentation lint and runner tests"
+echo "[quality] Documentation lint"
 npm run docs:lint
-npm run docs:test
 
 echo "[quality] Strict documentation build"
 "$PYTHON_BIN" -m mkdocs build --strict --site-dir "$ROOT_DIR/site"

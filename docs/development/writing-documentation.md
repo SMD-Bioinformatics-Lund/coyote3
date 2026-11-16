@@ -278,13 +278,6 @@ For a generated-reference change, also run its generator and the relevant
 contract checks. Inspect the rendered section README on GitHub or in a Markdown
 preview, as well as the site's navigation.
 
-After building the site, the browser reading-flow checks run with:
-
-```bash
-npm --prefix frontend run test:e2e -- docs-reading.spec.ts
-```
-
-These serve the local generated site through browser fixtures. They do not connect
-to application databases or a deployed documentation server. Check a narrow screen,
+Review the generated site locally. Check a narrow screen,
 both reading themes, keyboard diagram dismissal, a procedure-to-reference round trip,
 and direct task continuation.

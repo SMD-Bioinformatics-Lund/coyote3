@@ -1,56 +1,49 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Replay synthetic manifests through ingest and export portable collection examples.
+"""Replay synthetic manifests through real ingest and report evaluation in memory.
 
 Requires the repository development dependencies, including mongomock. No URI,
 credentials, environment file or live database is read. Mongo transactions and
-audit delivery are outside this in-memory reference export.
+audit delivery are outside this in-memory fixture replay.
 """
 
 from __future__ import annotations
 
-import argparse
-import hashlib
 import json
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import mongomock
-from bson import ObjectId
-from bson.json_util import dumps, loads
-from coyote.domain.annotation_identity import primary_small_variant_identity
-from coyote.domain.annotation_scope import annotation_namespace
-from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from coyote_atlas.bundle import ReferenceBundle
-from coyote_demo.resources import WORKFLOW_BUNDLE
-from coyote_mongo.config.settings import AuditContext
-
-ROOT = WORKFLOW_BUNDLE
-FIXTURES = Path(__file__).resolve().parents[2] / "tests/fixtures/clinical_workflows"
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from coyote.application.common.release_resources import (  # noqa: E402
+from coyote.application.common.release_resources import (
     capture_assay_resource,
     capture_gene_lists,
 )
-from coyote.application.ingest.service import InternalIngestService  # noqa: E402
-from coyote.application.reporting.clinical_rules.evaluator import (  # noqa: E402
+from coyote.application.ingest.service import InternalIngestService
+from coyote.application.reporting.clinical_rules.evaluator import (
     ClinicalRuleEvaluator,
 )
-from coyote.application.reporting.clinical_rules.preparation import (  # noqa: E402
+from coyote.application.reporting.clinical_rules.preparation import (
     prepare_report_context,
 )
-from coyote.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
-from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
-from coyote.contracts.schemas.registry import (  # noqa: E402
+from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     normalize_collection_document,
 )
-from coyote_api.infra.seed.bundle import load_reference_seed_pack  # noqa: E402
-from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
-from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
+from coyote.domain.annotation_identity import primary_small_variant_identity
+from coyote.domain.annotation_scope import annotation_namespace
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT
+from coyote_api.infra.seed.bundle import load_reference_seed_pack
+from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds
+from coyote_atlas.bundle import ReferenceBundle
+from coyote_demo.resources import WORKFLOW_BUNDLE
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
+
+ROOT = WORKFLOW_BUNDLE
+FIXTURES = Path(__file__).resolve().parent
 
 
 class MemoryGateway(IngestCollectionGateway):
@@ -62,7 +55,7 @@ class MemoryGateway(IngestCollectionGateway):
 
 
 class MemoryVault:
-    """Model insert-once transcript storage in the in-memory export database."""
+    """Model insert-once transcript storage in the in-memory test database."""
 
     def __init__(self, collection):
         """Bind the isolated annotation collection."""
@@ -142,7 +135,7 @@ def replay():
     service = InternalIngestService(
         collection_gateway=MemoryGateway(
             collections={name: db[name] for name in names},
-            context=AuditContext(environment="test", route="synthetic-demo-export"),
+            context=AuditContext(environment="test", route="synthetic-demo-test"),
         ),
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
@@ -154,56 +147,6 @@ def replay():
                 payload[key] = str((path.parent / payload[key]).resolve())
         service.ingest_sample_bundle(payload, ingested_by="demo.ingester", ingest_source="api")
     return db
-
-
-def portable_documents(db):
-    """Replace runtime IDs, timestamps and absolute fixture paths consistently.
-
-    Args:
-        db: Isolated replay database.
-
-    Returns:
-        Collection arrays with stable example IDs and a fixed demonstration time.
-        Shapes and parsed evidence remain those produced by application ingestion.
-        HGNC reference input is excluded; it remains in the bootstrap seed.
-    """
-    raw = {
-        name: list(db[name].find())
-        for name in sorted(db.list_collection_names())
-        if name != "hgnc_genes"
-    }
-    identities = {
-        str(row["_id"]): hashlib.sha256(f"{name}/{index}".encode()).hexdigest()[:24]
-        for name, rows in raw.items()
-        for index, row in enumerate(rows)
-    }
-
-    def normalize(value):
-        """Normalize export-only volatile values without changing evidence."""
-        if isinstance(value, ObjectId):
-            return identities[str(value)]
-        if isinstance(value, datetime):
-            return {"$date": "2026-01-01T00:00:00Z"}
-        if isinstance(value, dict):
-            normalized = {key: normalize(item) for key, item in value.items()}
-            if set(normalized) == {"content", "content_hash"}:
-                # Exported resource content has portable IDs and dates. Its digest
-                # must describe that content, not the volatile in-memory original.
-                content = loads(json.dumps(normalized["content"]))
-                release = (
-                    capture_assay_resource(content)
-                    if "asp_id" in content
-                    else capture_gene_lists(list(content.values()))
-                )
-                normalized["content_hash"] = release["content_hash"]
-            return normalized
-        if isinstance(value, list):
-            return [normalize(item) for item in value]
-        if isinstance(value, str):
-            return identities.get(value, value.replace(str(ROOT) + "/", ""))
-        return value
-
-    return normalize(raw)
 
 
 def review_examples(db):
@@ -332,43 +275,3 @@ def review_examples(db):
         )
         previews[name] = {"sections": result.sections}
     return previews
-
-
-def main():
-    """Write snapshots, or compare committed examples without modifying them."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Fail on snapshot drift")
-    args = parser.parse_args()
-    db = replay()
-    ingest = portable_documents(db)
-    previews = review_examples(db)
-    reviewed = portable_documents(db)
-    artifacts = {
-        **{f"after_ingest/{name}": rows for name, rows in ingest.items()},
-        **{
-            f"after_review/{name}": reviewed[name]
-            for name in ("annotation", "finding_comments", "sample_comments")
-        },
-        "report_previews": previews,
-    }
-    output = FIXTURES / "expected"
-    if not args.check:
-        output.mkdir(parents=True, exist_ok=True)
-    for name, rows in artifacts.items():
-        text = json.dumps(json.loads(dumps(rows)), indent=2, ensure_ascii=False) + "\n"
-        path = output / f"{name}.json"
-        if args.check:
-            if not path.exists() or path.read_text() != text:
-                raise SystemExit(f"Snapshot differs: {path.relative_to(FIXTURES)}")
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text)
-    if args.check and {
-        str(p.relative_to(output).with_suffix("")) for p in output.rglob("*.json")
-    } != set(artifacts):
-        raise SystemExit("Unexpected or missing collection snapshot")
-    print(f"Verified {len(ingest)} collections and illustrative review/report artifacts")
-
-
-if __name__ == "__main__":
-    main()

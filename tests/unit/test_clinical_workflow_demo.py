@@ -16,7 +16,7 @@ from coyote.domain.rna.fusion_query_builder import build_fusion_query
 from coyote_mongo.repositories.query_rules import QueryRuleRepository
 from coyote_mongo.selection import compile_selection
 
-from scripts.quality.export_demo_workflows import FIXTURES, ROOT, replay, review_examples
+from tests.fixtures.clinical_workflows.support import FIXTURES, ROOT, replay, review_examples
 from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
@@ -300,7 +300,7 @@ def test_negative_manifests_reject_before_writes(filename, error, reason):
     from coyote.application.ingest.service import InternalIngestService
     from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
 
-    from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
+    from tests.fixtures.clinical_workflows.support import MemoryGateway, MemoryVault
 
     db = replay()
     names = set(db.list_collection_names()) | {"hgnc_genes"}

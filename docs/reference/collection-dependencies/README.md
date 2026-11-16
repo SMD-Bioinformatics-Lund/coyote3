@@ -215,25 +215,21 @@ change importers, schemas, clinical matching or database records.
 
 ## Maintain this reference
 
-The reviewed source-field mappings, relationship semantics and evidence paths live
-in `scripts/docs/collection_dependencies.json`. The generator combines them with
-the physical binding inventory and collection schemas, then emits the reverse
-references, per-collection SVG diagrams and domain pages. Dynamic provider payloads
-are not inferred into foreign keys by their field names.
+Maintain the relationship tables and SVG diagrams alongside changes to collection
+contracts and repository operations. Each relationship must identify its source
+field, target and meaning; a similar field name alone does not establish a link.
+Review incoming and outgoing references together. Dynamic provider payloads may
+remain opaque and must not be represented as verified foreign keys.
+
+Validate Markdown links and build the documentation before review:
 
 ```bash
-PYTHONPATH=.:src .venv/bin/python scripts/docs/export_collection_dependencies.py
-PYTHONPATH=.:src .venv/bin/python scripts/docs/export_collection_dependencies.py --check
 npm run docs:lint
 .venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 ```
 
-When adding a collection or changing a key, update the reviewed mappings and
-evidence, regenerate, and review both outgoing and incoming tables. `--check`
-detects stale rendered output, unknown namespaces, missing source evidence and
-missing leading schema fields; it is not proof that a live database satisfies the
-relationships or that a provider's opaque payload has not changed.
+These diagrams describe application contracts, not the integrity of a live database.
 
 [Collection field contracts](../mongodb-collections.md) ·
 [Database topology](../../architecture/mongodb-topology.md) ·

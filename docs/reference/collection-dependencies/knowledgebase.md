@@ -1,7 +1,5 @@
 # Knowledgebase and reference evidence
 
-<!-- GENERATED: scripts/docs/export_collection_dependencies.py -->
-
 [Relationship guide](README.md) · [All collections](inventory.md)
 
 Arrows run from the referencing field to the target. Snapshot and historical-actor

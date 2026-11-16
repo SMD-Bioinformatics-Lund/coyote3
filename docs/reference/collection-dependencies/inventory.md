@@ -1,7 +1,5 @@
 # Collection inventory
 
-<!-- GENERATED: scripts/docs/export_collection_dependencies.py -->
-
 [How to read these relationships and plan a migration](README.md)
 
 Every physical binding in `adapters/mongo/src/coyote_mongo/config/collections.toml` and every operational collection

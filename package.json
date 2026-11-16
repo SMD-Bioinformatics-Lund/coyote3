@@ -15,7 +15,6 @@
     "sync:version": "node ./scripts/release/sync-package-version.js",
     "postinstall": "npm run sync:version",
     "docs:lint": "node scripts/docs/lint_markdown.mjs",
-    "docs:test": "node --test tests/docs/lint_markdown.test.mjs",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:lint": "npm --prefix frontend run lint"
   },

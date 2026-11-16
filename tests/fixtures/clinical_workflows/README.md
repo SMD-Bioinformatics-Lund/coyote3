@@ -14,10 +14,9 @@ The application installer does not read this directory.
 Replay and compare the expected results from the repository root:
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/quality/export_demo_workflows.py --check
 PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_clinical_workflow_demo.py
 ```
 
-Run the exporter without `--check` to regenerate expected results after a deliberate
-contract change. It uses an isolated in-memory database and the normal ingest parsers.
+`support.py` exercises the normal ingest parsers in an isolated in-memory database.
+Review expected results against the intended clinical behavior when contracts change.
 Expected records are comparison artifacts; do not import them into a deployment.

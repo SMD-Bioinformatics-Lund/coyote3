@@ -11,6 +11,7 @@ commands, their callers, and operational prerequisites.
 | Directory | Purpose |
 | --- | --- |
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
+| `branding/` | One blueprint for the approved application and package logos |
 | `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
 | `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
 | `identity/` | Identity database migration and permission/role maintenance |
@@ -37,8 +38,8 @@ Normal deployment does not install demonstration code or samples. The optional
 routes for an [explicitly isolated demo environment](../docs/deployment/demo-installation.md).
 `manage_data.py` manages identity, application and knowledgebase catalogs only.
 The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.md)
-documents the packaged installer and `quality/export_demo_workflows.py` for offline
-ingest replay and collection/report verification. Neither belongs in production startup.
+documents the packaged installer. Offline ingest and reporting fixtures belong in
+`tests/fixtures/clinical_workflows/`; they are not production startup tools.
 
 `quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `client`, `relay`,
 `atlas`, `demo`, or `all`
@@ -47,10 +48,11 @@ checks and `--coverage` enforces that package's branch-coverage floor and writes
 its local reports. It uses `PYTHON_BIN`, the active virtual environment, or root
 `.venv/bin/python`. It starts no application services and configures no CI jobs.
 
-`docs/export_collection_dependencies.py` regenerates the collection reference
-diagrams and tables from the reviewed catalog. Its SVG styling helper is
-`docs/collection_diagram_style.py`; neither belongs to an application package.
-See [diagram maintenance](../docs/project/maintainer-guide.md#documentation-diagrams).
+`branding/generate_logos.py` is the sole logo blueprint. It derives package logos
+from the approved application SVG and stored lettering outlines, without installed
+fonts. Export for review with `--output-dir`; use `--write` only after review.
+Optional `--raster` output requires CairoSVG and Pillow. See
+[brand asset maintenance](../docs/project/maintainer-guide.md#documentation-diagrams).
 
 ## Retention criteria
 
@@ -60,8 +62,7 @@ outputs, prerequisites, and failure behavior. Shared helpers belong here only wh
 retained commands use them. Version-specific migrations remain with their runbooks
 while that upgrade path is supported.
 
-One-off data fixes for unreleased development state, inspection snippets, artwork
-renderers, and coding-session experiments belong in the ignored `.design/` directory.
+Keep one-off inspection, migration experiments and artwork tools outside the repository.
 Do not commit them or reference them from CI, tests, or operational documentation.
 The staged-file guard rejects `.design/` content even when it is force-added to Git.
 For documentation artwork, maintain the reviewed SVG assets themselves. Schema and

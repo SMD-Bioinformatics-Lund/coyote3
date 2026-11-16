@@ -100,23 +100,20 @@ synthetic example. Do not substitute collection exports for these producer files
 From the repository root, with development dependencies installed:
 
 ```bash
-# Parse the raw bundle and compare generated snapshots with the checked-in outputs.
-PYTHONPATH=. .venv/bin/python scripts/quality/export_demo_workflows.py --check
-
 # Exercise query, transcript, installation and reporting behavior on those inputs.
 PYTHONPATH=. .venv/bin/pytest -q \
   tests/unit/test_clinical_workflow_demo.py \
   tests/unit/test_demo_installation.py --no-cov
 ```
 
-The exporter creates a fresh mongomock database, loads validated setup records and
+The test fixture creates a fresh mongomock database, loads validated setup records and
 the bundled reference genes, and ingests the positive manifests. Tests reuse that
-replay. It reads no database URI or credentials and makes no MongoDB connection.
+replay in `tests/fixtures/clinical_workflows/support.py`. It reads no database URI or
+credentials and makes no MongoDB connection.
 Negative manifests are exercised separately by rejection tests.
 
-To update expected outputs after an intentional parser or contract change, run the
-exporter without `--check` and review the snapshot diff. Generated snapshots replace
-runtime IDs and timestamps consistently; their evidence comes from the raw files.
+Review fixture changes against the intended parser and report behavior. Do not
+replace expected outputs solely to make a failing regression pass.
 
 Mongomock replay covers parsing and application behavior. Replica-set tests cover
 transactions and recovery; API and browser tests cover authorization and user flows.

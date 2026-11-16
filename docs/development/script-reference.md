@@ -25,7 +25,6 @@ bundle and deployment exercises.
 | Tool | Inputs and behavior |
 | --- | --- |
 | `coyote-demo-install` (Demo package) | Requires `--actor` and explicit guarded demo settings. Plans configuration by default; `--starter` includes the two synthetic starter samples, and `--apply` performs installation through normal workflows. Checks all demo databases, credential scope and local services before connecting; preserves reviewed samples and rejects identifier collisions. See [demo deployment](../deployment/demo-installation.md). |
-| `scripts/quality/export_demo_workflows.py` | Replays the bundle offline through ingest and report evaluation using development dependencies. Writes deterministic expected artifacts; `--check` compares them without writes. Never reads deployment credentials or contacts a database. |
 
 The [script directory index](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/README.md) groups commands by purpose.
 Clinical conversion lives in `migrations_scripts/`, outside the operational script
@@ -89,7 +88,7 @@ the default creates a review artifact without database access.
 | `quality/check_dependency_consistency.py` | Internal helper | `quality/check_contract_integrity.sh` | Checks exported dependency requirements against `pyproject.toml` |
 | `docs/check_markdown_links.py` | Internal helper | `quality/check_contract_integrity.sh`; tests | Checks every maintained Markdown file, including code-formatted link labels and reference-style links |
 | `docs/generate_badges.py` | Documentation maintenance | Run after changing release or package metadata; `--check` in the contract gate | Maintains standard Shields.io badge links and release metadata in every README |
-| `docs/lint_markdown.mjs` | Automated | `npm run docs:lint`; CI | Runs the root Markdown rules over source documentation; `npm run docs:test` checks the runner and math renderer |
+| `docs/lint_markdown.mjs` | Automated | `npm run docs:lint`; CI | Runs the root Markdown rules over source documentation |
 | `quality/check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `docs/export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |
 | `docs/export_permissions_reference.py` | Automated | contract integrity | Regenerates permission and system-role catalogs from application-owned RBAC definitions |

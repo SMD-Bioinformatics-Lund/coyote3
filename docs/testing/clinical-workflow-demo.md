@@ -316,12 +316,11 @@ Confirm no ready sample or partial dependent data is left by a failed ingest.
 Resubmit a successful manifest to check duplicate-name rejection. Use a working copy
 and the supported update option to exercise intentional re-ingestion; verify
 replacement counts and preservation of unsupplied measurements. Test transaction
-rollback on a disposable MongoDB replica set, not against the in-memory exporter.
+rollback on a disposable MongoDB replica set, not against the in-memory fixture.
 
 ## Offline verification and portability
 
 ```bash
-.venv/bin/python scripts/quality/export_demo_workflows.py --check
 PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_clinical_workflow_demo.py --no-cov
 ```
 

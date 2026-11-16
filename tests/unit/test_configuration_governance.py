@@ -23,7 +23,7 @@ from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories.assay_configurations import ASPConfigRepository
 from coyote_mongo.repositories.configuration_profiles import ConfigurationProfileRepository
 
-from scripts.quality.export_demo_workflows import replay
+from tests.fixtures.clinical_workflows.support import replay
 from tests.fixtures.mongo_settings import mongo_runtime
 
 

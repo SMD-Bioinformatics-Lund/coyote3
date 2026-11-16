@@ -16,25 +16,21 @@ security boundaries, and release process.
 
 ## Documentation diagrams
 
-Flow diagrams use transparent backgrounds, shared typography, line icons and the
-semantic light/dark palette in `scripts/docs/collection_diagram_style.py`. Styles are embedded
-so each SVG also works when opened or exported independently. Keep descriptive
-titles, descriptions and stable symbol references in every asset.
+Maintain reviewed SVG diagrams directly. Preserve transparent backgrounds,
+typography, accessible titles, relationship labels and the existing light/dark
+palette. Inspect affected diagrams at their displayed size in both themes.
 
-Maintain authored diagrams as reviewed SVG assets. Regenerate collection reference
-diagrams from their reviewed relationship catalog:
+The sole logo blueprint is `scripts/branding/generate_logos.py`. Its source is
+`frontend/public/logos/coyote4-logo.svg`; package labels use approved vector outlines.
+Export SVGs to a review directory before replacing maintained files:
 
 ```bash
-.venv/bin/python scripts/docs/export_collection_dependencies.py
-.venv/bin/python scripts/docs/export_collection_dependencies.py --check
+.venv/bin/python scripts/branding/generate_logos.py --output-dir /tmp/coyote-brand-review
 ```
 
-Inspect affected diagrams in light and dark themes and at their displayed page
-width. Keep labels inside the viewBox, preserve arrow direction and relationship
-labels, and route connectors around text. Branding and accreditation artwork have
-their own approved designs and are not flow-diagram templates. One-off artwork
-generators and screenshot audits belong in ignored scratch space; they are not
-application code or release requirements.
+To regenerate transparent PNG/ICO assets, install CairoSVG and Pillow in a separate
+tooling environment and add `--raster`. Use `--write` only after reviewing the output.
+Do not introduce additional artwork generators or logo-specific test suites.
 
 ## Pull request sequence
 
