@@ -13,7 +13,6 @@ commands, their callers, and operational prerequisites.
 | `bootstrap/` | Initial database installation, seed preparation, and assay validation |
 | `deployment/` | Center installation orchestrator, version-aware Compose commands and deployment checks |
 | `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
-| `ingest/` | Manifest validation, submission, and API authentication |
 | `identity/` | Identity database migration and permission/role maintenance |
 | `knowledgebase/` | HGNC and external reference imports, storage migrations, and repairs |
 | `maintenance/` | Operational data maintenance |
@@ -27,6 +26,11 @@ exports, migration plans containing identifiers, and backups outside the reposit
 Clinical-data conversion lives in `migrations_scripts/`. Follow the
 [execution order and commands](../docs/operations/migrations/clinical-data.md).
 Export and preparation do not write to the source databases.
+
+The identity and knowledgebase database migrations share JSON output and exit-code
+handling in `database/migration_report.py`. Each command retains its own validation,
+dry-run and write controls. Submission, manifest validation and pipeline login are
+provided by [Coyote Relay](../services/relay/docs/usage.md), not a scripts directory.
 
 Normal deployment does not install demonstration code or samples. The optional
 `coyote-demo` package supplies `coyote-demo-install` and its authenticated API

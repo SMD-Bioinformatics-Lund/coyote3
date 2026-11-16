@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
@@ -25,6 +24,7 @@ from coyote_mongo.config.collections import (  # noqa: E402
 )
 from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 
+from scripts.database.migration_report import run_migration_command  # noqa: E402
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
     assert_distinct_databases,
     migrate_collection,
@@ -135,17 +135,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def main() -> int:
     """Run the command and optionally persist its report."""
     args = parse_args()
-    try:
-        report = run(args)
-    except (RuntimeError, ValueError) as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return 2
-    rendered = json.dumps(report, indent=2, default=str)
-    print(rendered)
-    if args.report:
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(f"{rendered}\n", encoding="utf-8")
-    return 0
+    return run_migration_command(lambda: run(args), report_path=args.report)
 
 
 if __name__ == "__main__":
