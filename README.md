@@ -1,4 +1,4 @@
-# Coyote4
+# <img src="docs/assets/coyote4-logo.svg" alt="Coyote4" width="360">
 
 <!-- badges:start -->
 
@@ -18,8 +18,6 @@
 
 ![Security: Casbin RBAC](https://img.shields.io/badge/Security-Casbin%20RBAC-2E8B57?style=flat) ![Audit: Enabled](https://img.shields.io/badge/Audit-Enabled-2E8B57?style=flat)
 <!-- badges:end -->
-
-<img src="docs/assets/coyote4-logo.svg" alt="Coyote4" width="360">
 
 Coyote4 is a clinical genomics application for reviewing DNA and RNA findings,
 recording interpretations and preparing reports. It is developed by the Section

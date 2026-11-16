@@ -1,10 +1,8 @@
-# Coyote4 documentation
+# <img src="assets/coyote4-logo.svg" alt="Coyote4 documentation" width="360">
 
 <!-- badges:start -->
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
-
-<img src="assets/coyote4-logo.svg" alt="Coyote4" width="360">
 
 These guides describe the complete application: clinical workflows, administration,
 deployment, operations and integration between components. Library and frontend
