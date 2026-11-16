@@ -8,6 +8,21 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 
+def normalize_analysis_sections(sections: Sequence[str] | None) -> list[str]:
+    """Canonicalize section selections without changing their eligibility.
+
+    Args:
+        sections: Ordered section names from an existing assay configuration.
+            None and an empty sequence select no sections.
+
+    Returns:
+        Nonblank uppercase names in first-occurrence order. This does not validate
+        vocabulary, enable additional analyses, or decide report inclusion.
+    """
+    raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
+    return list(dict.fromkeys(raw))
+
+
 def supported_assay_analyses(
     *,
     family_analyses: Sequence[str],

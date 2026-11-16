@@ -22,6 +22,7 @@ from coyote.config.constants import (
     SAMPLE_FILE_KEYS,
     expected_file_keys,
     normalize_analysis_type,
+    normalize_analysis_types,
     normalize_asp_category,
     normalize_asp_family,
     normalize_asp_group,
@@ -32,7 +33,7 @@ from coyote.config.constants import (
     normalize_read_mode,
 )
 from coyote.config.factory_defaults import factory_value
-from coyote.config.sequencing import derived_read_technology, validate_platform_read_mode
+from coyote.config.sequencing import resolve_read_technology
 from coyote.contracts.schemas.base import (
     _CollectionDocBase,
     _StrictCollectionDocBase,
@@ -166,11 +167,7 @@ class AspcReportingDoc(_StrictDocBase):
         Raises:
             ValueError: If a nonblank name is not an allowed analysis type.
         """
-        if value is None:
-            return []
-        values = value if isinstance(value, list) else [value]
-        normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
-        return list(dict.fromkeys(normalized))
+        return normalize_analysis_types(value)
 
     @field_validator("summary_text_order", "summary_table_order", mode="before")
     @classmethod
@@ -412,11 +409,7 @@ class AspConfigDoc(_StrictCollectionDocBase):
         Raises:
             ValueError: If a nonblank name is not an allowed analysis type.
         """
-        if value is None:
-            return []
-        values = value if isinstance(value, list) else [value]
-        normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
-        return list(dict.fromkeys(normalized))
+        return normalize_analysis_types(value)
 
     @field_validator("analysis_intents", mode="before")
     @classmethod
@@ -706,30 +699,9 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
         """
         return normalize_read_mode(value)
 
-    @field_validator("expected_files", mode="before")
+    @field_validator("expected_files", "required_files", mode="before")
     @classmethod
-    def _normalize_expected_files(cls, value: Any) -> list[str]:
-        """Strip, lowercase, and deduplicate ingest file keys.
-
-        Args:
-            value: File key or list of keys; None produces an empty list.
-
-        Returns:
-            Nonblank keys in first-occurrence order, without validating availability.
-        """
-        if value is None:
-            return []
-        values = value if isinstance(value, list) else [value]
-        normalized: list[str] = []
-        for item in values:
-            key = str(item or "").strip().lower()
-            if key:
-                normalized.append(key)
-        return list(dict.fromkeys(normalized))
-
-    @field_validator("required_files", mode="before")
-    @classmethod
-    def _normalize_required_files(cls, value: Any) -> list[str]:
+    def _normalize_file_keys(cls, value: Any) -> list[str]:
         """Strip, lowercase, and deduplicate ingest file keys.
 
         Args:
@@ -824,13 +796,9 @@ class AssaySpecificPanelsDoc(_StrictCollectionDocBase):
             ValueError: If read mode is incompatible or a supplied read technology
                 differs from the platform-derived value.
         """
-        validate_platform_read_mode(self.platform, self.read_mode)
-        derived = derived_read_technology(self.platform)
-        if self.read_technology and self.read_technology != derived:
-            raise ValueError(
-                "read_technology is derived from platform and cannot be set independently"
-            )
-        self.read_technology = derived
+        self.read_technology = resolve_read_technology(
+            self.platform, self.read_mode, self.read_technology
+        )
         return self
 
     @property

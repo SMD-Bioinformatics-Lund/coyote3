@@ -20,7 +20,7 @@ from coyote.config.constants import (
     normalize_read_mode,
 )
 from coyote.config.database_versions import normalize_database_versions
-from coyote.config.sequencing import derived_read_technology, validate_platform_read_mode
+from coyote.config.sequencing import resolve_read_technology
 from coyote.contracts.schemas.base import _CollectionDocBase, _DocBase, _StrictDocBase
 from coyote.domain.common.sample_filters import normalize_sample_filters
 from coyote.domain.filter_profiles import (
@@ -547,13 +547,9 @@ class SamplesDoc(_CollectionDocBase):
             ValueError: If read mode is incompatible or an explicitly supplied technology
                 conflicts with the platform-derived value.
         """
-        validate_platform_read_mode(self.platform, self.read_mode)
-        derived = derived_read_technology(self.platform)
-        if self.read_technology and self.read_technology != derived:
-            raise ValueError(
-                "read_technology is derived from platform and cannot be set independently"
-            )
-        self.read_technology = derived
+        self.read_technology = resolve_read_technology(
+            self.platform, self.read_mode, self.read_technology
+        )
         return self
 
     @model_validator(mode="after")

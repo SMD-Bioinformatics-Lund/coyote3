@@ -10,7 +10,55 @@ from coyote.config.constants import (
     analysis_type_for_file_key,
     manifest_file_preload_keys,
     non_database_manifest_file_keys,
+    normalize_analysis_types,
 )
+from coyote.config.sequencing import resolve_read_technology
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [(None, []), ([], []), (" snv ", ["SNV"]), (["cnv", " SNV ", "CNV", None, ""], ["CNV", "SNV"])],
+)
+def test_analysis_selections_preserve_empty_lists_and_declared_order(value, expected):
+    """Canonical selections do not enable defaults or rearrange the user's priority."""
+    assert normalize_analysis_types(value) == expected
+
+
+def test_analysis_selections_reject_unknown_nonblank_names():
+    """A malformed selection remains an error rather than being silently omitted."""
+    with pytest.raises(ValueError, match="analysis_type"):
+        normalize_analysis_types(["SNV", "unsupported-analysis"])
+
+
+@pytest.mark.parametrize(
+    "platform,mode,declared,expected",
+    [
+        (None, None, None, None),
+        ("illumina", "PE", None, "short_read"),
+        ("illumina", None, "short_read", "short_read"),
+    ],
+)
+def test_platform_resolution_accepts_matching_or_unspecified_metadata(
+    platform, mode, declared, expected
+):
+    """Assay and sample contracts derive technology from the same platform policy."""
+    assert resolve_read_technology(platform, mode, declared) == expected
+
+
+@pytest.mark.parametrize(
+    "platform,mode,declared,error",
+    [
+        (None, "PE", None, "read_mode requires a platform"),
+        ("unknown", None, None, "not supported"),
+        ("iontorrent", "PE", None, "not supported"),
+        ("illumina", "PE", "long_read", "cannot be set independently"),
+        (None, None, "short_read", "cannot be set independently"),
+    ],
+)
+def test_platform_resolution_rejects_incompatible_metadata(platform, mode, declared, error):
+    """Conflicting declarations fail before the platform's technology is assigned."""
+    with pytest.raises(ValueError, match=error):
+        resolve_read_technology(platform, mode, declared)
 
 
 def test_current_clinical_vocabulary_loads_center_owned_options():

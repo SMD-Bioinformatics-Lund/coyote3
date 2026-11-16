@@ -37,6 +37,7 @@ from coyote.config.clinical_query_policy import CLINICAL_QUERY_POLICY, FindingQu
 from coyote.config.constants import primary_analysis_file_key
 from coyote.config.database_versions import sample_vep_version
 from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote.domain.common.assay_capabilities import normalize_analysis_sections
 from coyote.domain.common.assay_filters import (
     get_sample_effective_genes,
 )
@@ -321,16 +322,6 @@ def _resolve_sample_vep_version(sample: dict) -> str:
     normalized = sample_vep_version(sample)
     if not normalized:
         raise ValueError("sample.database_versions.vep is required for DNA report generation")
-    return normalized
-
-
-def _normalize_dna_report_sections(sections: list[str] | None) -> list[str]:
-    """Normalize DNA report-section toggles to supported rendered sections."""
-    raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
-    normalized: list[str] = []
-    for value in raw:
-        if value not in normalized:
-            normalized.append(value)
     return normalized
 
 
@@ -642,7 +633,7 @@ def build_dna_report_payload(
     sample_assay = sample.get("asp_id")
     assay_group: str = assay_config.get("asp_group", "unknown")
     diagnosis = sample.get("diagnosis_id")
-    report_sections = _normalize_dna_report_sections(
+    report_sections = normalize_analysis_sections(
         assay_config.get("reporting", {}).get("report_sections", [])
     )
     report_sections_data: Dict[str, Any] = {}

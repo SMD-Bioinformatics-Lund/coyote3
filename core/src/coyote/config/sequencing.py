@@ -62,3 +62,27 @@ def validate_platform_read_mode(platform: str | None, read_mode: str | None) -> 
         raise ValueError(
             f"read_mode '{read_mode}' is not supported for platform '{platform}'; allowed: {allowed_text}"
         )
+
+
+def resolve_read_technology(
+    platform: str | None, read_mode: str | None, read_technology: str | None
+) -> str | None:
+    """Validate a sequencing selection and return its platform-derived technology.
+
+    Args:
+        platform: Supported platform, or None when unspecified.
+        read_mode: Optional read mode; it must be supported by the selected platform.
+        read_technology: Optional declared technology, checked against the platform.
+
+    Returns:
+        The platform's read technology, or None when no platform is supplied.
+
+    Raises:
+        ValueError: The platform or read mode is unsupported, or a nonempty declared
+            technology differs from the platform-derived value.
+    """
+    validate_platform_read_mode(platform, read_mode)
+    derived = derived_read_technology(platform)
+    if read_technology and read_technology != derived:
+        raise ValueError("read_technology is derived from platform and cannot be set independently")
+    return derived

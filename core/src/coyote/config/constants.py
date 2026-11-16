@@ -323,6 +323,26 @@ def normalize_analysis_type(value: object) -> str:
     )
 
 
+def normalize_analysis_types(value: object) -> list[str]:
+    """Validate one or many analysis names, preserving their first-occurrence order.
+
+    Args:
+        value: Analysis name or list of names. None produces an empty list;
+            blank entries are omitted.
+
+    Returns:
+        Unique canonical uppercase analysis names.
+
+    Raises:
+        ValueError: A nonblank name is not an allowed analysis type.
+    """
+    if value is None:
+        return []
+    values = value if isinstance(value, list) else [value]
+    normalized = [normalize_analysis_type(item) for item in values if str(item or "").strip()]
+    return list(dict.fromkeys(normalized))
+
+
 def normalize_genelist_type(value: object) -> str:
     """Normalize and validate an in-silico genelist type."""
     normalized = str(value or "").strip().lower()

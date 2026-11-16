@@ -8,6 +8,32 @@ from coyote.contracts.schemas.assay import AssaySpecificPanelsDoc
 from coyote.domain.exceptions import AppError
 
 
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, []),
+        ([], []),
+        (" VCF_FILES ", ["vcf_files"]),
+        ([" VCF_FILES ", "", None, "CNV", "vcf_files"], ["vcf_files", "cnv"]),
+    ],
+)
+def test_assay_file_lists_use_the_same_normalization(value, expected):
+    """Expected and required file lists retain the same order and empty-value semantics."""
+    panel = AssaySpecificPanelsDoc.model_validate(
+        {
+            "asp_id": "synthetic",
+            "asp_group": "hematology",
+            "asp_family": "panel-dna",
+            "asp_category": "dna",
+            "display_name": "Synthetic",
+            "expected_files": value,
+            "required_files": value,
+        }
+    )
+    assert panel.expected_files == expected
+    assert panel.required_files == expected
+
+
 def test_saved_empty_file_selection_does_not_reenable_analyses():
     panel = AssaySpecificPanelsDoc.model_validate(
         {

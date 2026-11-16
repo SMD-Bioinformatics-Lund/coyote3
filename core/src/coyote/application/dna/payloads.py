@@ -32,6 +32,7 @@ from coyote.application.reporting.dna_report_payload import (
 from coyote.config.database_versions import require_sample_vep_version
 from coyote.contracts.authoring.forms import build_form_spec
 from coyote.contracts.authoring.resources import aspc_spec_for_category
+from coyote.domain.common.assay_capabilities import normalize_analysis_sections
 from coyote.domain.common.assay_filters import (
     get_case_and_control_sample_ids,
     get_sample_effective_genes,
@@ -313,16 +314,6 @@ def _collect_clinpgx_gene_map(service, genes: list[str]) -> dict[str, dict]:
     return {}
 
 
-def _normalize_dna_analysis_sections(sections: list[str] | None) -> list[str]:
-    """Normalize DNA display/report section toggles to supported UI sections."""
-    raw = [str(value).strip().upper() for value in (sections or []) if str(value).strip()]
-    normalized: list[str] = []
-    for value in raw:
-        if value not in normalized:
-            normalized.append(value)
-    return normalized
-
-
 def _build_display_and_summary_sections(
     service,
     *,
@@ -452,7 +443,7 @@ def list_variants_payload(
     cnv_filters = merged_dna_cnv_filters(sample_filters)
     assay_group = assay_config.get("asp_group", "unknown")
     diagnosis = sample.get("diagnosis_id")
-    analysis_sections = _normalize_dna_analysis_sections(assay_config.get("analysis_types", []))
+    analysis_sections = normalize_analysis_sections(assay_config.get("analysis_types", []))
 
     assay_panel_doc = assay_resource(assay_config)
     checked_snvlists = snv_filters.get("snvlists", [])

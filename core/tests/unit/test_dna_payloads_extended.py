@@ -146,9 +146,13 @@ def test_search_matches_all_terms_across_variant_fields() -> None:
 
 
 def test_analysis_section_normalization_is_stable() -> None:
-    assert payloads._normalize_dna_analysis_sections(
-        ["snv", "TMB", "PGX", "HRD", "SNV", "cnv", ""]
-    ) == ["SNV", "TMB", "PGX", "HRD", "CNV"]
+    assert payloads.normalize_analysis_sections(["snv", "TMB", "PGX", "HRD", "SNV", "cnv", ""]) == [
+        "SNV",
+        "TMB",
+        "PGX",
+        "HRD",
+        "CNV",
+    ]
 
 
 def test_gene_enrichment_collectors_handle_configured_and_missing_repositories() -> None:

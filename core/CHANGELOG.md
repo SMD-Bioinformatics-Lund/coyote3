@@ -2,6 +2,8 @@
 
 ## 4.0.0
 
+- Share assay-file, analysis-selection and sequencing-platform normalization across
+  contracts, analysis views and reports while preserving validation and selection order.
 - Own reusable installation configuration compilation, reference-bundle provenance
   contracts and enabled host extension capabilities.
 
