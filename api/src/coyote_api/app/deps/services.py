@@ -254,9 +254,9 @@ def get_report_library_service() -> ReportLibraryService:
 
 def get_clinical_rule_authoring_service() -> ClinicalRuleAuthoringService:
     """Return the governed clinical rule authoring service."""
-    service = ClinicalRuleAuthoringService.from_store(get_store())
-    service.notification_service = get_notification_service()
-    return service
+    return ClinicalRuleAuthoringService.from_store(
+        get_store(), notification_service=get_notification_service()
+    )
 
 
 def get_query_rule_service() -> QueryRuleService:

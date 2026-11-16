@@ -77,9 +77,9 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 
     def _build_payload(**kwargs):
         calls["build"] = kwargs
-        return ("tpl.html", {}, [])
+        return SimpleNamespace(build=lambda: ("tpl.html", {}, []))
 
-    monkeypatch.setattr(dna_workflow, "build_dna_report_payload", _build_payload)
+    monkeypatch.setattr(dna_workflow, "DnaReportBuilder", _build_payload)
     monkeypatch.setattr(
         dna_workflow,
         "prepare_shared_report_output",
@@ -133,7 +133,7 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 
 def test_dna_report_payload_requires_sample_database_vep_version():
     try:
-        dna_workflow.build_dna_report_payload(
+        dna_workflow.DnaReportBuilder(
             plot_reader=get_plot,
             sample={
                 "_id": "s1",
@@ -152,7 +152,7 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                             "min_alt_reads": 3,
                             "max_popfreq": 0.05,
                         }
-                    },
+                    }
                 },
             },
             assay_config={
@@ -170,15 +170,10 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                             "min_alt_reads": 3,
                             "max_popfreq": 0.05,
                         }
-                    },
+                    }
                 },
                 "reporting": {"report_sections": ["SNV"], "report_header": "Demo"},
             },
-            assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {"asp_name": asp_name}),
-            gene_list_repository=SimpleNamespace(
-                get_isgl_by_asp=lambda assay, is_active=True: [],
-                get_isgl_by_ids=lambda ids: {},
-            ),
             variant_repository=SimpleNamespace(get_case_variants=lambda query: []),
             blacklist_repository=SimpleNamespace(
                 add_blacklist_data=lambda rows, group, *, asp_id: rows
@@ -197,7 +192,7 @@ def test_dna_report_payload_requires_sample_database_vep_version():
                 get_variant_class_translations=lambda version: {},
             ),
             annotation_repository=SimpleNamespace(),
-        )
+        ).build()
     except ValueError as exc:
         assert str(exc) == "sample.database_versions.vep is required for DNA report generation"
     else:
@@ -216,7 +211,7 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
         evaluations.append(kwargs)
         return None
 
-    template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+    template_name, context, snapshot_rows = dna_workflow.DnaReportBuilder(
         clinical_rule_service=SimpleNamespace(evaluate=evaluate),
         plot_reader=get_plot,
         sample={
@@ -265,23 +260,8 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             },
             "reporting": {"report_sections": ["SNV", "CNV"], "report_header": "Demo"},
         },
-        assay_panel_repository=SimpleNamespace(
-            get_asp=lambda asp_name: {"asp_name": asp_name, "covered_genes": ["TP53", "EGFR"]}
-        ),
-        gene_list_repository=SimpleNamespace(
-            get_isgl_by_asp=lambda assay, is_active=True: [],
-            get_isgl_by_ids=lambda ids: {
-                "CNV_GL": {
-                    "displayname": "CNV GL",
-                    "is_active": True,
-                    "list_type": ["cnv"],
-                    "genes": ["TP53"],
-                }
-            },
-        ),
         variant_repository=SimpleNamespace(
-            get_case_variants=lambda query: [],
-            hydrate_finding_comments_many=lambda rows: rows,
+            get_case_variants=lambda query: [], hydrate_finding_comments_many=lambda rows: rows
         ),
         blacklist_repository=SimpleNamespace(
             add_blacklist_data=lambda rows, group, *, asp_id: rows
@@ -292,18 +272,9 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
         ),
         copy_number_variant_repository=SimpleNamespace(
             get_sample_cnvs=lambda selection: [
-                {
-                    "_id": "cnv1",
-                    "genes": [{"gene": "TP53", "class": 1}],
-                    "ratio": 0.7,
-                    "fp": True,
-                },
+                {"_id": "cnv1", "genes": [{"gene": "TP53", "class": 1}], "ratio": 0.7, "fp": True},
                 {"_id": "cnv2", "genes": [{"gene": "EGFR", "class": 1}], "ratio": 0.8},
-                {
-                    "_id": "cnv3",
-                    "genes": [{"gene": "TP53", "class": 1}],
-                    "ratio": 0.9,
-                },
+                {"_id": "cnv3", "genes": [{"gene": "TP53", "class": 1}], "ratio": 0.9},
             ]
         ),
         biomarker_repository=SimpleNamespace(get_sample_biomarkers=lambda sample_id: []),
@@ -317,7 +288,7 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
             get_additional_classifications=lambda *args, **kwargs: [],
         ),
         include_snapshot=True,
-    )
+    ).build()
 
     assert template_name == "smd/dna_report.html"
     assert len(snapshot_rows) == 1

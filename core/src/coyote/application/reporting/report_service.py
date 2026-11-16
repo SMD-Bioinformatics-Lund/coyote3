@@ -60,7 +60,8 @@ def smd_template_content_hash(analyte: str) -> str:
                 digest.update(resource.read_bytes())
 
     include(files("smd_reports"))
-    for name in ("smd_input.py", "ordering.py", "report_context.py", "report_renderer.py"):
+    include(files("coyote").joinpath("application/reporting/document"), "document/")
+    for name in ("ordering.py", "report_context.py", "report_renderer.py"):
         digest.update(files("coyote").joinpath("application/reporting", name).read_bytes())
     return digest.hexdigest()
 

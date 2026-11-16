@@ -11,6 +11,8 @@
 - Versioned assay, diagnosis, gene-list and environment configuration; shared or
   independent SNV filtering and configurable report section order.
 - Governed query and reporting rules with drafts, review, publication and provenance.
+- Focused administration, clinical-rule lifecycle and report-building services with
+  unchanged review transitions and report presentation.
 - HTML/PDF reports through `smd-reports`, reviewed previews, saved finding snapshots
   and traceable report artifacts.
 - Exact assay/environment access, scoped credentials and durable audit records.

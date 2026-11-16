@@ -2,6 +2,10 @@
 
 ## 4.0.0
 
+- Separate administration by managed resource, clinical-rule authoring by scope,
+  assignments and lifecycle, and DNA reports by evidence selection, snapshots and
+  document sections. Preserve review transitions, clinical eligibility and rendered
+  content; fingerprint every document-builder module for preview validation.
 - Share assay-file, analysis-selection and sequencing-platform normalization across
   contracts, analysis views and reports while preserving validation and selection order.
 - Apply one scope-matching implementation to SNV and structural finding query

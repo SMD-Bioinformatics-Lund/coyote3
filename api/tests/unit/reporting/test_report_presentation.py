@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 from api_test_support.report_context import context
 from api_test_support.report_presentation import empty_context, structural_context
-from coyote.application.reporting.dna_report_payload import sort_by_class_and_af
+from coyote.application.reporting.dna.variants import sort_by_class_and_af
 from coyote.application.reporting.presentation import ReportPresentation
 from coyote.application.reporting.report_renderer import render_report_html
 from coyote.domain.common.reporting import TIER_SHORT_DESC

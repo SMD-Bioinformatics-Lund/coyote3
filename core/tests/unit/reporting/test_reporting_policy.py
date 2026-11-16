@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 from coyote.application.common.release_resources import capture_assay_resource
-from coyote.application.reporting.dna_report_payload import filter_variants_for_report
+from coyote.application.reporting.dna.variants import filter_variants_for_report
 from coyote.application.reporting.eligibility import reportable_tiers, structural_report_inclusion
 from coyote.application.reporting.report_context import prepare_render_context, report_scope_label
 from coyote.contracts.schemas.assay import ReportableTiersDoc

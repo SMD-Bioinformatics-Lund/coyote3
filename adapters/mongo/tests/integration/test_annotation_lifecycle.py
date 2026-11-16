@@ -7,7 +7,7 @@ import mongomock
 import pytest
 from bson import ObjectId
 from coyote.application.interpretation.annotation_enrichment import add_global_annotations
-from coyote.application.reporting.dna_report_payload import filter_variants_for_report
+from coyote.application.reporting.dna.variants import filter_variants_for_report
 from coyote.application.reporting.eligibility import classification_is_usable
 from coyote_mongo.repositories.annotations import AnnotationsRepository
 from mongo_test_support.settings import mongo_runtime

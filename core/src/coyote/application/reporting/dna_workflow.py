@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from coyote.application.query_rules.service import QueryRuleService
 from coyote.application.reporting.clinical_rules.service import ClinicalRuleService
-from coyote.application.reporting.dna_report_payload import build_dna_report_payload
+from coyote.application.reporting.dna import DnaReportBuilder
 from coyote.application.reporting.persistence import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
@@ -147,14 +147,12 @@ class DNAWorkflowService:
         clinical_rule_condition_trace: bool = False,
     ):
         """Build the DNA report payload and optional snapshot rows."""
-        return build_dna_report_payload(
+        return DnaReportBuilder(
             plot_reader=self.plot_reader,
             sample=sample,
             assay_config=assay_config,
             save=save,
             include_snapshot=include_snapshot,
-            assay_panel_repository=self.assay_panel_repository,
-            gene_list_repository=self.gene_list_repository,
             variant_repository=self.variant_repository,
             blacklist_repository=self.blacklist_repository,
             sample_repository=self.sample_repository,
@@ -170,7 +168,7 @@ class DNAWorkflowService:
             clinical_rule_override=clinical_rule_override,
             clinical_rule_only=clinical_rule_only,
             clinical_rule_condition_trace=clinical_rule_condition_trace,
-        )
+        ).build()
 
     @staticmethod
     def prepare_report_output(report_path: str, report_file: str, logger=None) -> None:

@@ -14,6 +14,14 @@ Report JSON is rendered by `smd-reports` using the existing `coyote3` preset.
 Report wording, finding eligibility, rule publication and saved provenance stay
 governed by core operations. Database-specific audit hashing is supplied by hosts.
 
+`application/operations/administration/` groups services by the resource they manage.
+Clinical-rule authoring composes scope validation, reviewer assignments, record
+transitions and lifecycle services in `application/reporting/clinical_rules/authoring/`.
+`application/reporting/dna/DnaReportBuilder` assembles evidence and snapshots;
+`application/reporting/document/ReportDocumentBuilder` composes presentation sections.
+Each report build uses fresh state. Changes to any document-builder module change
+the renderer fingerprint checked when a reviewed preview is saved.
+
 Ingestion services own parsing, validation, fenced job execution and stable manifest
 acknowledgement. Hosts supply an authorized executor, durable job repository,
 transaction completion callback, retry classification and audit delivery. Celery

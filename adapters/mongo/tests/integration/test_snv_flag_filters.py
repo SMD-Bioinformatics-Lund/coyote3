@@ -6,7 +6,7 @@ import mongomock
 import pytest
 from bson import ObjectId
 from coyote.application.common.release_resources import capture_gene_lists
-from coyote.application.reporting.dna_report_payload import _build_variant_query
+from coyote.application.reporting.dna.selection import _build_variant_query
 from coyote.application.sample.catalog import SampleCatalogService
 from coyote.domain.dna.varqueries import build_query
 from coyote.domain.exceptions import AppError

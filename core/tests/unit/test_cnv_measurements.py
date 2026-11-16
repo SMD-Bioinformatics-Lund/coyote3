@@ -7,7 +7,7 @@ import pytest
 from coyote.application.dna.export import build_cnv_export_rows
 from coyote.application.dna.structural_variants import _cnv_sort_value
 from coyote.application.ingest.analysis_parsers import DnaIngestParser
-from coyote.application.reporting.smd_input import _summary_copy_number
+from coyote.application.reporting.document.formatting import _summary_copy_number
 from coyote.contracts.schemas.registry import normalize_collection_document
 from coyote.domain.dna.cnv_metrics import copy_number_from_log2
 

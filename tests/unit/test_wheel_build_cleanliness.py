@@ -116,7 +116,7 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         assert "coyote_pyclient/py.typed" in names
     elif distribution == "core":
         assert not any(name.startswith(("api/", "coyote_api/", "coyote_mongo/")) for name in names)
-        assert "coyote/application/reporting/smd_input.py" in names
+        assert "coyote/application/reporting/document/builder.py" in names
         assert not any(name.startswith("coyote/templates/reporting/") for name in names)
     elif distribution == "server":
         assert "coyote_api/app/main.py" in names

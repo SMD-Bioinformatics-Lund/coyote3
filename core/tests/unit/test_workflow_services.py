@@ -85,7 +85,7 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
     def unexpected(*_args, **_kwargs):
         raise AssertionError("display-only report work must not run during rule testing")
 
-    template_name, context, snapshot_rows = dna_workflow.build_dna_report_payload(
+    template_name, context, snapshot_rows = dna_workflow.DnaReportBuilder(
         plot_reader=unexpected,
         sample={
             "_id": "s1",
@@ -101,14 +101,8 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
             "filters": {"somatic": {"snv": {"snvlists": [], "vep_consequences": []}}},
             "reporting": {"report_sections": ["SNV", "CNV_PROFILE"]},
         },
-        assay_panel_repository=SimpleNamespace(get_asp=lambda asp_name: {}),
-        gene_list_repository=SimpleNamespace(
-            get_isgl_by_asp=unexpected,
-            get_isgl_by_ids=lambda ids: {},
-        ),
         variant_repository=SimpleNamespace(
-            get_case_variants=lambda query: [],
-            hydrate_finding_comments_many=unexpected,
+            get_case_variants=lambda query: [], hydrate_finding_comments_many=unexpected
         ),
         blacklist_repository=SimpleNamespace(
             add_blacklist_data=lambda rows, group, *, asp_id: rows
@@ -121,8 +115,7 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
         biomarker_repository=SimpleNamespace(),
         translocation_repository=SimpleNamespace(),
         vep_metadata_repository=SimpleNamespace(
-            get_consequence_group_map=lambda version: {},
-            get_variant_class_translations=unexpected,
+            get_consequence_group_map=lambda version: {}, get_variant_class_translations=unexpected
         ),
         annotation_repository=SimpleNamespace(),
         clinical_rule_service=SimpleNamespace(
@@ -132,7 +125,7 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
         ),
         clinical_rule_override=SimpleNamespace(),
         clinical_rule_only=True,
-    )
+    ).build()
 
     assert template_name == ""
     assert context["clinical_rule_evaluation"] == {"sections": {}, "trace": []}

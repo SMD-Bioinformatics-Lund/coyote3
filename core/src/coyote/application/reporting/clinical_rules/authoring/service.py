@@ -1,30 +1,24 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Governed authoring and publication workflows for clinical rule sets."""
+"""Clinical rule draft authoring, inspection and governed lifecycle orchestration."""
 
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
 from typing import Any
 
 from coyote.application.classification.bulk_annotation_rules import (
-    bulk_annotation_group_options,
     render_bulk_annotation,
 )
 from coyote.application.common.protected_records import reject_system_managed_change
 from coyote.application.reporting.clinical_rules.evaluator import ClinicalRuleEvaluator
 from coyote.application.reporting.clinical_rules.facts import PreparedReportContext
-from coyote.application.reporting.clinical_rules.registry import BULK_ANNOTATION_FACT_PATHS
 from coyote.application.reporting.clinical_rules.validation import (
     content_hash,
     validate_rule_set,
 )
-from coyote.application.resources.availability import require_active_group
-from coyote.config.constants import DIAGNOSIS_BASE_ID, ENVIRONMENT_OPTIONS
 from coyote.contracts.schemas.clinical_rules import (
-    BulkAnnotationGroupOption,
     BulkAnnotationPreviewRequest,
     ClinicalRuleConfiguration,
     ClinicalRuleDecision,
@@ -38,19 +32,13 @@ from coyote.contracts.schemas.clinical_rules import (
 )
 from coyote.domain.common.errors import api_error
 from coyote.domain.common.reporting import (
-    STANDARD_CNV_SUMMARY_PHRASES,
-    STANDARD_TIER_SUMMARY_PHRASES,
+    utc_now,
 )
-from coyote.domain.common.resource_names import short_resource_name
 
-
-def _now() -> datetime:
-    """Read the current UTC time.
-
-    Returns:
-        Timezone-aware timestamp for lifecycle and provenance fields.
-    """
-    return datetime.now(timezone.utc)
+from .assignments import ReviewAssignments
+from .catalog import RuleScopeCatalog
+from .lifecycle import RuleLifecycle
+from .records import RuleRecords
 
 
 def _new_rule_set_blocks() -> list[dict[str, Any]]:
@@ -90,14 +78,17 @@ class ClinicalRuleAuthoringService:
     """Manage rule drafts, independent clinical approval, and releases."""
 
     @classmethod
-    def from_store(cls, store: Any) -> "ClinicalRuleAuthoringService":
+    def from_store(
+        cls, store: Any, *, notification_service: Any | None = None
+    ) -> "ClinicalRuleAuthoringService":
         """Bind authoring to rule, revision, assay, and optional identity repositories.
 
         Args:
             store: Repository provider; user and role repositories may be absent.
+            notification_service: Optional delivery service for review assignments.
 
         Returns:
-            Authoring service without a notification service configured.
+            Authoring service bound to the supplied repositories and delivery service.
         """
         return cls(
             store.clinical_rule_set_repository,
@@ -108,6 +99,7 @@ class ClinicalRuleAuthoringService:
             assay_group_repository=getattr(store, "assay_group_repository", None),
             user_repository=getattr(store, "user_repository", None),
             role_repository=getattr(store, "roles_repository", None),
+            notification_service=notification_service,
         )
 
     def __init__(
@@ -138,287 +130,20 @@ class ClinicalRuleAuthoringService:
         """
         self.repository = repository
         self.revision_repository = revision_repository
-        self.assay_panel_repository = assay_panel_repository
-        self.assay_diagnosis_repository = assay_diagnosis_repository
-        self.assay_setup_repository = assay_setup_repository
-        self.assay_group_repository = assay_group_repository
-        self.user_repository = user_repository
-        self.role_repository = role_repository
-        self.notification_service = notification_service
-
-    def authoring_options(self) -> dict[str, Any]:
-        """Return authoring scopes and optional sentence wording for explicit draft insertion."""
-        group_options = self._annotation_group_options()
-        group_ids = [group.group_id for group in group_options]
-        group_values = (
-            {
-                path: group_ids
-                for path in (
-                    "asp.asp_group",
-                    "asp.parent_group_id",
-                    "asp.ancestor_group_ids",
-                    "asp.group_path_ids",
-                    "asp.root_group_id",
-                )
-            }
-            if group_ids
-            else {}
+        self.assignments = ReviewAssignments(
+            user_repository=user_repository,
+            role_repository=role_repository,
+            notification_service=notification_service,
         )
-        sentence_terminology = {
-            "sv": {
-                "tier_summary": {
-                    **deepcopy(STANDARD_TIER_SUMMARY_PHRASES),
-                    "single_gene_always_read_context": True,
-                },
-                "cnv_summary": deepcopy(STANDARD_CNV_SUMMARY_PHRASES),
-            }
-        }
-        if self.assay_panel_repository is None:
-            return {
-                "assays": [],
-                "condition_values": group_values,
-                "sentence_terminology": sentence_terminology,
-                "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
-                "bulk_annotation_groups": [
-                    group.model_dump(mode="python") for group in group_options
-                ],
-                **self.reviewer_options(),
-            }
-        assays = []
-        for panel in self._authoring_panels():
-            analyte = str(panel.get("asp_category") or "").lower()
-            if analyte not in {"dna", "rna"}:
-                continue
-            asp_id = str(panel.get("asp_id") or "").strip()
-            if not asp_id:
-                continue
-            assays.append(
-                {
-                    "asp_id": asp_id,
-                    "display_name": str(panel.get("display_name") or asp_id),
-                    "name": short_resource_name(panel, asp_id),
-                    "analyte": analyte,
-                    "diagnoses": [
-                        {
-                            "diagnosis_id": scope["diagnosis_id"],
-                            "display_name": scope["display_name"],
-                        }
-                        for scope in self._registered_diagnoses(asp_id)
-                    ],
-                }
-            )
-        diagnoses = sorted(
-            {scope["diagnosis_id"] for assay in assays for scope in assay["diagnoses"]}
+        self.catalog = RuleScopeCatalog(
+            assay_panel_repository=assay_panel_repository,
+            assay_diagnosis_repository=assay_diagnosis_repository,
+            assay_setup_repository=assay_setup_repository,
+            assay_group_repository=assay_group_repository,
+            assignments=self.assignments,
         )
-        groups = sorted(
-            {str(panel.get("asp_group") or "").strip() for panel in self._authoring_panels()} - {""}
-        )
-        return {
-            "sentence_terminology": sentence_terminology,
-            "bulk_annotation_fact_paths": sorted(BULK_ANNOTATION_FACT_PATHS),
-            "bulk_annotation_groups": [group.model_dump(mode="python") for group in group_options],
-            "assays": sorted(assays, key=lambda item: (item["display_name"], item["asp_id"])),
-            "condition_values": {
-                "sample.asp_id": [item["asp_id"] for item in assays],
-                "sample.diagnosis_id": diagnoses,
-                "sample.environment": list(ENVIRONMENT_OPTIONS),
-                "asp.asp_group": groups,
-                **group_values,
-            },
-            **self.reviewer_options(),
-        }
-
-    def _annotation_group_options(self) -> list[BulkAnnotationGroupOption]:
-        """Read the full registered biological tree without exposing private audit fields.
-
-        Returns:
-            Complete group paths, or an empty list without a group repository.
-
-        Raises:
-            AppError: A registry hierarchy is incomplete or cyclic.
-        """
-        try:
-            return (
-                bulk_annotation_group_options(self.assay_group_repository.list())
-                if self.assay_group_repository is not None
-                else []
-            )
-        except ValueError as exc:
-            raise api_error(422, "Biological group hierarchy is invalid", str(exc)) from exc
-
-    def _authoring_panels(self) -> list[dict[str, Any]]:
-        """Combine active assays with reserved setup drafts, without changing runtime lookup."""
-        panels = list(self.assay_panel_repository.get_all_asps(is_active=True))
-        if self.assay_setup_repository is not None:
-            for setup in self.assay_setup_repository.authoring_scopes():
-                panel = setup["content"]["panel"]
-                if not self.assay_panel_repository.get_asp(panel["asp_id"]):
-                    panels.append({**panel, "is_active": True})
-        return panels
-
-    def _registered_diagnoses(self, asp_id: str) -> list[dict[str, Any]]:
-        """Return active registered scopes; fail closed when the repository is not configured."""
-        if self.assay_diagnosis_repository is None:
-            raise RuntimeError("Assay diagnosis repository is required for rule authoring")
-        if self.assay_setup_repository is not None and not self.assay_panel_repository.get_asp(
-            asp_id
-        ):
-            for setup in self.assay_setup_repository.authoring_scopes():
-                if setup["content"]["panel"]["asp_id"] == asp_id:
-                    definitions = self.assay_diagnosis_repository.list_definitions()
-                    return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
-                        d
-                        for d in definitions
-                        if d["diagnosis_id"] in setup["content"]["scopes"] and d["is_active"]
-                    ]
-        return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
-            row
-            for row in self.assay_diagnosis_repository.list_for_assay(asp_id, active_only=True)
-            if row["diagnosis_id"] != DIAGNOSIS_BASE_ID
-        ]
-
-    def _validate_new_scope(
-        self, payload: ClinicalRuleDraftCreate, *, allow_unregistered: bool = False
-    ) -> None:
-        """Check assay compatibility, optionally accepting a planned assay for authoring.
-
-        Args:
-            payload: Draft request; an absent scope skips validation here.
-            allow_unregistered: Permit a missing assay while authoring a draft;
-                existing inactive or incompatible assays are still rejected.
-
-        Raises:
-            AppError: With status 409 for an unavailable assay/setup or analyte mismatch.
-        """
-        if self.assay_panel_repository is None or payload.scope is None:
-            return
-        panel = self.assay_panel_repository.get_asp(payload.scope.asp_id)
-        if panel is None and self.assay_setup_repository is not None:
-            panel = next(
-                (p for p in self._authoring_panels() if p["asp_id"] == payload.scope.asp_id), None
-            )
-        if panel is None and allow_unregistered:
-            return
-        if not panel or panel.get("is_active") is False:
-            raise api_error(409, "Clinical rule sets require an active assay panel")
-        analyte = str(panel.get("asp_category") or "").lower()
-        if analyte != payload.scope.analyte:
-            raise api_error(409, "Clinical rule-set analyte does not match the assay panel")
-        if payload.scope.diagnosis_id not in {
-            scope["diagnosis_id"] for scope in self._registered_diagnoses(payload.scope.asp_id)
-        }:
-            raise api_error(409, "Select an active registered diagnosis for this assay")
-
-    def _document(self, document_id: str) -> ClinicalRuleSetDoc:
-        """Load and parse a stored rule version.
-
-        Args:
-            document_id: Repository identifier of the version.
-
-        Returns:
-            Validated canonical rule document.
-
-        Raises:
-            AppError: With status 404 when the version is absent.
-            ValidationError: Stored data does not satisfy the canonical schema.
-        """
-        document = self.repository.get(document_id)
-        if document is None:
-            raise api_error(404, "Clinical rule-set version was not found")
-        return ClinicalRuleSetDoc.model_validate(document)
-
-    def _eligible_users(self, permission: str) -> list[dict[str, str]]:
-        """Return active accounts assigned a role with the requested capability."""
-        if self.user_repository is None or self.role_repository is None:
-            return []
-        role_ids = [
-            str(role.get("role_id") or "").strip()
-            for role in self.role_repository.get_all_roles_plus_permissions()
-            if permission in set(role.get("permissions") or [])
-        ]
-        if not role_ids:
-            return []
-        users = self.user_repository.list_active_users_for_notifications(role_ids=role_ids)
-        return [
-            {
-                "username": str(user.get("username") or "").strip().lower(),
-                "name": str(user.get("fullname") or user.get("username") or "").strip(),
-            }
-            for user in users
-            if str(user.get("username") or "").strip()
-        ]
-
-    def reviewer_options(self) -> dict[str, list[dict[str, str]]]:
-        """List active users eligible for clinical review and publication.
-
-        Returns:
-            Clinical reviewer and publisher choices; empty without identity repositories.
-        """
-        return {
-            "clinical_reviewers": self._eligible_users("clinical_rules:clinical_review"),
-            "publishers": self._eligible_users("clinical_rules:publish"),
-        }
-
-    def _validate_assignee(
-        self, username: str | None, permission: str, *, label: str, exclude: str | None = None
-    ) -> str:
-        """Require an active assignee with the requested role capability.
-
-        Args:
-            username: Proposed login; None or blank is rejected.
-            permission: Capability required through role membership.
-            label: Assignee role label used in error messages.
-            exclude: Optional login barred from assignment after normalization.
-
-        Returns:
-            Stripped, lowercase eligible login.
-
-        Raises:
-            AppError: With status 400 for no assignee or 409 for ineligibility/exclusion.
-        """
-        normalized = str(username or "").strip().lower()
-        if not normalized:
-            raise api_error(400, f"Assign an eligible {label} before continuing")
-        eligible = {item["username"] for item in self._eligible_users(permission)}
-        if normalized not in eligible:
-            raise api_error(409, f"Assigned {label} is not an active eligible user")
-        if normalized == str(exclude or "").strip().lower():
-            raise api_error(409, f"The latest content editor cannot be the assigned {label}")
-        return normalized
-
-    def _notify(
-        self, *, recipient: str, title: str, message: str, document: ClinicalRuleSetDoc, actor: str
-    ) -> None:
-        """Persist a linked workflow notification and queue email when configured.
-
-        Args:
-            recipient: Login receiving the notification.
-            title: Notification heading.
-            message: Workflow request or outcome text.
-            document: Version linked from the notification.
-            actor: Login recorded as notification creator.
-        """
-        if self.notification_service is None:
-            return
-        self.notification_service.create_notification(
-            audience="users",
-            recipients=[recipient],
-            email_recipients=[recipient]
-            if getattr(self.notification_service, "email_sender", None)
-            else [],
-            tone="info",
-            category="application",
-            title=title,
-            message=message,
-            source="Clinical reporting rules",
-            created_by=actor,
-            resource={
-                "type": "clinical_rule_set",
-                "id": str(document.id_),
-                "name": document.name,
-                "uri": f"/admin/clinical-rules?rule_set={document.id_}",
-            },
-        )
+        self.records = RuleRecords(repository)
+        self.lifecycle = RuleLifecycle(self.records, self.catalog, self.assignments)
 
     def list(
         self, *, status: str | None, search: str | None, page: int, per_page: int
@@ -463,7 +188,7 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 when the version is absent.
         """
-        return self._document(document_id).model_dump(mode="python", by_alias=True)
+        return self.records.get(document_id).model_dump(mode="python", by_alias=True)
 
     def export(self, document_id: str, *, include_metadata: bool = False) -> dict[str, Any]:
         """Export portable rules, optionally including the stored version's metadata.
@@ -480,7 +205,7 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: The requested version does not exist.
         """
-        document = self._document(document_id)
+        document = self.records.get(document_id)
         return document.model_dump(
             mode="python",
             by_alias=True,
@@ -499,7 +224,7 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 when the version is absent.
         """
-        self._document(document_id)
+        self.records.get(document_id)
         if self.revision_repository is None:
             return []
         return self.revision_repository.list_for_version(document_id)
@@ -518,7 +243,7 @@ class ClinicalRuleAuthoringService:
             AppError: With status 404 for an absent version or revision,
                 including when revision storage is not configured.
         """
-        self._document(document_id)
+        self.records.get(document_id)
         document = (
             self.revision_repository.get_revision(document_id, revision)
             if self.revision_repository is not None
@@ -546,9 +271,9 @@ class ClinicalRuleAuthoringService:
         Notes:
             Allocates the next content version and records a draft-created audit event.
         """
-        now = _now()
+        now = utc_now()
         if payload.source_version_id:
-            source = self._document(payload.source_version_id)
+            source = self.records.get(payload.source_version_id)
             if source.status not in {ClinicalRuleStatus.PUBLISHED, ClinicalRuleStatus.REJECTED}:
                 raise api_error(
                     409, "A draft can be cloned only from a published or rejected version"
@@ -556,7 +281,7 @@ class ClinicalRuleAuthoringService:
             document = source.model_dump(mode="python", by_alias=True)
             document.pop("_id", None)
             target_scope = payload.scope or source.scope
-            self._validate_new_scope(
+            self.catalog.validate(
                 ClinicalRuleDraftCreate(scope=target_scope, name=payload.name or source.name),
                 allow_unregistered=True,
             )
@@ -597,7 +322,7 @@ class ClinicalRuleAuthoringService:
         else:
             if payload.scope is None or not payload.name:
                 raise api_error(400, "A new rule set requires scope and name")
-            self._validate_new_scope(payload, allow_unregistered=True)
+            self.catalog.validate(payload, allow_unregistered=True)
             rule_set_id = (
                 f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
             )
@@ -661,14 +386,9 @@ class ClinicalRuleAuthoringService:
             raise api_error(
                 422, "Imported rule-set file is not a valid configuration", str(exc)
             ) from exc
-        create = ClinicalRuleDraftCreate(
-            scope=payload.scope,
-            name=payload.name,
-            source="api",
-        )
-        # Imported content is validated directly; it need not be persisted as a source version.
-        now = _now()
-        self._validate_new_scope(create, allow_unregistered=True)
+        create = ClinicalRuleDraftCreate(scope=payload.scope, name=payload.name, source="api")
+        now = utc_now()
+        self.catalog.validate(create, allow_unregistered=True)
         target_rule_set_id = (
             f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
         )
@@ -698,16 +418,14 @@ class ClinicalRuleAuthoringService:
                 "content_hash": None,
                 "provenance": {
                     "source": "import",
-                    "source_rule_set_id": (
-                        f"{source.scope.asp_id}__{source.scope.diagnosis_id}__{source.scope.language}"
-                    ),
+                    "source_rule_set_id": f"{source.scope.asp_id}__{source.scope.diagnosis_id}__{source.scope.language}",
                     "imported_schema_version": source.schema_version,
                     **{
                         f"source_{key}": value
                         for key in ("content_version", "revision")
-                        if isinstance(value := payload.document.get(key), int)
-                        and not isinstance(value, bool)
-                        and value > 0
+                        if isinstance((value := payload.document.get(key)), int)
+                        and (not isinstance(value, bool))
+                        and (value > 0)
                     },
                 },
             }
@@ -747,14 +465,14 @@ class ClinicalRuleAuthoringService:
             and embedded case facts are preserved for explicit review.
         """
         changes = payload.model_dump(exclude={"revision"}, exclude_none=True, mode="python")
-        changes.update({"updated_at": _now(), "updated_by": actor, "content_hash": None})
-        current = self._document(document_id)
+        changes.update({"updated_at": utc_now(), "updated_by": actor, "content_hash": None})
+        current = self.records.get(document_id)
         candidate = current.model_dump(mode="python", by_alias=True)
         reject_system_managed_change(candidate, resource="reporting rule")
         if payload.scope is not None:
             if current.status != ClinicalRuleStatus.DRAFT:
                 raise api_error(409, "Only a draft can change its assay association")
-            self._validate_new_scope(ClinicalRuleDraftCreate(scope=payload.scope))
+            self.catalog.validate(ClinicalRuleDraftCreate(scope=payload.scope))
             target_id = (
                 f"{payload.scope.asp_id}__{payload.scope.diagnosis_id}__{payload.scope.language}"
             )
@@ -764,10 +482,7 @@ class ClinicalRuleAuthoringService:
         candidate.update({**deepcopy(changes), "revision": payload.revision + 1})
         ClinicalRuleSetDoc.model_validate(candidate)
         updated = self.repository.update_draft(
-            document_id,
-            expected_revision=payload.revision,
-            changes=changes,
-            actor=actor,
+            document_id, expected_revision=payload.revision, changes=changes, actor=actor
         )
         if updated is None:
             raise api_error(
@@ -780,7 +495,7 @@ class ClinicalRuleAuthoringService:
 
     def delete_draft(self, document_id: str, *, expected_revision: int, actor: str) -> None:
         """Discard a pre-publication version while preserving released versions and audit."""
-        document = self._document(document_id)
+        document = self.records.get(document_id)
         reject_system_managed_change(document.model_dump(), resource="reporting rule")
         if (
             document.status
@@ -815,7 +530,7 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 404 when the version is absent.
         """
-        return validate_rule_set(self._document(document_id)).model_dump(mode="python")
+        return validate_rule_set(self.records.get(document_id)).model_dump(mode="python")
 
     def preview_bulk_annotation(
         self, document_id: str, facts: BulkAnnotationPreviewRequest
@@ -832,16 +547,16 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: Version is absent or its rules or output are invalid.
         """
-        document = self._document(document_id)
+        document = self.records.get(document_id)
         validation = validate_rule_set(document)
         if not validation.valid:
             raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
         try:
-            if facts.asp_group is None and self.assay_panel_repository is not None:
+            if facts.asp_group is None and self.catalog.assay_panel_repository is not None:
                 panel = next(
                     (
                         panel
-                        for panel in self._authoring_panels()
+                        for panel in self.catalog.panels()
                         if panel.get("asp_id") == document.scope.asp_id
                     ),
                     None,
@@ -849,7 +564,7 @@ class ClinicalRuleAuthoringService:
                 if panel and panel.get("asp_group"):
                     facts = facts.model_copy(update={"asp_group": panel["asp_group"]})
             return render_bulk_annotation(
-                document, facts, groups=self._annotation_group_options()
+                document, facts, groups=self.catalog.annotation_groups()
             ).model_dump(mode="python")
         except ValueError as exc:
             raise api_error(422, "Annotation preview failed", str(exc)) from exc
@@ -868,7 +583,7 @@ class ClinicalRuleAuthoringService:
             AppError: With status 404 when the version is absent.
             ValueError: Facts are invalid or rule evaluation/rendering fails.
         """
-        document = self._document(document_id)
+        document = self.records.get(document_id)
         context = PreparedReportContext.model_validate(facts)
         analyses = set(document.analysis_declarations)
         candidate = document.model_copy(update={"content_hash": content_hash(document)})
@@ -877,58 +592,6 @@ class ClinicalRuleAuthoringService:
             .evaluate(context, candidate, reporting_analyses=analyses)
             .model_dump(mode="python")
         )
-
-    def _transition(
-        self,
-        document_id: str,
-        *,
-        expected_revision: int,
-        actor: str,
-        reason: str,
-        from_statuses: set[str],
-        status: ClinicalRuleStatus,
-        extra: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Conditionally change lifecycle state, append its event, and audit it.
-
-        Args:
-            document_id: Version to transition.
-            expected_revision: Revision read during validation and authorization.
-            actor: Login recorded on the lifecycle and audit events.
-            reason: Event explanation; blank is stored as None.
-            from_statuses: Permitted current statuses passed to the repository.
-            status: Target lifecycle state.
-            extra: Optional additional update fields, including dotted review fields.
-
-        Returns:
-            Parsed and serialized updated version.
-
-        Raises:
-            AppError: With status 409 when the conditional transition is refused.
-        """
-        now = _now()
-        stored = self.repository.get(document_id)
-        if stored is None:
-            raise api_error(404, "Clinical rule-set version was not found")
-        reject_system_managed_change(stored, resource="reporting rule")
-        changes = {"status": status.value, "updated_at": now, **(extra or {})}
-        event = {
-            "action": status.value,
-            "actor": actor,
-            "occurred_at": now,
-            "reason": reason or None,
-        }
-        updated = self.repository.transition(
-            document_id,
-            expected_revision=expected_revision,
-            from_statuses=from_statuses,
-            changes=changes,
-            event=event,
-        )
-        if updated is None:
-            raise api_error(409, f"Clinical rule set cannot transition to {status.value}")
-        parsed = ClinicalRuleSetDoc.model_validate(updated)
-        return parsed.model_dump(mode="python", by_alias=True)
 
     def reopen_draft(
         self, document_id: str, payload: ClinicalRuleReopenRequest, *, actor: str
@@ -950,24 +613,7 @@ class ClinicalRuleAuthoringService:
             Previous review remains in immutable revision/lifecycle history.
             The revision and source-state predicate fence concurrent review or publication.
         """
-        document = self._document(document_id)
-        if document.status not in {
-            ClinicalRuleStatus.SUBMITTED,
-            ClinicalRuleStatus.IN_CLINICAL_REVIEW,
-            ClinicalRuleStatus.APPROVED,
-        }:
-            raise api_error(409, "Only submitted, in-review or approved versions can be reopened")
-        if document.revision != payload.revision:
-            raise api_error(409, "The rule set changed. Reload before editing again.")
-        return self._transition(
-            document_id,
-            expected_revision=payload.revision,
-            actor=actor,
-            reason=payload.reason,
-            from_statuses={document.status.value},
-            status=ClinicalRuleStatus.DRAFT,
-            extra={"review": {}, "content_hash": None, "active": False, "updated_by": actor},
-        )
+        return self.lifecycle.reopen_draft(document_id, payload, actor=actor)
 
     def submit(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
@@ -990,45 +636,7 @@ class ClinicalRuleAuthoringService:
             Embedded cases are not required or executed. The write is fenced by the
             validated revision so a concurrent edit cannot enter review.
         """
-        document = self._document(document_id)
-        self._validate_new_scope(ClinicalRuleDraftCreate(scope=document.scope))
-        validation = validate_rule_set(document)
-        reject_system_managed_change(document.model_dump(), resource="clinical rule set")
-        if not validation.valid:
-            raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
-        now = _now()
-        reviewer = self._validate_assignee(
-            payload.assignee,
-            "clinical_rules:clinical_review",
-            label="clinical reviewer",
-            exclude=actor,
-        )
-        if reviewer == str(document.updated_by).strip().lower():
-            raise api_error(
-                409, "The latest content editor cannot be the assigned clinical reviewer"
-            )
-        result = self._transition(
-            document_id,
-            expected_revision=document.revision,
-            actor=actor,
-            reason=payload.reason,
-            from_statuses={"draft"},
-            status=ClinicalRuleStatus.SUBMITTED,
-            extra={
-                "review.submitted_by": actor,
-                "review.submitted_at": now,
-                "review.clinical_reviewer": reviewer,
-            },
-        )
-        document = ClinicalRuleSetDoc.model_validate(result)
-        self._notify(
-            recipient=reviewer,
-            title="Clinical rule review requested",
-            message=f"{actor} submitted '{document.name}' for your clinical review.",
-            document=document,
-            actor=actor,
-        )
-        return result
+        return self.lifecycle.submit(document_id, payload, actor=actor)
 
     def start_review(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
@@ -1047,21 +655,7 @@ class ClinicalRuleAuthoringService:
             AppError: With status 404 for a missing version or 409 for a different
                 reviewer, self-review, or refused lifecycle transition.
         """
-        document = self._document(document_id)
-        if document.review.clinical_reviewer != actor:
-            raise api_error(409, "This clinical review is assigned to another user")
-        if actor in {document.updated_by, document.review.submitted_by}:
-            raise api_error(409, "The editor or submitter cannot review this version")
-        result = self._transition(
-            document_id,
-            expected_revision=document.revision,
-            actor=actor,
-            reason=payload.reason,
-            from_statuses={"submitted"},
-            status=ClinicalRuleStatus.IN_CLINICAL_REVIEW,
-            extra={"review.clinical_reviewer": actor},
-        )
-        return result
+        return self.lifecycle.start_review(document_id, payload, actor=actor)
 
     def clinical_decision(
         self, document_id: str, payload: ClinicalRuleDecision, *, actor: str
@@ -1084,56 +678,7 @@ class ClinicalRuleAuthoringService:
             Both outcomes notify the submitter, falling back to the draft creator.
             Approval also requests publication from the assigned publisher.
         """
-        document = self._document(document_id)
-        if actor in {document.updated_by, document.review.submitted_by}:
-            raise api_error(409, "The latest content editor cannot clinically approve this version")
-        if document.review.clinical_reviewer != actor:
-            raise api_error(409, "This clinical review is assigned to another user")
-        publisher = None
-        if payload.approve:
-            publisher = self._validate_assignee(
-                payload.publisher, "clinical_rules:publish", label="publisher"
-            )
-        status = ClinicalRuleStatus.APPROVED if payload.approve else ClinicalRuleStatus.REJECTED
-        now = _now()
-        result = self._transition(
-            document_id,
-            expected_revision=document.revision,
-            actor=actor,
-            reason=payload.reason,
-            from_statuses={"in_clinical_review"},
-            status=status,
-            extra={
-                "review.clinical_reviewer": actor,
-                "review.clinical_decision_at": now,
-                "review.clinical_decision_reason": payload.reason,
-                "review.publisher": publisher,
-            },
-        )
-        decided = ClinicalRuleSetDoc.model_validate(result)
-        author = document.review.submitted_by or document.created_by
-        self._notify(
-            recipient=author,
-            title="Clinical rule review approved"
-            if payload.approve
-            else "Clinical rule review rejected",
-            message=(
-                f"{actor} {'approved' if payload.approve else 'rejected'} '{decided.name}'. "
-                f"{payload.reason}"
-                + (" You are assigned to publish this version." if publisher == author else "")
-            ),
-            document=decided,
-            actor=actor,
-        )
-        if payload.approve and publisher != author:
-            self._notify(
-                recipient=publisher,
-                title="Clinical rule publication requested",
-                message=f"{actor} clinically approved '{decided.name}' and assigned it for publication.",
-                document=decided,
-                actor=actor,
-            )
-        return result
+        return self.lifecycle.clinical_decision(document_id, payload, actor=actor)
 
     def publish(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
@@ -1157,57 +702,7 @@ class ClinicalRuleAuthoringService:
             Requires valid rule semantics and an unchanged validated revision.
             Embedded cases are not required or executed.
         """
-        document = self._document(document_id)
-        validation = validate_rule_set(document)
-        if not validation.valid:
-            raise api_error(422, "Clinical rule validation failed", "; ".join(validation.errors))
-        reject_system_managed_change(document.model_dump(), resource="clinical rule set")
-        if not document.review.clinical_reviewer:
-            raise api_error(409, "Clinical approval is required before publication")
-        if document.review.clinical_reviewer == document.updated_by:
-            raise api_error(409, "Clinical approval must be independent of the latest editor")
-        if document.review.publisher != actor:
-            raise api_error(409, "This publication is assigned to another user")
-        panel = next(
-            (p for p in self._authoring_panels() if p["asp_id"] == document.scope.asp_id), None
-        )
-        if panel is None:
-            raise api_error(409, "Assay is unavailable for publication")
-        require_active_group(self.assay_panel_repository, panel["asp_group"])
-        now = _now()
-        digest = content_hash(document)
-        event = {
-            "action": "published",
-            "actor": actor,
-            "occurred_at": now,
-            "reason": payload.reason or None,
-        }
-        updated = self.repository.publish(
-            document_id,
-            expected_revision=document.revision,
-            changes={
-                "status": "published",
-                "active": True,
-                "published_at": now,
-                "published_by": actor,
-                "effective_from": now,
-                "updated_at": now,
-                "content_hash": digest,
-            },
-            event=event,
-        )
-        if updated is None:
-            raise api_error(409, "Only an approved clinical rule set can be published")
-        parsed = ClinicalRuleSetDoc.model_validate(updated)
-        if parsed.created_by != actor:
-            self._notify(
-                recipient=parsed.created_by,
-                title="Clinical rule set published",
-                message=f"{actor} published '{parsed.name}'.",
-                document=parsed,
-                actor=actor,
-            )
-        return parsed.model_dump(mode="python", by_alias=True)
+        return self.lifecycle.publish(document_id, payload, actor=actor)
 
     def retire(
         self, document_id: str, payload: ClinicalRuleTransition, *, actor: str
@@ -1225,15 +720,16 @@ class ClinicalRuleAuthoringService:
         Raises:
             AppError: With status 400 for no reason or 409 for a refused transition.
         """
-        if not payload.reason:
-            raise api_error(400, "A retirement reason is required")
-        now = _now()
-        return self._transition(
-            document_id,
-            expected_revision=self._document(document_id).revision,
-            actor=actor,
-            reason=payload.reason,
-            from_statuses={"published"},
-            status=ClinicalRuleStatus.RETIRED,
-            extra={"active": False, "retired_at": now, "retired_by": actor},
-        )
+        return self.lifecycle.retire(document_id, payload, actor=actor)
+
+    def authoring_options(self) -> dict[str, Any]:
+        """Return authoring scopes and optional sentence wording for explicit draft insertion."""
+        return self.catalog.options()
+
+    def reviewer_options(self) -> dict[str, list[dict[str, str]]]:
+        """List active users eligible for clinical review and publication.
+
+        Returns:
+            Clinical reviewer and publisher choices; empty without identity repositories.
+        """
+        return self.assignments.options()

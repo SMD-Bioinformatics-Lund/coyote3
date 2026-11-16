@@ -72,15 +72,15 @@ def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
         assay_setup_repository=setups,
         assay_diagnosis_repository=diagnoses,
     )
-    assert len(service._authoring_panels()) == 2
-    assert [row["diagnosis_id"] for row in service._registered_diagnoses("assay_1")] == [
+    assert len(service.catalog.panels()) == 2
+    assert [row["diagnosis_id"] for row in service.catalog.diagnoses("assay_1")] == [
         "base",
         "named",
     ]
-    assert service._registered_diagnoses("unknown") == [
+    assert service.catalog.diagnoses("unknown") == [
         {"diagnosis_id": "base", "display_name": "Base"}
     ]
-    service._validate_new_scope(
+    service.catalog.validate(
         ClinicalRuleDraftCreate(
             scope={"asp_id": "assay_1", "diagnosis_id": "named", "analyte": "dna"},
             name="New rule",
@@ -203,7 +203,7 @@ def test_link_draft_requires_a_registered_compatible_assay_and_diagnosis(failure
         "asp_category": "rna" if failure == "analyte" else "dna",
         "is_active": failure != "inactive",
     }
-    service.assay_panel_repository.get_asp = lambda _identity: (
+    service.catalog.assay_panel_repository.get_asp = lambda _identity: (
         None if failure == "missing" else panel
     )
     scope = _document().scope.model_dump()
@@ -233,7 +233,7 @@ def test_publish_rejects_an_assay_no_longer_available():
     document.review.clinical_reviewer = "reviewer"
     document.review.publisher = "publisher"
     service = governed_service(Repository(document))
-    service.assay_panel_repository.get_all_asps = lambda **_: []
+    service.catalog.assay_panel_repository.get_all_asps = lambda **_: []
     with pytest.raises(AppError, match="Assay is unavailable"):
         service.publish("id", ClinicalRuleTransition(), actor="publisher")
 
@@ -243,7 +243,7 @@ def test_submission_without_embedded_tests_has_no_test_setup_warning():
     document.test_cases = []
     service = governed_service(Repository(document))
     notifications = []
-    service.notification_service = SimpleNamespace(
+    service.assignments.notification_service = SimpleNamespace(
         create_notification=lambda **kwargs: notifications.append(kwargs)
     )
     readiness = service.validate("id")
@@ -373,7 +373,7 @@ def test_submit_rejects_edit_after_validation(monkeypatch):
         service.repository.document["blocks"][0]["rules"][0]["output"] = []
         return "reviewer"
 
-    monkeypatch.setattr(service, "_validate_assignee", assign)
+    monkeypatch.setattr(service.assignments, "validate", assign)
     with pytest.raises(AppError) as failure:
         service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
     assert failure.value.status_code == 409
@@ -393,14 +393,14 @@ class RevisionRepository:
 
 def test_assignee_validation_rejects_missing_ineligible_and_self_review():
     service = governed_service(Repository())
-    assert service._eligible_users("unassigned:permission") == []
+    assert service.assignments.eligible_users("unassigned:permission") == []
     for username, message, exclude in [
         (None, "Assign an eligible", None),
         ("unknown", "not an active", None),
         ("reviewer", "latest content editor", "reviewer"),
     ]:
         with pytest.raises(AppError, match=message):
-            service._validate_assignee(
+            service.assignments.validate(
                 username, "clinical_rules:clinical_review", label="reviewer", exclude=exclude
             )
 
@@ -484,7 +484,7 @@ def test_lifecycle_notifications_use_the_real_notification_contract(approve, ema
     repository = Repository(document)
     service = governed_service(repository)
     delivered = []
-    service.notification_service = NotificationService(
+    service.assignments.notification_service = NotificationService(
         notification_repository=SimpleNamespace(
             create=lambda notification: delivered.append(notification) or str(len(delivered))
         ),
@@ -528,7 +528,7 @@ def test_notifications_include_review_rejection_and_creator_publication():
     repository = Repository(document)
     service = governed_service(repository)
     calls = []
-    service.notification_service = SimpleNamespace(
+    service.assignments.notification_service = SimpleNamespace(
         create_notification=lambda **kwargs: calls.append(kwargs)
     )
     service.submit("id", ClinicalRuleTransition(assignee="reviewer"), actor="author")
@@ -554,7 +554,7 @@ def test_review_decision_notifies_the_submitter_instead_of_an_unrelated_original
     document.review.clinical_reviewer = "reviewer"
     service = governed_service(Repository(document))
     calls = []
-    service.notification_service = SimpleNamespace(
+    service.assignments.notification_service = SimpleNamespace(
         create_notification=lambda **kwargs: calls.append(kwargs)
     )
     service.clinical_decision(
@@ -616,7 +616,7 @@ def test_authoring_options_use_identifier_as_missing_display_name() -> None:
         ),
     )
     assert service.authoring_options()["assays"][0]["display_name"] == "assay_1"
-    service._validate_new_scope(ClinicalRuleDraftCreate())
+    service.catalog.validate(ClinicalRuleDraftCreate())
 
 
 def test_revision_history_returns_preserved_snapshots() -> None:

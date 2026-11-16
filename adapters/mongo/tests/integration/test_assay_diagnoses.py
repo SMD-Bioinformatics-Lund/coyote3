@@ -285,20 +285,20 @@ def test_clinical_rule_scopes_require_an_active_registered_diagnosis():
     service = ClinicalRuleAuthoringService(
         object(), assay_panel_repository=panels, assay_diagnosis_repository=scopes
     )
-    service._validate_new_scope(
+    service.catalog.validate(
         ClinicalRuleDraftCreate(
             name="Rules", scope={"asp_id": "panel-a", "diagnosis_id": "base", "analyte": "dna"}
         )
     )
     with pytest.raises(AppError, match="active registered diagnosis"):
-        service._validate_new_scope(
+        service.catalog.validate(
             ClinicalRuleDraftCreate(
                 name="Rules",
                 scope={"asp_id": "panel-a", "diagnosis_id": "unknown", "analyte": "dna"},
             )
         )
     with pytest.raises(RuntimeError, match="repository is required"):
-        ClinicalRuleAuthoringService(object())._registered_diagnoses("panel-a")
+        ClinicalRuleAuthoringService(object()).catalog.diagnoses("panel-a")
 
 
 def test_isgl_alias_search_does_not_make_alias_a_lookup_key():

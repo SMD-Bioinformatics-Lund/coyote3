@@ -25,10 +25,8 @@ from coyote.application.reporting.clinical_rules.preparation import (
     prepare_snv_profile_context,
 )
 from coyote.application.reporting.clinical_rules.service import rendered_summary
-from coyote.application.reporting.dna_report_payload import (
-    hotspot_variant,
-    load_report_snv_findings,
-)
+from coyote.application.reporting.dna.selection import load_report_snv_findings
+from coyote.application.reporting.dna.variants import hotspot_variant
 from coyote.config.database_versions import require_sample_vep_version
 from coyote.contracts.authoring.forms import build_form_spec
 from coyote.contracts.authoring.resources import aspc_spec_for_category

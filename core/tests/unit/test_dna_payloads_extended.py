@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from coyote.application.common.release_resources import capture_assay_resource
 from coyote.application.dna import payloads
-from coyote.application.reporting.dna_report_payload import hotspot_variant
+from coyote.application.reporting.dna.variants import hotspot_variant
 from coyote.domain.exceptions import AppError
 
 

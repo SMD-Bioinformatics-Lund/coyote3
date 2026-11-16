@@ -9,7 +9,7 @@ cards and pagination. There are no bundled Jinja report templates or layout fall
 1. DNA/RNA workflows resolve applied configuration, eligible findings, annotations
    and governed clinical rules.
 2. `application/reporting/report_context.py` prepares presentation values.
-3. `application/reporting/smd_input.py` builds the native document contract using
+3. `application/reporting/document/` builds the native document contract using
    the package's `coyote3` preset ID. This is an external renderer identifier;
    application branding is Coyote4. It preserves missing measurements, zero counts, selected
    fusion calls, notation and reviewed Swedish text. Gene lists use ordered matrix

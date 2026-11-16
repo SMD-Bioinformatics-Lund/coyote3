@@ -127,4 +127,7 @@ def test_rule_authoring_binds_runtime_roles_repository():
         user_repository=object(),
         roles_repository=roles,
     )
-    assert ClinicalRuleAuthoringService.from_store(store).role_repository is roles
+    notifications = SimpleNamespace()
+    service = ClinicalRuleAuthoringService.from_store(store, notification_service=notifications)
+    assert service.assignments.role_repository is roles
+    assert service.assignments.notification_service is notifications

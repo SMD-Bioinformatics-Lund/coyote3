@@ -145,19 +145,19 @@ def render_report_html(
 
     from smd_reports import ReportLoader, ReportRenderer
 
-    from coyote.application.reporting.smd_input import build_smd_report_input
+    from coyote.application.reporting.document import ReportDocumentBuilder
 
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )
     document = ReportLoader().loads(
         json.dumps(
-            build_smd_report_input(
+            ReportDocumentBuilder(
                 context,
                 analyte=analyte,
                 preview=preview,
                 presentation=settings,
-            ),
+            ).build(),
             ensure_ascii=False,
             allow_nan=False,
         )
