@@ -347,7 +347,7 @@ through normal governance.
 `schema_version` identifies the document format; the current contract accepts `1`.
 `content_version` identifies an authored release for an assay/diagnosis/language scope.
 `revision` identifies successive edits and workflow changes within that release.
-The Coyote3 application version identifies the software deployment. There is no
+The Coyote4 application version identifies the software deployment. There is no
 separate engine-version setting to configure or increment for individual features.
 
 A block controls where and how a group of rules is evaluated.
@@ -912,8 +912,8 @@ Before the first clinical-rule edit, capture one immutable baseline of every cur
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/maintenance/backfill_clinical_rule_revisions.py \
-  --mongo-uri "${COYOTE3_MONGO_URI}" \
-  --db coyote3_new \
+  --mongo-uri "${COYOTE4_MONGO_URI}" \
+  --db coyote4_new \
   --actor reporting.migration \
   --dry-run
 ```
@@ -937,14 +937,14 @@ PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
 ## Verification
 
 ```bash
-PYTHONPATH=. .venv/bin/pytest -q tests/unit/reporting/test_clinical_rules.py
-PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_aspc_contract_flow.py
-PYTHONPATH=. .venv/bin/pytest -q tests/api/test_api_route_security.py
+PYTHONPATH=. .venv/bin/pytest -q core/tests/unit/reporting/test_clinical_rules.py
+PYTHONPATH=. .venv/bin/pytest -q core/tests/unit/test_aspc_contract_flow.py
+PYTHONPATH=. .venv/bin/pytest -q api/tests/http/test_api_route_security.py
 PYTHONPATH=. .venv/bin/pytest -q \
-  tests/unit/reporting \
-  tests/unit/test_report_summary.py \
-  tests/unit/test_report_summary_extended.py \
-  --cov=coyote3.application.reporting.clinical_rules \
+  core/tests/unit/reporting api/tests/unit/reporting tests/integration/reporting \
+  core/tests/unit/test_report_summary.py \
+  core/tests/unit/test_report_summary_extended.py \
+  --cov=coyote.application.reporting.clinical_rules \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-fail-under=100

@@ -31,10 +31,10 @@ jobs:
       TESTING: "1"
       SECRET_KEY: ci-test-secret-key
       INTERNAL_API_TOKEN: ci-test-internal-token
-      COYOTE3_DB: coyote3_contract_test
-      IDENTITY_DB: coyote3_identity_contract_test
-      KNOWLEDGEBASE_DB: coyote3_kb_contract_test
-      BAM_DB: coyote3_bam_contract_test
+      COYOTE4_DB: coyote4_contract_test
+      IDENTITY_DB: coyote4_identity_contract_test
+      KNOWLEDGEBASE_DB: coyote4_kb_contract_test
+      BAM_DB: coyote4_bam_contract_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,7 +45,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libldap2-dev libsasl2-dev libpango-1.0-0 libpangoft2-1.0-0
           python -m pip install -r requirements.txt
-          python -m pip install --no-deps -e .
+          python -m pip install --no-deps -e core -e adapters/mongo -e api
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -71,19 +71,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Build and install only the independent client
         run: |
-          python -m pip wheel --no-deps --wheel-dir /tmp/coyote3-client ./clients/python
-          python -m pip install /tmp/coyote3-client/coyote3_client-*.whl pytest==9.0.3 pytest-asyncio==1.3.0 ruff==0.15.10 mypy==1.20.1
+          python -m pip wheel --no-deps --wheel-dir /tmp/coyote-pyclient ./clients/python
+          python -m pip install /tmp/coyote-pyclient/coyote_pyclient-*.whl pytest==9.0.3 pytest-asyncio==1.3.0 ruff==0.15.10 mypy==1.20.1
       - name: Verify isolated client imports and behavior
         run: |
-          python -c "import importlib.util; assert importlib.util.find_spec('coyote3') is None; assert importlib.util.find_spec('fastapi') is None"
+          python -c "import importlib.util; assert importlib.util.find_spec('coyote') is None; assert importlib.util.find_spec('fastapi') is None"
           python -m pytest -q clients/python/tests
           ruff check clients/python
           ruff format --check clients/python
-          mypy --follow-imports=silent --ignore-missing-imports clients/python/src/coyote3_client
+          mypy --follow-imports=silent --ignore-missing-imports clients/python/src/coyote_pyclient
       - uses: actions/upload-artifact@v4
         with:
-          name: coyote3-client-${{ matrix.python-version }}
-          path: /tmp/coyote3-client/
+          name: coyote-pyclient-${{ matrix.python-version }}
+          path: /tmp/coyote-pyclient/
 
   mongo-transactions:
     if: github.event_name == 'workflow_dispatch' && inputs.database_integration
@@ -102,7 +102,7 @@ jobs:
       - name: Install transaction test dependencies
         run: |
           python -m pip install -r requirements-dev.txt
-          python -m pip install --no-deps -e . -e clients/python
+          python -m pip install --no-deps -e core -e adapters/mongo -e api -e clients/python
       - name: Start isolated disposable replica set
         run: |
           for port in 27017 27018; do
@@ -195,19 +195,19 @@ jobs:
       - name: Install runtime test dependencies
         run: |
           python -m pip install -r requirements-dev.txt
-          python scripts/release/build_sdk.py --output-dir /tmp/coyote3-sdk
+          python scripts/release/build_sdk.py --output-dir /tmp/coyote4-sdk
           python scripts/release/check_release.py \
             --production \
-            --wheel /tmp/coyote3-sdk/coyote3-*.whl \
-            --output /tmp/coyote3-sdk/release-record.json
-          python -m pip install --no-deps /tmp/coyote3-sdk/coyote3-*.whl ./clients/python
+            --wheel-dir /tmp/coyote4-sdk \
+            --output /tmp/coyote4-sdk/release-record.json
+          python -m pip install --no-deps /tmp/coyote4-sdk/*.whl ./clients/python
       - name: Test API runtime
-        run: PYTHONPATH=. python -m pytest -q tests/unit tests/api tests/integration --no-cov
+        run: PYTHONPATH=. python -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests --no-cov
       - name: Retain tested SDK artifact and release record
         uses: actions/upload-artifact@v4
         with:
-          name: tested-coyote3-sdk
-          path: /tmp/coyote3-sdk/
+          name: tested-coyote4-sdk
+          path: /tmp/coyote4-sdk/
 
   lint-and-test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
@@ -248,7 +248,7 @@ jobs:
             backend=true
             frontend=true
             docs=true
-            git ls-files > /tmp/coyote3_changed_files.txt
+            git ls-files > /tmp/coyote4_changed_files.txt
           else
             base_sha="$PUSH_BASE_SHA"
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
@@ -258,7 +258,7 @@ jobs:
                ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
               base_sha="$(git rev-parse HEAD^)"
             fi
-            git diff --name-only "$base_sha" "$GITHUB_SHA" > /tmp/coyote3_changed_files.txt
+            git diff --name-only "$base_sha" "$GITHUB_SHA" > /tmp/coyote4_changed_files.txt
           fi
 
           if [[ "$label_only" != "true" ]]; then
@@ -269,12 +269,12 @@ jobs:
                   frontend=true
                   docs=true
                   ;;
-                release.toml|api/version.py|config/*)
+                release.toml|api/src/coyote_api/version.py|config/*)
                   backend=true
                   frontend=true
                   docs=true
                   ;;
-                src/coyote3/contracts/*|api/interfaces/http/*)
+                core/src/coyote/contracts/*|api/src/coyote_api/interfaces/http/*)
                   backend=true
                   frontend=true
                   ;;
@@ -287,7 +287,7 @@ jobs:
                   backend=true
                   docs=true
                   ;;
-                src/*|api/*|clients/*|build_support.py|MANIFEST.in|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|requirements*.txt|.coveragerc)
+                core/*|api/*|adapters/*|clients/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|uv.lock|requirements*.txt|.coveragerc)
                   backend=true
                   ;;
                 frontend/*)
@@ -297,14 +297,14 @@ jobs:
                   docs=true
                   ;;
               esac
-            done < /tmp/coyote3_changed_files.txt
+            done < /tmp/coyote4_changed_files.txt
           fi
 
           echo "backend=$backend" >> "$GITHUB_OUTPUT"
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
           echo "docs=$docs" >> "$GITHUB_OUTPUT"
           echo "Changed files:"
-          cat /tmp/coyote3_changed_files.txt
+          cat /tmp/coyote4_changed_files.txt
           echo "Validation scope: backend=$backend frontend=$frontend docs=$docs"
 
       - name: Sensitive data guard
@@ -313,7 +313,7 @@ jobs:
       - name: Require changelog entry
         if: github.event_name == 'pull_request' && !contains(env.PR_LABELS, 'skip-changelog-update')
         run: |
-          if ! grep -Fxq "CHANGELOG.md" /tmp/coyote3_changed_files.txt; then
+          if ! grep -Fxq "CHANGELOG.md" /tmp/coyote4_changed_files.txt; then
             echo "CHANGELOG.md must be updated for this pull request." >&2
             echo "Apply the skip-changelog-update label only for changes that have no release impact." >&2
             exit 1
@@ -334,7 +334,7 @@ jobs:
         if: steps.scope.outputs.backend == 'true'
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
-          python -m pip install --no-deps -e . -e clients/python
+          python -m pip install --no-deps -e core -e adapters/mongo -e api -e clients/python
 
       - name: Install documentation dependencies
         if: steps.scope.outputs.docs == 'true'
@@ -342,11 +342,11 @@ jobs:
 
       - name: Ruff check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff check src api tests scripts
+        run: PYTHONPATH=. ruff check core api adapters tests scripts
 
       - name: Ruff format check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff format --check src api tests scripts
+        run: PYTHONPATH=. ruff format --check core api adapters tests scripts
 
       - name: Strict type check
         if: steps.scope.outputs.backend == 'true'
@@ -360,8 +360,8 @@ jobs:
       - name: Full backend tests and unified coverage
         if: steps.scope.outputs.backend == 'true'
         run: >-
-          PYTHONPATH=. pytest -q tests/unit tests/api tests/integration
-          --cov=api --cov=coyote3
+          PYTHONPATH=. pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests
+          --cov=coyote_api --cov=coyote
           --cov-config=.coveragerc
           --cov-report=term-missing
           --cov-report=xml:coverage.xml
@@ -409,11 +409,13 @@ jobs:
 
       - name: Validate documentation links
         if: steps.scope.outputs.docs == 'true' && steps.scope.outputs.backend != 'true'
-        run: python scripts/docs/check_markdown_links.py
+        run: |
+          python scripts/docs/generate_badges.py --check
+          python scripts/docs/check_markdown_links.py
 
       - name: Build documentation in strict mode
         if: steps.scope.outputs.docs == 'true'
-        run: python -m mkdocs build --strict --site-dir /tmp/coyote3-docs-ci
+        run: python -m mkdocs build --strict --site-dir /tmp/coyote4-docs-ci
 
       - name: Install frontend dependencies
         if: steps.scope.outputs.frontend == 'true'
@@ -484,19 +486,19 @@ jobs:
       - name: Download the SDK wheel verified by runtime tests
         uses: actions/download-artifact@v4
         with:
-          name: tested-coyote3-sdk
-          path: /tmp/coyote3-sdk
+          name: tested-coyote4-sdk
+          path: /tmp/coyote4-sdk
 
       - name: Build API image for scanning
         run: >-
-          docker build -f docker/Dockerfile --target coyote3_api
-          --build-context sdk_artifact=/tmp/coyote3-sdk
-          --build-arg GIT_COMMIT=${{ github.sha }} -t coyote3-api:scan .
+          docker build -f docker/Dockerfile --target coyote4_api
+          --build-context sdk_artifact=/tmp/coyote4-sdk
+          --build-arg GIT_COMMIT=${{ github.sha }} -t coyote4-api:scan .
 
       - name: Scan API image
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: coyote3-api:scan
+          image-ref: coyote4-api:scan
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true

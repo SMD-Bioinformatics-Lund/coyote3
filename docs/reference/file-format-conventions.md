@@ -1,6 +1,6 @@
 # File formats, field requirements and defaults
 
-Coyote3 accepts several kinds of files with different owners and purposes. A
+Coyote4 accepts several kinds of files with different owners and purposes. A
 pipeline input, an API request and a stored database document may describe the
 same sample but have different fields. Use the reference for the boundary being
 submitted; a database export is not automatically a valid ingest manifest.
@@ -12,7 +12,7 @@ submitted; a database export is not automatically a valid ingest manifest.
 | Required | Supply the field in this format. There is no omission default. | `classifier_version` in classification JSON. |
 | Conditional | Required when another field or selected workflow makes it applicable. | Control identity for a paired sample. |
 | Optional | May be omitted; the reference states the resulting value or behavior. | Omitted `TMB.unit` becomes `mut/Mb`. |
-| Derived or service-owned | Set by Coyote3, not invented by the producer. | Analysis `SAMPLE_ID` comes from the parent sample. |
+| Derived or service-owned | Set by Coyote4, not invented by the producer. | Analysis `SAMPLE_ID` comes from the parent sample. |
 | Default | Value assigned when the field is omitted at this boundary. | Missing CNV `nprobes` becomes `0`; that is not evidence that probes were counted. |
 | Example | An illustration of valid syntax, not an approved center value. | Synthetic sample IDs and assay names. |
 | Nullable | An explicit `null` is accepted where stated. | Unknown region coverage. Optional does not automatically mean nullable. |

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""CLI login helper for Coyote3 API."""
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""CLI login helper for Coyote4 API."""
 
 from __future__ import annotations
 
@@ -21,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     Returns:
         Parser requiring an authentication mode, with token output disabled by default.
     """
-    parser = argparse.ArgumentParser(description="Authenticate against Coyote3 API.")
+    parser = argparse.ArgumentParser(description="Authenticate against Coyote4 API.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8001", help="API base URL")
     parser.add_argument(
         "--mode",
@@ -64,7 +67,7 @@ def main(argv: list[str]) -> int:
         Password mode creates a session; token mode validates an existing token.
         The session token is printed only with ``--print-token``.
     """
-    from coyote3_client import CoyoteClient
+    from coyote_pyclient import CoyoteClient
 
     args = build_parser().parse_args(argv)
     if args.password_env:

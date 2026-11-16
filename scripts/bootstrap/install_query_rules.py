@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Install missing query-policy scopes without replacing center-authored versions."""
 
 import argparse
@@ -12,19 +15,18 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pymongo import MongoClient  # noqa: E402
-
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
-from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
+from coyote_mongo.repositories.query_rule_revisions import (  # noqa: E402
     QueryRuleRevisionRepository,
     build_query_revision,
 )
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
+from coyote_mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+from pymongo import MongoClient  # noqa: E402
 
 
 def install(db, *, actor: str, apply: bool = False) -> dict:
@@ -71,6 +73,8 @@ def install(db, *, actor: str, apply: bool = False) -> dict:
 
             def write(session):
                 """Commit new scopes and the installation audit receipt together."""
+                from coyote_api.config.backend import audit_context_from_runtime
+
                 if collection.find_one(
                     {"scope_key": {"$in": [doc["scope_key"] for doc in missing]}}, session=session
                 ):
@@ -82,6 +86,7 @@ def install(db, *, actor: str, apply: bool = False) -> dict:
                 enqueue_audit(
                     db,
                     session,
+                    context=audit_context_from_runtime(os.environ),
                     event_type="query_rules.installed",
                     resource_type="query_rule",
                     resource_id="installation",
@@ -94,6 +99,8 @@ def install(db, *, actor: str, apply: bool = False) -> dict:
 
             def capture(session):
                 """Record retained versions as migration baselines without inventing history."""
+                from coyote_api.config.backend import audit_context_from_runtime
+
                 for planned in baselines:
                     current = collection.find_one(
                         {"_id": planned["_id"], "revision": planned["revision"]}, session=session
@@ -107,6 +114,7 @@ def install(db, *, actor: str, apply: bool = False) -> dict:
                 enqueue_audit(
                     db,
                     session,
+                    context=audit_context_from_runtime(os.environ),
                     event_type="query_rules.baselines_captured",
                     resource_type="query_rule",
                     resource_id="installation",
@@ -134,7 +142,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument(
-        "--db", default=os.getenv("COYOTE3_DB"), required=not os.getenv("COYOTE3_DB")
+        "--db", default=os.getenv("COYOTE4_DB"), required=not os.getenv("COYOTE4_DB")
     )
     parser.add_argument("--actor", required=True)
     parser.add_argument("--apply", action="store_true")

@@ -4,7 +4,7 @@
 
 [How to read these relationships and plan a migration](README.md)
 
-Every physical binding in `api/config/collections.toml` and every operational collection
+Every physical binding in `adapters/mongo/src/coyote_mongo/config/collections.toml` and every operational collection
 is listed below. Database labels are logical services, not deployment database names.
 
 | Namespace | Dependency reference | Binding |

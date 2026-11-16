@@ -12,11 +12,16 @@ This page summarizes how to contribute safely and efficiently.
 4. Update docs for behavior/config changes.
 5. Open PR with clear scope and risk notes.
 
+First-party application source uses `SPDX-License-Identifier: GPL-3.0-only` and
+the copyright attribution recorded in [COPYRIGHT.txt](../../COPYRIGHT.txt).
+Preserve existing third-party notices and licenses. Contributor acknowledgments
+belong in the attribution notices, separately from the copyright-holder statement.
+
 ## Required checks before PR
 
 ```bash
-PYTHONPATH=. .venv/bin/ruff check src api tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check src api tests scripts
+PYTHONPATH=. .venv/bin/ruff check core api adapters clients tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check core api adapters clients tests scripts
 scripts/quality/run_quality_suite.sh
 ```
 
@@ -88,24 +93,26 @@ and release approval separate from evidence that the code is ready for review.
 
 ### Version decisions
 
-Coyote3 has five release version numbers. Review the applicable identities for
+Coyote4 tracks package and application versions separately. Review applicable identities for
 each module; do not invent a new version for each internal service or directory.
 
 | Release identity | Authoritative source |
 | --- | --- |
 | Application, including UI | `application_version` in `release.toml` |
-| Core SDK and bundled server | `[project].version` in `pyproject.toml` |
+| Core SDK | `[project].version` in `core/pyproject.toml` |
+| MongoDB adapter | `[project].version` in `adapters/mongo/pyproject.toml` |
+| API and workers | `[project].version` in `api/pyproject.toml` |
 | Python HTTP client | `[project].version` in `clients/python/pyproject.toml` |
-| Modern DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
-| Modern RNA report template | `coyote3.rna` in the same SMD package manifest |
+| DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
+| RNA report template | `coyote3.rna` in the same SMD package manifest |
 
-Working changes do not require all five numbers to advance. Version increments
+Working changes do not require every number to advance. Version increments
 belong to the affected release, and already published artifacts remain immutable.
 Shared report HTML, CSS, or font releases affect both template versions in
-`smd-reports`; updating that dependency or Coyote3's input adapter also requires
-a new core/server wheel version. The retained local manifest identifies historical
-bundled templates. An application that
-adopts that wheel selects its exact SDK version in `release.toml`. The UI has no
+`smd-reports`; updating that dependency or Coyote4's input adapter also requires
+a new version of the package containing the changed input adapter. An application
+selects the tested core and MongoDB versions in `release.toml`; the API package
+version matches its application release. The UI has no
 independent release counter; application package metadata is synchronized through
 `npm run sync:version` when the application version changes.
 

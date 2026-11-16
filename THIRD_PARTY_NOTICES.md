@@ -1,6 +1,6 @@
 # Third-party notices
 
-The COYOTE3 application license does not replace licenses or attribution
+The COYOTE4 application license does not replace licenses or attribution
 requirements for third-party components. Their respective holders retain their
 rights. Components expressly identified under separate terms retain those terms.
 
@@ -15,7 +15,7 @@ rights. Components expressly identified under separate terms retain those terms.
   lockfile. Dependencies retain their packaged copyright and license notices.
 - Documentation and repository tooling: [package.json](package.json) and
   [pyproject.toml](pyproject.toml).
-- Modern report rendering: `smd-reports` 0.4.0, distributed under
+- Modern report rendering: `smd-reports` 0.5.3, distributed under
   `GPL-3.0-only` according to its installed package metadata. Retain its packaged
   license and the notices for its report fonts and artwork.
 - Base images, operating-system packages and fonts: installation declarations
@@ -24,16 +24,16 @@ rights. Components expressly identified under separate terms retain those terms.
 
 ## Bundled materials
 
-- [Reference catalog notice](api/bootstrap/catalogs/reference/NOTICE.txt).
+- [Reference catalog notice](api/src/coyote_api/bootstrap/catalogs/reference/NOTICE.txt).
   The bundled Ensembl-derived materials retain their
-  [Apache License 2.0](api/bootstrap/catalogs/reference/LICENSE.txt).
+  [Apache License 2.0](api/src/coyote_api/bootstrap/catalogs/reference/LICENSE.txt).
 - [Logo sources and attribution](frontend/public/logos/README.md).
 - [Local icon sources and attribution](frontend/public/icons/README.md)
   (Lucide Icons and Contributors, ISC).
 - [Independent Python client license](clients/python/LICENSE.txt).
 
 Knowledgebase data, institutional insignia and third-party marks are subject to
-their respective terms. Their use in COYOTE3 does not grant ownership, trademark
+their respective terms. Their use in COYOTE4 does not grant ownership, trademark
 rights or endorsement.
 
 This file identifies authoritative manifests and existing notices. It is not a

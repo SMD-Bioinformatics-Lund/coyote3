@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 usage() {
@@ -7,12 +10,12 @@ Create a compressed MongoDB backup archive using mongodump in a container.
 
 Usage:
   scripts/database/mongo_backup_archive.sh \
-    --mongo-uri mongodb://backup-user:secret@mongo.example.internal:27017/admin?authSource=admin\&replicaSet=coyote3-rs \
-    --out-dir /data/coyote3/backups/mongo
+    --mongo-uri mongodb://backup-user:secret@mongo.example.internal:27017/admin?authSource=admin\&replicaSet=coyote4-rs \
+    --out-dir /data/coyote4/backups/mongo
 
 Optional:
   --label nightly
-  --docker-network coyote3-mongo-net
+  --docker-network coyote4-mongo-net
 EOF
 }
 
@@ -45,7 +48,7 @@ if [[ -n "$LABEL" ]]; then
   safe_label="_$(echo "$LABEL" | tr -cd 'A-Za-z0-9._-')"
 fi
 
-archive_file="coyote3_mongodb_${ts}${safe_label}.archive.gz"
+archive_file="coyote4_mongodb_${ts}${safe_label}.archive.gz"
 archive_path="${OUT_DIR}/${archive_file}"
 partial_file=".${archive_file}.partial"
 partial_path="${OUT_DIR}/${partial_file}"

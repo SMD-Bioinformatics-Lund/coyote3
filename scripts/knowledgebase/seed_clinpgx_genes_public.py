@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Seed the ClinPGx public gene cache from the official genes.tsv zip export."""
 
 from __future__ import annotations
@@ -13,9 +16,9 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
-from api.infra.knowledgebase.clinpgx_public import ClinPgxPublicRepository  # noqa: E402
+from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.knowledgebase.clinpgx_public import ClinPgxPublicRepository  # noqa: E402
 
 
 class _Adapter:

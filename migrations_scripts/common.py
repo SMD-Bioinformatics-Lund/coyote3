@@ -17,11 +17,10 @@ from random import SystemRandom
 from typing import Any, Callable
 
 from bson import ObjectId, json_util
+from coyote4.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 from pydantic import ValidationError
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-
-from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
 Document = dict[str, Any]
 

@@ -1,0 +1,22 @@
+# Client interface reference
+
+| Import | Purpose |
+| --- | --- |
+| `coyote_pyclient.CoyoteClient` | Synchronous sessions and resources |
+| `coyote_pyclient.AsyncCoyoteClient` | Asynchronous operations |
+| `coyote_pyclient.models` | Client-owned response models |
+| `coyote_pyclient.metadata` | Typed permitted metadata fields |
+| `coyote_pyclient.errors` | Structured HTTP and local resource errors |
+
+`CoyoteAPIError` retains status, request identity and safe server diagnostics.
+Specialized exceptions include authentication, permission, missing-resource,
+conflict, validation and rate-limit failures. `ResponseValidationError` indicates
+a successful response that violates the client's response contract;
+`ResourceNotLoadedError` indicates a local reference that needs refreshing.
+
+The server's OpenAPI contract defines available HTTP endpoints. Fluent attributes
+under `client.api` construct paths; they do not establish that an endpoint exists.
+
+The distribution is `coyote-pyclient`; its namespace is `coyote_pyclient`.
+Version ownership belongs to this project's metadata. See [usage](usage.md) for
+pagination, asynchronous operations, reports and error handling.

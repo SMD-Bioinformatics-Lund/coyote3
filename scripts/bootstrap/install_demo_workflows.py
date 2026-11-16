@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Plan or install synthetic workflow configuration in a local demo database.
 
 Requires an initialized local replica set and application baseline. This command
@@ -11,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -20,8 +24,8 @@ from pymongo import MongoClient
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
-from api.infra.mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
-from api.services.provisioning.demo_installation import DemoInstallationService  # noqa: E402
+from coyote_api.services.provisioning.demo_installation import DemoInstallationService  # noqa: E402
+from coyote_mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
 
 
 def validate_target(uri: str, database: str) -> None:
@@ -29,7 +33,7 @@ def validate_target(uri: str, database: str) -> None:
 
     Args:
         uri: A single-host MongoDB URI for the local test installation.
-        database: Target name beginning with ``coyote3_demo``.
+        database: Target name beginning with ``coyote4_demo``.
 
     Raises:
         ValueError: The target could be a remote or ordinary application database.
@@ -39,12 +43,14 @@ def validate_target(uri: str, database: str) -> None:
         raise ValueError("Only a loopback MongoDB endpoint is supported")
     if "," in parsed.netloc or parsed.path not in {"", "/"}:
         raise ValueError("Use one local endpoint with the database supplied through --db")
-    if database != "coyote3_demo" and not database.startswith("coyote3_demo_"):
-        raise ValueError("Database must be coyote3_demo or start with coyote3_demo_")
+    if database != "coyote4_demo" and not database.startswith("coyote4_demo_"):
+        raise ValueError("Database must be coyote4_demo or start with coyote4_demo_")
 
 
 def main() -> None:
     """Validate the entire configuration, then optionally insert it in one transaction."""
+    from coyote_api.config.backend import audit_context_from_runtime
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", required=True)
     parser.add_argument("--db", required=True)
@@ -57,7 +63,9 @@ def main() -> None:
     with MongoClient(
         args.mongo_uri, directConnection=True, serverSelectionTimeoutMS=5000
     ) as client:
-        repository = DemoInstallationRepository(client[args.db])
+        repository = DemoInstallationRepository(
+            client[args.db], context=audit_context_from_runtime(os.environ)
+        )
         service = DemoInstallationService(
             repository,
             ingest=None,

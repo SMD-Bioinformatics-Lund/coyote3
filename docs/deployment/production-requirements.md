@@ -1,6 +1,6 @@
 # Minimum Production Baseline
 
-This is the minimum baseline for a production-grade Coyote3 deployment.
+This is the minimum baseline for a production-grade Coyote4 deployment.
 
 ## Network and access
 

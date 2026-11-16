@@ -1,0 +1,103 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Permission-checked reusable configuration profile authoring and review routes."""
+
+from typing import Literal
+
+from coyote.application.operations import ConfigurationProfiles, ConfigurationPromotions
+from coyote.contracts.configuration_profiles import (
+    ConfigurationProfileDoc,
+    ConfigurationProfileDraft,
+    ConfigurationPromotionDoc,
+    ConfigurationPromotionRequest,
+    ProfilePublication,
+)
+from fastapi import APIRouter, Depends, Query
+
+from coyote_api.app.deps.application import get_configuration_profiles, get_configuration_promotions
+from coyote_api.app.utilities.serialization import convert_to_serializable
+from coyote_api.interfaces.http.tags import TAG_ADMIN_ASSAYS
+from coyote_api.security.access import ApiUser, require_access
+
+router = APIRouter(tags=[TAG_ADMIN_ASSAYS])
+
+
+@router.get(
+    "/api/v1/resources/configuration-promotions", response_model=list[ConfigurationPromotionDoc]
+)
+def list_promotions(
+    user: ApiUser = Depends(require_access(permission="assay.config:list")),
+    service: ConfigurationPromotions = Depends(get_configuration_promotions),
+):
+    """List reviewable environment promotion proposals with assay.config:list permission."""
+    return convert_to_serializable(service.list())
+
+
+@router.post(
+    "/api/v1/resources/configuration-promotions",
+    response_model=ConfigurationPromotionDoc,
+    status_code=201,
+)
+def propose_promotion(
+    payload: ConfigurationPromotionRequest,
+    user: ApiUser = Depends(require_access(permission="assay.config:create")),
+    service: ConfigurationPromotions = Depends(get_configuration_promotions),
+):
+    """Propose reuse of an exact source revision with validation evidence."""
+    return convert_to_serializable(service.propose(payload))
+
+
+@router.post(
+    "/api/v1/resources/configuration-promotions/{identity}/approve",
+    response_model=ConfigurationPromotionDoc,
+)
+def approve_promotion(
+    identity: str,
+    payload: ProfilePublication,
+    user: ApiUser = Depends(require_access(permission="configuration:publish")),
+    service: ConfigurationPromotions = Depends(get_configuration_promotions),
+):
+    """Approve another user's exact reviewed candidate without changing existing sample bindings."""
+    return convert_to_serializable(service.approve(identity, payload))
+
+
+@router.get(
+    "/api/v1/resources/configuration-profiles", response_model=list[ConfigurationProfileDoc]
+)
+def list_profiles(
+    status: Literal["draft", "published"] | None = Query(default=None),
+    is_current: bool | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="assay.config:list")),
+    service: ConfigurationProfiles = Depends(get_configuration_profiles),
+):
+    """List source revisions for configuration authoring with assay.config:list permission."""
+    return convert_to_serializable(service.list(status=status, is_current=is_current))
+
+
+@router.post(
+    "/api/v1/resources/configuration-profiles",
+    response_model=ConfigurationProfileDoc,
+    status_code=201,
+)
+def create_profile(
+    payload: ConfigurationProfileDraft,
+    user: ApiUser = Depends(require_access(permission="assay.config:create")),
+    service: ConfigurationProfiles = Depends(get_configuration_profiles),
+):
+    """Create an immutable draft with assay.config:create permission."""
+    return convert_to_serializable(service.create(payload))
+
+
+@router.post(
+    "/api/v1/resources/configuration-profiles/{identity}/publish",
+    response_model=ConfigurationProfileDoc,
+)
+def publish_profile(
+    identity: str,
+    payload: ProfilePublication,
+    user: ApiUser = Depends(require_access(permission="configuration:publish")),
+    service: ConfigurationProfiles = Depends(get_configuration_profiles),
+):
+    """Publish another author's reviewed draft with configuration:publish permission."""
+    return convert_to_serializable(service.publish(identity, payload))

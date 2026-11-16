@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Install initial accounts, bundled catalogs, knowledgebases and demos on fresh targets.
 
 This is an operator-run deployment step. It connects directly to MongoDB and
-never starts Compose services, calls the Coyote3 API, or queues ingest work.
+never starts Compose services, calls the Coyote4 API, or queues ingest work.
 """
 
 from __future__ import annotations
@@ -19,19 +22,23 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from coyote_api.config.bootstrap import configure_center_from_environment  # noqa: E402
+
+# Bind the host profile before importing vocabulary-dependent contracts.
+configure_center_from_environment()
+
+from coyote.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_api.infra.seed.documents import build_seed_documents  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 from pymongo import MongoClient  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.seed.documents import build_seed_documents  # noqa: E402
-from coyote3.contracts.schemas.registry import normalize_collection_document  # noqa: E402
-
 DEFAULT_RBAC_DIR = BOOTSTRAP_ROOT / "rbac"
 DEFAULT_REFERENCE_DIR = BOOTSTRAP_ROOT / "reference"
-SUPERUSER_USERNAME = "coyote3.superuser"
-SYSADMIN_USERNAME = "coyote3.sysadmin"
+SUPERUSER_USERNAME = "coyote4.superuser"
+SYSADMIN_USERNAME = "coyote4.sysadmin"
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--identity-db", required=True, help="Identity database name")
     parser.add_argument("--username", default=SUPERUSER_USERNAME, choices=[SUPERUSER_USERNAME])
     parser.add_argument(
-        "--email", default="superuser@coyote3.invalid", help="Superuser contact email"
+        "--email", default="superuser@coyote4.invalid", help="Superuser contact email"
     )
     parser.add_argument("--password", help="Temporary superuser password; omit to generate one")
     parser.add_argument("--role-id", default="superuser", choices=["superuser"])
@@ -63,7 +70,7 @@ def parse_args() -> argparse.Namespace:
         "--sys-admin-username", default=SYSADMIN_USERNAME, choices=[SYSADMIN_USERNAME]
     )
     parser.add_argument(
-        "--sys-admin-email", default="sysadmin@coyote3.invalid", help="Admin contact email"
+        "--sys-admin-email", default="sysadmin@coyote4.invalid", help="Admin contact email"
     )
     parser.add_argument(
         "--sys-admin-password", help="Temporary system-admin password; omit to generate one"
@@ -283,7 +290,7 @@ def _initialize_governance(
             f"Bootstrap role '{assigned_role}' is not present in the bundled RBAC catalog."
         )
 
-    from api.infra.mongo.transactions import run_transaction
+    from coyote_mongo.transactions import run_transaction
 
     def initialize(session):
         """Commit both accounts and their permission definitions together."""
@@ -293,9 +300,9 @@ def _initialize_governance(
         db[roles_collection].insert_many(seed["roles"], ordered=True, session=session)
         db[users_collection].insert_many([user_document, system_admin_document], session=session)
 
-    from api.infra.mongo.repositories.permissions import PermissionsRepository
-    from api.infra.mongo.repositories.roles import RolesRepository
-    from api.infra.mongo.repositories.users import UsersRepository
+    from coyote_mongo.repositories.permissions import PermissionsRepository
+    from coyote_mongo.repositories.roles import RolesRepository
+    from coyote_mongo.repositories.users import UsersRepository
 
     adapter = SimpleNamespace(
         users_collection=db[users_collection],
@@ -320,10 +327,14 @@ def _install_initial_data(databases: dict, seed: dict, args: argparse.Namespace)
         seed: Validated documents attributed to the system actor.
         args: Initial installation module skip flags.
     """
-    from api.infra.mongo.repositories.deployment_data import DeploymentDataRepository
+    from coyote_api.config.backend import audit_context_from_runtime
+    from coyote_mongo.repositories.deployment_data import DeploymentDataRepository
 
     repository = DeploymentDataRepository(
-        databases["primary"], databases["knowledgebase"], databases["identity"]
+        databases["primary"],
+        databases["knowledgebase"],
+        databases["identity"],
+        context=audit_context_from_runtime(os.environ),
     )
     for module in ("application", "knowledgebase"):
         if not getattr(args, f"skip_{module}", False):
@@ -353,7 +364,8 @@ def main() -> int:
         Only the invocation that creates initial governance may seed without API login.
         Once accounts exist, later additions and repairs use manage_data.py.
     """
-    from api.infra.mongo.connections import MongoConnections
+    from coyote_mongo.connections import MongoConnections
+
     from scripts.deployment.installation_checks import has_documents, installation_state
 
     args = parse_args()
@@ -367,9 +379,9 @@ def main() -> int:
         raise SystemExit("--skip-application requires --skip-demo")
     config = {
         **os.environ,
-        "COYOTE3_MONGO_URI": args.mongo_uri or "",
+        "COYOTE4_MONGO_URI": args.mongo_uri or "",
         "IDENTITY_MONGO_URI": args.identity_mongo_uri or args.mongo_uri or "",
-        "COYOTE3_DB": args.db,
+        "COYOTE4_DB": args.db,
         "IDENTITY_DB": args.identity_db,
     }
     connections = MongoConnections(config, client_factory=MongoClient)
@@ -394,7 +406,7 @@ def main() -> int:
             include_knowledgebase=not getattr(args, "skip_knowledgebase", False),
         )
         if not getattr(args, "skip_knowledgebase", False):
-            from api.infra.seed.diagrams import load_seed_diagrams
+            from coyote_api.infra.seed.diagrams import load_seed_diagrams
 
             seed["vep_diagrams"] = load_seed_diagrams(
                 seed["vep_metadata"], Path(args.reference_dir).expanduser().resolve()

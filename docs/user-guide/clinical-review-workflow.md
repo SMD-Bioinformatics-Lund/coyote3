@@ -54,8 +54,7 @@ controls valid for that sample and analysis type.
 
 | Analysis | Common controls |
 | --- | --- |
-| Somatic SNVs | Depth, alternate reads, VAF, population frequency, consequences, and SNV gene lists. |
-| Germline SNVs | Germline policy, frequency, consequence, and germline gene scope. |
+| SNVs | Depth, alternate reads, VAF, population frequency, consequences and SNV gene lists. Shared mode uses one profile for all variants; independent mode shows the enabled somatic and germline profiles separately. |
 | CNVs | Size, gain/loss cutoffs, effect, caller evidence, and CNV gene lists. |
 | DNA translocations | Gene lists and configured structural-event conditions. |
 | RNA fusions | Spanning evidence, caller, effect, evidence descriptions, and fusion gene lists. |
@@ -131,11 +130,11 @@ summary is unavailable.
 
 1. Open **Reports** inside the sample. The global Reports page lists saved reports;
    it does not create a new report outside a sample.
-2. Choose the report format. **Modern** is the default; **Legacy** uses the older
-   layout. Review a new preview after changing the format.
+2. Review the HTML preview and the PDF preview. Both use the same `smd-reports`
+   template; there is no separate report-format selector.
 3. Check the sample identity, included findings and report text in the preview.
    Use **Refresh** if you need to regenerate it after changes.
-4. Select **Save report**. Check the sample, format and included-finding count in
+4. Select **Save report**. Check the sample and included-finding count in
    **Confirm report save**, then select **Confirm save**. Review the saved output.
 
 The report conclusion uses the

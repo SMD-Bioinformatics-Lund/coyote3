@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Add or repair selected bundled data through a running Coyote3 API; never deploy services."""
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Add or repair selected bundled data through a running Coyote4 API; never deploy services."""
 
 from __future__ import annotations
 
@@ -12,13 +15,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import httpx  # noqa: E402
-from coyote3_client import CoyoteClient  # noqa: E402
-
-from api.contracts.deployment_data import (  # noqa: E402
+from coyote.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
+from coyote_api.contracts.deployment_data import (  # noqa: E402
     DeploymentDataModule,
     DeploymentDataRequest,
 )
-from coyote3.config.constants import AUTH_PROVIDER_LDAP, AUTH_PROVIDER_LOCAL  # noqa: E402
+from coyote_pyclient import CoyoteClient  # noqa: E402
 
 
 def manage_data(
@@ -92,7 +94,7 @@ def main() -> int:
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--api-url", default=os.getenv("COYOTE3_API_URL"), required=not os.getenv("COYOTE3_API_URL")
+        "--api-url", default=os.getenv("COYOTE4_API_URL"), required=not os.getenv("COYOTE4_API_URL")
     )
     parser.add_argument(
         "--modules",

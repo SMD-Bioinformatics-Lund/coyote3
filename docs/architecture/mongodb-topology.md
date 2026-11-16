@@ -5,24 +5,24 @@
 ![Storage ownership by resource family](../assets/diagrams/database-resource-map.svg)
 
 The map groups all configured collection families by logical service. Exact names
-come from `api/config/collections.toml`; typed field definitions are in the
+come from `adapters/mongo/src/coyote_mongo/config/collections.toml`; typed field definitions are in the
 [MongoDB collection contracts](../reference/mongodb-collections.md). Reference
 families such as COSMIC use multiple collections. Their presence does not imply
 that every dataset is installed or enabled.
 
 Database names select namespaces. Connection URIs select MongoDB deployments,
-authentication, and replica-set discovery. Coyote3 never derives a host, port,
+authentication, and replica-set discovery. Coyote4 never derives a host, port,
 replica-set name, or filesystem path from a database name.
 
 | Logical service | URI setting | Database setting | Ownership |
 | --- | --- | --- | --- |
-| `primary` | `COYOTE3_MONGO_URI` | `COYOTE3_DB` | Environment-specific samples, findings, reports, configuration, clinical rules, notifications, and ingest receipts. |
+| `primary` | `COYOTE4_MONGO_URI` | `COYOTE4_DB` | Environment-specific samples, findings, reports, configuration, clinical rules, notifications, and ingest receipts. |
 | `identity` | `IDENTITY_MONGO_URI` | `IDENTITY_DB` | Environment-specific users, roles, permissions, sessions, and audit events. |
-| `knowledgebase` | `KNOWLEDGEBASE_MONGO_URI` | `KNOWLEDGEBASE_DB` | Shared platform reference datasets and release inventory. Default name: `coyote3_knowledgebases`. |
+| `knowledgebase` | `KNOWLEDGEBASE_MONGO_URI` | `KNOWLEDGEBASE_DB` | Shared platform reference datasets and release inventory. Default name: `coyote4_knowledgebases`. |
 | `bam` | `BAM_MONGO_URI` | `BAM_DB` | Configured BAM-service records. |
 
 Each service uses its explicit URI when supplied. An omitted auxiliary URI uses
-`COYOTE3_MONGO_URI`; explicit service settings take precedence. All environments require
+`COYOTE4_MONGO_URI`; explicit service settings take precedence. All environments require
 a configured URI. Local connection examples are provided in
 `deploy/env/example.mongo-local.env`; runtime code does not select a default host
 or replica set. Maintenance commands also require a configured or explicit URI.
@@ -46,16 +46,16 @@ must not share the same database on the same deployment.
 Use separate primary **and identity** namespaces for environments that share a
 MongoDB deployment. Sharing the identity database would share sessions and audit
 events as well as users. Notifications remain in the environment's primary database.
-Coyote3 does not automatically copy or synchronize identities in either direction.
+Coyote4 does not automatically copy or synchronize identities in either direction.
 
 | Environment | Primary example | Identity example | Knowledgebase example |
 | --- | --- | --- | --- |
-| Production | `coyote3` | `coyote3_identity_prod` | `coyote3_knowledgebases` |
-| Development | `coyote3_dev` | `coyote3_identity_dev` | `coyote3_knowledgebases` |
-| Staging | `coyote3_stage` | `coyote3_identity_stage` | `coyote3_knowledgebases` |
-| Test | `coyote3_test` | `coyote3_identity_test` | `coyote3_knowledgebases` |
+| Production | `coyote4` | `coyote4_identity_prod` | `coyote4_knowledgebases` |
+| Development | `coyote4_dev` | `coyote4_identity_dev` | `coyote4_knowledgebases` |
+| Staging | `coyote4_stage` | `coyote4_identity_stage` | `coyote4_knowledgebases` |
+| Test | `coyote4_test` | `coyote4_identity_test` | `coyote4_knowledgebases` |
 
-Standalone development defaults use `coyote3_identity`; this is suitable when that
+Standalone development defaults use `coyote4_identity`; this is suitable when that
 namespace is dedicated to the local environment. The deployment templates use
 explicit environment suffixes to avoid accidental sharing on a multi-environment
 host. Existing database names are not automatically renamed or copied. Keep an
@@ -73,13 +73,13 @@ for that process and initialize its single-member replica set once. Do not creat
 per-database `dbPath` directories or start another `mongod` for each logical name.
 
 ```dotenv
-COYOTE3_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
-IDENTITY_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
-KNOWLEDGEBASE_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
-BAM_MONGO_URI=mongodb://coyote3_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote3-rs
-COYOTE3_DB=coyote3_dev
-IDENTITY_DB=coyote3_identity_dev
-KNOWLEDGEBASE_DB=coyote3_knowledgebases
+COYOTE4_MONGO_URI=mongodb://coyote4_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote4-rs
+IDENTITY_MONGO_URI=mongodb://coyote4_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote4-rs
+KNOWLEDGEBASE_MONGO_URI=mongodb://coyote4_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote4-rs
+BAM_MONGO_URI=mongodb://coyote4_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSource=admin&replicaSet=coyote4-rs
+COYOTE4_DB=coyote4_dev
+IDENTITY_DB=coyote4_identity_dev
+KNOWLEDGEBASE_DB=coyote4_knowledgebases
 BAM_DB=bam_dev
 ```
 
@@ -108,15 +108,15 @@ The base application Compose file starts no MongoDB service. Include
 | `mongo-kb` | `mongo-kb` and `mongo_kb_init`. |
 | Both | Separate app and knowledgebase instances with independent replica sets and storage. |
 
-The overlay joins the operator-created `COYOTE3_APP_NETWORK`. A shared
+The overlay joins the operator-created `COYOTE4_APP_NETWORK`. A shared
 knowledgebase instance must belong to one platform deployment, not be started
 again for each environment. Other stacks use its reachable URI through an
 operator-managed network or DNS endpoint. Avoid duplicate service aliases on a
 shared network.
 
 Prepare persistent data directories and secret keyfiles before enabling a
-profile. App MongoDB uses `COYOTE3_MONGO_DATA_HOST_ROOT` and
-`COYOTE3_MONGO_KEYFILE_HOST_PATH`. Knowledgebase MongoDB uses
+profile. App MongoDB uses `COYOTE4_MONGO_DATA_HOST_ROOT` and
+`COYOTE4_MONGO_KEYFILE_HOST_PATH`. Knowledgebase MongoDB uses
 `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` and `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH`.
 Each process has one `/data/db`; split instances must never mount the same data
 directory. Keyfiles must be readable by the MongoDB runtime UID and not publicly
@@ -125,21 +125,21 @@ readable. Bind addresses default to loopback; these examples do not configure TL
 For one Docker MongoDB, set all service URIs to the authenticated `mongo-app`
 endpoint. Set `MONGO_REPLICA_MEMBER_HOST=mongo-app:27017`. For split deployment,
 review `deploy/env/example.mongo-split.env` for the application connection URIs.
-Copy `deploy/env/example.mongo-server.env` to `.coyote3_dev_mongo_env` for server
+Copy `deploy/env/example.mongo-server.env` to `.coyote4_dev_mongo_env` for server
 credentials, keyfiles, storage, ownership, ports, and replica-set settings.
-For split deployment set `KNOWLEDGEBASE_REPLICA_SET_NAME=coyote3-kb-rs` there.
+For split deployment set `KNOWLEDGEBASE_REPLICA_SET_NAME=coyote4-kb-rs` there.
 Complete all required settings before initializing MongoDB. The server env needs
 only its own settings plus database names for initial grants and the shared
 network name; do not put application signing keys or SMTP credentials in it.
 
 ```bash
-docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+docker compose -p coyote4-dev-mongo --env-file .coyote4_dev_mongo_env \
   -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo --profile mongo-kb up -d mongo mongo-kb
-docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+docker compose -p coyote4-dev-mongo --env-file .coyote4_dev_mongo_env \
   -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo run --rm mongo_init
-docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+docker compose -p coyote4-dev-mongo --env-file .coyote4_dev_mongo_env \
   -f deploy/compose/docker-compose.mongo.yml \
   --profile mongo-kb run --rm mongo_kb_init
 ```
@@ -166,7 +166,7 @@ Do not give the public-serving runtime root credentials to make imports succeed.
 
 ## Connections and transaction boundaries
 
-`api/config/mongo.py` resolves endpoints. `MongoConnections` owns one client per
+`adapters/mongo/src/coyote_mongo/config/endpoints.py` resolves endpoints. `MongoConnections` owns one client per
 identical URI within a runtime/worker process, sharing the configured pool/timeouts.
 Different credentials, URI options, or replica-set names use different clients.
 There is no per-request client creation and no global client shared across worker
@@ -185,7 +185,7 @@ replace this guard with non-transactional completion receipts.
 
 ## Endpoint configuration
 
-1. Set `COYOTE3_MONGO_URI`; preserve the existing authentication path/options.
+1. Set `COYOTE4_MONGO_URI`; preserve the existing authentication path/options.
 2. Set identity, knowledgebase, and BAM URIs independently where needed.
 3. Set each service's database name explicitly. Database names are not inferred
    from the URI or normalized to another spelling.

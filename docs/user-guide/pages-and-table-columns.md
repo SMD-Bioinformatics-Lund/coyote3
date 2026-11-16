@@ -1,6 +1,6 @@
 # UI Page And Table Reference
 
-This page describes the information shown by each Coyote3 screen, how the major tables are read, and which badges or compact symbols can appear in each data area.
+This page describes the information shown by each Coyote4 screen, how the major tables are read, and which badges or compact symbols can appear in each data area.
 
 > **Info: Scope**
 >
@@ -99,7 +99,7 @@ Clicking a tier badge in a finding table opens the reported-variant context page
 
 ### Filter Flag Badges
 
-Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `config/examples/center/filter_flag_metadata.yaml`.
+Filter badges are compact labels derived from the VCF `FILTER` field and center-configured metadata in `api/src/coyote_api/config/examples/center/filter_flag_metadata.yaml`.
 
 | Badge family | Meaning |
 | --- | --- |
@@ -441,7 +441,7 @@ resource. Classifier results are sorted by score from highest to lowest and
 shown as bounded score bars. Scores between zero and one are rendered as a
 percentage of the bar while retaining the original numeric value. The model
 name and result semantics remain properties of the ingested classifier output;
-Coyote3 does not reinterpret the class labels.
+Coyote4 does not reinterpret the class labels.
 
 Targeted `panel-rna` assays cannot enable expression or classification through
 the standard configuration vocabulary. This prevents an RNA fusion panel from
@@ -528,7 +528,7 @@ preview.
 > **Warning: Temporary snapshot**
 >
 >
-> The report preview is temporary until saved. When a report is saved, Coyote3 stores the report document and reported finding snapshots so future searches can reproduce exactly what was reported.
+> The report preview is temporary until saved. When a report is saved, Coyote4 stores the report document and reported finding snapshots so future searches can reproduce exactly what was reported.
 >
 
 ## Finding Detail Pages

@@ -1,6 +1,6 @@
 # API Authentication
 
-Coyote3 uses one session model for browser users and API-only clients. A
+Coyote4 uses one session model for browser users and API-only clients. A
 successful login creates an opaque API session token in MongoDB. The token is
 returned to the caller as an HTTP cookie and can also be sent as a bearer token
 by scripts, notebooks, and command-line clients.
@@ -38,7 +38,7 @@ Swagger UI shows two authorization schemes:
 | `BearerAuth` | `Authorization: Bearer <token>` | API-only clients that capture the session token from login. |
 
 The cookie name is environment-specific. In the development environment it is
-commonly `coyote3_dev_api_session`. Production and test deployments can use
+commonly `coyote4_dev_api_session`. Production and test deployments can use
 different names through `API_SESSION_COOKIE_NAME`.
 
 > **Info: Same token, two transports**
@@ -56,10 +56,10 @@ prefix used by the application.
 
 Set the mounted public origin, then read the enabled providers. The response
 contains one or both of `local` and `ldap`, as configured in
-`config/examples/center/clinical_vocabulary.toml`.
+`api/src/coyote_api/config/examples/center/clinical_vocabulary.toml`.
 
 ```bash
-BASE_URL="https://localhost/coyote3_dev"
+BASE_URL="https://localhost/coyote4_dev"
 curl -sS "${BASE_URL}/api/v1/auth/providers"
 ```
 
@@ -71,7 +71,7 @@ does not rely on UI behavior or heuristic identifier detection.
 curl -i -sS -X POST "${BASE_URL}/api/v1/auth/sessions" \
   -H "Content-Type: application/json" \
   --data '{
-    "username": "admin.coyote3",
+    "username": "admin.coyote4",
     "password": "REPLACE_WITH_PASSWORD",
     "provider": "local"
   }'
@@ -81,7 +81,7 @@ The response body contains the authenticated user payload. The session key is
 in the `Set-Cookie` response header:
 
 ```http
-Set-Cookie: coyote3_dev_api_session=<opaque-session-token>; HttpOnly; SameSite=lax; ...
+Set-Cookie: coyote4_dev_api_session=<opaque-session-token>; HttpOnly; SameSite=lax; ...
 ```
 
 For LDAP users, submit the email address in the `username` field. For local
@@ -103,14 +103,14 @@ Cookie authentication requires the login response's `csrf_token` in the
 with restrictive permissions and remove them when the script finishes.
 
 ```bash
-BASE_URL="https://localhost/coyote3_dev"
-COOKIE_JAR=".coyote3-api.cookies"
+BASE_URL="https://localhost/coyote4_dev"
+COOKIE_JAR=".coyote4-api.cookies"
 umask 077
 
 CSRF_TOKEN="$(curl -fsS -c "${COOKIE_JAR}" -X POST "${BASE_URL}/api/v1/auth/sessions" \
   -H "Content-Type: application/json" \
   --data '{
-    "username": "admin.coyote3",
+    "username": "admin.coyote4",
     "password": "REPLACE_WITH_PASSWORD",
     "provider": "local"
   }' | python3 -c 'import json, sys; print(json.load(sys.stdin)["csrf_token"])')"
@@ -134,14 +134,14 @@ API-only clients may extract the session token from `Set-Cookie` and send it as
 a bearer token.
 
 ```bash
-BASE_URL="https://localhost/coyote3_dev"
-COOKIE_NAME="coyote3_dev_api_session"
+BASE_URL="https://localhost/coyote4_dev"
+COOKIE_NAME="coyote4_dev_api_session"
 
 SESSION_TOKEN="$(
   curl -sS -i -X POST "${BASE_URL}/api/v1/auth/sessions" \
     -H "Content-Type: application/json" \
     --data '{
-      "username": "admin.coyote3",
+      "username": "admin.coyote4",
       "password": "REPLACE_WITH_PASSWORD",
       "provider": "local"
     }' |
@@ -172,12 +172,12 @@ request.
 Open Swagger UI through the mounted application path:
 
 ```text
-https://localhost/coyote3_dev/api/v1/docs
+https://localhost/coyote4_dev/api/v1/docs
 ```
 
 Recommended workflow:
 
-1. Sign in through the Coyote3 UI in the same browser.
+1. Sign in through the Coyote4 UI in the same browser.
 2. Open Swagger UI under the same host and `SCRIPT_NAME`.
 3. Run protected requests. The browser sends the HTTP-only session cookie with
    same-origin API requests.
@@ -221,13 +221,13 @@ Use these endpoints to validate or remove the active session:
 
 ## Prefix-Aware URLs
 
-When `SCRIPT_NAME=/coyote3_dev`, all user-facing API documentation and API calls
+When `SCRIPT_NAME=/coyote4_dev`, all user-facing API documentation and API calls
 go through that prefix:
 
 ```text
-https://localhost/coyote3_dev/api/v1/docs
-https://localhost/coyote3_dev/api/v1/auth/sessions
-https://localhost/coyote3_dev/api/v1/auth/whoami
+https://localhost/coyote4_dev/api/v1/docs
+https://localhost/coyote4_dev/api/v1/auth/sessions
+https://localhost/coyote4_dev/api/v1/auth/whoami
 ```
 
 The backend route remains `/api/v1/...` inside the service. The reverse proxy

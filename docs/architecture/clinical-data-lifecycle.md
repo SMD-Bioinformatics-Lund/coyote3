@@ -1,12 +1,12 @@
 # Clinical data lifecycle: ingest, storage, and retrieval
 
-This reference explains how Coyote3 accepts pipeline output, validates it, stores it, and returns it to clinical review and reporting workflows. It complements the [runtime data contracts](data-contracts.md), [sample input files](../reference/ingest-files/README.md#file-contracts), and [clinical data and reporting flow](clinical-data-and-reporting.md).
+This reference explains how Coyote4 accepts pipeline output, validates it, stores it, and returns it to clinical review and reporting workflows. It complements the [runtime data contracts](data-contracts.md), [sample input files](../reference/ingest-files/README.md#file-contracts), and [clinical data and reporting flow](clinical-data-and-reporting.md).
 
 ## Core model
 
 Each loaded sample has one canonical samples document. It stores identity, assay scope, source-file metadata, the resolved ASPC, the current filter snapshot, status, and lightweight result counts. Analysis results are stored in separate collections and linked to the sample by SAMPLE_ID, the string form of the sample document ObjectId.
 
-This separation keeps sample lists efficient, permits independent server-side filtering and pagination for each analysis type, keeps large transcript payloads out of mutable small-variant rows, and lets saved reports preserve their historical context. Collection names are resolved from api/config/collections.toml; names in this guide are defaults.
+This separation keeps sample lists efficient, permits independent server-side filtering and pagination for each analysis type, keeps large transcript payloads out of mutable small-variant rows, and lets saved reports preserve their historical context. Collection names are resolved from adapters/mongo/src/coyote_mongo/config/collections.toml; names in this guide are defaults.
 
 ## From manifest to ready sample
 
@@ -29,7 +29,7 @@ A completed YAML manifest is the ingest declaration. Pipeline keys such as assay
 
 ## Configured file ownership
 
-The center-configurable mapping is in config/examples/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
+The center-configurable mapping is in api/src/coyote_api/config/examples/center/clinical_vocabulary.toml. It defines accepted external manifest keys and their analysis ownership. An ASP may further restrict those keys with expected_files and required_files. ASPC analysis_types control configured analysis availability, not the ASP required-file policy.
 
 | Omics layer | Analysis type | Default manifest key | Internal preload | Persistent destination |
 | --- | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ Manifest names are center-configurable. Internal preload names are application c
 
 ## Storage contract by artifact
 
-Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through src/coyote3/contracts/schemas/registry.py.
+Before dependent records are written, ingest attaches canonical sample linkage and sample name. Each record is validated through core/src/coyote/contracts/schemas/registry.py.
 
 | Collection | One document per | Stored content | How it is fetched |
 | --- | --- | --- | --- |

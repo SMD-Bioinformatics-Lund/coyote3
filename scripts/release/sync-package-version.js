@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 var fs = require("fs");
 var path = require("path");
 
@@ -32,3 +35,12 @@ targets.forEach(function (packageJsonPath) {
     console.log(rel + " version already " + appVersion);
   }
 });
+
+// Package the application label separately from the independently versioned API.
+var identityPath = path.join(repoRoot, "api/src/coyote_api/config/application_release.toml");
+var identity = "# Generated from release.toml by npm run sync:version.\n" +
+  'application_version = "' + appVersion + '"\n';
+if (!fs.existsSync(identityPath) || fs.readFileSync(identityPath, "utf8") !== identity) {
+  fs.writeFileSync(identityPath, identity, "utf8");
+  console.log("API application identity synced to " + appVersion);
+}

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate a Coyote3 ingestion YAML spec before API submission."""
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Validate a Coyote4 ingestion YAML spec before API submission."""
 
 from __future__ import annotations
 
@@ -27,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     Raises:
         SystemExit: Required options are missing, arguments are invalid, or help is requested.
     """
-    parser = argparse.ArgumentParser(description="Validate Coyote3 ingest spec YAML")
+    parser = argparse.ArgumentParser(description="Validate Coyote4 ingest spec YAML")
     parser.add_argument("--yaml", required=True, help="Path to YAML spec file")
     parser.add_argument(
         "--check-files",
@@ -64,9 +67,9 @@ def main() -> int:
         Relative input paths resolve against the YAML file's directory. File existence
         is checked only with ``--check-files``; no API or database writes occur.
     """
-    from coyote3.application.ingest.collection_writes import parse_yaml_payload
-    from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
-    from coyote3.contracts.schemas.samples import SamplesDoc
+    from coyote.application.ingest.collection_writes import parse_yaml_payload
+    from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
+    from coyote.contracts.schemas.samples import SamplesDoc
 
     args = parse_args()
     spec_path = Path(args.yaml)

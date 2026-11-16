@@ -63,7 +63,7 @@ not inline executable markup.
 | --- | --- |
 | `conseq_translations.<term>.so_term` | Sequence Ontology accession, not the consequence name |
 | `conseq_translations.<term>.impact` | Ensembl website impact rating for this release |
-| `conseq_translations.<term>.group` | Coyote3 logical filter group |
+| `conseq_translations.<term>.group` | Coyote4 logical filter group |
 | `consequence_groups` | The same membership expressed as group-to-term lists |
 | `db_info.<build>.published_sources` | Complete cache-table source labels and values, including MANE and separate gnomAD sources |
 | `db_info.<build>.gnomad` | Published gnomAD sources combined with explicit exome/genome labels |
@@ -203,7 +203,7 @@ Release 103 remains protected from the metadata importer; its diagram can be
 updated independently. Image provenance is retained inside each diagram document.
 
 The seed stores original binary files under
-`api/bootstrap/catalogs/reference/vep_diagrams/<sha256>`. Bootstrap validates hashes
+`api/src/coyote_api/bootstrap/catalogs/reference/vep_diagrams/<sha256>`. Bootstrap validates hashes
 and installs these into the configured image collection before metadata. Keep
 this directory with the reference seed when copying a seed pack to another center.
 The downloader's review output may contain base64 as JSON transport data; import

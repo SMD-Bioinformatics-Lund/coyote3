@@ -10,9 +10,9 @@ For a development stack using modern Compose, build and replace only the
 frontend with the base file. Keep the existing environment and project identity:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+bash scripts/deployment/compose-with-version.sh -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml build frontend
-bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+bash scripts/deployment/compose-with-version.sh -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml up -d --no-deps --no-build frontend
 ```
 
@@ -30,7 +30,7 @@ images retain the `-dev` tag. MongoDB remains independently deployed.
 To return the frontend to live editing, use the same base plus development overlay:
 
 ```bash
-bash scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+bash scripts/deployment/compose-with-version.sh -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml up -d --no-deps frontend
 ```

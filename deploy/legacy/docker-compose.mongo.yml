@@ -11,9 +11,9 @@ services:
     profiles: [mongo]
     image: mongo:7.0.41
     security_opt: [seccomp=unconfined]
-    entrypoint: ["/bin/sh", "/opt/coyote3/mongo-entrypoint.sh"]
-    tmpfs: ["/run/coyote3-mongo"]
-    command: ["mongod", "--replSet", "${MONGO_REPLICA_SET_NAME:-coyote3-rs}", "--bind_ip_all", "--keyFile", "/run/coyote3-mongo/keyfile"]
+    entrypoint: ["/bin/sh", "/opt/coyote4/mongo-entrypoint.sh"]
+    tmpfs: ["/run/coyote4-mongo"]
+    command: ["mongod", "--replSet", "${MONGO_REPLICA_SET_NAME:-coyote4-rs}", "--bind_ip_all", "--keyFile", "/run/coyote4-mongo/keyfile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
@@ -21,18 +21,18 @@ services:
       HOME: /tmp
       MONGO_UID: ${MONGO_UID:?Set MONGO_UID to the host database owner UID}
       MONGO_GID: ${MONGO_GID:?Set MONGO_GID to the host database owner GID}
-      COYOTE3_DB: ${COYOTE3_DB:-}
+      COYOTE4_DB: ${COYOTE4_DB:-}
       IDENTITY_DB: ${IDENTITY_DB:-}
       KNOWLEDGEBASE_DB: ${KNOWLEDGEBASE_DB:-}
       BAM_DB: ${BAM_DB:-}
       MONGO_APP_USER: ${MONGO_APP_USER:-}
       MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:-}
     ports:
-      - "${COYOTE3_MONGO_BIND_ADDRESS:-127.0.0.1}:${COYOTE3_MONGO_PORT:-27017}:27017"
+      - "${COYOTE4_MONGO_BIND_ADDRESS:-127.0.0.1}:${COYOTE4_MONGO_PORT:-27017}:27017"
     volumes:
-      - "${COYOTE3_MONGO_DATA_HOST_ROOT:-/srv/coyote3/mongo/data}:/data/db"
-      - "${COYOTE3_MONGO_KEYFILE_HOST_PATH:-/srv/coyote3/mongo/keyfile}:/etc/mongo-keyfile/keyfile:ro"
-      - ../compose/mongo-init/mongo-entrypoint.sh:/opt/coyote3/mongo-entrypoint.sh:ro
+      - "${COYOTE4_MONGO_DATA_HOST_ROOT:-/srv/coyote4/mongo/data}:/data/db"
+      - "${COYOTE4_MONGO_KEYFILE_HOST_PATH:-/srv/coyote4/mongo/keyfile}:/etc/mongo-keyfile/keyfile:ro"
+      - ../compose/mongo-init/mongo-entrypoint.sh:/opt/coyote4/mongo-entrypoint.sh:ro
       - ../compose/mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck: &mongo-health
       test: ["CMD-SHELL", "gosu \"$$MONGO_UID:$$MONGO_GID\" mongosh --quiet --host 127.0.0.1 --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ping: 1}).ok' | grep 1"]
@@ -57,11 +57,11 @@ services:
       HOME: /tmp
       MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-}
       MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
-      MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME:-coyote3-rs}
+      MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME:-coyote4-rs}
       MONGO_REPLICA_MEMBER_HOST: ${MONGO_REPLICA_MEMBER_HOST:-mongo-app:27017}
     volumes:
-      - ../compose/mongo-init/init-replica-set.sh:/opt/coyote3/init-replica-set.sh:ro
-    entrypoint: ["/bin/sh", "/opt/coyote3/init-replica-set.sh"]
+      - ../compose/mongo-init/init-replica-set.sh:/opt/coyote4/init-replica-set.sh:ro
+    entrypoint: ["/bin/sh", "/opt/coyote4/init-replica-set.sh"]
     depends_on:
       mongo: {condition: service_healthy}
     restart: "no"
@@ -72,9 +72,9 @@ services:
     profiles: [mongo-kb]
     image: mongo:7.0.41
     security_opt: [seccomp=unconfined]
-    entrypoint: ["/bin/sh", "/opt/coyote3/mongo-entrypoint.sh"]
-    tmpfs: ["/run/coyote3-mongo"]
-    command: ["mongod", "--replSet", "${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote3-kb-rs}", "--bind_ip_all", "--keyFile", "/run/coyote3-mongo/keyfile"]
+    entrypoint: ["/bin/sh", "/opt/coyote4/mongo-entrypoint.sh"]
+    tmpfs: ["/run/coyote4-mongo"]
+    command: ["mongod", "--replSet", "${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote4-kb-rs}", "--bind_ip_all", "--keyFile", "/run/coyote4-mongo/keyfile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${KNOWLEDGEBASE_MONGO_ROOT_USERNAME:-}
       MONGO_INITDB_ROOT_PASSWORD: ${KNOWLEDGEBASE_MONGO_ROOT_PASSWORD:-}
@@ -88,9 +88,9 @@ services:
     ports:
       - "${KNOWLEDGEBASE_MONGO_BIND_ADDRESS:-127.0.0.1}:${KNOWLEDGEBASE_MONGO_PORT:-27018}:27017"
     volumes:
-      - "${KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT:-/srv/coyote3/mongo-kb/data}:/data/db"
-      - "${KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH:-/srv/coyote3/mongo-kb/keyfile}:/etc/mongo-keyfile/keyfile:ro"
-      - ../compose/mongo-init/mongo-entrypoint.sh:/opt/coyote3/mongo-entrypoint.sh:ro
+      - "${KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT:-/srv/coyote4/mongo-kb/data}:/data/db"
+      - "${KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH:-/srv/coyote4/mongo-kb/keyfile}:/etc/mongo-keyfile/keyfile:ro"
+      - ../compose/mongo-init/mongo-entrypoint.sh:/opt/coyote4/mongo-entrypoint.sh:ro
       - ../compose/mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck: *mongo-health
     stop_grace_period: 120s
@@ -108,11 +108,11 @@ services:
       HOME: /tmp
       MONGO_ROOT_USERNAME: ${KNOWLEDGEBASE_MONGO_ROOT_USERNAME:-}
       MONGO_ROOT_PASSWORD: ${KNOWLEDGEBASE_MONGO_ROOT_PASSWORD:-}
-      MONGO_REPLICA_SET_NAME: ${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote3-kb-rs}
+      MONGO_REPLICA_SET_NAME: ${KNOWLEDGEBASE_REPLICA_SET_NAME:-coyote4-kb-rs}
       MONGO_REPLICA_MEMBER_HOST: ${KNOWLEDGEBASE_REPLICA_MEMBER_HOST:-mongo-kb:27017}
     volumes:
-      - ../compose/mongo-init/init-replica-set.sh:/opt/coyote3/init-replica-set.sh:ro
-    entrypoint: ["/bin/sh", "/opt/coyote3/init-replica-set.sh"]
+      - ../compose/mongo-init/init-replica-set.sh:/opt/coyote4/init-replica-set.sh:ro
+    entrypoint: ["/bin/sh", "/opt/coyote4/init-replica-set.sh"]
     depends_on:
       mongo-kb: {condition: service_healthy}
     restart: "no"
@@ -120,5 +120,5 @@ services:
 
 networks:
   app:
-    name: ${COYOTE3_APP_NETWORK:?COYOTE3_APP_NETWORK must be set}
+    name: ${COYOTE4_APP_NETWORK:?COYOTE4_APP_NETWORK must be set}
     external: true

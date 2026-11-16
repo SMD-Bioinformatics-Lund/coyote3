@@ -1,6 +1,6 @@
 # Configuration Identity And Audit
 
-Coyote3 uses stable clinical identifiers, one active configuration record per
+Coyote4 uses stable clinical identifiers, one active configuration record per
 clinical scope, and an operational audit trail. Sample review and report records
 retain the configuration identity and filter state used at the time.
 
@@ -60,7 +60,7 @@ the previous document remains available for reconstruction.
 
 The `base` diagnosis is the explicit default for an ASP with no diagnosis-specific
 configuration. If a sample requests a diagnosis that does not have an active
-ASPC, Coyote3 may resolve the active `base` ASPC when it explicitly permits
+ASPC, Coyote4 may resolve the active `base` ASPC when it explicitly permits
 fallback in the same environment. The sample retains the requested diagnosis;
 the exact referenced release supplies the resolved diagnosis. The UI shows this as a
 configuration warning because the configured default, rather than a matching

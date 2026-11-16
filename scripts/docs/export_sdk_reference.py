@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Export public SDK signatures and docstrings without initializing a runtime host."""
 
 from __future__ import annotations
@@ -13,18 +16,18 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "docs/sdk/reference.md"
 MODULES = (
-    "coyote3.application.operations",
-    "coyote3.application.operations.inputs",
-    "coyote3_client",
-    "coyote3.config",
-    "coyote3_client.resources",
-    "coyote3_client.clinical",
-    "coyote3_client.endpoints",
-    "coyote3_client.async_client",
+    "coyote.application.operations",
+    "coyote.application.operations.inputs",
+    "coyote_pyclient",
+    "coyote.config",
+    "coyote_pyclient.resources",
+    "coyote_pyclient.clinical",
+    "coyote_pyclient.endpoints",
+    "coyote_pyclient.async_client",
 )
 RESOURCE_TYPES = {
-    "coyote3_client.resources": ("Resource", "ResourceCollection"),
-    "coyote3_client.clinical": (
+    "coyote_pyclient.resources": ("Resource", "ResourceCollection"),
+    "coyote_pyclient.clinical": (
         "Finding",
         "FindingCollection",
         "VariantCollection",
@@ -32,8 +35,8 @@ RESOURCE_TYPES = {
         "SampleResource",
         "SampleCollection",
     ),
-    "coyote3_client.endpoints": ("ApiEndpoint",),
-    "coyote3_client.async_client": (
+    "coyote_pyclient.endpoints": ("ApiEndpoint",),
+    "coyote_pyclient.async_client": (
         "AsyncApiEndpoint",
         "AsyncResource",
         "AsyncCollection",

@@ -1,11 +1,12 @@
 {
-  "name": "coyote3",
+  "name": "coyote4",
   "private": true,
+  "license": "GPL-3.0-only",
   "version": "4.0.0",
   "author": "Ram Nanduri",
   "contributors": [
-    { "name": "Sailendra Pradhananga" },
-    { "name": "Viktor Henmyr" }
+    { "name": "Viktor Henmyr" },
+    { "name": "Sailendra Pradhananga" }
   ],
   "engines": {
     "node": ">=22"

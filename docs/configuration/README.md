@@ -1,5 +1,9 @@
 # Configuration and file formats
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Choose the reference for the item being edited. Installation and application
 procedures link here for definitions and accepted values; these pages do not
 replace the ordered procedures.
@@ -25,8 +29,8 @@ workflow for changing a running installation's rules.
 | Application `clinical_query_seed.toml` | Software maintainers | [Installed query criteria and predicate grammar](clinical-query-policy-file.md). Live changes use the database query-rule editor. |
 | External `filter_flag_metadata.yaml` | Clinical configuration owner | [Flag labels, severity, descriptions and optional caller overrides](filter-flag-metadata-file.md). |
 | Application `collections.toml` | Software maintainers | [Logical collection mappings](collection-mapping-file.md). Centers do not edit it. |
-| Core `src/coyote3/config/factory_defaults.toml` | Software maintainers | [Factory defaults](#factory-defaults): domain capabilities, shared policy values, filters and clinical starter values. |
-| API `api/config/factory_defaults.toml` | API maintainers | Deployment fallbacks and environment profiles. Not a center file. |
+| Core `core/src/coyote/config/factory_defaults.toml` | Software maintainers | [Factory defaults](#factory-defaults): domain capabilities, shared policy values, filters and clinical starter values. |
+| API `api/src/coyote_api/config/factory_defaults.toml` | API maintainers | Deployment fallbacks and environment profiles. Not a center file. |
 | Frontend `frontend/src/lib/defaults.ts` | Frontend maintainers | Presentation defaults: theme, layouts, page-size choices and nomenclature labels. |
 | Bootstrap catalogs | Software release | [Baseline accounts, permissions and reference data](../deployment/bootstrap-data-flow.md). Do not edit release catalogs as a substitute for center administration. |
 
@@ -44,8 +48,8 @@ Defaults follow the component that owns their behavior:
 
 | Owner and source | Contents |
 | --- | --- |
-| Core package: `src/coyote3/config/factory_defaults.toml` | Reusable domain capabilities and defaults needed by the library, SDK, schemas and clinical workflows. |
-| API host: `api/config/factory_defaults.toml` | Sessions, cache, databases, mail, workers, HTTP clients, deployment profiles and public product metadata. |
+| Core package: `core/src/coyote/config/factory_defaults.toml` | Reusable domain capabilities and defaults needed by the library, SDK, schemas and clinical workflows. |
+| API host: `api/src/coyote_api/config/factory_defaults.toml` | Sessions, cache, databases, mail, workers, HTTP clients, deployment profiles and public product metadata. |
 | Frontend: `frontend/src/lib/defaults.ts` | Theme, layouts, table-size choices, default UI environment selection and nomenclature labels. |
 
 The core package never imports the API or frontend. The API imports shared domain

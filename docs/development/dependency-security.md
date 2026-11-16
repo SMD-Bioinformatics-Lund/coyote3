@@ -44,14 +44,14 @@ without downgrading markdownlint. Reassess the override when markdownlint update
 Reviewed: 2026-09-09. Reassess whenever WeasyPrint changes.
 
 `PYSEC-2026-3412` (`CVE-2026-49452`, `GHSA-jhhc-3hcp-qhm5`) affects CSS construction
-when HTML presentational hints are enabled in affected releases. Coyote3 pins
+when HTML presentational hints are enabled in affected releases. Coyote4 pins
 WeasyPrint 70.0; the dependency audit passes without an advisory exception.
-Coyote3 explicitly calls `write_pdf(presentational_hints=False)` and uses
+Coyote4 explicitly calls `write_pdf(presentational_hints=False)` and uses
 a resource fetcher restricted to embedded PNG/JPEG images, validated self-contained
 SVG logos, and WOFF2 fonts. SVG scripts, external references and nested images are rejected.
 Network URLs, local files and oversized embedded images are rejected.
 
-Regression tests in `tests/unit/reporting/test_release_regressions.py` verify the
+Regression tests in `core/tests/unit/reporting/test_release_regressions.py` verify the
 disabled option and forbidden resource schemes. CI does not suppress this advisory.
 Removing or relaxing either protection requires reassessing the renderer before release.
 

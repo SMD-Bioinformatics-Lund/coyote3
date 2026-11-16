@@ -74,9 +74,10 @@ The default somatic evidence mode is **`paired`**. Its ordinary branch requires:
   aggregate VEP consequences across transcripts. An empty consequence selection
   matches no ordinary findings.
 
-The default germline evidence mode is **`exception_only`**: there is no ordinary
-threshold/consequence admission branch. Without published admission exceptions,
-it selects no findings. This is a query intent, not a determination of origin.
+The default independent germline evidence mode is **`case_only`**. It uses
+ordinary genotype thresholds, population-frequency limits and eligible consequences.
+An explicit published policy can choose another supported evidence mode.
+Query intent does not determine a variant’s biological origin.
 
 Both modes restrict results to the sample. Explicit selected positions take
 precedence over the gene-list predicate; otherwise selected genes or the empty
@@ -152,18 +153,18 @@ Replacing an exception list does not remove the application query implementation
 | `exclude` | Removes matching findings even when an ordinary branch or admission exception selected them. |
 
 Query rules do not grant sample access or enable an unsupported analysis. Somatic
-SNV retrieval also includes effective germline exceptions, as described under
+SNV retrieval uses only the active profile’s policy, as described under
 [runtime scope resolution](#runtime-scope-resolution).
 
 For implementation review, the authoritative modules are:
 
-- `src/coyote3/config/factory_defaults.toml`: SNV evidence modes and population fields.
-- `src/coyote3/config/clinical_query_policy.py`: typed defaults and resolved policy binding.
-- `src/coyote3/application/query_rules/service.py`: published scope resolution and inheritance.
-- `src/coyote3/domain/dna/varqueries.py`: SNV selection construction.
-- `src/coyote3/domain/dna/cnvqueries.py`: CNV selection construction.
-- `src/coyote3/domain/dna/translocqueries.py`: translocation selection and gene filtering.
-- `src/coyote3/domain/rna/fusion_query_builder.py`: fusion selection construction.
+- `core/src/coyote/config/factory_defaults.toml`: SNV evidence modes and population fields.
+- `core/src/coyote/config/clinical_query_policy.py`: typed defaults and resolved policy binding.
+- `core/src/coyote/application/query_rules/service.py`: published scope resolution and inheritance.
+- `core/src/coyote/domain/dna/varqueries.py`: SNV selection construction.
+- `core/src/coyote/domain/dna/cnvqueries.py`: CNV selection construction.
+- `core/src/coyote/domain/dna/translocqueries.py`: translocation selection and gene filtering.
+- `core/src/coyote/domain/rna/fusion_query_builder.py`: fusion selection construction.
 
 ## Browse rule versions
 
@@ -268,8 +269,8 @@ inherited exceptions. Extended exception lists require distinct stable identifie
 
 Each policy belongs to one analysis: SNV, CNV, DNA translocation or RNA fusion.
 SNV policies distinguish somatic and germline intent for authoring and inheritance.
-The current combined SNV workflow also applies germline exceptions during somatic
-retrieval, as described below. Policies for other analyses remain independent.
+The ASPC `snv_filter_mode` selects a shared SNV flow or independent intent-specific
+flows. Policies for other analyses remain independent.
 A group diagnosis policy applies across associated assays. Adding a family or an
 assay narrows that binding. Family bindings use an explicit modality; they cannot
 enable an analysis unsupported by that modality.
@@ -295,24 +296,25 @@ and exact source lineage in the saved report receipt. A changed publication betw
 report preview and save requires a fresh preview. Existing saved reports remain
 unchanged. Historical ASPC policy captures are ignored by runtime execution.
 
-Intent scopes select query policies, not confirmed variant origin. Published
-germline exceptions are also evaluated within somatic SNV retrieval for the same
-group, assay and diagnosis. The somatic evidence mode remains active; the germline
-evidence mode does not replace it.
+Intent scopes select query policies, not confirmed variant origin. ASPC
+`snv_filter_mode` defaults to `shared`: all SNVs use one normal filter flow,
+using the somatic profile when enabled, otherwise the germline profile. Depth,
+frequency, control, gene-list and consequence criteria apply equally to every
+variant, including variants carrying germline flags. Germline rules are not
+copied into the shared policy.
 
-The resolver composes each intent's hierarchy independently, then adds the effective
-germline exceptions to the somatic exceptions. Effective germline identifiers use a
-`germline__` prefix in the combined preview; stored rule IDs are unchanged. The
-preview includes their source versions. Somatic replacement mode replaces only the
-somatic list; edit the germline scope to change its contribution.
+`independent` enables separate configured somatic and germline profiles. Each
+uses its own filters and published policy; neither contributes exceptions to the
+other. The applied ASPC revision retains the flow setting across deployments.
+Reports use the same active profiles as analysis, and shared mode does not add
+a second germline result section. Draft sample tests evaluate the requested
+active profile; a germline draft requires an independent germline flow.
 
 Admission exceptions provide an alternative to ordinary evidence and consequence
 requirements. Gene/position restrictions and sample identity remain enforced.
 Exclusions apply after admission and can remove a finding admitted by either intent.
 `extend_consequence` preserves ordinary evidence requirements. Retired, draft and
-unpublished germline rules do not affect live selection. Sample tests for germline
-drafts compare their effect on somatic SNV results using the sample's somatic filters;
-the sample does not need the germline intent enabled.
+unpublished rules do not affect live selection.
 
 | Setting at a scope | Effective behavior |
 | --- | --- |
@@ -398,7 +400,7 @@ the sample-scoped query. No separate base-diagnosis rule is evaluated.
 ### Existing query-rule storage
 
 Stop query-rule editing during the storage upgrade. Run
-`scripts/database/upgrade_query_rule_storage.py --env-file "$COYOTE_ENV_FILE" --mongo-uri "$MONGO_URI" --db "$COYOTE3_DB" --actor "$OPERATOR"`
+`scripts/database/upgrade_query_rule_storage.py --env-file "$COYOTE_ENV_FILE" --mongo-uri "$MONGO_URI" --db "$COYOTE4_DB" --actor "$OPERATOR"`
 to validate and inspect the plan. Apply the same command with
 `--apply --backup /private/backup/query-rules.json`; the backup path must not exist.
 The script preserves conditions, release versions and lifecycle states, updates
@@ -789,8 +791,8 @@ These admissions apply only to their registered group and intent scopes. Lymphoi
 PGX and newly registered groups do not inherit them automatically. Sequencing family
 and analysis type do not create group policies. For example, `demo-tumwgs-hema`
 uses its explicit hematology group rather than a separate tumor-WGS group.
-The resolver also includes effective germline exceptions in the somatic SNV policy
-for the same scope, as described under configuration release binding.
+Somatic and germline policies remain scoped to their own intent. The ASPC flow
+setting determines which profiles are active.
 
 The release catalog supplies group rules; the bundled installation TOML supplies the
 group-scoped germline criteria and overlapping group criteria. At installation, a file

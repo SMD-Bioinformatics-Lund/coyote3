@@ -62,7 +62,7 @@ credentials and sender addresses remain [deployment settings](../deployment/conf
 | Module | Governed capability |
 | --- | --- |
 | DNA analysis | Small variants, CNVs, translocations, biomarkers, and coverage. |
-| RNA analysis | Fusion and expression analysis. |
+| RNA analysis | Fusion, expression, classification and quality-result analysis. |
 | Clinical reporting | Preview, rendering, saving, and retrieval of reports. |
 | Tiered variant search | Cross-sample tier and annotation search. |
 | Knowledgebases | Gene context and local or external evidence lookups. |
@@ -76,6 +76,21 @@ cannot be disabled through application controls.
 
 The public `GET /api/v1/public/modules` endpoint exposes only module labels,
 descriptions, and effective availability. The frontend uses that endpoint to
-remove disabled navigation before a user opens it. API middleware independently
-checks every governed request, so a stale browser, bookmarked route, or direct
-API caller cannot bypass a disabled module.
+remove disabled navigation before a user opens it. API routers and endpoints declare
+their feature requirements explicitly. The API checks those requirements before
+opening the endpoint's application operations, so a stale browser, bookmarked route,
+or direct API caller cannot bypass a disabled module. Requests return the standard
+`503` error with `category = module_disabled`, the module key and `Retry-After`.
+
+Some endpoints require multiple features: small-variant public evidence lookups need
+both DNA analysis and knowledgebases. RNA availability also covers the unified
+expression, classification and quality endpoint. Shared annotations, controls and
+recovery routes remain available under their existing permissions.
+
+The core registry at `core/src/coyote/config/application_modules.py` owns feature identities
+and metadata without HTTP paths. API requirements are declared with `RequireModules`
+from `api/src/coyote_api/app/deps/modules.py`, on a whole router when its routes share a feature or
+on individual endpoints in mixed routers. URL prefixes and substrings do not determine
+availability. Authentication, CSRF and existing role/assay/environment checks remain
+separate requirements. Saved availability still comes from the application-controls
+record; this change does not rename settings or require a database migration.

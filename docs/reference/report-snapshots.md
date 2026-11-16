@@ -99,7 +99,7 @@ fetch remote URLs or local files. SVG scripts, external references and nested im
 are rejected.
 HTML presentational hints remain disabled.
 
-This document describes the Coyote3 sample-to-report workflow, the rules used
+This document describes the Coyote4 sample-to-report workflow, the rules used
 when building a report, what is persisted in MongoDB, and how persisted report
 snapshots support later search, mapping, dashboards, and cross-sample review.
 
@@ -408,7 +408,7 @@ Selected SNV lists are not reused as CNV filters. Each analysis consumes only
 gene-list types declared for that analysis. The historical application had one
 assay-specific development/tumor-exome branch in which the presence of any SNV
 list activated a fixed six-gene CNV query. That behavior did not apply the
-selected list itself and is not part of the general Coyote3 filtering contract.
+selected list itself and is not part of the general Coyote4 filtering contract.
 
 ### CNV Profile Logic
 

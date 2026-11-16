@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Plan or apply evidence-based actor backfills for one mutable collection."""
 
 import argparse
@@ -7,9 +10,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from coyote.contracts.schemas.registry import supported_collections
 from pymongo import MongoClient
-
-from coyote3.contracts.schemas.registry import supported_collections
 
 
 def attribution_changes(document: Mapping[str, Any], collection: str) -> dict[str, Any]:
@@ -119,7 +121,7 @@ def backfill(collection: Any, *, logical_name: str, apply: bool = False) -> dict
 def main() -> None:
     """Run a per-collection plan, writing only when explicitly requested."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri-env", default="COYOTE3_MONGO_URI")
+    parser.add_argument("--mongo-uri-env", default="COYOTE4_MONGO_URI")
     parser.add_argument("--database", required=True)
     parser.add_argument("--collection", required=True, choices=supported_collections())
     parser.add_argument("--storage-collection", help="Configured physical name, if different.")

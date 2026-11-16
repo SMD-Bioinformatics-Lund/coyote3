@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Shared primitives for manual knowledgebase snapshot updates."""
 
 from __future__ import annotations
@@ -17,13 +20,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH
+from coyote_mongo.config.endpoints import configured_mongo_uri
 from pymongo import IndexModel, MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
-
-from api.config.mongo import configured_mongo_uri
-from api.config.paths import COLLECTIONS_CONFIG_PATH
 
 BATCH_SIZE = 5_000
 MAX_SOURCE_FIELD_BYTES = 16 * 1024 * 1024

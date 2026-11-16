@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 SCRIPT_PATH="$(realpath "$0")"
@@ -7,9 +10,9 @@ VALIDATE_SCRIPT="$APP_DIR/scripts/deployment/validate_env_secrets.sh"
 source "$APP_DIR/scripts/deployment/python_runtime.sh"
 select_deployment_python "$APP_DIR"
 
-COYOTE3_VERSION="$("$PYTHON_BIN" "$APP_DIR/api/version.py")"
-export COYOTE3_VERSION
-echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}" >&2
+COYOTE4_VERSION="$("$PYTHON_BIN" -c 'import sys,tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["application_version"])' "$APP_DIR/release.toml")"
+export COYOTE4_VERSION
+echo "Using COYOTE4_VERSION=${COYOTE4_VERSION}" >&2
 
 DEFAULT_COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
 if docker compose version >/dev/null 2>&1; then
@@ -100,13 +103,13 @@ for selected in (level, celery_level):
 PY
 )"
 readarray -t deployment_settings <<< "$deployment_environment"
-export COYOTE3_IMAGE_TAG="${COYOTE3_VERSION}-${deployment_settings[0]}"
+export COYOTE4_IMAGE_TAG="${COYOTE4_VERSION}-${deployment_settings[0]}"
 if [[ "${deployment_settings[0]}" == "prod" ]]; then
-  export COYOTE3_IMAGE_TAG="$COYOTE3_VERSION"
+  export COYOTE4_IMAGE_TAG="$COYOTE4_VERSION"
 fi
 export LOG_LEVEL="${deployment_settings[1]}"
 export CELERY_LOG_LEVEL="${deployment_settings[2]}"
-echo "Using COYOTE3_IMAGE_TAG=${COYOTE3_IMAGE_TAG}" >&2
+echo "Using COYOTE4_IMAGE_TAG=${COYOTE4_IMAGE_TAG}" >&2
 
 if [[ "$is_deploy_action" -eq 1 && -n "$env_file" ]]; then
   bash "$VALIDATE_SCRIPT" --env-file "$env_file"
@@ -120,7 +123,7 @@ if [[ "$compose_file" != /* ]]; then
 fi
 
 if [[ "$is_down_action" -eq 1 && "$has_remove_volumes" -eq 1 ]]; then
-  echo "ERROR: refusing 'down -v/--volumes': Coyote3 deployment data is never removed by this wrapper." >&2
+  echo "ERROR: refusing 'down -v/--volumes': Coyote4 deployment data is never removed by this wrapper." >&2
   echo "Use 'down' without volume removal. Host-mounted MongoDB data is retained independently." >&2
   exit 2
 fi

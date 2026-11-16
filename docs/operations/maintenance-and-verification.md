@@ -41,9 +41,9 @@ Validate seed data and cross-collection assay relationships before using them.
 ```bash
 # Validate core seed structures and assay relations
 .venv/bin/python scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/bootstrap/catalogs/demo_center \
-  --reference-seed-data api/bootstrap/catalogs/rbac \
-  --reference-seed-data api/bootstrap/catalogs/reference \
+  --seed-file api/src/coyote_api/bootstrap/catalogs/demo_center \
+  --reference-seed-data api/src/coyote_api/bootstrap/catalogs/rbac \
+  --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
   --validate-all-contracts
 ```
 
@@ -53,12 +53,12 @@ Example staging command:
 
 ```bash
 .venv/bin/python scripts/bootstrap/bootstrap_database.py \
-  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --mongo-uri "$COYOTE4_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
-  --db "$COYOTE3_DB" \
+  --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
   --sys-admin-email "operator@example.org" \
-  --email "admin@coyote3.local"
+  --email "admin@coyote4.local"
 ```
 
 ## Audit and Logging
@@ -187,7 +187,7 @@ changes still need to be assessed against an approved non-production workload.
 ## Remove editing snapshots from previously published setups
 
 For existing staging records, an operator can run the following in an authenticated
-`mongosh` session. It targets only `coyote3_staging`, requires transactions, and
+`mongosh` session. It targets only `coyote4_staging`, requires transactions, and
 verifies that every published setup retains its final published snapshot before
 removing older draft/submitted snapshots. Operational resources, published snapshots
 and audit events are not deleted. Successful cleanup permanently removes the old
@@ -196,7 +196,7 @@ editing content; it does not reset revision numbers.
 ```javascript
 function cleanupPublishedSetupDrafts(apply = false) {
   const session = db.getMongo().startSession();
-  const staging = session.getDatabase("coyote3_staging");
+  const staging = session.getDatabase("coyote4_staging");
   let snapshots = 0;
   let setups = 0;
   session.startTransaction();

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Prepare application storage from resolved Compose JSON without starting services."""
 
 from __future__ import annotations
@@ -186,7 +189,7 @@ def prepare(config: dict) -> None:
         raise ValueError("Resolved Compose configuration must include the API service")
     args = api.get("build", {}).get("args", {})
     identity = (
-        api.get("user") or f"{args.get('COYOTE3_UID', 10001)}:{args.get('COYOTE3_GID', 10001)}"
+        api.get("user") or f"{args.get('COYOTE4_UID', 10001)}:{args.get('COYOTE4_GID', 10001)}"
     )
     parts = str(identity).split(":")
     if len(parts) != 2 or not all(part.isdigit() for part in parts):
@@ -209,7 +212,7 @@ def prepare(config: dict) -> None:
     if suffix not in {"dev", "prod", "test", "stage"}:
         raise ValueError("Unsupported deployment environment")
     data = mounts["/data"]
-    runtime = data / f"coyote3_{suffix}"
+    runtime = data / f"coyote4_{suffix}"
     for directory in (
         data,
         mounts["/app/logs"],

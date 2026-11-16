@@ -10,7 +10,7 @@ def when_ready(server):
     Notes:
         Does not configure application logging; runtime setup owns that configuration.
     """
-    server.log.info("coyote3 gunicorn ready")
+    server.log.info("coyote4 gunicorn ready")
 
 
 def post_worker_stop(worker, worker_pid, exit_code) -> None:

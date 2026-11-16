@@ -2,7 +2,7 @@
 
 > **Info**
 >
-> OncoKB is used as a clinical knowledgebase signal in Coyote3. Dense tables
+> OncoKB is used as a clinical knowledgebase signal in Coyote4. Dense tables
 > show compact OncoKB markers in the row status column rather than beside the
 > gene symbol or in a permanent wide table column.
 >
@@ -13,7 +13,7 @@ OncoKB provides curated precision-oncology knowledge about cancer genes,
 somatic alterations, structural variants, copy-number alterations, therapeutic
 levels, and biological effects.
 
-Coyote3 uses this information in three places:
+Coyote4 uses this information in three places:
 
 1. **Variant tables**: compact `OKB` and `Rx` row markers appear in the status
    column when the gene is present in the public cancer-gene cache or in the
@@ -71,7 +71,7 @@ The collection stores normalized fields only. It does not keep a duplicated raw
 endpoint payload because the indexed fields used by the application are already
 represented explicitly.
 
-When HGNC metadata is available locally, Coyote3 stores the approved HGNC symbol
+When HGNC metadata is available locally, Coyote4 stores the approved HGNC symbol
 as `gene` and keeps previous/alias symbols as searchable metadata. This matters
 for targeted panels: panel definitions and historical VCF annotations may use an
 older symbol, while the current public knowledgebase expects the approved HGNC
@@ -90,7 +90,7 @@ GET https://public.api.oncokb.org/api/v1/utils/allCuratedGenes?includeEvidence=t
 
 This endpoint returns curated gene metadata such as `hugoSymbol`, `entrezGeneId`,
 `geneType`, `summary`, `background`, `setting`, highest public level fields, and
-reference transcripts. Coyote3 stores normalized fields in
+reference transcripts. Coyote4 stores normalized fields in
 `oncokb_genes_public`; it does not store a duplicate raw response blob there.
 
 > **Info: Historical local collections**
@@ -118,7 +118,7 @@ reference transcripts. Coyote3 stores normalized fields in
 
 > **Info: Transcript selection**
 >
-> During DNA VCF ingest, Coyote3 selects the displayed `selected_CSQ`
+> During DNA VCF ingest, Coyote4 selects the displayed `selected_CSQ`
 > transcript using HGNC metadata. Transcript records are resolved by HGNC ID
 > first, then by approved symbol, previous symbol, or alias symbol. MANE Plus
 > Clinical has highest priority, followed by MANE Select, then the center
@@ -131,7 +131,7 @@ reference transcripts. Coyote3 stores normalized fields in
 
 ## Public API lookup
 
-Coyote3 uses the public OncoKB API host:
+Coyote4 uses the public OncoKB API host:
 
 ```text
 https://public.api.oncokb.org/api/v1
@@ -139,14 +139,14 @@ https://public.api.oncokb.org/api/v1
 
 An on-demand small-variant lookup uses the exact genomic-change API, not a
 protein or transcript-derived fallback. The lookup is therefore independent of
-the transcript currently selected in Coyote3.
+the transcript currently selected in Coyote4.
 
 | Sample analysis intent | Public endpoint |
 | --- | --- |
 | Somatic | `GET /annotate/mutations/byGenomicChange` |
 | Germline | `GET /annotate/germline/mutations/byGenomicChange` |
 
-For every recorded supported intent, Coyote3 sends:
+For every recorded supported intent, Coyote4 sends:
 
 | Parameter | Source |
 | --- | --- |
@@ -155,7 +155,7 @@ For every recorded supported intent, Coyote3 sends:
 
 Chromosome prefixes are removed and mitochondrial `M` is normalized to `MT`.
 The end position is derived from the reference-allele length. If a complete
-genomic identity is unavailable, Coyote3 returns `not_queried`; it does not
+genomic identity is unavailable, Coyote4 returns `not_queried`; it does not
 attempt an HGVSg, protein-change, or selected-transcript fallback.
 
 Somatic and germline requests are independent. The detail page displays each
@@ -163,7 +163,7 @@ successful response under its intent and identifies an individual intent when a
 request fails. A partial failure does not discard a successful response for the
 other intent.
 
-Coyote3 exposes deployment controls for this integration:
+Coyote4 exposes deployment controls for this integration:
 
 - `ONCOKB_PUBLIC_LOOKUPS_ENABLED`
 - `ONCOKB_REQUEST_TIMEOUT_SECONDS`

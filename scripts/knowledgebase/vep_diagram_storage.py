@@ -1,13 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Store validated VEP diagrams separately from release metadata."""
 
 import base64
 import hashlib
 from pathlib import Path
 
-from api.config.collections import load_collection_section
-from coyote3.contracts.schemas.variant_annotations import (
+from coyote.contracts.schemas.variant_annotations import (
     VepDiagramAssetDoc,
 )
+from coyote_mongo.config.collections import load_collection_section
 
 
 def split_diagram(diagram: dict) -> tuple[dict, bytes]:

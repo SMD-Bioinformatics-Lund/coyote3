@@ -1,100 +1,8 @@
-[build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "Coyote3"
-version = "1.0.0"
-requires-python = ">=3.12"
-readme = "README.md"
-license = "LicenseRef-COYOTE3-Free-Use-Source-Available-1.0"
-license-files = ["LICENSE.txt", "NOTICE.txt", "LICENSING.md", "THIRD_PARTY_NOTICES.md"]
-description = "A Bioinformatics Interpretation and Analysis Tool built by bioinformaticians at the Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
-authors = [
-    {name = "Ram Nanduri"},
-]
-maintainers = [
-    {name = "Ram Nanduri"},
-]
-keywords = [
-    "bioinformatics",
-    "clinical-interpretation",
-    "clinical-genomics",
-    "genomic-variants",
-    "molecular-diagnostics",
-]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Healthcare Industry",
-    "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.14",
-    "Operating System :: POSIX :: Linux",
-    "Natural Language :: English",
-    "Reporting Language :: English/Swedish",
-    "Topic :: Scientific/Engineering :: Bio-Informatics",
-]
-dependencies = [
-    "bleach==6.4.0",
-    "Jinja2==3.1.6",
-    "Markdown==3.11.3",
-    "pydantic==2.14.3",
-    "pysam==0.24.1",
-    "PyYAML==6.0.3",
-    "smd-reports==0.5.3",
-    "weasyprint==70.0",
-]
-
-[project.urls]
-Homepage = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
-Repository = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
-Documentation = "https://smd-bioinformatics-lund.github.io/coyote3"
-"Bug Tracker" = "https://github.com/SMD-Bioinformatics-Lund/coyote3/issues"
-Source = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
-Security = "https://github.com/SMD-Bioinformatics-Lund/coyote3/security"
-Releases = "https://github.com/SMD-Bioinformatics-Lund/coyote3/releases"
-
-[project.scripts]
-coyote3-api = "api.cli:main"
-
-[project.optional-dependencies]
-api = [
-    "pymongo==4.18.3",
-    "python-dotenv==1.2.2",
-    "Brotli==1.2.1",
-    "celery[redis]==5.6.3",
-    "colorlog==6.10.1",
-    "cffi==2.0.0",
-    "click==8.3.3",
-    "cssselect2==0.9.0",
-    "dnspython==2.9.0",
-    "filelock==4.2.1",
-    "fonttools==4.68.0",
-    "ldap3==2.9.1",
-    "itsdangerous==2.2.0",
-    "MarkupSafe==3.0.3",
-    "pillow==13.0.0",
-    "pydantic_core==2.50.4",
-    "casbin==1.36.1",
-    "fastapi==0.141.1",
-    "starlette==1.6.0",
-    "pyasn1==0.6.5",
-    "idna==3.19",
-    "python-multipart==0.0.31",
-    "uvicorn==0.44.0",
-    "pydyf==0.12.1",
-    "python-dateutil==2.9.0.post0",
-    "redis==7.4.0",
-    "tinycss2==1.5.1",
-    "tinyhtml5==2.1.0",
-    "typing_extensions==4.16.0",
-    "webencodings==0.5.1",
-    "Werkzeug==3.1.9",
-    "httpx==0.28.1",
-]
-all = ["Coyote3[api,dev,test,docs,load]==1.0.0"]
+[dependency-groups]
 dev = [
+    "pip==26.2.1",
+    "setuptools==84.2.1",
+    "wheel==0.48.0",
     "mypy==1.20.1",
     "mypy-extensions==1.1.0",
     "pre-commit==4.5.1",
@@ -104,6 +12,7 @@ dev = [
     "types-python-dateutil==2.9.0.20260408",
 ]
 test = [
+    "mkdocs==1.6.1",
     "pytest==9.0.3",
     "pytest-mock==3.15.1",
     "pytest-cov==7.1.0",
@@ -118,8 +27,8 @@ load = [
     "locust==2.46.5",
 ]
 
-# Contributor acknowledgments; not part of the package Author metadata.
-[tool.coyote3.attribution]
+
+[tool.coyote4.attribution]
 contributors = ["Sailendra Pradhananga", "Viktor Henmyr"]
 
 [tool.ruff]
@@ -169,14 +78,16 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"api" = { msg = "UI/runtime-adjacent code must not import backend api.* modules directly; use the HTTP client boundary instead." }
+"coyote_api" = { msg = "UI/runtime-adjacent code must not import backend coyote_api.* modules directly; use the HTTP client boundary instead." }
 "pymongo" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
 "bson" = { msg = "Mongo BSON helpers are restricted to infra/common/script layers; use owned helper seams outside those layers." }
 "motor" = { msg = "Mongo driver imports are restricted to infra/common/script layers; keep UI and higher-level runtime code storage-agnostic." }
 
 [tool.ruff.lint.per-file-ignores]
 "api/**/*.py" = ["TID251"]
-"src/coyote3/**/*.py" = ["TID251"]
+"adapters/**/*.py" = ["TID251"]
+"core/src/coyote/**/*.py" = ["TID251"]
+"core/tests/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
 "migrations_scripts/**/*.py" = ["TID251"]
 "tests/**/*.py" = ["TID251"]
@@ -192,80 +103,62 @@ strict = true
 follow_imports = "skip"
 ignore_missing_imports = true
 files = [
-    "src/coyote3/application/operations",
-    "src/coyote3/application/editing.py",
-    "src/coyote3/application/common/access.py",
-    "api/app/application_factory.py",
-    "api/app/deps/application.py",
-    "api/infra/security/worker_policy.py",
-    "src/coyote3/application/accounts/common.py",
-    "src/coyote3/application/common/managed_records.py",
-    "src/coyote3/application/audit/ports.py",
-    "src/coyote3/application/ingest/translocations.py",
-    "src/coyote3/domain",
-    "src/coyote3/application/accounts/permissions.py",
-    "src/coyote3/application/accounts/roles.py",
-    "src/coyote3/application/accounts/users.py",
-    "src/coyote3/application/audit/service.py",
-    "api/infra/mongo/repositories/audit.py",
-    "src/coyote3/application/notifications/access.py",
-    "src/coyote3/application/notifications/service.py",
-    "src/coyote3/application/notifications/activity.py",
-    "api/services/provisioning/deployment_data.py",
-    "api/services/provisioning/demo_installation.py",
-    "src/coyote3/application/common/alignment_files.py",
-    "src/coyote3/application/common/change_payload.py",
-    "api/infra/artifact_paths.py",
-    "src/coyote3/application/common/finding_access.py",
-    "src/coyote3/application/common/pagination.py",
-    "src/coyote3/application/common/protected_records.py",
-    "src/coyote3/application/common/table_state.py",
-    "src/coyote3/application/ingest/analysis_parsers.py",
-    "src/coyote3/application/ingest/helpers.py",
-    "src/coyote3/application/ingest/json_resources.py",
-    "src/coyote3/application/ingest/sample_updates.py",
-    "src/coyote3/application/knowledgebase/gene_markers.py",
-    "src/coyote3/application/knowledgebase/oncokb_refresh.py",
-    "api/infra/observability/client_errors.py",
-    "src/coyote3/application/reporting/clinical_rules/renderers.py",
-    "src/coyote3/application/reporting/clinical_rules/resolution.py",
-    "src/coyote3/application/reporting/clinical_rules/testing.py",
-    "src/coyote3/application/reporting/report_library.py",
-    "src/coyote3/application/resources/asp.py",
-    "src/coyote3/config/application_modules.py",
-    "api/infra/notifications/email.py",
-    "src/coyote3/application/common/observability.py",
-    "api/infra/observability/prometheus_metrics.py",
-    "api/security",
+    "core/src/coyote/application/operations",
+    "core/src/coyote/application/editing.py",
+    "core/src/coyote/application/common/access.py",
+    "api/src/coyote_api/app/application_factory.py",
+    "api/src/coyote_api/app/deps/application.py",
+    "api/src/coyote_api/infra/security/worker_policy.py",
+    "core/src/coyote/application/accounts/common.py",
+    "core/src/coyote/application/common/managed_records.py",
+    "core/src/coyote/application/audit/ports.py",
+    "core/src/coyote/application/ingest/translocations.py",
+    "core/src/coyote/domain",
+    "core/src/coyote/application/accounts/permissions.py",
+    "core/src/coyote/application/accounts/roles.py",
+    "core/src/coyote/application/accounts/users.py",
+    "core/src/coyote/application/audit/service.py",
+    "adapters/mongo/src/coyote_mongo/repositories/audit.py",
+    "core/src/coyote/application/notifications/access.py",
+    "core/src/coyote/application/notifications/service.py",
+    "core/src/coyote/application/notifications/activity.py",
+    "api/src/coyote_api/services/provisioning/deployment_data.py",
+    "api/src/coyote_api/services/provisioning/demo_installation.py",
+    "core/src/coyote/application/common/alignment_files.py",
+    "core/src/coyote/application/common/change_payload.py",
+    "api/src/coyote_api/infra/artifact_paths.py",
+    "core/src/coyote/application/common/finding_access.py",
+    "core/src/coyote/application/common/pagination.py",
+    "core/src/coyote/application/common/protected_records.py",
+    "core/src/coyote/application/common/table_state.py",
+    "core/src/coyote/application/ingest/analysis_parsers.py",
+    "core/src/coyote/application/ingest/helpers.py",
+    "core/src/coyote/application/ingest/json_resources.py",
+    "core/src/coyote/application/ingest/sample_updates.py",
+    "core/src/coyote/application/knowledgebase/gene_markers.py",
+    "core/src/coyote/application/knowledgebase/oncokb_refresh.py",
+    "api/src/coyote_api/infra/observability/client_errors.py",
+    "core/src/coyote/application/reporting/clinical_rules/renderers.py",
+    "core/src/coyote/application/reporting/clinical_rules/resolution.py",
+    "core/src/coyote/application/reporting/clinical_rules/testing.py",
+    "core/src/coyote/application/reporting/report_library.py",
+    "core/src/coyote/application/resources/asp.py",
+    "core/src/coyote/config/application_modules.py",
+    "api/src/coyote_api/infra/notifications/email.py",
+    "core/src/coyote/application/common/observability.py",
+    "api/src/coyote_api/infra/observability/prometheus_metrics.py",
+    "api/src/coyote_api/security",
 ]
 
 [[tool.mypy.overrides]]
 module = ["pydantic", "pydantic.*"]
 follow_imports = "normal"
 
-[tool.setuptools]
-include-package-data = true
+[tool.uv.workspace]
+members = ["core", "api", "adapters/mongo", "clients/python"]
 
-[tool.setuptools.package-dir]
-coyote3 = "src/coyote3"
-api = "api"
-
-[tool.setuptools.cmdclass]
-build_py = "build_support.ServerBuildPy"
-
-[tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["coyote3*", "api", "api.*"]
-namespaces = true
-
-[tool.setuptools.package-data]
-coyote3 = [
-    "py.typed",
-    "config/*.toml",
-    "config/*.yaml",
-]
-
-api = [
-    "app/templates/*", "config/*.toml", "config/assets/*",
-    "bootstrap/catalogs/**/*",
-]
+[tool.uv.sources]
+coyote-core = { workspace = true }
+coyote-mongo = { workspace = true }
+coyote-api = { workspace = true }
+coyote-pyclient = { workspace = true }

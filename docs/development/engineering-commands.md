@@ -11,8 +11,8 @@ active.
 
 | Check | Command |
 | --- | --- |
-| Python lint | `PYTHONPATH=. ruff check src api tests scripts` |
-| Python formatting | `ruff format --check src api tests scripts` |
+| Python lint | `PYTHONPATH=. ruff check core api adapters clients tests scripts` |
+| Python formatting | `ruff format --check core api adapters clients tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
 | Independent Python client tests | `.venv/bin/python -m pytest -q clients/python/tests` |
@@ -41,12 +41,12 @@ Validate the resolved Compose model before changing deployment files.
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   config -q
 
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   config -q
@@ -61,7 +61,7 @@ API logs are structured JSON. Authentication and mail outcomes use the
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   logs api 2>&1 | rg "auth_metric|mail_metric"

@@ -228,36 +228,36 @@ No cross-collection business reference is declared in this catalog for this dire
 
 ### S1
 
-`api/infra/mongo/repositories/audit_outbox.py`
+`adapters/mongo/src/coyote_mongo/repositories/audit_outbox.py`
 
 ### S2
 
-`api/infra/mongo/repositories/notification_activity.py`
+`adapters/mongo/src/coyote_mongo/repositories/notification_activity.py`
 
 ### S3
 
-`api/infra/mongo/repositories/report_artifact_erasure.py`
+`adapters/mongo/src/coyote_mongo/repositories/report_artifact_erasure.py`
 
 ### S4
 
-`src/coyote3/application/editing.py`
+`core/src/coyote/application/editing.py`
 
 ### S5
 
-`src/coyote3/application/notifications/service.py`
+`core/src/coyote/application/notifications/service.py`
 
 ### S6
 
-`src/coyote3/application/operations/application.py`
+`core/src/coyote/application/operations/application.py`
 
 ### S7
 
-`src/coyote3/application/operations/samples.py`
+`core/src/coyote/application/operations/samples.py`
 
 ### S8
 
-`src/coyote3/contracts/schemas/ingest_jobs.py`
+`core/src/coyote/contracts/schemas/ingest_jobs.py`
 
 ### S9
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`

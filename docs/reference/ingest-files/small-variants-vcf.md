@@ -117,7 +117,7 @@ VEP badge and version-specific metadata lookup. None of these makes VEP a caller
 | `INFO.CSQ` | Required by this parser. Supply usable transcript annotations and the matching header order; a generic unannotated VCF is not supported. |
 | `INFO.variant_callers` | Required; parsed as a pipe-delimited string. An empty optional caller registry in center TOML does not remove this input requirement. |
 | Sample genotype `GT`, `DP`, `VD`, `VAF` | Supply for each intended case/control. `VAF` is read directly; do not substitute an `AF`-only field or invented depth. |
-| `ID` | Missing VCF ID becomes `.`. It is not the Coyote3 finding identity. |
+| `ID` | Missing VCF ID becomes `.`. It is not the Coyote4 finding identity. |
 | `QUAL` | A missing quality is not a measured zero; no quality value is calculated. |
 | Optional transcript annotations | Keep the header's positions, including blank values. Their normalization follows the table above; no omitted clinical classification is inferred. |
 | `database_versions.vep` in the manifest | May be omitted when a usable VEP version is extracted from the header. Matching installed metadata is still needed for version-specific interpretation. |

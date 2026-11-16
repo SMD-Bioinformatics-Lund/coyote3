@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -21,42 +24,42 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 echo "[check] forbid deprecated db_documents imports"
-if rg -n "coyote3\\.contracts\\.db_documents|from coyote3\\.contracts import db_documents" src api scripts tests >/dev/null; then
+if rg -n "coyote\\.contracts\\.db_documents|from coyote\\.contracts import db_documents" core/src api/src adapters/mongo/src scripts tests >/dev/null; then
   echo "ERROR: deprecated db_documents import path found." >&2
-  rg -n "coyote3\\.contracts\\.db_documents|from coyote3\\.contracts import db_documents" src api scripts tests >&2
+  rg -n "coyote\\.contracts\\.db_documents|from coyote\\.contracts import db_documents" core/src api/src adapters/mongo/src scripts tests >&2
   exit 1
 fi
 
 echo "[check] forbid stdout debug prints in runtime code"
-if rg -n "^[[:space:]]*print\\(" src api \
+if rg -n "^[[:space:]]*print\\(" core/src api/src adapters/mongo/src \
   --glob '**/*.py' >/dev/null; then
   echo "ERROR: runtime code contains print() statements; use structured logging instead." >&2
-  rg -n "^[[:space:]]*print\\(" src api --glob '**/*.py' >&2
+  rg -n "^[[:space:]]*print\\(" core/src api/src adapters/mongo/src --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid generic catch-all log messages"
-if rg -n "An error occurred" src api --glob '**/*.py' >/dev/null; then
+if rg -n "An error occurred" core/src api/src adapters/mongo/src --glob '**/*.py' >/dev/null; then
   echo "ERROR: generic error log message found; include operation/collection context." >&2
-  rg -n "An error occurred" src api --glob '**/*.py' >&2
+  rg -n "An error occurred" core/src api/src adapters/mongo/src --glob '**/*.py' >&2
   exit 1
 fi
 
 echo "[check] forbid hardcoded user-home paths in runtime code"
-if rg -n "/home/[A-Za-z0-9._-]+/" src api \
+if rg -n "/home/[A-Za-z0-9._-]+/" core/src api/src adapters/mongo/src \
   --glob '**/*.py' \
   --glob '!**/tests/**' >/dev/null; then
   echo "ERROR: hardcoded user-home path found in runtime code." >&2
-  rg -n "/home/[A-Za-z0-9._-]+/" src api \
+  rg -n "/home/[A-Za-z0-9._-]+/" core/src api/src adapters/mongo/src \
     --glob '**/*.py' \
     --glob '!**/tests/**' >&2
   exit 1
 fi
 
 echo "[check] flag prohibited transitional markers in runtime code"
-if rg -n "hidden bridging layer|fallback transitional helper" src api --glob '**/*.py' >/dev/null; then
+if rg -n "hidden bridging layer|fallback transitional helper" core/src api/src adapters/mongo/src --glob '**/*.py' >/dev/null; then
   echo "ERROR: transitional marker found in runtime code." >&2
-  rg -n "hidden bridging layer|fallback transitional helper" src api --glob '**/*.py' >&2
+  rg -n "hidden bridging layer|fallback transitional helper" core/src api/src adapters/mongo/src --glob '**/*.py' >&2
   exit 1
 fi
 
@@ -71,6 +74,7 @@ echo "[check] shell script static analysis"
 bash scripts/quality/check_shell_quality.sh
 
 echo "[check] docs internal links"
+"$PYTHON_BIN" scripts/docs/generate_badges.py --check
 "$PYTHON_BIN" scripts/docs/check_markdown_links.py
 "$PYTHON_BIN" scripts/docs/check_operational_examples.py
 

@@ -338,48 +338,48 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 ### S1
 
-`api/infra/mongo/repositories/audit_integrity.py`
+`adapters/mongo/src/coyote_mongo/repositories/audit_integrity.py`
 
 ### S2
 
-`api/infra/mongo/repositories/audit_outbox.py`
+`adapters/mongo/src/coyote_mongo/repositories/audit_outbox.py`
 
 ### S3
 
-`api/infra/mongo/repositories/notification_activity.py`
+`adapters/mongo/src/coyote_mongo/repositories/notification_activity.py`
 
 ### S4
 
-`api/infra/security/sessions.py`
+`adapters/mongo/src/coyote_mongo/sessions.py`
 
 ### S5
 
-`src/coyote3/application/accounts/service_tokens.py`
+`core/src/coyote/application/accounts/service_tokens.py`
 
 ### S6
 
-`src/coyote3/application/common/access.py`
+`core/src/coyote/application/common/access.py`
 
 ### S7
 
-`src/coyote3/application/editing.py`
+`core/src/coyote/application/editing.py`
 
 ### S8
 
-`src/coyote3/application/notifications/service.py`
+`core/src/coyote/application/notifications/service.py`
 
 ### S9
 
-`src/coyote3/application/operations/application.py`
+`core/src/coyote/application/operations/application.py`
 
 ### S10
 
-`src/coyote3/contracts/schemas/governance.py`
+`core/src/coyote/contracts/schemas/governance.py`
 
 ### S11
 
-`src/coyote3/contracts/schemas/ingest_jobs.py`
+`core/src/coyote/contracts/schemas/ingest_jobs.py`
 
 ### S12
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`

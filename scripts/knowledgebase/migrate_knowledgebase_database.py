@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Move external knowledgebase collections into a dedicated MongoDB database."""
 
 from __future__ import annotations
@@ -22,12 +25,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
+from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 
 ONCOKB_PUBLIC_COLLECTION_KEY = "oncokb_public_collection"
 FORBIDDEN_ONCOKB_FIELDS = ("sample_ids", "sample_names")
-STAGING_PREFIX = "__coyote3_knowledgebase_migration__"
+STAGING_PREFIX = "__coyote4_knowledgebase_migration__"
 COPY_BATCH_SIZE = 1_000
 
 
@@ -261,7 +264,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mongo-uri", default="", help="Explicit shared URI for both endpoints")
     parser.add_argument("--source-mongo-uri", default="")
     parser.add_argument("--target-mongo-uri", default="")
-    parser.add_argument("--source-db", default=os.getenv("COYOTE3_DB", ""))
+    parser.add_argument("--source-db", default=os.getenv("COYOTE4_DB", ""))
     parser.add_argument("--target-db", default=os.getenv("KNOWLEDGEBASE_DB", ""))
     parser.add_argument("--collections-config", type=Path, default=COLLECTIONS_CONFIG_PATH)
     parser.add_argument("--report", type=Path)

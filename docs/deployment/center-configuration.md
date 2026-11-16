@@ -3,7 +3,7 @@
 Each deployment keeps its reviewed center configuration outside the application
 checkout, either as local files or as a release staged from a separate Git
 repository. Application upgrades reuse this directory. The files under
-`config/examples/center/` are bundled examples, not the center's persistent configuration.
+`api/src/coyote_api/config/examples/center/` are bundled examples, not the center's persistent configuration.
 
 > **Warning: Deploy the directory as one configuration unit**
 >
@@ -20,18 +20,18 @@ repository. Application upgrades reuse this directory. The files under
 | Location | Owner | Purpose | Edit for a center deployment? |
 | --- | --- | --- | --- |
 | External center directory | Deploying center | Clinical vocabulary, input field names, public contact content, and caller-specific flag wording. | Yes, through reviewed configuration releases. |
-| `config/examples/center/` | Coyote3 software | Complete example files for initial configuration. | Copy once; edit the external copy. |
-| `api/config/collections.toml` | Coyote3 software | Physical collection mappings. | No. Centers select database names and URIs through the environment. |
-| `api/config/application_metadata.py` | Coyote3 software | Product description, repository, licence, issue, and support-request URLs. | No. This identifies the Coyote3 codebase. |
-| `src/coyote3/config/constants.py` | Coyote3 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
-| `api/config/runtime_settings.py` | Coyote3 software | Environment-derived runtime, security, cache, mail, and service settings. | No. Supply the documented environment values instead. |
+| `api/src/coyote_api/config/examples/center/` | Coyote4 software | Complete example files for initial configuration. | Copy once; edit the external copy. |
+| `adapters/mongo/src/coyote_mongo/config/collections.toml` | Coyote4 software | Physical collection mappings. | No. Centers select database names and URIs through the environment. |
+| `api/src/coyote_api/config/application_metadata.py` | Coyote4 software | Product description, repository, licence, issue, and support-request URLs. | No. This identifies the Coyote4 codebase. |
+| `core/src/coyote/config/constants.py` | Coyote4 software | Supported workflow semantics, data-model values, validators, permission categories, and sequencing-platform capabilities. | No. Extend the software when a new semantic capability is needed. |
+| `api/src/coyote_api/config/runtime_settings.py` | Coyote4 software | Environment-derived runtime, security, cache, mail, and service settings. | No. Supply the documented environment values instead. |
 
 ## Directory Layout
 
 ```text
-src/coyote3/config/             # typed inputs, software defaults and policy validation
-api/config/                    # environment, security, storage and MongoDB settings
-config/examples/center/        # complete examples to copy into an external directory
+core/src/coyote/config/             # typed inputs, software defaults and policy validation
+api/src/coyote_api/config/                    # environment, security, storage and MongoDB settings
+api/src/coyote_api/config/examples/center/        # complete examples to copy into an external directory
   contact.toml                 # public center identity and support contacts
   clinical_vocabulary.toml     # clinical policy and presentation metadata
   filter_flag_metadata.yaml    # human-facing VCF filter badge metadata
@@ -44,15 +44,15 @@ Copy the examples once into a private working directory outside the checkout,
 then edit the required TOML/YAML files and optional report wording:
 
 ```bash
-mkdir -p /srv/coyote3/center-config-work
-cp config/examples/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
-  /srv/coyote3/center-config-work/
+mkdir -p /srv/coyote4/center-config-work
+cp api/src/coyote_api/config/examples/center/{contact.toml,clinical_vocabulary.toml,filter_flag_metadata.yaml} \
+  /srv/coyote4/center-config-work/
 # Optional: configure wording for empty modern-report sections.
-cp config/examples/center/report_presentation.toml /srv/coyote3/center-config-work/
+cp api/src/coyote_api/config/examples/center/report_presentation.toml /srv/coyote4/center-config-work/
 
 .venv/bin/python scripts/deployment/prepare_center_config.py \
-  --source /srv/coyote3/center-config-work \
-  --destination /srv/coyote3/center-releases/reviewed-001
+  --source /srv/coyote4/center-config-work \
+  --destination /srv/coyote4/center-releases/reviewed-001
 ```
 
 Alternatively, stage the same files from a separate GitHub or other Git repository:
@@ -62,7 +62,7 @@ Alternatively, stage the same files from a separate GitHub or other Git reposito
   --source https://github.com/EXAMPLE/center-configuration.git \
   --revision FULL_40_CHARACTER_COMMIT_SHA \
   --subdirectory center \
-  --destination /srv/coyote3/center-releases/reviewed-001
+  --destination /srv/coyote4/center-releases/reviewed-001
 ```
 
 Replace the repository URL, commit ID, and paths. SSH repositories are supported;
@@ -76,7 +76,7 @@ is downloaded during application startup or requests.
 Set the private Compose environment file to the reviewed release:
 
 ```dotenv
-COYOTE3_CENTER_CONFIG_HOST_DIR=/srv/coyote3/center-releases/reviewed-001
+COYOTE4_CENTER_CONFIG_HOST_DIR=/srv/coyote4/center-releases/reviewed-001
 ```
 
 API, worker, beat, and monitor mount this directory read-only. The documentation
@@ -85,10 +85,10 @@ API and worker commands inherit this setting too. Load the trusted environment
 file into their shell, or put the setting in the runtime root's `.env` file:
 
 ```bash
-export COYOTE3_CENTER_CONFIG_HOST_DIR=/srv/coyote3/center-releases/reviewed-001
+export COYOTE4_CENTER_CONFIG_HOST_DIR=/srv/coyote4/center-releases/reviewed-001
 ```
 
-Usually omit `COYOTE3_CENTER_CONFIG_DIR` from the environment file. It remains an
+Usually omit `COYOTE4_CENTER_CONFIG_DIR` from the environment file. It remains an
 optional process override; a nonblank value takes precedence over the host setting.
 Compose supplies `/app/center-config` inside its containers automatically.
 If neither setting is provided, host-run commands use bundled examples. An explicit
@@ -99,8 +99,8 @@ documentation image build must supply it explicitly:
 
 ```bash
 docker build -f docker/Dockerfile.docs \
-  --build-context center_config=/srv/coyote3/center-releases/reviewed-001 \
-  -t coyote3-docs:local .
+  --build-context center_config=/srv/coyote4/center-releases/reviewed-001 \
+  -t coyote4-docs:local .
 ```
 
 An explicit directory must contain all three files; missing files fail startup
@@ -127,7 +127,7 @@ review before use at a laboratory.
 | --- | --- | --- |
 | `contact.toml` | Organization, department, support contacts, named recipients, and service hours. | Edit the external copy and keep `organization.name` aligned with `ORGANIZATION_NAME`. Rebuild documentation when identity changes. |
 | `clinical_vocabulary.toml` | Fusion evidence terms and optional DNA caller metadata. | Review display effects and validate against the application's fixed capabilities. |
-| `api/config/collections.toml` | Application-owned physical collection mappings. | Do not edit for a center. Set database names and connection strings in the environment file. |
+| `adapters/mongo/src/coyote_mongo/config/collections.toml` | Application-owned physical collection mappings. | Do not edit for a center. Set database names and connection strings in the environment file. |
 | `filter_flag_metadata.yaml` | Labels, severity, descriptions, and hidden flags for the center's pipeline FILTER values. | Review explanations against actual pipeline output. These settings affect presentation, not finding admission. |
 | Private environment file | All four MongoDB URI/name pairs, organization name, public URL, TLS proxy settings, authentication, mail, integrations, secrets, storage, and network. | Start from `deploy/env/example.env`; use separate values and storage for each deployment. |
 
@@ -141,7 +141,7 @@ Validate the edited files from a checkout with the development dependencies:
 
 ```bash
 PYTHON_BIN=.venv/bin/python bash scripts/deployment/center_preflight.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   --compose-file deploy/compose/docker-compose.yml
 ```
 
@@ -152,15 +152,15 @@ that review separately and complete the
 
 ## Configuration Model
 
-Coyote3 separates deployment wiring, center-owned configuration, and software
+Coyote4 separates deployment wiring, center-owned configuration, and software
 contracts. This prevents a local deployment choice from silently changing a
 clinical workflow or a security rule.
 
 | Layer | Location | Owner | Typical contents | Change method |
 | --- | --- | --- | --- | --- |
 | Runtime settings | A copied `deploy/env/example.env` file | Platform administrator | Database connection, secrets, public mount, paths, resource limits, local timezone | Update the environment and recreate affected containers. Rebuild images when a changed value is also a build argument. |
-| Center configuration | External directory selected by `COYOTE3_CENTER_CONFIG_HOST_DIR` | Center clinical and technical owners | Clinical policy, contacts, DNA caller metadata, filter explanations | Validate a reviewed release and recreate API, worker, beat, and monitor. Rebuild documentation for changed contact content. |
-| Software contract | Python modules under `src/coyote3/config/` and typed contracts | Coyote3 maintainers | Implemented analysis types, authentication mechanisms, permission semantics, persistence schemas | Change code, tests, and release documentation. |
+| Center configuration | External directory selected by `COYOTE4_CENTER_CONFIG_HOST_DIR` | Center clinical and technical owners | Clinical policy, contacts, DNA caller metadata, filter explanations | Validate a reviewed release and recreate API, worker, beat, and monitor. Rebuild documentation for changed contact content. |
+| Software contract | Python modules under `core/src/coyote/config/` and typed contracts | Coyote4 maintainers | Implemented analysis types, authentication mechanisms, permission semantics, persistence schemas | Change code, tests, and release documentation. |
 
 The complete environment-variable table is maintained in
 [Configuration and Environments](configuration-reference.md). This page
@@ -194,12 +194,12 @@ assay capabilities through ASP/ASPC administration.
 
 ## Application-owned definitions
 
-Python loads `src/coyote3/config/factory_defaults.toml` from the application package.
+Python loads `core/src/coyote/config/factory_defaults.toml` from the application package.
 Its `capabilities` and `clinical_queries` tables supply the application definitions;
 the other tables hold [factory defaults](../configuration/README.md#factory-defaults).
 This path cannot be redirected through the center directory. It is a software release
-asset, like `api/config/collections.toml`; centers must not edit or copy it.
-API deployment fallbacks are separately packaged at `api/config/factory_defaults.toml`.
+asset, like `adapters/mongo/src/coyote_mongo/config/collections.toml`; centers must not edit or copy it.
+API deployment fallbacks are separately packaged at `api/src/coyote_api/config/factory_defaults.toml`.
 Presentation defaults are owned by `frontend/src/lib/defaults.ts`; neither backend
 catalog defines a default theme, layout or browser table-size selection.
 New ASPs, groups, diagnoses and gene lists remain center-managed database resources.
@@ -241,7 +241,7 @@ samples, ASPs, ASPCs or reports, and does not publish new database-managed query
 
 ## Query-rule installation definitions
 
-`api/bootstrap/catalogs/reference/clinical_query_seed.toml` is application-owned and loaded by Python
+`api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml` is application-owned and loaded by Python
 bootstrap tools. Do not copy it into a center configuration release. Manage live
 criteria through [query rules](../administration/query-rules.md); the
 [seed and predicate reference](../configuration/clinical-query-policy-file.md)
@@ -270,7 +270,7 @@ ASPC identifiers from `asp_configs`, and gene-list identifiers from
 `insilico_genelists`; it then stores public display hierarchy and wording in
 the catalog document. JSON is a portable import/export format, not the normal
 editing surface. A modality JSON export uses the
-`coyote3.public_assay_catalog_modality` envelope and changes only that modality
+`coyote4.public_assay_catalog_modality` envelope and changes only that modality
 in a new draft when imported. Drafts require independent approval and publication.
 See the [catalog workflow](../administration/public-assay-catalog.md) for roles,
 previews, notifications, revision history, and publication safeguards.
@@ -334,12 +334,12 @@ application behavior and changing them requires a software change.
 
 | Item | Defined in | Software contract |
 | --- | --- | --- |
-| Permission identifiers and permission categories | `src/coyote3/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
-| Authentication implementation | `api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |
+| Permission identifiers and permission categories | `core/src/coyote/config/constants.py` and authorization contracts | Centers assign existing permissions to roles; they do not define new authorization semantics. |
+| Authentication implementation | `api/src/coyote_api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |
 | Supported analysis types | Typed contracts, parsers, repositories, UI, and reporting services | A new type requires end-to-end ingestion, storage, display, report, and test support. |
 | Reporting-rule operators and rendering behavior | Reporting contracts and rule engine | Clinical content follows its own controlled reporting-rule release process. |
-| Normalized database-version keys | `src/coyote3/config/database_versions.py` | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
-| Product, licence, repository, and issue URLs | `api/config/application_metadata.py` | These identify Coyote3 itself rather than the deploying center. |
+| Normalized database-version keys | `core/src/coyote/config/database_versions.py` | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
+| Product, licence, repository, and issue URLs | `api/src/coyote_api/config/application_metadata.py` | These identify Coyote4 itself rather than the deploying center. |
 
 ## Safe Change Protocol
 
@@ -361,11 +361,11 @@ production definition, rebuild documentation and recreate the affected services:
 
 ```bash
 scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml build docs
 
 scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml up -d --force-recreate api worker beat monitor docs
 ```
 

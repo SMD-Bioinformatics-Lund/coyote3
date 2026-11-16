@@ -24,7 +24,7 @@ bundle and deployment exercises.
 
 | Tool | Inputs and behavior |
 | --- | --- |
-| `scripts/bootstrap/install_demo_workflows.py` | Requires `--mongo-uri`, `--db`, `--actor`; plans validated configuration by default, inserts atomically with `--apply`. Restricted to loopback MongoDB and `coyote3_demo` database names. Requires the standard baseline, rejects existing fixture identities, and leaves report rules as drafts. |
+| `scripts/bootstrap/install_demo_workflows.py` | Requires `--mongo-uri`, `--db`, `--actor`; plans validated configuration by default, inserts atomically with `--apply`. Restricted to loopback MongoDB and `coyote4_demo` database names. Requires the standard baseline, rejects existing fixture identities, and leaves report rules as drafts. |
 | `scripts/quality/export_demo_workflows.py` | Replays the bundle offline through ingest and report evaluation using development dependencies. Writes deterministic expected artifacts; `--check` compares them without writes. Never reads deployment credentials or contacts a database. |
 
 The [script directory index](https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/api/scripts/README.md) groups commands by purpose.
@@ -61,7 +61,7 @@ and preserve original sample ObjectIds; they do not use SQLite.
 | `deployment/prepare_center_config.py` | Manual operation | Center configuration deployment | Validates and stages three center-owned files from a local directory or a pinned Git commit, records hashes, and refuses to overwrite an existing release |
 | `bootstrap/install_assay_groups.py` | Manual operation | Assay-group administration guide | Plans or installs missing group definitions without renaming existing scopes |
 | `bootstrap/install_query_rules.py` | Manual operation | Query-rule installation and upgrade guide | Validates bundled and TOML criteria, reports missing scopes, and inserts them transactionally with `--apply`; preserves every existing scope |
-| `api/infra/seed/query_rules.py` (outside `scripts/`) | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/diagnosis scopes |
+| `api/src/coyote_api/infra/seed/query_rules.py` (outside `scripts/`) | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/diagnosis scopes |
 | `deployment/center_check.sh` | Manual operation | Deployment acceptance | Validates a local manifest, checks health and performs a synchronous sample ingest with `increment=true`. Uses the canonical uploader's optional `data_archive` ZIP and terminal acknowledgement. Writes sample data; does not audit all baseline resources or rename the local manifest. |
 | `bootstrap/validate_assay_consistency.py` | Automated | preflight, contract integrity, bootstrap, tests | Verifies ASP, ASPC, ISGL, sample, catalog, and reporting-rule references before import |
 | `ingest/validate_ingest_spec.py` | Automated | `deployment/center_check.sh`; deployment checklist | Validates a DNA or RNA manifest through the current `SamplesDoc` contract and optionally checks every configured file path |
@@ -76,7 +76,7 @@ startup and never drops or resets a database. Follow the
 [first-installation guide](../deployment/first-installation.md#8-build-images-and-install-the-database-baseline)
 for parameters, maintenance credentials and recovery boundaries.
 
-The standalone [`gene_db_creation.py`](../operations/hgnc-gene-installation.md)
+The standalone [`install_hgnc_genes.py`](../operations/hgnc-gene-installation.md)
 converts reviewed HGNC TSV and Ensembl BioMart CSV files into contract-valid gene
 documents. `--apply --backup FILE` installs them into the configured knowledgebase;
 the default creates a review artifact without database access.
@@ -91,7 +91,8 @@ the default creates a review artifact without database access.
 | `quality/check_contract_integrity.sh` | Automated | pre-commit; quality suite | Coordinates repository-local dependency, shell, generated-contract, permission-catalog, and documentation checks. It does not connect to an API or database. |
 | `quality/check_shell_quality.sh` | Internal helper | `quality/check_contract_integrity.sh` | Runs syntax and ShellCheck validation for tracked shell scripts |
 | `quality/check_dependency_consistency.py` | Internal helper | `quality/check_contract_integrity.sh` | Checks exported dependency requirements against `pyproject.toml` |
-| `docs/check_markdown_links.py` | Internal helper | `quality/check_contract_integrity.sh`; tests | Rejects broken repository-local Markdown links |
+| `docs/check_markdown_links.py` | Internal helper | `quality/check_contract_integrity.sh`; tests | Checks every maintained Markdown file, including code-formatted link labels and reference-style links |
+| `docs/generate_badges.py` | Documentation maintenance | Run after changing release or package metadata; `--check` in the contract gate | Maintains standard Shields.io badge links and release metadata in every README |
 | `docs/lint_markdown.mjs` | Automated | `npm run docs:lint`; CI | Runs the root Markdown rules over source documentation; `npm run docs:test` checks the runner and math renderer |
 | `quality/check_staged_sensitive_data.py` | Automated | pre-commit and CI | Blocks staged secrets, clinical identifiers, and unsafe fixture content |
 | `docs/export_collection_contracts_doc.py` | Automated | contract integrity | Regenerates the collection-contract reference from Pydantic schemas |

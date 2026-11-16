@@ -6,7 +6,7 @@ Use synthetic fixtures to test ingestion, API responses and collection contracts
 
 Test data lives in these directories:
 
-- `demo_data/clinical_workflows/`: Installable setup resources, raw evidence and sample manifests.
+- `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`: Installable setup resources, raw evidence and sample manifests.
 - `tests/fixtures/clinical_workflows/`: Negative cases, scenario assertions and generated
   expectations for the [clinical workflow exercises](clinical-workflow-demo.md).
 - `tests/fixtures/ingest/`: Synthetic input files for ingest tests.
@@ -50,9 +50,9 @@ Application bootstrap and test fixtures have separate ownership:
 
 | Location | Purpose | Production bootstrap |
 | --- | --- | --- |
-| `api/bootstrap/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
-| `api/bootstrap/catalogs/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
-| `api/bootstrap/catalogs/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
+| `api/src/coyote_api/bootstrap/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
+| `api/src/coyote_api/bootstrap/catalogs/reference` | Compressed HGNC and VEP reference snapshots | Yes; each collection is loaded only when empty |
+| `api/src/coyote_api/bootstrap/catalogs/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | Optional validation baseline only |
 | `tests/fixtures/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
 | `tests/fixtures/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |
 

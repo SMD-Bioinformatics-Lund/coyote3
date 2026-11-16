@@ -1,11 +1,29 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Lint repository Markdown with the shared rules and explicit source boundaries. */
 import { readdir, readFile, stat } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { execFileSync } from "node:child_process"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { lint } from "markdownlint/promise"
 
 const repository = fileURLToPath(new URL("../../", import.meta.url))
-const defaultInputs = ["README.md", "docs", ".github"].map((name) => path.join(repository, name))
+const defaultInputs = [
+  "README.md", "docs", ".github",
+  "core/README.md", "core/docs",
+  "api/README.md", "api/docs",
+  "adapters/mongo/README.md", "adapters/mongo/docs",
+  "clients/python/README.md", "clients/python/docs",
+  "frontend/README.md", "frontend/docs",
+].map((name) => path.join(repository, name))
+const readmes = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: repository, encoding: "utf8" })
+  .split("\0")
+  .filter((name) => path.basename(name) === "README.md")
+  .map((name) => path.join(repository, name))
+  .filter(existsSync)
+defaultInputs.push(...readmes)
 const excludedFiles = new Set([
   ".github/pull_request_template.md",
   "docs/reference/mongodb-collections.md",

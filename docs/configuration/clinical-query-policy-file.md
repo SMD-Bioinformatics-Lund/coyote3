@@ -5,7 +5,7 @@ using the [registered field/operator catalog](../reference/query-condition-field
 Within an exception, a tree and the additional criteria documented below are joined
 with AND. A condition tree does not replace mandatory sample or access boundaries.
 
-The application-owned `api/bootstrap/catalogs/reference/clinical_query_seed.toml` supplies installation criteria for
+The application-owned `api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml` supplies installation criteria for
 [database-managed finding query rules](../administration/query-rules.md). Bootstrap
 combines these criteria with the bundled group catalog and stores published versions.
 Runtime queries read application defaults and published database rules, not this file.
@@ -27,8 +27,8 @@ way to change clinical selection criteria after installation.
 
 > **Warning: SNV intent is not a classification of variant origin**
 >
-> Somatic SNV policies include effective germline exceptions for the same scope.
-> The `somatic` and `germline` settings select review criteria; they do not
+> Shared mode uses one normal SNV filter profile and its own policy for all variants.
+> Independent `somatic` and `germline` profiles select review criteria; they do not
 > guarantee distinct result sets or establish biological origin.
 
 ## Policy inputs and runtime boundaries
@@ -66,13 +66,13 @@ PGX finding query is introduced.
 ## Required values and defaults
 
 The seed file is packaged with the application; centers do not supply it. Application baseline settings come from
-`src/coyote3/config/factory_defaults.toml`. All five seed analysis tables are required. A missing table
+`core/src/coyote/config/factory_defaults.toml`. All five seed analysis tables are required. A missing table
 or invalid key fails configuration validation. A default below means loader behavior, not a
 clinically approved center choice.
 
 | Setting | Requirement | Behavior if omitted |
 | --- | --- | --- |
-| `snv.default_somatic_policy`, `snv.default_germline_policy` | Application-owned; prohibited in center files | Release values are `paired` and `exception_only`, respectively. |
+| `snv.default_somatic_policy`, `snv.default_germline_policy` | Application-owned; prohibited in center files | Release values are `paired` and `case_only`, respectively. |
 | `snv.population_frequency_fields` | Application-owned; prohibited in center files | Release fields are `gnomad_frequency`, `gnomad_max`, `exac_frequency` and `thousandG_frequency`. |
 | `snv.assay_group_policies` | Optional mapping | No group overrides; use the configured somatic default. |
 | Each analysis's `exceptions` | Optional array of tables | No additional exceptions. |
@@ -202,7 +202,7 @@ and typed exceptions. Attempts to override release defaults fail startup.
 | --- | --- | --- | --- | --- |
 | `[snv]` | Yes | Table | One table only | Owns all released SNV retrieval settings. |
 | `snv.default_somatic_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline policy for a somatic assay group that has no explicit override. Production default is `paired`. |
-| `snv.default_germline_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline germline policy. Production configuration uses `exception_only`, so only approved `admit` exceptions return germline findings. |
+| `snv.default_germline_policy` | Yes | String | `paired`, `case_only`, `exception_only` | Baseline germline policy. The application default is `case_only`; published policies can explicitly select another supported mode. |
 | `snv.population_frequency_fields` | Application-owned | Array of unique strings | Stored scalar population-frequency field names, for example `gnomad_frequency` | Each numeric value must be at or below the sample `max_popfreq`; absent, null, and non-numeric values remain eligible. Use the exact stored field spelling. |
 | `[snv.assay_group_policies]` | No | Table | Zero or more registered assay-group identifiers | Overrides the somatic default for named assay groups. |
 | `snv.assay_group_policies.<assay_group>` | No, repeatable | String value within the table | `paired`, `case_only`, `exception_only` | Applies only to somatic retrieval in that exact normalized assay group. Use a registered assay-group identifier, such as `solid` or `hematology`. |
@@ -219,7 +219,7 @@ MongoDB expressions.
 | TOML path | Required | TOML format | Allowed values / format | Meaning |
 | --- | --- | --- | --- | --- |
 | `snv.exceptions[].id` | Yes | String | Unique identifier using letters, numbers, `_`, or `-`; normalized to lowercase | Stable clinical exception name for review, tests, and release notes. Example: `endometrial_specific_variant`. |
-| `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds an approved consequence-term route while retaining all baseline gates. `admit` is an alternative admission route used by `exception_only`. `exclude` removes matching findings after all baseline and admission rules are evaluated. |
+| `snv.exceptions[].mode` | Yes | String | `extend_consequence`, `admit`, or `exclude` | `extend_consequence` adds a consequence route while retaining baseline gates. `admit` adds an alternative inclusion branch, or the sole branch under `exception_only`. `exclude` removes matching findings after inclusion. |
 | `snv.exceptions[].intents` | No | Array of strings | `somatic`, `germline` | Scope key. Restricts the exception to one or both review intents. Omit for either intent. |
 | `snv.exceptions[].assay_groups` | No | Array of strings | Supported normalized assay-group identifiers | Scope key. Restricts to assay groups such as `solid` or `hematology`. |
 | `snv.exceptions[].asp_ids` | No | Array of strings | Existing normalized ASP identifiers | Scope key. Restricts to design panels, for example `demo-solid_gmsv3`. |
@@ -243,15 +243,15 @@ only the modes that belong to the selected evidence model:
 
 | Resolved baseline policy | Baseline evidence | Effective inclusion exception | Final exclusion |
 | --- | --- | --- | --- |
-| `paired` | Case thresholds, paired-control rule, configured population-frequency fields, selected consequence terms, and gene scope | `extend_consequence` | `exclude` |
-| `case_only` | Case or untyped-genotype thresholds, configured population-frequency fields, selected consequence terms, and gene scope; no paired-control predicate | `extend_consequence` | `exclude` |
+| `paired` | Case thresholds, paired-control rule, configured population-frequency fields, selected consequence terms, and gene scope | `extend_consequence`; explicit `admit` adds an alternative inclusion branch | `exclude` |
+| `case_only` | Case or untyped-genotype thresholds, configured population-frequency fields, selected consequence terms, and gene scope; no paired-control predicate | `extend_consequence`; explicit `admit` adds an alternative inclusion branch | `exclude` |
 | `exception_only` | No general threshold/consequence admission branch | `admit` | `exclude` |
 
-An `admit` exception has no effect under `paired` or `case_only`.
+An explicit `admit` exception can bypass the baseline depth, VAF, population and
+consequence predicates. Sample identity, gene/position scope and final exclusions
+still apply. Review that effect before publishing an admission rule.
 An `extend_consequence` exception has no effect under `exception_only`.
-Although these combinations are syntactically valid, they are not useful and
-should fail clinical review. `exclude` is compatible with every baseline and
-is always applied after the inclusion query has been assembled.
+`exclude` is compatible with every baseline and is applied after inclusion.
 
 `[snv.assay_group_policies]` affects somatic retrieval only. Germline retrieval
 always uses `default_germline_policy`. The override table keys are normalized,

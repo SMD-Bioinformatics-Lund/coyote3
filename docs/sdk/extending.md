@@ -1,10 +1,10 @@
 # Develop application operations and hosts
 
 The SDK's supported local entry points are exported by
-`coyote3.application.operations`. Use cases and domain rules implement those
+`coyote.application.operations`. Use cases and domain rules implement those
 operations; concrete runtime adapters belong to the consuming host. The API is
-one such host, composed by `api/app/application_factory.py`. FastAPI dependencies
-in `api/app/deps/application.py` obtain those composed application resources.
+one such host, composed by `api/src/coyote_api/app/application_factory.py`. FastAPI dependencies
+in `api/src/coyote_api/app/deps/application.py` obtain those composed application resources.
 
 ## Add an operation
 
@@ -18,7 +18,7 @@ in `api/app/deps/application.py` obtain those composed application resources.
    requirements before service work. Do not accept actor identities or role lists
    in ordinary operation inputs.
 4. Supply any new capability through the host-owned service factories. Concrete
-   repositories remain in `api/infra/`; the library must never import `api`.
+   repositories remain in `api/src/coyote_api/infra/`; the library must never import `api`.
 5. Add a thin HTTP handler if the operation needs HTTP access. Declare its route,
    permission dependencies and response contract, then delegate to the operation.
 6. Cover successful and rejected calls, current permissions, sample ownership,
@@ -37,7 +37,7 @@ Supply `configure_resource_hasher(hasher)` from the supported operations exports
 before executing those workflows, or use `using_resource_hasher(hasher)` for an
 execution-scoped override. The callable receives an application record and returns
 its deterministic persisted digest. The API/worker host supplies its canonical
-BSON implementation from `api/infra/mongo/resource_integrity.py`; the library
+BSON implementation from `adapters/mongo/src/coyote_mongo/resource_integrity.py`; the library
 does not import BSON or PyMongo. A host reading existing releases must preserve
 the exact recorded digest format, including numeric, date and identity encoding.
 Substituting ordinary JSON hashes would invalidate existing release integrity.
@@ -66,10 +66,10 @@ persistence boundary. Read [package boundaries](package-boundaries.md) before
 changing clinical field paths or moving host code into the library.
 
 ```bash
-.venv/bin/ruff check src api tests scripts
+.venv/bin/ruff check core api adapters clients tests scripts
 .venv/bin/mypy
-PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_application_sdk.py \
-  tests/unit/test_library_configuration_boundary.py \
+PYTHONPATH=. .venv/bin/pytest -q api/tests/unit/test_application_sdk.py \
+  tests/integration/test_library_configuration_boundary.py \
   tests/integration/test_api_architecture_boundaries.py
 .venv/bin/python scripts/docs/export_sdk_reference.py
 ```

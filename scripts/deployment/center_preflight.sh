@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 umask 077
 
@@ -63,15 +66,15 @@ mounts = {item["target"]: Path(item["source"]) for item in api.get("volumes", []
           if item.get("type") == "bind"}
 if "/app/center-config" not in mounts:
     raise SystemExit("API requires a center configuration bind mount")
-os.environ["COYOTE3_CENTER_CONFIG_DIR"] = str(mounts["/app/center-config"])
-from api.config.mongo import mongo_endpoints
+os.environ["COYOTE4_CENTER_CONFIG_DIR"] = str(mounts["/app/center-config"])
+from coyote_mongo.config.endpoints import mongo_endpoints
 from scripts.deployment.installation_checks import validate_configuration
 from scripts.deployment.prepare_host_directories import check_directory_access
 
 mongo_endpoints(settings)
 validate_configuration()
 args = api.get("build", {}).get("args", {})
-identity = api.get("user") or f"{args.get('COYOTE3_UID', 10001)}:{args.get('COYOTE3_GID', 10001)}"
+identity = api.get("user") or f"{args.get('COYOTE4_UID', 10001)}:{args.get('COYOTE4_GID', 10001)}"
 if len(str(identity).split(":")) != 2 or not all(part.isdigit() for part in str(identity).split(":")):
     raise SystemExit("API container identity must use numeric UID:GID")
 uid, gid = map(int, str(identity).split(":"))

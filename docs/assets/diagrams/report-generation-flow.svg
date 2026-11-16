@@ -1,83 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 850" width="1120" height="850" role="img" aria-labelledby="title description">
-<title id="title">Reporting: prepared facts, preview and saved evidence</title>
-<desc id="description">Candidate selection, generated suggestions and saved report artifacts are separate operations.</desc>
-<defs>
-<style>
-:root{--canvas:#f7f9fd;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}
-text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.title{font-size:28px;font-weight:700}.subtitle{font-size:17px;fill:var(--muted)}.heading{font-size:19px;font-weight:650}.body{font-size:17px;fill:var(--muted)}.small{font-size:15px;fill:var(--muted)}.edge{fill:none;stroke:var(--blue);stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:6 5}.panel{stroke:var(--edge);stroke-width:1.2}
-@media(prefers-color-scheme:dark){:root{--canvas:#1d2331;--surface:#293244;--ink:#edf1fa;--muted:#c3cede;--edge:#526079;--blue:#94b9ee;--teal:#82d0bf;--purple:#c8aff3;--amber:#e6be82;--blue-soft:#2a3a52;--teal-soft:#263f40;--purple-soft:#3b304d;--amber-soft:#443c30}}
-@media print{:root{--canvas:#fff;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}}
-</style>
-<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-<path d="m1 1 8 4-8 4" fill="none" stroke="var(--blue)" stroke-width="1.5"/>
-</marker>
-</defs>
-<rect width="1120" height="850" rx="20" fill="var(--canvas)"/>
-<text x="32" y="48" class="title">Reporting: prepared facts, preview and saved evidence</text>
-<text x="32" y="80" class="subtitle">Candidate selection, generated suggestions and saved report artifacts are separate operations.</text>
-<g>
-<rect class="panel" x="32" y="135" width="246" height="150" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="153" width="4" height="114" rx="2" fill="var(--blue)"/>
-<text x="52" y="169" class="heading">Configuration</text>
-<text x="52" y="200" class="body">Pinned ASP / ASPC,</text>
-<text x="52" y="225" class="body">gene scopes, sections</text>
-<text x="52" y="250" class="body">and reference versions.</text>
-</g>
-<g>
-<rect class="panel" x="302" y="135" width="246" height="150" rx="14" fill="var(--blue-soft)"/>
-<rect x="302" y="153" width="4" height="114" rx="2" fill="var(--blue)"/>
-<text x="322" y="169" class="heading">Eligible findings</text>
-<text x="322" y="200" class="body">Current filters and query</text>
-<text x="322" y="225" class="body">policies; effective tiers,</text>
-<text x="322" y="250" class="body">review and annotations.</text>
-</g>
-<g>
-<rect class="panel" x="572" y="135" width="246" height="150" rx="14" fill="var(--amber-soft)"/>
-<rect x="572" y="153" width="4" height="114" rx="2" fill="var(--amber)"/>
-<text x="592" y="169" class="heading">Report rules</text>
-<text x="592" y="200" class="body">Wording and metadata.</text>
-<text x="592" y="225" class="body">Can generate a comment</text>
-<text x="592" y="250" class="body">suggestion for review.</text>
-</g>
-<g>
-<rect class="panel" x="842" y="135" width="246" height="150" rx="14" fill="var(--teal-soft)"/>
-<rect x="842" y="153" width="4" height="114" rx="2" fill="var(--teal)"/>
-<text x="862" y="169" class="heading">Sample comment</text>
-<text x="862" y="200" class="body">Latest visible comment</text>
-<text x="862" y="225" class="body">supplies the conclusion.</text>
-<text x="862" y="250" class="body">Empty if no comment.</text>
-</g>
-<g>
-<rect class="panel" x="160" y="375" width="800" height="145" rx="14" fill="var(--purple-soft)"/>
-<rect x="160" y="393" width="4" height="109" rx="2" fill="var(--purple)"/>
-<text x="180" y="409" class="heading">Prepare a report context</text>
-<text x="180" y="440" class="body">Resolve reportable rows and evaluated rule metadata without changing review decisions.</text>
-<text x="180" y="465" class="body">Use reviewed sample text; generating a suggestion does not save it.</text>
-<text x="180" y="490" class="body">Capture configuration, filters, query-policy lineage and reporting-rule provenance.</text>
-</g>
-<path class="edge" d="M155 285 V330 H560 V375"/>
-<path class="edge" d="M425 285 V330"/>
-<path class="edge" d="M695 285 V330"/>
-<path class="edge" d="M965 285 V330 H560"/>
-<g>
-<rect class="panel" x="32" y="610" width="500" height="165" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="628" width="4" height="129" rx="2" fill="var(--blue)"/>
-<text x="52" y="644" class="heading">Preview</text>
-<text x="52" y="675" class="body">Render a temporary view from current state.</text>
-<text x="52" y="700" class="body">No report record is saved.</text>
-<text x="52" y="725" class="body">Review wording, findings and missing-rule warnings.</text>
-<text x="52" y="750" class="body">A changed sample/settings requires a fresh preview.</text>
-</g>
-<g>
-<rect class="panel" x="588" y="610" width="500" height="165" rx="14" fill="var(--teal-soft)"/>
-<rect x="588" y="628" width="4" height="129" rx="2" fill="var(--teal)"/>
-<text x="608" y="644" class="heading">Confirmed save</text>
-<text x="608" y="675" class="body">Stage HTML/PDF files and checksums.</text>
-<text x="608" y="700" class="body">Transaction: report, snapshots and reported state.</text>
-<text x="608" y="725" class="body">Publish staged artifacts; pending publication is retried.</text>
-<text x="608" y="750" class="body">Historical reports retain their saved evidence.</text>
-</g>
-<path class="edge" d="M560 520 V565 H282 V610"/>
-<path class="edge" d="M560 565 H838 V610"/>
-<text x="32" y="817" class="small">No reporting-rule publication is required to render a report. Missing automatic wording is shown as a warning.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 850" width="1360" height="850" role="img" aria-labelledby="title description">
+  <title id="title">Reporting: prepared facts, preview and saved evidence</title>
+  <desc id="description">Candidate selection, generated suggestions and saved report artifacts are separate operations.</desc>
+  <defs>
+    <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="36" class="figure-title">Reporting: prepared facts, preview and saved evidence</text>
+  <text x="40" y="68" class="figure-subtitle">Candidate selection, generated suggestions and saved report artifacts are separate operations.</text>
+  <g class="entity blue" data-node="0" data-left="38.86" data-right="337.57" data-top="135.0" data-bottom="285.0">
+    <title>Configuration</title>
+    <use href="#icon-settings" x="167.21" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="188.21" y="198.0" text-anchor="middle" class="entity-title">Configuration</text>
+    <text x="188.21" y="220.0" text-anchor="middle" class="entity-detail">Pinned ASP / ASPC,</text>
+    <text x="188.21" y="238.0" text-anchor="middle" class="entity-detail">gene scopes, sections</text>
+    <text x="188.21" y="256.0" text-anchor="middle" class="entity-detail">and reference versions.</text>
+  </g>
+  <g class="entity blue" data-node="1" data-left="366.71" data-right="665.43" data-top="135.0" data-bottom="285.0">
+    <title>Eligible findings</title>
+    <use href="#icon-filter" x="495.07" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="516.07" y="198.0" text-anchor="middle" class="entity-title">Eligible findings</text>
+    <text x="516.07" y="220.0" text-anchor="middle" class="entity-detail">Current filters and query</text>
+    <text x="516.07" y="238.0" text-anchor="middle" class="entity-detail">policies; effective tiers,</text>
+    <text x="516.07" y="256.0" text-anchor="middle" class="entity-detail">review and annotations.</text>
+  </g>
+  <g class="entity amber" data-node="2" data-left="694.57" data-right="993.29" data-top="135.0" data-bottom="285.0">
+    <title>Report rules</title>
+    <use href="#icon-report" x="822.93" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="843.93" y="198.0" text-anchor="middle" class="entity-title">Report rules</text>
+    <text x="843.93" y="220.0" text-anchor="middle" class="entity-detail">Wording and metadata.</text>
+    <text x="843.93" y="238.0" text-anchor="middle" class="entity-detail">Can generate a comment</text>
+    <text x="843.93" y="256.0" text-anchor="middle" class="entity-detail">suggestion for review.</text>
+  </g>
+  <g class="entity teal" data-node="3" data-left="1022.43" data-right="1321.14" data-top="135.0" data-bottom="285.0">
+    <title>Sample comment</title>
+    <use href="#icon-document" x="1150.79" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="1171.79" y="198.0" text-anchor="middle" class="entity-title">Sample comment</text>
+    <text x="1171.79" y="220.0" text-anchor="middle" class="entity-detail">Latest visible comment</text>
+    <text x="1171.79" y="238.0" text-anchor="middle" class="entity-detail">supplies the conclusion.</text>
+    <text x="1171.79" y="256.0" text-anchor="middle" class="entity-detail">Empty if no comment.</text>
+  </g>
+  <g class="entity purple" data-node="4" data-left="194.29" data-right="1165.71" data-top="375.0" data-bottom="520.0">
+    <title>Prepare a report context</title>
+    <use href="#icon-report" x="659.0" y="378.0" width="42" height="42" aria-hidden="true" />
+    <text x="680.0" y="438.0" text-anchor="middle" class="entity-title">Prepare a report context</text>
+    <text x="680.0" y="460.0" text-anchor="middle" class="entity-detail">Resolve reportable rows and evaluated rule metadata without changing review decisions.</text>
+    <text x="680.0" y="478.0" text-anchor="middle" class="entity-detail">Use reviewed sample text; generating a suggestion does not save it.</text>
+    <text x="680.0" y="496.0" text-anchor="middle" class="entity-detail">Capture configuration, filters, query-policy lineage and reporting-rule provenance.</text>
+  </g>
+  <path class="connection blue" d="M155 285 V330 H560 V375" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M425 285 V330" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M695 285 V330" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M965 285 V330 H560" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <g class="entity blue" data-node="5" data-left="38.86" data-right="646.0" data-top="610.0" data-bottom="775.0">
+    <title>Preview</title>
+    <use href="#icon-report" x="321.43" y="613.0" width="42" height="42" aria-hidden="true" />
+    <text x="342.43" y="673.0" text-anchor="middle" class="entity-title">Preview</text>
+    <text x="342.43" y="695.0" text-anchor="middle" class="entity-detail">Render a temporary view from current state.</text>
+    <text x="342.43" y="713.0" text-anchor="middle" class="entity-detail">No report record is saved.</text>
+    <text x="342.43" y="731.0" text-anchor="middle" class="entity-detail">Review wording, findings and missing-rule warnings.</text>
+    <text x="342.43" y="749.0" text-anchor="middle" class="entity-detail">A changed sample/settings requires a fresh preview.</text>
+  </g>
+  <g class="entity teal" data-node="6" data-left="714.0" data-right="1321.14" data-top="610.0" data-bottom="775.0">
+    <title>Confirmed save</title>
+    <use href="#icon-document" x="996.57" y="613.0" width="42" height="42" aria-hidden="true" />
+    <text x="1017.57" y="673.0" text-anchor="middle" class="entity-title">Confirmed save</text>
+    <text x="1017.57" y="695.0" text-anchor="middle" class="entity-detail">Stage HTML/PDF files and checksums.</text>
+    <text x="1017.57" y="713.0" text-anchor="middle" class="entity-detail">Transaction: report, snapshots and reported state.</text>
+    <text x="1017.57" y="731.0" text-anchor="middle" class="entity-detail">Publish staged artifacts; pending publication is retried.</text>
+    <text x="1017.57" y="749.0" text-anchor="middle" class="entity-detail">Historical reports retain their saved evidence.</text>
+  </g>
+  <path class="connection blue" d="M560 520 V565 H282 V610" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M560 565 H838 V610" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <text x="38.86" y="817" class="figure-note">No reporting-rule publication is required to render a report. Missing automatic wording is shown as a warning.</text>
 </svg>

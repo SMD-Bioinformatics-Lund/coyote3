@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Validate application/SDK release identity and record a built library artifact."""
 
 from __future__ import annotations
@@ -30,7 +33,7 @@ def validate_contract_generations(root: Path, release: dict[str, Any]) -> None:
         ValueError: A declared generation does not match the executable source contracts.
     """
     majors = set()
-    for path in (root / "api/interfaces/http").rglob("*.py"):
+    for path in (root / "api/src/coyote_api/interfaces/http").rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
             if not isinstance(node, ast.Call):
                 continue
@@ -59,7 +62,7 @@ def validate_contract_generations(root: Path, release: dict[str, Any]) -> None:
                         majors.add(int(match[1]))
     if not majors or max(majors) != release["http_api_major"]:
         raise ValueError("http_api_major differs from the declared HTTP route generations")
-    selection = root / "src/coyote3/config/selection.py"
+    selection = root / "core/src/coyote/config/selection.py"
     actual_format = None
     for node in ast.parse(selection.read_text()).body:
         if isinstance(node, ast.Assign) and any(
@@ -86,8 +89,14 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         OSError: A required release input is missing.
     """
     release = tomllib.loads((root / "release.toml").read_text())
-    project = tomllib.loads((root / "pyproject.toml").read_text())["project"]
-    for value in (release["application_version"], release["sdk_version"], project["version"]):
+    project = tomllib.loads((root / "core/pyproject.toml").read_text())["project"]
+    for value in (
+        release["application_version"],
+        release["sdk_version"],
+        release["mongo_version"],
+        release["api_version"],
+        project["version"],
+    ):
         if not isinstance(value, str) or not VERSION_PATTERN.fullmatch(value):
             raise ValueError(f"Unsupported release version: {value!r}")
     for field in ("http_api_major", "center_configuration_format"):
@@ -97,6 +106,28 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         validate_contract_generations(root, release)
         if release["sdk_version"] != project["version"]:
             raise ValueError("Application SDK pin differs from this checkout's SDK version")
+        for relative, selected in (
+            ("adapters/mongo", release["mongo_version"]),
+            ("api", release["api_version"]),
+        ):
+            package = tomllib.loads((root / relative / "pyproject.toml").read_text())["project"]
+            if package["version"] != selected:
+                raise ValueError(f"{relative} version differs from the application selection")
+            requirements = package["dependencies"]
+            if f"coyote-core=={release['sdk_version']}" not in requirements:
+                raise ValueError(
+                    f"{relative} core dependency differs from the application selection"
+                )
+            if (
+                relative == "api"
+                and f"coyote-mongo=={release['mongo_version']}" not in requirements
+            ):
+                raise ValueError("API MongoDB dependency differs from the application selection")
+        application_identity = tomllib.loads(
+            (root / "api/src/coyote_api/config/application_release.toml").read_text()
+        )
+        if application_identity != {"application_version": release["application_version"]}:
+            raise ValueError("API application identity differs; run npm run sync:version")
         for path in ("package.json", "frontend/package.json"):
             if json.loads((root / path).read_text())["version"] != release["application_version"]:
                 raise ValueError(
@@ -105,12 +136,15 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
     return {**release, "sdk_source_version": project["version"]}
 
 
-def wheel_record(wheel: Path, expected_version: str) -> dict[str, str]:
-    """Check a Coyote3 wheel's identity and retain its immutable digest.
+def wheel_record(
+    wheel: Path, expected_version: str, distribution: str = "coyote-core"
+) -> dict[str, str]:
+    """Check one independent wheel's identity, contents and immutable digest.
 
     Args:
         wheel: Built wheel selected for the application deployment.
         expected_version: Exact SDK version required by the release record.
+        distribution: Required distribution name; defaults to the independent core.
 
     Returns:
         Artifact filename, package version and SHA-256 digest.
@@ -128,39 +162,51 @@ def wheel_record(wheel: Path, expected_version: str) -> dict[str, str]:
             raise ValueError("Expected exactly one wheel metadata record")
         message = Parser().parsestr(archive.read(metadata[0]).decode())
         if (
-            str(message.get("Name", "")).lower() != "coyote3"
+            str(message.get("Name", "")).lower().replace("_", "-") != distribution
             or message["Version"] != expected_version
         ):
-            raise ValueError("Wheel does not match the selected Coyote3 SDK version")
+            raise ValueError(f"Wheel does not match the selected {distribution} version")
         retired = (
-            "coyote3/client/",
-            "coyote3_client/",
-            "coyote3/config/bootstrap/",
-            "coyote3/config/assets/",
-            "coyote3/config/application_metadata.py",
-            "coyote3/config/loaders/contact.py",
-            "coyote3/config/clinical_query_seed.toml",
-            "coyote3/application/provisioning/",
-            "coyote3/application/resources/release_compilation.py",
-            "coyote3/domain/core/",
-            "coyote3/contracts/demo_installation.py",
-            "coyote3/contracts/deployment_data.py",
-            "coyote3/contracts/http.py",
-            "coyote3/contracts/system.py",
-            "coyote3/contracts/internal.py",
-            "coyote3/contracts/client_errors.py",
-            "coyote3/application/sdk/",
-            "coyote3/config/center/",
-            "coyote3/config/runtime.py",
-            "coyote3/config/runtime_settings.py",
-            "coyote3/config/security.py",
-            "coyote3/config/mongo.py",
-            "coyote3/config/app_config.py",
-            "coyote3/config/collections.toml",
-            "coyote3/application/common/file_access.py",
+            "api/",
+            "coyote/client/",
+            "coyote4/",
+            "coyote_pyclient/",
+            "coyote/config/bootstrap/",
+            "coyote/config/assets/",
+            "coyote/config/application_metadata.py",
+            "coyote/config/loaders/contact.py",
+            "coyote/config/clinical_query_seed.toml",
+            "coyote/application/provisioning/",
+            "coyote/application/resources/release_compilation.py",
+            "coyote/domain/core/",
+            "coyote/contracts/demo_installation.py",
+            "coyote/contracts/deployment_data.py",
+            "coyote/contracts/http.py",
+            "coyote/contracts/system.py",
+            "coyote/contracts/internal.py",
+            "coyote/contracts/client_errors.py",
+            "coyote/application/sdk/",
+            "coyote/config/center/",
+            "coyote/config/runtime.py",
+            "coyote/config/runtime_settings.py",
+            "coyote/config/security.py",
+            "coyote/config/mongo.py",
+            "coyote/config/app_config.py",
+            "coyote/config/collections.toml",
+            "coyote/application/common/file_access.py",
         )
         if any(name.startswith(retired) for name in names):
             raise ValueError("SDK wheel contains retired modules; rebuild from isolated source")
+        namespaces = {
+            "coyote-core": "coyote/",
+            "coyote-mongo": "coyote_mongo/",
+            "coyote-api": "coyote_api/",
+        }
+        forbidden = tuple(
+            prefix for package, prefix in namespaces.items() if package != distribution
+        )
+        if any(name.startswith(forbidden) for name in names):
+            raise ValueError(f"{distribution} wheel contains another package's sources")
     return {
         "filename": wheel.name,
         "version": expected_version,
@@ -200,20 +246,39 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sdk-only", action="store_true")
-    parser.add_argument("--wheel", type=Path)
+    parser.add_argument("--wheel-dir", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument(
         "--production", action="store_true", help="Reject dirty production releases"
     )
     args = parser.parse_args()
-    if args.output and (not args.wheel or args.sdk_only):
-        parser.error("--output requires --wheel and an application release check")
-    if args.production and (not args.wheel or not args.output):
-        parser.error("--production requires --wheel and --output")
+    if args.output and (not args.wheel_dir or args.sdk_only):
+        parser.error("--output requires --wheel-dir and an application release check")
+    if args.production and (not args.wheel_dir or not args.output):
+        parser.error("--production requires --wheel-dir and --output")
     record = release_identity(ROOT, sdk_only=args.sdk_only)
-    if args.wheel:
-        expected = record["sdk_source_version"] if args.sdk_only else record["sdk_version"]
-        record["sdk_artifact"] = wheel_record(args.wheel, expected)
+    if args.wheel_dir:
+        selected = {
+            "coyote-core": record["sdk_source_version"] if args.sdk_only else record["sdk_version"]
+        }
+        if not args.sdk_only:
+            selected.update(
+                {
+                    "coyote-mongo": record["mongo_version"],
+                    "coyote-api": record["api_version"],
+                }
+            )
+        artifacts = {}
+        for distribution, expected in selected.items():
+            wheels = list(args.wheel_dir.glob(f"{distribution.replace('-', '_')}-{expected}-*.whl"))
+            if len(wheels) != 1:
+                raise ValueError(f"Expected one {distribution} wheel for version {expected}")
+            artifacts[distribution] = wheel_record(wheels[0], expected, distribution)
+        if {path.name for path in args.wheel_dir.glob("*.whl")} != {
+            item["filename"] for item in artifacts.values()
+        }:
+            raise ValueError("Wheel directory contains unselected artifacts")
+        record["artifacts"] = artifacts
     if args.output:
         record.update(source_provenance(ROOT, production=args.production))
         record["release_mode"] = "production" if args.production else "development"

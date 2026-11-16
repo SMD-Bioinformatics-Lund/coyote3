@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Export DB collection contracts from Pydantic models into docs markdown."""
 
 from __future__ import annotations
@@ -37,7 +40,7 @@ def _field_type_name(annotation: Any) -> str:
 
 def export_query_condition_fields() -> None:
     """Render the query builder's field/type/operator catalog from its authoritative registry."""
-    from coyote3.domain.query_conditions import condition_catalog
+    from coyote.domain.query_conditions import condition_catalog
 
     catalog = condition_catalog()
     lines = [
@@ -89,7 +92,7 @@ def main() -> int:
         Orders collections alphabetically and fields in model declaration order.
         Does not connect to MongoDB.
     """
-    from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+    from coyote.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     adapters = COLLECTION_MODEL_ADAPTERS
     lines: list[str] = []
@@ -99,7 +102,7 @@ def main() -> int:
     lines.append("")
     lines.append(
         "> **Generated reference**\n>\n"
-        "> Generated from `src/coyote3/contracts/schemas/registry.py` by "
+        "> Generated from `core/src/coyote/contracts/schemas/registry.py` by "
         "`scripts/docs/export_collection_contracts_doc.py`. Change the schema or generator, "
         "then regenerate this page."
     )
@@ -116,7 +119,7 @@ def main() -> int:
             "## Operational collections",
             "",
             "These internal queues are not public collection-ingest targets. Names are owned by",
-            "`api/config/operational_collections.py`; database maintenance uses the index registry.",
+            "`adapters/mongo/src/coyote_mongo/config/operational_collections.py`; database maintenance uses the index registry.",
             "",
             "| Collection | Database | Purpose |",
             "| --- | --- | --- |",

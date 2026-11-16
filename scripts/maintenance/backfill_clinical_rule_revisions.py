@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Capture an immutable baseline for clinical rule documents created before revision history."""
 
 from __future__ import annotations
@@ -15,11 +18,11 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
 )
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", required=True, help="MongoDB URI with readWrite access")
-    parser.add_argument("--db", required=True, help="Coyote3 application database name")
+    parser.add_argument("--db", required=True, help="Coyote4 application database name")
     parser.add_argument("--actor", required=True, help="Operator identity recorded on baselines")
     parser.add_argument("--dry-run", action="store_true", help="Validate and count without writing")
     return parser.parse_args()

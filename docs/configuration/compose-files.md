@@ -43,7 +43,7 @@ empty host `site/` directory over it. Rebuild `docs` after documentation changes
 | `networks` | Service connectivity and external network names. | Follow the base stack wiring; its external network must already exist. |
 | `depends_on` and `healthcheck` | Startup dependencies and readiness probes. | Running alone is not evidence of readiness; preserve the shipped checks. |
 
-These are explanations of the keys used by Coyote3, not permission to remove
+These are explanations of the keys used by Coyote4, not permission to remove
 required service wiring. Keep ordinary center values in the environment and center
 files. Add a private override only for an infrastructure requirement such as input mounts.
 
@@ -79,9 +79,9 @@ Pass the base file first and the private override afterward:
 
 ```bash
 bash scripts/deployment/compose-with-version.sh \
-  --env-file /srv/coyote3/config/production.env \
+  --env-file /srv/coyote/config/production.env \
   -f deploy/compose/docker-compose.yml \
-  -f /srv/coyote3/config/storage.yml config --quiet
+  -f /srv/coyote/config/storage.yml config --quiet
 ```
 
 Use that same file list for validation, build, startup and future upgrades. Relative

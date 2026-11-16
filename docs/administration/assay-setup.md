@@ -511,7 +511,7 @@ selected setup and are cleared when switching workspaces.
 | `assay_setups` | Reserved `asp_id`; `_id` identifies the workspace | Current content and governance state |
 | `assay_setup_revisions` | `setup_id`, `revision` | Editing snapshots until publication; thereafter the final published snapshot |
 
-Collection names are configured in `api/config/collections.toml`. Install
+Collection names are configured in `adapters/mongo/src/coyote_mongo/config/collections.toml`. Install
 their indexes using the standard command, with the intended deployment
 configuration and index-management account:
 
@@ -537,7 +537,7 @@ Updates and lifecycle actions require the expected `revision`.
 ## Verification
 
 ```bash
-.venv/bin/pytest -q tests/unit/test_assay_setup.py --no-cov
+.venv/bin/pytest -q api/tests/unit/test_assay_setup.py --no-cov
 npm --prefix frontend run test:e2e -- assay-setup.spec.ts
 ```
 

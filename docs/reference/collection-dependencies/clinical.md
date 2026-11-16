@@ -577,100 +577,100 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMP
 
 ### S1
 
-`api/infra/knowledgebase/brcaexchange.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/brcaexchange.py`
 
 ### S2
 
-`api/infra/knowledgebase/civic.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/civic.py`
 
 ### S3
 
-`api/infra/knowledgebase/cosmic.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/cosmic.py`
 
 ### S4
 
-`api/infra/knowledgebase/iarc_tp53.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/iarc_tp53.py`
 
 ### S5
 
-`api/infra/knowledgebase/oncokb.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/oncokb.py`
 
 ### S6
 
-`api/infra/mongo/repositories/anno_vep.py`
+`adapters/mongo/src/coyote_mongo/repositories/anno_vep.py`
 
 ### S7
 
-`api/infra/mongo/repositories/blacklist.py`
+`adapters/mongo/src/coyote_mongo/repositories/blacklist.py`
 
 ### S8
 
-`api/infra/mongo/repositories/finding_comment_owner.py`
+`adapters/mongo/src/coyote_mongo/repositories/finding_comment_owner.py`
 
 ### S9
 
-`api/infra/mongo/repositories/finding_comments.py`
+`adapters/mongo/src/coyote_mongo/repositories/finding_comments.py`
 
 ### S10
 
-`api/infra/mongo/repositories/report_artifact_erasure.py`
+`adapters/mongo/src/coyote_mongo/repositories/report_artifact_erasure.py`
 
 ### S11
 
-`api/infra/mongo/repositories/reported_variants.py`
+`adapters/mongo/src/coyote_mongo/repositories/reported_variants.py`
 
 ### S12
 
-`api/infra/mongo/repositories/reports.py`
+`adapters/mongo/src/coyote_mongo/repositories/reports.py`
 
 ### S13
 
-`api/infra/mongo/repositories/sample_comments.py`
+`adapters/mongo/src/coyote_mongo/repositories/sample_comments.py`
 
 ### S14
 
-`src/coyote3/application/classification/tiering.py`
+`core/src/coyote/application/classification/tiering.py`
 
 ### S15
 
-`src/coyote3/application/ingest/service.py`
+`core/src/coyote/application/ingest/service.py`
 
 ### S16
 
-`src/coyote3/application/operations/application.py`
+`core/src/coyote/application/operations/application.py`
 
 ### S17
 
-`src/coyote3/application/operations/samples.py`
+`core/src/coyote/application/operations/samples.py`
 
 ### S18
 
-`src/coyote3/config/database_versions.py`
+`core/src/coyote/config/database_versions.py`
 
 ### S19
 
-`src/coyote3/contracts/schemas/dna.py`
+`core/src/coyote/contracts/schemas/dna.py`
 
 ### S20
 
-`src/coyote3/contracts/schemas/reference.py`
+`core/src/coyote/contracts/schemas/reference.py`
 
 ### S21
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`
 
 ### S22
 
-`src/coyote3/contracts/schemas/samples.py`
+`core/src/coyote/contracts/schemas/samples.py`
 
 ### S23
 
-`src/coyote3/contracts/schemas/variant_annotations.py`
+`core/src/coyote/contracts/schemas/variant_annotations.py`
 
 ### S24
 
-`src/coyote3/domain/annotation_identity.py`
+`core/src/coyote/domain/annotation_identity.py`
 
 ### S25
 
-`src/coyote3/domain/filter_profiles.py`
+`core/src/coyote/domain/filter_profiles.py`

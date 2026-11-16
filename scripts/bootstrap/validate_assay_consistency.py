@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Validate assay and assay-group consistency across seed collections."""
 
 from __future__ import annotations
@@ -17,12 +20,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
-from coyote3.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
-from coyote3.contracts.schemas.registry import (  # noqa: E402
+from coyote_api.config.bootstrap import configure_center_from_environment  # noqa: E402
+
+# Bind the host profile before importing vocabulary-dependent contracts.
+configure_center_from_environment()
+
+from coyote.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
+from coyote.contracts.schemas.registry import (  # noqa: E402
     supported_collections,
     validate_collection_document,
 )
+from coyote_api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
 
 VALID_ENVIRONMENTS = set(ENVIRONMENT_OPTIONS)
 ENV_ALIASES = {

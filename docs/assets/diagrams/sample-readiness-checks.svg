@@ -1,67 +1,93 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 820" width="1120" height="820" role="img" aria-labelledby="title description">
-<title id="title">Missing results: diagnose the symptom first</title>
-<desc id="description">Visibility, ingest completion, analysis availability and finding selection are different boundaries.</desc>
-<defs>
-<style>
-:root{--canvas:#f7f9fd;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}
-text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.title{font-size:28px;font-weight:700}.subtitle{font-size:17px;fill:var(--muted)}.heading{font-size:19px;font-weight:650}.body{font-size:17px;fill:var(--muted)}.small{font-size:15px;fill:var(--muted)}.edge{fill:none;stroke:var(--blue);stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:6 5}.panel{stroke:var(--edge);stroke-width:1.2}
-@media(prefers-color-scheme:dark){:root{--canvas:#1d2331;--surface:#293244;--ink:#edf1fa;--muted:#c3cede;--edge:#526079;--blue:#94b9ee;--teal:#82d0bf;--purple:#c8aff3;--amber:#e6be82;--blue-soft:#2a3a52;--teal-soft:#263f40;--purple-soft:#3b304d;--amber-soft:#443c30}}
-@media print{:root{--canvas:#fff;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}}
-</style>
-<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-<path d="m1 1 8 4-8 4" fill="none" stroke="var(--blue)" stroke-width="1.5"/>
-</marker>
-</defs>
-<rect width="1120" height="820" rx="20" fill="var(--canvas)"/>
-<text x="32" y="48" class="title">Missing results: diagnose the symptom first</text>
-<text x="32" y="80" class="subtitle">Visibility, ingest completion, analysis availability and finding selection are different boundaries.</text>
-<g>
-<rect class="panel" x="360" y="135" width="400" height="125" rx="14" fill="var(--purple-soft)"/>
-<rect x="360" y="153" width="4" height="89" rx="2" fill="var(--purple)"/>
-<text x="380" y="169" class="heading">What is missing?</text>
-<text x="380" y="200" class="body">Identify the symptom before</text>
-<text x="380" y="225" class="body">changing clinical filters.</text>
-</g>
-<g>
-<rect class="panel" x="32" y="330" width="496" height="175" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="348" width="4" height="139" rx="2" fill="var(--blue)"/>
-<text x="52" y="364" class="heading">The sample is not visible</text>
-<text x="52" y="395" class="body">Check permissions, assay scope and environment.</text>
-<text x="52" y="420" class="body">Check date range, search and list filters.</text>
-<text x="52" y="445" class="body">Confirm the expected sample identity was submitted.</text>
-<text x="52" y="470" class="body">An access problem is not an empty clinical result set.</text>
-</g>
-<g>
-<rect class="panel" x="592" y="330" width="496" height="175" rx="14" fill="var(--amber-soft)"/>
-<rect x="592" y="348" width="4" height="139" rx="2" fill="var(--amber)"/>
-<text x="612" y="364" class="heading">The sample is not ready</text>
-<text x="612" y="395" class="body">Check ingest receipt state and worker progress.</text>
-<text x="612" y="420" class="body">Inspect required files, active ASPC and failure details.</text>
-<text x="612" y="445" class="body">Resolve the cause before retrying an uncertain job.</text>
-<text x="612" y="470" class="body">Do not create placeholder evidence to make it ready.</text>
-</g>
-<g>
-<rect class="panel" x="32" y="565" width="496" height="175" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="583" width="4" height="139" rx="2" fill="var(--blue)"/>
-<text x="52" y="599" class="heading">An analysis tab is missing</text>
-<text x="52" y="630" class="body">Check DNA/RNA modality and enabled ASPC analyses.</text>
-<text x="52" y="655" class="body">Inspect declared file availability and analysis status.</text>
-<text x="52" y="680" class="body">Confirm the sample's pinned configuration revision.</text>
-<text x="52" y="705" class="body">Adding a query rule cannot enable a missing analysis.</text>
-</g>
-<g>
-<rect class="panel" x="592" y="565" width="496" height="175" rx="14" fill="var(--teal-soft)"/>
-<rect x="592" y="583" width="4" height="139" rx="2" fill="var(--teal)"/>
-<text x="612" y="599" class="heading">The analysis or summary is empty</text>
-<text x="612" y="630" class="body">Check filters, gene scopes and query policies.</text>
-<text x="612" y="655" class="body">Report candidates depend on tier and review state.</text>
-<text x="612" y="680" class="body">No reporting rules: automatic wording is unavailable.</text>
-<text x="612" y="705" class="body">The saved conclusion uses the latest visible comment.</text>
-</g>
-<path class="edge" d="M560 260 V650"/>
-<path class="edge" d="M560 415 H528"/>
-<path class="edge" d="M560 415 H592"/>
-<path class="edge" d="M560 650 H528"/>
-<path class="edge" d="M560 650 H592"/>
-<text x="32" y="790" class="small">Record the failed boundary and its error reference. Change only the configuration or data responsible for that boundary.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 820" width="1360" height="820" role="img" aria-labelledby="title description">
+  <title id="title">Missing results: diagnose the symptom first</title>
+  <desc id="description">Visibility, ingest completion, analysis availability and finding selection are different boundaries.</desc>
+  <defs>
+    <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="36" class="figure-title">Missing results: diagnose the symptom first</text>
+  <text x="40" y="68" class="figure-subtitle">Visibility, ingest completion, analysis availability and finding selection are different boundaries.</text>
+  <g class="entity purple" data-node="0" data-left="437.14" data-right="922.86" data-top="135.0" data-bottom="260.0">
+    <title>What is missing?</title>
+    <use href="#icon-layers" x="659.0" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="680.0" y="198.0" text-anchor="middle" class="entity-title">What is missing?</text>
+    <text x="680.0" y="220.0" text-anchor="middle" class="entity-detail">Identify the symptom before</text>
+    <text x="680.0" y="238.0" text-anchor="middle" class="entity-detail">changing clinical filters.</text>
+  </g>
+  <g class="entity blue" data-node="1" data-left="38.86" data-right="641.14" data-top="330.0" data-bottom="505.0">
+    <title>The sample is not visible</title>
+    <use href="#icon-processor" x="319.0" y="333.0" width="42" height="42" aria-hidden="true" />
+    <text x="340.0" y="393.0" text-anchor="middle" class="entity-title">The sample is not visible</text>
+    <text x="340.0" y="415.0" text-anchor="middle" class="entity-detail">Check permissions, assay scope and environment.</text>
+    <text x="340.0" y="433.0" text-anchor="middle" class="entity-detail">Check date range, search and list filters.</text>
+    <text x="340.0" y="451.0" text-anchor="middle" class="entity-detail">Confirm the expected sample identity was submitted.</text>
+    <text x="340.0" y="469.0" text-anchor="middle" class="entity-detail">An access problem is not an empty clinical result set.</text>
+  </g>
+  <g class="entity amber" data-node="2" data-left="718.86" data-right="1321.14" data-top="330.0" data-bottom="505.0">
+    <title>The sample is not ready</title>
+    <use href="#icon-layers" x="999.0" y="333.0" width="42" height="42" aria-hidden="true" />
+    <text x="1020.0" y="393.0" text-anchor="middle" class="entity-title">The sample is not ready</text>
+    <text x="1020.0" y="415.0" text-anchor="middle" class="entity-detail">Check ingest receipt state and worker progress.</text>
+    <text x="1020.0" y="433.0" text-anchor="middle" class="entity-detail">Inspect required files, active ASPC and failure details.</text>
+    <text x="1020.0" y="451.0" text-anchor="middle" class="entity-detail">Resolve the cause before retrying an uncertain job.</text>
+    <text x="1020.0" y="469.0" text-anchor="middle" class="entity-detail">Do not create placeholder evidence to make it ready.</text>
+  </g>
+  <g class="entity blue" data-node="3" data-left="38.86" data-right="641.14" data-top="565.0" data-bottom="740.0">
+    <title>An analysis tab is missing</title>
+    <use href="#icon-layers" x="319.0" y="568.0" width="42" height="42" aria-hidden="true" />
+    <text x="340.0" y="628.0" text-anchor="middle" class="entity-title">An analysis tab is missing</text>
+    <text x="340.0" y="650.0" text-anchor="middle" class="entity-detail">Check DNA/RNA modality and enabled ASPC analyses.</text>
+    <text x="340.0" y="668.0" text-anchor="middle" class="entity-detail">Inspect declared file availability and analysis status.</text>
+    <text x="340.0" y="686.0" text-anchor="middle" class="entity-detail">Confirm the sample's pinned configuration revision.</text>
+    <text x="340.0" y="704.0" text-anchor="middle" class="entity-detail">Adding a query rule cannot enable a missing analysis.</text>
+  </g>
+  <g class="entity teal" data-node="4" data-left="718.86" data-right="1321.14" data-top="565.0" data-bottom="740.0">
+    <title>The analysis or summary is empty</title>
+    <use href="#icon-processor" x="999.0" y="568.0" width="42" height="42" aria-hidden="true" />
+    <text x="1020.0" y="628.0" text-anchor="middle" class="entity-title">The analysis or summary is empty</text>
+    <text x="1020.0" y="650.0" text-anchor="middle" class="entity-detail">Check filters, gene scopes and query policies.</text>
+    <text x="1020.0" y="668.0" text-anchor="middle" class="entity-detail">Report candidates depend on tier and review state.</text>
+    <text x="1020.0" y="686.0" text-anchor="middle" class="entity-detail">No reporting rules: automatic wording is unavailable.</text>
+    <text x="1020.0" y="704.0" text-anchor="middle" class="entity-detail">The saved conclusion uses the latest visible comment.</text>
+  </g>
+  <path class="connection blue" d="M560 260 V650" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M560 415 H528" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M560 415 H592" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M560 650 H528" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M560 650 H592" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <text x="38.86" y="790" class="figure-note">Record the failed boundary and its error reference. Change only the configuration or data responsible for that boundary.</text>
 </svg>

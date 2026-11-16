@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Move identity and security collections into the dedicated MongoDB database."""
 
 from __future__ import annotations
@@ -16,15 +19,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.config.paths import COLLECTIONS_CONFIG_PATH  # noqa: E402
+from coyote_mongo.config.collections import (  # noqa: E402
+    COLLECTIONS_CONFIG_PATH,
+    load_collection_section,  # noqa: E402
+)
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
     assert_distinct_databases,
     migrate_collection,
 )
 
-STAGING_PREFIX = "__coyote3_identity_migration__"
+STAGING_PREFIX = "__coyote4_identity_migration__"
 
 
 def identity_collections(config_path: Path) -> dict[str, str]:
@@ -42,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mongo-uri", default="", help="Explicit shared URI for both endpoints")
     parser.add_argument("--source-mongo-uri", default="")
     parser.add_argument("--target-mongo-uri", default="")
-    parser.add_argument("--source-db", default=os.getenv("COYOTE3_DB", ""))
+    parser.add_argument("--source-db", default=os.getenv("COYOTE4_DB", ""))
     parser.add_argument("--target-db", default=os.getenv("IDENTITY_DB", ""))
     parser.add_argument("--collections-config", type=Path, default=COLLECTIONS_CONFIG_PATH)
     parser.add_argument("--report", type=Path)

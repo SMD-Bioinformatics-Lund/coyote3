@@ -1,6 +1,6 @@
 # Observability SLOs and Alerts
 
-This guide turns Coyote3 API, authentication, mail, task, ingest, and maintenance
+This guide turns Coyote4 API, authentication, mail, task, ingest, and maintenance
 telemetry into practical service-level dashboards and alert rules.
 
 ## API process model
@@ -46,9 +46,9 @@ switches with a live Celery control-inspection response:
 
 Primary emitters:
 
-- `api/security/auth_service.py`
-- `api/security/password_flows.py`
-- `api/infra/notifications/email.py`
+- `api/src/coyote_api/security/auth_service.py`
+- `api/src/coyote_api/security/password_flows.py`
+- `api/src/coyote_api/infra/notifications/email.py`
 
 ## Recommended SLOs
 
@@ -96,15 +96,15 @@ Severity guidance:
 If you use Loki/Grafana, these examples can be adapted directly:
 
 ```logql
-sum(rate({container="coyote3_api"} |= "auth_metric" |= "metric=login_attempt" |= "outcome=success"[5m]))
+sum(rate({container="coyote4_api"} |= "auth_metric" |= "metric=login_attempt" |= "outcome=success"[5m]))
 /
-sum(rate({container="coyote3_api"} |= "auth_metric" |= "metric=login_attempt"[5m]))
+sum(rate({container="coyote4_api"} |= "auth_metric" |= "metric=login_attempt"[5m]))
 ```
 
 ```logql
-sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result" |= "outcome=success"[15m]))
+sum(rate({container="coyote4_api"} |= "mail_metric" |= "metric=send_result" |= "outcome=success"[15m]))
 /
-sum(rate({container="coyote3_api"} |= "mail_metric" |= "metric=send_result"[15m]))
+sum(rate({container="coyote4_api"} |= "mail_metric" |= "metric=send_result"[15m]))
 ```
 
 ## Operational guide links

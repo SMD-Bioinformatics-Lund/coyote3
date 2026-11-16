@@ -1,7 +1,7 @@
 # Knowledgebase Snapshot Updates
 
 BRCA Exchange, CIViC, the NCI TP53 Database, and COSMIC are maintained outside
-Coyote3. Their local collections are full snapshots used for fast, reproducible
+Coyote4. Their local collections are full snapshots used for fast, reproducible
 clinical lookup. Updates are deliberate operator actions; the application does
 not download or replace these datasets automatically.
 
@@ -65,7 +65,7 @@ verification, or staged publication.
 
 ```bash
 export KNOWLEDGEBASE_MONGO_URI='mongodb://...'
-export KNOWLEDGEBASE_DB='coyote3_knowledgebase'
+export KNOWLEDGEBASE_DB='coyote4_knowledgebase'
 ```
 
 1. Stop API and worker processes that use the affected collection.
@@ -117,7 +117,7 @@ the Feature Summaries TSV and Variant Summaries TSV from the same release. Do
 not combine a historical variant file with a feature file downloaded on a
 different day.
 
-The feature file contains top-level CIViC genes, fusions, and factors. Coyote3
+The feature file contains top-level CIViC genes, fusions, and factors. Coyote4
 imports Gene rows into `civic_genes`. The variant file contains variants linked
 to all feature types and is imported into `civic_variants`, including fusion
 partners and current CIViC v2 feature identifiers.
@@ -137,7 +137,7 @@ either collection prevents the release from remaining partially active.
 
 The former IARC TP53 Database is maintained by the US National Cancer Institute.
 The official [TP53 dataset download page](https://tp53.cancer.gov/get_tp53data)
-provides several independent datasets. Coyote3's `iarc_tp53` detail card uses
+provides several independent datasets. Coyote4's `iarc_tp53` detail card uses
 the **Functional/structural data in TP53 with their annotations** file. For R21,
 the user manual identifies this file as `MutationView_r21.csv`; despite the
 extension, the published file is tab-delimited.
@@ -277,7 +277,7 @@ the complete CNA collection by gene alone.
 Every query has a result limit and returns a restricted projection. COSMIC sample
 identifiers, sample names, and phenotype case identifiers are not included in API
 responses. The COSMIC evidence shown in a knowledgebase card is independent of the
-`cosmic_ids`, `dbsnp_id`, and `pubmed_ids` stored on a Coyote3 small-variant record;
+`cosmic_ids`, `dbsnp_id`, and `pubmed_ids` stored on a Coyote4 small-variant record;
 those source identifiers are displayed separately on the variant detail page.
 
 #### Products not presented on detail pages
@@ -307,7 +307,7 @@ Gene Cohort Explorer and the Gene Information page use the same gene-level
 knowledgebase response for the exact approved HGNC symbol. The summary identifies
 available sources and presents bounded COSMIC Cancer Gene Census roles, tiers,
 mutation types, and hallmark context. Sample prevalence and tier counts still
-come only from access-scoped Coyote3 reports; external knowledgebases never alter
+come only from access-scoped Coyote4 reports; external knowledgebases never alter
 those clinical counts.
 
 The About and Knowledgebase Details pages read active releases from the knowledgebase `versions`
@@ -401,7 +401,7 @@ pipeline database-version snapshot for each analyzed sample.
 Inspect active and retired releases without reading source records:
 
 ```javascript
-db.getSiblingDB("coyote3_knowledgebase").versions.find(
+db.getSiblingDB("coyote4_knowledgebase").versions.find(
   {},
   {source: 1, release: 1, status: 1, published_at: 1, collections: 1}
 ).sort({published_at: -1})

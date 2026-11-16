@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Export the bundled role policy or explicitly harden one runtime MongoDB user."""
 
 import argparse
@@ -11,17 +14,16 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pymongo import MongoClient  # noqa: E402
-from pymongo.errors import PyMongoError  # noqa: E402
-from pymongo.uri_parser import parse_uri  # noqa: E402
-
-from api.config.mongo import MongoEndpoint, mongo_endpoints  # noqa: E402
-from api.infra.security.mongo_roles import (  # noqa: E402
+from coyote_mongo.config.endpoints import MongoEndpoint, mongo_endpoints  # noqa: E402
+from coyote_mongo.runtime_roles import (  # noqa: E402
     audit_indexes,
     identity_role,
     provision_identity,
     runtime_roles,
 )
+from pymongo import MongoClient  # noqa: E402
+from pymongo.errors import PyMongoError  # noqa: E402
+from pymongo.uri_parser import parse_uri  # noqa: E402
 
 POLICY = ROOT / "deploy/compose/mongo-init/identity-role-policy.json"
 
@@ -88,7 +90,7 @@ def main() -> int:
         return 0 if POLICY.read_text() == policy_text() else 1
     names = {
         key: os.environ.get(key, "").strip()
-        for key in ("COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB")
+        for key in ("COYOTE4_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB")
     }
     if not (args.maintenance_uri_file or args.maintenance_uri_env) or not all(names.values()):
         parser.error("Set four database names and provide maintenance credentials")

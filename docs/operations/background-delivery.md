@@ -25,7 +25,7 @@ their own pool; inspect active tasks and queue consumers in Application controls
 when that pool is busy. Default concurrency is two processes for each worker.
 `CELERY_WORKER_CONCURRENCY` controls ingestion; `CELERY_MAINTENANCE_CONCURRENCY`
 controls maintenance. The latter service defaults to one CPU and 1 GiB, configurable
-with `COYOTE3_MAINTENANCE_CPU_LIMIT` and `COYOTE3_MAINTENANCE_MEM_LIMIT`.
+with `COYOTE4_MAINTENANCE_CPU_LIMIT` and `COYOTE4_MAINTENANCE_MEM_LIMIT`.
 
 Recreate API, both workers, beat and monitor with the same release and the same
 environment/overlay selection. Development and storage overlays include both

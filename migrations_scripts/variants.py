@@ -12,18 +12,18 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from bson import ObjectId, json_util
-from pydantic import ValidationError
-
-from coyote3.application.ingest.parsers import _parse_transcripts, _select_csq
-from coyote3.contracts.schemas.dna import VariantCsqDoc
-from coyote3.contracts.schemas.normalizers import normalize_ampersand_terms
-from coyote3.contracts.schemas.variant_annotations import VepAnnoTranscriptDoc
-from coyote3.domain.dna.transcript_payloads import build_hgnc_lookup_maps
-from coyote3.domain.dna.variant_identity import (
+from coyote4.application.ingest.parsers import _parse_transcripts, _select_csq
+from coyote4.contracts.schemas.dna import VariantCsqDoc
+from coyote4.contracts.schemas.normalizers import normalize_ampersand_terms
+from coyote4.contracts.schemas.variant_annotations import VepAnnoTranscriptDoc
+from coyote4.domain.dna.transcript_payloads import build_hgnc_lookup_maps
+from coyote4.domain.dna.variant_identity import (
     build_simple_id,
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
 )
+from pydantic import ValidationError
+
 from migrations_scripts.common import derived_id, fingerprint, validate
 from migrations_scripts.related import (
     file_hash,

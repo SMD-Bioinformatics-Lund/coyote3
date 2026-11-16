@@ -1,6 +1,6 @@
 # DNA and RNA data model
 
-Coyote3 uses two connected data layers: configuration data and sample-specific findings. The system works correctly only when those layers stay aligned.
+Coyote4 uses two connected data layers: configuration data and sample-specific findings. The system works correctly only when those layers stay aligned.
 
 ## Data Layers
 
@@ -118,7 +118,7 @@ filter uses the same categories: **In-frame** matches exact `in-frame`, while
 truncated UTR/CDS descriptions.
 
 Description terms are split on commas and rendered using the exact importance
-groups configured in `config/examples/center/clinical_vocabulary.toml`. Important
+groups configured in `api/src/coyote_api/config/examples/center/clinical_vocabulary.toml`. Important
 cancer-reference terms are green, not-important or artifact-associated terms
 are red, and contextual terms are gray. Unknown terms remain visible with
 neutral styling so upstream vocabulary changes are not hidden. Selected
@@ -243,7 +243,7 @@ in
 ## Sample Deletion Lifecycle
 
 Deleting a sample is a coordinated ownership operation, not a deletion of only
-the `samples` row. Coyote3 removes the sample document and all Coyote-owned
+the `samples` row. Coyote4 removes the sample document and all Coyote-owned
 children keyed by its sample identifier: small variants, CNVs, coverage,
 translocations, fusions, biomarkers, RNA expression, RNA classification, RNA
 quality control, sample comments, reports, and reported-finding snapshots.

@@ -1,32 +1,26 @@
-# React + TypeScript + Vite
+# Coyote frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![Node: >=22](https://img.shields.io/badge/Node-%3E%3D22-339933?style=flat&logo=nodedotjs&logoColor=white) ![UI: React 19](https://img.shields.io/badge/UI-React%2019-087EA4?style=flat&logo=react&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
 
-Currently, two official plugins are available:
+The browser application for sample review, clinical configuration, findings and
+report workflows. React renders the interface and calls the versioned HTTP API.
+Clinical rules and authoritative permission checks remain on the server.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Documentation
 
-## React Compiler
+Start with the [frontend guide](docs/README.md), then use:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [Getting started](docs/getting-started.md) for a local development server.
+- [Configuration](docs/configuration.md) for proxy and presentation settings.
+- [Architecture](docs/architecture.md) for UI responsibilities.
+- [Development](docs/development.md) for checks, contracts and production builds.
 
-## Expanding the Oxlint configuration
+The frontend is a private Node application. Its tools and dependencies are in
+[package.json](package.json). Application release identity comes from
+`release.toml` at the repository root.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Badges describe technology and metadata. See the application
+[license](LICENSE.txt), [copyright and affiliation](COPYRIGHT.txt) and
+[additional notices](NOTICE.txt). Production builds include these three files.

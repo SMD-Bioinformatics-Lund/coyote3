@@ -39,7 +39,7 @@ and client-side errors are not access-control decisions.
 
 ## Relevant checks
 
-`tests/unit/test_application_sdk.py` covers revoked sessions/grants, changed sample
+`api/tests/unit/test_application_sdk.py` covers revoked sessions/grants, changed sample
 scope, required password replacement, credential audiences and audit failures.
 HTTP authorization matrices and ingestion credential tests cover the corresponding
 transport and machine entry points. See the [security architecture](../architecture/security-model.md)

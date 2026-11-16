@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Move HGNC/VEP references and retire the superseded assay diagnosis collection."""
 
 from __future__ import annotations
@@ -15,8 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
     assert_distinct_databases,
     copy_indexes,
@@ -135,10 +139,10 @@ def main() -> int:
     args = parser.parse_args()
     source_uri = configured_mongo_uri(os.environ, "primary")
     target_uri = configured_mongo_uri(os.environ, "knowledgebase")
-    source_name = os.environ.get("COYOTE3_DB", "")
+    source_name = os.environ.get("COYOTE4_DB", "")
     target_name = os.environ.get("KNOWLEDGEBASE_DB", "")
     if not all((source_uri, target_uri, source_name, target_name)):
-        parser.error("Configure COYOTE3 and KNOWLEDGEBASE URI/database variables")
+        parser.error("Configure COYOTE4 and KNOWLEDGEBASE URI/database variables")
     source_client = MongoClient(source_uri, serverSelectionTimeoutMS=7000)
     target_client = (
         source_client

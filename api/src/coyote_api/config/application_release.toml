@@ -1,0 +1,2 @@
+# Generated from release.toml by npm run sync:version.
+application_version = "4.0.0"

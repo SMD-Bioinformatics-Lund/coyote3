@@ -4,7 +4,7 @@ Manifest key: `pgx`. Stored destination: `pgx`.
 
 ## Before submission
 
-Use a JSON object or an array containing only objects. A scalar or an array containing strings or numbers is rejected. Coyote3 preserves this payload but does not infer PharmCAT interpretation, drug recommendations, or clinical significance from arbitrary keys.
+Use a JSON object or an array containing only objects. A scalar or an array containing strings or numbers is rejected. Coyote4 preserves this payload but does not infer PharmCAT interpretation, drug recommendations, or clinical significance from arbitrary keys.
 
 [Download the complete synthetic JSON](../../assets/examples/ingest/pharmacogenomics.json). All example identifiers and values are synthetic.
 Ingest assigns `SAMPLE_ID` from the parent sample. Do not supply database IDs or review

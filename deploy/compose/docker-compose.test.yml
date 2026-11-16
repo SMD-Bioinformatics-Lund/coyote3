@@ -1,59 +1,59 @@
-name: coyote3_test
+name: coyote4_test
 
 services:
   frontend:
-    image: coyote3-frontend:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     profiles: [with-ui]
   docs:
-    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     profiles: [with-ui]
   api:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       additional_contexts:
         sdk_artifact: ../..
       dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
+      target: coyote4_dev_api
       network: host
   worker:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
+      target: coyote4_dev_api
       network: host
       args:
-        COYOTE3_UID: ${COYOTE3_UID:-10001}
-        COYOTE3_GID: ${COYOTE3_GID:-10001}
+        COYOTE4_UID: ${COYOTE4_UID:-10001}
+        COYOTE4_GID: ${COYOTE4_GID:-10001}
   beat:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_api
+      target: coyote4_dev_api
       network: host
       args:
-        COYOTE3_UID: ${COYOTE3_UID:-10001}
-        COYOTE3_GID: ${COYOTE3_GID:-10001}
+        COYOTE4_UID: ${COYOTE4_UID:-10001}
+        COYOTE4_GID: ${COYOTE4_GID:-10001}
   proxy:
     profiles: [with-ui]
-    ports: ["${COYOTE3_PORT:-6811}:8088"]
+    ports: ["${COYOTE4_PORT:-6811}:8088"]
   test_runner:
-    image: coyote3-all:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-all:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     profiles: [tests]
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
-      target: coyote3_dev_all
+      target: coyote4_dev_all
       network: host
       args:
-        COYOTE3_UID: ${COYOTE3_UID:-10001}
-        COYOTE3_GID: ${COYOTE3_GID:-10001}
+        COYOTE4_UID: ${COYOTE4_UID:-10001}
+        COYOTE4_GID: ${COYOTE4_GID:-10001}
     environment:
       ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-      COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
+      COYOTE4_MONGO_URI: ${COYOTE4_MONGO_URI:?COYOTE4_MONGO_URI is required}
       IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
       KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
       BAM_MONGO_URI: ${BAM_MONGO_URI:-}
-      COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
+      COYOTE4_DB: ${COYOTE4_DB:?COYOTE4_DB is required}
       IDENTITY_DB: ${IDENTITY_DB:?IDENTITY_DB is required}
       KNOWLEDGEBASE_DB: ${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB is required}
       BAM_DB: ${BAM_DB:?BAM_DB is required}

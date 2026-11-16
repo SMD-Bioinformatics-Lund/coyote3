@@ -1,14 +1,14 @@
 #!/bin/sh
 set -eu
 
-output_path="${COYOTE3_NGINX_OUTPUT_PATH:-/etc/nginx/conf.d/default.conf}"
-frontend_upstream="${COYOTE3_NGINX_FRONTEND_UPSTREAM:?COYOTE3_NGINX_FRONTEND_UPSTREAM is required}"
-api_upstream="${COYOTE3_NGINX_API_UPSTREAM:?COYOTE3_NGINX_API_UPSTREAM is required}"
-docs_upstream="${COYOTE3_NGINX_DOCS_UPSTREAM:?COYOTE3_NGINX_DOCS_UPSTREAM is required}"
-public_scheme="${COYOTE3_NGINX_PUBLIC_SCHEME:-http}"
+output_path="${COYOTE4_NGINX_OUTPUT_PATH:-/etc/nginx/conf.d/default.conf}"
+frontend_upstream="${COYOTE4_NGINX_FRONTEND_UPSTREAM:?COYOTE4_NGINX_FRONTEND_UPSTREAM is required}"
+api_upstream="${COYOTE4_NGINX_API_UPSTREAM:?COYOTE4_NGINX_API_UPSTREAM is required}"
+docs_upstream="${COYOTE4_NGINX_DOCS_UPSTREAM:?COYOTE4_NGINX_DOCS_UPSTREAM is required}"
+public_scheme="${COYOTE4_NGINX_PUBLIC_SCHEME:-http}"
 case "$public_scheme" in
   http|https) ;;
-  *) printf '%s\n' 'COYOTE3_NGINX_PUBLIC_SCHEME must be http or https' >&2; exit 1 ;;
+  *) printf '%s\n' 'COYOTE4_NGINX_PUBLIC_SCHEME must be http or https' >&2; exit 1 ;;
 esac
 
 script_name="${SCRIPT_NAME:-}"
@@ -29,9 +29,9 @@ done
 cat >"$output_path" <<EOF
 access_log syslog:server=monitor:5514,tag=proxy,severity=info combined;
 error_log syslog:server=monitor:5514,tag=proxy error;
-map \$uri \$coyote3_error_cache_control {
+map \$uri \$coyote4_error_cache_control {
     default "";
-    /_coyote3_unavailable.html "no-store";
+    /_coyote4_unavailable.html "no-store";
 }
 server {
     listen 8088;
@@ -57,7 +57,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
     add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:" always;
-    add_header Cache-Control \$coyote3_error_cache_control always;
+    add_header Cache-Control \$coyote4_error_cache_control always;
 
     set \$forwarded_proto "${public_scheme}";
     set \$strict_transport_security "";
@@ -75,7 +75,7 @@ server {
 
     # Local and self-contained: available even when every upstream is down.
     # Error handling is enabled only in browser-facing locations below.
-    location = /_coyote3_unavailable.html {
+    location = /_coyote4_unavailable.html {
         internal;
         alias /etc/nginx/error-pages/unavailable.html;
         default_type text/html;
@@ -97,7 +97,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
     }
 
     location /docs-site/ {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         if (\$http_x_forwarded_prefix != "${script_name}") {
             return 404;
@@ -108,7 +108,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
     }
 
     location = ${script_name} {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         proxy_set_header X-Forwarded-Prefix ${script_name};
         proxy_set_header Upgrade \$http_upgrade;
@@ -123,7 +123,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
     }
 
     location ${script_name}/docs-site/ {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         proxy_set_header X-Forwarded-Prefix ${script_name};
         rewrite ^${script_name}/docs-site/?(.*)\$ /\$1 break;
@@ -131,7 +131,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
     }
 
     location ${script_name}/ {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         proxy_set_header X-Forwarded-Prefix ${script_name};
         proxy_set_header Upgrade \$http_upgrade;
@@ -140,7 +140,7 @@ if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
     }
 
     location / {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         if (\$http_x_forwarded_prefix != "${script_name}") {
             return 404;
@@ -161,14 +161,14 @@ else
     }
 
     location /docs-site/ {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         rewrite ^/docs-site/?(.*)\$ /\$1 break;
         proxy_pass \$docs_target;
     }
 
     location / {
-        error_page 500 502 503 504 /_coyote3_unavailable.html;
+        error_page 500 502 503 504 /_coyote4_unavailable.html;
         proxy_intercept_errors on;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";

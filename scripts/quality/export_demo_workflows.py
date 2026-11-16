@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Replay synthetic manifests through ingest and export portable collection examples.
 
 Requires the repository development dependencies, including mongomock. No URI,
@@ -18,35 +21,38 @@ from pathlib import Path
 import mongomock
 from bson import ObjectId
 from bson.json_util import dumps, loads
+from coyote.domain.annotation_identity import primary_small_variant_identity
+from coyote.domain.annotation_scope import annotation_namespace
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_mongo.config.settings import AuditContext
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from coyote3.domain.annotation_identity import primary_small_variant_identity
-from coyote3.domain.annotation_scope import annotation_namespace
-
-ROOT = Path(__file__).resolve().parents[2] / "demo_data/clinical_workflows"
+ROOT = (
+    Path(__file__).resolve().parents[2]
+    / "api/src/coyote_api/bootstrap/demo_data/clinical_workflows"
+)
 FIXTURES = Path(__file__).resolve().parents[2] / "tests/fixtures/clinical_workflows"
 sys.path.insert(0, str(ROOT.parents[1]))
 
-from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
-from api.infra.seed.bundle import load_reference_seed_pack  # noqa: E402
-from api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
-from coyote3.application.common.release_resources import (  # noqa: E402
+from coyote.application.common.release_resources import (  # noqa: E402
     capture_assay_resource,
     capture_gene_lists,
 )
-from coyote3.application.ingest.service import InternalIngestService  # noqa: E402
-from coyote3.application.reporting.clinical_rules.evaluator import (  # noqa: E402
+from coyote.application.ingest.service import InternalIngestService  # noqa: E402
+from coyote.application.reporting.clinical_rules.evaluator import (  # noqa: E402
     ClinicalRuleEvaluator,
 )
-from coyote3.application.reporting.clinical_rules.preparation import (  # noqa: E402
+from coyote.application.reporting.clinical_rules.preparation import (  # noqa: E402
     prepare_report_context,
 )
-from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
-from coyote3.contracts.schemas.registry import (  # noqa: E402
+from coyote.config.constants import ALL_SAMPLE_FILE_KEYS  # noqa: E402
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote.contracts.schemas.registry import (  # noqa: E402
     INGEST_DEPENDENT_COLLECTIONS,
     normalize_collection_document,
 )
+from coyote_api.infra.seed.bundle import load_reference_seed_pack  # noqa: E402
+from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds  # noqa: E402
+from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
 
 
 class MemoryGateway(IngestCollectionGateway):
@@ -138,7 +144,10 @@ def replay():
         "insilico_genelists",
     }
     service = InternalIngestService(
-        collection_gateway=MemoryGateway(collections={name: db[name] for name in names}),
+        collection_gateway=MemoryGateway(
+            collections={name: db[name] for name in names},
+            context=AuditContext(environment="test", route="synthetic-demo-export"),
+        ),
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )

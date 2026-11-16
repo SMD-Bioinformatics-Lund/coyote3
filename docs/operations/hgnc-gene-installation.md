@@ -1,6 +1,6 @@
 # HGNC gene reference installation
 
-`scripts/gene_db_creation.py` joins a reviewed HGNC TSV file and an
+`scripts/knowledgebase/install_hgnc_genes.py` joins a reviewed HGNC TSV file and an
 Ensembl BioMart CSV export by HGNC ID. It validates the resulting documents against
 the application's `HgncGenesDoc` contract and writes a review artifact. Database
 writes require `--apply`; conversion alone does not connect to MongoDB.
@@ -77,12 +77,12 @@ precedence or reannotate existing findings.
 Run from the repository root with the application's Python dependencies installed:
 
 ```bash
-.venv/bin/python scripts/gene_db_creation.py \
-  --hgnc /srv/coyote3/reference/hgnc.tsv \
-  --biomart /srv/coyote3/reference/biomart.csv \
+.venv/bin/python scripts/knowledgebase/install_hgnc_genes.py \
+  --hgnc /srv/coyote4/reference/hgnc.tsv \
+  --biomart /srv/coyote4/reference/biomart.csv \
   --release center-reviewed-release \
   --assembly GRCh38 \
-  --output /srv/coyote3/reference/genes-review.json
+  --output /srv/coyote4/reference/genes-review.json
 ```
 
 The output contains MongoDB Extended JSON gene records and provenance: the supplied
@@ -96,15 +96,15 @@ Pause other gene-reference writers and use maintenance credentials with write ac
 to the configured knowledgebase database. Keep the reviewed inputs unchanged:
 
 ```bash
-.venv/bin/python scripts/gene_db_creation.py \
-  --hgnc /srv/coyote3/reference/hgnc.tsv \
-  --biomart /srv/coyote3/reference/biomart.csv \
+.venv/bin/python scripts/knowledgebase/install_hgnc_genes.py \
+  --hgnc /srv/coyote4/reference/hgnc.tsv \
+  --biomart /srv/coyote4/reference/biomart.csv \
   --release center-reviewed-release \
   --assembly GRCh38 \
-  --output /srv/coyote3/reference/genes-applied.json \
+  --output /srv/coyote4/reference/genes-applied.json \
   --env-file "$COYOTE_ENV_FILE" \
   --apply \
-  --backup /srv/coyote3/reference/genes-before.bson
+  --backup /srv/coyote4/reference/genes-before.bson
 ```
 
 > [!WARNING]

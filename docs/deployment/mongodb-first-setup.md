@@ -47,15 +47,15 @@ Edit that file before running the following commands:
 
 | Setting | Required value or decision |
 | --- | --- |
-| `COYOTE3_APP_NETWORK` and the four `*_DB` names | Match the application file exactly for this instance's initial grants. |
+| `COYOTE4_APP_NETWORK` and the four `*_DB` names | Match the application file exactly for this instance's initial grants. |
 | `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD` | Separate administrative credentials; replace placeholders. |
 | `MONGO_APP_USER`, `MONGO_APP_PASSWORD` | Runtime account credentials; replace placeholders. |
 | `MONGO_UID`, `MONGO_GID` | Numeric IDs owning database storage; select an approved host account, for example the output of `id -u` / `id -g`. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | Dedicated persistent data directory, never a running local mongod's dbPath. |
-| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Private file for member authentication; preserve an existing keyfile. |
-| `MONGO_REPLICA_SET_NAME` | `coyote3-rs` for this example. |
+| `COYOTE4_MONGO_DATA_HOST_ROOT` | Dedicated persistent data directory, never a running local mongod's dbPath. |
+| `COYOTE4_MONGO_KEYFILE_HOST_PATH` | Private file for member authentication; preserve an existing keyfile. |
+| `MONGO_REPLICA_SET_NAME` | `coyote4-rs` for this example. |
 | `MONGO_REPLICA_MEMBER_HOST` | `mongo-app:27017` for application clients on this Docker network. |
-| `COYOTE3_MONGO_BIND_ADDRESS`, `COYOTE3_MONGO_PORT` | `127.0.0.1` and an unused host port. Use `27018`, for example, when local MongoDB already occupies `27017`. Internal clients still use `mongo-app:27017`. |
+| `COYOTE4_MONGO_BIND_ADDRESS`, `COYOTE4_MONGO_PORT` | `127.0.0.1` and an unused host port. Use `27018`, for example, when local MongoDB already occupies `27017`. Internal clients still use `mongo-app:27017`. |
 
 The single-instance path keeps four distinct logical databases on this server.
 Do not enable `mongo-kb` unless a separately operated knowledgebase instance is
@@ -72,12 +72,12 @@ The subshell keeps server settings out of the application environment:
   set -a
   . "$COYOTE_MONGO_ENV_FILE"
   set +a
-  sudo install -d -o "$MONGO_UID" -g "$MONGO_GID" -m 0700 "$COYOTE3_MONGO_DATA_HOST_ROOT"
-  sudo install -d -m 0700 "$(dirname "$COYOTE3_MONGO_KEYFILE_HOST_PATH")"
-  if ! sudo test -e "$COYOTE3_MONGO_KEYFILE_HOST_PATH"; then
-    sudo sh -c 'set -C; umask 077; openssl rand -base64 756 > "$1"' sh "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-    sudo chown "$MONGO_UID:$MONGO_GID" "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
-    sudo chmod 0400 "$COYOTE3_MONGO_KEYFILE_HOST_PATH"
+  sudo install -d -o "$MONGO_UID" -g "$MONGO_GID" -m 0700 "$COYOTE4_MONGO_DATA_HOST_ROOT"
+  sudo install -d -m 0700 "$(dirname "$COYOTE4_MONGO_KEYFILE_HOST_PATH")"
+  if ! sudo test -e "$COYOTE4_MONGO_KEYFILE_HOST_PATH"; then
+    sudo sh -c 'set -C; umask 077; openssl rand -base64 756 > "$1"' sh "$COYOTE4_MONGO_KEYFILE_HOST_PATH"
+    sudo chown "$MONGO_UID:$MONGO_GID" "$COYOTE4_MONGO_KEYFILE_HOST_PATH"
+    sudo chmod 0400 "$COYOTE4_MONGO_KEYFILE_HOST_PATH"
   fi
 )
 ```
@@ -110,7 +110,7 @@ configuration rather than force-reconfiguring it.
 single instance, all four application URI settings point to:
 
 ```text
-mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-app:27017/?authSource=admin&replicaSet=coyote3-rs
+mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-app:27017/?authSource=admin&replicaSet=coyote4-rs
 ```
 
 Replace the placeholders with the runtime account from the server file. Percent-encode
@@ -178,7 +178,7 @@ The result must identify this MongoDB host. **Step 8** checks the same endpoint 
 the application container; both perspectives must work.
 
 For a native Docker Engine inside WSL, `host.docker.internal` is already mapped
-through `host-gateway` in Coyote3's API/worker services. If choosing that name,
+through `host-gateway` in Coyote4's API/worker services. If choosing that name,
 ensure it also resolves on WSL itself to the verified Docker host address; configure
 an appropriate host entry if needed. Do not assume every WSL/Docker Desktop setup
 uses `172.17.0.1`. Keep the hostname/listener stable across restarts. An existing
@@ -206,7 +206,7 @@ net:
   port: 27017
   bindIp: 127.0.0.1,mongo-host.example.internal
 replication:
-  replSetName: coyote3-rs
+  replSetName: coyote4-rs
 security:
   authorization: enabled
   keyFile: /etc/mongodb/keyfile
@@ -241,25 +241,25 @@ Run once, substituting the hostname chosen in B2:
 
 ```javascript
 rs.initiate({
-  _id: "coyote3-rs",
+  _id: "coyote4-rs",
   members: [{ _id: 0, host: "mongo-host.example.internal:27017" }]
 });
 ```
 
 Repeat `db.hello()` until `isWritablePrimary` is `true` and `setName` is
-`coyote3-rs`. Do not repeat initiation while waiting for election. If there are
+`coyote4-rs`. Do not repeat initiation while waiting for election. If there are
 no users yet, create the first administrator on this primary with a hidden prompt:
 
 ```javascript
 db.getSiblingDB("admin").createUser({
-  user: "coyote3_root",
+  user: "coyote4_root",
   pwd: passwordPrompt(),
   roles: [{ role: "root", db: "admin" }]
 });
 ```
 
 Store that administrative credential privately. Exit and reconnect with
-`--username coyote3_root --authenticationDatabase admin --password` before creating
+`--username coyote4_root --authenticationDatabase admin --password` before creating
 other users. Existing deployments retain their administrator; do not recreate it.
 
 **B5. Create the runtime account for a new installation.** Open the authenticated
@@ -269,9 +269,9 @@ audit indexes with the administrator account before granting runtime access.
 These are examples; changing the names later does not transfer grants:
 
 ```javascript
-const applicationDb = "coyote3_prod";
-const identityDb = "coyote3_identity_prod";
-const knowledgebaseDb = "coyote3_knowledgebase";
+const applicationDb = "coyote4_prod";
+const identityDb = "coyote4_identity_prod";
+const knowledgebaseDb = "coyote4_knowledgebase";
 const bamDb = "bam_prod";
 const policy = JSON.parse(require("fs").readFileSync(
   "deploy/compose/mongo-init/identity-role-policy.json", "utf8"
@@ -289,7 +289,7 @@ identity.createRole({
   }))
 });
 db.getSiblingDB("admin").createUser({
-  user: "coyote3_app",
+  user: "coyote4_app",
   pwd: passwordPrompt(),
   roles: [
     { role: "readWrite", db: applicationDb },
@@ -308,7 +308,7 @@ account below, then set all four application
 URIs to the local server using the runtime account:
 
 ```text
-mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-host.example.internal:27017/?authSource=admin&replicaSet=coyote3-rs
+mongodb://APP_USER:URI_ENCODED_PASSWORD@mongo-host.example.internal:27017/?authSource=admin&replicaSet=coyote4-rs
 ```
 
 Use the existing set name if different. Do not point these local URIs at an SSH
@@ -327,8 +327,8 @@ data, substituting the actual
 username, authentication database and knowledgebase name:
 
 ```javascript
-db.getSiblingDB("admin").grantRolesToUser("coyote3_app", [
-  { role: "readWrite", db: "coyote3_knowledgebase" }
+db.getSiblingDB("admin").grantRolesToUser("coyote4_app", [
+  { role: "readWrite", db: "coyote4_knowledgebase" }
 ]);
 ```
 
@@ -336,8 +336,8 @@ After reference installation, revoke this additional role if routine API access
 should remain read-only; retain the existing `read` grant:
 
 ```javascript
-db.getSiblingDB("admin").revokeRolesFromUser("coyote3_app", [
-  { role: "readWrite", db: "coyote3_knowledgebase" }
+db.getSiblingDB("admin").revokeRolesFromUser("coyote4_app", [
+  { role: "readWrite", db: "coyote4_knowledgebase" }
 ]);
 ```
 
@@ -346,11 +346,11 @@ Replace the database name with the selected `KNOWLEDGEBASE_DB`:
 
 ```javascript
 db.getSiblingDB("admin").createUser({
-  user: "coyote3_kb_maintenance",
+  user: "coyote4_kb_maintenance",
   pwd: passwordPrompt(),
   roles: [
-    { role: "readWrite", db: "coyote3_knowledgebase" },
-    { role: "dbAdmin", db: "coyote3_knowledgebase" }
+    { role: "readWrite", db: "coyote4_knowledgebase" },
+    { role: "dbAdmin", db: "coyote4_knowledgebase" }
   ]
 });
 ```

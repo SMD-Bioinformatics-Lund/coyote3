@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 usage() {
@@ -34,7 +37,7 @@ required=(
   INTERNAL_API_TOKEN
   PASSWORD_TOKEN_SALT
   REDIS_PASSWORD
-  COYOTE3_MONGO_URI
+  COYOTE4_MONGO_URI
 )
 
 # Auxiliary URIs may

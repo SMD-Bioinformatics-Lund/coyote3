@@ -10,8 +10,8 @@ class CleanClientBuildPy(build_py):
     """Replace this distribution's generated package tree before copying current sources."""
 
     def run(self) -> None:
-        """Remove only the generated client package directory and build current modules."""
-        package = Path(self.build_lib) / "coyote3_client"
+        """Recreate this distribution's generated tree before copying current modules."""
+        package = Path(self.build_lib)
         if package.is_dir():
             shutil.rmtree(package)
         super().run()

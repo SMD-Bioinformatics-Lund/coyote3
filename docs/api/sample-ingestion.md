@@ -150,7 +150,7 @@ and expired leases every 30 seconds. Every Compose environment uses the stable
 Runtime settings:
 
 - `CELERY_WORKER_CONCURRENCY`: Worker concurrency. Defaults to `2`.
-- `/data/coyote3_<env>/ingest_staging`: Fixed durable server-side staging root for async upload files.
+- `/data/coyote4_<env>/ingest_staging`: Fixed durable server-side staging root for async upload files.
 
 Redis broker/result URLs are internal Compose wiring. They are not center-owned
 environment-file settings.
@@ -161,7 +161,7 @@ Async response:
 {
   "status": "accepted",
   "task_id": "6f3a...",
-  "task_name": "api.tasks.ingest.ingest_sample_bundle",
+  "task_name": "coyote_api.tasks.ingest.ingest_sample_bundle",
   "queue": "ingest"
 }
 ```
@@ -184,7 +184,7 @@ does not expose the stored source payload, staging path, or lease token.
 The Admin Ingest Workspace is a UI wrapper around the async upload endpoint.
 Operators provide:
 
-- one `coyote3.yaml` / `*.coyote3.yaml` manifest
+- one `coyote4.yaml` / `*.coyote4.yaml` manifest
 - one optional ZIP archive containing the files referenced by the manifest
 - `update_existing` when the manifest should replace data for an existing sample
 - `increment` when a new unique sample name should be generated from the case id
@@ -220,8 +220,8 @@ INFO or DEBUG for progress messages. Only this submission's ingest logs are sent
 not other requests or background services.
 
 ```bash
-python3 scripts/ingest/submit_ingest_manifest.py /mounted/path/synthetic.coyote3.yaml \
-  --base-url https://example.org/coyote3_dev --auth ingest --verbose
+python3 scripts/ingest/submit_ingest_manifest.py /mounted/path/synthetic.coyote4.yaml \
+  --base-url https://example.org/coyote4_dev --auth ingest --verbose
 ```
 
 The existing upload endpoint accepts `verbose=true` as a multipart form field.
@@ -396,7 +396,7 @@ curl --fail --silent --show-error \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   -H 'Content-Type: application/json' \
   --data '{"expires_hours":24}' > ingest-credential.json
-export COYOTE3_INGEST_TOKEN="$(python3 -c 'import json; print(json.load(open("ingest-credential.json"))["token"])')"
+export COYOTE4_INGEST_TOKEN="$(python3 -c 'import json; print(json.load(open("ingest-credential.json"))["token"])')"
 ```
 
 The response includes `token`, `token_id`, `expires_at`, `environment`, `scope`,
@@ -456,7 +456,7 @@ Run `scripts/ingest/submit_ingest_manifest.py` on the deployment server. Use
 submit them to the API, then rename the original YAML through SSH after a terminal
 acknowledgement. SCP cannot rename remote files; SSH command access is required.
 The helper requires Python 3.10+, `curl`, `ssh`, and `scp` on the deployment server;
-it has no Coyote3 Python package or MongoDB dependency. The analysis server needs
+it has no Coyote4 Python package or MongoDB dependency. The analysis server needs
 a POSIX shell and `sha256sum`, `ln`, `rm`, `mktemp`, and `mv`, but no installed
 helper or API token. `mktemp` and `mv` preserve an existing completion file in
 a history directory when the same manifest name is submitted again.
@@ -468,7 +468,7 @@ The API's read-only mount and the helper's access are separate. The API does not
 rename the source file in this mode; the cron account does so locally, or through
 its SSH account with `--remote-host`. If both accounts lack directory write access,
 this helper cannot complete acknowledgement. It does not edit fields inside
-`coyote3.yaml`: it preserves the content and appends `.done` or `.failed` to the
+`coyote4.yaml`: it preserves the content and appends `.done` or `.failed` to the
 filename after the API returns a terminal result. It also does not install a cron
 entry or scan directories; invoke it once per manifest from the center's scheduler.
 
@@ -481,7 +481,7 @@ read -rsp 'Internal API token: ' INTERNAL_API_TOKEN; echo
 export INTERNAL_API_TOKEN
 python3 scripts/ingest/submit_ingest_manifest.py /pipeline/outgoing/sample.yaml \
   --remote-host pipeline@analysis.example.org \
-  --base-url https://coyote.example.org/coyote3_dev \
+  --base-url https://coyote.example.org/coyote4_dev \
   --archive /pipeline/outgoing/sample.upload.zip
 ```
 
@@ -495,14 +495,14 @@ Check connectivity without any credentials before submitting:
 
 ```bash
 curl --fail --show-error --silent --max-time 15 \
-  https://coyote.example.org/coyote3_dev/api/v1/health
+  https://coyote.example.org/coyote4_dev/api/v1/health
 ```
 
 The expected response is `{"status":"ok"}`. This lightweight endpoint checks API
 reachability, not all database permissions or ingest readiness. Configure a trusted
 CA bundle if needed; do not disable certificate verification.
 
-Alternatively set `COYOTE3_BASE_URL`. Omit `--archive` when every required
+Alternatively set `COYOTE4_BASE_URL`. Omit `--archive` when every required
 input path in the YAML is already readable inside the API container. A YAML
 upload alone does not transfer its referenced data. ZIP entries must match the
 manifest paths or have unique matching basenames, as for the UI upload.
@@ -510,8 +510,8 @@ manifest paths or have unique matching basenames, as for the UI upload.
 By default, the script uses the synchronous endpoint below and appends the outcome to the
 original filename: `sample.yaml.done` for `status=ok`, or `sample.yaml.failed`
 for `status=failed`. In remote mode, it saves the full reason/result in a hashed
-`.ack.json` file under `~/.local/state/coyote3-ingest` on the deployment server
-(`$XDG_STATE_HOME/coyote3-ingest` when set). Use `--state-dir` to select another
+`.ack.json` file under `~/.local/state/coyote4-ingest` on the deployment server
+(`$XDG_STATE_HOME/coyote4-ingest` when set). Use `--state-dir` to select another
 durable directory. Receipts have owner-only permissions. A pending record is flushed
 to disk before upload and replaced with the terminal result before remote rename.
 A hash check prevents acknowledging a YAML changed since upload.
@@ -579,7 +579,7 @@ required:
 ```bash
 curl -sS -X POST "${BASE_URL}/api/v1/internal/ingest/sample-bundle/upload" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
-  -F "yaml_file=@/pipeline/outgoing/coyote3.yaml;type=text/yaml" \
+  -F "yaml_file=@/pipeline/outgoing/coyote4.yaml;type=text/yaml" \
   -F "acknowledge=true"
 ```
 
@@ -615,21 +615,21 @@ checking the acknowledgement `status`.
 ## Folder watcher ingest
 
 Compose also defines the stable `beat` scheduler service. When
-`COYOTE3_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
-`api.tasks.ingest.ingest_watch_directory_once`, which scans
-the fixed `/data/coyote3_<env>/copied_sample_files/yaml` directory for `coyote3.yaml`.
+`COYOTE4_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
+`coyote_api.tasks.ingest.ingest_watch_directory_once`, which scans
+the fixed `/data/coyote4_<env>/copied_sample_files/yaml` directory for `coyote4.yaml`.
 
 Watcher settings:
 
-- `/data/coyote3_<env>/copied_sample_files/yaml`: fixed root folder scanned recursively.
-- `COYOTE3_INGEST_WATCH_FILENAME`: manifest filename. Defaults to `coyote3.yaml`.
-- `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS`: beat interval. Defaults to `30`.
-- `COYOTE3_INGEST_WATCH_UPDATE_EXISTING`: pass `allow_update=true` to sample ingest.
-- `COYOTE3_INGEST_WATCH_INCREMENT`: pass `increment=true` to sample ingest.
-- `COYOTE3_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
-- `COYOTE3_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
+- `/data/coyote4_<env>/copied_sample_files/yaml`: fixed root folder scanned recursively.
+- `COYOTE4_INGEST_WATCH_FILENAME`: manifest filename. Defaults to `coyote4.yaml`.
+- `COYOTE4_INGEST_WATCH_INTERVAL_SECONDS`: beat interval. Defaults to `30`.
+- `COYOTE4_INGEST_WATCH_UPDATE_EXISTING`: pass `allow_update=true` to sample ingest.
+- `COYOTE4_INGEST_WATCH_INCREMENT`: pass `increment=true` to sample ingest.
+- `COYOTE4_INGEST_DONE_SUFFIX`: success marker suffix. Defaults to `.done`.
+- `COYOTE4_INGEST_FAILED_SUFFIX`: failure marker suffix. Defaults to `.failed`.
 
-The base Compose deployment mounts `COYOTE3_DATA_HOST_ROOT` only at `/data`.
+The base Compose deployment mounts `COYOTE4_DATA_HOST_ROOT` only at `/data`.
 Absolute manifest paths must be readable at the same container location by the API
 and worker; host paths are not automatically mirrored. Configure any additional
 input mounts in a [private storage override](../deployment/containers-and-reverse-proxy.md#center-storage-mounts).
@@ -650,7 +650,7 @@ services use only the right-hand canonical field names after this boundary.
 
 Relative file paths inside each manifest are resolved from that manifest's
 directory. After successful ingest, the watcher renames the manifest to
-`coyote3.yaml.done`; failed manifests are renamed to `coyote3.yaml.failed` so
+`coyote4.yaml.done`; failed manifests are renamed to `coyote4.yaml.failed` so
 they do not loop continuously.
 
 The success marker records completion of the required bundle workflow: the sample and
@@ -728,9 +728,9 @@ application services:
 
 ```bash
 .venv/bin/python scripts/bootstrap/bootstrap_database.py \
-  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --mongo-uri "$COYOTE4_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
-  --db "$COYOTE3_DB" \
+  --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
   --sys-admin-email "operator@example.org" \
   --email "admin@your-center.org"
@@ -748,10 +748,10 @@ Behavior:
 
 Seed source policy for a new deployment:
 
-- The application-owned RBAC catalog is `api/bootstrap/catalogs/rbac`. It installs
+- The application-owned RBAC catalog is `api/src/coyote_api/bootstrap/catalogs/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
   direct bootstrap or explicit catalog synchronization.
-- `api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL
+- `api/src/coyote_api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL
   records for installation verification. Replace these with reviewed center
   definitions before clinical use.
 - HGNC and VEP metadata are bundled release snapshots. The optional
@@ -771,7 +771,7 @@ Validate assay consistency before ingesting sample bundles:
 
 ```bash
 ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
-  --seed-file api/bootstrap/catalogs/demo_center \
+  --seed-file api/src/coyote_api/bootstrap/catalogs/demo_center \
   --yaml tests/fixtures/ingest/generic_case_control.yaml
 ```
 
@@ -803,7 +803,7 @@ small variant:
   `simple_id_hash` and `vep_version`.
 
 All `simple_id_hash` generation uses
-`coyote3.domain.dna.variant_identity.build_simple_id_hash_from_simple_id`.
+`coyote.domain.dna.variant_identity.build_simple_id_hash_from_simple_id`.
 It normalizes the identifier and returns its lowercase MD5 digest from UTF-8
 bytes. Ingest, annotation identity, blacklist creation, migrations and report
 snapshots use this same function. Reuse it in Python import workflows rather
@@ -990,11 +990,11 @@ not authorize arbitrary collection ingestion.
 
 Use this order for a clean deployment at a new center.
 
-1. Provision the MongoDB application user outside Coyote3.
+1. Provision the MongoDB application user outside Coyote4.
 2. Run `scripts/bootstrap/bootstrap_database.py` against the empty application and identity databases.
    - It creates the first superuser and system administrator and loads `permissions`
      and `roles` into `IDENTITY_DB`, then installs the selected default data modules.
-3. Start Coyote3 services. Later data additions use
+3. Start Coyote4 services. Later data additions use
    `scripts/deployment/manage_data.py --api-url API_URL --modules application knowledgebase`.
    Sign in with an administrator account and complete any required password change.
 4. Import approved center ASP, ASPC, and ISGL configuration.
@@ -1036,7 +1036,7 @@ Use this as the minimum deployment contract:
 
 Managed-admin form source:
 
-- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`src/coyote3/contracts/authoring/forms.py`).
+- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`core/src/coyote/contracts/authoring/forms.py`).
 - ASP, ASPC, and ISGL start at `version: 1`. Each edit writes a successor
   document with the same business identifier and the next version, then retires
   the previous active revision. Users, roles, and permissions instead update in

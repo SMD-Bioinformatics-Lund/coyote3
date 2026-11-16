@@ -1,5 +1,9 @@
 # Local icons
 
+<!-- badges:start -->
+![Scope: Icon assets](https://img.shields.io/badge/Scope-Icon%20assets-4F46A5?style=flat)
+<!-- badges:end -->
+
 `data-stack.svg` is the Lucide `layers` icon, downloaded from the
 [official SVG source](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/layers.svg)
 on 2026-10-28. It is used for all sample gene-list analysis buttons.

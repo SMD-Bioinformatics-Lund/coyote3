@@ -1,0 +1,835 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Authentication and access control helpers for API routes."""
+
+from __future__ import annotations
+
+import secrets
+from collections.abc import Callable, Generator
+from dataclasses import dataclass, field
+from hashlib import sha256
+from typing import Any, cast
+
+from coyote.application.accounts.tokens import constant_time_equal
+from coyote.application.common.access import enforce_access, sample_scope_allowed
+from coyote.config.constants import DEFAULT_AUTH_PROVIDER
+from coyote.config.policy import get_runtime_environment
+from coyote.contracts.service_tokens import SERVICE_TOKEN_PREFIX
+from coyote.domain.exceptions import AppError
+from coyote_mongo.sessions import ApiSession
+from fastapi import HTTPException, Request
+
+from coyote_api.app.deps.repositories import (
+    get_assay_panel_repository,
+    get_permissions_repository,
+    get_roles_repository,
+    get_sample_repository,
+)
+from coyote_api.app.deps.services import get_api_session_repository, get_service_tokens
+from coyote_api.app.runtime_state import app as runtime_app
+from coyote_api.app.runtime_state import reset_current_user, set_current_user
+from coyote_api.config.security import (
+    get_api_session_cookie_name as settings_session_cookie_name,
+)
+from coyote_api.config.security import (
+    get_api_session_cookie_samesite as settings_session_cookie_samesite,
+)
+from coyote_api.config.security import (
+    get_api_session_cookie_secure as settings_session_cookie_secure,
+)
+from coyote_api.config.security import (
+    get_api_session_ttl_seconds as settings_session_ttl_seconds,
+)
+from coyote_api.config.security import get_internal_api_token
+from coyote_api.security.audit_events import emit_access_event
+from coyote_api.security.auth_service import _load_user_access_context
+from coyote_api.security.models import UserModel
+from coyote_api.security.policy import build_access_policy
+
+PUBLIC_API_EXACT_PATHS = {
+    "/api/v1/health",
+    "/api/v1/auth/providers",
+    "/api/v1/auth/sessions",
+    "/api/v1/auth/sessions/current",
+    "/api/v1/auth/password/reset/request",
+    "/api/v1/auth/password/reset/confirm",
+    "/api/v1/docs",
+    "/api/v1/openapi.json",
+    "/api/v1/redoc",
+}
+PUBLIC_API_PREFIX_PATHS = (
+    "/api/v1/public/",
+    "/api/v1/internal/",
+)
+
+CSRF_EXEMPT_MUTATIONS = frozenset(
+    {
+        ("POST", "/api/v1/auth/sessions"),
+        ("POST", "/api/v1/auth/password/reset/request"),
+        ("POST", "/api/v1/auth/password/reset/confirm"),
+    }
+)
+
+
+@dataclass
+class ApiUser:
+    """Provide the api user type."""
+
+    id: str
+    email: str
+    fullname: str
+    username: str
+    roles: list[str]
+    role: str
+    access_level: int
+    permissions: list[str]
+    asp_ids: list[str]
+    asp_groups: list[str]
+    envs: list[str]
+    asp_map: dict[str, Any]
+    auth_type: list[str]
+    must_change_password: bool = False
+    assay_access: list[dict[str, Any]] = field(default_factory=list)
+    credential_version: str | None = field(default=None, repr=False)
+    firstname: str = ""
+    lastname: str = ""
+    job_title: str = ""
+    ui_settings: dict[str, str | bool | int] = field(default_factory=dict)
+
+    @property
+    def is_superuser(self) -> bool:
+        """Return whether the authenticated user is a superuser."""
+        return "superuser" in set(self.roles)
+
+
+class InternalIngestPrincipal(ApiUser):
+    """Identify an authenticated machine caller with fixed sample-ingest grants."""
+
+
+@dataclass
+class ServiceTokenPrincipal(ApiUser):
+    """Identify a verified managed credential with explicit assay/environment restrictions."""
+
+    service_token_id: str = ""
+    service_token_owner: str = ""
+    credential_operation: str = ""
+    personal_token: bool = False
+    personal_permission_check: Callable[[str | None, dict[str, Any] | None], bool] | None = field(
+        default=None, repr=False
+    )
+
+
+def _api_error(
+    status_code: int,
+    message: str,
+    details: str | None = None,
+    *,
+    category: str | None = None,
+    hint: str | None = None,
+) -> HTTPException:
+    """Build a normalized API ``HTTPException``.
+
+    Args:
+        status_code: HTTP status code to return.
+        message: User-facing error message.
+        details: Optional explanation for the error response.
+        category: Optional machine-readable error category.
+        hint: Optional corrective action for the caller.
+
+    Returns:
+        HTTPException: Normalized error payload.
+    """
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "status": status_code,
+            "error": message,
+            "details": details,
+            "category": category,
+            "hint": hint,
+        },
+    )
+
+
+def is_public_api_path(path: str) -> bool:
+    """Return whether an API path is publicly accessible.
+
+    Args:
+        path: Request path to evaluate.
+
+    Returns:
+        bool: ``True`` when the path skips authentication.
+    """
+    if path in PUBLIC_API_EXACT_PATHS:
+        return True
+    if path.startswith(PUBLIC_API_PREFIX_PATHS):
+        return True
+    # Static metadata route intentionally exposed for public catalog UI helpers.
+    if path.startswith("/api/v1/common/gene/") and path.endswith("/info"):
+        return True
+    return False
+
+
+def requires_csrf_validation(method: str, path: str) -> bool:
+    """Return whether a state-changing request must carry a CSRF token."""
+    normalized_method = str(method or "GET").upper()
+    if normalized_method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return False
+    return (normalized_method, path) not in CSRF_EXEMPT_MUTATIONS
+
+
+def _http_exception_message(exc: HTTPException) -> str:
+    """Extract a log-friendly message from an ``HTTPException``.
+
+    Args:
+        exc: Exception to summarize.
+
+    Returns:
+        str: Error message derived from the exception detail.
+    """
+    detail = exc.detail
+    if isinstance(detail, dict):
+        return str(detail.get("error") or detail.get("details") or detail)
+    return str(detail)
+
+
+def _audit_access_event(
+    *,
+    status: str,
+    reason: str,
+    request: Request | None = None,
+    user: ApiUser | None = None,
+    permission: str | None = None,
+    sample_id: str | None = None,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    """Emit an access-control audit event.
+
+    Args:
+        status: Access outcome.
+        reason: Explanation for the decision.
+        request: Active request, when available.
+        user: Authenticated user, when available.
+        permission: Required permission, when applicable.
+        sample_id: Related sample identifier.
+        extra: Additional structured metadata to emit.
+    """
+    emit_access_event(
+        status=status,
+        reason=reason,
+        request=request,
+        username=user.username if user else None,
+        roles=user.roles if user else None,
+        role=user.role if user else None,
+        permission=permission,
+        sample_id=sample_id,
+        extra=extra,
+    )
+
+
+def get_api_session_cookie_name() -> str:
+    """Return the configured API session cookie name.
+
+    Returns:
+        str: Cookie name used for API sessions.
+    """
+    return str(settings_session_cookie_name(runtime_app.config))
+
+
+def get_api_session_ttl_seconds() -> int:
+    """Return the configured API session lifetime.
+
+    Returns:
+        int: Session lifetime in seconds.
+    """
+    return int(settings_session_ttl_seconds(runtime_app.config))
+
+
+def get_api_session_cookie_secure(*, request_scheme: str | None = None) -> bool:
+    """Return whether the API session cookie must be secure.
+
+    Returns:
+        bool: ``True`` when the cookie must only be sent over HTTPS.
+    """
+    return bool(settings_session_cookie_secure(runtime_app.config, request_scheme=request_scheme))
+
+
+def get_api_session_cookie_samesite() -> str:
+    """Return the API session cookie SameSite policy."""
+    return str(settings_session_cookie_samesite(runtime_app.config))
+
+
+def create_api_session(user_doc: dict[str, Any], *, provider: str | None = None) -> ApiSession:
+    """Create and return a Mongo-backed API session for a user.
+
+    Args:
+        user_doc: The credential snapshot returned by successful authentication.
+        provider: Authentication provider to record in the session. When omitted,
+            uses the user's first normalized provider. Missing provider lists are
+            populated from DEFAULT_AUTH_PROVIDER during user normalization.
+
+    Returns:
+        ApiSession: Opaque session credentials and authenticated user.
+    """
+    if not user_doc or not user_doc.get("is_active", True):
+        raise _api_error(401, "Login required")
+    # Bind to the validated credentials, even if a password changes during login.
+    user = api_user_from_user_doc(user_doc)
+    session_provider = provider or (user.auth_type[0] if user.auth_type else "ldap")
+    session = get_api_session_repository().create(user, provider=session_provider)
+    return cast(ApiSession, session)
+
+
+def delete_api_session_token(token: str | None) -> None:
+    """Delete an opaque API session token when present."""
+    if token:
+        get_api_session_repository().delete(token)
+
+
+def api_user_from_user_doc(user_doc: dict[str, Any]) -> ApiUser:
+    """Build an ``ApiUser`` from the stored user document.
+
+    Args:
+        user_doc: Stored user document.
+
+    Returns:
+        ApiUser: Runtime user model for request handling.
+    """
+    role_docs, asp_docs = _load_user_access_context(user_doc)
+    user_model = UserModel.from_auth_payload(user_doc, role_docs, asp_docs)
+    return ApiUser(
+        id=str(user_model.username),
+        email=user_model.email,
+        fullname=user_model.fullname,
+        firstname=user_model.firstname,
+        lastname=user_model.lastname,
+        job_title=user_model.job_title or "",
+        username=user_model.username,
+        roles=list(user_model.roles),
+        role=user_model.role,
+        access_level=user_model.access_level,
+        permissions=list(user_model.permissions),
+        asp_ids=list(user_model.asp_ids),
+        assay_access=[row.model_dump() for row in user_model.assay_access],
+        asp_groups=list(user_model.asp_groups),
+        envs=list(user_model.envs),
+        asp_map=dict(user_model.asp_map),
+        auth_type=list(
+            getattr(user_model, "auth_type", [DEFAULT_AUTH_PROVIDER]) or [DEFAULT_AUTH_PROVIDER]
+        ),
+        must_change_password=bool(getattr(user_model, "must_change_password", False)),
+        credential_version=sha256(str(user_doc.get("password") or "").encode()).hexdigest(),
+        ui_settings=dict(user_doc.get("ui_settings") or {}),
+    )
+
+
+def serialize_api_user(user: ApiUser) -> dict[str, Any]:
+    """Serialize an ``ApiUser`` into a response-safe payload.
+
+    Args:
+        user: Runtime user model to serialize.
+
+    Returns:
+        dict: Serialized user payload.
+    """
+    return {
+        "_id": user.username,
+        "email": user.email,
+        "fullname": user.fullname,
+        "firstname": user.firstname,
+        "lastname": user.lastname,
+        "job_title": user.job_title,
+        "username": user.username,
+        "roles": sorted(user.roles),
+        "role": user.role,
+        "access_level": user.access_level,
+        "permissions": sorted(user.permissions),
+        "ui_settings": dict(user.ui_settings),
+        "asp_ids": sorted(user.asp_ids),
+        "assay_access": list(user.assay_access),
+        "asp_groups": sorted(user.asp_groups),
+        "envs": sorted(user.envs),
+        "asp_map": user.asp_map,
+        "auth_type": user.auth_type,
+        "must_change_password": bool(user.must_change_password),
+    }
+
+
+def _extract_api_session_token(request: Request) -> str | None:
+    """Extract an API session token from the request.
+
+    Args:
+        request: Active request.
+
+    Returns:
+        str | None: Bearer token or session cookie value.
+    """
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        if token:
+            return token
+    return cast(str | None, request.cookies.get(get_api_session_cookie_name()))
+
+
+def _get_cached_api_session(request: Request, token: str | None) -> ApiSession | None:
+    """Load an API session once and reuse it for the current request."""
+    if not token:
+        return None
+    cached_token = getattr(request.state, "api_session_token", None)
+    if cached_token == token and hasattr(request.state, "api_session"):
+        return cast(ApiSession | None, request.state.api_session)
+    session = get_api_session_repository().get(token)
+    request.state.api_session_token = token
+    request.state.api_session = session
+    return cast(ApiSession, session)
+
+
+def _decode_session_user(request: Request) -> ApiUser:
+    """Decode and validate the authenticated API user.
+
+    Args:
+        request: Active request.
+
+    Returns:
+        ApiUser: Authenticated runtime user.
+    """
+    api_token = _extract_api_session_token(request)
+    if api_token:
+        session = _get_cached_api_session(request, api_token)
+        if session is None:
+            raise _api_error(401, "Login required")
+        return cast(ApiUser, session.user)
+    raise _api_error(401, "Login required")
+
+
+def _enforce_access(
+    user: ApiUser,
+    permission: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> None:
+    """Enforce permission and optional resource-scope requirements for a user.
+
+    Args:
+        user: Authenticated user to evaluate.
+        permission: Required permission, when applicable.
+        context: Resource attributes for ABAC scope checks.
+    """
+    from coyote_api.infra.security.ingest_policy import SampleIngestPolicy
+
+    try:
+        enforce_access(
+            user,
+            permission=permission,
+            context=context,
+            policy_factory=lambda actor: (
+                SampleIngestPolicy(
+                    InternalIngestPrincipal, scoped_principal_type=ServiceTokenPrincipal
+                )
+                if isinstance(actor, ServiceTokenPrincipal)
+                else build_access_policy(
+                    user=actor,
+                    roles_repository=get_roles_repository(),
+                    permissions_repository=get_permissions_repository(),
+                )
+            ),
+            internal_ingest=isinstance(user, InternalIngestPrincipal),
+        )
+    except AppError as exc:
+        raise _api_error(
+            exc.status_code, exc.message, exc.details, category=exc.category, hint=exc.hint
+        ) from exc
+
+
+def require_authenticated(request: Request) -> ApiUser:
+    """Require a valid authenticated session without applying route-level RBAC."""
+    user = _decode_session_user(request)
+    _enforce_password_change(user, request)
+    return user
+
+
+def _enforce_password_change(user: ApiUser, request: Request) -> None:
+    """Limit temporary-password sessions to identity, password change, and logout."""
+    if not user.must_change_password:
+        return
+    path = request.scope.get("path", "")
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    if root_path and path.startswith(root_path + "/"):
+        path = path[len(root_path) :]
+    allowed = {
+        ("GET", "/api/v1/auth/whoami"),
+        ("GET", "/api/v1/auth/session"),
+        ("POST", "/api/v1/auth/password/change"),
+        ("DELETE", "/api/v1/auth/sessions/current"),
+    }
+    if (request.method, path.rstrip("/")) not in allowed:
+        raise _api_error(
+            403,
+            "Change your temporary password before continuing.",
+            category="password_change_required",
+        )
+
+
+def resolve_request_user(request: Request) -> ApiUser | None:
+    """Resolve session identity while suppressing HTTP authentication failures.
+
+    Args:
+        request: Incoming request containing session credentials.
+
+    Returns:
+        Authenticated user, or None when session resolution raises HTTPException.
+        Unexpected non-HTTP exceptions are not suppressed.
+    """
+    try:
+        return _decode_session_user(request)
+    except HTTPException:
+        return None
+
+
+def validate_request_csrf(request: Request) -> bool:
+    """Validate the CSRF token for cookie-authenticated state changes.
+
+    Bearer-authenticated API clients are not vulnerable to ambient cookie
+    submission and therefore do not require this browser-specific token.
+    """
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        return True
+    token = request.cookies.get(get_api_session_cookie_name())
+    if not token:
+        return False
+    session = _get_cached_api_session(request, token)
+    supplied = str(request.headers.get("X-CSRF-Token") or "")
+    return bool(session and supplied and constant_time_equal(session.csrf_token, supplied))
+
+
+def get_request_api_session(request: Request) -> ApiSession:
+    """Resolve the server-side bearer or cookie session used by this request."""
+    token = _extract_api_session_token(request)
+    session = _get_cached_api_session(request, token)
+    if session is None:
+        raise _api_error(401, "Login required")
+    return cast(ApiSession, session)
+
+
+def require_annotation_publication(user: ApiUser, sample: dict[str, Any]) -> None:
+    """Require the clinical publication grant for production annotation mutations.
+
+    Args:
+        user: Authenticated principal with current role-derived permissions.
+        sample: Authorized server-loaded sample; sandbox samples retain normal curation grants.
+
+    Raises:
+        HTTPException: Production publication is not permitted for this principal.
+    """
+    if sample.get("environment") == "production":
+        _enforce_access(user, permission="annotation:publish")
+
+
+def require_access(
+    permission: str | None = None,
+) -> Callable[[Request], Generator[ApiUser, None, None]]:
+    """Build a dependency that enforces route-level access requirements.
+
+    Args:
+        permission: Required permission, when applicable.
+
+    Returns:
+        Callable: FastAPI dependency that yields the authenticated user.
+    """
+
+    def dep(request: Request) -> Generator[ApiUser, None, None]:
+        """Resolve, authorize, and yield the authenticated user.
+
+        Args:
+            request: Active request.
+
+        Returns:
+            Generator[ApiUser, None, None]: Authorized user dependency result.
+        """
+        user: ApiUser | None = None
+        try:
+            user = _decode_session_user(request)
+            _enforce_password_change(user, request)
+            _enforce_access(user, permission=permission)
+        except HTTPException as exc:
+            _audit_access_event(
+                status="denied",
+                reason=_http_exception_message(exc),
+                request=request,
+                user=user,
+                permission=permission,
+            )
+            raise
+        _audit_access_event(
+            status="authorized",
+            reason="Access granted",
+            request=request,
+            user=user,
+            permission=permission,
+        )
+        token = set_current_user(user)
+        try:
+            yield user
+        finally:
+            reset_current_user(token)
+
+    return dep
+
+
+def require_sample_ingest_access(request: Request) -> Generator[ApiUser, None, None]:
+    """Authenticate sample ingestion against current session or selected managed-token access."""
+    yield from _require_ingestion_access(request, session_permission="internal.ingest:manage")
+
+
+def require_ingest_job_access(request: Request) -> Generator[ApiUser, None, None]:
+    """Authenticate job status without granting machine credentials broad task visibility."""
+    yield from _require_ingestion_access(request, session_permission="internal.task:view")
+
+
+def _require_ingestion_access(
+    request: Request, *, session_permission: str
+) -> Generator[ApiUser, None, None]:
+    """Authenticate a synchronous sample-ingest caller without granting administration.
+
+    Args:
+        request: Request carrying a managed service bearer token, an internal token,
+            or the existing user-session credentials.
+
+    Yields:
+        A session user, fixed-audience internal machine, or service-token identity with
+        explicit assay/environment grants. No interactive account is created for a token.
+
+    Notes:
+        Only dedicated sample-ingest routes use this dependency. Other internal
+        routes retain their own authorization requirements.
+    """
+    bearer = (request.headers.get("Authorization") or "").split()
+    if (
+        len(bearer) == 2
+        and bearer[0].lower() == "bearer"
+        and bearer[1].startswith(SERVICE_TOKEN_PREFIX)
+    ):
+        if {"x-coyote-ingest-token", "x-coyote-internal-token"} & set(request.headers):
+            raise _api_error(401, "Use one authentication credential per request")
+        tokens = get_service_tokens()
+        credential = tokens.resolve(bearer[1])
+        if credential is None:
+            raise _api_error(401, "Invalid, expired or revoked service token")
+        path = request.scope["path"].removeprefix(request.scope.get("root_path", ""))
+        operation = {
+            "/api/v1/internal/ingest/sample-bundle": "sample_bundle",
+            "/api/v1/internal/ingest/sample-bundle/upload": "sample_upload",
+            "/api/v1/internal/ingest/sample-bundle/async": "sample_bundle_async",
+            "/api/v1/internal/ingest/sample-bundle/upload/async": "sample_upload_async",
+        }.get(path)
+        if (
+            request.method == "GET"
+            and path.startswith("/api/v1/internal/tasks/")
+            and "/" not in path.removeprefix("/api/v1/internal/tasks/")
+            and path.removeprefix("/api/v1/internal/tasks/")
+        ):
+            operation = "job_status"
+        elif request.method != "POST":
+            operation = None
+        if operation is None or operation not in credential.operations:
+            raise _api_error(
+                403, "This service token does not allow the requested ingestion operation"
+            )
+        delegated_actor = (
+            tokens.personal_actor(credential) if credential.kind == "personal" else None
+        )
+        identity = (
+            credential.owner
+            if delegated_actor is not None
+            else "service-token-" + credential.token_id
+        )
+        permissions = []
+        if any(item != "job_status" for item in credential.operations):
+            permissions.extend(["internal.ingest:manage", "sample:edit:own"])
+        if "job_status" in credential.operations:
+            permissions.append("internal.task:view")
+        user: ApiUser = ServiceTokenPrincipal(
+            id=identity,
+            username=identity,
+            fullname=delegated_actor.fullname if delegated_actor is not None else credential.name,
+            email="",
+            roles=[],
+            role="",
+            access_level=0,
+            permissions=permissions,
+            asp_ids=credential.asp_ids,
+            assay_access=[
+                {"asp_id": asp_id, "environments": credential.environments}
+                for asp_id in credential.asp_ids
+            ],
+            asp_groups=["*"],
+            asp_map={},
+            envs=credential.environments,
+            auth_type=["personal_token" if delegated_actor is not None else "service_token"],
+            service_token_id=credential.token_id,
+            service_token_owner=credential.owner,
+            credential_operation=operation,
+            personal_token=delegated_actor is not None,
+            personal_permission_check=(
+                lambda permission, context: tokens.personal_allowed(
+                    delegated_actor, permission, context
+                )
+            )
+            if delegated_actor is not None
+            else None,
+        )
+        _enforce_access(user, permission=session_permission)
+        context_token = set_current_user(user)
+        try:
+            yield user
+        finally:
+            reset_current_user(context_token)
+        return
+    if request.scope["path"].removeprefix(request.scope.get("root_path", "")) not in {
+        "/api/v1/internal/ingest/sample-bundle",
+        "/api/v1/internal/ingest/sample-bundle/upload",
+    }:
+        yield from require_access(permission=session_permission)(request)
+        return
+    machine_id = "internal-ingest"
+    if "X-Coyote-Ingest-Token" in request.headers:
+        from coyote_api.security.ingest_tokens import verify_token
+
+        try:
+            claims = verify_token(
+                request.headers["X-Coyote-Ingest-Token"],
+                get_internal_api_token(runtime_app.config),
+                get_runtime_environment(runtime_app.config),
+            )
+        except (ValueError, RuntimeError):
+            raise _api_error(403, "Invalid or expired ingestion token", category="auth") from None
+        machine_id = "ingest-token-" + claims["id"]
+    elif "X-Coyote-Internal-Token" not in request.headers:
+        yield from require_access(permission=session_permission)(request)
+        return
+    else:
+        _require_internal_token(request)
+    user = InternalIngestPrincipal(
+        id=machine_id,
+        username=machine_id,
+        email="",
+        fullname="Internal sample ingestion",
+        roles=[],
+        role="",
+        access_level=0,
+        permissions=["internal.ingest:manage", "sample:edit:own"],
+        asp_ids=["*"],
+        asp_groups=[],
+        asp_map={},
+        envs=[get_runtime_environment(runtime_app.config)],
+        auth_type=["internal"],
+    )
+    _enforce_access(user, permission="internal.ingest:manage")
+    token = set_current_user(user)
+    try:
+        yield user
+    finally:
+        reset_current_user(token)
+
+
+def _get_sample_for_api(
+    sample_id: str, user: ApiUser, request: Request | None = None
+) -> dict[str, Any]:
+    """Return a sample after enforcing sample-assay access rules.
+
+    Args:
+        sample_id: Sample identifier to resolve.
+        user: Authenticated user requesting access.
+        request: Active request, when available.
+
+    Returns:
+        dict: Sample payload authorized for the user.
+    """
+    sample_repository = get_sample_repository()
+    sample = sample_repository.get_sample(sample_id)
+    if not sample:
+        sample = sample_repository.get_sample_by_id(sample_id)
+    if not sample:
+        _audit_access_event(
+            status="denied",
+            reason="Sample not found",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={"check": "sample_lookup"},
+        )
+        raise _api_error(404, "Sample not found", category="not_found")
+
+    sample_assay = sample.get("asp_id", "")
+    scope_allowed = sample_scope_allowed(
+        user,
+        sample,
+        policy_factory=lambda actor: build_access_policy(
+            user=actor,
+            roles_repository=get_roles_repository(),
+            permissions_repository=get_permissions_repository(),
+        ),
+        assay_loader=lambda identity: get_assay_panel_repository().get_asp(identity),
+    )
+
+    if not scope_allowed and sample_assay not in set(user.asp_ids or []):
+        _audit_access_event(
+            status="denied",
+            reason="Forbidden",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={"sample_assay": sample_assay},
+        )
+        raise _api_error(
+            403,
+            f"Sample '{sample_id}' is outside your assay scope",
+            (
+                f"Sample '{sample_id}' belongs to assay '{sample_assay}', "
+                f"which is not assigned to user '{user.username}'."
+            ),
+            category="scope",
+            hint="Ask an administrator to assign the assay to your user, or use a superuser account.",
+        )
+    if not scope_allowed:
+        _audit_access_event(
+            status="denied",
+            reason="Forbidden",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={
+                "sample_assay": sample_assay,
+                "sample_profile": sample.get("environment"),
+                "sample_assay_group": sample.get("assay_group"),
+            },
+        )
+        raise _api_error(
+            403,
+            f"Sample '{sample_id}' is outside your access scope",
+            "The sample attributes do not match your assigned assay, environment, or assay-group scope.",
+            category="scope",
+            hint="Ask an administrator to update your sample access scope.",
+        )
+    return cast(dict[str, Any], sample)
+
+
+def _require_internal_token(request: Request) -> None:
+    """Validate the internal API token header.
+
+    Args:
+        request: Active request.
+    """
+    try:
+        expected = get_internal_api_token(runtime_app.config)
+    except RuntimeError:
+        expected = ""
+    provided = request.headers.get("X-Coyote-Internal-Token")
+    if (
+        not expected
+        or not provided
+        or not secrets.compare_digest(provided.encode("utf-8"), expected.encode("utf-8"))
+    ):
+        raise _api_error(403, "Forbidden", category="auth")

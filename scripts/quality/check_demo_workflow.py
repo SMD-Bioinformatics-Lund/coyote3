@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Verify a ready synthetic starter sample through an authenticated HTTP client."""
 
 import argparse
 import os
 
-from coyote3_client import CoyoteClient
+from coyote_pyclient import CoyoteClient
 
 
 def check_demo_workflow(client: CoyoteClient, *, username: str, password: str) -> int:

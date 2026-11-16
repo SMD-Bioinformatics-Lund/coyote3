@@ -1,12 +1,16 @@
 # Collection dependencies and migration planning
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Use this reference to answer **which stored field points to which collection key**,
 what must exist before a document is usable, and which downstream records are
 affected by a key change. Each collection has an SVG diagram, outgoing dependencies,
 incoming references, relationship semantics, and source-code evidence.
 
-The inventory covers the physical bindings in `api/config/collections.toml` and
-the operational collections in `api/config/operational_collections.py`. It is a
+The inventory covers the physical bindings in `adapters/mongo/src/coyote_mongo/config/collections.toml` and
+the operational collections in `adapters/mongo/src/coyote_mongo/config/operational_collections.py`. It is a
 source-code reference, not an inspection of a particular server. Operator archives,
 temporary import collections and historical collections outside these bindings
 must be inventoried separately before migration. No database is read or changed

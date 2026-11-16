@@ -1,77 +1,43 @@
-# Application administration
+# Configure assays and access
 
-Application administration covers user accounts, roles, assay definitions, gene lists,
-and clinical configuration. Administrative actions are governed by permissions and
-recorded through the application's audit workflows. Service maintenance and incident
-response are covered in [Operations](../operations/README.md).
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
 
-## First time configuring an assay?
+## Set up a new assay
 
-Start with [prerequisites and setup steps](assay-setup.md#step-by-step-add-a-new-assay).
-That is the ordered procedure from preparing an active group to validating an
-activated assay. The sidebar groups its supporting pages under **Set up an assay**.
-You do not need to read every reference before starting.
+Follow [assay setup](assay-setup.md#step-by-step-add-a-new-assay). You need an active
+assay group, authors and reviewers with the required permissions, and the assay's
+analysis and reporting requirements. The guide takes you through the draft,
+activation and validation sample. Saving a draft does not activate an assay.
 
-<details markdown="1">
-<summary>Look up a resource for a setup step</summary>
+## Change an existing setup
 
-| At this stage | Read this |
+Use [planning configuration changes](planning-configuration-changes.md) before
+editing an active resource. It explains which changes affect current samples,
+new ingestion or publication history.
+
+## Choose the setting you need to change
+
+| Task | Guide |
 | --- | --- |
-| Understand the names | [Resources and dependencies](clinical-configuration-resources.md): an assay (ASP) defines the offering; an assay configuration (ASPC) configures a diagnosis and environment; an in-silico gene list (ISGL) selects genes. |
-| Prepare prerequisites | [Setup step 1](assay-setup.md#1-confirm-authors-reviewers-and-the-active-group), then [assay groups](assay-groups.md). |
-| Choose diagnoses or subpanel scopes | [Setup step 3](assay-setup.md#3-select-scopes-and-environments). Named diagnoses are optional; Base needs no diagnosis registration. |
-| Understand which findings will be retrieved | [Application base queries](query-rules.md#application-base-queries-by-analysis), then [installed group policies](installed-defaults.md#published-set-identifiers). |
-| Change finding selection in the UI | [Query-rule scope and inheritance](query-rules.md#scope-and-inheritance), then [create and activate a policy](query-rules.md#create-and-activate-a-policy). |
-| Prepare reporting | [Optional setup step 5](assay-setup.md#5-optionally-publish-reporting-rules) and the [reporting-rule reference](../reference/clinical-reporting-rules.md). Query rules select findings; reporting rules generate clinical report content. |
-| Complete Base / production and activate | Continue from [setup step 6](assay-setup.md#6-complete-the-base-production-aspc), with validation and optional review before activation. |
-| Resolve a blocked step | [Missing prerequisites and their effects](clinical-configuration-resources.md#missing-prerequisites-and-their-effects). |
+| Manage users, roles and assay/environment access | [Permissions and access](permissions-and-access.md) |
+| Register a group or diagnosis | [Assay groups](assay-groups.md) and [diagnoses](assay-diagnoses.md) |
+| Change finding selection | [Query rules](query-rules.md) |
+| Create conditional report text | [Reporting-rule editor](report-rule-authoring.md) |
+| Follow a complete reporting example | [Hematology](hematology-base-reporting.md) or [solid assays](solid-reporting-examples.md) |
+| Import resource lists | [Bulk installation](bulk-installation.md) |
+| Publish public assay information | [Public catalog](public-assay-catalog.md) |
+| Change runtime features or retention | [Application controls](application-controls.md) |
+| Resolve a concurrent edit | [Editing sessions](document-editing.md) |
 
-</details>
+## Look up a field or requirement
 
-## Other administration tasks
+Use [clinical resource fields](clinical-resource-fields.md) for ASP, ASPC and ISGL
+fields, [supported capabilities](supported-capabilities.md) for available analyses,
+and [resource dependencies](clinical-configuration-resources.md) for missing prerequisites.
+The [role catalog](system-role-catalog.md) and [permission catalog](permission-catalog.md)
+list access requirements.
 
-- **Understand creator/updater fields or read-only bundled records:** see
-  [record attribution](record-attribution.md).
-
-- **Edit a document another user may be working on:** read [editing sessions](document-editing.md).
-
-- **Manage users or access:** start with [permissions and access control](permissions-and-access.md).
-- **Change an existing clinical configuration:** start with [planning configuration changes](planning-configuration-changes.md).
-- **Change an application setting:** use [application controls](application-controls.md).
-- **Install, upgrade or recover services:** use [deployment](../deployment/README.md)
-  or [operations](../operations/README.md); these are separate from registering an assay.
-
-## All administration guides
-
-<details markdown="1">
-<summary>All administration reference guides</summary>
-
-| Guide | Use it to |
-| --- | --- |
-| [Supported application capabilities](supported-capabilities.md) | Distinguish center-defined groups and assays from implemented analyses, and check supported workflows. |
-| [Installed defaults and demonstration configuration](installed-defaults.md) | Review bundled groups, exact query conditions, optional demo resources and default roles. |
-| [Application administration](administration-guide.md) | Manage users, roles, assays, gene lists, and application controls. |
-| [Permissions and access control](permissions-and-access.md) | Understand permission identifiers, roles, scopes, and enforcement. |
-| [System permission catalog](permission-catalog.md) | Look up installed permission IDs in the generated catalog. |
-| [System role catalog](system-role-catalog.md) | Review every installed role, its purpose and exact permission assignments. |
-| [Clinical configuration resources](clinical-configuration-resources.md) | Understand ASPs, ASPCs, diagnoses, ISGLs, rules and the effect of missing prerequisites. |
-| [Planning configuration changes](planning-configuration-changes.md) | Identify affected resources, validate changes, and preserve historical review evidence. |
-| [Assay Groups](assay-groups.md) | Register and manage assay-group scope and availability. |
-| [Assay Diagnoses](assay-diagnoses.md) | Manage shared diagnosis definitions and assay associations. |
-| [Bulk installation](bulk-installation.md) | Upload JSON/YAML lists of diagnoses, groups, assays, gene lists or assay configurations. |
-| [Assay Setup](assay-setup.md) | Prepare and review an assay's configuration resources. |
-| [Finding query rules](query-rules.md) | Manage inherited finding-selection policies for groups, assays and diagnoses. |
-| [Clinical reporting rules](../reference/clinical-reporting-rules.md) | Author, test, review and publish the rules that produce clinical report content. |
-| [Build report wording](report-rule-authoring.md) | Learn the editor's sections, dynamic values and condition controls. |
-| [Hematology Base reporting walkthrough](hematology-base-reporting.md) | Build a complete assay-specific draft from introductions through advanced conditions and publication. |
-| [Solid Base and diagnosis reporting examples](solid-reporting-examples.md) | Configure positive/negative SNV text, a breast subpanel publication, source selection and scope tests. |
-| [Report presentation settings](../configuration/report-presentation-file.md) | Configure supported empty-section wording without changing clinical rules. |
-| [Assay analysis and reporting availability](assay-analysis-availability.md) | Understand how assay files and configuration enable analyses and reporting. |
-| [Clinical resource fields](clinical-resource-fields.md) | Look up ASP, ASPC and ISGL field requirements and defaults. |
-| [Center Vocabulary Configuration](clinical-vocabulary.md) | Configure center-owned terms and annotation choices. |
-| [Public Assay Catalog](public-assay-catalog.md) | Author, review, and publish the public assay catalog. |
-| [Application controls](application-controls.md) | Configure runtime switches and retention using exact keys and limits. |
-
-</details>
-
-[Documentation home](../README.md)
+Installation, upgrades and backups belong to
+[deployment](../deployment/README.md) and [operations](../operations/README.md).

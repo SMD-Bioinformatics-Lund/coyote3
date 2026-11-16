@@ -3,10 +3,10 @@
 The administrative audit browser exposes actor, resource, outcome, and request
 context without requiring operators to inspect raw database documents.
 
-Coyote3 separates operational diagnostics from durable security and workflow audit events.
+Coyote4 separates operational diagnostics from durable security and workflow audit events.
 
 Runtime logs are JSON Lines written to stdout and, when enabled, rotating files under `/app/logs`.
-Compose bind-mounts that fixed container location from `COYOTE3_LOGS_HOST_ROOT`, so API,
+Compose bind-mounts that fixed container location from `COYOTE4_LOGS_HOST_ROOT`, so API,
 worker, and beat logs survive container replacement and use the center-selected host storage.
 Files use `YYYY/MM/DD/<service>_YYYY-MM-DD.log`, for example
 `/app/logs/2026/09/09/api_2026-09-09.log`. The date changes at midnight in
@@ -104,7 +104,7 @@ references; it does not display proxy HTML or internal 5xx exception messages. C
 requests do not produce error notifications. Network failures have no HTTP status and tell
 the user to check connectivity and operation status. Mutations are not automatically retried.
 
-The envelope remains Coyote3's existing JSON contract, extended with diagnostic fields.
+The envelope remains Coyote4's existing JSON contract, extended with diagnostic fields.
 It is not an RFC 9457 `application/problem+json` response. Changing to that format would
 require an API contract change, including response fields and content type.
 
@@ -151,7 +151,7 @@ not a distributed transaction or an exactly-once execution guarantee.
 The central audit browser shows these events after worker delivery, not necessarily
 immediately after saving. Their occurrence timestamps remain the original transaction times.
 
-`api.tasks.maintenance.replay_audit_events` runs every 30 seconds and attempts at
+`coyote_api.tasks.maintenance.replay_audit_events` runs every 30 seconds and attempts at
 most 100 events per configured queue, then the filesystem retry queue. Failed MongoDB
 deliveries are logged and retained. Monitor errors and the size/age of `audit_outbox`;
 it should drain after dependency recovery. API and worker database accounts need
@@ -165,7 +165,7 @@ backups of every database that owns one, and restore it with the corresponding
 business data. Do not clear a queue to resolve delivery errors. Existing revision
 history is unchanged; this does not reconstruct missing historical central events.
 Maintenance scripts that use these repositories must load `ENV_NAME`, `IDENTITY_DB`
-and `IDENTITY_MONGO_URI` (or the shared `COYOTE3_MONGO_URI`) from the owning deployment's
+and `IDENTITY_MONGO_URI` (or the shared `COYOTE4_MONGO_URI`) from the owning deployment's
 environment file. Missing audit-routing configuration aborts the transaction rather
 than creating an unassigned receipt.
 
@@ -227,7 +227,7 @@ LOG_FILE_ENABLED
 LOG_GZIP_AFTER_DAYS
 LOG_RETENTION_DAYS
 LOG_LEVEL
-COYOTE3_LOGS_HOST_ROOT
+COYOTE4_LOGS_HOST_ROOT
 LOG_ROOT
 LOCAL_TIME_ZONE
 ERROR_EMAIL_GROUP
@@ -250,7 +250,7 @@ message for each current recipient. Failed delivery and database outages are ret
 The scanner can also read logs already compressed by retention.
 
 Log retention is scheduled once daily at midnight in `LOCAL_TIME_ZONE`
-(`COYOTE3_MAINTENANCE_HOUR=0`). The default compression age is seven days
+(`COYOTE4_MAINTENANCE_HOUR=0`). The default compression age is seven days
 (`LOG_GZIP_AFTER_DAYS=7`). Existing saved App Controls retention settings take
 precedence: set **Gzip disk logs after days** to **7** there as well if previously
 saved as 1. Error scans continue frequently, but do not compress attachments;
@@ -315,7 +315,7 @@ uses recipient-specific leases in the same notification document. See
 
 Browser-generated API success and failure messages remain local workflow
 feedback. They and session-hidden IDs are stored in sessionStorage under
-`coyote3:notification-tray:<username>` and are not
+`coyote4:notification-tray:<username>` and are not
 treated as durable operational broadcasts.
 
 ### Shared activity and reported samples
@@ -374,7 +374,7 @@ Audit events use explicit retention classes:
 Audit retention is enforced in two layers for `operational` events only:
 
 - MongoDB TTL indexes delete documents after their `expires_at` timestamp.
-- The nightly `api.tasks.maintenance.run_retention_maintenance` Celery task
+- The nightly `coyote_api.tasks.maintenance.run_retention_maintenance` Celery task
   deletes operational events in `operational_audit_events` older than the current
   admin retention policy and reports the cleanup result.
 
@@ -392,7 +392,7 @@ include `audit_events` in protected backup and restore procedures.
 
 ### Runtime database privileges
 
-The bundled MongoDB initializer assigns the `coyote3_runtime_identity` custom role
+The bundled MongoDB initializer assigns the `coyote4_runtime_identity` custom role
 instead of database-wide identity `readWrite`. The runtime can read and insert
 clinical audit events and inspect their indexes. It cannot update/delete those
 events, drop the collection, change validators, or create/drop indexes. Mutable
@@ -405,7 +405,7 @@ and index creation/deletion require a separately authorized maintenance identity
 
 Protected audit indexes are installed with maintenance credentials before granting
 the runtime role. Existing indexes can be verified with runtime credentials.
-The shared policy is generated from `api/infra/security/mongo_roles.py`:
+The shared policy is generated from `adapters/mongo/src/coyote_mongo/runtime_roles.py`:
 
 ```bash
 .venv/bin/python scripts/database/manage_mongo_roles.py --export-policy
@@ -455,7 +455,7 @@ remain enforced. These deployments do not provide database-level protection agai
 audit mutation. Authenticated runtime grants that explicitly permit audit mutation
 or role administration still fail validation. Adding a custom role while retaining
 broad `readWrite` access does not remove the broad grant.
-An empty `IDENTITY_MONGO_URI` inherits `COYOTE3_MONGO_URI`; an explicitly anonymous
+An empty `IDENTITY_MONGO_URI` inherits `COYOTE4_MONGO_URI`; an explicitly anonymous
 identity URI does not inherit credentials from the shared URI. To enable database-level
 protection, configure an authenticated runtime connection and provision MongoDB
 authorization and its restricted role. `authSource` selects where an
@@ -497,7 +497,7 @@ Checkpoint files contain hashes and positions, not event payloads or credentials
 ### Scheduled checkpoint exports
 
 Set `AUDIT_CHECKPOINT_DIRECTORY` to a dedicated archival mount inside the maintenance
-worker. The hourly `api.tasks.maintenance.export_audit_checkpoint` task verifies the
+worker. The hourly `coyote_api.tasks.maintenance.export_audit_checkpoint` task verifies the
 chain and creates a uniquely named, fsynced JSON checkpoint. An unset value disables
 export. Verification failures raise an error and do not produce a successful checkpoint.
 The destination directory must already exist; the application does not provision it.

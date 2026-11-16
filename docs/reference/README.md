@@ -1,5 +1,9 @@
 # Data and clinical reference
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 The data and clinical reference defines resource identities, accepted input formats,
 filtering behavior, reporting rules, and database contracts. Workflow procedures are
 covered in the [clinical user guide](../user-guide/README.md),

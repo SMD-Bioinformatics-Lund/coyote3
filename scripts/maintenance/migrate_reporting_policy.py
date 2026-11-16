@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Plan or apply explicit ASPC tier policies and draft report-metadata rules.
 
 Published rule versions, historical ASPCs, annotations and reports are retained.
-Run with COYOTE3_MONGO_URI and COYOTE3_DB configured; writes require --apply.
+Run with COYOTE4_MONGO_URI and COYOTE4_DB configured; writes require --apply.
 """
 
 from __future__ import annotations
@@ -19,15 +22,15 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.clinical_rule_sets import build_revision_snapshot  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.application.reporting.clinical_rules.evaluator import (
+from coyote.application.reporting.clinical_rules.evaluator import (
     ClinicalRuleEvaluator,  # noqa: E402
 )
-from coyote3.application.reporting.clinical_rules.facts import PreparedReportContext  # noqa: E402
-from coyote3.application.reporting.clinical_rules.validation import validate_rule_set  # noqa: E402
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote.application.reporting.clinical_rules.facts import PreparedReportContext  # noqa: E402
+from coyote.application.reporting.clinical_rules.validation import validate_rule_set  # noqa: E402
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.clinical_rule_sets import build_revision_snapshot  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 MIGRATION_REASON = "Move report eligibility and metadata to governed configuration"
 
@@ -305,13 +308,13 @@ def migrate(db, *, actor: str, apply: bool = False) -> dict[str, int]:
 def main() -> int:
     """Run an explicit-target dry run or transaction; never log a connection URI."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", default=os.getenv("COYOTE3_DB"))
+    parser.add_argument("--db", default=os.getenv("COYOTE4_DB"))
     parser.add_argument("--actor", required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
-    uri = os.getenv("COYOTE3_MONGO_URI")
+    uri = os.getenv("COYOTE4_MONGO_URI")
     if not uri or not args.db or not args.actor.strip():
-        parser.error("Set COYOTE3_MONGO_URI, COYOTE3_DB (or --db), and a nonempty --actor")
+        parser.error("Set COYOTE4_MONGO_URI, COYOTE4_DB (or --db), and a nonempty --actor")
     with MongoClient(uri, serverSelectionTimeoutMS=7000) as client:
         result = migrate(client[args.db], actor=args.actor.strip(), apply=args.apply)
     print(f"{'Applied' if args.apply else 'Dry run'}: {result}")

@@ -1,4 +1,4 @@
-# Copy to .coyote3_storage.yml and adapt the list for the center's storage layout.
+# Copy to .coyote4_storage.yml and adapt the list for the center's storage layout.
 # Neither the host source nor the container target is fixed by the application.
 x-center-inputs: &center-inputs
   - type: bind

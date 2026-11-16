@@ -1,0 +1,359 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Repository for saved clinical report metadata."""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from bson.objectid import ObjectId
+from coyote.application.common.execution_context import current_username
+from coyote.contracts.operations import OperationResult
+from coyote.domain.exceptions import AppError
+from coyote.domain.reporting.errors import ReportCommitUncertain
+from pymongo.errors import PyMongoError
+
+from coyote_mongo.assay_access import restrict_assay_access
+from coyote_mongo.repositories.audit_outbox import enqueue_audit
+from coyote_mongo.repositories.base import BaseRepository
+from coyote_mongo.repository_utils import utc_now
+from coyote_mongo.results import operation_from_delete
+from coyote_mongo.samples_cache import invalidate_samples_cache
+from coyote_mongo.transactions import run_transaction
+
+
+class ReportRepository(BaseRepository):
+    """Persist report metadata outside the sample document."""
+
+    def __init__(self, adapter):
+        """Bind report metadata and retain the adapter for related sample writes.
+
+        Args:
+            adapter: Mongo adapter exposing reports, samples, and reported-variant
+                persistence on the client used for report transactions.
+        """
+        super().__init__(adapter)
+        self.set_collection(self.adapter.reports_collection)
+
+    def ensure_indexes(self) -> None:
+        """Create report ID, sample chronology, and assay/environment lookup indexes."""
+        col = self.get_collection()
+        col.create_index([("report_id", 1)], name="report_id_1", background=True)
+        col.create_index([("artifacts.status", 1)], name="report_artifact_status")
+        col.create_index(
+            [("sample_oid", 1), ("report_num", -1)], name="sample_oid_report_num", background=True
+        )
+        col.create_index(
+            [("sample_name", 1), ("time_created", -1)], name="sample_name_time", background=True
+        )
+        col.create_index(
+            [("asp_id", 1), ("environment", 1), ("time_created", -1)],
+            name="asp_environment_time",
+            background=True,
+        )
+
+    def pending_artifacts(self, *, limit: int = 100) -> list[dict]:
+        """Return committed reports awaiting artifact publication, oldest first."""
+        return list(
+            self.get_collection()
+            .find({"artifacts.status": "pending"})
+            .sort("time_created", 1)
+            .limit(limit)
+        )
+
+    def complete_artifacts(self, report_oid: Any) -> bool:
+        """Mark verified artifacts ready without changing the saved clinical receipt."""
+        result = self.get_collection().update_one(
+            {"_id": self._object_id(report_oid)},
+            {"$set": {"artifacts.$[].status": "ready"}},
+        )
+        return result.matched_count == 1
+
+    @staticmethod
+    def _object_id(value: Any) -> ObjectId:
+        """Parse a stored sample or report identifier as an ObjectId.
+
+        Args:
+            value: ObjectId or value whose string form is a valid ObjectId.
+
+        Returns:
+            Existing or parsed ObjectId.
+
+        Raises:
+            InvalidId: If the string representation is not a valid ObjectId.
+        """
+        return value if isinstance(value, ObjectId) else ObjectId(str(value))
+
+    def next_report_num(self, sample_oid: str) -> int:
+        """Read the next report number for a sample without reserving it.
+
+        Args:
+            sample_oid: Serialized sample ObjectId.
+
+        Returns:
+            Highest stored report number plus one, or one when no report exists.
+
+        Raises:
+            InvalidId: If the sample identifier cannot be parsed.
+        """
+        latest = self.get_collection().find_one(
+            {"sample_oid": self._object_id(sample_oid)},
+            {"report_num": 1},
+            sort=[("report_num", -1)],
+        )
+        return int((latest or {}).get("report_num") or 0) + 1
+
+    def save_report(
+        self,
+        *,
+        sample: dict,
+        report_num: int,
+        report_id: str,
+        filepath: str,
+        pdf_filepath: str | None = None,
+        filters_snapshot: dict | None = None,
+        aspc_snapshot: dict | None = None,
+        rule_provenance: dict | None = None,
+        snapshot_rows: list[dict] | None = None,
+        created_by: str | None = None,
+        resolution_snapshot: dict | None = None,
+        artifacts: list[dict] | None = None,
+    ) -> ObjectId:
+        """Commit report metadata, sample report state, and finding snapshots together.
+
+        Args:
+            sample: Sample document supplying its ID, name, assay, and configuration context.
+            report_num: Expected next report number, checked again inside the transaction.
+            report_id: Report identifier used in metadata and HTML/PDF filenames.
+            filepath: HTML artifact path to record; this method does not write the file.
+            pdf_filepath: Optional PDF artifact path; falsey values omit its report name.
+            filters_snapshot: Filter snapshot; falsey values use sample filters or an empty dict.
+            aspc_snapshot: Assay configuration snapshot; falsey values use the sample's
+                current configuration ID, key, and version.
+            rule_provenance: Clinical rule source metadata, retained as ``None`` when absent.
+            snapshot_rows: Finding snapshot rows; ``None`` is treated as an empty list.
+            created_by: Finding-snapshot author; falsey values use the current username.
+                The report metadata author always uses the current username.
+            resolution_snapshot: Resolved report inputs captured before artifact rendering.
+            artifacts: Staged artifact paths, SHA-256 checksums and storage states.
+
+        Returns:
+            ObjectId of the committed report metadata.
+
+        Raises:
+            InvalidId: If the sample identifier cannot be parsed.
+            AppError: With status 404 if the sample is missing, or 409 if the report
+                number is no longer the next number for that sample.
+            ReportCommitUncertain: If MongoDB reports an unknown transaction commit result.
+            PyMongoError: For other database failures.
+
+        Notes:
+            Updating the sample serializes concurrent saves for the same owner.
+            Cache invalidation follows commit; its failures are logged and suppressed.
+        """
+        report_oid = ObjectId()
+        now = utc_now()
+        doc = {
+            "_id": report_oid,
+            "sample_oid": self._object_id(sample.get("_id")),
+            "sample_name": sample.get("name"),
+            "asp_id": sample.get("asp_id"),
+            "diagnosis_id": sample.get("diagnosis_id"),
+            "environment": sample.get("environment"),
+            "report_num": int(report_num),
+            "report_id": str(report_id),
+            "report_type": "html",
+            "report_name": f"{report_id}.html",
+            "filepath": filepath,
+            "pdf_report_name": f"{report_id}.pdf" if pdf_filepath else None,
+            "pdf_filepath": pdf_filepath,
+            "author": current_username(),
+            "time_created": now,
+            "filters_snapshot": filters_snapshot or sample.get("filters") or {},
+            "aspc": aspc_snapshot
+            or {
+                "_id": sample.get("current_aspc_id"),
+            },
+            "clinical_rule_source": rule_provenance,
+            "resolution_snapshot": resolution_snapshot,
+            "artifacts": artifacts or [],
+            "sample_version": sample.get("version", 1),
+        }
+
+        def transaction(session):
+            """Write the captured report and snapshots after checking sample and sequence.
+
+            Args:
+                session: Session shared by sample, report, and reported-variant writes.
+
+            Raises:
+                AppError: With status 404 for a missing sample or 409 for a stale report number.
+
+            Notes:
+                Marks the sample reported and updates its latest-report reference within
+                the same transaction as report metadata and finding snapshot persistence.
+            """
+            # Writing the owning sample serializes concurrent report saves for that sample.
+            result = self.adapter.samples_collection.update_one(
+                {
+                    "_id": doc["sample_oid"],
+                    "current_aspc_id": sample.get("current_aspc_id"),
+                    "filters": sample.get("filters"),
+                    "environment": sample.get("environment"),
+                    "diagnosis_id": sample.get("diagnosis_id"),
+                    "analysis_intents": sample.get("analysis_intents"),
+                    "version": sample.get("version"),
+                },
+                {
+                    "$set": {
+                        "reported": True,
+                        "latest_report_id": report_oid,
+                        "latest_report_on": now,
+                        "updated_by": created_by or doc["author"],
+                    }
+                },
+                session=session,
+            )
+            if result.matched_count != 1:
+                raise AppError(409, "Sample changed. Refresh and review the report preview.")
+            latest = self.get_collection().find_one(
+                {"sample_oid": doc["sample_oid"]},
+                {"report_num": 1},
+                sort=[("report_num", -1)],
+                session=session,
+            )
+            if report_num != int((latest or {}).get("report_num") or 0) + 1:
+                raise AppError(
+                    409, "Another report was saved. Refresh the report preview and retry."
+                )
+            doc["created_by"] = created_by or doc["author"]
+            doc["updated_by"] = doc["created_by"]
+            self.get_collection().insert_one(doc, session=session)
+            self.adapter.reported_variant_repository.bulk_upsert_from_snapshot_rows(
+                sample_name=sample.get("name"),
+                sample_oid=doc["sample_oid"],
+                report_oid=report_oid,
+                report_id=report_id,
+                report_num=report_num,
+                assay=sample.get("asp_id"),
+                assay_group=sample.get("asp_group"),
+                diagnosis=sample.get("diagnosis_id"),
+                environment=sample.get("environment"),
+                snapshot_rows=snapshot_rows or [],
+                created_by=created_by or doc["author"],
+                session=session,
+            )
+
+            enqueue_audit(
+                self.get_collection().database,
+                session,
+                context=self.audit_context,
+                event_type="report.saved",
+                resource_type="report",
+                resource_id=report_oid,
+                actor=created_by or doc["author"],
+                metadata={"sample_oid": str(doc["sample_oid"]), "report_num": report_num},
+            )
+
+        try:
+            run_transaction(self.adapter.client, transaction)
+        except PyMongoError as exc:
+            if exc.has_error_label("UnknownTransactionCommitResult"):
+                raise ReportCommitUncertain() from exc
+            raise
+        try:
+            invalidate_samples_cache(self.adapter)
+            self.invalidate_dashboard_metrics()
+            self.adapter.reported_variant_repository.invalidate_dashboard_metrics()
+        except Exception:
+            self.app.logger.exception("Report committed; cache invalidation failed")
+        return report_oid
+
+    def get_report(self, sample_id: str, report_id: str) -> dict | None:
+        """Resolve a sample and read its report with the supplied report identifier.
+
+        Args:
+            sample_id: Sample name or serialized ID, resolved by name first.
+            report_id: Exact report identifier scoped to the resolved sample.
+
+        Returns:
+            Report metadata, or ``None`` when the sample or report is absent.
+
+        Raises:
+            InvalidId: If the resolved sample document contains an invalid ObjectId.
+        """
+        sample = self.adapter.sample_repository.get_sample(sample_id)
+        if not sample:
+            return None
+        return self.get_collection().find_one(
+            {"sample_oid": self._object_id(sample.get("_id")), "report_id": report_id}
+        )
+
+    def list_reports_page(
+        self,
+        *,
+        asp_ids: list[str] | None,
+        environments: list[str] | None,
+        search: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        assay_access: list[dict] | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Return newest-first report metadata matching a scoped literal search.
+
+        Args:
+            asp_ids: Authorized assays; None permits all and an empty list permits none.
+            environments: Authorized environments; None permits all.
+            search: Case-insensitive report/sample identifiers, author, assay, diagnosis
+                or environment text; empty selects all authorized reports.
+            page: One-based result page.
+            per_page: Result count, clamped to 1–200.
+
+        Returns:
+            Matching metadata documents and the authorized total before pagination.
+        """
+        query_parts: list[dict[str, Any]] = []
+        if asp_ids is not None:
+            query_parts.append({"asp_id": {"$in": asp_ids}})
+        if environments is not None:
+            query_parts.append({"environment": {"$in": environments}})
+        normalized_search = str(search or "").strip()
+        if normalized_search:
+            expression = {"$regex": re.escape(normalized_search), "$options": "i"}
+            query_parts.append(
+                {
+                    "$or": [
+                        {"report_id": expression},
+                        {"report_name": expression},
+                        {"sample_name": expression},
+                        {"author": expression},
+                        {"asp_id": expression},
+                        {"diagnosis_id": expression},
+                        {"environment": expression},
+                    ]
+                }
+            )
+        query: dict[str, Any] = {"$and": query_parts} if query_parts else {}
+        safe_page = max(1, int(page))
+        safe_per_page = max(1, min(200, int(per_page)))
+        query = restrict_assay_access(query, assay_access)
+        collection = self.get_collection()
+        total = int(collection.count_documents(query))
+        rows = list(
+            collection.find(query)
+            .sort([("time_created", -1), ("_id", -1)])
+            .skip((safe_page - 1) * safe_per_page)
+            .limit(safe_per_page)
+        )
+        return rows, total
+
+    def delete_sample_reports(self, sample_oid: str) -> OperationResult:
+        """Delete report metadata owned by a sample."""
+        result = operation_from_delete(
+            self.delete_many_atomic({"sample_oid": self._object_id(sample_oid)})
+        )
+        if result.deleted_count:
+            self.invalidate_dashboard_metrics()
+        return result

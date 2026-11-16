@@ -16,7 +16,7 @@ Authentication and account email uses the shared SMTP helper. Broadcast email is
 delivered by Celery, not during the HTTP request. Its subject and body do not copy
 broadcast text or clinical information; recipients must sign in to read the message.
 
-All messages include an HTML alternative and plain text, the embedded Coyote3
+All messages include an HTML alternative and plain text, the embedded Coyote4
 logo, a severity badge, and an automated-message footer. No remote image request
 is needed to display the logo. Non-production emails show the environment.
 Supported severity labels are **INFO**, **IMPORTANT**, **WARNING**, **CRITICAL**,
@@ -34,11 +34,11 @@ application URL, including any deployment prefix.
 
 | Setting | Development default | Purpose |
 | --- | --- | --- |
-| `SMTP_FROM_EMAIL` | `no-reply@coyote3.local` | Invitations and general account messages |
-| `SMTP_SECURITY_FROM_EMAIL` | `security@coyote3.local` | Password and account-change notifications |
-| `SMTP_INFO_FROM_EMAIL` | `info@coyote3.local` | Administrative broadcasts |
+| `SMTP_FROM_EMAIL` | `no-reply@coyote4.local` | Invitations and general account messages |
+| `SMTP_SECURITY_FROM_EMAIL` | `security@coyote4.local` | Password and account-change notifications |
+| `SMTP_INFO_FROM_EMAIL` | `info@coyote4.local` | Administrative broadcasts |
 
-These mailboxes are unmonitored. Coyote3 sets automated-message headers and a
+These mailboxes are unmonitored. Coyote4 sets automated-message headers and a
 Reply-To address matching the sender, but cannot disable an email client's Reply
 button or reject incoming mail itself. Configure inbound rejection or an appropriate
 unmonitored-mailbox response on the mail server. Do not silently discard security
@@ -162,7 +162,7 @@ Add the optional Compose override to the same deployment command and environment
 file used for the application:
 
 ```bash
-./scripts/deployment/compose-with-version.sh --env-file .coyote3_dev_env \
+./scripts/deployment/compose-with-version.sh --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   -f deploy/compose/docker-compose.mail.yml --profile mail up -d mailpit
@@ -177,10 +177,10 @@ SMTP_USE_TLS=0
 SMTP_USE_SSL=0
 SMTP_USERNAME=
 SMTP_PASSWORD=
-SMTP_FROM_EMAIL=coyote3@example.test
+SMTP_FROM_EMAIL=coyote4@example.test
 SMTP_INFO_FROM_EMAIL=info@example.test
 SMTP_SECURITY_FROM_EMAIL=security@example.test
-SMTP_FROM_NAME=Coyote3
+SMTP_FROM_NAME=Coyote4
 ```
 
 For a host-run API, use `SMTP_HOST=127.0.0.1`. Recreate the API and worker with
@@ -200,7 +200,7 @@ SMTP unit tests simulate acceptance and failures without delivering email. Mongo
 lease tests use a UUID-named disposable database and a mocked SMTP sender:
 
 ```bash
-NOTIFICATION_TEST_MONGO_URI='mongodb://127.0.0.1:27017/?replicaSet=coyote3-rs' \
+NOTIFICATION_TEST_MONGO_URI='mongodb://127.0.0.1:27017/?replicaSet=coyote4-rs' \
   .venv/bin/pytest -q --no-cov tests/integration/test_notification_email_delivery.py
 ```
 

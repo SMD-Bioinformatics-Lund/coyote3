@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Run backend checks against newly created loopback-only disposable MongoDB replicas."""
 
 from __future__ import annotations
@@ -102,7 +105,7 @@ def main() -> None:
     if shutil.which("mongod") is None:
         parser.error("mongod must be installed; this runner never connects to existing databases")
     processes: list[subprocess.Popen] = []
-    with tempfile.TemporaryDirectory(prefix="coyote3-transaction-tests-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="coyote4-transaction-tests-") as temporary:
         try:
             prefix = "coyote-validation-" + uuid4().hex[:10]
             primary = start_replica(Path(temporary) / "primary", prefix + "-primary", processes)
@@ -111,21 +114,21 @@ def main() -> None:
             )
             environment = {**os.environ, **dict.fromkeys(URI_KEYS, primary)}
             environment.update(
-                COYOTE3_RUN_DISPOSABLE_TESTS="1",
+                COYOTE4_RUN_DISPOSABLE_TESTS="1",
                 AUDIT_TEST_DEST_URI=destination,
                 MONGO_TOPOLOGY_TEST_KB_URI=destination,
                 ENV_NAME="test",
                 TESTING="1",
                 DEVELOPMENT="0",
                 PYTHONPATH=str(ROOT),
-                COYOTE3_MONGO_URI=primary,
+                COYOTE4_MONGO_URI=primary,
                 IDENTITY_MONGO_URI=primary,
                 KNOWLEDGEBASE_MONGO_URI=destination,
                 BAM_MONGO_URI=primary,
-                COYOTE3_DB="coyote3_disposable_app",
-                IDENTITY_DB="coyote3_disposable_identity",
-                KNOWLEDGEBASE_DB="coyote3_disposable_kb",
-                BAM_DB="coyote3_disposable_bam",
+                COYOTE4_DB="coyote4_disposable_app",
+                IDENTITY_DB="coyote4_disposable_identity",
+                KNOWLEDGEBASE_DB="coyote4_disposable_kb",
+                BAM_DB="coyote4_disposable_bam",
             )
             arguments = args.pytest_args
             if arguments[:1] == ["--"]:

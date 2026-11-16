@@ -1,6 +1,6 @@
 # Load and capacity testing
 
-Locust exercises Coyote3 over HTTP using synthetic users and records. Run it against
+Locust exercises Coyote4 over HTTP using synthetic users and records. Run it against
 an isolated deployment through Nginx, including the application's URL prefix. It
 does not connect directly to MongoDB, Redis, or external knowledgebase services.
 
@@ -35,10 +35,10 @@ different URL. HTTP is intended only for an isolated local test network.
 Run from the repository root:
 
 ```bash
-mkdir -p .coyote3_load load-results
-chmod 700 .coyote3_load load-results
-cp tests/load/config.example.json .coyote3_load/config.json
-cp tests/load/fixtures.example.json .coyote3_load/fixtures.example.json
+mkdir -p .coyote4_load load-results
+chmod 700 .coyote4_load load-results
+cp tests/load/config.example.json .coyote4_load/config.json
+cp tests/load/fixtures.example.json .coyote4_load/fixtures.example.json
 ```
 
 Edit the private configuration and replace example identifiers with records from
@@ -61,7 +61,7 @@ placeholders, not bootstrap records guaranteed to exist.
 | `poll_timeout_seconds` | Overall ingest polling budget; default 60 seconds. |
 | `max_poll_attempts` | Maximum status requests per ingest; default 60. |
 
-Create `.coyote3_load/credentials.json` privately with this structure, supplying a
+Create `.coyote4_load/credentials.json` privately with this structure, supplying a
 password set only on the synthetic target:
 
 ```json
@@ -78,7 +78,7 @@ password set only on the synthetic target:
 ```
 
 ```bash
-chmod 600 .coyote3_load/*.json
+chmod 600 .coyote4_load/*.json
 ```
 
 Each virtual user has its own cookie session, logs in once, sends `X-CSRF-Token`
@@ -136,7 +136,7 @@ services:
   api:
     volumes:
       - type: bind
-        source: ${COYOTE3_LOAD_SYNTHETIC_ROOT:?Set the synthetic fixture directory}
+        source: ${COYOTE4_LOAD_SYNTHETIC_ROOT:?Set the synthetic fixture directory}
         target: /load/synthetic
         read_only: true
         bind:
@@ -144,14 +144,14 @@ services:
   worker:
     volumes:
       - type: bind
-        source: ${COYOTE3_LOAD_SYNTHETIC_ROOT:?Set the synthetic fixture directory}
+        source: ${COYOTE4_LOAD_SYNTHETIC_ROOT:?Set the synthetic fixture directory}
         target: /load/synthetic
         read_only: true
         bind:
           create_host_path: false
 ```
 
-Run `export COYOTE3_LOAD_SYNTHETIC_ROOT="$PWD/tests/load/synthetic"` before recreating
+Run `export COYOTE4_LOAD_SYNTHETIC_ROOT="$PWD/tests/load/synthetic"` before recreating
 the disposable API and worker with that override. Both services must be able to
 read the file at its container path. This variable is used only by the example
 override. The generator sends JSON; it does not upload the file or configure mounts.
@@ -171,8 +171,8 @@ to the API's interpreter or imported into backend pytest collection.
 .venv/bin/python -m venv .venv-load
 .venv-load/bin/python -m pip install -r requirements-load.txt
 .venv-load/bin/python tests/load/smoke_test.py
-export COYOTE3_LOAD_CONFIG="$PWD/.coyote3_load/config.json"
-export COYOTE3_LOAD_CREDENTIALS="$PWD/.coyote3_load/credentials.json"
+export COYOTE4_LOAD_CONFIG="$PWD/.coyote4_load/config.json"
+export COYOTE4_LOAD_CREDENTIALS="$PWD/.coyote4_load/credentials.json"
 .venv-load/bin/locust -f tests/load/locustfile.py --web-host 127.0.0.1
 ```
 
@@ -196,9 +196,9 @@ existing isolated application's network and make the private `target_url`
 resolvable from inside the generator container. Container `localhost` is not the host.
 
 ```bash
-export COYOTE3_LOAD_NETWORK=coyote3-loadtest-net
-export COYOTE3_LOAD_UID="$(id -u)"
-export COYOTE3_LOAD_GID="$(id -g)"
+export COYOTE4_LOAD_NETWORK=coyote4-loadtest-net
+export COYOTE4_LOAD_UID="$(id -u)"
+export COYOTE4_LOAD_GID="$(id -g)"
 docker compose --env-file deploy/env/example.loadtest.env -f deploy/compose/docker-compose.loadtest.yml --profile loadtest config --quiet
 docker compose --env-file deploy/env/example.loadtest.env -f deploy/compose/docker-compose.loadtest.yml --profile loadtest up loadtest
 ```
@@ -217,14 +217,14 @@ application. Every setting below is consumed by `docker-compose.loadtest.yml`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `COYOTE3_LOAD_NETWORK` | `coyote3-loadtest-net` | Existing isolated target network to join; Compose does not create it. |
-| `COYOTE3_LOAD_PORT` | `8089` | Host web-UI port, bound to loopback only. |
-| `COYOTE3_LOAD_UID` | `1000` | Container UID; match the private input and output directory owner. |
-| `COYOTE3_LOAD_GID` | `1000` | Container GID for directory access. |
-| `COYOTE3_LOAD_PRIVATE_DIR` | `../../.coyote3_load` | Read-only configuration and credential directory. Relative paths resolve from `deploy/compose`. |
-| `COYOTE3_LOAD_RESULTS_DIR` | `../../load-results` | Writable results directory; relative paths resolve from `deploy/compose`. |
-| `COYOTE3_LOAD_MEM_LIMIT` | `512m` | Container memory limit. |
-| `COYOTE3_LOAD_CPU_LIMIT` | `1.0` | Container CPU limit. |
+| `COYOTE4_LOAD_NETWORK` | `coyote4-loadtest-net` | Existing isolated target network to join; Compose does not create it. |
+| `COYOTE4_LOAD_PORT` | `8089` | Host web-UI port, bound to loopback only. |
+| `COYOTE4_LOAD_UID` | `1000` | Container UID; match the private input and output directory owner. |
+| `COYOTE4_LOAD_GID` | `1000` | Container GID for directory access. |
+| `COYOTE4_LOAD_PRIVATE_DIR` | `../../.coyote4_load` | Read-only configuration and credential directory. Relative paths resolve from `deploy/compose`. |
+| `COYOTE4_LOAD_RESULTS_DIR` | `../../load-results` | Writable results directory; relative paths resolve from `deploy/compose`. |
+| `COYOTE4_LOAD_MEM_LIMIT` | `512m` | Container memory limit. |
+| `COYOTE4_LOAD_CPU_LIMIT` | `1.0` | Container CPU limit. |
 
 Create both directories before starting the generator. Targets, synthetic-account
 credentials, workload choices, and acceptance limits belong in its private JSON
@@ -263,7 +263,7 @@ raise production limits to hide failures in the test.
 
 Define performance thresholds before the run from expected center workloads.
 Locust's error exit status is not a latency service-level objective. A passing
-synthetic smoke test proves the generator can run, not that Coyote3 has passed
+synthetic smoke test proves the generator can run, not that Coyote4 has passed
 capacity, recovery, browser, security, or clinical acceptance.
 
 ## Maintenance and verification

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Download Ensembl diagrams for installed VEP releases, including release 103."""
 
 from __future__ import annotations
@@ -18,11 +21,12 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.knowledgebase_publications import (  # noqa: E402
     record_reference_publication,
 )
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+
 from scripts.knowledgebase.update_vep_metadata import SEED, fetch_diagram  # noqa: E402
 from scripts.knowledgebase.vep_diagram_storage import seed_diagram, store_diagram  # noqa: E402
 

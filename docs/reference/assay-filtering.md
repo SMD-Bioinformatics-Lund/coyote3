@@ -1,17 +1,15 @@
 # Assay configuration and query filtering
 
-The platform's analytic engine is driven by the Assay-Specific Panel
-Configuration (ASPC) system. An ASPC is the current operational strategy for
-one assay, diagnosis, and environment scope. It governs finding retrieval,
-filtering logic, and clinical review behavior. Configuration mutations are
-audited, while saved reports preserve immutable configuration, filter,
-finding, and rule snapshots for reproducibility.
+An assay configuration (ASPC) selects the analyses, filter defaults and report
+settings for one assay, diagnosis and environment. The sample records the
+configuration used for its review. Saved reports retain that configuration,
+the filters, finding snapshots and rule provenance.
 
 ![Sample analysis and query resolution](../assets/diagrams/sample-analysis-resolution.svg)
 
 ## Systematic Logic Hierarchy
 
-The resolution of analytic strategies follows a deterministic inheritance model to ensure consistency across varying center requirements:
+Configuration and filters are selected in this order:
 
 1. **ASPC Resolution**: The system resolves an active configuration from
    `assay`, `diagnosis_id`, and `profile` (environment). A specific diagnosis is
@@ -51,7 +49,7 @@ analytical workflows are enabled. A tab is rendered only when all of the followi
 | Expression | `EXPRESSION` | RNA sample with `files.expression_path` or expression state | Appears in the shared **Expression & Classification** tab | `GET /api/v1/samples/{sample_name}/rna-analysis` |
 | Classification | `CLASSIFICATION` | RNA sample with `files.classification_path` or classification state | Appears in the shared **Expression & Classification** tab | `GET /api/v1/samples/{sample_name}/rna-analysis` |
 | RNA quality | `QC` | RNA sample with an RNA quality resource or quality state | Returned with the shared RNA-analysis payload; it has no separate workspace tab | `GET /api/v1/samples/{sample_name}/rna-analysis` when the shared tab is available |
-| PGX | `PGX` | Not applicable to the current sample-review workspace | PGX configuration can be recorded, but a PGX review tab, query workflow, and report section are not implemented | No sample-workspace endpoint is requested |
+| PGX | `PGX` | Supplied pharmacogenomic results | Stored results can appear in reports when enabled; there is no dedicated PGX review tab or inference engine | No dedicated sample-workspace endpoint is requested |
 
 HRD, MSI, and TMB are independent analyses displayed in the sample header and
 overview. Their input files, rule collections, and report sections are independently
@@ -84,11 +82,9 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 
 > **Note: PGX configuration does not enable a sample-review workflow**
 >
-> `PGX` is a valid configuration analysis type, but it currently has no
-> sample-detail tab, filter form, table query, or report renderer. Enabling
-> it in an ASPC does not cause the client to request a PGX endpoint. This is
-> deliberately explicit so configuration does not imply an implemented
-> clinical workflow.
+> `PGX` accepts supplied pharmacogenomic results and supports a report section.
+> It has no dedicated sample-detail tab, filter form or inference engine.
+> Selecting it does not request a dedicated PGX review endpoint.
 >
 
 ### Intent-specific SNV review
@@ -99,21 +95,18 @@ sample; it does not attempt to interpret DNA filter profiles as RNA filters.
 > Somatic and germline query intents do not partition the stored findings into
 > mutually exclusive biological categories. Enabling germline
 > intent does not remove germline variants from somatic results.
-> Published germline query exceptions also contribute to somatic SNV selection
-> for the same scope, even when the sample has only somatic intent enabled.
-> Somatic evidence settings remain active; germline admissions and exclusions
-> are evaluated alongside the somatic rules. See [query-rule composition](../administration/query-rules.md#scope-and-inheritance).
+> Shared mode uses one normal SNV filter profile. Germline policies do not
+> contribute alternate admission paths to somatic selection. Independent mode
+> uses each enabled profile's filters and policy separately.
 
-Somatic and germline SNVs use the same underlying VCF-derived collection but
-have separately configured analytical views. Their filter profiles, result queries, table
-state, comment suggestions, and report contexts are intent-specific:
+Somatic and germline views use the same underlying VCF-derived collection.
+Shared mode exposes one SNV table and filter profile for all variants. Independent
+mode exposes separate enabled profiles, with separate table state and filters:
 
 ![Independent somatic and germline SNV filter state](../assets/diagrams/snv-intent-filter-routing.svg)
 
-Germline SNVs are displayed only after the ASPC enables germline intent and
-the sample persists that intent. The application never manufactures a
-germline profile from somatic thresholds. This prevents a UI label from
-implying that germline interpretation was configured when it was not.
+A separate germline table requires `snv_filter_mode = "independent"` and an enabled
+sample germline intent. Changing one independent profile does not overwrite the other.
 
 ## Configuration Domain Interplay
 
@@ -140,10 +133,11 @@ from selecting a persisted ad-hoc ISGL record.
 >
 > `expression` and `pgx` are valid list types. This does not establish the same
 > query-selection behavior as SNV, CNV, and fusion. In particular, a PGX
-> configuration does not enable a PGX sample-review tab or report renderer.
+> configuration does not enable a PGX sample-review tab. Reporting can display
+> supplied PGX results when that report section is enabled.
 > Use the analysis-availability table above to check the implemented workflows.
 
-Analytic execution relies on the synchronization of three core architectural pillars:
+Three resources supply the analysis context:
 
 - **Assay-Specific Panels (ASP)**: Defines assay metadata and the physical set of covered genes or regions.
 - **Assay-Specific Panel Configuration (ASPC)**: The
@@ -272,15 +266,15 @@ transcript.
 ### Released SNV policies and exceptions
 
 Published `query_rule_sets` provide the live selection policy. Installation imports
-application-owned criteria from `api/bootstrap/catalogs/reference/clinical_query_seed.toml`; subsequent changes use the editor.
+application-owned criteria from `api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml`; subsequent changes use the editor.
 These rules are separate from ASPCs and cannot contain arbitrary MongoDB syntax. The application supports
 only the following baseline policies:
 
 | Policy | Required evidence | Population frequencies | Control evidence | Intended use |
 | --- | --- | --- | --- | --- |
 | `paired` | labelled case genotype, configured VAF/depth/alternate-read thresholds, and an indexed VEP consequence term | every configured source must pass | required when a control exists; absent control is allowed | default somatic policy |
-| `case_only` | labelled or untyped case evidence and an indexed VEP consequence term | every configured source must pass | deliberately not evaluated | validated assays without a matched control |
-| `exception_only` | a released `admit` exception | not implied | not implied | current germline admission policy |
+| `case_only` | labelled or untyped case evidence and an indexed VEP consequence term | every configured source must pass | deliberately not evaluated | default independent germline evidence mode; also available for validated case-only assays |
+| `exception_only` | a released `admit` exception | not implied | not implied | explicitly published exception-only policies; not the germline default |
 
 | Rule ID | Scope | Mode | Admission condition |
 | --- | --- | --- | --- |
@@ -292,8 +286,11 @@ only the following baseline policies:
 | `germline_chr1_interval` | germline DNA | `admit` | chromosome 1 with position in the released interval |
 
 `extend_consequence` retains the complete baseline evidence model and adds a
-clinically approved alternative to the indexed consequence branch. `admit` is
-used only by an `exception_only` policy. `exclude` uses the same typed match
+clinically approved alternative to the indexed consequence branch. `admit` adds
+an alternative inclusion branch under `paired` or `case_only`; under
+`exception_only` it supplies the only inclusion branch. An admission branch
+does not imply the normal depth, VAF, population or consequence gates.
+`exclude` uses the same typed match
 conditions but removes the matching subset after baseline and admission rules
 are applied. A scope with no matching `admit` rule produces an intentionally
 empty result set; it never falls back to an unfiltered query.
@@ -347,7 +344,7 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 ### Analysis-specific query-policy blocks
 
 The query-rule editor manages live policy. Its exception grammar also applies to
-the application seed file `api/bootstrap/catalogs/reference/clinical_query_seed.toml`. Neither contains sample
+the application seed file `api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml`. Neither contains sample
 documents, ASPC filters, selected ISGLs, UI tabs, or request parameters. Those
 values are persisted and resolved at runtime. The policy file supplies the SNV
 evidence model and narrowly typed, analysis-specific exception branches under
@@ -441,7 +438,7 @@ own namespaces as documented in the center configuration reference.
 
 | Policy block | What it authorizes | Resulting query behavior |
 | --- | --- | --- |
-| `[snv]` | The baseline somatic and germline policies plus stored population-frequency fields. | A somatic request uses `paired` unless an assay-group override applies. A germline request has no results unless an `admit` branch matches, because its policy is `exception_only`. |
+| `[snv]` | The baseline somatic and germline policies plus stored population-frequency fields. | Somatic selection defaults to `paired`; independent germline selection defaults to `case_only`. Published policies can select another supported mode. |
 | `[snv.assay_group_policies]` | A different baseline for one normalized, registered assay group. | A `case_only` override omits paired-control evaluation for that group's somatic SNVs; case evidence, population-frequency, consequence, and gene-scope gates still apply. When the table is absent, every somatic assay group uses `default_somatic_policy`. |
 | `mode = "extend_consequence"` | One additional clinically approved consequence route. | The FLT3 branch accepts its approved condition in the consequence part of the baseline without relaxing VAF, depth, alternate-read, control, or population-frequency checks. |
 | `mode = "admit"` | An explicit alternative inclusion route. | The germline marker is included only when `INFO.MYELOID_GERMLINE` equals `1`. It is not a fallback to an unfiltered germline query. |
@@ -562,5 +559,5 @@ is reset. The selected list identifiers are stored with the sample context so
 that filtering and report generation use the same gene scope.
 
 Application baseline evidence modes and population-field names are defined in
-`src/coyote3/config/factory_defaults.toml`. Centers manage scoped exceptions and
+`core/src/coyote/config/factory_defaults.toml`. Centers manage scoped exceptions and
 supported evidence-mode overrides through database query rules, not TOML files.

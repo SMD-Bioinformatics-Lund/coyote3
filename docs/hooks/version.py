@@ -1,8 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Load deployment identity and stylesheet metadata for the documentation site."""
 
 import hashlib
 import os
-import runpy
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,17 +20,27 @@ def on_config(config):
         Configuration containing the version, center name/department, and CSS cache key.
 
     Raises:
-        OSError: The version module, contact file, or stylesheet cannot be read.
-        tomllib.TOMLDecodeError: The center contact file is not valid TOML.
+        OSError: Release metadata, the contact file, or the stylesheet cannot be read.
+        tomllib.TOMLDecodeError: Release metadata or the center contact file is not valid TOML.
     """
     root = Path(__file__).resolve().parents[2]
-    version = runpy.run_path(str(root / "api/version.py"))
-    config.extra["app_version"] = version["environment_version"](
-        config.extra.get("environment") or "production"
+    with (root / "release.toml").open("rb") as handle:
+        application_version = tomllib.load(handle)["application_version"]
+    environment = str(config.extra.get("environment") or "production").strip().lower()
+    environment = {
+        "development": "dev",
+        "testing": "test",
+        "staging": "stage",
+        "production": "prod",
+    }.get(environment, environment)
+    config.extra["app_version"] = (
+        application_version if environment == "prod" else f"{application_version}-{environment}"
     )
     stylesheet = Path(__file__).resolve().parents[1] / "stylesheets/application-theme.css"
     config.extra["docs_theme_version"] = hashlib.sha256(stylesheet.read_bytes()).hexdigest()[:12]
-    center_dir = Path(os.getenv("COYOTE3_CENTER_CONFIG_DIR") or root / "config/examples/center")
+    center_dir = Path(
+        os.getenv("COYOTE4_CENTER_CONFIG_DIR") or root / "api/src/coyote_api/config/examples/center"
+    )
     with (center_dir / "contact.toml").open("rb") as handle:
         organization = tomllib.load(handle)["organization"]
     config.extra["center_name"] = (

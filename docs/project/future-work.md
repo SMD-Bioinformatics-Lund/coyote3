@@ -4,14 +4,33 @@ This page records proposed development. It does not describe released capabiliti
 or commit to a delivery date. Implementation requires reviewed contracts, migration
 plans and clinical workflow validation.
 
+## Independent Python HTTP client repository and PyPI release
+
+**Status: planned; repository extraction and publication are pending.**
+
+- [ ] Move `clients/python/` into a separate `coyote-pyclient` GitHub repository with its own
+  documentation, tests, smoke suite, coverage, changelog and GPL-3.0-only notices.
+- [ ] Publish `coyote-pyclient` as an independently versioned PyPI package, retaining
+  its HTTP-only boundary and independence from core, API and database packages.
+- [ ] Define supported HTTP API compatibility and release validation, then update
+  application integration tests to use the released client package.
+
+The Python import is `coyote_pyclient`. A future JavaScript client can use the
+separate `coyote-jsclient` name and its own release lifecycle.
+
+Complete client readiness and compatibility validation before extracting it from
+this repository. Repository extraction and publication follow that readiness review. The React
+frontend continues to use its TypeScript HTTP client; backend services continue
+to invoke core operations directly.
+
 ## Shared findings with separate somatic and germline interpretation
 
 **Status: proposed; not implemented as a complete workflow.**
 
-Current somatic SNV queries can return germline variants that satisfy their selection
-criteria. Germline intent has separate filters, queries and reporting contexts;
-the somatic query policy also includes effective germline exceptions. Current behavior
-are described in [SNV query intent](../reference/assay-filtering.md#intent-specific-snv-review).
+ASPC `snv_filter_mode` defaults to `shared`: all SNVs use one normal filter
+profile and its published policy. `independent` retains separate configured
+somatic and germline flows. No germline rules are injected into somatic selection.
+Review intent does not establish biological origin.
 
 ### Proposed model
 
@@ -93,6 +112,6 @@ study results, with provenance attached to those records. Consult the
 [GA4GH Variant Annotation product page](https://www.ga4gh.org/product/variant-annotation/)
 and the official [VA-Spec source repository](https://github.com/ga4gh/va-spec),
 which includes documentation sources under `docs/source`. These references inform
-the proposed design; they do not establish Coyote3 conformance or prescribe its
+the proposed design; they do not establish Coyote4 conformance or prescribe its
 database layout. Implementation should select and record an
 appropriate specification release.

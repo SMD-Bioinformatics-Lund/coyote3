@@ -18,6 +18,27 @@ published, reports remain available without an automatically generated summary;
 assay setup and report preview show a warning. Published rules must pass validation
 before they can supply report wording.
 
+## Target separate SNV profiles
+
+For DNA SNV sections, **Section settings → SNV reporting profile** selects the
+primary/shared flow, the somatic profile or the germline profile. The optional
+JSON field is `analysis_intent`, with `somatic` or `germline` as its value.
+Explicit profile selection applies to SNV sections and whole-report narrative
+sections, but not report metadata or other analysis types.
+
+An independent profile receives its own filtered SNVs, selected gene lists,
+counts and genes. Conditions can inspect `sample.analysis_intent` and
+`aspc.snv_filter_mode` (`shared` or `independent`). A section targeting an
+unavailable profile does not run. Untargeted narrative remains on the primary
+flow and is not copied into a separate germline narrative.
+
+No default germline clinical wording is supplied. When approved wording becomes
+available, author the text and conditions in a targeted section, test against
+sample data, and follow the existing review and publication workflow. Result
+tables remain available without narrative rules. Summary suggestions require
+review and saving as a sample comment before they replace the report conclusion.
+Adding this optional field does not change existing published rule content hashes.
+
 ## Author before the assay is registered
 
 Enter a planned lowercase **Assay** ID when creating a draft, or keep the intended

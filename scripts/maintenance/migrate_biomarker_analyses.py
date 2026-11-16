@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Plan or apply independent analyses while preserving shared biomarker input."""
 
 from __future__ import annotations
@@ -14,11 +17,11 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.config.constants import analysis_file_keys  # noqa: E402
-from coyote3.contracts.schemas.dna import BiomarkersDoc  # noqa: E402
-from coyote3.domain.common.biomarkers import BIOMARKER_ANALYSES, biomarker_counts  # noqa: E402
+from coyote.config.constants import analysis_file_keys  # noqa: E402
+from coyote.contracts.schemas.dna import BiomarkersDoc  # noqa: E402
+from coyote.domain.common.biomarkers import BIOMARKER_ANALYSES, biomarker_counts  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
 def transform_configuration(document: dict[str, Any], analyses: list[str]) -> dict[str, Any]:
@@ -197,13 +200,13 @@ def migrate(db: Any, *, analyses: list[str], apply: bool = False) -> dict[str, i
 def main() -> int:
     """Print a read-only plan unless --apply enables the reviewed transaction."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE3_MONGO_URI"))
-    parser.add_argument("--db", default=os.environ.get("COYOTE3_DB"))
+    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE4_MONGO_URI"))
+    parser.add_argument("--db", default=os.environ.get("COYOTE4_DB"))
     parser.add_argument("--analyses", nargs="+", required=True, choices=BIOMARKER_ANALYSES)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     if not args.mongo_uri or not args.db:
-        parser.error("COYOTE3_MONGO_URI and COYOTE3_DB or explicit overrides are required")
+        parser.error("COYOTE4_MONGO_URI and COYOTE4_DB or explicit overrides are required")
     with MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000) as client:
         counts = migrate(client[args.db], analyses=args.analyses, apply=args.apply)
     print(f"{'Migrated' if args.apply else 'Would migrate'}: {counts}")

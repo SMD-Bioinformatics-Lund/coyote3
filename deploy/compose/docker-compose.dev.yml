@@ -1,4 +1,4 @@
-name: coyote3_dev
+name: coyote4_dev
 
 services:
   frontend:
@@ -11,13 +11,13 @@ services:
       ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
       SCRIPT_NAME: ${SCRIPT_NAME:-}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
-      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote4}
       LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
       TZ: ${LOCAL_TIME_ZONE:-UTC}
       GENS_URI: ${GENS_URI:-}
       IGV_URI: ${IGV_URI:-}
       IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
-      COYOTE3_API_INTERNAL_URL: http://api:8001
+      COYOTE4_API_INTERNAL_URL: http://api:8001
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     volumes:
@@ -26,50 +26,50 @@ services:
       - frontend_node_modules:/app/node_modules
 
   api:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       additional_contexts: !reset {}
       dockerfile: docker/Dockerfile.dev
       network: host
-      target: coyote3_dev_api
+      target: coyote4_dev_api
     volumes: &dev-app-volumes
       - type: bind
-        source: ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../config/examples/center}
+        source: ${COYOTE4_CENTER_CONFIG_HOST_DIR:-../../api/src/coyote_api/config/examples/center}
         target: /app/center-config
         read_only: true
         bind:
           create_host_path: false
       - ../../.git:/app/.git:ro
       - ../../api:/app/api
-      - ../../src:/app/src
+      - ../../adapters/mongo:/app/adapters/mongo
+      - ../../core:/app/core
       - ../../release.toml:/app/release.toml:ro
-      - ../../config/examples:/app/config/examples:ro
-      - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
+      - ${COYOTE4_LOGS_HOST_ROOT:?COYOTE4_LOGS_HOST_ROOT is required}:/app/logs
       - ../../docs:/app/docs
       - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
       - ../../README.md:/app/README.md:ro
       - ../../LICENSE.txt:/app/LICENSE.txt:ro
       - ../../NOTICE.txt:/app/NOTICE.txt:ro
-      - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
-    command: python3 -m api.infra.observability.run_service api python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api --reload-dir /app/src
+      - ${COYOTE4_DATA_HOST_ROOT:?COYOTE4_DATA_HOST_ROOT is required}:/data
+    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api/src --reload-dir /app/adapters/mongo/src --reload-dir /app/core/src
 
   worker:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     volumes: *dev-app-volumes
 
   beat:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     volumes: *dev-app-volumes
 
   maintenance-worker:
     volumes: *dev-app-volumes
 
   monitor:
-    image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     volumes: *dev-app-volumes
 
   proxy:
-    ports: ["${COYOTE3_PORT:-6801}:8088"]
+    ports: ["${COYOTE4_PORT:-6801}:8088"]
 
 volumes:
   frontend_node_modules:

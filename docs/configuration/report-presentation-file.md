@@ -11,10 +11,10 @@ Published reporting rules require a new reviewed version to change their authore
 text. Existing report snapshots are not rewritten.
 
 Place the file beside `contact.toml` in the center directory selected by
-`COYOTE3_CENTER_CONFIG_HOST_DIR`. Host-run commands inherit this directory; Compose
-mounts it at `/app/center-config`. An explicit `COYOTE3_CENTER_CONFIG_DIR` overrides
+`COYOTE4_CENTER_CONFIG_HOST_DIR`. Host-run commands inherit this directory; Compose
+mounts it at `/app/center-config`. An explicit `COYOTE4_CENTER_CONFIG_DIR` overrides
 the process location. A complete example is supplied in
-`config/examples/center/report_presentation.toml`.
+`api/src/coyote_api/config/examples/center/report_presentation.toml`.
 
 ```toml
 [empty_results]
@@ -45,9 +45,9 @@ HTML is escaped and is displayed as text.
 
 ## Rendering and deployment
 
-### Modern report layout
+### Report layout
 
-Modern reports use the Coyote3 preset supplied by `smd-reports` 0.5.3. The package
+Reports use the `coyote3` preset supplied by `smd-reports` 0.5.3. The package
 owns embedded fonts, paper geometry and HTML/PDF styles. Shared result tables,
 numbered gene-list captions and bordered classification reference tables match
 the production report format. The author caption is "Rapport genererad av".
@@ -107,7 +107,7 @@ its checksum to the release manifest. Deploy a new reviewed directory through th
 normal configuration-release procedure.
 
 Local SDK callers can supply a validated
-`coyote3.application.reporting.presentation.ReportPresentation` through the report
+`coyote.application.reporting.presentation.ReportPresentation` through the report
 renderer’s `presentation` argument. The SDK does not read center directories.
 
 ## ASPC summary order

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* Keep short field names and status columns together; descriptions retain wrapping. */
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".rst-content table").forEach((table) => {

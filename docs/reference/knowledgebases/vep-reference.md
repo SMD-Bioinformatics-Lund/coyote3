@@ -16,7 +16,7 @@ Use the release recorded in the sample's pipeline metadata when reviewing a find
 
 | View | Contents |
 | --- | --- |
-| Consequences | Consequence term, Coyote3 group, Ensembl impact, SO accession and full description |
+| Consequences | Consequence term, Coyote4 group, Ensembl impact, SO accession and full description |
 | Variant classes | Variant-class names, SO accessions and definitions |
 | Cache sources | Published cache versions for GRCh37 and GRCh38, not sample-specific pipeline versions |
 
@@ -41,12 +41,12 @@ request to Ensembl. A missing image is identified explicitly, without borrowing
 one from another release.
 
 Consequence badges in finding tables, finding details and transcript tables show
-the release-specific description, impact, Coyote3 group and SO accession on hover
+the release-specific description, impact, Coyote4 group and SO accession on hover
 or keyboard focus when that metadata is available. Missing metadata is reported
 as unavailable, rather than replaced with a definition from the latest release.
 
 Ensembl impact describes a predicted molecular effect, not clinical pathogenicity.
-Coyote3 groups are filtering categories. Historical website tables can differ
+Coyote4 groups are filtering categories. Historical website tables can differ
 from the executable VEP engine; see the [source and import policy](../../operations/vep-metadata-updates.md).
 
 ## Public API

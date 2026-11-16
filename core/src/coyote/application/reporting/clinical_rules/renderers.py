@@ -1,0 +1,342 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Deterministic renderers for structured clinical rule output."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from coyote.domain.common.reporting import nl_join, nl_num
+
+
+def _required(mapping: dict[str, Any], key: str) -> Any:
+    """Require a terminology key without substituting report wording.
+
+    Args:
+        mapping: Terminology section to inspect.
+        key: Required key; an explicit None value still counts as present.
+
+    Returns:
+        Stored value unchanged.
+
+    Raises:
+        ValueError: The key is absent from the mapping.
+    """
+    if key not in mapping:
+        raise ValueError(f"Clinical rule terminology is missing '{key}'")
+    return mapping[key]
+
+
+def render_tier_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Compose prepared tier groups using rule-set-owned language."""
+    phrases = _required(terminology, "tier_summary")
+    if "tiers_to_summarize" in phrases:
+        groups = [group for group in groups if group["tier"] in phrases["tiers_to_summarize"]]
+    text = ""
+    first_gene_context = True
+    for index, group in enumerate(groups):
+        if index == 0:
+            text += _required(phrases, "first_prefix")
+        elif index == len(groups) - 1 and len(groups) == 3:
+            text += _required(phrases, "final_prefix")
+        else:
+            text += _required(phrases, "next_prefix")
+
+        finding_count = int(group["finding_count"])
+        text += str(nl_num(finding_count, _required(phrases, "number_gender")))
+        text += " " + _required(phrases, "finding_singular")
+        if finding_count > 1:
+            text += _required(phrases, "finding_plural_suffix")
+        text += _required(phrases, "tier_labels")[str(group["tier"])]
+
+        genes = group["genes"]
+        if len(genes) == 1:
+            gene = genes[0]
+            include_context = bool(
+                phrases.get("single_gene_always_read_context", False) or first_gene_context
+            )
+            text += _required(phrases, "single_gene_prefix") + gene["gene"]
+            text += _required(phrases, "value_open")
+            if include_context:
+                text += _required(phrases, "read_context_prefix")
+            text += nl_join(gene["vaf_percentages"], _required(phrases, "respectively"))
+            if include_context:
+                text += _required(phrases, "read_context_suffix")
+            text += _required(phrases, "value_close")
+            if not phrases.get("legacy_panel_read_context") or group["tier"] == 1:
+                first_gene_context = False
+        elif len(genes) > 1:
+            text += _required(phrases, "multiple_gene_prefix")
+            gene_texts: list[str] = []
+            for gene in genes:
+                gene_text = (
+                    str(nl_num(len(gene["vaf_percentages"]), _required(phrases, "number_gender")))
+                    + _required(phrases, "gene_count_joiner")
+                    + gene["gene"]
+                    + _required(phrases, "value_open")
+                )
+                prefix_tiers = phrases.get("multiple_gene_read_prefix_tiers", [1, 2, 3])
+                if first_gene_context and group["tier"] in prefix_tiers:
+                    gene_text += _required(phrases, "read_context_prefix")
+                gene_text += nl_join(gene["vaf_percentages"], _required(phrases, "respectively"))
+                if first_gene_context:
+                    gene_text += _required(phrases, "read_context_suffix")
+                gene_text += _required(phrases, "value_close")
+                gene_texts.append(gene_text)
+                first_gene_context = False
+            text += nl_join(gene_texts, _required(phrases, "gene_joiner"))
+        text += _required(phrases, "sentence_suffix")
+    return text
+
+
+def render_dna_report_intro(scope: dict[str, Any], terminology: dict[str, Any]) -> str:
+    """Render the selected DNA gene-list scope using rule-set terminology."""
+    terms = _required(terminology, "dna_report_intro")
+    sample = scope["sample"]
+    asp = scope["asp"]
+    selected_lists = [
+        item for item in scope["applied_gene_lists"] if "snv" in (item.get("selected_for") or [])
+    ]
+    text = str(_required(terms, "base_text"))
+    if sample.get("paired"):
+        text += str(_required(terms, "paired_text"))
+    if not selected_lists:
+        return text
+
+    genes = list(
+        dict.fromkeys(
+            str(gene).strip()
+            for item in selected_lists
+            for gene in (item.get("genes") or [])
+            if str(gene).strip()
+        )
+    )
+    names = [str(item.get("isgl_id") or "").upper() for item in selected_lists]
+    names = [name for name in names if name]
+    if not names:
+        return text
+    list_label = (
+        _required(terms, "list_singular") if len(names) == 1 else _required(terms, "list_plural")
+    )
+    text += str(list_label) + nl_join(names, _required(terms, "conjunction"))
+    if len(genes) <= int(terms.get("gene_list_limit", 20)):
+        gene_label = (
+            _required(terms, "gene_singular")
+            if len(genes) == 1
+            else _required(terms, "gene_plural")
+        )
+        text += str(gene_label) + nl_join(genes, _required(terms, "gene_conjunction"))
+    else:
+        text += str(_required(terms, "gene_count_prefix")) + str(len(genes))
+        text += str(_required(terms, "gene_count_suffix"))
+    text += str(_required(terms, "list_suffix"))
+
+    if sample.get("paired"):
+        germline = {str(gene).strip() for gene in asp.get("germline_genes") or []}
+        selected_germline = [gene for gene in genes if gene in germline]
+        if selected_germline:
+            text += str(_required(terms, "germline_prefix"))
+            text += nl_join(selected_germline, _required(terms, "germline_conjunction"))
+            text += str(_required(terms, "germline_suffix"))
+    return text
+
+
+def render_fusion_summary(findings: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Render reviewed fusions using rule-set-owned sentence fragments."""
+    terms = _required(terminology, "fusion_summary")
+    tier_labels = _required(terms, "tier_labels")
+    reportable = [
+        finding
+        for finding in findings
+        if finding.get("kind") == "fusion"
+        and str(finding.get("tier")) in tier_labels
+        and finding.get("fusion_gene_1")
+        and finding.get("fusion_gene_2")
+    ]
+    paragraphs: list[str] = []
+    for index, finding in enumerate(reportable):
+        gene_1 = str(finding["fusion_gene_1"])
+        gene_2 = str(finding["fusion_gene_2"])
+        lead = _required(terms, "first_lead") if index == 0 else _required(terms, "next_lead")
+        text = (
+            str(lead)
+            + str(_required(terms, "tier_prefix"))
+            + str(tier_labels[str(finding["tier"])])
+            + str(_required(terms, "genes_prefix"))
+            + gene_1
+            + str(_required(terms, "gene_joiner"))
+            + gene_2
+            + str(_required(terms, "sentence_suffix"))
+        )
+        breakpoint_1 = finding.get("fusion_breakpoint_1")
+        breakpoint_2 = finding.get("fusion_breakpoint_2")
+        if breakpoint_1 and breakpoint_2:
+            text += (
+                str(_required(terms, "breakpoint_prefix"))
+                + str(breakpoint_1)
+                + str(_required(terms, "breakpoint_joiner"))
+                + str(breakpoint_2)
+                + str(_required(terms, "breakpoint_suffix"))
+            )
+        paragraphs.append(text)
+        pairs = finding.get("fusion_spanning_pairs")
+        reads = finding.get("fusion_spanning_reads")
+        if pairs is not None and reads is not None:
+            paragraphs.append(
+                str(_required(terms, "support_prefix"))
+                + str(pairs)
+                + str(_required(terms, "support_middle"))
+                + str(reads)
+                + str(_required(terms, "support_genes_prefix"))
+                + gene_1
+                + str(_required(terms, "support_gene_joiner"))
+                + gene_2
+                + str(_required(terms, "support_suffix"))
+            )
+        annotation = str(finding.get("fusion_annotation") or "").strip()
+        if annotation:
+            paragraphs.append(annotation)
+    return "\n\n" + "\n\n".join(paragraphs) + "\n\n" if paragraphs else "\n\n"
+
+
+def render_cnv_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Compose grouped CNV sentences using rule-owned wording and prepared metrics.
+
+    Args:
+        groups: Ordered groups from aggregates.cnv_summaries, with classified genes,
+            gain/loss and nullable copy-number and read-support values.
+        terminology: Must contain cnv_summary wording, including effect_labels.
+
+    Returns:
+        One sentence per group with first/next/final leads. Positive evidence is
+        appended in parentheses; missing or zero evidence produces no empty
+        parentheses. Numeric values are already rounded during preparation.
+
+    Raises:
+        ValueError: Required rule-owned wording is missing.
+        KeyError: A group or effect label lacks a required field.
+    """
+    terms = _required(terminology, "cnv_summary")
+    sentences = []
+    for index, group in enumerate(groups):
+        prefix = (
+            "first_prefix"
+            if index == 0
+            else ("final_prefix" if len(groups) > 2 and index == len(groups) - 1 else "next_prefix")
+        )
+        genes = group["genes"]
+        text = _required(terms, prefix) + _required(terms, "effect_labels")[group["effect"]]
+        text += _required(
+            terms, "gene_singular_prefix" if len(genes) == 1 else "gene_plural_prefix"
+        )
+        text += nl_join(genes, _required(terms, "gene_joiner"))
+        evidence = ""
+        copy_number = group.get("copy_number")
+        if copy_number is not None and copy_number > 0:
+            evidence += _required(terms, "copy_number_prefix") + str(copy_number)
+        support = []
+        for field, suffix in (
+            ("paired_read_percent", "paired_read_suffix"),
+            ("split_read_percent", "split_read_suffix"),
+        ):
+            percent = group.get(field)
+            if percent is not None and percent > 0:
+                support.append(str(percent) + _required(terms, suffix))
+        if support:
+            evidence += _required(terms, "read_prefix")
+            evidence += _required(terms, "support_joiner").join(support)
+        if evidence or terms.get("show_empty_evidence", False):
+            text += (
+                _required(terms, "evidence_open") + evidence + _required(terms, "evidence_close")
+            )
+        sentences.append(text + _required(terms, "sentence_suffix"))
+    return "".join(sentences)
+
+
+def render_translocation_summary(groups: list[dict[str, Any]], terminology: dict[str, Any]) -> str:
+    """Render selected DNA fusion groups with rule-owned source sentence fragments.
+
+    Args:
+        groups: Ordered gene-pair groups with maximum PR/SR percentages and UR counts.
+        terminology: Required translocation_summary text fragments.
+
+    Returns:
+        Source-style sentences including only positive observed evidence. The
+        second of two groups uses the next lead; missing evidence is never invented.
+
+    Raises:
+        ValueError: A required wording fragment is missing.
+    """
+    terms = _required(terminology, "translocation_summary")
+    sentences = []
+    for index, group in enumerate(groups):
+        prefix = (
+            "first_prefix"
+            if index == 0
+            else "final_prefix"
+            if len(groups) > 2 and index == len(groups) - 1
+            else "next_prefix"
+        )
+        text = _required(terms, prefix) + nl_join(group["genes"], _required(terms, "gene_joiner"))
+        support = []
+        for field, suffix in (
+            ("paired_read_percent", "paired_read_suffix"),
+            ("split_read_percent", "split_read_suffix"),
+        ):
+            value = group.get(field)
+            if value is not None and value > 0:
+                support.append(str(value) + _required(terms, suffix))
+        evidence = ""
+        if support:
+            evidence = _required(terms, "read_prefix") + _required(terms, "support_joiner").join(
+                support
+            )
+        unique = group.get("unique_reads")
+        if unique is not None and unique > 0:
+            evidence += _required(
+                terms, "unique_with_support" if support else "unique_without_support"
+            )
+            evidence += format(unique, "g") + _required(terms, "unique_suffix")
+        if evidence or terms.get("show_empty_evidence", False):
+            text += (
+                _required(terms, "evidence_open") + evidence + _required(terms, "evidence_close")
+            )
+        sentences.append(text)
+    sentence_joiner: str = _required(terms, "sentence_joiner")
+    return sentence_joiner.join(sentences)
+
+
+def render_named(
+    name: str, *, source: Any, scope: dict[str, Any], terminology: dict[str, Any]
+) -> str:
+    """Dispatch a named clinical renderer with rule-owned terminology.
+
+    Args:
+        name: dna_report_intro, tier_summary, fusion_summary, cnv_summary or
+            translocation_summary.
+        source: Tier groups or findings for summary renderers; falsey values use an
+            empty list. The DNA introduction does not use this argument.
+        scope: Prepared evaluation scope used by the DNA introduction.
+        terminology: Renderer-specific wording and formatting settings.
+
+    Returns:
+        Text produced by the selected renderer.
+
+    Raises:
+        ValueError: The renderer is unsupported, required terminology is absent,
+            or a renderer's numeric conversion fails.
+        KeyError: Prepared data or nested terminology lacks a required field.
+        TypeError: Source data or terminology has incompatible types.
+    """
+    if name == "dna_report_intro":
+        return render_dna_report_intro(scope, terminology)
+    if name == "tier_summary":
+        return render_tier_summary(list(source or []), terminology)
+    if name == "fusion_summary":
+        return render_fusion_summary(list(source or []), terminology)
+    if name == "cnv_summary":
+        return render_cnv_summary(list(source or []), terminology)
+    if name == "translocation_summary":
+        return render_translocation_summary(list(source or []), terminology)
+    raise ValueError(f"Unsupported clinical renderer '{name}'")

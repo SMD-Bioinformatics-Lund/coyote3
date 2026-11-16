@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Recover initial sample attribution from durable creation-job receipts."""
 
 from __future__ import annotations
@@ -15,12 +18,11 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from bson.json_util import dumps  # noqa: E402
+from coyote.application.ingest.jobs import sample_entry_source  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.connections import MongoConnections  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 from dotenv import dotenv_values  # noqa: E402
-
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.connections import MongoConnections  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.application.ingest.jobs import sample_entry_source  # noqa: E402
 
 ATTRIBUTION_FIELDS = ("ingested_by", "ingest_source")
 

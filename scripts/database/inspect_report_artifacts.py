@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Read-only report-artifact reconciliation; never modifies MongoDB or files."""
 
 import argparse
@@ -11,8 +14,8 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from coyote3.application.reporting.artifact_inventory import inspect_report_artifacts  # noqa: E402
+from coyote.application.reporting.artifact_inventory import inspect_report_artifacts  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
 
 
 def main():
@@ -44,7 +47,7 @@ def main():
     )
     args = parser.parse_args()
     if not args.mongo_uri:
-        parser.error("--mongo-uri or COYOTE3_MONGO_URI is required")
+        parser.error("--mongo-uri or COYOTE4_MONGO_URI is required")
     if args.minimum_age_hours < 0:
         parser.error("--minimum-age-hours must be nonnegative")
     with MongoClient(args.mongo_uri, serverSelectionTimeoutMS=5000) as client:

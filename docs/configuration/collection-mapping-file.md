@@ -1,7 +1,7 @@
 # Collection mapping file
 
 This file maps logical repository attributes to physical MongoDB collection
-names. `[primary]` applies to `COYOTE3_DB`, `[identity]` applies to
+names. `[primary]` applies to `COYOTE4_DB`, `[identity]` applies to
 `IDENTITY_DB`, `[knowledgebase]` applies to `KNOWLEDGEBASE_DB`, and `[bam]`
 applies to `BAM_DB`. Database names remain
 deployment settings and do not need matching TOML table names.
@@ -19,11 +19,11 @@ release and any required data migration.
 
 ## Mapping Contract
 
-`api/config/collections.toml` does not define a document schema or move data.
+`adapters/mongo/src/coyote_mongo/config/collections.toml` does not define a document schema or move data.
 
 | TOML element | Required | Allowed value | Meaning |
 | --- | --- | --- | --- |
-| `[primary]` | Yes | One TOML table | Collection mapping for the database named by `COYOTE3_DB`. |
+| `[primary]` | Yes | One TOML table | Collection mapping for the database named by `COYOTE4_DB`. |
 | `[identity]` | Yes | One TOML table | User, role, permission, session, and audit collection mapping for the database named by `IDENTITY_DB`. |
 | `[knowledgebase]` | Yes | One TOML table | External reference collection mapping for the database named by `KNOWLEDGEBASE_DB`. |
 | `[bam]` | Yes | One TOML table | Collection mapping for the database named by `BAM_DB`. |

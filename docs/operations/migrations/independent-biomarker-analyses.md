@@ -25,7 +25,7 @@ infer which measurements a center intended to enable.
 
 ## Plan and apply
 
-Load the deployment's `COYOTE3_MONGO_URI` and `COYOTE3_DB` through its approved
+Load the deployment's `COYOTE4_MONGO_URI` and `COYOTE4_DB` through its approved
 environment mechanism. The following example explicitly replaces the generic
 selection with HRD and MSI:
 

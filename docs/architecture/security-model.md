@@ -13,7 +13,7 @@ notifications belong to the primary database.
 
 ![Login provider resolution](../assets/diagrams/login-provider-resolution.svg)
 
-![Coyote3 request lifecycle](../assets/diagrams/request-lifecycle.svg)
+![Coyote4 request lifecycle](../assets/diagrams/request-lifecycle.svg)
 
 ## Layers
 
@@ -61,7 +61,7 @@ before insertion, including content read from older database records.
 Report previews use a sandboxed iframe without script permission. Saved HTML
 responses also carry a sandbox content-security policy, including for reports
 generated before these rendering restrictions. Downloaded HTML opened outside
-Coyote3 is outside that response policy; do not treat old exported files as trusted.
+Coyote4 is outside that response policy; do not treat old exported files as trusted.
 
 Plot downloads require access to the sample and an exact match to its registered
 CNV profile filename. They do not search a shared assay directory. Unregistered
@@ -78,19 +78,19 @@ ingress can influence the resolved client address.
 
 ## Package boundaries
 
-Coyote3 keeps security code in two deliberately separate packages:
+Coyote4 keeps security code in two deliberately separate packages:
 
-- `api/security` contains policy and application security behavior. It resolves
+- `api/src/coyote_api/security` contains policy and application security behavior. It resolves
   users from sessions or tokens, evaluates route permissions through
   `require_access`, constructs the Casbin-backed RBAC/ABAC policy, issues and
   verifies password-action tokens, and emits security/audit events.
-- `api/infra/security` contains storage and runtime infrastructure for security
+- `api/src/coyote_api/infra/security` contains storage and runtime infrastructure for security
   concerns. It owns Mongo-backed API session persistence and security index
   creation. It must not contain route permissions, role semantics, or clinical
   authorization decisions.
 
 Route modules use `require_access` and `require_authenticated` directly from
-`api.security.access`. They should not query role or
+`coyote_api.security.access`. They should not query role or
 permission collections directly and should not implement local minimum-role
 checks. Trusted application operations enforce authorization for both API and
 local SDK callers. UI visibility reflects the session payload; it does not grant access.
@@ -99,8 +99,8 @@ local SDK callers. UI visibility reflects the session payload; it does not grant
 
 > **Info**
 >
-> Keep policy decisions close to `api/security` and persistence details close
-> to `api/infra/security`. This makes authorization auditable and keeps
+> Keep policy decisions close to `api/src/coyote_api/security` and persistence details close
+> to `api/src/coyote_api/infra/security`. This makes authorization auditable and keeps
 > storage changes from silently changing access behavior.
 >
 
@@ -164,7 +164,7 @@ the authorization layer resolves that identifier against active MongoDB
 permission and role documents.
 
 The application ships the canonical policy and built-in role catalogs in
-`api/bootstrap/catalogs/rbac`. They are installed explicitly during first
+`api/src/coyote_api/bootstrap/catalogs/rbac`. They are installed explicitly during first
 deployment into an empty `IDENTITY_DB`. After initialization, MongoDB is
 the runtime source of truth. Normal startup never replaces center role grants or
 permission documents. When a deployed application version contains a new
@@ -188,7 +188,7 @@ This separation gives each layer one responsibility:
 
 | Layer | Responsibility |
 | --- | --- |
-| `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
+| `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | Canonical labels, categories, descriptions, tags, and identifiers shipped by the application. |
 | MongoDB `permissions` | Deployed permission catalog used at runtime. |
 | MongoDB `roles` | Permission assignments for each role. |
 | MongoDB `users` | Role assignments and user scope. |
@@ -380,8 +380,8 @@ roles after initialization.
 - User documents carry `auth_type` as a provider list, for example `["ldap"]` or `["local", "ldap"]`.
 - Login flow resolves the provider from the submitted identifier: email login uses LDAP, username login uses local password auth.
 - Human center users default to `["ldap"]`. A user may be explicitly configured as `["local", "ldap"]` when the center wants both LDAP login by email and local password login by username.
-- Coyote service accounts (`coyote3.admin` and `coyote3.*`) default to `["local"]` and are kept separate from LDAP-only center users.
-- Local users (`local`) can use Coyote3-managed password flows:
+- Coyote service accounts (`coyote4.admin` and `coyote4.*`) default to `["local"]` and are kept separate from LDAP-only center users.
+- Local users (`local`) can use Coyote4-managed password flows:
   - authenticated password change
   - reset/set-password one-time token flows
   - admin invite flow for new local users
@@ -437,7 +437,7 @@ and Swagger behavior.
 
 ### External identity and email boundaries
 
-LDAP passwords are managed by the center's identity provider, not by Coyote3's
+LDAP passwords are managed by the center's identity provider, not by Coyote4's
 local-account password workflow. Direct users to the center's password service.
 
 Email delivery requires a configured, reachable SMTP relay. Operators must verify

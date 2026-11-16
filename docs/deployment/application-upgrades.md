@@ -14,6 +14,24 @@ Review `CHANGELOG.md` in the target release checkout and follow the
 applicable maintenance procedures in step 6. Record acceptance and recovery evidence
 using the [deployment acceptance checklist](acceptance-checklist.md).
 
+## Coyote4 application identity
+
+Version four uses the `coyote4` Python package, the `coyote-pyclient` HTTP client
+and `COYOTE4_*` deployment settings. The GitHub repository and checkout directory
+remain `coyote3`; this does not change the production Coyote3 branch or deployment.
+Both modern and older-server Compose definitions use the Coyote4 settings.
+
+Prepare a reviewed private environment file using the current example. Existing
+private files are not rewritten by the source rename. Supply the same reviewed
+settings to API, workers, beat and maintenance commands. Session-cookie and cache
+names now identify Coyote4, so existing browser sessions must sign in again.
+
+Database examples use the `coyote4` prefix for application, identity and
+knowledgebase databases. Renaming a setting or changing its value does not move
+collections, accounts, reports or files. Use a prepared target database and the
+applicable reviewed migration procedure before switching database names; do not
+bootstrap an empty replacement as an application upgrade.
+
 The normal application build packages the SDK inside Docker; it does not require a
 host `.release/sdk` directory. Only installations selecting
 `deploy/compose/docker-compose.release.yml` must supply the tested SDK wheel and
@@ -33,8 +51,8 @@ required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
 ```bash
-COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
-COYOTE_PROJECT="coyote3-prod"
+COYOTE_ENV_FILE="/srv/coyote/config/production.env"
+COYOTE_PROJECT="coyote4-prod"
 set -a
 . "$COYOTE_ENV_FILE"
 set +a
@@ -69,9 +87,9 @@ rollback restrictions. Agree on the maintenance window and recovery plan.
 For center files that still declare families, manifest keys, analysis bindings or
 base query settings, follow the [application-owned definitions upgrade](center-configuration.md#application-owned-definitions)
 before validating the new configuration release.
-The bundled center defaults now live under `config/examples/center/`. If an
-installation explicitly points `COYOTE3_CENTER_CONFIG_HOST_DIR` at the former
-`api/config/center/` checkout path, update it before building. Preserve external
+The bundled center defaults now live under `api/src/coyote_api/config/examples/center/`. If an
+installation explicitly points `COYOTE4_CENTER_CONFIG_HOST_DIR` at the former
+`api/src/coyote_api/config/center/` checkout path, update it before building. Preserve external
 center directories and their reviewed content. Rebuild API and worker images
 together so they use the installed application library from the same release.
 For configuration-only changes, retain the current reviewed commit throughout.
@@ -92,7 +110,7 @@ git rev-parse HEAD > "$COYOTE_RELEASE_RECORD/previous-commit.txt"
 coyote_compose ps --all > "$COYOTE_RELEASE_RECORD/previous-services.txt"
 coyote_compose images > "$COYOTE_RELEASE_RECORD/previous-images.txt"
 cp -p "$COYOTE_ENV_FILE" "$COYOTE_RELEASE_RECORD/previous.env"
-cp -a "$COYOTE3_CENTER_CONFIG_HOST_DIR" "$COYOTE_RELEASE_RECORD/previous-center"
+cp -a "$COYOTE4_CENTER_CONFIG_HOST_DIR" "$COYOTE_RELEASE_RECORD/previous-center"
 declare -p COYOTE_COMPOSE_OVERLAYS > "$COYOTE_RELEASE_RECORD/previous-overlays.bash"
 overlay_index=0
 for compose_overlay in "${COYOTE_COMPOSE_OVERLAYS[@]}"; do
@@ -163,9 +181,9 @@ API or workers or writing to MongoDB:
 
 ```bash
 coyote_compose run --rm --no-deps -T api python3 -c '
-from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
-from api.config.contact import load_contact_config
-from api.config.paths import CONTACT_CONFIG_PATH
+from coyote.config.loaders.filter_flags import load_filter_flag_metadata
+from coyote_api.config.contact import load_contact_config
+from coyote_api.config.paths import CONTACT_CONFIG_PATH
 load_filter_flag_metadata()
 load_contact_config(CONTACT_CONFIG_PATH, organization_name="Validation", public_base_url="", script_name="")
 print("Center configuration valid")
@@ -184,9 +202,9 @@ Stop public application access and scheduled dispatch, then inspect workers:
 
 ```bash
 coyote_compose stop proxy beat
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect active
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect reserved
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect scheduled
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect active
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect reserved
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect scheduled
 ```
 
 Require responses from all workers. Allow active tasks to complete; resolve reserved
@@ -215,7 +233,7 @@ printf '\n'
 bash scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
   --out-dir "$COYOTE_RELEASE_RECORD/mongo" \
-  --label pre-upgrade --docker-network "$COYOTE3_APP_NETWORK"
+  --label pre-upgrade --docker-network "$COYOTE4_APP_NETWORK"
 unset MONGO_BACKUP_URI
 ```
 
@@ -230,7 +248,7 @@ volume and its recoverable backup according to the center's backup policy.
 With application writers stopped, archive reports and ingest files as well:
 
 ```bash
-tar -cpf "$COYOTE_RELEASE_RECORD/application-data.tar" -C "$COYOTE3_DATA_HOST_ROOT" .
+tar -cpf "$COYOTE_RELEASE_RECORD/application-data.tar" -C "$COYOTE4_DATA_HOST_ROOT" .
 sha256sum "$COYOTE_RELEASE_RECORD/application-data.tar" > "$COYOTE_RELEASE_RECORD/application-data.tar.sha256"
 ```
 

@@ -1,6 +1,10 @@
 # System architecture
 
-Coyote3 combines a React interface, a FastAPI service, background workers, and MongoDB
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
+Coyote4 combines a React interface, a FastAPI service, background workers, and MongoDB
 persistence. Its architecture separates clinical workflows, application services,
 and infrastructure, with explicit contracts for data ingestion, access, and reporting.
 
@@ -33,6 +37,7 @@ to deploy these services, use [deployment](../deployment/README.md).
 | [Transactions and ingest recovery](transactions-and-ingest-recovery.md) | Understand atomic writes, durable jobs, and recovery behavior. |
 | [Clinical Data Preparation And Reporting Flow](clinical-data-and-reporting.md) | Trace configuration and findings into report generation. |
 | [Architecture decisions](decisions/README.md) | Read accepted architecture decisions and their rationale. |
+| [Installable application packages](decisions/0004-installable-application-packages.md) | Understand why libraries and the API have independent package metadata and artifacts. |
 | [Future work](../project/future-work.md) | Review the proposed separation of finding observations, origin assessments and clinical interpretations. |
 
 [Documentation home](../README.md)

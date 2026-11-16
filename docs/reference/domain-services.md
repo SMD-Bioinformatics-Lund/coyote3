@@ -139,7 +139,7 @@ storage requirements in [background delivery](../operations/background-delivery.
 
 ### VCF filter flag metadata
 
-VCF caller/filter badges are described in `config/examples/center/filter_flag_metadata.yaml`.
+VCF caller/filter badges are described in `api/src/coyote_api/config/examples/center/filter_flag_metadata.yaml`.
 The UI reads this metadata through:
 
 `GET /api/v1/public/filter-flags/metadata`
@@ -176,13 +176,13 @@ and naming conventions while retaining the same API and UI contract.
 
 | Capability | Owning package | Execution and persistence |
 | --- | --- | --- |
-| Sample ingestion | `src/coyote3/application/ingest/` | Validated samples and dependent evidence commit through repository transactions on the ingest worker. |
-| Clinical classification | `src/coyote3/application/classification/` | Shared annotation identity and classification history; independent from report narration. |
-| Report wording | `src/coyote3/application/reporting/clinical_rules/` | Published scoped releases evaluate prepared facts; reports retain snapshots. |
-| In-app and broadcast notices | `src/coyote3/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
-| Audit events | `src/coyote3/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
-| Diagnostic logging and error mail | `api/infra/observability/` | Daily service logs and an independent monitor. |
-| Bundled installation data | `api/services/provisioning/deployment_data.py`, `api/services/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
+| Sample ingestion | `core/src/coyote/application/ingest/` | Validated samples and dependent evidence commit through repository transactions on the ingest worker. |
+| Clinical classification | `core/src/coyote/application/classification/` | Shared annotation identity and classification history; independent from report narration. |
+| Report wording | `core/src/coyote/application/reporting/clinical_rules/` | Published scoped releases evaluate prepared facts; reports retain snapshots. |
+| In-app and broadcast notices | `core/src/coyote/application/notifications/` | Application-database messages and recipient state; maintenance workers deliver committed activity and email. |
+| Audit events | `core/src/coyote/application/audit/` | Event construction delegates persistence, outboxes and disk recovery to infrastructure repositories. |
+| Diagnostic logging and error mail | `api/src/coyote_api/infra/observability/` | Daily service logs and an independent monitor. |
+| Bundled installation data | `api/src/coyote_api/services/provisioning/deployment_data.py`, `api/src/coyote_api/services/provisioning/demo_installation.py` | Fresh bootstrap installs selected modules; later maintenance uses administrator authentication through the API. |
 
 These are packages in one application, with worker processes providing execution
 isolation. See [background delivery and recovery](../operations/background-delivery.md)

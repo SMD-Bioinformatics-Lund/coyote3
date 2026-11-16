@@ -1,25 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="318" viewBox="0 0 1200 318" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="486" viewBox="0 0 1360 486" role="img" aria-labelledby="title description">
 <title id="title">knowledgebase.clinpgx_genes_public field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
-<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
-<rect width="1200" height="318" fill="white"/>
-<text x="20" y="32" style="font-size:23px;font-weight:600">knowledgebase.clinpgx_genes_public</text>
-<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
-<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="116" font-weight="600">knowledgebase.clinpgx_genes_public</text>
-<text x="34" y="135" font-weight="400">hgnc_id</text>
-<rect x="660" y="92" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="116" font-weight="600">knowledgebase.hgnc_genes</text>
-<text x="674" y="135" font-weight="400">hgnc_id</text>
-<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="179" class="kind">vocabulary cross-reference · many ↔ many</text>
-<rect x="20" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="229" font-weight="600">knowledgebase.versions</text>
-<text x="34" y="248" font-weight="400">collections[].name</text>
-<rect x="660" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="229" font-weight="600">knowledgebase.clinpgx_genes_public</text>
-<text x="674" y="248" font-weight="400">collection namespace (not a row key)</text>
-<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="292" class="kind">optional release manifest · one release → many products</text>
+<defs>
+<style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)"/></marker>
+<marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)"/></marker>
+<marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)"/></marker>
+<marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)"/></marker>
+<symbol id="icon-database" viewBox="0 0 24 24"><path class="glyph" d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0"/></symbol>
+</defs>
+<text x="40" y="36" class="figure-title">knowledgebase.clinpgx_genes_public</text>
+<text x="40" y="68" class="figure-subtitle">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<g class="entity purple" data-namespace="knowledgebase.clinpgx_genes_public"><title>knowledgebase.clinpgx_genes_public</title><use href="#icon-database" x="271" y="110" width="58" height="58" aria-hidden="true"/><text x="300" y="194" text-anchor="middle" class="entity-title">knowledgebase.clinpgx_genes_public</text>
+<text x="300" y="219" text-anchor="middle" class="entity-detail">hgnc_id</text>
+</g>
+<g class="entity blue" data-namespace="knowledgebase.hgnc_genes"><title>knowledgebase.hgnc_genes</title><use href="#icon-database" x="1031" y="110" width="58" height="58" aria-hidden="true"/><text x="1060" y="194" text-anchor="middle" class="entity-title">knowledgebase.hgnc_genes</text>
+<text x="1060" y="219" text-anchor="middle" class="entity-detail">hgnc_id</text>
+</g>
+<g class="purple"><path d="M600 139H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="252" class="figure-note">vocabulary cross-reference · many ↔ many</text>
+<g class="entity blue" data-namespace="knowledgebase.versions"><title>knowledgebase.versions</title><use href="#icon-database" x="271" y="298" width="58" height="58" aria-hidden="true"/><text x="300" y="382" text-anchor="middle" class="entity-title">knowledgebase.versions</text>
+<text x="300" y="407" text-anchor="middle" class="entity-detail">collections[].name</text>
+</g>
+<g class="entity purple" data-namespace="knowledgebase.clinpgx_genes_public"><title>knowledgebase.clinpgx_genes_public</title><use href="#icon-database" x="1031" y="298" width="58" height="58" aria-hidden="true"/><text x="1060" y="382" text-anchor="middle" class="entity-title">knowledgebase.clinpgx_genes_public</text>
+<text x="1060" y="407" text-anchor="middle" class="entity-detail">collection namespace (not a row key)</text>
+</g>
+<g class="purple"><path d="M600 327H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="440" class="figure-note">optional release manifest · one release → many products</text>
 </svg>

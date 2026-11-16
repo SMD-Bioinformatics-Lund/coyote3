@@ -9,7 +9,7 @@ For the raw VCF and JSON file shapes referenced by the YAML, see [Sample Input F
 
 ## Purpose
 
-The sample YAML is the top-level pipeline manifest. It tells Coyote3:
+The sample YAML is the top-level pipeline manifest. It tells Coyote4:
 
 - which sample is being ingested
 - which assay/profile the sample belongs to
@@ -49,20 +49,20 @@ header.
 
 ## Filesystem and Symlink Contract
 
-`COYOTE3_DATA_HOST_ROOT` selects a host directory mounted at `/data` inside the
+`COYOTE4_DATA_HOST_ROOT` selects a host directory mounted at `/data` inside the
 API, worker and beat containers. The base Compose file does **not** also mount
 that directory at its original absolute host path. A manifest path is read by
 the ingest process, so it must resolve in that process's filesystem.
 
-For example, a host file `/srv/coyote3-data/incoming/case.vcf` is visible as
-`/data/incoming/case.vcf` when the data root is `/srv/coyote3-data`:
+For example, a host file `/srv/coyote4-data/incoming/case.vcf` is visible as
+`/data/incoming/case.vcf` when the data root is `/srv/coyote4-data`:
 
 ```yaml
 vcf_files: /data/incoming/case.vcf
 ```
 
-If the pipeline must preserve `/srv/coyote3-data/incoming/case.vcf` as its declared
-path, explicitly add a read-only mount at `/srv/coyote3-data`. See
+If the pipeline must preserve `/srv/coyote4-data/incoming/case.vcf` as its declared
+path, explicitly add a read-only mount at `/srv/coyote4-data`. See
 [Compose storage overrides](../configuration/compose-files.md#private-input-mount-example).
 Ingest retains the declared source path; temporary ZIP extraction paths are not
 substituted into the stored provenance.
@@ -150,7 +150,7 @@ These keys are common to DNA and RNA sample bundles.
 | `pipeline` | Yes | DNA, RNA | Upstream pipeline name. |
 | `pipeline_version` | No | DNA, RNA | Upstream pipeline version. Store a known version as a string. Omit the key when the version is unknown; placeholder values such as `not provided` are normalized to an absent value and are not stored in the sample document. |
 | `database_versions` | No | DNA, RNA | Optional canonical version override/supplement. For DNA VCF ingest, recognised values are extracted from the VCF header first; supplied manifest values then replace only matching extracted keys. |
-| `<file_key>` | Supported | DNA, RNA | Flat pipeline file declaration, for example `vcf_files: /srv/coyote3-data/coyote3/incoming/case.vcf`. Each key must be valid for the selected omics layer and allowed by the ASP. Ingest stores it in canonical sample file metadata. |
+| `<file_key>` | Supported | DNA, RNA | Flat pipeline file declaration, for example `vcf_files: /srv/coyote4-data/coyote4/incoming/case.vcf`. Each key must be valid for the selected omics layer and allowed by the ASP. Ingest stores it in canonical sample file metadata. |
 | `filters` | Ignored | DNA, RNA | Pipelines must not author clinical filters. Ingest replaces this with the resolved ASPC filter profile. |
 | `analysis_intents` | Ignored | DNA, RNA | Pipelines must not author somatic/germline scope. Ingest obtains it from the resolved ASPC. |
 
@@ -255,7 +255,7 @@ and its [HTTP command implementation](https://github.com/igvteam/igv/blob/main/s
 ## Pipeline file declaration format
 
 The concrete keys below are the current center profile from
-`config/examples/center/clinical_vocabulary.toml`. A deployment may use different names;
+`api/src/coyote_api/config/examples/center/clinical_vocabulary.toml`. A deployment may use different names;
 the authoritative configured DNA/RNA keys, family requirements, and
 analysis-to-file bindings are documented in
 [Center Vocabulary Configuration](../administration/clinical-vocabulary.md).
@@ -266,13 +266,13 @@ the other configured names directly; it does not use a `files:` wrapper. Ingest
 normalizes those paths into the stored `samples.files.<key>` structure.
 
 ```yaml
-vcf_files: /srv/coyote3-data/coyote3/incoming/case_control.vcf
-cov: /srv/coyote3-data/coyote3/incoming/case_coverage.json
+vcf_files: /srv/coyote4-data/coyote4/incoming/case_control.vcf
+cov: /srv/coyote4-data/coyote4/incoming/case_coverage.json
 ```
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `<file_key>` | When required by the ASP | A source path readable from API and worker containers. It may be manifest-relative or under the identically mounted `COYOTE3_DATA_HOST_ROOT`. |
+| `<file_key>` | When required by the ASP | A source path readable from API and worker containers. It may be manifest-relative or under the identically mounted `COYOTE4_DATA_HOST_ROOT`. |
 | `uploaded_file_checksums` | No | Optional mapping of file key to checksum, persisted with sample file metadata. |
 
 > **Info: Declared optional files**
@@ -362,10 +362,10 @@ case_reads: 49039064
 control_reads: 45889968
 case_purity: null
 control_purity: null
-vcf_files: "/srv/coyote3-data/coyote3/incoming/seed_case.vcf"
-cnv: "/srv/coyote3-data/coyote3/incoming/seed_case.cnvs.json"
-cnvprofile: "/srv/coyote3-data/coyote3/incoming/seed_case.profile.png"
-cov: "/srv/coyote3-data/coyote3/incoming/seed_case.coverage.json"
+vcf_files: "/srv/coyote4-data/coyote4/incoming/seed_case.vcf"
+cnv: "/srv/coyote4-data/coyote4/incoming/seed_case.cnvs.json"
+cnvprofile: "/srv/coyote4-data/coyote4/incoming/seed_case.profile.png"
+cov: "/srv/coyote4-data/coyote4/incoming/seed_case.coverage.json"
 ```
 
 Notes:
@@ -421,10 +421,10 @@ case_ffpe: false
 case_sequencing_run: "RUN_RNA_001"
 case_reads: 58200431
 case_purity: null
-fusion_files: "/srv/coyote3-data/coyote3/incoming/rna_demo.fusions.json"
-expression_path: "/srv/coyote3-data/coyote3/incoming/rna_demo.expression.json"
-classification_path: "/srv/coyote3-data/coyote3/incoming/rna_demo.classification.json"
-qc: "/srv/coyote3-data/coyote3/incoming/rna_demo.qc.json"
+fusion_files: "/srv/coyote4-data/coyote4/incoming/rna_demo.fusions.json"
+expression_path: "/srv/coyote4-data/coyote4/incoming/rna_demo.expression.json"
+classification_path: "/srv/coyote4-data/coyote4/incoming/rna_demo.classification.json"
+qc: "/srv/coyote4-data/coyote4/incoming/rna_demo.qc.json"
 ```
 
 Notes:
@@ -458,12 +458,12 @@ Notes:
 
 ## Database-version extraction and override behavior
 
-For DNA VCF ingest, Coyote3 reads the first `##VEP=` header line and retains
+For DNA VCF ingest, Coyote4 reads the first `##VEP=` header line and retains
 only recognised version fields. The retained values are written to
 `samples.database_versions`; all other VEP-header details, including paths,
 timestamps, and plugin-specific values, are discarded.
 
-If the YAML includes `database_versions`, Coyote3 validates its keys and merges
+If the YAML includes `database_versions`, Coyote4 validates its keys and merges
 the values after header extraction. Therefore a YAML value has precedence for
 the same canonical key, while header-derived values remain for keys absent from
 the YAML. If neither source supplies a recognised value, no placeholder is
@@ -522,6 +522,6 @@ keys exactly. Only external VCF-header labels are normalized before persistence.
 - Once stored, `samples.filters` is used as-is until reset or explicit update.
 - A pipeline manifest may use `assay`, `diagnosis`, `profile`, and
   `sequencing_technology`; they are normalized before clinical validation.
-- Source file paths below `COYOTE3_DATA_HOST_ROOT` are retained unchanged in
+- Source file paths below `COYOTE4_DATA_HOST_ROOT` are retained unchanged in
   sample file records. Any symlink target outside that root requires its own
   same-path Compose bind mount.

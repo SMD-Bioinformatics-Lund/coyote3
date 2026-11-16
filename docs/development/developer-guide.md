@@ -1,6 +1,6 @@
 # Developer manual
 
-This manual describes Coyote3's application structure, runtime dependencies,
+This manual describes Coyote4's application structure, runtime dependencies,
 data contracts and development interfaces. It covers the FastAPI backend,
 React frontend, background workers and their shared persistence services.
 
@@ -27,7 +27,7 @@ The development stack uses the base Compose definition with the development over
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -49,24 +49,24 @@ Use synthetic samples for local verification and browser fixtures.
 
 | Location | Responsibility |
 | --- | --- |
-| `api/app/` | FastAPI composition, lifecycle, middleware and dependency wiring. |
-| `api/interfaces/http/` | HTTP routes, transport contracts and access dependencies. |
-| `src/coyote3/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
-| `src/coyote3/domain/` | Domain rules, identity logic, query policies and repository protocols. |
-| `src/coyote3/contracts/` | Request, response, collection and managed-resource contracts. |
-| `api/infra/` | MongoDB persistence, cache, integrations, notifications and observability. |
-| `api/security/` | Authentication, authorization and password workflows. |
-| `src/coyote3/config/` | Typed center inputs, software constants and policy validation. |
-| `api/bootstrap/` | Host installation catalogs and catalog assembly. |
-| `api/services/` | Authorized demo/deployment installation and public-page composition. |
-| `api/contracts/` | Host-only HTTP, session, diagnostic and installation contracts. |
-| `api/presentation/` | Host selection of packaged report presentation. |
-| `src/coyote3/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
+| `api/src/coyote_api/app/` | FastAPI composition, lifecycle, middleware and dependency wiring. |
+| `api/src/coyote_api/interfaces/http/` | HTTP routes, transport contracts and access dependencies. |
+| `core/src/coyote/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
+| `core/src/coyote/domain/` | Domain rules, identity logic, query policies and repository protocols. |
+| `core/src/coyote/contracts/` | Request, response, collection and managed-resource contracts. |
+| `api/src/coyote_api/infra/` | MongoDB persistence, cache, integrations, notifications and observability. |
+| `api/src/coyote_api/security/` | Authentication, authorization and password workflows. |
+| `core/src/coyote/config/` | Typed center inputs, software constants and policy validation. |
+| `api/src/coyote_api/bootstrap/` | Host installation catalogs and catalog assembly. |
+| `api/src/coyote_api/services/` | Authorized demo/deployment installation and public-page composition. |
+| `api/src/coyote_api/contracts/` | Host-only HTTP, session, diagnostic and installation contracts. |
+| `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
+| `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
-| `api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
-| `config/examples/center/` | Examples for an external reviewed center directory. |
+| `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
+| `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |
 | `docs/sdk/` | SDK installation, usage, development, generated reference and version compatibility. |
-| `api/tasks/` | Celery task entry points. |
+| `api/src/coyote_api/tasks/` | Celery task entry points. |
 | `frontend/src/pages/` | Route-level React views. |
 | `frontend/src/components/` | Shared layouts, forms, tables and clinical display components. |
 | `frontend/src/hooks/` | Shared state and query hooks. |
@@ -76,8 +76,8 @@ Use synthetic samples for local verification and browser fixtures.
 | `scripts/` | Bootstrap, maintenance, contract generation and verification commands. |
 | `deploy/` | Container builds, Compose definitions, proxy configuration and environment templates. |
 
-The API entry points are `api/app/main.py`, `asgi.py` and `run_api.py`.
-Celery is configured through `api/celery_app.py`. The frontend starts at
+The API entry points are `api/src/coyote_api/app/main.py`, `asgi.py` and `run_api.py`.
+Celery is configured through `api/src/coyote_api/celery_app.py`. The frontend starts at
 `frontend/src/main.tsx`.
 
 ### Dependency boundaries
@@ -88,7 +88,7 @@ modules supply clinical and identity rules. Repositories own MongoDB queries,
 indexes and driver interactions.
 
 Domain and application modules do not import FastAPI, Starlette or application
-assembly from `api.app`. The frontend consumes HTTP contracts, not Python modules
+assembly from `coyote_api.app`. The frontend consumes HTTP contracts, not Python modules
 or database documents directly. These boundaries are checked by
 `tests/integration/test_api_architecture_boundaries.py`.
 
@@ -144,7 +144,7 @@ invoke application services without an HTTP request context.
 | Configuration | Runtime source |
 | --- | --- |
 | Database endpoints, credentials, service URLs and host mounts | Deployment environment. |
-| Contacts and clinical presentation policy | External center profile initialized from `config/examples/center/`. Query rules remain governed database resources. |
+| Contacts and clinical presentation policy | External center profile initialized from `api/src/coyote_api/config/examples/center/`. Query rules remain governed database resources. |
 | Assay groups, diagnosis definitions and assay associations | MongoDB registries. |
 | Assays, assay configurations and gene lists | Versioned ASP, ASPC and ISGL documents. |
 | Clinical reporting rules | Governed rule-set documents in the application database. |
@@ -167,20 +167,20 @@ Each MongoDB service has an independently configured URI and database name:
 
 | Service | URI setting | Database setting |
 | --- | --- | --- |
-| Application | `COYOTE3_MONGO_URI` | `COYOTE3_DB` |
+| Application | `COYOTE4_MONGO_URI` | `COYOTE4_DB` |
 | Identity | `IDENTITY_MONGO_URI` | `IDENTITY_DB` |
 | Knowledgebase | `KNOWLEDGEBASE_MONGO_URI` | `KNOWLEDGEBASE_DB` |
 | BAM service | `BAM_MONGO_URI` | `BAM_DB` |
 
-`api/config/mongo.py` resolves endpoint configuration.
-`api/infra/mongo/connections.py` owns connection pools for the runtime process.
+`adapters/mongo/src/coyote_mongo/config/endpoints.py` resolves endpoint configuration.
+`adapters/mongo/src/coyote_mongo/connections.py` owns connection pools for the runtime process.
 Services with identical URIs share a `MongoClient`; different endpoints can use
 different hosts and replica-set names. Database names do not determine hosts or
 filesystem paths.
 
 ### Contracts and transactions
 
-Collection models are registered in `src/coyote3/contracts/schemas/registry.py`.
+Collection models are registered in `core/src/coyote/contracts/schemas/registry.py`.
 The [collection reference](../reference/mongodb-collections.md) describes their fields.
 Request validation, application normalization and collection validation serve
 different boundaries; a valid HTTP request does not by itself establish that a
@@ -204,7 +204,7 @@ retain prior revisions so existing references can be resolved independently of
 the currently active revision.
 
 Sample configuration resolution is implemented in
-`src/coyote3/application/common/assay_config.py`. When `current_aspc_id` is present,
+`core/src/coyote/application/common/assay_config.py`. When `current_aspc_id` is present,
 normal resolution uses that exact revision. Active configuration lookup applies
 to ingestion, unassigned samples and explicit configuration updates. Saved report
 snapshots are not reconstructed from the current active configuration.
@@ -278,8 +278,8 @@ behavior. Parser input formats are specified in
 
 Report previews and the **Try new report** integration render evaluated clinical
 inputs through the native `smd-reports` interface. The authorized
-`Reports.try_new` operation returns matching HTML/PDF content in memory without
-report numbering or persistence. See the [user workflow](../user-guide/try-new-report.md)
+`Reports.preview_bundle` operation returns matching HTML/PDF content in memory without
+report numbering or persistence. See the [user workflow](../user-guide/report-preview-and-save.md)
 and [package boundaries](../sdk/package-boundaries.md).
 
 ![Reporting workflow](../assets/diagrams/report-generation-flow.svg)
@@ -288,7 +288,7 @@ Clinical rule sets are stored in MongoDB and follow the authoring, review and
 publication workflow. Publishing approved rule content does not require a new
 application build.
 
-`src/coyote3/application/reporting/clinical_rules/resolution.py` selects an active published
+`core/src/coyote/application/reporting/clinical_rules/resolution.py` selects an active published
 release using the assay, sample diagnosis, analyte and reporting language. An exact
 diagnosis release takes precedence; assay Base is used only when no exact release
 exists. Selection does not cross assays, analytes or languages. Ambiguous releases,
@@ -328,7 +328,7 @@ does not bypass API authentication or CSRF validation.
 Roles bundle permissions. API access checks combine the required permission with
 applicable assay and environment scope. Frontend visibility is not an authorization
 decision. Bootstrap permissions and roles are installed from
-`api/bootstrap/catalogs/rbac/`; MongoDB holds runtime assignments.
+`api/src/coyote_api/bootstrap/catalogs/rbac/`; MongoDB holds runtime assignments.
 
 System-managed identity definitions are protected by their resource policies.
 Password changes, session state and user preferences use their dedicated operations.
@@ -536,12 +536,14 @@ Run commands from the repository root with the development dependencies installe
 
 ```bash
 # Backend tests and coverage
-PYTHONPATH=. .venv/bin/python -m pytest -q tests/unit tests/api tests/integration \
-  --cov=api --cov=coyote3 --cov-config=.coveragerc --cov-report=term-missing
+PYTHONPATH=. .venv/bin/python -m pytest -q \
+  --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov-config=.coveragerc --cov-report=term-missing
+scripts/quality/run_package_tests.sh all --smoke
+scripts/quality/run_package_tests.sh all --coverage
 
 # Python lint, formatting and configured type-check scope
-PYTHONPATH=. .venv/bin/python -m ruff check src api tests scripts
-PYTHONPATH=. .venv/bin/python -m ruff format --check src api tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff check core api adapters clients tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff format --check core api adapters clients tests scripts
 PYTHONPATH=. .venv/bin/python -m mypy
 
 # Frontend verification

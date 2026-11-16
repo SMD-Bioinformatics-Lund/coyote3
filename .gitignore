@@ -54,6 +54,10 @@ htmlcov/
 nosetests.xml
 coverage.xml
 frontend/coverage/
+core/coverage/
+api/coverage/
+adapters/mongo/coverage/
+clients/python/coverage/
 *.cover
 *.py,cover
 .hypothesis/
@@ -111,12 +115,12 @@ celerybeat.pid
 
 # Environments
 .*env
-.coyote3_dev_env
-.coyote3_stage_env
-.coyote3_test_env
-.coyote3_env
-.coyote3_storage.yml
-.coyote3_load/
+.coyote4_dev_env
+.coyote4_stage_env
+.coyote4_test_env
+.coyote4_env
+.coyote4_storage.yml
+.coyote4_load/
 .venv-load/
 load-results/
 .venv
@@ -160,7 +164,7 @@ example_dev*
 /migration_scripts/*
 !/migration_scripts/README.md
 /reports/
-./bugs
+/bugs/
 .ruff_cache
 node_modules/
 .clinerules.local
@@ -172,14 +176,14 @@ redis_data
 # idea
 .idea/
 
-coyote3-core
+coyote4-core
 .internal
 
 # CSS
 coyote/static/css/tailwind.css
 tests_internal
 tests/api/fixtures/db_snapshots/
-coyote3_dir_structure.txt
+coyote4_dir_structure.txt
 MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 
 # Private refactor tracker and scratch files
@@ -222,3 +226,12 @@ playwright-report/
 *.sln
 *.sw?
 .gemini
+.coyote3_dev_env
+.coyote3_stage_env
+.coyote3_test_env
+.coyote3_env
+.coyote3_storage.yml
+.coyote3_load/
+coyote3-core
+coyote3_dir_structure.txt
+.aws

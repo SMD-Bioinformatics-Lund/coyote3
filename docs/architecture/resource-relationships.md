@@ -3,7 +3,7 @@
 ![Collection relationships](../assets/diagrams/collection-relationships.svg)
 
 Assay definitions, configurations, gene lists, and access assignments determine how
-Coyote3 ingests samples and presents their results for review.
+Coyote4 ingests samples and presents their results for review.
 
 The overview diagram groups analysis evidence for readability. ISGL selection is
 optional; it is not a parent of the sample. Arrows show dependencies or evidence

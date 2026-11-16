@@ -1,7 +1,11 @@
 # Collection contract fixtures
 
+<!-- badges:start -->
+![Scope: Tests and fixtures](https://img.shields.io/badge/Scope-Tests%20and%20fixtures-4F46A5?style=flat)
+<!-- badges:end -->
+
 For collection snapshots derived from raw VCF/JSON inputs, use the
-[clinical workflow bundle](../../../demo_data/clinical_workflows/README.md). Its post-ingest and
+[clinical workflow bundle](../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md). Its post-ingest and
 illustrative post-review states retain consistent sample/finding references.
 
 `all_collections_dummy/` contains one non-empty `*.json` file for every MongoDB
@@ -28,7 +32,7 @@ Contract rules:
   `assay_specific_panels`, `insilico_genelists`) should keep aligned key-shapes across environments.
 - All business identifiers are lowercase in the curated seed baseline, except sample document IDs
   where the sample-specific identifier is intentionally preserved.
-- Application-owned first-load data is maintained under `api/bootstrap/catalogs/`.
+- Application-owned first-load data is maintained under `api/src/coyote_api/bootstrap/catalogs/`.
 - Seed files use plain JSON scalar values for IDs/timestamps (for example ISO-8601 datetime strings),
   not Mongo Extended JSON wrappers such as `$date` / `$oid`.
 - Binary assets use Extended JSON `$binary` with subtype `00`; load these with

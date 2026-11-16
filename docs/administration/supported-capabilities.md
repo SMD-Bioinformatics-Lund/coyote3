@@ -1,6 +1,6 @@
 # Supported application capabilities
 
-Coyote3 supports defined analysis workflows. Centers organize those workflows
+Coyote4 supports defined analysis workflows. Centers organize those workflows
 using their own biological groups, assays, diagnoses and gene lists. There is no
 fixed list of supported group names or assay names.
 
@@ -19,7 +19,7 @@ support does not establish clinical validation of a center's assay.
 | Modalities, sequencing families and analyses | Application release | Define implemented workflows and their permitted combinations. |
 | Input contracts and supported parsers | Application release | Define which pipeline results the application can consume. |
 
-`src/coyote3/config/factory_defaults.toml` is the application capability registry.
+`core/src/coyote/config/factory_defaults.toml` is the application capability registry.
 Center vocabulary configuration cannot override it. A new group or assay can reuse
 implemented analyses through configuration. A new analysis requires software
 implementation and a release; adding its name to a configuration is insufficient.
@@ -69,11 +69,10 @@ follow the [raw file contracts](../reference/ingest-files/README.md).
 
 ## Intents and callers
 
-Somatic review is available for the supported DNA/RNA workflows. Germline intent
-is implemented for DNA SNVs only. It has separate filters and report context.
-The query resolver also composes effective germline exceptions into somatic SNV
-policies; see [query-rule composition](query-rules.md#runtime-scope-resolution).
-Review intent does not establish a finding's biological origin.
+ASPC `snv_filter_mode` defaults to `shared`: all SNVs use one normal filter
+profile and its published policy. `independent` retains separate configured
+somatic and germline flows. No germline rules are injected into somatic selection.
+Review intent does not establish biological origin.
 
 Supported RNA fusion caller identifiers are `arriba`, `fusioncatcher` and
 `starfusion`. Caller labels and descriptions do not install a new parser.

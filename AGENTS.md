@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Coyote3 is a clinical genomics application for ingesting, filtering, reviewing,
+Coyote4 is a clinical genomics application for ingesting, filtering, reviewing,
 annotating, classifying, and reporting genomic findings. Changes can affect clinical
 interpretation and traceability; preserve established behavior unless the task explicitly
 changes it, and cover clinical logic with focused tests.
@@ -22,35 +22,38 @@ The system consists of:
 
 | Path | Purpose |
 | --- | --- |
-| `api/app/` | FastAPI composition, lifecycle, dependency wiring, and runtime setup. |
-| `src/coyote3/` | Core application library; never imports `api` or the external client. |
-| `src/coyote3/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
-| `clients/python/` | Independently installable HTTP-only `coyote3-client` distribution and tests. |
-| `api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
-| `src/coyote3/application/` | Use-case and workflow services. |
-| `src/coyote3/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
-| `src/coyote3/contracts/` | Pydantic request, response, and collection schemas. |
-| `api/infra/` | MongoDB repositories, integrations, observability, and infrastructure adapters. |
-| `src/coyote3/config/` | Typed policy inputs, software defaults and validation. |
-| `api/bootstrap/` | Installation catalogs and host-owned catalog assembly. |
-| `api/services/` | Host installation operations and public-page composition. |
-| `api/presentation/` | Host selection of packaged report presentation. |
-| `api/config/` | Host environment loading, API security, storage paths and database settings. |
-| `config/examples/center/` | Center examples copied into an external reviewed deployment directory. |
+| `api/src/coyote_api/app/` | FastAPI composition, lifecycle, dependency wiring, and runtime setup. |
+| `core/src/coyote/` | Core application library; never imports `coyote_api`, MongoDB adapters or the external client. |
+| `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
+| `clients/python/` | Independently installable HTTP-only `coyote-pyclient` distribution and tests. |
+| `api/src/coyote_api/interfaces/http/v1/` | Version-one HTTP routers grouped by clinical or operational responsibility. |
+| `core/src/coyote/application/` | Use-case and workflow services. |
+| `core/src/coyote/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
+| `core/src/coyote/contracts/` | Pydantic request, response, and collection schemas. |
+| `api/src/coyote_api/infra/` | Host integrations, observability and infrastructure composition. |
+| `adapters/mongo/src/coyote_mongo/` | Independently installable MongoDB repositories and persistence adapters. |
+| `core/src/coyote/config/` | Typed policy inputs, software defaults and validation. |
+| `api/src/coyote_api/bootstrap/` | Installation catalogs and host-owned catalog assembly. |
+| `api/src/coyote_api/services/` | Host installation operations and public-page composition. |
+| `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
+| `api/src/coyote_api/config/` | Host environment loading, API security, storage paths and database settings. |
+| `api/src/coyote_api/config/examples/center/` | Center examples copied into an external reviewed deployment directory. |
 | `docs/sdk/` | SDK installation, usage, host development, generated reference and release compatibility. |
-| `api/tasks/` | Celery task entry points. |
+| `api/src/coyote_api/tasks/` | Celery task entry points. |
 | `frontend/src/` | React pages, reusable components, hooks, libraries, styles, and unit tests. |
 | `frontend/tests/e2e/` | Playwright browser tests. |
-| `src/coyote3/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
-| `tests/` | Backend unit, API, integration, contract, and fixture coverage. |
+| `core/src/coyote/application/reporting/clinical_rules/` | Typed report-rule evaluation, validation, rendering, and lifecycle services. |
+| `core/tests/`, `api/tests/`, `adapters/mongo/tests/`, `clients/python/tests/` | Package-owned unit, smoke and adapter/core integration coverage. |
+| `tests/` | Application integration, architecture contracts, repository tooling and smoke coverage. |
 | `tests/load/` | Optional Locust HTTP workloads, target checks and synthetic smoke server. |
-| `deploy/` | Dockerfiles, Compose definitions, proxy configuration, and environment examples. |
+| `deploy/` | Compose definitions, proxy configuration, and environment examples. |
+| `docker/` | Container build definitions and frontend proxy templates. |
 | `scripts/` | Quality, bootstrap, deployment, maintenance, and contract-generation tools. |
 | `docs/` | MkDocs user, developer, API, configuration, and operations documentation. |
-| `demo_data/` | Synthetic demonstration and validation data only. |
+| `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` | Packaged synthetic inputs, setup resources and demonstration manifests. |
 
-Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
-`api/celery_app.py`, and `frontend/src/main.tsx`.
+Important entry points are `api/src/coyote_api/app/main.py`, `asgi.py`, `run_api.py`,
+`api/src/coyote_api/celery_app.py`, and `frontend/src/main.tsx`.
 
 ## Development conventions
 
@@ -96,7 +99,7 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 - Raise established application/domain errors and let the centralized HTTP exception
   handling produce API responses. Do not expose raw PyMongo result types above infra.
 - Keep imports directed inward: domain and application code must not import FastAPI,
-  Starlette, or `api.app`; infrastructure and lower layers must not depend on app wiring.
+  Starlette, or `coyote_api.app`; infrastructure and lower layers must not depend on app wiring.
 
 ### TypeScript and React
 
@@ -114,6 +117,22 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 
 ### Protected visual theme
 
+- Maintain strict consistency across code and every user-facing surface, including
+  application pages, documentation, README badges, reports and shared elements.
+  Match established naming, structure, components, layouts, spacing, typography,
+  icons, colors, states and themes. Reuse the authoritative implementation rather
+  than introducing parallel conventions or one-off variants.
+- A request to fix functionality, accuracy, missing assets or broken rendering does
+  not authorize a redesign. Preserve the approved appearance and grouping while
+  fixing the cause. Ask for explicit approval before changing an established design
+  or convention outside the requested scope; approval applies only to that scope.
+- README badges use the original Shields.io `flat` style with their established
+  technology logos, colors and groups. Do not substitute a custom badge renderer
+  or remove the logos as part of a rendering fix.
+- Compare affected surfaces with the existing baseline or supplied reference before
+  completion. Check shared changes across their consumers, including light/dark
+  themes and narrow/wide layouts. Correct inconsistencies instead of redefining the
+  baseline or changing expectations merely to accept a different design.
 - Treat the current theme as the approved baseline. Preserve its colors, gradients,
   shadows, surface hierarchy, borders, corner radii, typography and control styling.
   Change these only when the user's request explicitly calls for the affected visual
@@ -147,19 +166,21 @@ Important entry points are `api/app/main.py`, `asgi.py`, `run_api.py`,
 
 ## Architecture rules
 
-- The installable library never imports `api`. Select center configuration explicitly
+- The installable library never imports `coyote_api`. Select center configuration explicitly
   before importing vocabulary-dependent contracts; one process uses one immutable profile.
-- SDK release identity belongs to `pyproject.toml`; application identity and its exact
+- SDK release identity belongs to `core/pyproject.toml`; application identity and its exact
   SDK selection belong to `release.toml`. Keep HTTP and clinical configuration revisions separate.
-- The Coyote3 wheel includes root-level API modules and server assets; `[api]`
-  enables their dependencies. The core must import without those dependencies.
-  Client code lives in its own distribution and imports neither core nor API.
+- The root is a virtual uv workspace. `core` builds `coyote-core`; `adapters/mongo` builds
+  `coyote-mongo`; `api` builds `coyote-api` with server assets.
+  Dependencies point API -> adapter -> core. The adapter never imports the API.
+  The HTTP client has its own distribution and imports none of those packages.
+  Use the uv workspace for editable development; deployment installs separate wheels.
 
 - HTTP routers declare paths, permissions, dependencies, and response contracts, then
-  delegate behavior to `src/coyote3/application` services.
+  delegate behavior to `core/src/coyote/application` services.
 - Business and clinical rules belong in application/domain modules, not route handlers,
   React pages, or MongoDB repositories.
-- MongoDB access belongs in `api/infra/mongo/repositories`. Depend on repository protocols
+- MongoDB access belongs in `adapters/mongo/src/coyote_mongo/repositories`. Depend on repository protocols
   or explicit repositories; do not access raw collections from routes, domain, or
   application code.
 - Keep Pydantic transport/collection contracts separate from persistence implementation
@@ -182,8 +203,12 @@ enforce several of these rules and must remain passing.
 
 ## Testing
 
-- Backend tests use pytest with unit, API, integration, and contract markers. Overall branch
-  coverage is collected from `api` and has a 75% minimum.
+- Backend tests use pytest with smoke, unit, API, client, integration and contract markers.
+  Keep tests and synthetic helpers with their owning package. Core tests must not import
+  the API, Mongo adapter or their fixtures; adapter tests must not import the API.
+  Root tests own application integration and repository tooling. Each package owns pytest
+  configuration, complete-source branch coverage and its independent non-regression floor.
+  Preserve the root 75% overall gate and clinical/family gates, including 100% reporting rules.
 - Frontend unit/component tests use Vitest and Testing Library under `frontend/src`.
 - Browser tests use Playwright under `frontend/tests/e2e`.
 - Locust runs in a separate environment using `requirements-load.txt`, not the API
@@ -207,9 +232,11 @@ Run commands from the repository root unless noted otherwise.
 scripts/quality/run_quality_suite.sh
 
 # Backend tests, lint, formatting, and configured type-check boundary
-PYTHONPATH=. .venv/bin/pytest -q tests/unit tests/api tests/integration
-PYTHONPATH=. .venv/bin/ruff check src api tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check src api tests scripts
+PYTHONPATH=. .venv/bin/pytest -q
+scripts/quality/run_package_tests.sh all --smoke
+scripts/quality/run_package_tests.sh all --coverage
+PYTHONPATH=. .venv/bin/ruff check core api adapters tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check core api adapters tests scripts
 PYTHONPATH=. .venv/bin/mypy
 
 # Frontend development and verification
@@ -232,9 +259,9 @@ npm run docs:lint
 Start the development stack with the version-aware Compose wrapper:
 
 ```bash
-cp deploy/env/example.env .coyote3_dev_env
+cp deploy/env/example.env .coyote4_dev_env
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   up -d --build
@@ -242,7 +269,7 @@ cp deploy/env/example.env .coyote3_dev_env
 
 The environment file must contain the required deployment-specific values. Do not commit it.
 The base Compose stack expects configured MongoDB endpoints and a pre-created application network.
-Reuse `api/config/mongo.py` and `api/infra/mongo/connections.py`; never infer a host
+Reuse `adapters/mongo/src/coyote_mongo/config/endpoints.py` and `adapters/mongo/src/coyote_mongo/connections.py`; never infer a host
 from a database name or pass a session across different MongoClient instances.
 
 ## Agent working rules
@@ -324,7 +351,7 @@ from a database name or pass a session across different MongoClient instances.
   when preparing a PR. For work without a PR, retain the same decisions in the
   task record and report material gaps at
   completion. Do not introduce per-module version counters or bump unrelated releases;
-  follow the five authoritative release identities and immutable-artifact rules.
+  follow the package/release version authorities and immutable-artifact rules.
 - Run the narrowest relevant checks while iterating, then the applicable broader
   checks after the final change. Scale verification to the affected behavior;
   clinical, security, persistence and concurrency changes need focused regressions.

@@ -54,6 +54,7 @@ the actual rules used; no ASPC update is needed to adopt a new rule publication.
 | `diagnosis_id` | Defaults to the configured Base ID | Named scopes need an eligible definition and assay association. |
 | `analysis_types` | Contract default `[]`, followed by workflow validation | Analyses enabled for review; selections must fit the assay's files and family. |
 | `analysis_intents` | Contract default `['somatic']`, then normalized for the assay | DNA analysis intent; use the form's applicable choices and [filter field reference](../reference/filter-profile-fields.md). |
+| `snv_filter_mode` | Optional; `shared` | One normal SNV flow for all variants. `independent` enables separate configured somatic and germline profiles. It does not establish a variant's biological origin. |
 | `filters` | Required; no universal filter object | [DNA/RNA field defaults](../reference/filter-profile-fields.md); initializes sample filters at ingest. |
 | `reporting` | Required | Report content configuration; detailed below. |
 | `use_diagnosis_genelist` | Optional; `false` | Enables the diagnosis-dependent gene-list behavior. |
@@ -71,6 +72,8 @@ the list without surrounding quotation marks. Each sample has its own row.
 | Field within `reporting` | Required / default | Effect |
 | --- | --- | --- |
 | `report_sections` | Optional; `[]` | Selected analysis sections, constrained by enabled analyses. |
+| `summary_text_order` | Optional; `[]` | Analysis priority for generated summary text. Empty preserves authored section order; it does not reorder an already saved comment. |
+| `summary_table_order` | Optional; `[]` | Independent analysis priority for summary tables. Empty preserves normal table order. Detail cards and finding eligibility are unchanged. |
 | `reportable_tiers.SNV`, `reportable_tiers.FUSION`, `reportable_tiers.CNV`, `reportable_tiers.TRANSLOCATION` | Optional; each `[1, 2, 3]` | Accepted values 1–4. Explicit `[]` disables tier-based inclusion. CNV/translocation findings can also be explicitly marked for report inclusion; false-positive and irrelevant findings remain excluded. |
 | `language` | Optional; `sv` | Normalized language tag, 2–16 characters; selects compatible published rules. |
 | `report_header`, `report_method` | Required, nonempty | Approved report metadata; not generated from an assay's name. Analysis description text belongs to clinical reporting rules. |

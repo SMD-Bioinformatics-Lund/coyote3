@@ -1,1 +1,6 @@
 include client_build.py
+include LICENSE.txt COPYRIGHT.txt NOTICE.txt
+
+include CHANGELOG.md
+recursive-include docs *.md *.svg
+recursive-include tests *.py

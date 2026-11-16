@@ -1,14 +1,19 @@
 # SVG logo assets
 
+<!-- badges:start -->
+![Scope: Brand assets](https://img.shields.io/badge/Scope-Brand%20assets-4F46A5?style=flat)
+<!-- badges:end -->
+
 These files contain vector paths and shapes, with accessible titles, view boxes
-and no embedded raster images or external fonts. Existing files in the parent
-directory are retained. The application uses the new SVG filenames for Coyote3
-and knowledgebase logos. Modern reports embed the Coyote3 and configured center
+and no embedded raster images or external fonts. The application uses the Coyote4
+logo and knowledgebase logos. Reports embed the Coyote4 and configured center
 logos as data URLs, including when downloaded for offline viewing.
 
-| New asset | Artwork reference |
+| Asset | Artwork reference |
 | --- | --- |
-| `coyote-vector.svg` | Coyote3 silhouette, standalone vector paths. |
+| `coyote4-logo.svg` | Approved Coyote4 logo: howling coyote, purple/orange ring and DNA lettering. |
+| `coyote4-emblem.svg` | Animal and ring, cropped to a square transparent canvas. |
+| `coyote4-favicon.ico` | Matching emblem at 16, 24, 32, 48, 64, 128 and 256 pixels. |
 | `brca-exchange-vector.svg` | [Official BRCA Exchange ribbon](https://github.com/BRCAChallenge/brca-exchange/blob/master/website/js/img/brca_logo.png), reconstructed with polygons and outlined lettering. |
 | `civic-vector.svg` | [Official CIViC reference](https://github.com/griffithlab/civic-v2/blob/main/client/src/assets/images/CIViC_logo_for-dark-bg_LG_v5a.png), reconstructed with medical-staff curves, gradients and outlined lettering. |
 | `clinpgx-vector.svg` | [Official ClinPGx branding](https://github.com/PharmGKB/pgkb-branding/blob/main/ClinPGx/logo/logo.svg), reconstructed with lettering and helix geometry. |
@@ -26,13 +31,13 @@ The COSMIC reference is the current database banner rather than the older combin
 COSMIC/Sanger image. References were checked on 2026-10-25.
 
 All SVG canvases are transparent. Dark-mode media rules keep dark lettering
-readable under the application's inherited color scheme. Coyote3 and OncoKB retain
-their previously reconstructed vector geometry. Legacy raster logo files and the
+readable under the application's inherited color scheme. Coyote4 retains its approved
+purple and warm orange colours on every surface. Legacy logo files and the
 duplicate CPIC file are no longer distributed.
 
-The server bundles the Coyote3 and Region Skåne vectors. Reports explicitly use
-the light color scheme for white paper. Email uses `api/config/assets/coyote-email.png`, rendered from the current
-Coyote3 SVG with alpha transparency because email clients have limited SVG support.
+The server bundles the Coyote4 and Region Skåne vectors. Reports explicitly use
+the light color scheme for white paper. Email uses `api/config/assets/coyote4-email-logo.png`, rendered from the current
+Coyote4 SVG with alpha transparency because email clients have limited SVG support.
 The Region Skåne geometry is from the
 [attributed vector reference](https://commons.wikimedia.org/wiki/File:Region_Sk%C3%A5ne_logo.svg),
 which identifies Region Skåne as its author and links the

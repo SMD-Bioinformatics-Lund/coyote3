@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Repair VEP documentation links and cache version labels, without changing definitions."""
 
 from __future__ import annotations
@@ -16,8 +19,9 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+
 from scripts.knowledgebase.update_vep_metadata import SEED, reference_links  # noqa: E402
 
 

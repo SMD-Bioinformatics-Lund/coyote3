@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* Keep the displayed year current without rebuilding the deployed documentation. */
 function updateCopyrightYear() {
   const year = String(new Date().getFullYear());

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Export the canonical FastAPI OpenAPI contract without starting runtime services."""
 
 import argparse
@@ -20,12 +23,12 @@ def export_schema() -> dict:
     """
     os.environ.setdefault("ENV_NAME", "test")
     os.environ.setdefault("TESTING", "1")
-    from api.app.main import create_api_app
+    from coyote_api.app.main import create_api_app
 
     schema = create_api_app().openapi()
     # Hosts and deployment descriptions do not change the HTTP data contract.
     schema.pop("servers", None)
-    schema["info"] = {"title": "Coyote3 API", "version": "1"}
+    schema["info"] = {"title": "Coyote4 API", "version": "1"}
     return schema
 
 

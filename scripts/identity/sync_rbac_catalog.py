@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Synchronize bundled permission policies and built-in role grants with MongoDB."""
 
 from __future__ import annotations
@@ -17,11 +20,16 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from coyote_api.config.bootstrap import configure_center_from_environment  # noqa: E402
+
+# Bind the host profile before importing vocabulary-dependent contracts.
+configure_center_from_environment()
+
+from coyote.contracts.schemas.registry import normalize_collection_document  # noqa: E402
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 DEFAULT_SEED_DATA_DIR = BOOTSTRAP_ROOT / "rbac"
 

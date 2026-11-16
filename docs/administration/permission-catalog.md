@@ -4,10 +4,10 @@
 
 > **Generated reference**
 >
-> This page is generated from `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` by
+> This page is generated from `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` by
 > `scripts/docs/export_permissions_reference.py`. Edit the bootstrap catalog and regenerate this page.
 
-Coyote3 installs these permissions into an empty database. They are application contracts:
+Coyote4 installs these permissions into an empty database. They are application contracts:
 administrators can assign them through center-owned roles, but cannot edit, deactivate,
 or delete installed definitions. Catalog updates use the controlled installation tools.
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Emit a read-only MongoDB collection-capacity snapshot for a maintenance record."""
 
 from __future__ import annotations
@@ -16,8 +19,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config import runtime_settings  # noqa: E402
-from api.infra.mongo.runtime_adapter import MongoAdapter  # noqa: E402
+from coyote_api.config import runtime_settings  # noqa: E402
+from coyote_mongo.runtime_adapter import MongoAdapter  # noqa: E402
 
 
 def runtime_config() -> object:
@@ -38,7 +41,9 @@ def build_adapter() -> MongoAdapter:
     config = {name: getattr(configuration, name) for name in dir(configuration) if name.isupper()}
     app = SimpleNamespace(config=config, logger=logging.getLogger("coyote.mongo_capacity"))
     adapter = MongoAdapter()
-    adapter.connect(app)
+    from coyote_api.config.backend import BackendSettings
+
+    adapter.connect(BackendSettings.from_runtime(config).mongo, logger=app.logger)
     adapter.setup()
     adapter._setup_repositories(ensure_indexes=False)
     adapter.ping()

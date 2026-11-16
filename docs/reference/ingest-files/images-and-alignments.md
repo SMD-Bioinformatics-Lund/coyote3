@@ -42,7 +42,7 @@ serve the alignment and its matching index for the intended sample and reference
 
 The CNV image should identify its axes, scale, and contigs. Numeric copy-number
 evidence must still be submitted separately as [CNV JSON](copy-number-json.md).
-Coyote3 does not call variants from BAM files or extract measurements from images.
+Coyote4 does not call variants from BAM files or extract measurements from images.
 
 - [Sample manifest](../sample-manifest.md)
 - [File preparation requirements](README.md)

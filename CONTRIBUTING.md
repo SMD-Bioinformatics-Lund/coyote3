@@ -1,18 +1,15 @@
-# Contributing to Coyote3
+# Contributing to Coyote4
 
-Thank you for contributing to Coyote3.
+Thank you for contributing to Coyote4.
 
-Coyote3 is a clinical workflow platform used in molecular diagnostics. Contributions must prioritize correctness, traceability, security, and operational safety.
+Coyote4 is a clinical workflow platform used in molecular diagnostics. Contributions must prioritize correctness, traceability, security, and operational safety.
 
 ## Scope and ownership
 
-Coyote3 is maintained by the Section for Molecular Diagnostics (SMD), Lund.
-The application uses the COYOTE3 Free-Use Source-Available License 1.0.
-Obtain written authorization from the applicable copyright holders before
-modifying protected application code or submitting such modifications.
-Submission does not transfer copyright or grant unagreed redistribution or
-relicensing rights; establish the necessary contributor permissions separately.
-The independent Python HTTP client retains Apache 2.0. See [LICENSING.md](LICENSING.md).
+Coyote4 is maintained by the Section for Molecular Diagnostics (SMD), Lund.
+The application and its independently installable Python packages use GNU GPL
+version 3 only. Retain copyright, attribution and third-party notices when
+contributing. See [LICENSING.md](LICENSING.md) for component scope.
 
 - External public contributions may be limited.
 - Internal contributors should follow this guide for all code and documentation changes.

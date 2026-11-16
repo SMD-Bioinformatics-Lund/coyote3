@@ -5,7 +5,7 @@
 
 ## Context
 
-Coyote3 uses PyMongo's synchronous client. Most FastAPI route handlers are
+Coyote4 uses PyMongo's synchronous client. Most FastAPI route handlers are
 declared with `def`, so FastAPI runs them in its managed worker thread pool.
 This keeps blocking MongoDB calls away from the asyncio event loop while
 preserving the mature repository and transaction APIs used by the clinical

@@ -2,214 +2,24 @@
 
 ## v4.0.0
 
-Version 4 replaces Flask with FastAPI and React.
+- FastAPI backend and React interface with light/dark themes and Coyote4 branding.
+- Independent clinical core, MongoDB adapter, API host and Python HTTP client,
+  with editable uv development and verified wheel deployments.
+- Unified DNA/RNA review, structural variants, coverage, biomarkers, classification
+  and annotation workflows.
+- Versioned assay, diagnosis, gene-list and environment configuration; shared or
+  independent SNV filtering and configurable report section order.
+- Governed query and reporting rules with drafts, review, publication and provenance.
+- HTML/PDF reports through `smd-reports`, reviewed previews, saved finding snapshots
+  and traceable report artifacts.
+- Exact assay/environment access, scoped credentials and durable audit records.
+- Background ingestion with recovery support, container deployment and migration tools.
+- Package-owned tests, fast smoke suites, separate coverage and streamlined documentation.
+- GNU GPL version 3 only, with separate copyright and contributor notices.
 
-### Highlights
-
-- New FastAPI backend and React interface with light and dark themes.
-- Unified DNA/RNA review, coverage, biomarkers and classification history.
-- Central assay setup, gene lists and versioned clinical configurations.
-- Governed query and reporting rules with review and publication workflows.
-- HTML/PDF reports through `smd-reports`, with preserved report snapshots.
-- Scoped API tokens, background ingestion and typed Python SDKs.
-- Task-based documentation and container deployment tools.
-
-### Detailed changes
-
-- Factory defaults follow ownership: reusable domain defaults in the core package,
-  deployment fallbacks in the API, and presentation defaults in the frontend.
-  Shared filter, reporting and retention values are defined once and reused.
-  API preference responses contain explicit stored values; the frontend supplies
-  unset presentation defaults. Clinical values and deployment/center overrides remain unchanged.
-
-- User access supports an environment list per assay through `assay_access`.
-  User administration provides an assay/environment matrix. Sample reads, lists,
-  reports, clinical searches, rule-testing queries, notifications and patient
-  metrics enforce exact pairs; legacy flat lists no longer authorize access.
-  Existing accounts require reviewed assay/environment assignments before rollout.
-
-- ASPC reporting supports independent `summary_text_order` and
-  `summary_table_order` analysis priorities. Empty priorities retain the existing
-  order. Generated narrative sections and result-summary tables can move without
-  changing selected findings, reviewed comments, detailed evidence or rule matches;
-  changing either priority requires reviewing a new preview before saving.
-
-- Report generation uses only `smd-reports`. Bundled Jinja report templates and
-  the legacy format selector are removed. Earlier template identifiers resolve
-  to the package renderer; existing saved artifacts remain available, while old
-  approved template hashes require a reviewed configuration revision.
-
-- Modern reports use `smd-reports` 0.5.3 with production-compatible compact result
-  tables, numbered reference captions, clinical-question conclusion headings,
-  compact bold summary labels, and consistent configured laboratory identity.
-  Sample comment previews and saved comments also display summary headings in
-  body-sized bold text with compact spacing before the following paragraph.
-  Additional version-four findings and detail cards remain available. Historical
-  report files and finding-selection rules are unchanged; approved template
-  revisions require review against the updated renderer.
-
-- Documentation navigation starts with six task/reference areas and direct action
-  links. Complete review and assay setup guides no longer send readers through
-  optional reference pages as required steps. Page titles precede reading controls;
-  the home page presents six starting choices and reference inventories expand on demand.
-
-- Documentation uses a narrower reading column, clearer heading spacing and a
-  print layout. Entry pages group reading paths by task; assay setup presents the
-  procedure before references and keeps staging cleanup in operational maintenance.
-
-- Loading indicators use one card surface around the animated dots and label.
-
-- Modern reports use `smd-reports` 0.4.0 and its compact covered-gene tables,
-  retaining gene order and content. Package metadata identifies version 0.4.0;
-  the package's DNA/RNA template revision is 0.4.0.
-  Matching bold and italic font variants are embedded in standalone HTML/PDF;
-  Markdown cells use the renderer's tighter paragraph spacing.
-
-- Modern DNA/RNA reports use the imported `smd-reports` renderer and an application
-  input adapter. Preview validation and saved provenance identify the installed
-  renderer and adapter. Legacy output and issued report artifacts are retained.
-  The existing restricted PDF pipeline consumes the package-generated HTML.
-  Renderer 0.1.2 supports self-contained accreditation SVG styles and embedded
-  fonts. Its dependency minimums require updated Pydantic, Markdown and fonttools
-  pins, including matching Pydantic core and typing extensions. The Python client
-  uses the same Pydantic pin so it can be installed alongside the core package.
-
-- Session-authenticated ingestion accepts an absent editor-session header and
-  preserves valid editor UUIDs without treating dependency metadata as a UUID.
-  The runtime pins `pyasn1` 0.6.5 to address decoder denial-of-service advisories.
-  Disposable MongoDB integration checks run on demand through the dedicated
-  runner or manual CI input. The quality runner preserves relative interpreter
-  selections when child checks change working directories.
-  API resource navigation keeps the selected section in view after switching to
-  a narrow viewport, including repeated and keyboard selections.
-
-- Ingest rejects unsupported ZIP compression before extraction, reports corrupt
-  compression streams as input errors, and resolves Windows-style manifest paths.
-  CNV and RNA exports preserve zero support; unavailable purity no longer hides
-  a valid CNV copy-number estimate. Numeric admin inputs are validated without
-  silently truncating values. Missing population frequencies remain unavailable.
-  Clinical-rule exports use deferred download cleanup and report download failures.
-  Report SVG validation rejects document type declarations regardless of XML encoding.
-
-- SNV CSV exports retain available genotype evidence when other measurements are
-  missing, without substituting zero. Coverage tables show unavailable depth
-  neutrally, and returning to a previously opened sample resets optional coverage scope.
-
-- Coverage review can optionally narrow assay scope to a gene list captured in
-  the applied configuration. Assay scope remains the default; the temporary
-  selection leaves finding filters unchanged. The coverage API and SDK accept
-  an optional `gene_list_id` and return available list choices.
-
-- Coverage review uses the assay scope captured in the sample's applied
-  configuration independently of finding filters. Assays without covered genes
-  use the genes present in the ingested coverage data; blacklist exclusions remain
-  in effect.
-
-- Overlapping interface-preference saves retain newer edits and roll back only
-  failed changes. Coverage blacklists match displayed coordinates and exclude
-  blocked intervals from low-coverage summaries while preserving gene context.
-
-- Report save feedback remains bound to its original sample, editing controls
-  expire with their lease, and delayed preference responses preserve the current
-  account. Structural-finding evidence preserves missing measurements and zero
-  coordinates, and translocation support accepts stored comma-separated counts.
-  Coverage summaries retain low coding regions without overlapping probes;
-  blacklist controls respect permissions and refresh affected results. RNA sorting
-  preserves measured zero support, and SNV ingestion closes readers on failure.
-
-- Unified DNA/RNA review with assay-aware filters, reference annotations, biomarkers,
-  coverage and traceable classification history.
-- Modern HTML/PDF reports with assay-specific accreditation, detailed findings,
-  reviewer history and immutable snapshots that preserve issued reports.
-  New report defaults and authoring examples use variant terminology; published
-  rule wording changes through reviewed versions.
-  Migrated report rules support grouped DNA-fusion evidence and explicit legacy
-  panel sentence formatting without changing existing rule defaults.
-- Governed query policies and clinical reporting rules with visual authoring,
-  previews, independent review and controlled publication.
-  Bulk annotation templates support finding-specific DNA and RNA tiering previews.
-  Rule autosave waits for incomplete sentences instead of submitting empty text.
-  Background refreshes preserve unsaved rule edits; bulk previews are bound to the
-  selected findings and one published rule version.
-  Empty names pause rule autosave; bulk actions prevent duplicate submissions and
-  keep failed confirmations open for retry with a fresh annotation preview.
-  API requests reject malformed successful responses and handle interrupted body
-  downloads. Report preview/save URLs encode sample identifiers consistently;
-  corrupt ZIP contents are reported as invalid uploads.
-  Shared controls support same-file import retries, honest clipboard failure feedback,
-  and form-safe expand/copy buttons. Table state rejects malformed stored sorting,
-  bounds URL page sizes, and normalizes sort directions consistently with the API.
-  Missing measurements and tiers retain missing-value semantics; epoch timestamps
-  display correctly and custom date filters reject impossible dates. Notification
-  deduplication preserves distinct messages containing separators.
-  Empty MANE annotation lists fall back to available translocation annotations.
-  Chart exports contain valid SVG namespaces and reserve subtitle space. IGV keeps
-  remote alignment URLs intact, and rule workspaces bound restored panel widths.
-  Gene-count extraction ignores metadata, unpaired report paths accept null controls,
-  nonfinite sort values remain missing, and encrypted ZIP uploads fail validation.
-  Comment saves and suggestions preserve newer edits. Markdown keeps code literal,
-  ordered-list numbering and valid block structure; tooltips retain accessible descriptions.
-  Tables prevent selection from moving to replacement rows and honor explicit page sizes.
-  Notification read changes require successful saves; stale refreshes cannot replace newer inboxes.
-  VCF ingestion preserves phasing, missing alleles and measured zero population frequencies,
-  accepts AF or VAF, and parses scalar annotations. CNV ingestion rejects partial malformed
-  bundles and retains explicit amplification labels. UTF-8 BOM JSON imports are accepted.
-  Query imports preserve assay or family bindings through preview and save.
-  Sample comparisons retain pinned assay/gene scopes; parent retirement checks child
-  policies. Missing RNA filter profiles inherit the applied configuration's defaults.
-  Admin rule/profile lists open on current publications; retained resource versions
-  are available through read-only history on demand.
-- Hierarchical assay catalog with service details, inherited pricing and turnaround,
-  reviewed gene scopes, assay comparison and a gene coverage matrix.
-  In-place catalog editing supports sections, source dropdowns and draft management.
-- Consistent light/dark themes, including API documentation, clearer navigation and raised cards
-  and badges.
-  Workflow badges share status colors; assay setup uses a unified workspace card.
-  Read-only setups explain their state and expose the appropriate editing or review actions.
-  Submitted assay setups require approval from their assigned independent reviewer.
-  Table search includes searchable column values; diagnosis registries add per-column filters.
-- Central assay, diagnosis, gene-list and configuration management, with validated
-  imports/exports, editing leases, revision checks and protected system records.
-  Numeric filter editing preserves decimal zeros without changing saved number types.
-  Reporting forms show tiers for selected sections and retain saved choices in read-only views.
-  Setup editing protects unsaved forms and imports, including browser history navigation, and
-  supports removing unavailable list selections, with a searchable sidebar and
-  workflow-state filters for saved setups.
-  Configuration JSON can be staged directly in existing setup drafts with scope checks.
-  Resource uploads accept single JSON/YAML objects as well as bulk lists.
-  Assay activation requires only Base/production; configurations can be copied from
-  saved records or setup drafts into new scopes. Setup review is optional;
-  authorized users can publish directly or assign a colleague for optional review.
-  Fixed saved setup pages failing to load their reviewer choices.
-  Successful setup publication removes draft snapshots while retaining audit events and published versions.
-  Delayed file imports cannot overwrite changed or closed editors; deletion clears stale forms
-  and confirmation dialogs.
-  Restored RNA fusion workflow dependencies and retained setup timestamps when reading snapshots.
-- Permission-scoped personal and service tokens with expiry, revocation,
-  one-time secrets and audit attribution; retained clinical audit history.
-- Resumable background ingestion with credential rechecks, retry safeguards and
-  dedicated ingestion audit views.
-- Typed HTTP APIs, generated frontend contracts, API documentation and independently
-  versioned Python SDK and HTTP client, both starting at `1.0.0`.
-- Container deployment, separate workers, backup/recovery tools, offline v2/v3 data
-  migration and branded Nginx error pages. Redis transport checks catch missing
-  worker dependencies before runtime.
-  Isolated legacy builds retain Python 3.12 on Bullseye with signed Debian archives;
-  modern builds use Bookworm.
-  Host-run commands inherit the configured center mount directory automatically.
-
-### Upgrade and compatibility notes
-
-- External Python clients use `coyote3-client` and import `coyote3_client`
-  instead of `coyote3.client`.
-- The application uses the COYOTE3 Free-Use Source-Available License 1.0;
-  the independent Python client retains Apache 2.0.
-- Existing authenticated deployments must apply the updated
-  [restricted identity role](docs/operations/audit-and-logging.md#runtime-database-privileges)
-  for token access and startup index inspection.
-- Follow the [upgrade procedure](docs/deployment/application-upgrades.md) for database
-  permissions, identity roles, schema/index maintenance and rollback limits.
-  Legacy v2/v3 data migration remains a separate operation.
+See the [upgrade procedure](docs/deployment/application-upgrades.md) for deployment,
+access assignments, database permissions and migration requirements. Package changelogs
+record package-specific changes.
 
 ## v3.1.23
 

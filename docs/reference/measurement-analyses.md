@@ -111,7 +111,7 @@ high/low cutoffs.
 
 The modern report groups the assigned values in **Kliniskt relevanta biomarkörer**,
 using **Ej bedömd** for an unset assessment. Detailed numeric HRD/MSI/TMB tables
-follow the detailed SNVs. Legacy reports keep their numeric summary tables.
+follow the detailed SNVs. All reports use the same package-owned HTML/PDF renderer.
 Each selected analysis retains its own saved finding row, including its current
 manual assessment. Snapshot
 identities include the analysis and source name, so a source's HRD and TMB results

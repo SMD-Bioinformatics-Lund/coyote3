@@ -56,7 +56,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `gene
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -116,7 +116,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `phar
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.clinpgx_genes_public](knowledgebase.md#knowledgebase-clinpgx-genes-public): `hgnc_id` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_id` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.clinpgx_genes_public](knowledgebase.md#knowledgebase-clinpgx-genes-public): `hgnc_id` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_id` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.clinpgx_genes_public](knowledgebase.md#knowledgebase-clinpgx-genes-public): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -163,7 +163,7 @@ Binding: `cosmic_actionability_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -195,7 +195,7 @@ Binding: `cosmic_breakpoints_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -227,7 +227,7 @@ Binding: `cosmic_cgc_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -259,7 +259,7 @@ Binding: `cosmic_mutant_census_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -291,7 +291,7 @@ Binding: `cosmic_cgc_hallmarks_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -323,7 +323,7 @@ Binding: `cosmic_classification_paper_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -355,7 +355,7 @@ Binding: `cosmic_classification_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -387,7 +387,7 @@ Binding: `cosmic_cna_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -419,7 +419,7 @@ Binding: `cosmic_fusion_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -451,7 +451,7 @@ Binding: `cosmic_expression_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -483,7 +483,7 @@ Binding: `cosmic_genes_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -515,7 +515,7 @@ Binding: `cosmic_methylation_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -547,7 +547,7 @@ Binding: `cosmic_mutation_census_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -608,7 +608,7 @@ Binding: `cosmic_resistance_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -640,7 +640,7 @@ Binding: `cosmic_signature_dbs_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -672,7 +672,7 @@ Binding: `cosmic_signature_sbs_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -704,7 +704,7 @@ Binding: `cosmic_signature_sv_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -736,7 +736,7 @@ Binding: `cosmic_structural_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -797,7 +797,7 @@ Binding: `cosmic_transcripts_collection`.
 Common contract for a source-faithful non-variant COSMIC product record.
 
 Provider product rows retain `record_key` and `source_row`. The latter is an opaque
-provider payload: its columns are release-specific, not declared Coyote3 foreign keys.
+provider payload: its columns are release-specific, not declared Coyote4 foreign keys.
 Do not infer a gene/transcript/variant join from a similarly named vendor column.
 
 Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `record_key`, `source_row`.
@@ -851,12 +851,12 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `hgnc
 | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `covered_genes[] + germline_genes[]` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary lookup; many ↔ many | Gene symbols, not HGNC ObjectIds. Preserve release context; resolve aliases deliberately, not through blanket renaming. | [S9](#s9) |
 | [primary.d4_coverage_blacklist](configuration.md#primary-d4-coverage-blacklist): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary lookup; many → one | Region exclusions refer to a symbol; region/coord must still identify the original genomic interval. | [S10](#s10) |
 | [primary.anno_vep](clinical.md#primary-anno-vep): `CSQ[].HGNC_ID` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_id` | vocabulary lookup; many ↔ many | Optional transcript-level HGNC identity. SYMBOL is a display/matching symbol, not an ObjectId. | [S13](#s13) |
-| [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
-| [knowledgebase.oncokb_genes](knowledgebase.md#knowledgebase-oncokb-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
-| [knowledgebase.oncokb_genes_public](knowledgebase.md#knowledgebase-oncokb-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
-| [knowledgebase.oncokb_cancer_genes_public](knowledgebase.md#knowledgebase-oncokb-cancer-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
-| [knowledgebase.clinpgx_genes_public](knowledgebase.md#knowledgebase-clinpgx-genes-public): `hgnc_id` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_id` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
-| [knowledgebase.oncokb_public](knowledgebase.md#knowledgebase-oncokb-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.civic_genes](knowledgebase.md#knowledgebase-civic-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_genes](knowledgebase.md#knowledgebase-oncokb-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_genes_public](knowledgebase.md#knowledgebase-oncokb-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_cancer_genes_public](knowledgebase.md#knowledgebase-oncokb-cancer-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.clinpgx_genes_public](knowledgebase.md#knowledgebase-clinpgx-genes-public): `hgnc_id` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_id` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_public](knowledgebase.md#knowledgebase-oncokb-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.versions](knowledgebase.md#knowledgebase-versions): `collections[].name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `collection namespace (not a row key)` | optional release manifest; one release → many products | Applies only when this collection is named in a release manifest. The manifest does not establish a foreign key from each provider row to versions._id. Keep source, release, build and import counts/checksums together. | [S6](#s6) |
 
 ## knowledgebase.hpaexpr
@@ -967,7 +967,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `gene
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.oncokb_cancer_genes_public](knowledgebase.md#knowledgebase-oncokb-cancer-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_cancer_genes_public](knowledgebase.md#knowledgebase-oncokb-cancer-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.oncokb_cancer_genes_public](knowledgebase.md#knowledgebase-oncokb-cancer-genes-public): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -996,7 +996,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `name
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.oncokb_genes](knowledgebase.md#knowledgebase-oncokb-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_genes](knowledgebase.md#knowledgebase-oncokb-genes): `name` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.oncokb_genes](knowledgebase.md#knowledgebase-oncokb-genes): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -1025,7 +1025,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `gene
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.oncokb_genes_public](knowledgebase.md#knowledgebase-oncokb-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_genes_public](knowledgebase.md#knowledgebase-oncokb-genes-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.oncokb_genes_public](knowledgebase.md#knowledgebase-oncokb-genes-public): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -1056,7 +1056,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `quer
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [knowledgebase.oncokb_public](knowledgebase.md#knowledgebase-oncokb-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote3 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
+| [knowledgebase.oncokb_public](knowledgebase.md#knowledgebase-oncokb-public): `gene` | [knowledgebase.hgnc_genes](knowledgebase.md#knowledgebase-hgnc-genes): `hgnc_symbol` | vocabulary cross-reference; many ↔ many | Provider gene identity, not a Coyote4 ObjectId foreign key. Keep provider release/source and resolve aliases only through documented nomenclature. | [S11](#s11) |
 | [knowledgebase.oncokb_public](knowledgebase.md#knowledgebase-oncokb-public): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S12](#s12) |
 
 ### Incoming references and migration impact
@@ -1220,52 +1220,52 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sour
 
 ### S1
 
-`api/infra/knowledgebase/brcaexchange.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/brcaexchange.py`
 
 ### S2
 
-`api/infra/knowledgebase/civic.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/civic.py`
 
 ### S3
 
-`api/infra/knowledgebase/cosmic.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/cosmic.py`
 
 ### S4
 
-`api/infra/knowledgebase/iarc_tp53.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/iarc_tp53.py`
 
 ### S5
 
-`api/infra/knowledgebase/oncokb.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/oncokb.py`
 
 ### S6
 
-`api/infra/knowledgebase/versions.py`
+`adapters/mongo/src/coyote_mongo/knowledgebase/versions.py`
 
 ### S7
 
-`api/infra/mongo/repositories/notification_activity.py`
+`adapters/mongo/src/coyote_mongo/repositories/notification_activity.py`
 
 ### S8
 
-`src/coyote3/config/database_versions.py`
+`core/src/coyote/config/database_versions.py`
 
 ### S9
 
-`src/coyote3/contracts/schemas/assay.py`
+`core/src/coyote/contracts/schemas/assay.py`
 
 ### S10
 
-`src/coyote3/contracts/schemas/dna.py`
+`core/src/coyote/contracts/schemas/dna.py`
 
 ### S11
 
-`src/coyote3/contracts/schemas/reference.py`
+`core/src/coyote/contracts/schemas/reference.py`
 
 ### S12
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`
 
 ### S13
 
-`src/coyote3/contracts/schemas/variant_annotations.py`
+`core/src/coyote/contracts/schemas/variant_annotations.py`

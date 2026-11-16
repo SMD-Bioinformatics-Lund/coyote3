@@ -1,6 +1,6 @@
 # Clinical Data Preparation And Reporting Flow
 
-This guide defines how Coyote3 turns an ingested sample into reviewable
+This guide defines how Coyote4 turns an ingested sample into reviewable
 findings, a report preview, and an immutable saved report. It describes data
 ownership, preparation boundaries, rule evaluation, and persistence failures.
 
@@ -13,7 +13,7 @@ The intended audience is:
 
 > **Info**
 >
-> Coyote3 stores timestamps in UTC. The UI converts timestamps to the
+> Coyote4 stores timestamps in UTC. The UI converts timestamps to the
 > deployment's configured local timezone for display.
 >
 
@@ -127,7 +127,7 @@ ISGL documents provide named gene scope. Lists are typed by analysis domain,
 for example SNV, CNV, fusion, expression, or PGX.
 
 An applied list does not prove that every listed gene is physically covered.
-For targeted assays, Coyote3 intersects the list with `ASP.covered_genes`.
+For targeted assays, Coyote4 intersects the list with `ASP.covered_genes`.
 WGS/WTS configurations can treat the list itself as the effective scope.
 
 The prepared report context records:
@@ -256,18 +256,20 @@ values, but they cannot add arbitrary filter fields.
 
 ### 4.2 Intent-specific review and reporting
 
-The DNA review workspace presents separate tables for each enabled profile:
+ASPC `snv_filter_mode = "shared"` uses one normal SNV flow for all variants.
+`independent` presents separate tables for each enabled profile:
 Somatic SNV and Germline SNV. A filter change updates only the selected
 `filters.<intent>.snv` section. It does not overwrite the other intent.
 
-Reporting prepares separate filtered finding sets for somatic and germline
-SNVs. Each saved reported-finding snapshot records `analysis_intent`. Static
-clinical YAML must contain an explicit `when` condition for
-`sample.analysis_intent: germline` before it can produce germline wording.
-This prevents a somatic sentence from being applied to germline findings. If
-an ASPC enables germline review but the selected rule set provides no germline
-text, the preview renders a visible red configuration warning rather than
-silently omitting the result.
+Shared reporting uses the same single filtered SNV set as analysis. Independent
+reporting prepares separate sets for the enabled profiles. Each saved
+reported-finding snapshot records the active profile's `analysis_intent`.
+Clinical rule sections can explicitly target `analysis_intent: somatic` or
+`analysis_intent: germline`. Each section receives only that profile's filtered
+SNVs, selected gene lists and aggregates. Unscoped sections use the primary/shared
+flow; they are not reused for an independent germline narrative. A profile with
+no approved wording supplies no generated narrative. Its enabled result tables
+remain available. Generated suggestions do not overwrite reviewed comments.
 
 ### 4.2 DNA filter namespaces
 
@@ -506,8 +508,8 @@ Saved report artifacts and snapshots retain their report-time content.
 
 The implementation owners are `domain/annotation_scope.py`,
 `application/interpretation/annotation_enrichment.py` and
-`application/common/query_service.py` under `src/coyote3/`, and
-`api/infra/mongo/repositories/annotations.py`. See the
+`application/common/query_service.py` under `core/src/coyote/`, and
+`adapters/mongo/src/coyote_mongo/repositories/annotations.py`. See the
 [search provenance reference](../reference/report-snapshots.md#tiered-variant-search)
 and [user action reference](../user-guide/actions-and-record-changes.md#inactive-annotations-and-sample-history).
 

@@ -19,7 +19,7 @@ answered. If a supported operation produces an unexpected result, use a bug repo
 
 ## Context and impact
 
-- Coyote3 application version or commit:
+- Coyote4 application version or commit:
 - Environment: <!-- Production, staging, test, or local; no private hostnames. -->
 - Affected page, API method and route, or service:
 - Browser, SDK, or API client version, if relevant:

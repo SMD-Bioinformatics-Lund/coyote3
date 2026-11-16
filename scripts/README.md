@@ -1,5 +1,9 @@
 # Operational scripts
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Run commands from the repository root with the application virtual environment.
 The [script reference](../docs/development/script-reference.md) describes individual
 commands, their callers, and operational prerequisites.
@@ -11,7 +15,7 @@ commands, their callers, and operational prerequisites.
 | `database/` | Backups, restores, indexes, capacity, report-artifact inspection, and audit-chain verification |
 | `ingest/` | Manifest validation, submission, and API authentication |
 | `identity/` | Identity database migration and permission/role maintenance |
-| `knowledgebase/` | External reference imports, storage migrations, and repairs |
+| `knowledgebase/` | HGNC and external reference imports, storage migrations, and repairs |
 | `maintenance/` | Operational data maintenance |
 | `docs/` | Reproducible schema/permission reference generators, Markdown lint and link validation |
 | `quality/` | Repository checks, secret scanning, and test orchestration |
@@ -32,6 +36,17 @@ deploy services. The [synthetic clinical workflow guide](../docs/testing/clinica
 documents `bootstrap/install_demo_workflows.py` (plan/apply configuration in an explicit
 local demo database) and `quality/export_demo_workflows.py` (offline ingest replay and
 collection/report snapshot verification). Neither belongs in production startup.
+
+`quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `client`, or `all`
+from each package directory. The default is its full suite; `--smoke` selects fast
+checks and `--coverage` enforces that package's branch-coverage floor and writes
+its local reports. It uses `PYTHON_BIN`, the active virtual environment, or root
+`.venv/bin/python`. It starts no application services and configures no CI jobs.
+
+`docs/export_collection_dependencies.py` regenerates the collection reference
+diagrams and tables from the reviewed catalog. Its SVG styling helper is
+`docs/collection_diagram_style.py`; neither belongs to an application package.
+See [diagram maintenance](../docs/project/maintainer-guide.md#documentation-diagrams).
 
 ## Retention criteria
 

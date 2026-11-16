@@ -46,7 +46,7 @@ Use short, redacted excerpts instead of complete logs or data exports.
 
 ## Environment
 
-- Coyote3 application version or commit:
+- Coyote4 application version or commit:
 - Environment: <!-- Production, staging, test, or local; no private hostnames. -->
 - Browser and OS, or API client and version:
 - Affected SDK or DNA/RNA report template version, if relevant:

@@ -10,8 +10,8 @@ from bson import json_util
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from coyote3.contracts.schemas.assay import BlacklistDoc  # noqa: E402
-from coyote3.domain.dna.variant_identity import (  # noqa: E402
+from coyote4.contracts.schemas.assay import BlacklistDoc  # noqa: E402
+from coyote4.domain.dna.variant_identity import (  # noqa: E402
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
 )

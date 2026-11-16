@@ -1,5 +1,9 @@
 # Coyote v2 samples
 
+<!-- badges:start -->
+![Scope: Legacy migration tools](https://img.shields.io/badge/Scope-Legacy%20migration%20tools-4F46A5?style=flat)
+<!-- badges:end -->
+
 First [export the assay in batches](../exporting.md) with `--source-version 2`.
 Each batch supplies original samples and sample-owned collection files for conversion.
 

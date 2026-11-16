@@ -1,146 +1,165 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2032" viewBox="0 0 1200 2032" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="3306" viewBox="0 0 1360 3306" role="img" aria-labelledby="title description">
 <title id="title">primary.insilico_genelists field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#644781"/></marker></defs>
-<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>
-<rect width="1200" height="2032" fill="white"/>
-<text x="20" y="32" style="font-size:23px;font-weight:600">primary.insilico_genelists</text>
-<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>
-<rect x="20" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="116" font-weight="600">primary.insilico_genelists</text>
-<text x="34" y="135" font-weight="400">supersedes_id</text>
-<rect x="660" y="92" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="116" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="135" font-weight="400">_id</text>
-<path d="M540 126.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="179" class="kind">optional reference · many → one</text>
-<rect x="20" y="205" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="229" font-weight="600">primary.insilico_genelists</text>
-<text x="34" y="248" font-weight="400">asp_ids[]</text>
-<rect x="660" y="205" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="229" font-weight="600">primary.assay_specific_panels</text>
-<text x="674" y="248" font-weight="400">asp_id</text>
-<path d="M540 239.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="292" class="kind">business key · many ↔ many</text>
-<rect x="20" y="318" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="342" font-weight="600">primary.insilico_genelists</text>
-<text x="34" y="361" font-weight="400">asp_groups[]</text>
-<rect x="660" y="318" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="342" font-weight="600">primary.assay_groups</text>
-<text x="674" y="361" font-weight="400">group_id</text>
-<path d="M540 352.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="405" class="kind">business key · many ↔ many</text>
-<rect x="20" y="431" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="455" font-weight="600">primary.insilico_genelists</text>
-<text x="34" y="474" font-weight="400">diagnosis[]</text>
-<rect x="660" y="431" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="455" font-weight="600">primary.diagnoses</text>
-<text x="674" y="474" font-weight="400">diagnosis_id</text>
-<path d="M540 465.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="518" class="kind">conditional reference · many ↔ many</text>
-<rect x="20" y="544" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="34" y="568" font-weight="600">primary.insilico_genelists</text>
-<text x="34" y="587" font-weight="400">genes[]</text>
-<rect x="660" y="544" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="674" y="568" font-weight="600">knowledgebase.hgnc_genes</text>
-<text x="674" y="587" font-weight="400">hgnc_symbol</text>
-<path d="M540 578.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="631" class="kind">vocabulary lookup · many ↔ many</text>
-<rect x="20" y="657" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="681" font-weight="600">primary.asp_configs</text>
-<text x="34" y="700" font-weight="400">gene_list_release.content.{isgl_id}</text>
-<rect x="660" y="657" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="681" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="700" font-weight="400">isgl_id + version</text>
-<path d="M540 691.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="744" class="kind">snapshot · one → many</text>
-<rect x="20" y="770" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="794" font-weight="600">primary.assay_setups</text>
-<text x="34" y="813" font-weight="400">content.existing_gene_list_ids[]</text>
-<rect x="660" y="770" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="794" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="813" font-weight="400">isgl_id</text>
-<path d="M540 804.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="857" class="kind">staged reference · one → many</text>
-<rect x="20" y="883" width="520" height="87" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="907" font-weight="600">primary.public_assay_catalog</text>
-<text x="34" y="926" font-weight="400">modalities.{modality}.categories.{key}.gene_lists[].isgl</text>
-<text x="34" y="945" font-weight="400">_id</text>
-<rect x="660" y="883" width="520" height="87" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="907" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="926" font-weight="400">isgl_id</text>
-<path d="M540 926.5 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="989" class="kind">optional binding · many ↔ many</text>
-<rect x="20" y="1015" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1039" font-weight="600">primary.samples</text>
-<text x="34" y="1058" font-weight="400">filters.{intent}.snv.snvlists[]</text>
-<rect x="660" y="1015" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1039" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1058" font-weight="400">isgl_id</text>
-<path d="M540 1049.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1102" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1128" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1152" font-weight="600">primary.samples</text>
-<text x="34" y="1171" font-weight="400">filters.{intent}.cnv.cnvlists[]</text>
-<rect x="660" y="1128" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1152" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1171" font-weight="400">isgl_id</text>
-<path d="M540 1162.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1215" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1241" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1265" font-weight="600">primary.samples</text>
-<text x="34" y="1284" font-weight="400">filters.{intent}.fusion.fusionlists[]</text>
-<rect x="660" y="1241" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1265" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1284" font-weight="400">isgl_id</text>
-<path d="M540 1275.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1328" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1354" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1378" font-weight="600">primary.samples</text>
-<text x="34" y="1397" font-weight="400">filters.{intent}.translocation.fusionlists[]</text>
-<rect x="660" y="1354" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1378" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1397" font-weight="400">isgl_id</text>
-<path d="M540 1388.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1441" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1467" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1491" font-weight="600">primary.asp_configs</text>
-<text x="34" y="1510" font-weight="400">filters.{intent}.snv.snvlists[]</text>
-<rect x="660" y="1467" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1491" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1510" font-weight="400">isgl_id</text>
-<path d="M540 1501.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1554" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1580" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1604" font-weight="600">primary.asp_configs</text>
-<text x="34" y="1623" font-weight="400">filters.{intent}.cnv.cnvlists[]</text>
-<rect x="660" y="1580" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1604" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1623" font-weight="400">isgl_id</text>
-<path d="M540 1614.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1667" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1693" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1717" font-weight="600">primary.asp_configs</text>
-<text x="34" y="1736" font-weight="400">filters.{intent}.fusion.fusionlists[]</text>
-<rect x="660" y="1693" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1717" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1736" font-weight="400">isgl_id</text>
-<path d="M540 1727.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1780" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1806" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1830" font-weight="600">primary.asp_configs</text>
-<text x="34" y="1849" font-weight="400">filters.{intent}.translocation.fusionlists[]</text>
-<rect x="660" y="1806" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1830" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1849" font-weight="400">isgl_id</text>
-<path d="M540 1840.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="1893" class="kind">selection · many ↔ many</text>
-<rect x="20" y="1919" width="520" height="68" rx="8" fill="#f4f7fa" stroke="#8c7aa2"/>
-<text x="34" y="1943" font-weight="600">primary.edit_leases</text>
-<text x="34" y="1962" font-weight="400">_id (kind=genelists)</text>
-<rect x="660" y="1919" width="520" height="68" rx="8" fill="#eee8f5" stroke="#8c7aa2"/>
-<text x="674" y="1943" font-weight="600">primary.insilico_genelists</text>
-<text x="674" y="1962" font-weight="400">isgl_id</text>
-<path d="M540 1953.0 H650" stroke="#644781" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="20" y="2006" class="kind">encoded operational key · 0..1 per resource kind/key</text>
+<defs>
+<style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)"/></marker>
+<marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)"/></marker>
+<marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)"/></marker>
+<marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)"/></marker>
+<symbol id="icon-database" viewBox="0 0 24 24"><path class="glyph" d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0"/></symbol>
+</defs>
+<text x="40" y="36" class="figure-title">primary.insilico_genelists</text>
+<text x="40" y="68" class="figure-subtitle">Source field → target key · See the relationship table for conditions and migration rules.</text>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="271" y="110" width="58" height="58" aria-hidden="true"/><text x="300" y="194" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="300" y="219" text-anchor="middle" class="entity-detail">supersedes_id</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="110" width="58" height="58" aria-hidden="true"/><text x="1060" y="194" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="219" text-anchor="middle" class="entity-detail">_id</text>
+</g>
+<g class="purple"><path d="M600 139H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="252" class="figure-note">optional reference · many → one</text>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="271" y="298" width="58" height="58" aria-hidden="true"/><text x="300" y="382" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="300" y="407" text-anchor="middle" class="entity-detail">asp_ids[]</text>
+</g>
+<g class="entity blue" data-namespace="primary.assay_specific_panels"><title>primary.assay_specific_panels</title><use href="#icon-database" x="1031" y="298" width="58" height="58" aria-hidden="true"/><text x="1060" y="382" text-anchor="middle" class="entity-title">primary.assay_specific_panels</text>
+<text x="1060" y="407" text-anchor="middle" class="entity-detail">asp_id</text>
+</g>
+<g class="purple"><path d="M600 327H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="440" class="figure-note">business key · many ↔ many</text>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="271" y="486" width="58" height="58" aria-hidden="true"/><text x="300" y="570" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="300" y="595" text-anchor="middle" class="entity-detail">asp_groups[]</text>
+</g>
+<g class="entity blue" data-namespace="primary.assay_groups"><title>primary.assay_groups</title><use href="#icon-database" x="1031" y="486" width="58" height="58" aria-hidden="true"/><text x="1060" y="570" text-anchor="middle" class="entity-title">primary.assay_groups</text>
+<text x="1060" y="595" text-anchor="middle" class="entity-detail">group_id</text>
+</g>
+<g class="purple"><path d="M600 515H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="628" class="figure-note">business key · many ↔ many</text>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="271" y="674" width="58" height="58" aria-hidden="true"/><text x="300" y="758" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="300" y="783" text-anchor="middle" class="entity-detail">diagnosis[]</text>
+</g>
+<g class="entity blue" data-namespace="primary.diagnoses"><title>primary.diagnoses</title><use href="#icon-database" x="1031" y="674" width="58" height="58" aria-hidden="true"/><text x="1060" y="758" text-anchor="middle" class="entity-title">primary.diagnoses</text>
+<text x="1060" y="783" text-anchor="middle" class="entity-detail">diagnosis_id</text>
+</g>
+<g class="purple"><path d="M600 703H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="816" class="figure-note">conditional reference · many ↔ many</text>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="271" y="862" width="58" height="58" aria-hidden="true"/><text x="300" y="946" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="300" y="971" text-anchor="middle" class="entity-detail">genes[]</text>
+</g>
+<g class="entity blue" data-namespace="knowledgebase.hgnc_genes"><title>knowledgebase.hgnc_genes</title><use href="#icon-database" x="1031" y="862" width="58" height="58" aria-hidden="true"/><text x="1060" y="946" text-anchor="middle" class="entity-title">knowledgebase.hgnc_genes</text>
+<text x="1060" y="971" text-anchor="middle" class="entity-detail">hgnc_symbol</text>
+</g>
+<g class="purple"><path d="M600 891H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1004" class="figure-note">vocabulary lookup · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="1050" width="58" height="58" aria-hidden="true"/><text x="300" y="1134" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="1159" text-anchor="middle" class="entity-detail">gene_list_release.content.{isgl_id}</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1050" width="58" height="58" aria-hidden="true"/><text x="1060" y="1134" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="1159" text-anchor="middle" class="entity-detail">isgl_id + version</text>
+</g>
+<g class="purple"><path d="M600 1079H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1192" class="figure-note">snapshot · one → many</text>
+<g class="entity blue" data-namespace="primary.assay_setups"><title>primary.assay_setups</title><use href="#icon-database" x="271" y="1238" width="58" height="58" aria-hidden="true"/><text x="300" y="1322" text-anchor="middle" class="entity-title">primary.assay_setups</text>
+<text x="300" y="1347" text-anchor="middle" class="entity-detail">content.existing_gene_list_ids[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1238" width="58" height="58" aria-hidden="true"/><text x="1060" y="1322" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="1347" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 1267H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1380" class="figure-note">staged reference · one → many</text>
+<g class="entity blue" data-namespace="primary.public_assay_catalog"><title>primary.public_assay_catalog</title><use href="#icon-database" x="271" y="1426" width="58" height="58" aria-hidden="true"/><text x="300" y="1510" text-anchor="middle" class="entity-title">primary.public_assay_catalog</text>
+<text x="300" y="1535" text-anchor="middle" class="entity-detail">modalities.{modality}.categories.{key}.gene_lists[].isgl_id</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1426" width="58" height="58" aria-hidden="true"/><text x="1060" y="1510" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="1535" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 1455H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1568" class="figure-note">optional binding · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.samples"><title>primary.samples</title><use href="#icon-database" x="271" y="1614" width="58" height="58" aria-hidden="true"/><text x="300" y="1698" text-anchor="middle" class="entity-title">primary.samples</text>
+<text x="300" y="1723" text-anchor="middle" class="entity-detail">filters.{intent}.snv.snvlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1614" width="58" height="58" aria-hidden="true"/><text x="1060" y="1698" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="1723" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 1643H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1756" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.samples"><title>primary.samples</title><use href="#icon-database" x="271" y="1802" width="58" height="58" aria-hidden="true"/><text x="300" y="1886" text-anchor="middle" class="entity-title">primary.samples</text>
+<text x="300" y="1911" text-anchor="middle" class="entity-detail">filters.{intent}.cnv.cnvlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1802" width="58" height="58" aria-hidden="true"/><text x="1060" y="1886" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="1911" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 1831H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="1944" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.samples"><title>primary.samples</title><use href="#icon-database" x="271" y="1990" width="58" height="58" aria-hidden="true"/><text x="300" y="2074" text-anchor="middle" class="entity-title">primary.samples</text>
+<text x="300" y="2099" text-anchor="middle" class="entity-detail">filters.{intent}.fusion.fusionlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="1990" width="58" height="58" aria-hidden="true"/><text x="1060" y="2074" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="2099" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2019H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="2132" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.samples"><title>primary.samples</title><use href="#icon-database" x="271" y="2178" width="58" height="58" aria-hidden="true"/><text x="300" y="2262" text-anchor="middle" class="entity-title">primary.samples</text>
+<text x="300" y="2287" text-anchor="middle" class="entity-detail">filters.{intent}.translocation.fusionlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="2178" width="58" height="58" aria-hidden="true"/><text x="1060" y="2262" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="2287" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2207H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="2320" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="2366" width="58" height="58" aria-hidden="true"/><text x="300" y="2450" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="2475" text-anchor="middle" class="entity-detail">filters.{intent}.snv.snvlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="2366" width="58" height="58" aria-hidden="true"/><text x="1060" y="2450" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="2475" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2395H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="2508" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="2554" width="58" height="58" aria-hidden="true"/><text x="300" y="2638" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="2663" text-anchor="middle" class="entity-detail">filters.{intent}.cnv.cnvlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="2554" width="58" height="58" aria-hidden="true"/><text x="1060" y="2638" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="2663" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2583H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="2696" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="2742" width="58" height="58" aria-hidden="true"/><text x="300" y="2826" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="2851" text-anchor="middle" class="entity-detail">filters.{intent}.fusion.fusionlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="2742" width="58" height="58" aria-hidden="true"/><text x="1060" y="2826" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="2851" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2771H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="2884" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="2930" width="58" height="58" aria-hidden="true"/><text x="300" y="3014" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="3039" text-anchor="middle" class="entity-detail">filters.{intent}.translocation.fusionlists[]</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="2930" width="58" height="58" aria-hidden="true"/><text x="1060" y="3014" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="3039" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 2959H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="3072" class="figure-note">selection · many ↔ many</text>
+<g class="entity blue" data-namespace="primary.edit_leases"><title>primary.edit_leases</title><use href="#icon-database" x="271" y="3118" width="58" height="58" aria-hidden="true"/><text x="300" y="3202" text-anchor="middle" class="entity-title">primary.edit_leases</text>
+<text x="300" y="3227" text-anchor="middle" class="entity-detail">_id (kind=genelists)</text>
+</g>
+<g class="entity purple" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="3118" width="58" height="58" aria-hidden="true"/><text x="1060" y="3202" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="3227" text-anchor="middle" class="entity-detail">isgl_id</text>
+</g>
+<g class="purple"><path d="M600 3147H760" class="connection" marker-end="url(#arrow-purple)"/></g>
+<text x="40" y="3260" class="figure-note">encoded operational key · 0..1 per resource kind/key</text>
 </svg>

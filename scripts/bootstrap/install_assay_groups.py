@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Install missing system and existing assay groups without rewriting scope references."""
 
 import argparse
@@ -12,13 +15,17 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pymongo import MongoClient  # noqa: E402
+from coyote_api.config.bootstrap import configure_center_from_environment  # noqa: E402
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.contracts.schemas.assay_groups import AssayGroupDoc  # noqa: E402
+# Bind the host profile before importing vocabulary-dependent contracts.
+configure_center_from_environment()
+
+from coyote.contracts.schemas.assay_groups import AssayGroupDoc  # noqa: E402
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+from pymongo import MongoClient  # noqa: E402
 
 
 def install(db, *, actor: str, apply: bool = False) -> int:
@@ -97,7 +104,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mongo-uri", default=configured_mongo_uri(os.environ, "primary"))
     parser.add_argument(
-        "--db", default=os.getenv("COYOTE3_DB"), required=not os.getenv("COYOTE3_DB")
+        "--db", default=os.getenv("COYOTE4_DB"), required=not os.getenv("COYOTE4_DB")
     )
     parser.add_argument("--actor", required=True)
     parser.add_argument("--apply", action="store_true")

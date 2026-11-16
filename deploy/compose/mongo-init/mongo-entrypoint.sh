@@ -14,16 +14,16 @@ for value in "${MONGO_UID:-}" "${MONGO_GID:-}"; do
   fi
 done
 source_key=/etc/mongo-keyfile/keyfile
-runtime_key=/run/coyote3-mongo/keyfile
+runtime_key=/run/coyote4-mongo/keyfile
 if [ ! -f "$source_key" ] || [ ! -s "$source_key" ] || [ ! -r "$source_key" ]; then
   echo '[error] Mongo keyfile must be a readable, nonempty regular file' >&2
   exit 1
 fi
 umask 077
-mkdir -p /run/coyote3-mongo
+mkdir -p /run/coyote4-mongo
 cp "$source_key" "$runtime_key"
-chown "$MONGO_UID:$MONGO_GID" /run/coyote3-mongo "$runtime_key"
-chmod 700 /run/coyote3-mongo
+chown "$MONGO_UID:$MONGO_GID" /run/coyote4-mongo "$runtime_key"
+chmod 700 /run/coyote4-mongo
 chmod 400 "$runtime_key"
 mkdir -p /data/db /data/configdb
 find /data/db /data/configdb -xdev \

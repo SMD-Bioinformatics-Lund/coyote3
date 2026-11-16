@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Validate and publish a BRCA Exchange full TSV release."""
 
 from __future__ import annotations
@@ -11,7 +14,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.infra.knowledgebase.brcaexchange import BRCARepository  # noqa: E402
+from coyote_mongo.knowledgebase.brcaexchange import BRCARepository  # noqa: E402
+
 from scripts.knowledgebase.knowledgebase_update_common import (  # noqa: E402
     CollectionSpec,
     add_common_arguments,

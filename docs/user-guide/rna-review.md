@@ -1,7 +1,7 @@
 # RNA Clinical Review
 
 Use the RNA sample workspace to review the analyses enabled by the sample's
-recorded ASPC revision. Coyote3 shows only the analysis areas that apply to the sample and for which
+recorded ASPC revision. Coyote4 shows only the analysis areas that apply to the sample and for which
 the required data is available. An RNA sample therefore does not display DNA
 SNV, CNV, translocation, or coverage tabs.
 
@@ -90,7 +90,7 @@ sample therefore preserves the active tab, search, page, and sort order.
 ## Curation Actions
 
 Users with the required permission can mark or unmark selected fusions as
-false positive or irrelevant. Coyote3 asks for confirmation before a mutation
+false positive or irrelevant. Coyote4 asks for confirmation before a mutation
 is applied. Curated rows remain visible but use the standard subdued finding
 style so that excluded findings are distinguishable from active findings.
 

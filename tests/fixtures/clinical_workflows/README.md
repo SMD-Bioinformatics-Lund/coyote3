@@ -1,6 +1,10 @@
 # Clinical workflow test fixtures
 
-These files validate the installable [demo bundle](../../../demo_data/clinical_workflows/README.md).
+<!-- badges:start -->
+![Scope: Tests and fixtures](https://img.shields.io/badge/Scope-Tests%20and%20fixtures-4F46A5?style=flat)
+<!-- badges:end -->
+
+These files validate the installable [demo bundle](../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md).
 The application installer does not read this directory.
 
 - `negative/`: invalid manifests referencing the shared demo raw files.

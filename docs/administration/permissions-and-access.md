@@ -6,7 +6,7 @@ Roles grant action permissions. User assignments pair each assay with its allowe
 environments, with optional biological-group restrictions. The server checks these against the target resource; sharing
 an assay group does not by itself grant a user permission to read or change data.
 
-Coyote3 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
+Coyote4 permissions are exact, data-backed authorization identifiers. Permission definitions are stored in MongoDB, roles grant permissions, and users receive one or more roles. The API makes the authorization decision; the frontend uses the same identifiers to hide actions that the current user cannot perform.
 
 ## Access by assay and environment
 
@@ -156,7 +156,7 @@ The bundled roles separate clinical governance from account and system operation
 Prefer named accounts and permission bundles over shared administrator credentials.
 Keep authoring and approval grants separate where a workflow requires an independent
 reviewer. A single responsible owner need not mean a single account capable of recovery.
-Bootstrap creates `coyote3.sysadmin` and `coyote3.superuser` with generated temporary
+Bootstrap creates `coyote4.sysadmin` and `coyote4.superuser` with generated temporary
 passwords and a required first-login password change. The `sys_admin` role does not
 include `sample:view`, `gene.annotation:view` or `report:view`; it therefore cannot
 read samples, finding cohorts or saved reports. Its navigation omits those workflows
@@ -235,14 +235,14 @@ The registry documents and tests the frontend contract. It does not grant access
 ## Adding a permission
 
 1. Choose a stable identifier that follows `resource:action[:scope]`.
-2. Add it to `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
+2. Add it to `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` with a clear label, category, description, and search tags.
 3. Require the exact identifier in the API route or application service that owns the operation.
 4. Add the identifier to the relevant system role definitions in `roles.seed.ndjson`.
 5. Add or update frontend gating for the corresponding route and controls.
 6. Update the UI route registry when a page or API dependency changes.
 7. Regenerate the permission reference and run RBAC, route-contract, and frontend tests.
 
-`tests/api/test_rbac_complete_route_matrix.py` is the complete shipped RBAC contract. It loads
+`api/tests/http/test_rbac_complete_route_matrix.py` is the complete shipped RBAC contract. It loads
 the permission and role seed catalogs, verifies every role against every active permission, and
 executes every registered `require_access` dependency for every bundled role. Adding a protected
 endpoint, permission, or bundled role automatically expands that matrix; do not replace it with a

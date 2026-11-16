@@ -6,15 +6,32 @@ its subject without requiring the site navigation.
 
 ## Choose a section
 
+Package documentation lives with its project. Use a package README for its purpose,
+identity, badges and guide links. Use `docs/README.md`, `getting-started.md`,
+`usage.md`, `configuration.md`, `reference.md`, `development.md` and, where useful,
+`architecture.md` inside that project. Describe only the package's responsibilities
+and interfaces; link to application procedures for deployment or clinical use.
+
+Root documentation owns complete-application workflows, integration, operations
+and architecture decisions. The MkDocs package hook publishes package guides from
+their original files and translates local links for the site. Keep source links
+relative so they also work when browsing the repository. Do not copy package
+manuals into the root documentation tree.
+
+Keep README badges relevant to their component. Version, Python/Node support and
+license labels must match the owning metadata. Link workflow badges to actual
+workflows and the intended branch. Capability badges describe implemented features;
+they do not certify clinical validation or compliance.
+
 | Section | Content |
 | --- | --- |
 | `getting-started/` | Entry point for evaluation, installation, configuration, upgrades and redeployment. |
 | `user-guide/` | Clinical review, application pages, controls, and finding actions. |
 | `administration/` | Accounts, permissions, assays, gene lists, and clinical configuration. |
 | `api/` | Authentication, HTTP routes, ingestion requests, and API compatibility. |
-| `sdk/` | Application SDK and independent HTTP client installation, use, extension, and version compatibility. |
+| `sdk/` | Application integration through Python interfaces, host trust, workspace development and release compatibility. Package-specific manuals live with their projects. |
 | `architecture/` | Runtime boundaries, data flows, persistence, security, and design decisions. |
-| `deployment/` | Installation and update procedures, infrastructure, and acceptance; published under Getting started. |
+| `deployment/` | Installation and update procedures, infrastructure, and acceptance; published under Install and operate. |
 | `configuration/` | File formats, setting requirements, defaults, examples and application effects. |
 | `development/` | Code changes, components, developer commands, and engineering practices. |
 | `operations/` | Monitoring, incidents, backups, updates, and data migrations. |
@@ -206,8 +223,8 @@ page's actual display width; avoid relying on color alone.
 
 | Page | Authoritative source | Generator |
 | --- | --- | --- |
-| [MongoDB collection contracts](../reference/mongodb-collections.md) | `src/coyote3/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
-| [System permission catalog](../administration/permission-catalog.md) | `api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
+| [MongoDB collection contracts](../reference/mongodb-collections.md) | `core/src/coyote/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
+| [System permission catalog](../administration/permission-catalog.md) | `api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
 
 Change the authoritative source or generator and regenerate these pages. Do not
 edit their generated field or permission listings manually.
@@ -221,12 +238,12 @@ not establish when it is applied, which permissions are required or what is save
 
 | Documentation area | Code to cross-check | Evidence to retain |
 | --- | --- | --- |
-| Deployment and upgrades | `scripts/deployment/`, `deploy/compose/`, `api/config/` | Shell syntax, real script flags, Compose precedence, environment defaults and rollback boundaries. Do not execute writes just to validate prose. |
-| Accounts and access | `api/security/`, `src/coyote3/application/operations/`, RBAC seed catalogs | Role responsibilities, route permissions, sample scope and temporary-password behavior. |
-| Assays and configuration | `src/coyote3/contracts/schemas/`, `src/coyote3/application/resources/` | Required versus optional resources, Base fallback, scope immutability and activation checks. |
-| Finding selection | `src/coyote3/application/query_rules/`, `src/coyote3/domain/dna/`, `src/coyote3/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |
-| Reporting | `src/coyote3/application/reporting/`, `api/presentation/reports/` | Suggestion versus saved comment, eligibility, preview/save boundaries, package rendering and resolution receipts. |
-| Ingest formats | `src/coyote3/application/ingest/`, collection contracts | Parse downloadable examples through the actual adapters and validate the resulting documents. |
+| Deployment and upgrades | `scripts/deployment/`, `deploy/compose/`, `api/src/coyote_api/config/` | Shell syntax, real script flags, Compose precedence, environment defaults and rollback boundaries. Do not execute writes just to validate prose. |
+| Accounts and access | `api/src/coyote_api/security/`, `core/src/coyote/application/operations/`, RBAC seed catalogs | Role responsibilities, route permissions, sample scope and temporary-password behavior. |
+| Assays and configuration | `core/src/coyote/contracts/schemas/`, `core/src/coyote/application/resources/` | Required versus optional resources, Base fallback, scope immutability and activation checks. |
+| Finding selection | `core/src/coyote/application/query_rules/`, `core/src/coyote/domain/dna/`, `core/src/coyote/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |
+| Reporting | `core/src/coyote/application/reporting/`, `api/src/coyote_api/presentation/reports/` | Suggestion versus saved comment, eligibility, preview/save boundaries, package rendering and resolution receipts. |
+| Ingest formats | `core/src/coyote/application/ingest/`, collection contracts | Parse downloadable examples through the actual adapters and validate the resulting documents. |
 | HTTP and Python interfaces | Route modules, generated OpenAPI, `clients/python/`, supported operations | HTTP methods/paths, authorization, import boundaries and release compatibility. Hidden internal routes must also be checked in route source. |
 | Navigation and diagrams | `mkdocs.yml`, reading paths, rendered HTML and SVGs | Direct procedure destinations, anchors, return context, keyboard controls, readable labels and correct dependency direction. |
 
@@ -240,11 +257,22 @@ Run these commands from the repository root:
 
 ```bash
 npm run docs:lint
+.venv/bin/python scripts/docs/generate_badges.py --check
 .venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 .venv/bin/python scripts/docs/check_built_site.py
 .venv/bin/python scripts/docs/check_operational_examples.py
 ```
+
+README badges use the original Shields.io renderer, including in package guides.
+Preserve its standard `flat` style, white technology logos, established colors and root
+README groups: Build and validation, Core Stack, Domain & Capabilities, and
+Security & Governance. Rendering fixes must retain this presentation.
+Versions and supported runtimes come from release and package metadata. After
+changing that metadata, run `.venv/bin/python scripts/docs/generate_badges.py`
+and include the updated README links. The contract gate checks for
+drift. Workflow links show CI results; metadata badges do not claim tests passed.
+Badge images require access to `img.shields.io`.
 
 For a generated-reference change, also run its generator and the relevant
 contract checks. Inspect the rendered section README on GitHub or in a Markdown

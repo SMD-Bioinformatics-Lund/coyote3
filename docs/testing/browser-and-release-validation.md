@@ -98,13 +98,13 @@ authenticated account against the running services:
 
 ```bash
 cd frontend
-COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
+COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
   npm run test:e2e:real
 ```
 
 For release promotion, set the required env vars and run `cd frontend && npm run test:e2e:real`
-directly. All five env vars (`COYOTE3_E2E_BASE_URL`, `COYOTE3_E2E_USERNAME`,
-`COYOTE3_E2E_PASSWORD`, `COYOTE3_E2E_DNA_SAMPLE`, `COYOTE3_E2E_RNA_SAMPLE`) must be
+directly. All five env vars (`COYOTE4_E2E_BASE_URL`, `COYOTE4_E2E_USERNAME`,
+`COYOTE4_E2E_PASSWORD`, `COYOTE4_E2E_DNA_SAMPLE`, `COYOTE4_E2E_RNA_SAMPLE`) must be
 exported before running. Deployment acceptance checks are maintained in
 [Target-center acceptance](../deployment/acceptance-checklist.md).
 
@@ -114,13 +114,13 @@ suite; deployment evidence is intentionally retained outside source control.
 
 ```bash
 # Include the authenticated dashboard and sample-workspace smoke test.
-COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
-COYOTE3_E2E_USERNAME=coyote3.user \
-COYOTE3_E2E_PASSWORD='<controlled-test-password>' \
+COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
+COYOTE4_E2E_USERNAME=coyote4.user \
+COYOTE4_E2E_PASSWORD='<controlled-test-password>' \
   npm run test:e2e:real
 ```
 
-`COYOTE3_E2E_BASE_URL` must include the deployment prefix. Relative navigation
+`COYOTE4_E2E_BASE_URL` must include the deployment prefix. Relative navigation
 is used deliberately so browser requests remain below that prefix. The
 authenticated smoke test is skipped when credentials are absent. Credentials
 must come from the shell or CI secret store and must never be committed.

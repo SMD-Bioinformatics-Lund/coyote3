@@ -1,6 +1,6 @@
 # Deployment Data Requirements
 
-This guide describes the data a center needs before a Coyote3 instance can be
+This guide describes the data a center needs before a Coyote4 instance can be
 used clinically. It covers required MongoDB collections, optional enhancement
 collections, ingest inputs, and the storage flow from manifest to review and
 reporting.
@@ -9,10 +9,10 @@ reporting.
 >
 >
 > Runtime endpoints and secrets are environment configuration. Collection
-> names are API configuration in `api/config/collections.toml`.
+> names are API configuration in `adapters/mongo/src/coyote_mongo/config/collections.toml`.
 > Public organization, service-hour, and contact-card text is center content
 > in the deployment's external `contact.toml` (copied initially from the bundled example). Repository links and the product description
-> are application metadata in `api/config/application_metadata.py`.
+> are application metadata in `api/src/coyote_api/config/application_metadata.py`.
 > Public assay-catalog narrative text is center content in the primary-database
 > `public_assay_catalog` collection. Manage it through the administrative
 > catalog workspace or validated JSON import.
@@ -20,7 +20,7 @@ reporting.
 
 ## Minimum Collections
 
-A fresh deployment needs application collections in `COYOTE3_DB` and identity
+A fresh deployment needs application collections in `COYOTE4_DB` and identity
 and security collections in `IDENTITY_DB`. Both databases are required for
 login, authorization, assay resolution, sample review, and reporting.
 
@@ -47,7 +47,7 @@ login, authorization, assay resolution, sample review, and reporting.
 > **Tip: Collection names**
 >
 > The names above are defaults. The application does not hardcode them in
-> domain services; it resolves them from `api/config/collections.toml`
+> domain services; it resolves them from `adapters/mongo/src/coyote_mongo/config/collections.toml`
 > for the active database.
 
 ## Required Creation Sequence
@@ -85,7 +85,7 @@ complete prerequisite table, including identity and report entities.
 These collections belong in `KNOWLEDGEBASE_DB` and improve interpretation
 quality, search, or external context. The bundled `hgnc_genes`, `vep_metadata`,
 and `vep_diagrams` reference collections also belong in `KNOWLEDGEBASE_DB`.
-The clinical `annotation` and `blacklist` collections belong in `COYOTE3_DB`.
+The clinical `annotation` and `blacklist` collections belong in `COYOTE4_DB`.
 The application can run without all of them, but missing collections reduce the
 richness of the UI.
 
@@ -112,7 +112,7 @@ richness of the UI.
 
 ## Ingest Manifest
 
-Coyote3 ingest starts from a pipeline YAML manifest. The manifest identifies the
+Coyote4 ingest starts from a pipeline YAML manifest. The manifest identifies the
 sample, assay, diagnosis, environment/profile, case/control metadata, and file
 paths. The ingest boundary maps pipeline identity fields to the canonical sample
 contract before validation and persistence.
@@ -136,7 +136,7 @@ Minimum DNA manifest fields:
 >
 >
 > File paths in manifests must be readable from the API and Celery worker
-> containers. Compose mounts `COYOTE3_DATA_HOST_ROOT` at `/data`; it does not also
+> containers. Compose mounts `COYOTE4_DATA_HOST_ROOT` at `/data`; it does not also
 > mount the same absolute host path inside containers. Use container-visible paths
 > or an explicit read-only input mount. See [storage overrides](../configuration/compose-files.md).
 >
@@ -182,7 +182,7 @@ Reports are separate records. A saved report includes:
 - rendered report content and PDF/export metadata when created
 - reportable finding snapshots in `reported_variants`
 
-This separation lets Coyote3 answer clinical questions after a report is saved:
+This separation lets Coyote4 answer clinical questions after a report is saved:
 
 - Which variants were visible under the report filters?
 - Which ASPC rulebook generated the report?
@@ -201,7 +201,7 @@ export the full catalog or a modality as JSON, then import validated JSON into a
 different center deployment.
 
 The public contact page loads the deployment's selected `contact.toml` from its
-external center directory. `config/examples/center/contact.toml` is the bundled
+external center directory. `api/src/coyote_api/config/examples/center/contact.toml` is the bundled
 example, not the center's persistent file. See [center configuration](center-configuration.md).
 
 > **Tip: Multi-section deployment**

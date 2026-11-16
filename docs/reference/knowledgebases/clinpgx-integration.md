@@ -2,7 +2,7 @@
 
 > **Info**
 >
-> ClinPGx is used as a pharmacogenomics knowledgebase signal in Coyote3.
+> ClinPGx is used as a pharmacogenomics knowledgebase signal in Coyote4.
 > Dense tables use a local `clinpgx_genes_public` cache for speed. Detail
 > pages use the public ClinPGx API on demand for guideline, label, drug,
 > pathway, and variant annotation context.
@@ -10,7 +10,7 @@
 
 ## Purpose
 
-ClinPGx aggregates PharmGKB, CPIC, and PharmCAT resources. Coyote3 uses it to
+ClinPGx aggregates PharmGKB, CPIC, and PharmCAT resources. Coyote4 uses it to
 flag genes with pharmacogenomic relevance without adding another wide table
 column to clinical review tables.
 
@@ -59,7 +59,7 @@ symbol is not rewritten by the PGx cache.
 
 ### Public API
 
-Coyote3 uses:
+Coyote4 uses:
 
 ```text
 https://api.clinpgx.org/v1/data/gene/{id}
@@ -76,7 +76,7 @@ The identifier route is preferred when the local cache has a
 
 > [!CAUTION]
 >
-> ClinPGx asks API clients to limit requests to 2 requests per second. Coyote3
+> ClinPGx asks API clients to limit requests to 2 requests per second. Coyote4
 > therefore does not call the external ClinPGx API for each rendered table row.
 > External requests are made only through explicit user actions on detail pages.
 >
@@ -91,7 +91,7 @@ Run the seed command from the repository root:
 
 ```bash
 python scripts/knowledgebase/seed_clinpgx_genes_public.py \
-  --zip /srv/coyote3/reference/clinpgx_genes.zip \
+  --zip /srv/coyote4/reference/clinpgx_genes.zip \
   --mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --db "$KNOWLEDGEBASE_DB"
 ```
@@ -146,5 +146,5 @@ Collection configuration:
 clinpgx_genes_public_collection = "clinpgx_genes_public"
 ```
 
-The collection name is resolved from `api/config/collections.toml`, not
+The collection name is resolved from `adapters/mongo/src/coyote_mongo/config/collections.toml`, not
 hard-coded in application logic.

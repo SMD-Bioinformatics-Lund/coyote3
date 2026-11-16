@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 umask 077
 
 usage() {
   cat <<'USAGE'
-Build, validate, bootstrap fresh databases, ensure indexes, and start Coyote3.
+Build, validate, bootstrap fresh databases, ensure indexes, and start Coyote4.
 MongoDB and the external bridge network must already be provisioned.
 MongoDB authentication is optional; unauthenticated connections produce a warning.
 Existing installations skip application bootstrap. Host networking is never created or repaired.
@@ -18,7 +21,7 @@ Usage: bash scripts/deployment/install_center.sh --env-file FILE --project NAME
        [--steps network,directories,build,validate,bootstrap,indexes,start,health]
        [--setup-center] [--with-knowledgebase-indexes]
 
-Fresh targets create coyote3.sysadmin and coyote3.superuser with generated temporary
+Fresh targets create coyote4.sysadmin and coyote4.superuser with generated temporary
 passwords displayed once. Existing accounts and passwords are preserved.
 Fresh installation includes accounts, application catalogs, bundled knowledgebases and both demos.
 Existing deployments preserve all data; later additions/repairs use deployment/manage_data.py.
@@ -129,7 +132,7 @@ if (public.scheme not in {"http", "https"} or not public.hostname
     raise SystemExit(
         "PUBLIC_BASE_URL must be an http(s) origin without a path, query, or credentials. "
         "Put the application prefix in SCRIPT_NAME only; for example "
-        "PUBLIC_BASE_URL=https://host and SCRIPT_NAME=/coyote3."
+        "PUBLIC_BASE_URL=https://host and SCRIPT_NAME=/coyote4."
     )
 ports = [port for port in config["services"]["proxy"].get("ports", [])
          if int(port["target"]) == 8088 and port.get("protocol", "tcp") == "tcp"]
@@ -142,7 +145,7 @@ if host in {"0.0.0.0", "::"}:
 if ":" in host:
     host = f"[{host}]"
 local_url = f"http://{host}:{int(port['published'])}{prefix}"
-values = [config["networks"]["app"]["name"], env["COYOTE3_DB"], env["IDENTITY_DB"],
+values = [config["networks"]["app"]["name"], env["COYOTE4_DB"], env["IDENTITY_DB"],
           env["PUBLIC_BASE_URL"].rstrip("/") + prefix, local_url]
 if any(not value or "\n" in value or "\r" in value for value in values):
     raise SystemExit("Invalid installation settings")

@@ -47,7 +47,7 @@ Run preflight against the exact files used for deployment:
 
 ```bash
 PYTHON_BIN=.venv/bin/python scripts/deployment/center_preflight.sh \
-  --env-file .coyote3_validation_env \
+  --env-file .coyote4_validation_env \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.stage.yml
 ```
@@ -64,18 +64,18 @@ and verify a task from both workers; Redis's own `PONG` is insufficient client e
 ## 2. Validate reverse-proxy routing
 
 Use the public URL; do not test this stage through an internal container port.
-For a deployment at `https://validation.example.org/coyote3`, verify:
+For a deployment at `https://validation.example.org/coyote4`, verify:
 
 ```bash
-curl -fsSI https://validation.example.org/coyote3
-curl -fsSI https://validation.example.org/coyote3/
-curl -fsS  https://validation.example.org/coyote3/api/v1/health
-curl -fsSI https://validation.example.org/coyote3/docs-site/
-curl -fsSI https://validation.example.org/coyote3/api/v1/docs
-curl -fsSI https://validation.example.org/coyote3/public
+curl -fsSI https://validation.example.org/coyote4
+curl -fsSI https://validation.example.org/coyote4/
+curl -fsS  https://validation.example.org/coyote4/api/v1/health
+curl -fsSI https://validation.example.org/coyote4/docs-site/
+curl -fsSI https://validation.example.org/coyote4/api/v1/docs
+curl -fsSI https://validation.example.org/coyote4/public
 ```
 
-Both prefix forms must reach Coyote3, generated links must retain the prefix,
+Both prefix forms must reach Coyote4, generated links must retain the prefix,
 and no response may expose or redirect to an internal host or port. Confirm the
 TLS certificate, `Content-Security-Policy`, `X-Content-Type-Options`, and
 `X-Frame-Options` headers in the browser network inspector or with `curl -I`.
@@ -119,28 +119,28 @@ extraction, and corrupt compressed contents are reported as invalid uploads.
 
 ```bash
 bash scripts/deployment/center_check.sh \
-  --api-base-url https://validation.example.org/coyote3 \
-  --username "$COYOTE3_VALIDATION_USER" \
+  --api-base-url https://validation.example.org/coyote4 \
+  --username "$COYOTE4_VALIDATION_USER" \
   --provider local \
-  --yaml-file /validation-data/dna/sample.coyote3.yaml \
+  --yaml-file /validation-data/dna/sample.coyote4.yaml \
   --data-archive /validation-data/dna/inputs.zip
 
 bash scripts/deployment/center_check.sh \
-  --api-base-url https://validation.example.org/coyote3 \
-  --username "$COYOTE3_VALIDATION_USER" \
+  --api-base-url https://validation.example.org/coyote4 \
+  --username "$COYOTE4_VALIDATION_USER" \
   --provider local \
-  --yaml-file /validation-data/rna/sample.coyote3.yaml \
+  --yaml-file /validation-data/rna/sample.coyote4.yaml \
   --data-archive /validation-data/rna/inputs.zip
 ```
 
 Then run the real-browser suite:
 
 ```bash
-export COYOTE3_E2E_BASE_URL='https://validation.example.org/coyote3/'
-export COYOTE3_E2E_USERNAME="$COYOTE3_VALIDATION_USER"
-export COYOTE3_E2E_PASSWORD="$COYOTE3_VALIDATION_PASSWORD"
-export COYOTE3_E2E_DNA_SAMPLE='DNA_VALIDATION_001'
-export COYOTE3_E2E_RNA_SAMPLE='RNA_VALIDATION_001'
+export COYOTE4_E2E_BASE_URL='https://validation.example.org/coyote4/'
+export COYOTE4_E2E_USERNAME="$COYOTE4_VALIDATION_USER"
+export COYOTE4_E2E_PASSWORD="$COYOTE4_VALIDATION_PASSWORD"
+export COYOTE4_E2E_DNA_SAMPLE='DNA_VALIDATION_001'
+export COYOTE4_E2E_RNA_SAMPLE='RNA_VALIDATION_001'
 npm --prefix frontend run test:e2e:real
 ```
 
@@ -154,8 +154,8 @@ Create an archive from the validation source:
 
 ```bash
 scripts/database/mongo_backup_archive.sh \
-  --mongo-uri "$COYOTE3_BACKUP_MONGO_URI" \
-  --out-dir /secure-backups/coyote3 \
+  --mongo-uri "$COYOTE4_BACKUP_MONGO_URI" \
+  --out-dir /secure-backups/coyote4 \
   --label release-candidate
 ```
 
@@ -164,8 +164,8 @@ target only:
 
 ```bash
 scripts/database/mongo_restore_archive.sh \
-  --mongo-uri "$COYOTE3_RECOVERY_MONGO_URI" \
-  --archive /secure-backups/coyote3/<archive>.archive.gz \
+  --mongo-uri "$COYOTE4_RECOVERY_MONGO_URI" \
+  --archive /secure-backups/coyote4/<archive>.archive.gz \
   --drop \
   --confirm RESTORE_PATIENT_DATA
 ```

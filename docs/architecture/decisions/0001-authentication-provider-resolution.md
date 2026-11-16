@@ -6,7 +6,7 @@ Accepted (2026-03-20)
 
 ## Context
 
-Coyote3 runs across centers with different identity-provider setups. Static
+Coyote4 runs across centers with different identity-provider setups. Static
 allowlists in environment variables caused drift and operational overhead when
 user populations changed.
 
@@ -19,9 +19,9 @@ Authentication provider is resolved from persisted user data:
 - `user.auth_type = ["local", "ldap"]` -> both login paths are allowed
 
 Human center accounts default to `["ldap"]`. They may be explicitly configured
-as `["local", "ldap"]` when both center LDAP login and Coyote3-managed local
-password login are required. Coyote service accounts (`coyote3.admin` and
-`coyote3.*`) default to `["local"]`.
+as `["local", "ldap"]` when both center LDAP login and Coyote4-managed local
+password login are required. Coyote service accounts (`coyote4.admin` and
+`coyote4.*`) default to `["local"]`.
 
 No environment-based local-user allowlist is used for provider selection.
 

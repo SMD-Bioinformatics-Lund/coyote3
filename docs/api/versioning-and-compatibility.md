@@ -1,6 +1,6 @@
 # API versioning and compatibility
 
-Coyote3 publishes supported client routes under `/api/v1`. The OpenAPI schema
+Coyote4 publishes supported client routes under `/api/v1`. The OpenAPI schema
 is the authoritative list of supported external routes. Hidden health and
 internal integration routes are operational contracts and are not client APIs.
 

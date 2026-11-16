@@ -1,7 +1,7 @@
 # Demo data bundle
 
 Demo samples use the same YAML manifest and raw analysis formats as pipeline
-ingestion. The packaged source is `demo_data/clinical_workflows/`. The installer
+ingestion. The packaged source is `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`. The installer
 reads these files through `InternalIngestService`; it does not import stored
 sample or finding snapshots.
 

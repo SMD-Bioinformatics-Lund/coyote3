@@ -1,83 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 850" width="1120" height="850" role="img" aria-labelledby="title description">
-<title id="title">Query policy: provenance and the final selection</title>
-<desc id="description">Example of a somatic SNV policy. Source history and the applied predicate answer different questions.</desc>
-<defs>
-<style>
-:root{--canvas:#f7f9fd;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}
-text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.title{font-size:28px;font-weight:700}.subtitle{font-size:17px;fill:var(--muted)}.heading{font-size:19px;font-weight:650}.body{font-size:17px;fill:var(--muted)}.small{font-size:15px;fill:var(--muted)}.edge{fill:none;stroke:var(--blue);stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:6 5}.panel{stroke:var(--edge);stroke-width:1.2}
-@media(prefers-color-scheme:dark){:root{--canvas:#1d2331;--surface:#293244;--ink:#edf1fa;--muted:#c3cede;--edge:#526079;--blue:#94b9ee;--teal:#82d0bf;--purple:#c8aff3;--amber:#e6be82;--blue-soft:#2a3a52;--teal-soft:#263f40;--purple-soft:#3b304d;--amber-soft:#443c30}}
-@media print{:root{--canvas:#fff;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}}
-</style>
-<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-<path d="m1 1 8 4-8 4" fill="none" stroke="var(--blue)" stroke-width="1.5"/>
-</marker>
-</defs>
-<rect width="1120" height="850" rx="20" fill="var(--canvas)"/>
-<text x="32" y="48" class="title">Query policy: provenance and the final selection</text>
-<text x="32" y="80" class="subtitle">Example of a somatic SNV policy. Source history and the applied predicate answer different questions.</text>
-<g>
-<rect class="panel" x="32" y="135" width="330" height="590" rx="14" fill="var(--purple-soft)"/>
-<rect x="32" y="153" width="4" height="554" rx="2" fill="var(--purple)"/>
-<text x="52" y="169" class="heading">Source precedence</text>
-<text x="52" y="200" class="body">Application defaults are present</text>
-<text x="52" y="225" class="body">without a UI-authored policy.</text>
-<text x="52" y="250" class="body">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 850" width="1360" height="850" role="img" aria-labelledby="title description">
+  <title id="title">Query policy: provenance and the final selection</title>
+  <desc id="description">Example of a somatic SNV policy. Source history and the applied predicate answer different questions.</desc>
+  <defs>
+    <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M3 6h18M3 12h18M3 18h18M8 3v6M16 9v6M10 15v6" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="36" class="figure-title">Query policy: provenance and the final selection</text>
+  <text x="40" y="68" class="figure-subtitle">Example of a somatic SNV policy. Source history and the applied predicate answer different questions.</text>
+  <g class="entity purple" data-node="0" data-left="38.86" data-right="439.57" data-top="135.0" data-bottom="725.0">
+    <title>Source precedence</title>
+    <use href="#icon-settings" x="218.21" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="239.21" y="198.0" text-anchor="middle" class="entity-title">Source precedence</text>
+    <text x="239.21" y="220.0" text-anchor="middle" class="entity-detail">Application defaults are present</text>
+    <text x="239.21" y="238.0" text-anchor="middle" class="entity-detail">without a UI-authored policy.</text>
+    <text x="239.21" y="256.0" text-anchor="middle" class="entity-detail">
 </text>
-<text x="52" y="275" class="body">Published layers are resolved</text>
-<text x="52" y="300" class="body">from broad to specific scope:</text>
-<text x="52" y="325" class="body">center, group, family, diagnosis,</text>
-<text x="52" y="350" class="body">diagnosis + family, assay,</text>
-<text x="52" y="375" class="body">diagnosis + assay.</text>
-<text x="52" y="400" class="body">Environment refines each level.</text>
-<text x="52" y="425" class="body">
+    <text x="239.21" y="274.0" text-anchor="middle" class="entity-detail">Published layers are resolved</text>
+    <text x="239.21" y="292.0" text-anchor="middle" class="entity-detail">from broad to specific scope:</text>
+    <text x="239.21" y="310.0" text-anchor="middle" class="entity-detail">center, group, family, diagnosis,</text>
+    <text x="239.21" y="328.0" text-anchor="middle" class="entity-detail">diagnosis + family, assay,</text>
+    <text x="239.21" y="346.0" text-anchor="middle" class="entity-detail">diagnosis + assay.</text>
+    <text x="239.21" y="364.0" text-anchor="middle" class="entity-detail">Environment refines each level.</text>
+    <text x="239.21" y="382.0" text-anchor="middle" class="entity-detail">
 </text>
-<text x="52" y="450" class="body">Null values inherit the parent.</text>
-<text x="52" y="475" class="body">Extend keeps parent exceptions.</text>
-<text x="52" y="500" class="body">Replace supplies the complete list.</text>
-<text x="52" y="525" class="body">An empty replacement removes it.</text>
-<text x="52" y="550" class="body">
+    <text x="239.21" y="400.0" text-anchor="middle" class="entity-detail">Null values inherit the parent.</text>
+    <text x="239.21" y="418.0" text-anchor="middle" class="entity-detail">Extend keeps parent exceptions.</text>
+    <text x="239.21" y="436.0" text-anchor="middle" class="entity-detail">Replace supplies the complete list.</text>
+    <text x="239.21" y="454.0" text-anchor="middle" class="entity-detail">An empty replacement removes it.</text>
+    <text x="239.21" y="472.0" text-anchor="middle" class="entity-detail">
 </text>
-<text x="52" y="575" class="body">Preview retains replaced content</text>
-<text x="52" y="600" class="body">for inspection; it is not applied.</text>
-</g>
-<g>
-<rect class="panel" x="410" y="135" width="678" height="120" rx="14" fill="var(--blue-soft)"/>
-<rect x="410" y="153" width="4" height="84" rx="2" fill="var(--blue)"/>
-<text x="430" y="169" class="heading">AND - mandatory boundaries</text>
-<text x="430" y="200" class="body">Authorized sample identity and effective gene / position scope.</text>
-<text x="430" y="225" class="body">Admission exceptions cannot bypass these SNV boundaries.</text>
-</g>
-<g>
-<rect class="panel" x="410" y="295" width="320" height="265" rx="14" fill="var(--teal-soft)"/>
-<rect x="410" y="313" width="4" height="229" rx="2" fill="var(--teal)"/>
-<text x="430" y="329" class="heading">OR - ordinary evidence</text>
-<text x="430" y="360" class="body">Paired or case-only evidence:</text>
-<text x="430" y="385" class="body">case evidence, optional control,</text>
-<text x="430" y="410" class="body">population frequencies and</text>
-<text x="430" y="435" class="body">eligible consequences.</text>
-<text x="430" y="460" class="body">Consequence extensions are OR</text>
-<text x="430" y="485" class="body">alternatives to selected terms.</text>
-</g>
-<g>
-<rect class="panel" x="768" y="295" width="320" height="265" rx="14" fill="var(--amber-soft)"/>
-<rect x="768" y="313" width="4" height="229" rx="2" fill="var(--amber)"/>
-<text x="788" y="329" class="heading">OR - admissions</text>
-<text x="788" y="360" class="body">Any matching admission rule.</text>
-<text x="788" y="385" class="body">exception_only omits the</text>
-<text x="788" y="410" class="body">ordinary evidence branch.</text>
-<text x="788" y="435" class="body">No admission in that mode:</text>
-<text x="788" y="460" class="body">no findings can pass.</text>
-</g>
-<g>
-<rect class="panel" x="410" y="605" width="678" height="125" rx="14" fill="var(--blue-soft)"/>
-<rect x="410" y="623" width="4" height="89" rx="2" fill="var(--blue)"/>
-<text x="430" y="639" class="heading">AND NOT - exclusions and excluded flags</text>
-<text x="430" y="670" class="body">Exclusion rules reject matches after admission.</text>
-<text x="430" y="695" class="body">Selected FILTER exclusions apply to admitted SNVs as well.</text>
-</g>
-<path class="edge" d="M749 255 V275 H570 V295"/>
-<path class="edge" d="M749 275 H928 V295"/>
-<path class="edge" d="M570 560 V583 H749 V605"/>
-<path class="edge" d="M928 560 V583 H749"/>
-<text x="32" y="801" class="small">Scope-only preview shows symbolic sample-filter references. Test with an authorized sample for the exact MongoDB query.</text>
+    <text x="239.21" y="490.0" text-anchor="middle" class="entity-detail">Preview retains replaced content</text>
+    <text x="239.21" y="508.0" text-anchor="middle" class="entity-detail">for inspection; it is not applied.</text>
+  </g>
+  <g class="entity blue" data-node="1" data-left="497.86" data-right="1321.14" data-top="135.0" data-bottom="255.0">
+    <title>AND - mandatory boundaries</title>
+    <use href="#icon-processor" x="888.5" y="138.0" width="42" height="42" aria-hidden="true" />
+    <text x="909.5" y="198.0" text-anchor="middle" class="entity-title">AND - mandatory boundaries</text>
+    <text x="909.5" y="220.0" text-anchor="middle" class="entity-detail">Authorized sample identity and effective gene / position scope.</text>
+    <text x="909.5" y="238.0" text-anchor="middle" class="entity-detail">Admission exceptions cannot bypass these SNV boundaries.</text>
+  </g>
+  <g class="entity teal" data-node="2" data-left="497.86" data-right="886.43" data-top="295.0" data-bottom="560.0">
+    <title>OR - ordinary evidence</title>
+    <use href="#icon-document" x="671.14" y="298.0" width="42" height="42" aria-hidden="true" />
+    <text x="692.14" y="358.0" text-anchor="middle" class="entity-title">OR - ordinary evidence</text>
+    <text x="692.14" y="380.0" text-anchor="middle" class="entity-detail">Paired or case-only evidence:</text>
+    <text x="692.14" y="398.0" text-anchor="middle" class="entity-detail">case evidence, optional control,</text>
+    <text x="692.14" y="416.0" text-anchor="middle" class="entity-detail">population frequencies and</text>
+    <text x="692.14" y="434.0" text-anchor="middle" class="entity-detail">eligible consequences.</text>
+    <text x="692.14" y="452.0" text-anchor="middle" class="entity-detail">Consequence extensions are OR</text>
+    <text x="692.14" y="470.0" text-anchor="middle" class="entity-detail">alternatives to selected terms.</text>
+  </g>
+  <g class="entity amber" data-node="3" data-left="932.57" data-right="1321.14" data-top="295.0" data-bottom="560.0">
+    <title>OR - admissions</title>
+    <use href="#icon-filter" x="1105.86" y="298.0" width="42" height="42" aria-hidden="true" />
+    <text x="1126.86" y="358.0" text-anchor="middle" class="entity-title">OR - admissions</text>
+    <text x="1126.86" y="380.0" text-anchor="middle" class="entity-detail">Any matching admission rule.</text>
+    <text x="1126.86" y="398.0" text-anchor="middle" class="entity-detail">exception_only omits the</text>
+    <text x="1126.86" y="416.0" text-anchor="middle" class="entity-detail">ordinary evidence branch.</text>
+    <text x="1126.86" y="434.0" text-anchor="middle" class="entity-detail">No admission in that mode:</text>
+    <text x="1126.86" y="452.0" text-anchor="middle" class="entity-detail">no findings can pass.</text>
+  </g>
+  <g class="entity blue" data-node="4" data-left="497.86" data-right="1321.14" data-top="605.0" data-bottom="730.0">
+    <title>AND NOT - exclusions and excluded flags</title>
+    <use href="#icon-filter" x="888.5" y="608.0" width="42" height="42" aria-hidden="true" />
+    <text x="909.5" y="668.0" text-anchor="middle" class="entity-title">AND NOT - exclusions and excluded flags</text>
+    <text x="909.5" y="690.0" text-anchor="middle" class="entity-detail">Exclusion rules reject matches after admission.</text>
+    <text x="909.5" y="708.0" text-anchor="middle" class="entity-detail">Selected FILTER exclusions apply to admitted SNVs as well.</text>
+  </g>
+  <path class="connection blue" d="M749 255 V275 H570 V295" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M749 275 H928 V295" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M570 560 V583 H749 V605" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M928 560 V583 H749" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <text x="38.86" y="801" class="figure-note">Scope-only preview shows symbolic sample-filter references. Test with an authorized sample for the exact MongoDB query.</text>
 </svg>

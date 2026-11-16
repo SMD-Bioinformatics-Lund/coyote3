@@ -122,7 +122,7 @@ body { color: var(--docs-text); }
   text-align: left;
   line-height: 1.4;
 }
-.docs-brand strong { font-size: 20px; font-weight: 650; letter-spacing: -0.025em; }
+.docs-brand img { display: block; width: auto; height: 60px; margin: 0; padding: 0; background: transparent; }
 .docs-brand-caption { display: block; font-size: 12px; font-weight: 400; opacity: 0.8; }
 .wy-side-nav-search > a.docs-brand:hover { background: transparent; }
 .wy-menu-vertical header, .wy-menu-vertical p.caption { color: var(--docs-primary); }

@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Coyote3 follows a documented Code of Conduct to keep communication respectful, inclusive, and constructive.
+Coyote4 follows a documented Code of Conduct to keep communication respectful, inclusive, and constructive.
 
 ## Scope
 

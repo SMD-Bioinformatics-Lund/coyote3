@@ -1,5 +1,9 @@
 # Project governance and contribution
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Project policies define contribution requirements, maintainer responsibilities,
 community conduct, licensing, and clinical-use notices.
 

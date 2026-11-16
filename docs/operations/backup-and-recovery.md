@@ -1,6 +1,6 @@
 # Backup and recovery
 
-Coyote3 uses two complementary protection mechanisms for MongoDB data:
+Coyote4 uses two complementary protection mechanisms for MongoDB data:
 
 1. A complete logical archive is the routine, portable recovery mechanism.
 2. Infrastructure snapshots are an optional additional disaster-recovery mechanism for large deployments.
@@ -34,13 +34,13 @@ that an unreferenced file is safe to delete. Complete the relevant
 declaring recovery complete.
 
 MongoDB archives do not include report files. Back up
-`COYOTE3_DATA_HOST_ROOT/coyote3_<env>/reports` and preserve report subdirectories
+`COYOTE4_DATA_HOST_ROOT/coyote4_<env>/reports` and preserve report subdirectories
 when restoring artifacts. See the [storage configuration](../deployment/configuration-reference.md#data-mounts)
 for environment naming and migration requirements.
 
 The server-side `/backup` mount is optional and is not required by the archive
 script. Centers with an external backup process can omit
-`COYOTE3_MONGO_BACKUP_HOST_ROOT` and `docker-compose.mongo-backup.yml` entirely.
+`COYOTE4_MONGO_BACKUP_HOST_ROOT` and `docker-compose.mongo-backup.yml` entirely.
 
 `scripts/database/mongo_backup_archive.sh` runs `mongodump` in a short-lived `mongo:8.2` tools container. The container has no MongoDB data volume and does not run a database server. It mounts only the backup destination, creates one compressed archive, verifies it, writes metadata with a SHA-256 checksum, and exits. Docker removes the tools container after the command finishes. For Docker-managed MongoDB, pass `--docker-network`; omit it for an externally reachable MongoDB host.
 
@@ -66,10 +66,10 @@ Restore only into a dedicated recovery target unless an incident procedure expli
 ```bash
 bash scripts/database/mongo_restore_archive.sh \
   --mongo-uri "$MONGO_RECOVERY_URI" \
-  --archive /srv/coyote3/mongo/backups/coyote3_mongodb_20260813T023000Z_nightly.archive.gz \
+  --archive /srv/coyote4/mongo/backups/coyote4_mongodb_20260813T023000Z_nightly.archive.gz \
   --drop \
   --confirm RESTORE_PATIENT_DATA \
-  --docker-network coyote3-mongo-net
+  --docker-network coyote4-mongo-net
 ```
 
 Run application-level checks against the recovery target before declaring recovery complete.

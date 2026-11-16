@@ -1,6 +1,6 @@
 # System overview
 
-This page explains how the main parts of Coyote3 fit together. Use the audience
+This page explains how the main parts of Coyote4 fit together. Use the audience
 manuals for task instructions:
 
 | Reader | Manual |
@@ -11,7 +11,7 @@ manuals for task instructions:
 
 ## Purpose
 
-Coyote3 receives validated analysis output, stores it in typed MongoDB
+Coyote4 receives validated analysis output, stores it in typed MongoDB
 collections, applies assay-specific review rules, supports clinical
 interpretation, and saves reproducible report snapshots.
 

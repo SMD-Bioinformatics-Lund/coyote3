@@ -1,38 +1,30 @@
-# Coyote3 Python HTTP client
+# Coyote Python HTTP client
 
-Install independently of the server and application SDK:
+<!-- badges:start -->
+![coyote-pyclient: 1.0.0](https://img.shields.io/badge/coyote--pyclient-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
 
-```bash
-pip install coyote3-client
-```
+<img src="docs/assets/coyote-pyclient-logo.svg" alt="Coyote pyClient" width="360">
 
-Version 1.0.0 uses `CoyoteClient` and `AsyncCoyoteClient` for all authentication and
-HTTP operations; see [version compatibility](../../docs/sdk/compatibility.md#python-client-10-authentication).
+Synchronous and asynchronous access to a running Coyote API. The client provides authentication, typed resources, pagination, reports and structured errors. It communicates through HTTP and imports neither the core, database adapter nor server.
 
-```python
-from coyote3_client import CoyoteClient
+## Documentation
 
-with CoyoteClient("https://coyote3.example.test") as client:
-    client.login(username="reviewer", password="your-password", provider="local")
-    sample = client.samples.get("SYNTHETIC_SAMPLE")
-    variants = sample.variants.tiered_variants()
-    trial = sample.reports.try_new("dna")
-```
+Start with the [package guide](docs/README.md).
 
-`AsyncCoyoteClient` provides awaitable authentication, resource reads, clinical
-analysis methods, report operations and general API endpoints through HTTPX.
-Both clients use explicit timeouts, TLS verification and server-provided errors.
-Authorization remains on the server; the client never imports `api` or `coyote3`.
+- [Getting started](docs/getting-started.md): install the package and make a first use.
+- [Usage](docs/usage.md): understand its supported workflow.
+- [Configuration](docs/configuration.md): supply the inputs this package owns.
+- [Reference](docs/reference.md): find entry points, interfaces and errors.
+- [Development](docs/development.md): edit, test and build the package.
 
-The server's OpenAPI contract is authoritative. Repository contract tests check
-the resource paths against the actual FastAPI specification. Additive endpoint
-access is available through `client.api`; its fluent attributes construct paths
-and do not imply that a server endpoint exists.
+## Package identity
 
-For source development use `pip install -e clients/python` from the repository
-root. The former `coyote3.client` import becomes `coyote3_client`; the independent
-distribution retains the synchronous resource methods and response models.
+The distribution is `coyote-pyclient`; the Python namespace is `coyote_pyclient`.
+Its version, dependencies and build configuration belong to
+[pyproject.toml](pyproject.toml). See [CHANGELOG.md](CHANGELOG.md) for changes.
 
-This independent client is distributed under [Apache License 2.0](LICENSE.txt).
-See [NOTICE.txt](NOTICE.txt) for ownership and attribution. The COYOTE3 application
-SDK and server have a separate license; their implementation is not included here.
+Badges describe package metadata and technology, not clinical validation.
+GNU GPL version 3 only; see [LICENSE.txt](LICENSE.txt) and
+[COPYRIGHT.txt](COPYRIGHT.txt) for copyright and affiliation, with additional
+notices in [NOTICE.txt](NOTICE.txt).

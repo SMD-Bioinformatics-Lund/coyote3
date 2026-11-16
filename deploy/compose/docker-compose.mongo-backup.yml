@@ -4,7 +4,7 @@ services:
   mongo:
     volumes:
       - type: bind
-        source: ${COYOTE3_MONGO_BACKUP_HOST_ROOT:?Set COYOTE3_MONGO_BACKUP_HOST_ROOT for the optional backup mount}
+        source: ${COYOTE4_MONGO_BACKUP_HOST_ROOT:?Set COYOTE4_MONGO_BACKUP_HOST_ROOT for the optional backup mount}
         target: /backup
         bind:
           create_host_path: false

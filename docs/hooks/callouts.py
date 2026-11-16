@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Render GitHub-readable blockquote callouts using native Read the Docs classes."""
 
 import re

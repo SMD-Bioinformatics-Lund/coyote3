@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Import v3 assay subpanels into shared diagnosis definitions and associations."""
 
 from __future__ import annotations
@@ -15,11 +18,11 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.assay_diagnoses import AssayDiagnosisRepository  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from api.infra.seed.diagnoses import plan_diagnoses  # noqa: E402
-from coyote3.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier  # noqa: E402
+from coyote.config.constants import DIAGNOSIS_BASE_ID, normalize_clinical_identifier  # noqa: E402
+from coyote_api.infra.seed.diagnoses import plan_diagnoses  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.assay_diagnoses import AssayDiagnosisRepository  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
 def normalize_diagnosis_associations(lists: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -258,8 +261,8 @@ def migrate(
 def main() -> int:
     """Run a read-only plan unless --apply explicitly enables registry writes."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE3_MONGO_URI"))
-    parser.add_argument("--db", default=os.environ.get("COYOTE3_DB"))
+    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE4_MONGO_URI"))
+    parser.add_argument("--db", default=os.environ.get("COYOTE4_DB"))
     parser.add_argument("--actor", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument(

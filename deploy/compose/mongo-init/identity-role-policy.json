@@ -125,7 +125,7 @@
         }
       }
     ],
-    "role": "coyote3_runtime_identity",
+    "role": "coyote4_runtime_identity",
     "roles": []
   },
   "indexes": [

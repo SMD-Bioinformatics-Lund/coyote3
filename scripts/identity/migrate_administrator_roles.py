@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Install administrator responsibility boundaries with an explicitly selected system owner."""
 
 import argparse
@@ -13,10 +16,10 @@ from pymongo import MongoClient
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
 def migrate(database, *, username: str, apply: bool = False) -> dict[str, str]:

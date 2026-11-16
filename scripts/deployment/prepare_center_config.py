@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Stage and validate a center configuration release from local files or pinned Git."""
 
 from __future__ import annotations
@@ -15,7 +18,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
-from coyote3.config.selection import CENTER_CONFIGURATION_FORMAT
+from coyote.config.selection import CENTER_CONFIGURATION_FORMAT
 
 FILES = (
     "contact.toml",
@@ -99,18 +102,18 @@ def prepare(source: str, destination: Path, revision: str | None, subdirectory: 
                     ["git", "-C", str(repository), "show", f"{revision}:{directory / name}"]
                 )
                 (staging / name).write_bytes(content)
-        env = dict(os.environ, COYOTE3_CENTER_CONFIG_DIR=str(staging), PYTHONPATH=str(ROOT))
+        env = dict(os.environ, COYOTE4_CENTER_CONFIG_DIR=str(staging), PYTHONPATH=str(ROOT))
         subprocess.run(
             [
                 sys.executable,
                 "-c",
                 (
                     "import os; from pathlib import Path; "
-                    "directory=Path(os.environ['COYOTE3_CENTER_CONFIG_DIR']); "
-                    "from api.config.contact import load_contact_config; "
-                    "from coyote3.config.clinical_vocabulary import load_clinical_vocabulary; "
-                    "from coyote3.config.loaders.filter_flags import load_filter_flag_metadata; "
-                    "from api.config.report_presentation import load_report_presentation; "
+                    "directory=Path(os.environ['COYOTE4_CENTER_CONFIG_DIR']); "
+                    "from coyote_api.config.contact import load_contact_config; "
+                    "from coyote.config.clinical_vocabulary import load_clinical_vocabulary; "
+                    "from coyote.config.loaders.filter_flags import load_filter_flag_metadata; "
+                    "from coyote_api.config.report_presentation import load_report_presentation; "
                     "load_report_presentation(); "
                     "load_clinical_vocabulary(); "
                     "load_filter_flag_metadata(); "

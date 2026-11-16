@@ -1,108 +1,143 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 860" width="1120" height="860" role="img" aria-labelledby="title description">
-<title id="title">Clinical review: decisions, processing and evidence</title>
-<desc id="description">Read across each row. Review actions and saved evidence have different owners.</desc>
-<defs>
-<style>
-:root{--canvas:#f7f9fd;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}
-text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink)}.title{font-size:28px;font-weight:700}.subtitle{font-size:17px;fill:var(--muted)}.heading{font-size:19px;font-weight:650}.body{font-size:17px;fill:var(--muted)}.small{font-size:15px;fill:var(--muted)}.edge{fill:none;stroke:var(--blue);stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:6 5}.panel{stroke:var(--edge);stroke-width:1.2}
-@media(prefers-color-scheme:dark){:root{--canvas:#1d2331;--surface:#293244;--ink:#edf1fa;--muted:#c3cede;--edge:#526079;--blue:#94b9ee;--teal:#82d0bf;--purple:#c8aff3;--amber:#e6be82;--blue-soft:#2a3a52;--teal-soft:#263f40;--purple-soft:#3b304d;--amber-soft:#443c30}}
-@media print{:root{--canvas:#fff;--surface:#fff;--ink:#20324b;--muted:#52647b;--edge:#ccd6e4;--blue:#3564a1;--teal:#137d79;--purple:#7752aa;--amber:#986326;--blue-soft:#edf3fc;--teal-soft:#e9f6f3;--purple-soft:#f2edf9;--amber-soft:#fbf3e6}}
-</style>
-<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-<path d="m1 1 8 4-8 4" fill="none" stroke="var(--blue)" stroke-width="1.5"/>
-</marker>
-</defs>
-<rect width="1120" height="860" rx="20" fill="var(--canvas)"/>
-<text x="32" y="48" class="title">Clinical review: decisions, processing and evidence</text>
-<text x="32" y="80" class="subtitle">Read across each row. Review actions and saved evidence have different owners.</text>
-<text x="32" y="128" class="heading">REVIEWER</text>
-<text x="400" y="128" class="heading">APPLICATION</text>
-<text x="768" y="128" class="heading">PERSISTED EVIDENCE</text>
-<g>
-<rect class="panel" x="32" y="155" width="320" height="155" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="173" width="4" height="119" rx="2" fill="var(--blue)"/>
-<text x="52" y="189" class="heading">1  Confirm the sample</text>
-<text x="52" y="220" class="body">Check case / control identity,</text>
-<text x="52" y="245" class="body">assay, diagnosis and readiness.</text>
-<text x="52" y="270" class="body">Stop if the context is wrong.</text>
-</g>
-<g>
-<rect class="panel" x="400" y="155" width="320" height="155" rx="14" fill="var(--purple-soft)"/>
-<rect x="400" y="173" width="4" height="119" rx="2" fill="var(--purple)"/>
-<text x="420" y="189" class="heading">Resolve the workspace</text>
-<text x="420" y="220" class="body">Authorize sample access.</text>
-<text x="420" y="245" class="body">Load its pinned configuration</text>
-<text x="420" y="270" class="body">and available analyses.</text>
-</g>
-<g>
-<rect class="panel" x="768" y="155" width="320" height="155" rx="14" fill="var(--teal-soft)"/>
-<rect x="768" y="173" width="4" height="119" rx="2" fill="var(--teal)"/>
-<text x="788" y="189" class="heading">Sample context</text>
-<text x="788" y="220" class="body">Identity, loaded evidence,</text>
-<text x="788" y="245" class="body">configuration revision and</text>
-<text x="788" y="270" class="body">effective filter profiles.</text>
-</g>
-<path class="edge" d="M352 230 H400"/>
-<path class="edge" d="M768 230 H720"/>
-<g>
-<rect class="panel" x="32" y="355" width="320" height="180" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="373" width="4" height="144" rx="2" fill="var(--blue)"/>
-<text x="52" y="389" class="heading">2  Interpret findings</text>
-<text x="52" y="420" class="body">Review DNA or RNA evidence.</text>
-<text x="52" y="445" class="body">Classify and annotate findings.</text>
-<text x="52" y="470" class="body">Review a generated suggestion</text>
-<text x="52" y="495" class="body">before saving a sample comment.</text>
-</g>
-<g>
-<rect class="panel" x="400" y="355" width="320" height="180" rx="14" fill="var(--purple-soft)"/>
-<rect x="400" y="373" width="4" height="144" rx="2" fill="var(--purple)"/>
-<text x="420" y="389" class="heading">Retrieve and annotate</text>
-<text x="420" y="420" class="body">Apply filters and query policies.</text>
-<text x="420" y="445" class="body">Resolve eligible classifications</text>
-<text x="420" y="470" class="body">and text in their clinical scope.</text>
-<text x="420" y="495" class="body">Persist authorized review actions.</text>
-</g>
-<g>
-<rect class="panel" x="768" y="355" width="320" height="180" rx="14" fill="var(--teal-soft)"/>
-<rect x="768" y="373" width="4" height="144" rx="2" fill="var(--teal)"/>
-<text x="788" y="389" class="heading">Review state</text>
-<text x="788" y="420" class="body">Finding classifications, comments</text>
-<text x="788" y="445" class="body">and sample review markers.</text>
-<text x="788" y="470" class="body">A suggestion alone does not</text>
-<text x="788" y="495" class="body">create a saved comment.</text>
-</g>
-<path class="edge" d="M352 440 H400"/>
-<path class="edge" d="M720 440 H768"/>
-<g>
-<rect class="panel" x="32" y="580" width="320" height="180" rx="14" fill="var(--blue-soft)"/>
-<rect x="32" y="598" width="4" height="144" rx="2" fill="var(--blue)"/>
-<text x="52" y="614" class="heading">3  Verify and save</text>
-<text x="52" y="645" class="body">Inspect report preview.</text>
-<text x="52" y="670" class="body">Confirm summary and findings.</text>
-<text x="52" y="695" class="body">Save, then inspect the saved</text>
-<text x="52" y="720" class="body">report and artifact status.</text>
-</g>
-<g>
-<rect class="panel" x="400" y="580" width="320" height="180" rx="14" fill="var(--purple-soft)"/>
-<rect x="400" y="598" width="4" height="144" rx="2" fill="var(--purple)"/>
-<text x="420" y="614" class="heading">Render and commit</text>
-<text x="420" y="645" class="body">Recheck sample/configuration.</text>
-<text x="420" y="670" class="body">Stage HTML/PDF artifacts.</text>
-<text x="420" y="695" class="body">Commit report, finding snapshots</text>
-<text x="420" y="720" class="body">and reported state together.</text>
-</g>
-<g>
-<rect class="panel" x="768" y="580" width="320" height="180" rx="14" fill="var(--teal-soft)"/>
-<rect x="768" y="598" width="4" height="144" rx="2" fill="var(--teal)"/>
-<text x="788" y="614" class="heading">Report record</text>
-<text x="788" y="645" class="body">Resolution receipt and filters,</text>
-<text x="788" y="670" class="body">query/rule provenance, finding</text>
-<text x="788" y="695" class="body">snapshots, artifact checksums.</text>
-<text x="788" y="720" class="body">Pending files publish separately.</text>
-</g>
-<path class="edge" d="M352 665 H400"/>
-<path class="edge" d="M720 665 H768"/>
-<path class="edge optional" d="M192 310 V355"/>
-<path class="edge optional" d="M192 535 V580"/>
-<text x="32" y="813" class="small">Readiness is a prerequisite. Permission, analysis availability and report eligibility are separate checks.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 860" width="1360" height="860" role="img" aria-labelledby="title description">
+  <title id="title">Clinical review: decisions, processing and evidence</title>
+  <desc id="description">Read across each row. Review actions and saved evidence have different owners.</desc>
+  <defs>
+    <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8M8 19h5" class="glyph" />
+    </symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24">
+      <path d="M2 3h20l-8 9v7l-4 3V12Z" class="glyph" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 11 5-11 5L1 7ZM1 12l11 5 11-5M1 17l11 5 11-5" class="glyph" />
+    </symbol>
+    <symbol id="icon-processor" viewBox="0 0 24 24">
+      <path d="M5 5h14v14H5ZM9 9h6v6H9ZM8 1v4M16 1v4M8 19v4M16 19v4M1 8h4M1 16h4M19 8h4M19 16h4" class="glyph" />
+    </symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24">
+      <path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 18v-3M12 18v-6M16 18v-4" class="glyph" />
+    </symbol>
+  </defs>
+  <text x="40" y="36" class="figure-title">Clinical review: decisions, processing and evidence</text>
+  <text x="40" y="68" class="figure-subtitle">Read across each row. Review actions and saved evidence have different owners.</text>
+  <text x="38.86" y="128" class="entity-title">REVIEWER</text>
+  <text x="485.71" y="128" class="entity-title">APPLICATION</text>
+  <text x="932.57" y="128" class="entity-title">PERSISTED EVIDENCE</text>
+  <g class="entity blue" data-node="0" data-left="38.86" data-right="427.43" data-top="155.0" data-bottom="310.0">
+    <title>1  Confirm the sample</title>
+    <use href="#icon-processor" x="212.14" y="158.0" width="42" height="42" aria-hidden="true" />
+    <text x="233.14" y="218.0" text-anchor="middle" class="entity-title">1  Confirm the sample</text>
+    <text x="233.14" y="240.0" text-anchor="middle" class="entity-detail">Check case / control identity,</text>
+    <text x="233.14" y="258.0" text-anchor="middle" class="entity-detail">assay, diagnosis and readiness.</text>
+    <text x="233.14" y="276.0" text-anchor="middle" class="entity-detail">Stop if the context is wrong.</text>
+  </g>
+  <g class="entity purple" data-node="1" data-left="485.71" data-right="874.29" data-top="155.0" data-bottom="310.0">
+    <title>Resolve the workspace</title>
+    <use href="#icon-layers" x="659.0" y="158.0" width="42" height="42" aria-hidden="true" />
+    <text x="680.0" y="218.0" text-anchor="middle" class="entity-title">Resolve the workspace</text>
+    <text x="680.0" y="240.0" text-anchor="middle" class="entity-detail">Authorize sample access.</text>
+    <text x="680.0" y="258.0" text-anchor="middle" class="entity-detail">Load its pinned configuration</text>
+    <text x="680.0" y="276.0" text-anchor="middle" class="entity-detail">and available analyses.</text>
+  </g>
+  <g class="entity teal" data-node="2" data-left="932.57" data-right="1321.14" data-top="155.0" data-bottom="310.0">
+    <title>Sample context</title>
+    <use href="#icon-document" x="1105.86" y="158.0" width="42" height="42" aria-hidden="true" />
+    <text x="1126.86" y="218.0" text-anchor="middle" class="entity-title">Sample context</text>
+    <text x="1126.86" y="240.0" text-anchor="middle" class="entity-detail">Identity, loaded evidence,</text>
+    <text x="1126.86" y="258.0" text-anchor="middle" class="entity-detail">configuration revision and</text>
+    <text x="1126.86" y="276.0" text-anchor="middle" class="entity-detail">effective filter profiles.</text>
+  </g>
+  <path class="connection blue" d="M352 230 H400" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M768 230 H720" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <g class="entity blue" data-node="3" data-left="38.86" data-right="427.43" data-top="355.0" data-bottom="535.0">
+    <title>2  Interpret findings</title>
+    <use href="#icon-filter" x="212.14" y="358.0" width="42" height="42" aria-hidden="true" />
+    <text x="233.14" y="418.0" text-anchor="middle" class="entity-title">2  Interpret findings</text>
+    <text x="233.14" y="440.0" text-anchor="middle" class="entity-detail">Review DNA or RNA evidence.</text>
+    <text x="233.14" y="458.0" text-anchor="middle" class="entity-detail">Classify and annotate findings.</text>
+    <text x="233.14" y="476.0" text-anchor="middle" class="entity-detail">Review a generated suggestion</text>
+    <text x="233.14" y="494.0" text-anchor="middle" class="entity-detail">before saving a sample comment.</text>
+  </g>
+  <g class="entity purple" data-node="4" data-left="485.71" data-right="874.29" data-top="355.0" data-bottom="535.0">
+    <title>Retrieve and annotate</title>
+    <use href="#icon-processor" x="659.0" y="358.0" width="42" height="42" aria-hidden="true" />
+    <text x="680.0" y="418.0" text-anchor="middle" class="entity-title">Retrieve and annotate</text>
+    <text x="680.0" y="440.0" text-anchor="middle" class="entity-detail">Apply filters and query policies.</text>
+    <text x="680.0" y="458.0" text-anchor="middle" class="entity-detail">Resolve eligible classifications</text>
+    <text x="680.0" y="476.0" text-anchor="middle" class="entity-detail">and text in their clinical scope.</text>
+    <text x="680.0" y="494.0" text-anchor="middle" class="entity-detail">Persist authorized review actions.</text>
+  </g>
+  <g class="entity teal" data-node="5" data-left="932.57" data-right="1321.14" data-top="355.0" data-bottom="535.0">
+    <title>Review state</title>
+    <use href="#icon-processor" x="1105.86" y="358.0" width="42" height="42" aria-hidden="true" />
+    <text x="1126.86" y="418.0" text-anchor="middle" class="entity-title">Review state</text>
+    <text x="1126.86" y="440.0" text-anchor="middle" class="entity-detail">Finding classifications, comments</text>
+    <text x="1126.86" y="458.0" text-anchor="middle" class="entity-detail">and sample review markers.</text>
+    <text x="1126.86" y="476.0" text-anchor="middle" class="entity-detail">A suggestion alone does not</text>
+    <text x="1126.86" y="494.0" text-anchor="middle" class="entity-detail">create a saved comment.</text>
+  </g>
+  <path class="connection blue" d="M352 440 H400" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M720 440 H768" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <g class="entity blue" data-node="6" data-left="38.86" data-right="427.43" data-top="580.0" data-bottom="760.0">
+    <title>3  Verify and save</title>
+    <use href="#icon-document" x="212.14" y="583.0" width="42" height="42" aria-hidden="true" />
+    <text x="233.14" y="643.0" text-anchor="middle" class="entity-title">3  Verify and save</text>
+    <text x="233.14" y="665.0" text-anchor="middle" class="entity-detail">Inspect report preview.</text>
+    <text x="233.14" y="683.0" text-anchor="middle" class="entity-detail">Confirm summary and findings.</text>
+    <text x="233.14" y="701.0" text-anchor="middle" class="entity-detail">Save, then inspect the saved</text>
+    <text x="233.14" y="719.0" text-anchor="middle" class="entity-detail">report and artifact status.</text>
+  </g>
+  <g class="entity purple" data-node="7" data-left="485.71" data-right="874.29" data-top="580.0" data-bottom="760.0">
+    <title>Render and commit</title>
+    <use href="#icon-processor" x="659.0" y="583.0" width="42" height="42" aria-hidden="true" />
+    <text x="680.0" y="643.0" text-anchor="middle" class="entity-title">Render and commit</text>
+    <text x="680.0" y="665.0" text-anchor="middle" class="entity-detail">Recheck sample/configuration.</text>
+    <text x="680.0" y="683.0" text-anchor="middle" class="entity-detail">Stage HTML/PDF artifacts.</text>
+    <text x="680.0" y="701.0" text-anchor="middle" class="entity-detail">Commit report, finding snapshots</text>
+    <text x="680.0" y="719.0" text-anchor="middle" class="entity-detail">and reported state together.</text>
+  </g>
+  <g class="entity teal" data-node="8" data-left="932.57" data-right="1321.14" data-top="580.0" data-bottom="760.0">
+    <title>Report record</title>
+    <use href="#icon-report" x="1105.86" y="583.0" width="42" height="42" aria-hidden="true" />
+    <text x="1126.86" y="643.0" text-anchor="middle" class="entity-title">Report record</text>
+    <text x="1126.86" y="665.0" text-anchor="middle" class="entity-detail">Resolution receipt and filters,</text>
+    <text x="1126.86" y="683.0" text-anchor="middle" class="entity-detail">query/rule provenance, finding</text>
+    <text x="1126.86" y="701.0" text-anchor="middle" class="entity-detail">snapshots, artifact checksums.</text>
+    <text x="1126.86" y="719.0" text-anchor="middle" class="entity-detail">Pending files publish separately.</text>
+  </g>
+  <path class="connection blue" d="M352 665 H400" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue" d="M720 665 H768" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue conditional" d="M192 310 V355" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <path class="connection blue conditional" d="M192 535 V580" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
+  <text x="38.86" y="813" class="figure-note">Readiness is a prerequisite. Permission, analysis availability and report eligibility are separate checks.</text>
 </svg>

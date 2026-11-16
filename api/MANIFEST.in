@@ -1,0 +1,6 @@
+include package_build.py LICENSE.txt COPYRIGHT.txt NOTICE.txt CHANGELOG.md
+recursive-include docs *.md
+recursive-include tests *.py
+recursive-include src *
+global-exclude *.pyc
+global-exclude __pycache__

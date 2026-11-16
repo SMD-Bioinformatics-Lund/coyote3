@@ -17,7 +17,7 @@ the application. Existing nonempty reference collections are not reseeded.
 
 1. Stop API, worker and beat processes and any reference importers across all
    environments sharing the affected reference database. Keep databases running.
-2. Export the intended `COYOTE3_MONGO_URI`, `COYOTE3_DB`,
+2. Export the intended `COYOTE4_MONGO_URI`, `COYOTE4_DB`,
    `KNOWLEDGEBASE_MONGO_URI` and `KNOWLEDGEBASE_DB`. The script does not load a
    private environment file automatically. Use an operator with read, create,
    index, rename and drop privileges on the relevant collections.

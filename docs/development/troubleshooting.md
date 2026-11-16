@@ -14,7 +14,7 @@ Checks:
 1. Confirm the Celery worker and beat scheduler are running.
 2. Confirm Redis is reachable from the API and worker containers.
 3. Check that writes invalidate the metric associated with the changed collection.
-4. Confirm `api.tasks.maintenance.refresh_dashboard_metrics` is running on schedule.
+4. Confirm `coyote_api.tasks.maintenance.refresh_dashboard_metrics` is running on schedule.
 5. Request the slow `/api/v1/dashboard/metrics/...` endpoint directly to identify the affected aggregate.
 6. Check the MongoDB indexes used by that metric's source repositories.
 
@@ -22,7 +22,7 @@ Quick probe:
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml \
   logs api worker beat 2>&1 | rg "dashboard|metric|refresh"

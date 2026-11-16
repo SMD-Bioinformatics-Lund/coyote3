@@ -1,5 +1,9 @@
 # Testing and validation
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Verification includes automated quality gates, synthetic fixtures, disposable-stack
 checks, browser acceptance, and load testing. Synthetic load tests require an
 explicitly approved target and do not establish clinical validation.

@@ -1,0 +1,28 @@
+# Coyote MongoDB adapter
+
+<!-- badges:start -->
+![coyote-mongo: 1.0.0](https://img.shields.io/badge/coyote--mongo-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
+MongoDB repositories, query compilation, record codecs, collection/index contracts and transactional persistence for Coyote. The adapter depends on the core and can be consumed without the API application.
+
+## Documentation
+
+Start with the [package guide](docs/README.md).
+
+- [Getting started](docs/getting-started.md): install the package and make a first use.
+- [Usage](docs/usage.md): understand its supported workflow.
+- [Configuration](docs/configuration.md): supply the inputs this package owns.
+- [Reference](docs/reference.md): find entry points, interfaces and errors.
+- [Development](docs/development.md): edit, test and build the package.
+
+## Package identity
+
+The distribution is `coyote-mongo`; the Python namespace is `coyote_mongo`.
+Its version, dependencies and build configuration belong to
+[pyproject.toml](pyproject.toml). See [CHANGELOG.md](CHANGELOG.md) for changes.
+
+Badges describe package metadata and technology, not clinical validation.
+GNU GPL version 3 only; see [LICENSE.txt](LICENSE.txt) and
+[COPYRIGHT.txt](COPYRIGHT.txt) for copyright and affiliation, with additional
+notices in [NOTICE.txt](NOTICE.txt).

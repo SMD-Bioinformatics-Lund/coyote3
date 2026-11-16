@@ -2,6 +2,6 @@
 services:
   api:
     build:
-      target: coyote3_api
+      target: coyote4_api
       additional_contexts:
-        sdk_artifact: ${COYOTE3_SDK_ARTIFACT_DIR:-../../.release/sdk}
+        sdk_artifact: ${COYOTE4_SDK_ARTIFACT_DIR:-../../.release/sdk}

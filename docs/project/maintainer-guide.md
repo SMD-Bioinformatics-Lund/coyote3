@@ -14,6 +14,28 @@ security boundaries, and release process.
 | Protect security | Never bypass authentication, authorization, CSRF, audit, or secret handling for development convenience. |
 | Keep the branch healthy | Required CI checks must pass before merge. |
 
+## Documentation diagrams
+
+Flow diagrams use transparent backgrounds, shared typography, line icons and the
+semantic light/dark palette in `scripts/docs/collection_diagram_style.py`. Styles are embedded
+so each SVG also works when opened or exported independently. Keep descriptive
+titles, descriptions and stable symbol references in every asset.
+
+Maintain authored diagrams as reviewed SVG assets. Regenerate collection reference
+diagrams from their reviewed relationship catalog:
+
+```bash
+.venv/bin/python scripts/docs/export_collection_dependencies.py
+.venv/bin/python scripts/docs/export_collection_dependencies.py --check
+```
+
+Inspect affected diagrams in light and dark themes and at their displayed page
+width. Keep labels inside the viewBox, preserve arrow direction and relationship
+labels, and route connectors around text. Branding and accreditation artwork have
+their own approved designs and are not flow-diagram templates. One-off artwork
+generators and screenshot audits belong in ignored scratch space; they are not
+application code or release requirements.
+
 ## Pull request sequence
 
 1. Define or update the domain behavior.
@@ -49,7 +71,7 @@ from an approved or completed deployment.
 ## Local verification
 
 ```bash
-PYTHONPATH=. ruff check src api tests scripts
+PYTHONPATH=. ruff check core api adapters clients tests scripts
 PYTHONPATH=. pytest -q
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 npm --prefix frontend run lint

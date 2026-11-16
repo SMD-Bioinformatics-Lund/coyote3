@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Validate a local manifest and ingest it through a running Coyote3 API.
+Validate a local manifest and ingest it through a running Coyote4 API.
 This writes sample data, using increment=true; it is not a read-only health check.
 
 Usage:
@@ -17,7 +20,7 @@ Usage:
 
 Example:
   bash scripts/deployment/center_check.sh \
-    --api-base-url https://validation.example.org/coyote3 \
+    --api-base-url https://validation.example.org/coyote4 \
     --username validation.user --provider local \
     --yaml-file /validation/sample.yaml --data-archive /validation/inputs.zip
 

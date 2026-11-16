@@ -1,0 +1,30 @@
+Coyote4
+Copyright © 2026 Ram Nanduri.
+
+Copyright holder and original developer
+--------------------------------------
+Ram Nanduri
+
+Affiliation
+-----------
+Sektion för molekylär diagnostik (SMD)
+Section for Molecular Diagnostics
+Lund, Region Skåne, Sweden
+
+Contributors
+------------
+Viktor Henmyr
+Sailendra Pradhananga
+
+The contributors above are acknowledged as contributors, separately from the
+copyright-holder attribution. The affiliation is organizational attribution.
+
+License
+-------
+The first-party application, packages, tooling and documentation are distributed
+under GNU General Public License version 3 only (SPDX: GPL-3.0-only).
+See LICENSE.txt for the full license and NOTICE.txt for additional notices.
+This copyright notice does not add restrictions to the rights granted by GPLv3.
+
+Third-party code, reference data, fonts, icons and institutional marks retain
+their respective copyright holders, licenses and notices.

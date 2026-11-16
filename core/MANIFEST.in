@@ -1,0 +1,7 @@
+include build_support.py LICENSE.txt COPYRIGHT.txt NOTICE.txt LICENSING.md THIRD_PARTY_NOTICES.md
+recursive-include src/coyote *.toml *.yaml py.typed
+include CHANGELOG.md
+recursive-include docs *.md *.svg
+recursive-include tests *.py
+global-exclude *.pyc
+global-exclude __pycache__

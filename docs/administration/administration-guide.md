@@ -14,7 +14,7 @@ files and their settings are listed in the [configuration reference](../configur
 ## Deleting unpublished documents
 
 The **Installed by** column uses a shield labelled **System installed** for records
-supplied with Coyote3, including demonstration configuration. Installation provenance
+supplied with Coyote4, including demonstration configuration. Installation provenance
 is separate from protection: the shield does not itself prevent editing or deletion.
 The authenticated installer remains recorded in the document and installation audit.
 Center-authored records display their recorded creator. Records installed before
@@ -69,12 +69,12 @@ Manage the identities of clinical and technical staff authorized to access the p
 *   **Creating Users**: Add staff by providing their official credentials and clinical profession.
 *   **Professional Profiles**: Assign roles such as "Clinician," "Bioinformatician," or "Quality Manager" to ensure audit trails reflect the correct clinical responsibility.
 *   **Account Status**: Enable or disable access instantly to maintain laboratory security.
-*   **Authentication Providers**: User accounts show one badge for each enabled provider. `LDAP` indicates center directory authentication by email. `Local` indicates Coyote3-managed password authentication by username. Accounts can carry both providers when a center needs a transition or fallback path.
+*   **Authentication Providers**: User accounts show one badge for each enabled provider. `LDAP` indicates center directory authentication by email. `Local` indicates Coyote4-managed password authentication by username. Accounts can carry both providers when a center needs a transition or fallback path.
 *   **Email Links**: Email addresses in user tables and read-only user views open the configured mail client through a `mailto:` link.
 
 ### Role-based access control
 
-Coyote3 uses a granular role system where specific permissions are grouped into manageable roles.
+Coyote4 uses a granular role system where specific permissions are grouped into manageable roles.
 
 *   **Standard Roles**: Bundled roles provide initial permission sets for common clinical, review, testing, development, and administration responsibilities.
 *   **Custom Roles**: Administrators can define library-specific roles (e.g., "Lead Clinical Reviewer") to match the laboratory's operational hierarchy.
@@ -94,7 +94,7 @@ Default role palette:
 | `viewer` | Slate | Read-only access. |
 | `external` | Slate gray | External or limited collaborator access. |
 
-Role colors should be stored as six-digit hex values in the role document. The role editor provides a color picker and an editable hex field. After the role is saved, role badges use the stored color immediately across user and administration views. Runtime role colors are applied through a CSS color value rather than a generated Tailwind utility, so changing a role color does not require rebuilding the frontend or changing the Tailwind theme. Existing named colors remain readable for compatibility, but new and edited roles should use explicit hex colors for consistent rendering.
+Role colors must be stored as six-digit hex values in the role document. The role editor provides a color picker and an editable hex field. After the role is saved, role badges use the stored color immediately across user and administration views. Runtime role colors are applied through a CSS color value rather than a generated Tailwind utility, so changing a role color does not require rebuilding the frontend or changing the Tailwind theme. Role creation, updates and installation seeds require explicit hex colors.
 
 ### Delegated administration
 
@@ -118,7 +118,7 @@ permission for every protected request and remains authoritative.
 ### System-installed records
 
 The first database bootstrap installs the records required to operate and
-administer Coyote3. A **System** badge identifies these records in the admin
+administer Coyote4. A **System** badge identifies these records in the admin
 tables. The protection applies to the record itself, not to every value stored
 in it.
 
@@ -126,7 +126,7 @@ in it.
 | --- | --- | --- | --- |
 | Permission policy | Every permission understood by the shipped API and UI. | Assign through center-owned roles. | Edit, activation changes, and delete. |
 | Role | Standard clinical, operational, and administrative role baselines. | Assign to authorized accounts; create a separate center-owned role for custom grants. | Edit, activation changes, and delete. |
-| Initial administrators | Fixed `coyote3.sysadmin` and `coyote3.superuser` logins, with independently generated temporary passwords printed once during fresh bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
+| Initial administrators | Fixed `coyote4.sysadmin` and `coyote4.superuser` logins, with independently generated temporary passwords printed once during fresh bootstrap. Both must replace their temporary password before using the application. | Change their password through dedicated security workflows; save UI preferences. | Profile edits, activation changes, and delete. |
 | Demo ASP, ASPC, and ISGL | Synthetic starter configuration included by default on first installation; disable with `--skip-demo`. | Edit and deactivate for disposable validation. | Delete. |
 
 Center-created users, roles, permission policies, ASPs, ASPCs, and ISGLs do
@@ -290,7 +290,7 @@ same import mechanism without requiring an intermediate file download.
 
 ## 3. Permission policies
 
-For fine-grained security, Coyote3 utilizes a `resource:action[:scope]` permission string.
+For fine-grained security, Coyote4 utilizes a `resource:action[:scope]` permission string.
 
 *   **Resource**: The entity being accessed (e.g., `sample`, `report`, `user`).
 *   **Action**: The intent (e.g., `view`, `edit`, `download`).
@@ -304,7 +304,7 @@ The Permissions table distinguishes two policy sources:
 
 | Source | Meaning | Allowed administration actions |
 | --- | --- | --- |
-| **System** | Shipped with Coyote3 and required by protected application operations. | View and assign through center-owned roles. Editing, activation changes, and deletion are blocked. |
+| **System** | Shipped with Coyote4 and required by protected application operations. | View and assign through center-owned roles. Editing, activation changes, and deletion are blocked. |
 | **Custom** | Created by the deploying center for local integrations or center-owned workflows. | View, edit, activate/deactivate, delete, and assign through roles, subject to the caller's permissions. |
 
 System permission locking protects the contract between API operations and the

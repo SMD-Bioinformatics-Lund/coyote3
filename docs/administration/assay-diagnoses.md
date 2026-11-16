@@ -194,7 +194,7 @@ This registry does not change ingest resolution or existing sample ASPC bindings
 
 Two application-database collections store the registry. Their names are configured
 by `primary.diagnoses_collection` and `primary.diagnosis_associations_collection`
-in `api/config/collections.toml`.
+in `adapters/mongo/src/coyote_mongo/config/collections.toml`.
 
 | Collection | Current identity | Purpose |
 | --- | --- | --- |

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 usage() {
@@ -7,15 +10,15 @@ Restore a MongoDB compressed archive using mongorestore in a container.
 
 Usage:
   scripts/database/mongo_restore_archive.sh \
-    --mongo-uri mongodb://restore-user:secret@mongo.example.internal:27017/admin?authSource=admin\&replicaSet=coyote3-rs \
-    --archive /data/coyote3/backups/mongo/coyote3_mongodb_20260311T000000Z.archive.gz \
+    --mongo-uri mongodb://restore-user:secret@mongo.example.internal:27017/admin?authSource=admin\&replicaSet=coyote4-rs \
+    --archive /data/coyote4/backups/mongo/coyote4_mongodb_20260311T000000Z.archive.gz \
     --drop \
     --confirm RESTORE_PATIENT_DATA
 
 Safety:
   --confirm RESTORE_PATIENT_DATA is mandatory.
 Optional:
-  --docker-network coyote3-mongo-net
+  --docker-network coyote4-mongo-net
 EOF
 }
 

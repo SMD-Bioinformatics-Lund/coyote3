@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* Apply the saved reading preference before the page is painted. */
 (() => {
-  const key = "coyote3-docs-theme";
+  const key = "coyote4-docs-theme";
   const system = window.matchMedia("(prefers-color-scheme: dark)");
   let preference = "system";
   try {

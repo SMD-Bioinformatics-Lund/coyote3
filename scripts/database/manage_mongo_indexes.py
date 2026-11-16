@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Inspect, apply, or explicitly retire Coyote3 MongoDB indexes."""
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Inspect, apply, or explicitly retire Coyote4 MongoDB indexes."""
 
 from __future__ import annotations
 
@@ -15,14 +18,14 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from api.config import runtime_settings  # noqa: E402
-from api.infra.mongo.index_management import (  # noqa: E402
+from coyote_api.config import runtime_settings  # noqa: E402
+from coyote_mongo.index_management import (  # noqa: E402
     build_index_plan,
     known_retired_indexes,
     retire_index,
 )
-from api.infra.mongo.runtime_adapter import MongoAdapter  # noqa: E402
-from api.infra.security.indexes import ensure_security_indexes  # noqa: E402
+from coyote_mongo.runtime_adapter import MongoAdapter  # noqa: E402
+from coyote_mongo.security_indexes import ensure_security_indexes  # noqa: E402
 
 
 def _config() -> object:
@@ -63,7 +66,9 @@ def _adapter(scope: str = "application") -> MongoAdapter:
     config = {name: getattr(config_obj, name) for name in dir(config_obj) if name.isupper()}
     app = SimpleNamespace(config=config, logger=logging.getLogger("coyote.mongo_indexes"))
     adapter = MongoAdapter()
-    adapter.connect(app)
+    from coyote_api.config.backend import BackendSettings
+
+    adapter.connect(BackendSettings.from_runtime(config).mongo, logger=app.logger)
     adapter.setup()
     adapter._setup_repositories(ensure_indexes=False)
     repositories = list(adapter.iter_repositories())

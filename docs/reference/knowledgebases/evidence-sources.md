@@ -1,6 +1,6 @@
 # Knowledgebase Evidence
 
-Coyote3 presents local and explicitly requested external knowledgebase context
+Coyote4 presents local and explicitly requested external knowledgebase context
 alongside clinical findings. Knowledgebase evidence supports interpretation; it
 does not assign a tier, alter a finding, change cohort counts, or determine
 report inclusion.
@@ -14,7 +14,7 @@ suppress coordinate matching and display a warning. Cancer Mutation Census queri
 select the explicit GRCh37 or GRCh38 coordinate columns. COSMIC identifier matches
 and gene-level context do not imply a coordinate match. No liftover is performed.
 
-| Source | Context used by Coyote3 |
+| Source | Context used by Coyote4 |
 | --- | --- |
 | COSMIC | Exact or bounded finding matches, tumour classifications, Cancer Gene Census, hallmarks, resistance, structural context, and actionability when the corresponding products are installed. |
 | CIViC | Local gene and variant evidence. |
@@ -175,7 +175,7 @@ bounded gene-level facts, including COSMIC Cancer Gene Census tier, role,
 somatic or germline scope, mutation types, and hallmarks.
 
 Sample prevalence, recurrent findings, and tier distributions continue to come
-only from access-controlled Coyote3 sample and report data. Knowledgebase data
+only from access-controlled Coyote4 sample and report data. Knowledgebase data
 does not add samples or reported findings to those calculations. Finding-level
 actionability remains on finding detail pages.
 

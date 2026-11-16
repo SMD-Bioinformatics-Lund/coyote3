@@ -9,7 +9,7 @@ knowledgebases, public catalog, admin operations, access control, and internal
 ingest/maintenance.
 
 Python router modules are physically grouped under
-`api/interfaces/http/v1/{clinical,admin,public,operations,knowledgebase}`. The
+`api/src/coyote_api/interfaces/http/v1/{clinical,admin,public,operations,knowledgebase}`. The
 OpenAPI groups describe the product API and are intentionally kept stable even
 if Python module names change. See [API Organization](route-groups.md) for
 the full grouping model.
@@ -59,12 +59,12 @@ permissions and module availability remain separate from schema validation.
 Use the health endpoint to check that the API is up:
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_PORT:-5815}/api/v1/health"
+curl -f "http://${COYOTE4_HOST:-localhost}:${COYOTE4_PORT:-5815}/api/v1/health"
 ```
 
 ## Authentication
 
-Protected API routes accept the Coyote3 API session token through either the
+Protected API routes accept the Coyote4 API session token through either the
 configured HTTP-only session cookie or `Authorization: Bearer <token>`. API-only
 clients obtain that token by creating a session with
 `POST /api/v1/auth/sessions` and reading the `Set-Cookie` response header.
@@ -129,8 +129,8 @@ For write operations:
 
 When adding or changing routes:
 
-1. Pick a canonical OpenAPI tag from `api/interfaces/http/tags.py`.
-2. Implement or extend typed request and response schemas in `src/coyote3/contracts/`.
+1. Pick a canonical OpenAPI tag from `api/src/coyote_api/interfaces/http/tags.py`.
+2. Implement or extend typed request and response schemas in `core/src/coyote/contracts/`.
 3. Add the endpoint to the appropriate FastAPI router and apply its explicit
    authentication and permission dependencies.
 4. Put use-case coordination in an application service and inject its

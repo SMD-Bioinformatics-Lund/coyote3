@@ -2,14 +2,14 @@
 
 > **Info**
 >
-> Coyote3 uses React-native chart components for application plots. The
+> Coyote4 uses React-native chart components for application plots. The
 > plotting layer is centralized so dashboard, QC, reporting, and coverage
 > views share the same behavior.
 >
 
 ## Design
 
-The frontend uses Recharts through Coyote3 wrappers in
+The frontend uses Recharts through Coyote4 wrappers in
 `frontend/src/components/plots`.
 
 - `ChartPanel` provides chart title, description, export controls, and a stable

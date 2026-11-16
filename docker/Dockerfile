@@ -1,9 +1,9 @@
 ARG PYTHON_BASE_IMAGE=python:3.14.7-slim-bookworm
-FROM ${PYTHON_BASE_IMAGE} AS coyote3_runtime_base
+FROM ${PYTHON_BASE_IMAGE} AS coyote4_runtime_base
 ARG PYTHON_BASE_IMAGE
 
 LABEL base_image="${PYTHON_BASE_IMAGE}"
-LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
+LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote4"
 
 WORKDIR /app
 
@@ -12,8 +12,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_PROGRESS_BAR=off
 ARG GIT_COMMIT="unknown"
 ARG BUILD_TIME="unknown"
-ARG COYOTE3_UID=10001
-ARG COYOTE3_GID=10001
+ARG COYOTE4_UID=10001
+ARG COYOTE4_GID=10001
 ENV GIT_COMMIT=${GIT_COMMIT}
 ENV BUILD_TIME=${BUILD_TIME}
 
@@ -30,60 +30,56 @@ RUN apt-get update -o Acquire::Retries=5 && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     python -c "from kombu.transport import get_transport_cls; get_transport_cls('redis')"
-COPY clients/python/ /tmp/coyote3-client/
-RUN pip install --no-cache-dir --no-deps /tmp/coyote3-client
+COPY clients/python/ /tmp/coyote-pyclient/
+RUN pip install --no-cache-dir --no-deps /tmp/coyote-pyclient
 
 RUN apt-get update -o Acquire::Retries=5 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
     libpangoft2-1.0-0 fonts-dejavu-core && \
     rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --gid "${COYOTE3_GID}" coyote3 && \
-    useradd --uid "${COYOTE3_UID}" --gid coyote3 --create-home coyote3 && \
-    mkdir -p ./logs ./redis_data && chown -R coyote3:coyote3 /app
+RUN groupadd --gid "${COYOTE4_GID}" coyote4 && \
+    useradd --uid "${COYOTE4_UID}" --gid coyote4 --create-home coyote4 && \
+    mkdir -p ./logs ./redis_data && chown -R coyote4:coyote4 /app
 
-FROM ${PYTHON_BASE_IMAGE} AS coyote3_sdk_builder
+FROM ${PYTHON_BASE_IMAGE} AS coyote4_sdk_builder
 WORKDIR /build
-COPY pyproject.toml build_support.py MANIFEST.in release.toml README.md LICENSE.txt NOTICE.txt ./
+COPY pyproject.toml release.toml README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
-COPY src/coyote3/ ./src/coyote3/
+COPY core/ ./core/
 COPY api/ ./api/
-COPY config/examples/center/ ./config/examples/center/
-COPY demo_data/clinical_workflows/ ./demo_data/clinical_workflows/
+COPY adapters/mongo/ ./adapters/mongo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
 RUN python scripts/release/build_sdk.py --output-dir /wheels
 
-FROM coyote3_runtime_base AS coyote3_server_files
+FROM coyote4_runtime_base AS coyote4_server_files
 
 EXPOSE 8001
 
-COPY --chown=coyote3:coyote3 api/ ./api/
-COPY --chown=coyote3:coyote3 scripts/ ./scripts/
-COPY --chown=coyote3:coyote3 demo_data/ ./demo_data/
-COPY --chown=coyote3:coyote3 CHANGELOG.md README.md LICENSE.txt NOTICE.txt ./
-COPY --chown=coyote3:coyote3 LICENSING.md THIRD_PARTY_NOTICES.md ./
-COPY --chown=coyote3:coyote3 release.toml ./
-COPY --chown=coyote3:coyote3 config/examples/ ./config/examples/
+COPY --chown=coyote4:coyote4 scripts/ ./scripts/
+COPY --chown=coyote4:coyote4 CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
+COPY --chown=coyote4:coyote4 LICENSING.md THIRD_PARTY_NOTICES.md ./
+COPY --chown=coyote4:coyote4 release.toml ./
 
 # Ordinary installations build their application wheel inside Docker.
-FROM coyote3_server_files AS coyote3_source_api
-LABEL coyote3.artifact.mode="source"
-COPY --from=coyote3_sdk_builder /wheels/ /opt/coyote3-sdk/
-RUN pip install --no-cache-dir --no-deps /opt/coyote3-sdk/*.whl
-USER coyote3:coyote3
-CMD ["python3", "-m", "uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+FROM coyote4_server_files AS coyote4_source_api
+LABEL coyote4.artifact.mode="source"
+COPY --from=coyote4_sdk_builder /wheels/ /opt/coyote4-sdk/
+RUN pip install --no-cache-dir --no-deps /opt/coyote4-sdk/*.whl
+USER coyote4:coyote4
+CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
 
 # Release CI can instead require an already tested, immutable wheel and record.
-FROM coyote3_server_files AS coyote3_api
+FROM coyote4_server_files AS coyote4_api
 ARG GIT_COMMIT="unknown"
-ARG COYOTE3_ARTIFACT_MODE="production"
-LABEL coyote3.artifact.mode="${COYOTE3_ARTIFACT_MODE}"
-COPY --from=sdk_artifact / /opt/coyote3-sdk/
+ARG COYOTE4_ARTIFACT_MODE="production"
+LABEL coyote4.artifact.mode="${COYOTE4_ARTIFACT_MODE}"
+COPY --from=sdk_artifact / /opt/coyote4-sdk/
 RUN python scripts/release/verify_sdk_artifact.py \
-      --directory /opt/coyote3-sdk --release /app/release.toml \
-      --mode "${COYOTE3_ARTIFACT_MODE}" --source-commit "${GIT_COMMIT}" && \
-    pip install --no-cache-dir --no-deps /opt/coyote3-sdk/*.whl
+      --directory /opt/coyote4-sdk --release /app/release.toml \
+      --mode "${COYOTE4_ARTIFACT_MODE}" --source-commit "${GIT_COMMIT}" && \
+    pip install --no-cache-dir --no-deps /opt/coyote4-sdk/*.whl
 
-USER coyote3:coyote3
+USER coyote4:coyote4
 
-CMD ["python3", "-m", "uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

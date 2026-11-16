@@ -1,43 +1,37 @@
 # Application SDK
 
-The application SDK lives in `src/coyote3/application/operations/`. Its operations are the shared
+The application SDK lives in `core/src/coyote/application/operations/`. Its operations are the shared
 entry points for application workflows. HTTP handlers invoke those operations;
 they do not implement an alternative workflow. The SDK coordinates authorization,
 actor attribution and existing application/domain services through injected ports.
 It is distinct from the
 [remote Python client](python-client.md), which sends HTTP requests.
-Neither SDK is part of FastAPI. The root `pyproject.toml` builds the `Coyote3`
-distribution from `src/coyote3/` and `api/`. The core contains application operations,
-domain rules, contracts, reporting templates and configuration defaults. The API
-consumes the core and ships in the same wheel, with dependencies selected through
-`[api]`. The remote client is the independent `coyote3-client` distribution.
+Neither SDK is part of FastAPI. `core/pyproject.toml` builds `coyote-core`
+from `core/src/coyote/`. It contains application operations, domain rules, contracts,
+report-input construction and software defaults. Report templates belong to
+`smd-reports`. The API and MongoDB adapter consume the core through separate
+distributions. The remote client is the independent `coyote-pyclient` distribution.
 
 ## Installation and development
 
-Install the library from the repository root:
-
-```bash
-python -m pip install -e .
-```
-
-Editable installation uses the checkout's Python sources. Source edits require a
-process restart or reload, not a package rebuild. Reinstall after changing package
-metadata, entry points or declared dependencies. Native extensions require their
-own build when their compiled code changes.
+Use the package-owned [core installation guide](../../core/docs/getting-started.md)
+for a standalone host. Use [editable workspace development](uv-development.md)
+when working across the API, adapter and core. The latter preserves one tested
+dependency combination while loading Python edits from the checkout.
 
 For API development, also install `requirements-dev.txt`, which includes the
-production dependency export. Root `pyproject.toml` owns API dependencies under
-`project.optional-dependencies.api`. The API is part of the root distribution;
-it has no separate packaging manifest. The requirements export combines core and
-API dependencies. The ASGI entry point is `api.app.main:app`.
+production dependency export. Each project's `pyproject.toml` owns its runtime
+dependencies. The root virtual workspace owns shared development groups.
+The requirements export combines the core, adapter and API dependencies.
+The ASGI entry point is `coyote_api.app.main:app`.
 
-Production API images install the library normally and copy API source and
-templates separately. Development images install it editable, mount `src/` and
-`api/`, and reload the API when either source tree changes. Workers consume the
-same installed library through their runtime composition.
+Production API images install the separate core, adapter and API wheels.
+Development images install those projects editable and mount their source trees;
+the API reloads when core, API or adapter Python code changes. Workers consume
+the same installed packages through their runtime composition.
 
-Software defaults and report templates are core package data. Installation catalogs
-and demo data belong to the API portion of the wheel. The API host owns
+Software defaults are core package data; report templates belong to `smd-reports`. Installation catalogs
+and demo data belong to the API wheel. The API host owns
 environment discovery and selects external center configuration before importing
 contracts. Standalone library hosts explicitly supply `CenterConfiguration`;
 see [getting started](getting-started.md). Library imports do not read deployment
@@ -45,9 +39,9 @@ environment settings or require an application checkout.
 
 ## Supported Python interface
 
-Import application resources and result models from `coyote3.application.operations`.
-Import authored-content models from `coyote3.application.operations.inputs`. Other modules
-under `src/coyote3/application/` and `src/coyote3/domain/` implement use cases and clinical rules;
+Import application resources and result models from `coyote.application.operations`.
+Import authored-content models from `coyote.application.operations.inputs`. Other modules
+under `core/src/coyote/application/` and `core/src/coyote/domain/` implement use cases and clinical rules;
 their methods and repository attributes are internal implementation details.
 
 The installed distribution version identifies the SDK release. Changes to
@@ -62,7 +56,7 @@ API majors have separate ownership; there is no extra interface-generation count
 | `sample.variants` | Review tables, individual findings, detail context, flags, comment visibility, CSV export, tiered selection, transcript selection, public evidence and blacklist curation. |
 | `sample.cnvs`, `sample.translocations`, `sample.fusions` | Review tables, findings, detail context, flags, comment visibility and CSV export; structural transcript or RNA call selection where supported. |
 | `application.coverage` | Coverage blacklist inspection, addition and removal. |
-| `application.reports` | Library, preview, PDF preview, temporary `try_new` rendering and save for DNA/RNA. Only save allocates a report number and persists snapshots. |
+| `application.reports` | Library, preview, PDF preview, temporary `preview_bundle` rendering and save for DNA/RNA. Only save allocates a report number and persists snapshots. |
 | `application.ingest` | Manifest authorization, upload preparation, synchronous sample/collection writes, durable asynchronous acceptance and submitter-scoped job status. |
 | `application.query_rules` | Policy authoring, revision history, testing, scoped sample search, comparison previews and review/publication transitions. |
 | `application.clinical_rules` | Rule-set authoring, facts, versions, revisions, testing, scoped sample previews and assigned review/publication transitions. |
@@ -93,11 +87,11 @@ remain internal; callers do not obtain their repositories or database collection
 
 The trusted host initializes its configured runtime and obtains a session through
 the existing authentication flow. The deployment composition entry point is
-`api.app.application_factory.open_application`; credentials are not discovered by importing the SDK.
+`coyote_api.app.application_factory.open_application`; credentials are not discovered by importing the SDK.
 
 ```python
-from api.app.application_factory import open_application
-from coyote3.application.operations import AnalysisQuery, FlagChange
+from coyote_api.app.application_factory import open_application
+from coyote.application.operations import AnalysisQuery, FlagChange
 
 # session_token comes from the existing authenticated session, never a username or role list.
 application = open_application(session_token, correlation_id="validation-run")
@@ -180,7 +174,7 @@ services and repositories; an access event is not a mutation-completion receipt.
 
 Clinical, authoring, administrative, knowledgebase, notification and operational
 HTTP workflows call the SDK. Permission and sample-scope checks use the
-framework-independent functions in `src/coyote3/application/common/access.py`. Routes
+framework-independent functions in `core/src/coyote/application/common/access.py`. Routes
 declare HTTP access requirements as an additional transport check; SDK operations
 enforce their requirements for every caller. No business workflow depends on a
 router first setting the actor or checking a permission.
@@ -192,7 +186,7 @@ belong to domain/application operations. Operational task submission uses inject
 ports; SDK modules do not import Celery tasks.
 
 Anonymous reads use `PublicApplication`, composed by
-`api.app.application_factory.open_public_application`. This capability cannot access clinical
+`coyote_api.app.application_factory.open_public_application`. This capability cannot access clinical
 records or mutate resources. One-time recovery has a separate restricted
 `PasswordRecovery` capability. Pipeline credentials are reverified for each call
 and restricted to synchronous sample ingestion. Static internal metadata access
@@ -207,7 +201,7 @@ The fixed maintenance identity cannot invoke interactive clinical or account ope
 Its operational access log does not make audit recovery depend on a healthy audit queue.
 
 The ingestion worker uses `IngestJobExecution`, composed by
-`api.app.application_factory.ingest_job_executor`. It authenticates as `celery-ingest` with only
+`coyote_api.app.application_factory.ingest_job_executor`. It authenticates as `celery-ingest` with only
 `internal.ingest:manage`; that capability cannot read clinical samples or administer
 accounts. The durable job's original submitter remains ingestion attribution.
 The completion callback remains inside the existing ingest transaction, preserving

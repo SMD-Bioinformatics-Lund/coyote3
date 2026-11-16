@@ -25,9 +25,9 @@ email addresses. Review public content before publishing it.
 | Key | Required / recommended | Default if omitted | Meaning |
 | --- | --- | --- | --- |
 | `organization` | Recommended table | Empty metadata, then application identity fields are added | Center metadata. |
-| `organization.name` | Recommended text | Runtime name comes from `ORGANIZATION_NAME` (`Coyote3` by default); the docs hook can use file identity when no override is supplied | Keep the center name aligned with the environment. |
+| `organization.name` | Recommended text | Runtime name comes from `ORGANIZATION_NAME` (`Coyote4` by default); the docs hook can use file identity when no override is supplied | Keep the center name aligned with the environment. |
 | `organization.department` | Optional text | Not supplied | Laboratory or department shown with the center identity. |
-| `organization.report_logo` | Optional text | `region-skane` | Modern report logo: bundled mark, a supported image path inside the center directory, or empty to omit. |
+| `organization.report_logo` | Optional text | `region-skane` | Report logo: bundled mark, a supported image path inside the center directory, or empty to omit. |
 | `organization.accreditation_logo` | Optional text | Not supplied | SVG, PNG or JPEG inside the center directory, or an absolute host path imported by the Compose wrapper before container creation. Printed in the PDF footer only when the applied ASP snapshot has `accredited = true`. Empty omits it. |
 | `organization.address` | Optional text | Not supplied | Postal address printed below the center name in modern reports. Newlines are retained. |
 | `organization.phone` | Optional text | Not supplied | Center contact number printed with a telephone icon in modern reports. This is separate from the support escalation number. |
@@ -78,8 +78,8 @@ image for footer changes. No database migration is required for public contact t
 
 Repository URLs, issue templates, product description, documentation links,
 and catalog links are intentionally not configurable per center. They are
-loaded from `api/config/application_metadata.py`, because they identify the
-Coyote3 software project rather than the deploying organization.
+loaded from `api/src/coyote_api/config/application_metadata.py`, because they identify the
+Coyote4 software project rather than the deploying organization.
 
 ## Swedac accreditation artwork
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Submit an analysis-server manifest and apply only a saved terminal API acknowledgement.
 
 Requires Python 3.10+ and curl, plus SSH/SCP for remote inputs. No application
@@ -160,7 +163,7 @@ def load_token(args: argparse.Namespace) -> str:
         variable = {
             "internal": "INTERNAL_API_TOKEN",
             "bearer": "API_BEARER_TOKEN",
-            "ingest": "COYOTE3_INGEST_TOKEN",
+            "ingest": "COYOTE4_INGEST_TOKEN",
         }[args.auth]
         token = os.environ.get(variable, "")
     token = token.strip()
@@ -580,7 +583,7 @@ def submit_remote(args: argparse.Namespace) -> int:
 """,
             args.yaml,
         )
-        with tempfile.TemporaryDirectory(prefix="coyote3-upload-") as staging:
+        with tempfile.TemporaryDirectory(prefix="coyote4-upload-") as staging:
             manifest = Path(staging) / Path(args.yaml).name
             fetch_remote(args, args.yaml, manifest)
             local_args = SimpleNamespace(**vars(args))
@@ -677,7 +680,7 @@ def main(argv: list[str] | None = None) -> int:
         "--state-dir",
         default=str(
             Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
-            / "coyote3-ingest"
+            / "coyote4-ingest"
         ),
         help="Durable local receipts for remote inputs",
     )
@@ -685,12 +688,12 @@ def main(argv: list[str] | None = None) -> int:
         "--auth",
         choices=("internal", "bearer", "ingest"),
         default="internal",
-        help="Use INTERNAL_API_TOKEN (default), COYOTE3_INGEST_TOKEN (ingest), or API_BEARER_TOKEN (bearer)",
+        help="Use INTERNAL_API_TOKEN (default), COYOTE4_INGEST_TOKEN (ingest), or API_BEARER_TOKEN (bearer)",
     )
     parser.add_argument(
         "--base-url",
-        default=os.environ.get("COYOTE3_BASE_URL"),
-        help="Application URL including its prefix, e.g. https://host/coyote3_dev",
+        default=os.environ.get("COYOTE4_BASE_URL"),
+        help="Application URL including its prefix, e.g. https://host/coyote4_dev",
     )
     token_source = parser.add_mutually_exclusive_group()
     token_source.add_argument(

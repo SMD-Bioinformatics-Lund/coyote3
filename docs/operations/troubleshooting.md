@@ -105,7 +105,7 @@ validation target and representative data.
 **Resolution:**
 
 1. Identify the endpoint for the failing database. Identity operations use
-   `IDENTITY_MONGO_URI`, falling back to `COYOTE3_MONGO_URI` only when the identity
+   `IDENTITY_MONGO_URI`, falling back to `COYOTE4_MONGO_URI` only when the identity
    URI is unset; `IDENTITY_DB` selects the database. Check the selected runtime
    principal without printing credentials.
 2. For an existing restricted identity role, follow the
@@ -135,7 +135,7 @@ For a new development environment, copy the template; for production use the
 installation's private environment path. Retain existing files and secrets:
 
 ```bash
-test -f .coyote3_dev_env || cp deploy/env/example.env .coyote3_dev_env
+test -f .coyote4_dev_env || cp deploy/env/example.env .coyote4_dev_env
 ```
 
 Review required secrets, database URIs and storage paths, then pass this exact file
@@ -247,7 +247,7 @@ This failure does not require a MongoDB migration or data repair.
 **Checks:**
 
 1. Confirm Redis, the Celery worker, and Celery Beat are healthy.
-2. Check worker logs for `api.tasks.maintenance.refresh_dashboard_metrics`.
+2. Check worker logs for `coyote_api.tasks.maintenance.refresh_dashboard_metrics`.
 3. Verify `DASHBOARD_METRIC_CACHE_TTL_SECONDS` and
    `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` are positive integers, with
    retention greater than or equal to freshness.

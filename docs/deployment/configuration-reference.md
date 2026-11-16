@@ -2,20 +2,20 @@
 
 ## Environment Files
 
-Coyote3 uses one copied environment file per deployment environment. It contains
+Coyote4 uses one copied environment file per deployment environment. It contains
 database connections, secrets, storage paths, public URLs, and supported runtime
 overrides. Compose wiring stays in the deployment files.
 
 Copy the single template for the environment you are deploying:
 
 ```bash
-cp deploy/env/example.env .coyote3_dev_env
-cp deploy/env/example.env .coyote3_stage_env
-cp deploy/env/example.env .coyote3_test_env
-cp deploy/env/example.env .coyote3_env
+cp deploy/env/example.env .coyote4_dev_env
+cp deploy/env/example.env .coyote4_stage_env
+cp deploy/env/example.env .coyote4_test_env
+cp deploy/env/example.env .coyote4_env
 ```
 
-Then update the copied file. Local `.coyote3_*_env` files are ignored by git and
+Then update the copied file. Local `.coyote4_*_env` files are ignored by git and
 must not be committed.
 
 Compose's `--env-file` supplies interpolation values; it does not automatically
@@ -24,7 +24,7 @@ runtime settings, use deployment settings for ports and mounts, and supply
 frontend build arguments. Recreate affected containers after changing runtime
 values; rebuild the production frontend after changing its build-time settings
 such as `ENV_NAME`, `SCRIPT_NAME`, `GENS_URI`, or `IGV_DATA_ROOT`. Rebuild the API
-image when changing its build-time `COYOTE3_UID` or `COYOTE3_GID`.
+image when changing its build-time `COYOTE4_UID` or `COYOTE4_GID`.
 
 MongoDB provisioning values (`MONGO_ROOT_*`, `MONGO_APP_*`, replica-set settings,
 and MongoDB storage paths) are used only by `docker-compose.mongo.yml` and its
@@ -41,17 +41,17 @@ Every center must review and set only this core deployment contract:
 
 | Variable | Required setting |
 | --- | --- |
-| `COYOTE3_MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
-| `COYOTE3_DB` | Selects the primary application database explicitly. |
+| `COYOTE4_MONGO_URI` | Selects the reachable MongoDB deployment and application credentials. |
+| `COYOTE4_DB` | Selects the primary application database explicitly. |
 | `IDENTITY_DB` | Selects the dedicated identity and security database explicitly. |
 | `KNOWLEDGEBASE_DB` | Selects the dedicated external knowledgebase database explicitly. |
 | `BAM_DB` | Selects the BAM-service database explicitly. |
 | `SECRET_KEY` | Signs invitation and password-reset action tokens. |
 | `INTERNAL_API_TOKEN` | Authenticates trusted internal service requests. |
 | `PASSWORD_TOKEN_SALT` | Separates password-token signing from other signed data. |
-| `COYOTE3_DATA_HOST_ROOT` | Provides persistent sample, ingest, and report storage. |
-| `COYOTE3_LOGS_HOST_ROOT` | Provides persistent application log storage. |
-| `COYOTE3_APP_NETWORK` | Selects the pre-created Docker network. |
+| `COYOTE4_DATA_HOST_ROOT` | Provides persistent sample, ingest, and report storage. |
+| `COYOTE4_LOGS_HOST_ROOT` | Provides persistent application log storage. |
+| `COYOTE4_APP_NETWORK` | Selects the pre-created Docker network. |
 | `PUBLIC_BASE_URL` | Required by Compose for generated public links. |
 | `REDIS_PASSWORD` | Authenticates the Compose-managed Redis service and its clients. |
 
@@ -91,7 +91,7 @@ it; JSON is available only for portable import and export. It is not a file in
 >
 >
 > `ENV_NAME` is the environment selector. Use values such as `development`,
-> `testing`, `staging`, or `production`. Coyote3 does not use separate
+> `testing`, `staging`, or `production`. Coyote4 does not use separate
 > `DEVELOPMENT=1` or `TESTING=1` flags.
 >
 
@@ -102,15 +102,15 @@ pages, and the documentation site are routed through that one port.
 
 | Setting | Meaning |
 | --- | --- |
-| `COYOTE3_PORT` | Host port exposed by nginx for the selected environment. |
-| `SCRIPT_NAME` | Browser-facing mount prefix, for example `/coyote3_dev`. Use an empty string only for root deployments. |
+| `COYOTE4_PORT` | Host port exposed by nginx for the selected environment. |
+| `SCRIPT_NAME` | Browser-facing mount prefix, for example `/coyote4_dev`. Use an empty string only for root deployments. |
 | `PUBLIC_BASE_URL` | Public origin without the script prefix, for example `https://localhost` or `https://example.org`. |
 
 For local development with:
 
 ```env
-COYOTE3_PORT='6801'
-SCRIPT_NAME='/coyote3_dev'
+COYOTE4_PORT='6801'
+SCRIPT_NAME='/coyote4_dev'
 PUBLIC_BASE_URL='https://localhost'
 ```
 
@@ -118,13 +118,13 @@ the mounted browser URLs are:
 
 | URL | Purpose |
 | --- | --- |
-| `https://localhost/coyote3_dev/` | Authenticated web UI through Apache or another front proxy. |
-| `https://localhost/coyote3_dev/public/catalog` | Public catalog UI. |
-| `https://localhost/coyote3_dev/api/v1/docs` | Swagger UI. |
-| `https://localhost/coyote3_dev/docs-site/` | MkDocs documentation site. |
+| `https://localhost/coyote4_dev/` | Authenticated web UI through Apache or another front proxy. |
+| `https://localhost/coyote4_dev/public/catalog` | Public catalog UI. |
+| `https://localhost/coyote4_dev/api/v1/docs` | Swagger UI. |
+| `https://localhost/coyote4_dev/docs-site/` | MkDocs documentation site. |
 
 When a local nginx proxy is accessed directly, the same paths are available on
-`http://localhost:${COYOTE3_PORT}`.
+`http://localhost:${COYOTE4_PORT}`.
 
 > **Note: Internal service URLs**
 >
@@ -144,32 +144,32 @@ for read-only, same-path input mounts.
 
 | Setting | Meaning |
 | --- | --- |
-| `COYOTE3_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` in each ingest-capable container. |
-| `/data/coyote3_<env>/reports` | Saved report artifacts. |
-| `/data/coyote3_<env>/ingest_staging` | Durable staged upload jobs. |
-| `/data/coyote3_<env>/copied_sample_files/yaml` | Watched ingest manifests. |
+| `COYOTE4_DATA_HOST_ROOT` | Host directory mounted by Compose at `/data` in each ingest-capable container. |
+| `/data/coyote4_<env>/reports` | Saved report artifacts. |
+| `/data/coyote4_<env>/ingest_staging` | Durable staged upload jobs. |
+| `/data/coyote4_<env>/copied_sample_files/yaml` | Watched ingest manifests. |
 
 ```env
-COYOTE3_DATA_HOST_ROOT='/data/coyote3'
+COYOTE4_DATA_HOST_ROOT='/data/coyote4'
 ENV_NAME='development'
 ```
 
 The application creates its environment directory and report/ingest working
 folders at startup, using the configured application UID/GID. The supplied root
 must already exist and be writable by that user. Environment names map as follows:
-`dev`/`development` to `coyote3_dev`, `prod`/`production` to `coyote3_prod`,
-`test`/`testing` to `coyote3_test`, and `stage`/`staging` to `coyote3_stage`.
-Other labels use `coyote3_<label>`; labels must contain only letters, digits,
+`dev`/`development` to `coyote4_dev`, `prod`/`production` to `coyote4_prod`,
+`test`/`testing` to `coyote4_test`, and `stage`/`staging` to `coyote4_stage`.
+Other labels use `coyote4_<label>`; labels must contain only letters, digits,
 underscores, or hyphens. Changing ENV_NAME changes the storage location.
 
 For the example above, the host layout is:
 
-The bind mount is `/data/coyote3:/data`. The application's container directory
-`/data/coyote3_dev` therefore corresponds to `/data/coyote3/coyote3_dev` on the
-host; it does not create `/data/coyote3_dev` on the host.
+The bind mount is `/data/coyote4:/data`. The application's container directory
+`/data/coyote4_dev` therefore corresponds to `/data/coyote4/coyote4_dev` on the
+host; it does not create `/data/coyote4_dev` on the host.
 
 ```text
-/data/coyote3/coyote3_dev/
+/data/coyote4/coyote4_dev/
   reports/
   ingest_staging/
   copied_sample_files/yaml/
@@ -188,7 +188,7 @@ Stop the environment's API, worker, and beat before copying existing reports,
 staged jobs, and watched manifests into the corresponding new directories.
 Preserve ownership and relative subdirectories. Keep the original files until
 verification is complete. Changing the env file does not move existing data.
-Container paths also change from `/data/coyote3/...` to the environment directory;
+Container paths also change from `/data/coyote4/...` to the environment directory;
 review stored absolute report/job paths and queued tasks before resuming writers.
 Update those references through a reviewed migration before deleting old storage.
 
@@ -200,7 +200,7 @@ the pipeline's declared references.
 > **Info: Container path contract**
 >
 >
-> Report output, upload staging, and watched manifests use `/data/coyote3_<env>/...`
+> Report output, upload staging, and watched manifests use `/data/coyote4_<env>/...`
 > locations. Separate source mounts may be read-only; staging and output mounts
 > must remain writable. Configure the same input mounts on API, worker, and beat.
 >
@@ -216,12 +216,12 @@ whether MongoDB runs locally, in Docker, or on another server.
 `deploy/env/example.mongo-server.env` is only for deploying the MongoDB
 containers. It contains server accounts, replica initialization, host storage,
 keyfiles, listener ports, UID/GID, and resource limits. The database names and
-`COYOTE3_APP_NETWORK` appear in both files because initial grants and networking
+`COYOTE4_APP_NETWORK` appear in both files because initial grants and networking
 must agree. Other settings must not be copied between the two files.
 
-Use `.coyote3_dev_env` for the application and `.coyote3_dev_mongo_env` for
-MongoDB. A remote deployment can use `.coyote3_dev_remote_env` and
-`.coyote3_dev_remote_mongo_env`. Both files are private and must remain untracked.
+Use `.coyote4_dev_env` for the application and `.coyote4_dev_mongo_env` for
+MongoDB. A remote deployment can use `.coyote4_dev_remote_env` and
+`.coyote4_dev_remote_mongo_env`. Both files are private and must remain untracked.
 Application URIs authenticate with the provisioned application user, not the
 MongoDB root account. Updating the files does not alter existing MongoDB users,
 move data, or restart containers. For externally managed MongoDB, omit the
@@ -233,14 +233,14 @@ environment variables and are documented in the linked center-configuration
 tables above.
 
 Some environment variables select database instances rather than duplicate
-collection configuration. `COYOTE3_DB` is bound to `[primary]`, `IDENTITY_DB`
+collection configuration. `COYOTE4_DB` is bound to `[primary]`, `IDENTITY_DB`
 to `[identity]`, `KNOWLEDGEBASE_DB` to `[knowledgebase]`, and `BAM_DB` to `[bam]` in
 `collections.toml`. Physical collection names remain TOML values.
 
 > **Warning: HTTPS session cookies**
 >
 >
-> Session cookies are HTTPS-only whenever the request uses HTTPS. Coyote3
+> Session cookies are HTTPS-only whenever the request uses HTTPS. Coyote4
 > reads `X-Forwarded-Proto` when it is deployed behind a reverse proxy. Plain
 > HTTP remains available only as a local-development fallback and emits an
 > API runtime warning. There is no environment variable that can weaken this
@@ -260,39 +260,39 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | Variable | Required | Accepted value / units | Default when omitted | Purpose |
 | --- | --- | --- | --- | --- |
 | `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | None; a nonempty value is required | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
-| `COYOTE3_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Environment-specific primary database, independent of the URI path and authSource. |
+| `COYOTE4_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Environment-specific primary database, independent of the URI path and authSource. |
 | `IDENTITY_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Users, RBAC, sessions, and audit. Never share this namespace between environments on the same deployment; notifications remain in the primary database. |
 | `KNOWLEDGEBASE_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Shared platform datasets on `KNOWLEDGEBASE_MONGO_URI`; no per-environment copy unless explicitly configured. |
 | `BAM_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | BAM-service database used for sample BAM lookups. |
-| `ORGANIZATION_NAME` | No; default `Coyote3` | Center/service display name | `Coyote3` | Used on login, public, contact, and support pages. |
+| `ORGANIZATION_NAME` | No; default `Coyote4` | Center/service display name | `Coyote4` | Used on login, public, contact, and support pages. |
 | `LOCAL_TIME_ZONE` | No; default `UTC` | IANA timezone such as `Europe/Stockholm` | `UTC` | Local display timezone for browser-rendered dates and container-local schedules. Database timestamps remain UTC. |
 | `SECRET_KEY` | Yes | Random secret; deployment validation requires at least 16 characters | None | Signs invite and password-reset action tokens. Browser sessions are opaque, server-stored tokens and do not use this value. |
 | `INTERNAL_API_TOKEN` | Yes | Random token; deployment validation requires at least 16 characters | None | Authenticates trusted service-to-service internal API calls through the internal-token header. |
 | `PASSWORD_TOKEN_SALT` | Yes | Random salt; deployment validation requires at least 16 characters | None | Separates invite and password-reset token signing from other application signing operations. |
-| `COYOTE3_PORT` | No; selected Compose profile | Host port | `5815` | One exposed nginx entrypoint for UI, API, public pages, and docs. |
+| `COYOTE4_PORT` | No; selected Compose profile | Host port | `5815` | One exposed nginx entrypoint for UI, API, public pages, and docs. |
 | `SCRIPT_NAME` | No; default empty | Empty string or `/prefix` | Empty string | Public URL mount prefix used by browser routing and generated links. |
 | `PUBLIC_BASE_URL` | Required by Compose | Public origin without `SCRIPT_NAME` | None; a nonempty value is required | Origin used for links generated outside an active browser request, such as password reset email links. |
-| `COYOTE3_CONTAINER_MEM_LIMIT` | No | Compose memory value | `2g` | Shared default for frontend, docs, Redis, and proxy; API, worker, beat, and monitor use their own limits. |
-| `COYOTE3_CONTAINER_CPU_LIMIT` | No | Compose CPU value | `2.0` | Shared default for frontend, docs, Redis, and proxy; not a stack-wide limit. |
-| `COYOTE3_API_CPU_LIMIT` | No | CPU cores | `2.0` | API container CPU limit. |
-| `COYOTE3_API_MEM_LIMIT` | No | Compose memory value | `2g` | API container memory limit. |
-| `COYOTE3_WORKER_CPU_LIMIT` | No | CPU cores | `2.0` | CPU limit per worker container, shared by its child processes. |
-| `COYOTE3_WORKER_MEM_LIMIT` | No | Compose memory value | `2g` | Memory limit per worker container. |
-| `COYOTE3_MAINTENANCE_CPU_LIMIT` | No | CPU cores | `1.0` | CPU limit for the default-queue maintenance worker. |
-| `COYOTE3_MAINTENANCE_MEM_LIMIT` | No | Compose memory value | `1g` | Memory limit for the maintenance worker. |
-| `COYOTE3_BEAT_CPU_LIMIT` | No | CPU cores | `0.25` | Beat scheduler CPU limit. |
-| `COYOTE3_BEAT_MEM_LIMIT` | No | Compose memory value | `256m` | Beat scheduler memory limit. |
-| `COYOTE3_MONITOR_CPU_LIMIT` | No | CPU cores | `0.5` | Log and error-email monitor CPU limit. |
-| `COYOTE3_MONITOR_MEM_LIMIT` | No | Compose memory value | `512m` | Monitor memory limit. |
-| `COYOTE3_APP_NETWORK` | Yes | Existing Docker network name | None; a nonempty value is required | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
+| `COYOTE4_CONTAINER_MEM_LIMIT` | No | Compose memory value | `2g` | Shared default for frontend, docs, Redis, and proxy; API, worker, beat, and monitor use their own limits. |
+| `COYOTE4_CONTAINER_CPU_LIMIT` | No | Compose CPU value | `2.0` | Shared default for frontend, docs, Redis, and proxy; not a stack-wide limit. |
+| `COYOTE4_API_CPU_LIMIT` | No | CPU cores | `2.0` | API container CPU limit. |
+| `COYOTE4_API_MEM_LIMIT` | No | Compose memory value | `2g` | API container memory limit. |
+| `COYOTE4_WORKER_CPU_LIMIT` | No | CPU cores | `2.0` | CPU limit per worker container, shared by its child processes. |
+| `COYOTE4_WORKER_MEM_LIMIT` | No | Compose memory value | `2g` | Memory limit per worker container. |
+| `COYOTE4_MAINTENANCE_CPU_LIMIT` | No | CPU cores | `1.0` | CPU limit for the default-queue maintenance worker. |
+| `COYOTE4_MAINTENANCE_MEM_LIMIT` | No | Compose memory value | `1g` | Memory limit for the maintenance worker. |
+| `COYOTE4_BEAT_CPU_LIMIT` | No | CPU cores | `0.25` | Beat scheduler CPU limit. |
+| `COYOTE4_BEAT_MEM_LIMIT` | No | Compose memory value | `256m` | Beat scheduler memory limit. |
+| `COYOTE4_MONITOR_CPU_LIMIT` | No | CPU cores | `0.5` | Log and error-email monitor CPU limit. |
+| `COYOTE4_MONITOR_MEM_LIMIT` | No | Compose memory value | `512m` | Monitor memory limit. |
+| `COYOTE4_APP_NETWORK` | Yes | Existing Docker network name | None; a nonempty value is required | External network shared by the UI, API, worker, scheduler, Redis, documentation, and reverse proxy. Compose requires this network and never creates it. Use one network per deployment environment. |
 | `MONGO_ROOT_USERNAME` | Self-hosted MongoDB | Username | Empty string (separate MongoDB Compose) | MongoDB administrative username used only for database deployment and maintenance. |
 | `MONGO_ROOT_PASSWORD` | Self-hosted MongoDB | Secret password | Empty string (separate MongoDB Compose) | MongoDB administrative password. |
 | `MONGO_APP_USER` | Self-hosted MongoDB | Username | Empty string (separate MongoDB Compose) | Application MongoDB username created during first database initialization. |
 | `MONGO_APP_PASSWORD` | Self-hosted MongoDB | Secret password | Empty string (separate MongoDB Compose) | Application MongoDB password. |
-| `COYOTE3_MONGO_URI` | Yes | MongoDB URI | None; a nonempty value is required | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
-| `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent identity endpoint, with its own authentication and replica-set options. |
-| `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
-| `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE3_MONGO_URI` | Independent BAM-service endpoint. |
+| `COYOTE4_MONGO_URI` | Yes | MongoDB URI | None; a nonempty value is required | API, worker, and beat MongoDB connection string. It must target a replica set or sharded cluster and include `replicaSet=<name>` for a replica set. |
+| `IDENTITY_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE4_MONGO_URI` | Independent identity endpoint, with its own authentication and replica-set options. |
+| `KNOWLEDGEBASE_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE4_MONGO_URI` | Independent shared knowledgebase endpoint. Prefer a reader account for normal application access. |
+| `BAM_MONGO_URI` | Defaults to app URI | MongoDB URI | Empty in Compose; application uses `COYOTE4_MONGO_URI` | Independent BAM-service endpoint. |
 | `MONGO_MAX_POOL_SIZE` | No | Positive integer | `100` | Maximum PyMongo connections per application process. Size this with `API_WORKERS` and MongoDB capacity. |
 | `MONGO_MIN_POOL_SIZE` | No | Non-negative integer | `0` | Minimum idle PyMongo connections retained per process. |
 | `MONGO_CONNECT_TIMEOUT_MS` | No | Milliseconds | `10000` | Maximum time allowed to establish a MongoDB socket. |
@@ -301,33 +301,33 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `MONGO_READ_CONCERN_LEVEL` | No | MongoDB read-concern level | `majority` | Consistency level used by application database reads. |
 | `MONGO_WRITE_CONCERN_W` | No | `majority` or an acknowledgement count | `majority` | Replica acknowledgement required for application writes. |
 | `MONGO_WRITE_CONCERN_JOURNAL` | No | `1` or `0` | `1` | Requires acknowledged writes to reach the journal. |
-| `COYOTE3_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | `/srv/coyote3/mongo/data` (separate MongoDB Compose) | Persistent host directory bind-mounted at `/data/db`. |
-| `COYOTE3_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | None; a nonempty value is required (separate MongoDB Compose) | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
-| `COYOTE3_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | `/srv/coyote3/mongo/keyfile` (separate MongoDB Compose) | Replica-set keyfile used for member authentication. |
+| `COYOTE4_MONGO_DATA_HOST_ROOT` | Self-hosted MongoDB | Absolute host path | `/srv/coyote4/mongo/data` (separate MongoDB Compose) | Persistent host directory bind-mounted at `/data/db`. |
+| `COYOTE4_MONGO_BACKUP_HOST_ROOT` | Only with the optional backup overlay | Existing absolute host directory | None; a nonempty value is required (separate MongoDB Compose) | Mounted at `/backup` only when `docker-compose.mongo-backup.yml` is included. Omit the variable and overlay when backups are handled externally. |
+| `COYOTE4_MONGO_KEYFILE_HOST_PATH` | Self-hosted MongoDB | Absolute host path | `/srv/coyote4/mongo/keyfile` (separate MongoDB Compose) | Replica-set keyfile used for member authentication. |
 | `MONGO_UID`, `MONGO_GID` | Both Mongo Compose profiles | Positive numeric host UID/GID | None; a nonempty value is required (separate MongoDB Compose) | Required database owner IDs; used by MongoDB, health checks, and initializers in modern and legacy Compose. |
 | `MONGO_CONTAINER_MEM_LIMIT` | No | Memory limit | `8g` (separate MongoDB Compose) | Per-container memory limit for MongoDB servers and initialization jobs. Set in the server env. |
 | `MONGO_CONTAINER_CPU_LIMIT` | No | CPU count | `4.0` (separate MongoDB Compose) | Per-container CPU limit for MongoDB servers and initialization jobs. Set in the server env. |
-| `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | `coyote3-kb-rs` (separate MongoDB Compose) | Independent KB replica-set name, default `coyote3-kb-rs`. |
+| `KNOWLEDGEBASE_REPLICA_SET_NAME` | Optional `mongo-kb` profile | Replica-set identifier | `coyote4-kb-rs` (separate MongoDB Compose) | Independent KB replica-set name, default `coyote4-kb-rs`. |
 | `KNOWLEDGEBASE_REPLICA_MEMBER_HOST` | Optional `mongo-kb` profile | `host:port` | `mongo-kb:27017` (separate MongoDB Compose) | Advertised KB member address, default `mongo-kb:27017`. |
-| `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | `/srv/coyote3/mongo-kb/data` (separate MongoDB Compose) | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
-| `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH` | Optional `mongo-kb` profile | Secret file path | `/srv/coyote3/mongo-kb/keyfile` (separate MongoDB Compose) | Member authentication keyfile for the KB replica set. |
+| `KNOWLEDGEBASE_MONGO_DATA_HOST_ROOT` | Optional `mongo-kb` profile | Absolute host path | `/srv/coyote4/mongo-kb/data` (separate MongoDB Compose) | One persistent dbPath for the KB instance, separate from app MongoDB storage. |
+| `KNOWLEDGEBASE_MONGO_KEYFILE_HOST_PATH` | Optional `mongo-kb` profile | Secret file path | `/srv/coyote4/mongo-kb/keyfile` (separate MongoDB Compose) | Member authentication keyfile for the KB replica set. |
 | `KNOWLEDGEBASE_MONGO_ROOT_USERNAME`, `KNOWLEDGEBASE_MONGO_ROOT_PASSWORD` | Optional `mongo-kb` profile | Administrative credentials | Empty string (separate MongoDB Compose) | First-time database provisioning only. |
 | `KNOWLEDGEBASE_MONGO_APP_USER`, `KNOWLEDGEBASE_MONGO_APP_PASSWORD` | Optional `mongo-kb` profile | Reader credentials | Empty string (separate MongoDB Compose) | Normal KB application user, created in admin on first initialization. |
-| `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | `coyote3-rs` (separate MongoDB Compose) | Persistent MongoDB replica-set name, normally `coyote3-rs`. |
+| `MONGO_REPLICA_SET_NAME` | Self-hosted MongoDB | Replica-set identifier | `coyote4-rs` (separate MongoDB Compose) | Persistent MongoDB replica-set name, normally `coyote4-rs`. |
 | `MONGO_REPLICA_MEMBER_HOST` | Self-hosted MongoDB | `host:port` | `mongo-app:27017` (separate MongoDB Compose) | Stable member address stored in replica-set metadata. It must resolve from both MongoDB and application containers. |
-| `COYOTE3_MONGO_PORT` | Optional Docker MongoDB | Host port | `27017` (separate MongoDB Compose) | Host port published by the independently deployed MongoDB container. It is not used by the application when `COYOTE3_MONGO_URI` targets another MongoDB service. |
-| `COYOTE3_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | `127.0.0.1` (separate MongoDB Compose) | Interface used to publish app MongoDB's port; service URIs remain independently configured. |
+| `COYOTE4_MONGO_PORT` | Optional Docker MongoDB | Host port | `27017` (separate MongoDB Compose) | Host port published by the independently deployed MongoDB container. It is not used by the application when `COYOTE4_MONGO_URI` targets another MongoDB service. |
+| `COYOTE4_MONGO_BIND_ADDRESS` | Optional Docker MongoDB | Host IP address | `127.0.0.1` (separate MongoDB Compose) | Interface used to publish app MongoDB's port; service URIs remain independently configured. |
 | `CACHE_REQUIRED` | No | `1` or `0` | `1` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | `1.0` | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | `1.0` | Redis socket timeout. |
 | `REDIS_PASSWORD` | Required by Compose | At least 16 URL-safe characters: letters, digits, underscores or hyphens; `openssl rand -hex 8` meets the minimum | None | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
-| `COYOTE3_REDIS_TLS_DIR` | Only with the production Redis TLS overlay | Absolute directory containing `ca.crt`, `server.crt`, `server.key` | None | Host certificate source for `docker-compose.redis-tls.yml`; see [certificate setup](../operations/redis-tls.md). Exclude from development/staging. |
+| `COYOTE4_REDIS_TLS_DIR` | Only with the production Redis TLS overlay | Absolute directory containing `ca.crt`, `server.crt`, `server.key` | None | Host certificate source for `docker-compose.redis-tls.yml`; see [certificate setup](../operations/redis-tls.md). Exclude from development/staging. |
 | `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds | `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
 | `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds | `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
 | `API_WORKERS` | No | Positive integer | `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |
 | `FORWARDED_ALLOW_IPS` | Review for proxied deployments | Trusted proxy IPs or CIDRs | `127.0.0.1` | Uvicorn's trust list for forwarded headers. Configure the actual ingress proxy or dedicated proxy network; do not use `*`. |
-| `COYOTE3_NGINX_PUBLIC_SCHEME` | Review for TLS deployments | `http` or `https` | `http` | Scheme emitted by Nginx in `X-Forwarded-Proto`; `https` also enables HSTS. This does not configure TLS itself. Use `https` only behind a TLS-enforcing entrypoint. |
-| `API_SESSION_COOKIE_NAME` | No; default `coyote3_api_session` | Cookie name | `coyote3_api_session` | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |
+| `COYOTE4_NGINX_PUBLIC_SCHEME` | Review for TLS deployments | `http` or `https` | `http` | Scheme emitted by Nginx in `X-Forwarded-Proto`; `https` also enables HSTS. This does not configure TLS itself. Use `https` only behind a TLS-enforcing entrypoint. |
+| `API_SESSION_COOKIE_NAME` | No; default `coyote4_api_session` | Cookie name | `coyote4_api_session` | Browser API session cookie name. Override it when multiple mounted environments share one browser origin. |
 | `API_SESSION_TTL_SECONDS` | No | Seconds | `43200` | Browser API session lifetime. |
 | `API_SESSION_COOKIE_SAMESITE` | No | `lax`, `strict`, or `none` | `lax` | Browser session cookie SameSite policy. |
 | `AUDIT_RETENTION_DAYS` | No | Days | `730` | Audit event retention window. |
@@ -336,13 +336,13 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `LOG_GZIP_AFTER_DAYS` | No | Days | `7` | Age after which nightly maintenance gzips old logs. |
 | `LOG_LEVEL` | No | Python logging level | Wrapper: `INFO` in production, `DEBUG` otherwise | Minimum runtime log level. |
 | `ERROR_EMAIL_GROUP` | No | Role ID | `monitoring_group` | Recipient role for operational error emails; requires configured mail delivery. |
-| `COYOTE3_LOGS_HOST_ROOT` | Yes | Absolute host path | None; a nonempty value is required | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
-| `COYOTE3_UID` | No | Positive integer | `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
-| `COYOTE3_GID` | No | Positive integer | `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
+| `COYOTE4_LOGS_HOST_ROOT` | Yes | Absolute host path | None; a nonempty value is required | Shared host log directory bind-mounted at `/app/logs` in the API, worker, and beat containers. |
+| `COYOTE4_UID` | No | Positive integer | `10001` | Numeric UID used by application containers. The data and log host roots must be writable by this UID or its configured group. |
+| `COYOTE4_GID` | No | Positive integer | `10001` | Numeric GID used by application containers. Use group ownership when direct UID ownership is unsuitable. |
 | `NOTIFICATION_RETENTION_DAYS` | No | Days | `180` | Personal/workflow notification visibility window; records are retained. Broadcast expiry is set by its sender. |
-| `COYOTE3_DATA_HOST_ROOT` | Yes | Host path | None; a nonempty value is required | Host data root mounted into containers at `/data`. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Yes for a center deployment | Absolute host directory | `../../config/examples/center` | Persistent center files mounted read-only into API, worker, beat, and monitor; also supplied to the docs build. Host-run commands use this directory when `COYOTE3_CENTER_CONFIG_DIR` is unset or blank. Bundled examples are the development fallback. |
-| `COYOTE3_CENTER_CONFIG_DIR` | Optional process override | Directory path | Host process: `COYOTE3_CENTER_CONFIG_HOST_DIR`, then bundled `config/examples/center`; Compose: fixed `/app/center-config` | Overrides the center directory for a process. Usually omit it from the environment file: Compose sets its container path automatically, and host-run commands inherit the host directory. It is not a database or secrets directory. |
+| `COYOTE4_DATA_HOST_ROOT` | Yes | Host path | None; a nonempty value is required | Host data root mounted into containers at `/data`. |
+| `COYOTE4_CENTER_CONFIG_HOST_DIR` | Yes for a center deployment | Absolute host directory | `../../api/src/coyote_api/config/examples/center` | Persistent center files mounted read-only into API, worker, beat, and monitor; also supplied to the docs build. Host-run commands use this directory when `COYOTE4_CENTER_CONFIG_DIR` is unset or blank. Bundled examples are the development fallback. |
+| `COYOTE4_CENTER_CONFIG_DIR` | Optional process override | Directory path | Host process: `COYOTE4_CENTER_CONFIG_HOST_DIR`, then bundled `api/src/coyote_api/config/examples/center`; Compose: fixed `/app/center-config` | Overrides the center directory for a process. Usually omit it from the environment file: Compose sets its container path automatically, and host-run commands inherit the host directory. It is not a database or secrets directory. |
 | `CELERY_LOG_LEVEL` | No | Logging level | Wrapper: selected `LOG_LEVEL` | Celery worker log level. |
 | `CELERY_WORKER_CONCURRENCY` | No | Positive integer | `2` | Celery worker process concurrency. |
 | `CELERY_MAINTENANCE_CONCURRENCY` | No | Positive integer | `2` | Maintenance worker process concurrency, independent of ingestion. |
@@ -351,15 +351,15 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `CELERY_RESULT_EXPIRES` | No | Seconds | `86400` | Celery result expiry. |
 | `CELERY_WORKER_PREFETCH_MULTIPLIER` | No | Positive integer | `1` | Celery prefetch control. Use `1` for long ingest tasks. |
 | `CELERY_INSPECTION_TIMEOUT_SECONDS` | No | Seconds | `1.5` (runtime-only; not forwarded by base Compose) | Maximum wait for each Celery worker-inspection request shown in application controls. |
-| `COYOTE3_MAINTENANCE_HOUR` | No | `0` to `23` | `0` | Local hour for scheduled maintenance. |
-| `COYOTE3_INGEST_WATCH_ENABLED` | No | `1` or `0` | `0` | Enables scheduled watch-folder ingest. |
+| `COYOTE4_MAINTENANCE_HOUR` | No | `0` to `23` | `0` | Local hour for scheduled maintenance. |
+| `COYOTE4_INGEST_WATCH_ENABLED` | No | `1` or `0` | `0` | Enables scheduled watch-folder ingest. |
 | `INGEST_COLLECTION_UPLOAD_MAX_BYTES` | No | Positive byte count | `67108864` (runtime-only; not forwarded by base Compose) | Maximum collection-upload size, applied to compressed and expanded bytes. Oversized JSON/NDJSON uploads return HTTP 413. |
-| `COYOTE3_INGEST_WATCH_FILENAME` | No | File name or glob | `coyote3.yaml` | Manifest name pattern, for example `coyote3.yaml` or `*.yaml`. |
-| `COYOTE3_INGEST_DONE_SUFFIX` | No | File suffix | `.done` | Suffix applied after successful watch-folder ingest. |
-| `COYOTE3_INGEST_FAILED_SUFFIX` | No | File suffix | `.failed` | Suffix applied after failed watch-folder ingest. |
-| `COYOTE3_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | `30` | Beat interval for watch-folder scanning. |
-| `COYOTE3_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | `0` | Allows watch ingest to replace an existing sample. |
-| `COYOTE3_INGEST_WATCH_INCREMENT` | No | `1` or `0` | `0` | Enables incremental naming behavior where supported. |
+| `COYOTE4_INGEST_WATCH_FILENAME` | No | File name or glob | `coyote4.yaml` | Manifest name pattern, for example `coyote4.yaml` or `*.yaml`. |
+| `COYOTE4_INGEST_DONE_SUFFIX` | No | File suffix | `.done` | Suffix applied after successful watch-folder ingest. |
+| `COYOTE4_INGEST_FAILED_SUFFIX` | No | File suffix | `.failed` | Suffix applied after failed watch-folder ingest. |
+| `COYOTE4_INGEST_WATCH_INTERVAL_SECONDS` | No | Seconds | `30` | Beat interval for watch-folder scanning. |
+| `COYOTE4_INGEST_WATCH_UPDATE_EXISTING` | No | `1` or `0` | `0` | Allows watch ingest to replace an existing sample. |
+| `COYOTE4_INGEST_WATCH_INCREMENT` | No | `1` or `0` | `0` | Enables incremental naming behavior where supported. |
 | `AUTHENTICATION_PROVIDERS` | No | Comma-separated list of implemented providers: `local`, `ldap`, for example `local` or `local,ldap` | Empty; configured clinical vocabulary providers | Login-provider override; Compose defaults to `local,ldap`. A host-run process without this setting uses the configured TOML list. |
 | `LDAP_HOST` | When LDAP is enabled for this deployment | Hostname or URI | Empty string | LDAP server host. A missing value does not block API startup; an LDAP login returns a configuration error until it is supplied. |
 | `LDAP_PORT` | No | Empty or port `1`-`65535` | Empty; URI port when present, otherwise `636` with SSL or `389` | Overrides a URI port. When empty, uses the URI port or defaults to 389 for LDAP and 636 for LDAPS. |
@@ -385,10 +385,10 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `SMTP_PASSWORD` | Mail deployments | Secret password or empty | Empty string | SMTP password if required. |
 | `SMTP_USE_TLS` | Mail deployments | `1` or `0` | `1` | Enables STARTTLS. |
 | `SMTP_USE_SSL` | Mail deployments | `1` or `0` | `0` | Enables implicit SSL. |
-| `SMTP_FROM_EMAIL` | Mail deployments | Email address | `no-reply@coyote3.local` | Unmonitored sender for account invitations and general messages. |
-| `SMTP_SECURITY_FROM_EMAIL` | Mail deployments | Email address | `security@coyote3.local` | Unmonitored sender for password and account-security messages. |
-| `SMTP_INFO_FROM_EMAIL` | Mail deployments | Email address | `info@coyote3.local` | Unmonitored sender for broadcasts. Configure all senders on a relay-authorized center domain in production. |
-| `SMTP_FROM_NAME` | Mail deployments | Display name | `Coyote3` | Sender display name. |
+| `SMTP_FROM_EMAIL` | Mail deployments | Email address | `no-reply@coyote4.local` | Unmonitored sender for account invitations and general messages. |
+| `SMTP_SECURITY_FROM_EMAIL` | Mail deployments | Email address | `security@coyote4.local` | Unmonitored sender for password and account-security messages. |
+| `SMTP_INFO_FROM_EMAIL` | Mail deployments | Email address | `info@coyote4.local` | Unmonitored sender for broadcasts. Configure all senders on a relay-authorized center domain in production. |
+| `SMTP_FROM_NAME` | Mail deployments | Display name | `Coyote4` | Sender display name. |
 | `PASSWORD_TOKEN_TTL_SECONDS` | No | Seconds | `3600` | Invite/reset token lifetime. |
 | `API_RATE_LIMIT_ENABLED` | No | `1` or `0` | `1` | Enables API rate limiting. |
 | `API_RATE_LIMIT_REQUESTS_PER_MINUTE` | No | Positive integer | `600` | API rate limit threshold. |
@@ -399,14 +399,14 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 
 | Key | Requirement/default | Meaning and edit policy |
 | --- | --- | --- |
-| `COYOTE3_IMAGE_TAG` | Set by the version-aware wrapper | Application version from `release.toml`, with environment suffix outside production. Not a center setting. |
-| `COYOTE3_SDK_ARTIFACT_DIR` | Optional release-overlay build context; `.release/sdk` when omitted | Tested SDK wheel and release record used only by `docker-compose.release.yml`. Normal source builds do not use this setting. |
+| `COYOTE4_IMAGE_TAG` | Set by the version-aware wrapper | Application version from `release.toml`, with environment suffix outside production. Not a center setting. |
+| `COYOTE4_SDK_ARTIFACT_DIR` | Optional release-overlay build context; `.release/sdk` when omitted | Tested SDK wheel and release record used only by `docker-compose.release.yml`. Normal source builds do not use this setting. |
 | `GIT_COMMIT` | Installer defaults to the current checkout commit | Image source revision. The optional verified-artifact build also requires it to match the SDK release record. |
 | `BUILD_TIME` | Optional build value; `unknown` when omitted | Build timestamp embedded in the API image. |
 | `CACHE_REDIS_URL` | Compose constructs authenticated Redis database `/0` | Cache connection. Setting this in the private env file alone does not override the Compose value. |
 | `CELERY_BROKER_URL` | Compose constructs authenticated Redis database `/1` | Job queue connection; same override restriction. |
 | `CELERY_RESULT_BACKEND` | Compose constructs authenticated Redis database `/2` | Task result connection; same override restriction. |
-| `LOG_ROOT` | Compose fixes `/app/logs`; host runtime defaults to `logs` | Container log path. Select the host location with `COYOTE3_LOGS_HOST_ROOT`. |
+| `LOG_ROOT` | Compose fixes `/app/logs`; host runtime defaults to `logs` | Container log path. Select the host location with `COYOTE4_LOGS_HOST_ROOT`. |
 | `LOG_SERVICE_NAME` | Set per service by Compose; runtime default `api` | Service label used for log routing. Not a center override. |
 | `KNOWLEDGEBASE_MONGO_BIND_ADDRESS` | Separate MongoDB Compose default `127.0.0.1` | Published interface for the optional independent KB server. |
 | `KNOWLEDGEBASE_MONGO_PORT` | Separate MongoDB Compose default `27018` | Host port for that optional KB server. Application connections still use their explicit URI. |
@@ -422,9 +422,9 @@ CORS response headers or an environment-controlled cross-origin allowlist.
 
 ### LDAP Authentication
 
-LDAP login requires an existing active Coyote3 account in the configured identity
+LDAP login requires an existing active Coyote4 account in the configured identity
 database. Its `auth_type` must include `ldap`; the login identifier is matched to
-the account's email. The directory verifies the password, while Coyote3 owns role,
+the account's email. The directory verifies the password, while Coyote4 owns role,
 permission, assay, and environment assignments. LDAP login does not automatically
 create an account or copy directory groups into roles.
 
@@ -432,7 +432,7 @@ create an account or copy directory groups into roles.
    accounts are needed.
 2. Configure `LDAP_HOST`, the complete `LDAP_BASE_DN`, and `LDAP_USER_LOGIN_ATTR`.
    The default attribute is `mail`; another attribute must contain the same login
-   identifier as the Coyote3 account email. To restrict search to a subtree, use
+   identifier as the Coyote4 account email. To restrict search to a subtree, use
    a full base such as `ou=people,dc=example,dc=org`. A search-account DN is not a
    substitute for the search base.
 3. Supply both `LDAP_BINDDN` and `LDAP_SECRET` for service-account lookup, or leave
@@ -455,7 +455,7 @@ entry, and then binds using its DN and the submitted password. Missing or ambigu
 entries, failed binds, timeouts, and LDAP errors deny login. Searches and binds are
 read-only; automatic referrals are disabled so credentials are not forwarded to
 another directory endpoint. Connections are unbound after use. Directory passwords
-are not stored in Coyote3.
+are not stored in Coyote4.
 
 By default, TLS verifies the server certificate and hostname using system trust or
 `LDAP_CA_CERTS_FILE`. A private directory CA must be trusted by the API container;
@@ -493,12 +493,12 @@ The following values are intentionally derived or internal:
 
 | Value | Source |
 | --- | --- |
-| Application version | `release.toml`, read by `api/version.py`; compose wrappers export this transiently for image names. |
+| Application version | `release.toml`, read by `api/src/coyote_api/version.py`; compose wrappers export this transiently for image names. |
 | Git commit and build time | Build metadata injected by CI or compose wrappers, not hand-edited env values. |
 | Redis URLs and Celery broker/result URLs | Internal Compose wiring through `redis`: cache uses database 0, broker database 1, and task results database 2. |
 | API health path | Fixed endpoint `/api/v1/health`. |
 | Documentation/help URL | Derived as `${PUBLIC_BASE_URL}${SCRIPT_NAME}/docs-site/`. |
-| Repository and issue links | `api/config/application_metadata.py`; these are repository-owned product links. |
+| Repository and issue links | `api/src/coyote_api/config/application_metadata.py`; these are repository-owned product links. |
 | API session and audit collection names | The `api_sessions_collection` and `audit_events_collection` mappings under `[identity]` in `collections.toml`. Both collections are stored in `IDENTITY_DB`. |
 | Container data root | Fixed container path `/data`; only the host root is configurable. |
 | MANE transcript reference data | The `hgnc_collection` in `KNOWLEDGEBASE_DB`. It supplies MANE and clinical transcript metadata used by transcript selection; the database endpoint is configured with `KNOWLEDGEBASE_MONGO_URI`. |
@@ -516,7 +516,7 @@ calculated from the same UTC instant.
 >
 > Use an IANA timezone name, for example `Europe/Stockholm`. Do not store
 > local wall-clock timestamps in MongoDB. If an ingest source emits an ISO
-> timestamp without a timezone suffix, Coyote3 treats it as UTC and converts it
+> timestamp without a timezone suffix, Coyote4 treats it as UTC and converts it
 > for display.
 >
 
@@ -532,7 +532,7 @@ paths are intentionally not environment variables.
 
 ```toml
 [organization]
-name = "Coyote3"
+name = "Coyote4"
 department = "Clinical Genomics"
 
 [[contacts]]
@@ -568,13 +568,13 @@ email = "clinical-support@example.org"
 >
 > Bug reports, feature requests, and support requests are product/repository
 > links, not deployment secrets or center settings. They are defined once in
-> `api/config/application_metadata.py`; the About page, Contact page, and
+> `api/src/coyote_api/config/application_metadata.py`; the About page, Contact page, and
 > user dropdown receive the same generated links.
 >
 
 ## Configuration Boundaries
 
-API-owned configuration lives under `src/coyote3/config/`:
+API-owned configuration lives under `core/src/coyote/config/`:
 
 - `runtime_settings.py` selects runtime settings.
 - `constants.py` defines product vocabularies.

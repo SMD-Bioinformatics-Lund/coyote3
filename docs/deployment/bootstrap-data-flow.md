@@ -10,8 +10,8 @@ For the purpose, format and ownership of each installed catalog, see
 
 ## Deployment Flow
 
-The image build packages `src/coyote3/config/factory_defaults.toml`
-and `api/config/collections.toml` with
+The image build packages `core/src/coyote/config/factory_defaults.toml`
+and `adapters/mongo/src/coyote_mongo/config/collections.toml` with
 the API code. These files are application contracts, not database seed documents.
 They supply supported clinical identifiers, base query settings and collection
 bindings on the first installation and subsequent releases. The
@@ -74,11 +74,11 @@ See [installation operations](installation-operations.md).
 
 ## Seed Source Policy
 
-- `api/bootstrap/catalogs/rbac` is the application-owned permission and role catalog.
+- `api/src/coyote_api/bootstrap/catalogs/rbac` is the application-owned permission and role catalog.
 - Bundled permission documents are installed with `system_managed: true`; their
   definitions are immutable at runtime but remain assignable through roles.
-- `api/bootstrap/catalogs/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
-- `api/bootstrap/catalogs/reference` contains the release-bundled HGNC and VEP
+- `api/src/coyote_api/bootstrap/catalogs/demo_center` contains synthetic ASP, ASPC, and ISGL documents for installation checks.
+- `api/src/coyote_api/bootstrap/catalogs/reference` contains the release-bundled HGNC and VEP
   snapshots loaded by the reference installer when their collections are
   empty.
 - Normal application startup does not seed or synchronize governance documents.
@@ -86,7 +86,7 @@ See [installation operations](installation-operations.md).
 ## Database bootstrap method
 
 - Run `scripts/bootstrap/bootstrap_database.py` before application services are started.
-- The initial logins are fixed to `coyote3.superuser` and `coyote3.sysadmin`.
+- The initial logins are fixed to `coyote4.superuser` and `coyote4.sysadmin`.
   Optionally set their contacts using `--email` and `--sys-admin-email`.
 - Omit `--password` and `--sys-admin-password` to generate independent temporary
   passwords, displayed once after account creation.
@@ -102,20 +102,20 @@ Standard command shape:
 
 ```bash
 .venv/bin/python scripts/bootstrap/bootstrap_database.py \
-  --mongo-uri "$COYOTE3_MONGO_URI" \
+  --mongo-uri "$COYOTE4_MONGO_URI" \
   --identity-mongo-uri "$IDENTITY_MONGO_URI" \
-  --db "$COYOTE3_DB" \
+  --db "$COYOTE4_DB" \
   --identity-db "$IDENTITY_DB" \
   --sys-admin-email "operator@example.org" \
   --email "admin@your-center.org"
 ```
 
-Configure `COYOTE3_MONGO_URI` for the independently operated database before this
+Configure `COYOTE4_MONGO_URI` for the independently operated database before this
 command. If the supplied MongoDB Compose definition is used, its persistent
-host resources are `COYOTE3_MONGO_DATA_HOST_ROOT` and `COYOTE3_MONGO_KEYFILE_HOST_PATH`.
-`COYOTE3_MONGO_BACKUP_HOST_ROOT` is optional and mounts a directory only with
+host resources are `COYOTE4_MONGO_DATA_HOST_ROOT` and `COYOTE4_MONGO_KEYFILE_HOST_PATH`.
+`COYOTE4_MONGO_BACKUP_HOST_ROOT` is optional and mounts a directory only with
 `docker-compose.mongo-backup.yml`. Omit both when backups are managed externally.
-Set `COYOTE3_LOGS_HOST_ROOT` for every deployment; it is mounted at `/app/logs`
+Set `COYOTE4_LOGS_HOST_ROOT` for every deployment; it is mounted at `/app/logs`
 in the API, worker, and Beat containers.
 
 > **Warning: Existing named-volume installations**
@@ -130,8 +130,8 @@ in the API, worker, and Beat containers.
 
 ## Packaged configuration location
 
-The API configuration package is `src/coyote3/config` in the repository and
-`/app/src/coyote3/config` in the API image. It must be present because it contains typed
+The API configuration package is `core/src/coyote/config` in the repository and
+`/app/core/src/coyote/config` in the API image. It must be present because it contains typed
 software settings, center configuration, and the first-deployment RBAC catalog.
 Current Dockerfiles do not copy or mount a separate `/app/config` directory. If
 that directory appears in a running container, the container was built from an
@@ -144,11 +144,11 @@ After an installation that skipped demos, use authenticated maintenance with
 `--modules demo` to add them. Forced demo repair preserves existing configuration
 history and reviewed or human-owned samples.
 
-Start Coyote3 after database bootstrap:
+Start Coyote4 after database bootstrap:
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build
 ```

@@ -1,48 +1,25 @@
-# Clinical user guide
+# Review samples and reports
 
-Clinical workflows cover sample selection, DNA and RNA review, coverage assessment,
-finding classification, and reporting. Available analyses and actions depend on assay
-configuration and user access. Account and assay configuration are covered in
-[Administration](../administration/README.md).
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
 
-## Review your first sample
+Start with the [clinical review workflow](clinical-review-workflow.md).
+It covers finding a sample, checking its context, reviewing findings, saving
+comments and issuing a report. You need access to the sample and permission for
+each action.
 
-Follow the [clinical review workflow](clinical-review-workflow.md) from sample
-selection through saving the report. It is the complete procedure on one page.
+## When you need more detail
 
-If you are new to the application, use [sign-in and navigation](application-guide.md#sign-in-and-public-pages)
-for the screen controls. Open the [DNA](dna-review.md), [RNA](rna-review.md),
-[coverage](coverage-review.md) or [biomarker](biomarker-review.md) reference when you
-need detail for an enabled analysis. [Report formats](try-new-report.md) explains
-Modern and Legacy presentation. These references are not additional review steps.
+- [DNA review](dna-review.md), [RNA review](rna-review.md) and [coverage](coverage-review.md) explain their analysis controls.
+- [Biomarker assessments](biomarker-review.md) explains manual HRD, MSI and TMB interpretation.
+- [Preview and save reports](report-preview-and-save.md) explains the HTML/PDF previews and confirmation step.
+- [Missing samples or results](sample-readiness-and-missing-results.md) explains visibility, ingest state and empty findings.
+- [Sign-in and navigation](application-guide.md) explains application screens and account controls.
+- [Gene lists and assay context](gene-lists-and-assay-context.md) explains which configuration is applied.
+- [Actions and saved records](actions-and-record-changes.md) explains what each action changes.
+- [Page and table reference](pages-and-table-columns.md) defines individual controls, columns and badges.
 
-If a sample, analysis or result is missing, start with
-[sample readiness and missing results](sample-readiness-and-missing-results.md)
-before changing filters. To understand the underlying selection, follow
-[application base queries and UI rules](../administration/query-rules.md#application-base-queries-by-analysis).
-To change an assay's configuration, use [administration](../administration/README.md).
-
-## Guides
-
-<details markdown="1">
-<summary>All clinical reference guides</summary>
-
-| Guide | Use it to |
-| --- | --- |
-| [Application user guide](application-guide.md) | Learn sign-in, navigation, review controls, and reporting. |
-| [Clinical review workflow](clinical-review-workflow.md) | Follow a sample from selection through review and reporting. |
-| [Sample management](sample-management.md) | Find samples and understand their overview and readiness. |
-| [Sample readiness and missing results](sample-readiness-and-missing-results.md) | Distinguish visibility, ingest completion, missing analyses, empty queries, and report state. |
-| [Gene lists and assay context](gene-lists-and-assay-context.md) | Check ASP, ASPC, ISGL, diagnosis, and clinical-rule roles during review. |
-| [DNA clinical review](dna-review.md) | Review DNA findings, filters, classifications, and comments. |
-| [RNA Clinical Review](rna-review.md) | Review fusions, expression, and RNA classifications. |
-| [Coverage Review](coverage-review.md) | Inspect coverage summaries, low-coverage genes, and regions. |
-| [Biomarker assessments](biomarker-review.md) | Review measured HRD/MSI/TMB results and save manual clinical assessments. |
-| [Preview and save reports](try-new-report.md) | Review modern or legacy HTML/PDF and explicitly save the issued report. |
-| [Operational Dashboard](dashboard.md) | Interpret workload, recent samples, and operational summaries. |
-| [User Action and Operational Impact Reference](actions-and-record-changes.md) | Check which records a user action changes. |
-| [UI Page And Table Reference](pages-and-table-columns.md) | Look up page controls, columns, badges, and tooltips. |
-
-</details>
-
-[Documentation home](../README.md)
+For accounts, assay configuration or published rules, use
+[administration](../administration/README.md). For service failures, use
+[operations](../operations/README.md).

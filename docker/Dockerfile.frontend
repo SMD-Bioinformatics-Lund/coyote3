@@ -11,7 +11,7 @@ COPY release.toml /app/release.toml
 # Vite embeds these public, deployment-specific values in the generated assets.
 ARG SCRIPT_NAME=""
 ARG ENV_NAME="unknown"
-ARG ORGANIZATION_NAME="Coyote3"
+ARG ORGANIZATION_NAME="Coyote4"
 ARG LOCAL_TIME_ZONE="UTC"
 ARG GENS_URI=""
 ARG IGV_URI=""

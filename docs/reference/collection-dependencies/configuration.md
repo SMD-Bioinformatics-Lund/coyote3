@@ -17,7 +17,7 @@ Versioned assay configuration binding scope, filter profiles, and reporting.
 
 The operational identity is assay + diagnosis + environment, with retained document versions. query_policy_release, clinical_rule_release and clinical_rule_base are historical capture fields: current schema comments and writes explicitly exclude them from new runtime captures. Preserve historical data without making these fields a prerequisite for new configurations.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `aspc_id`, `asp_id`, `diagnosis_id`, `environment`, `asp_group`, `asp_category`, `analysis_types`, `analysis_intents`, `system_managed`, `is_active`, `display_name`, `description`, `reference_genome`, `platform`, `verification_samples`, `use_diagnosis_genelist`, `filters`, `reporting`, `catalog`, `query_policy_release`, `clinical_rule_release`, `clinical_rule_base`, `assay_resource_release`, `gene_list_release`, `profile_sources`, `profile_overrides`, `template_release`, `promotion`, `version`, `created_on`, `updated_on`, `supersedes_id`, `retired_by`, `retired_on`, `retired_reason`.
+Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `aspc_id`, `asp_id`, `diagnosis_id`, `environment`, `asp_group`, `asp_category`, `analysis_types`, `analysis_intents`, `snv_filter_mode`, `system_managed`, `is_active`, `display_name`, `description`, `reference_genome`, `platform`, `verification_samples`, `use_diagnosis_genelist`, `filters`, `reporting`, `catalog`, `query_policy_release`, `clinical_rule_release`, `clinical_rule_base`, `assay_resource_release`, `gene_list_release`, `profile_sources`, `profile_overrides`, `template_release`, `promotion`, `version`, `created_on`, `updated_on`, `supersedes_id`, `retired_by`, `retired_on`, `retired_reason`.
 
 [Field types and validation](../mongodb-collections.md#asp_configs). `_id` may also be retained by an open collection model.
 
@@ -322,92 +322,92 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 ### S1
 
-`api/infra/mongo/repositories/assay_diagnoses.py`
+`adapters/mongo/src/coyote_mongo/repositories/assay_diagnoses.py`
 
 ### S2
 
-`api/infra/mongo/repositories/blacklist.py`
+`adapters/mongo/src/coyote_mongo/repositories/blacklist.py`
 
 ### S3
 
-`api/infra/mongo/repositories/reports.py`
+`adapters/mongo/src/coyote_mongo/repositories/reports.py`
 
 ### S4
 
-`api/infra/mongo/repositories/revision_rotation.py`
+`adapters/mongo/src/coyote_mongo/repositories/revision_rotation.py`
 
 ### S5
 
-`src/coyote3/application/common/access.py`
+`core/src/coyote/application/common/access.py`
 
 ### S6
 
-`src/coyote3/application/common/release_resources.py`
+`core/src/coyote/application/common/release_resources.py`
 
 ### S7
 
-`src/coyote3/application/ingest/service.py`
+`core/src/coyote/application/ingest/service.py`
 
 ### S8
 
-`src/coyote3/application/operations/application.py`
+`core/src/coyote/application/operations/application.py`
 
 ### S9
 
-`src/coyote3/application/public/offering_snapshots.py`
+`core/src/coyote/application/public/offering_snapshots.py`
 
 ### S10
 
-`src/coyote3/application/resources/assay_setup.py`
+`core/src/coyote/application/resources/assay_setup.py`
 
 ### S11
 
-`src/coyote3/application/resources/configuration_profiles.py`
+`core/src/coyote/application/resources/configuration_profiles.py`
 
 ### S12
 
-`src/coyote3/application/resources/configuration_promotions.py`
+`core/src/coyote/application/resources/configuration_promotions.py`
 
 ### S13
 
-`src/coyote3/contracts/configuration_profiles.py`
+`core/src/coyote/contracts/configuration_profiles.py`
 
 ### S14
 
-`src/coyote3/contracts/schemas/assay.py`
+`core/src/coyote/contracts/schemas/assay.py`
 
 ### S15
 
-`src/coyote3/contracts/schemas/assay_groups.py`
+`core/src/coyote/contracts/schemas/assay_groups.py`
 
 ### S16
 
-`src/coyote3/contracts/schemas/clinical_rules.py`
+`core/src/coyote/contracts/schemas/clinical_rules.py`
 
 ### S17
 
-`src/coyote3/contracts/schemas/dna.py`
+`core/src/coyote/contracts/schemas/dna.py`
 
 ### S18
 
-`src/coyote3/contracts/schemas/public_catalog.py`
+`core/src/coyote/contracts/schemas/public_catalog.py`
 
 ### S19
 
-`src/coyote3/contracts/schemas/query_rules.py`
+`core/src/coyote/contracts/schemas/query_rules.py`
 
 ### S20
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`
 
 ### S21
 
-`src/coyote3/contracts/schemas/samples.py`
+`core/src/coyote/contracts/schemas/samples.py`
 
 ### S22
 
-`src/coyote3/domain/annotation_identity.py`
+`core/src/coyote/domain/annotation_identity.py`
 
 ### S23
 
-`src/coyote3/domain/filter_profiles.py`
+`core/src/coyote/domain/filter_profiles.py`

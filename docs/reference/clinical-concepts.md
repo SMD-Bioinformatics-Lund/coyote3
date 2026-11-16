@@ -33,7 +33,7 @@ interpreted.
 | **ASPC** | The software behavior for an ASP, diagnosis, and environment. | Available analysis types, intent-specific filters, report sections, default gene lists, reporting metadata. |
 | **ISGL** | A versioned in-silico gene list. | SNV, CNV, or fusion gene membership; compatible ASPs and assay groups; public and active state. |
 
-An ASP describes what was designed and sequenced. An ASPC describes how Coyote3
+An ASP describes what was designed and sequenced. An ASPC describes how Coyote4
 must analyze and report that design in a particular operating context. An ISGL
 can narrow the effective gene scope without changing the physical assay design.
 

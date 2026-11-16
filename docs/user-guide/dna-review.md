@@ -40,18 +40,10 @@ SNV CSV exports show case and control evidence as allele percentage followed by
 variant reads / total depth. Each unavailable measurement appears as `-`; available
 measurements, including zero, are retained even when another field is missing.
 
-> **Warning: Somatic SNV results can include germline variants**
->
-> The current somatic SNV queries can also return germline variants that satisfy
-> their selection criteria. The **Somatic** label identifies the review workflow;
-> it does not establish a variant's somatic origin or guarantee exclusion of
-> germline findings. Enabled germline review has its own filters and reporting
-> context; it does not partition observations into exclusive biological categories.
-> Published germline query exceptions also run in this somatic workflow for the
-> matching assay scope. Their findings remain in the somatic SNV results; the
-> rules do not reclassify a finding's biological origin.
-> See [SNV query intent](../reference/assay-filtering.md#intent-specific-snv-review)
-> for the distinction between query configuration and variant origin.
+ASPC `snv_filter_mode` defaults to `shared`: all SNVs use one normal filter
+profile and its published policy. `independent` retains separate configured
+somatic and germline flows. No germline rules are injected into somatic selection.
+Review intent does not establish biological origin.
 
 The proposed shared-finding model and separate interpretation contexts are recorded
 as [future work](../project/future-work.md#shared-findings-with-separate-somatic-and-germline-interpretation).

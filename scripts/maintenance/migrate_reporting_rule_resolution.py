@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Replace ASPC rule bindings with scope-based reporting language configuration."""
 
 from __future__ import annotations
@@ -14,17 +17,17 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.clinical_rule_sets import (  # noqa: E402
+from coyote.application.reporting.clinical_rules.resolution import (
+    resolve_published_rule_set,  # noqa: E402
+)
+from coyote.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.clinical_rule_sets import (  # noqa: E402
     build_revision_snapshot,
     verify_revision_snapshot,
 )
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.application.reporting.clinical_rules.resolution import (
-    resolve_published_rule_set,  # noqa: E402
-)
-from coyote3.application.reporting.clinical_rules.validation import content_hash  # noqa: E402
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
 def migrate(db, *, apply: bool = False) -> dict[str, int]:
@@ -207,12 +210,12 @@ def migrate(db, *, apply: bool = False) -> dict[str, int]:
 def main() -> int:
     """Run the read-only plan unless --apply explicitly enables configuration writes."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE3_MONGO_URI"))
-    parser.add_argument("--db", default=os.environ.get("COYOTE3_DB"))
+    parser.add_argument("--mongo-uri", default=os.environ.get("COYOTE4_MONGO_URI"))
+    parser.add_argument("--db", default=os.environ.get("COYOTE4_DB"))
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     if not args.mongo_uri or not args.db:
-        parser.error("COYOTE3_MONGO_URI and COYOTE3_DB or explicit overrides are required")
+        parser.error("COYOTE4_MONGO_URI and COYOTE4_DB or explicit overrides are required")
     with MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000) as client:
         counts = migrate(client[args.db], apply=args.apply)
     print(f"{'Migrated' if args.apply else 'Would migrate'}: {counts}")

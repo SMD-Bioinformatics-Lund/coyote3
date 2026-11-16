@@ -10,36 +10,118 @@ gate for cross-layer changes or release preparation.
 
 The test suite is grouped by runtime boundary:
 
-- **Unit Logic (`tests/unit`)**: pure functions, domain logic, contracts, and services.
-- **REST Interface (`tests/api/routers`)**: HTTP boundary behavior and typed payload handling.
+- **Core (`core/tests`)**: pure functions, clinical rules, portable contracts and services.
+- **MongoDB adapter (`adapters/mongo/tests`)**: query compilation, repository behavior and core-port integration.
+- **REST interface (`api/tests`)**: HTTP contracts, host composition, workers and permissions.
+- **HTTP client (`clients/python/tests`)**: transport, authentication, typed resources and failures.
+- **Repository tooling (`tests/unit`)**: deployment definitions, maintenance tools, documentation and releases.
 - **Integration Layer (`tests/integration`)**: cross-component contracts, architecture boundaries, and recovery behavior.
 - **Frontend (`frontend`)**: TypeScript build, linting, Vitest unit coverage,
   and Playwright route/API contract checks.
 
-### API coverage organisation
+### Python suite ownership
 
 API tests are grouped by the behavior they protect:
 
 | Location | Scope |
 | --- | --- |
-| `tests/unit` | Query construction, filter normalisation, schema contracts, reporting, ingest, and service behavior. |
-| `tests/api/routers` | Route payloads, validation, permissions, and domain-specific endpoint behavior. |
-| `tests/api` | Cross-router authentication, authorization matrices, OpenAPI taxonomy, route contracts, audit behavior, and rate limits. |
-| `tests/integration` | Architecture boundaries and selected multi-component seams. |
+| `core/tests/unit` | Clinical rules, filtering, contracts, reporting and workflow services with synthetic ports. |
+| `api/tests/unit`, `api/tests/http` | Host configuration, workers, authentication, HTTP validation and permission matrices. |
+| `adapters/mongo/tests/unit`, `adapters/mongo/tests/integration` | Repository behavior, query compilation and adapter/core integration without an external server. |
+| `clients/python/tests` | Independent synchronous and asynchronous HTTP client behavior. |
+| `tests/unit` | Repository tooling, deployment configuration, documentation and release validation. |
+| `tests/integration` | Installed distributions, application transactions, architecture boundaries and frontend/API contracts. |
+| Each package's `tests/smoke`, root `tests/smoke` | Fast package checks and in-process application composition. |
 
 `tests/integration/test_api_architecture_boundaries.py` checks import direction
 and persistence boundaries in HTTP, application, and domain modules.
+
+Root `pytest.ini` discovers all five Python test roots. Package-local pytest
+configuration and fixtures allow each project to run from its own directory.
+Core and adapter unit tests receive `unit`; host tests receive `api`; client
+tests receive `client` and `unit`. Adapter integration tests receive `integration`;
+root integration tests also receive `contract`. Fast checks receive `smoke`.
+Use `pytest -m MARKER` to filter an already collected suite.
+Configured-service tests require their documented opt-in environment settings.
+Package helpers must not import root tests or another package's test helpers.
+Root integration tests may compose those synthetic fixtures. Core fixtures supply
+a deterministic test hashing port; MongoDB and API fixtures bind the real adapter
+codec. Neither requires a global codec installed by another suite.
+The optional Locust smoke suite under `tests/load` runs separately with its load
+toolchain; it is excluded from default pytest discovery.
+
+### Fast smoke checks
+
+Run explicit smoke directories to avoid collecting the full test suite:
+
+```bash
+scripts/quality/run_package_tests.sh all --smoke
+scripts/quality/run_package_tests.sh api --smoke
+.venv/bin/python -m pytest -q tests/smoke
+npm --prefix frontend run test:smoke
+```
+
+Python package smoke checks cover portable variant identity, settings projection,
+the API health entry point, BSON/portable record conversion and authenticated client
+preview transport. Root checks exercise the real client/API health request in
+process, with synthetic session validation, and the host-bound record hashing port.
+Frontend smoke checks exercise confirmation actions, focus, keyboard handling and
+pending states with the actual shared component. Each selected test exists once
+and remains part of its full suite.
+
+Smoke checks use synthetic inputs, mocked authentication and in-process transports.
+They do not connect to external services, build wheels, paginate PDFs or start
+application services. Running them checks a small set of important behaviors;
+full suites and configured-service integration tests remain required for releases.
+No smoke CI jobs are configured. The commands can be called by future CI jobs.
+
+### Independent package coverage
+
+```bash
+scripts/quality/run_package_tests.sh core
+scripts/quality/run_package_tests.sh mongo --coverage
+scripts/quality/run_package_tests.sh all --coverage
+```
+
+The runner changes to each package directory and uses its own pytest/coverage
+configuration. Each Python package's `test` extra includes the test and coverage
+tools. For an isolated installation, install `.[test]` from that package, then run
+`python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml` there.
+The uv workspace keeps source editable; test changes do not require wheel builds.
+
+Coverage measures each package's complete runtime namespace, including unexecuted
+modules, with branch coverage. Reports stay separate in each project's `.coverage`
+database and `coverage/coverage.xml`; HTML is available with `--cov-report=html`.
+Root integration results do not contribute to these independent package reports.
+
+| Package | Independent branch-aware floor |
+| --- | ---: |
+| Core | 62% |
+| MongoDB adapter | 51% |
+| API host | 75% |
+| HTTP client | 81% |
+
+Core and adapter floors record the measured baseline after separating test ownership.
+Their remaining uncovered paths need package-local regression tests as those areas
+are changed. These new floors preserve existing tests; the existing combined 75%
+backend gate and family gates remain unchanged, including 100% for clinical
+reporting rules. The repository quality runner checks both combined coverage and
+independent package floors. Smoke runs do not enforce full-suite coverage floors.
 
 ### UI coverage organisation
 
 Browser tests live in `frontend/tests/e2e`. They use deterministic intercepted
 API responses, so they test route rendering and request dispatch without
-depending on a live clinical database or external services.
+depending on a live clinical database. API-documentation browser checks fetch
+the pinned Swagger UI and ReDoc assets from their CDN before intercepting those
+requests in the browser. Real-deployment smoke tests are a separate suite.
 
-Unit tests live beside the TypeScript modules they protect as
+Most unit tests live beside the TypeScript modules they protect as
 `*.test.ts`. Vitest writes terminal, JSON summary, and LCOV reports to
 `frontend/coverage/`. The report includes frontend library modules even when a
 module has no tests; coverage is calculated over the configured source scope.
+The full Vitest suite also collects `frontend/tests/smoke`; those cases are not
+duplicated beside their components.
 
 Vitest runs at most four workers to bound simultaneous jsdom instances and avoid
 CPU contention on shared runners. A developer can override the limit explicitly
@@ -105,11 +187,11 @@ PYTHONPATH=. python -m pytest -q
 
 # Generate the unified backend coverage report
 PYTHONPATH=. python -m pytest -q \
-  --cov=api --cov=coyote3 --cov-config=.coveragerc \
+  --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov-config=.coveragerc \
   --cov-report=term-missing --cov-report=xml:coverage.xml
 
 # Execute static analysis and linting
-PYTHONPATH=. python -m ruff check src api tests scripts
+PYTHONPATH=. python -m ruff check core api adapters clients tests scripts
 
 # Check the strict typed security/account boundary
 PYTHONPATH=. python -m mypy
@@ -218,15 +300,15 @@ Coverage checks enforce minimum thresholds for key logic families.
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 ```
 
-The system applies a **75% minimum** to `src/coyote3/domain`, with separate
-thresholds for `src/coyote3/application` and `api/interfaces/http`. It also enforces a
+The system applies a **75% minimum** to `core/src/coyote/domain`, with separate
+thresholds for `core/src/coyote/application` and `api/src/coyote_api/interfaces/http`. It also enforces a
 **75% minimum** over the clinical query-policy modules: DNA SNV, CNV, and
 translocation query builders and the RNA fusion query builder. This is a
 combined branch-aware gate, not a line-count exclusion. It protects the code
 that decides which findings enter clinical review.
 
-When run directly, the gate collects coverage for both `api` and `coyote3`
-for each selected suite, then evaluates the family by filesystem scope. The repository quality
+When run directly, the gate collects coverage for all backend packages once,
+then evaluates each family by filesystem scope. The repository quality
 suite and CI collect the complete backend coverage database once and invoke
 the gate with `--from-existing`. Reusing that database preserves the same
 family thresholds without repeating the backend suites for each family.
@@ -332,7 +414,7 @@ the backend revision and builds the frontend. The workflow limits runner usage:
 | Superseded commits | A newer commit cancels the running quality job for the same pull request or branch. |
 | Backend changes | Run Python lint, formatting, strict typing, the complete backend suite once, family coverage gates, and repository contract checks. |
 | Frontend changes | Run frontend lint, Vitest coverage, the production build, and Playwright Chromium workflows. |
-| API contract changes | Changes under `src/coyote3/contracts/` or `api/interfaces/http/` also run frontend checks because they can change consumed payloads or routes. |
+| API contract changes | Changes under `core/src/coyote/contracts/` or `api/src/coyote_api/interfaces/http/` also run frontend checks because they can change consumed payloads or routes. |
 | Deployment changes | Compose, proxy, and container build changes run all scopes because they can alter every runtime surface. |
 | Documentation changes | Run Markdown lint, internal-link validation, and a strict MkDocs build. |
 | Workflow changes | Run all scopes so CI changes validate the complete execution path. |
@@ -365,7 +447,7 @@ The quality suite and deployment checks cover these boundaries:
 | Python contracts | `PYTHONPATH=. pytest -q` | Pydantic contracts, API routes, rule evaluation, authorization, persistence adapters, external-client payload handling, and UI route metadata. |
 | Frontend units | `cd frontend && npm run test:coverage` | Pure frontend helpers with JSON-summary and LCOV output. |
 | Browser routes | `cd frontend && npm run test:e2e` | React routing, rendered form behavior, and user-facing success/error states using deterministic API fixtures. |
-| Deployment smoke | `cd frontend && COYOTE3_E2E_BASE_URL=https://host/prefix/ npm run test:e2e:real` | Real proxy-prefix routing and API integration; authenticated checks run when controlled credentials are supplied. |
+| Deployment smoke | `cd frontend && COYOTE4_E2E_BASE_URL=https://host/prefix/ npm run test:e2e:real` | Real proxy-prefix routing and API integration; authenticated checks run when controlled credentials are supplied. |
 | Composed workflow | `bootstrap-and-ingest-check` workflow | Docker networking, authentication, MongoDB, Celery ingestion, and ready-sample projection through the running API. |
 
 The OncoKB and ClinPGx client tests use fixture responses for successful payloads,
@@ -376,7 +458,7 @@ never silently promoted to clinical evidence after a failed or malformed request
 
 ```bash
 # API, unit, and architecture-boundary tests
-PYTHONPATH=. .venv/bin/pytest tests/unit tests/api tests/integration -q
+PYTHONPATH=. .venv/bin/pytest -q
 
 # Full browser route suite with deterministic API fixtures
 npm --prefix frontend run test:e2e
@@ -385,13 +467,13 @@ npm --prefix frontend run test:e2e
 npm --prefix frontend run test:e2e -- sample-analysis-tabs.spec.ts
 
 # Real deployment and reverse-proxy smoke checks
-COYOTE3_E2E_BASE_URL=https://localhost/coyote3_dev/ \
+COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
 npm --prefix frontend run test:e2e:real
 ```
 
 ## Standards for New Feature Development
 
-- **Logic Separation**: Cover clinical decisions in `src/coyote3/domain` with focused positive, negative and regression cases; the configured family coverage gate applies.
+- **Logic Separation**: Cover clinical decisions in `core/src/coyote/domain` with focused positive, negative and regression cases; the configured family coverage gate applies.
 - **Boundary Mocking**: API and integration tests should isolate external network dependencies with focused fixtures.
 - **Payload Alignment**: Validation fixtures must reflect the current Pydantic
   contracts and use deterministic, de-identified payloads. They must not rely
@@ -404,7 +486,7 @@ All permission-gate testing must operate at the logical boundary being enforced:
 - **API Access**: Use the `api_user` mocks to validate FastAPI `Depends` authentication and RBAC logic.
 - **UI visibility**: Verify selective rendering in the React layer with API-shaped fixtures.
 - **Constraint Matching**: Test datasets must define role-derived allow/deny permission arrays to verify both positive and negative authorization outcomes.
-- **Shipped RBAC Matrix**: `tests/api/test_rbac_complete_route_matrix.py` must pass. It covers
+- **Shipped RBAC Matrix**: `api/tests/http/test_rbac_complete_route_matrix.py` must pass. It covers
   every active seeded permission, bundled role, and registered `require_access` API endpoint.
 
 ## Performance Checks
@@ -425,7 +507,7 @@ The separate CI `loadtest-smoke` job installs only `requirements-load.txt`
 (Locust `2.46.5`, from the optional `load` dependency group) and runs
 `python tests/load/smoke_test.py` against synthetic HTTP responses. It checks harness
 behavior without a real application database; it is neither a deployment load run
-nor a measurement of Coyote3 capacity.
+nor a measurement of Coyote4 capacity.
 
 See also:
 

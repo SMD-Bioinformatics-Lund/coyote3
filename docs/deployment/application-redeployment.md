@@ -22,8 +22,8 @@ required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
 ```bash
-COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
-COYOTE_PROJECT="coyote3-prod"
+COYOTE_ENV_FILE="/srv/coyote/config/production.env"
+COYOTE_PROJECT="coyote4-prod"
 set -a
 . "$COYOTE_ENV_FILE"
 set +a
@@ -52,7 +52,7 @@ before continuing. Do not select a new project name to work around startup error
 - Verify the external network exists:
 
 ```bash
-docker network inspect "$COYOTE3_APP_NETWORK" --format '{{.Name}} {{.Driver}}'
+docker network inspect "$COYOTE4_APP_NETWORK" --format '{{.Name}} {{.Driver}}'
 bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
 coyote_compose config --quiet
 ```
@@ -75,9 +75,9 @@ pause submissions. Allow active ingest/report work to finish before replacement:
 
 ```bash
 coyote_compose stop proxy beat
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect active
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect reserved
-coyote_compose exec -T worker celery -A api.celery_app:celery_app inspect scheduled
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect active
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect reserved
+coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect scheduled
 ```
 
 Confirm every worker responds and has no active task before proceeding. Check
@@ -110,8 +110,8 @@ report and confirm worker processing resumes. Check that no unexpected ingest jo
 was lost or duplicated. Record the restart and verification result before resuming
 submissions. Do not create replacement administrator accounts through bootstrap.
 
-For the example direct HTTP listener, the URL is `http://localhost:6802/coyote3/`.
-HTTPS requires a TLS ingress; changing `COYOTE3_NGINX_PUBLIC_SCHEME` does not create one.
+For the example direct HTTP listener, the URL is `http://localhost:6802/coyote4/`.
+HTTPS requires a TLS ingress; changing `COYOTE4_NGINX_PUBLIC_SCHEME` does not create one.
 
 ## If verification fails
 

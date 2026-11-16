@@ -27,11 +27,11 @@ deployment env file:
 
 | Service | CPU cores | Memory | CPU env variable | Memory env variable |
 | --- | --- | --- | --- | --- |
-| API | 2 | 2 GiB | `COYOTE3_API_CPU_LIMIT` | `COYOTE3_API_MEM_LIMIT` |
-| Worker | 2 | 2 GiB | `COYOTE3_WORKER_CPU_LIMIT` | `COYOTE3_WORKER_MEM_LIMIT` |
-| Maintenance worker (modern stack) | 1 | 1 GiB | `COYOTE3_MAINTENANCE_CPU_LIMIT` | `COYOTE3_MAINTENANCE_MEM_LIMIT` |
-| Beat | 0.25 | 256 MiB | `COYOTE3_BEAT_CPU_LIMIT` | `COYOTE3_BEAT_MEM_LIMIT` |
-| Monitor | 0.5 | 512 MiB | `COYOTE3_MONITOR_CPU_LIMIT` | `COYOTE3_MONITOR_MEM_LIMIT` |
+| API | 2 | 2 GiB | `COYOTE4_API_CPU_LIMIT` | `COYOTE4_API_MEM_LIMIT` |
+| Worker | 2 | 2 GiB | `COYOTE4_WORKER_CPU_LIMIT` | `COYOTE4_WORKER_MEM_LIMIT` |
+| Maintenance worker (modern stack) | 1 | 1 GiB | `COYOTE4_MAINTENANCE_CPU_LIMIT` | `COYOTE4_MAINTENANCE_MEM_LIMIT` |
+| Beat | 0.25 | 256 MiB | `COYOTE4_BEAT_CPU_LIMIT` | `COYOTE4_BEAT_MEM_LIMIT` |
+| Monitor | 0.5 | 512 MiB | `COYOTE4_MONITOR_CPU_LIMIT` | `COYOTE4_MONITOR_MEM_LIMIT` |
 
 The modern stack's worker, maintenance worker, beat and monitor together have a
 maximum allowance of 3.75 CPU cores when running one container of each. The legacy
@@ -41,7 +41,7 @@ and threads within each container share its limit. Adjust worker memory and
 `CELERY_WORKER_CONCURRENCY` to the observed ingest workload; the modern maintenance
 worker uses `CELERY_MAINTENANCE_CONCURRENCY`.
 
-`COYOTE3_CONTAINER_CPU_LIMIT` and `COYOTE3_CONTAINER_MEM_LIMIT` remain the shared
+`COYOTE4_CONTAINER_CPU_LIMIT` and `COYOTE4_CONTAINER_MEM_LIMIT` remain the shared
 defaults for frontend, docs, Redis, and proxy; they do not override the five
 service-specific limits above. Mongo retains its separate `MONGO_CONTAINER_*`
 settings. Docker CPU usage of 100% represents approximately one core.
@@ -60,7 +60,7 @@ audit and rate limiting; it does not parse untrusted forwarded headers itself.
 The supplied Nginx gateway replaces `X-Forwarded-For` with its peer address. If an
 external center proxy is in front, this is the center proxy's address unless the
 center configures trusted real-IP handling at that edge. Set
-`COYOTE3_NGINX_PUBLIC_SCHEME=https` only when the public entry point enforces TLS;
+`COYOTE4_NGINX_PUBLIC_SCHEME=https` only when the public entry point enforces TLS;
 the gateway does not trust an incoming `X-Forwarded-Proto` value. Restrict direct
 API and gateway exposure according to this trust boundary.
 
@@ -87,7 +87,7 @@ The application release version is defined in `release.toml`. The
 `scripts/deployment/compose-with-version.sh` wrapper reads that file and exports transient
 Compose variables for image names. Supply `GIT_COMMIT` explicitly from the reviewed
 checkout when building release images. Do not store
-`COYOTE3_VERSION`, `COYOTE3_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
+`COYOTE4_VERSION`, `COYOTE4_IMAGE_TAG`, `GIT_COMMIT`, or `BUILD_TIME` in copied env files.
 The wrapper reads `ENV_NAME` from the selected env file (an exported shell value
 takes precedence). Development/dev, testing/test, staging/stage, and production/prod
 select image suffixes `-dev`, `-test`, and `-stage`; production uses the plain
@@ -159,10 +159,10 @@ Each center defines its own number of input mounts, host locations, container
 locations, and access modes in a private Compose override:
 
 ```bash
-cp deploy/compose/docker-compose.storage.example.yml .coyote3_storage.yml
+cp deploy/compose/docker-compose.storage.example.yml .coyote4_storage.yml
 ```
 
-Copy the template once and edit only `.coyote3_storage.yml` for your deployment.
+Copy the template once and edit only `.coyote4_storage.yml` for your deployment.
 This filename is already in `.gitignore`: local mount changes do not appear in
 Git status, and pulling repository updates leaves the file untouched. Keep the
 tracked Compose files and example templates unchanged. New template changes can
@@ -185,8 +185,8 @@ must already be accessible on the deployment host.
 Pass the override last on every deployment command:
 
 ```bash
-./scripts/deployment/compose-with-version.sh --env-file .coyote3_env \
-  -f deploy/compose/docker-compose.yml -f .coyote3_storage.yml up -d --build
+./scripts/deployment/compose-with-version.sh --env-file .coyote4_env \
+  -f deploy/compose/docker-compose.yml -f .coyote4_storage.yml up -d --build
 ```
 
 For development, include `-f deploy/compose/docker-compose.dev.yml` before the
@@ -197,16 +197,16 @@ Include the same override for config validation, recreation, and maintenance.
 For example, a legacy remote-development deployment using compiled images uses:
 
 ```bash
-./scripts/deployment/compose-with-version.sh -p coyote3-dev --env-file .coyote3_dev_env \
+./scripts/deployment/compose-with-version.sh -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/legacy/docker-compose.yml \
-  -f .coyote3_storage.yml up -d
+  -f .coyote4_storage.yml up -d
 ```
 
 The wrapper selects image tags from `ENV_NAME`. If application code or startup commands changed,
 build `api` with the same file list before recreating API, worker, and beat;
 all three use the shared API image. Mount-only changes do not require rebuilding.
 
-Keep any other overlays used by your deployment before `.coyote3_storage.yml`.
+Keep any other overlays used by your deployment before `.coyote4_storage.yml`.
 
 API, worker, and beat need consistent paths for shared inputs. Paths in ingest
 manifests and file-reading configuration must refer to the chosen **container**
@@ -225,12 +225,12 @@ mount credentials, or the private override.
 
 The self-hosted Locust overlay, `deploy/compose/docker-compose.loadtest.yml`, is
 standalone and opt-in under the `loadtest` profile. It runs only the generator; it does not start
-or provision Coyote3. Deploy an isolated synthetic application first and target its
+or provision Coyote4. Deploy an isolated synthetic application first and target its
 Nginx entrypoint with the configured prefix, not the API container port. The Locust
 UI is bound to localhost on port `8089`, and local credentials/configuration JSON
-are mounted read-only from `.coyote3_load`; only `load-results` is writable persistent
-output. It joins the pre-created external `COYOTE3_LOAD_NETWORK` (default
-`coyote3-loadtest-net`). Supply generator configuration, not the application's database
+are mounted read-only from `.coyote4_load`; only `load-results` is writable persistent
+output. It joins the pre-created external `COYOTE4_LOAD_NETWORK` (default
+`coyote4-loadtest-net`). Supply generator configuration, not the application's database
 environment file. Keep the overlay out of normal production startup.
 Use the [load-testing guide](../testing/load-and-capacity-testing.md) for the exact setup and
 execution commands, workload selection, and result handling.
@@ -279,7 +279,7 @@ services:
 ```
 
 Set the two source variables in the private environment file. `/data` is already
-mounted writable from `COYOTE3_DATA_HOST_ROOT`; setting that variable to `/data`
+mounted writable from `COYOTE4_DATA_HOST_ROOT`; setting that variable to `/data`
 mounts the host `/data` there. Do not replace it with a read-only input mount:
 ingest staging and application output need write access. To expose a separate
 read-only input tree from host `/data`, mount that tree at another container target
@@ -297,7 +297,7 @@ are compiled as part of the Vite bundle; there is no separate Tailwind process.
   updates the browser through hot module replacement. The development
   container remains running.
 - **Production, staging, and UI test deployments**: `docker compose build`
-  builds `coyote3-frontend` from `docker/Dockerfile.frontend`. That image
+  builds `coyote4-frontend` from `docker/Dockerfile.frontend`. That image
   contains the immutable `frontend/dist` output and serves it through Nginx.
   Starting or restarting the container never runs `npm install` or
   `npm run build`.
@@ -310,7 +310,7 @@ these values.
 ### Production deployment
 
 Production deployments require the production environment file and explicit versioning.
-The network named by `COYOTE3_APP_NETWORK` must exist before any application
+The network named by `COYOTE4_APP_NETWORK` must exist before any application
 environment is started. The following `/28` example reserves 16 addresses and
 provides approximately 13 assignable container addresses after Docker reserves
 the network, gateway, and broadcast addresses. This covers the nine modern application
@@ -322,7 +322,7 @@ docker network create \
   --subnet 172.29.110.0/28 \
   --ip-range 172.29.110.0/28 \
   --gateway 172.29.110.1 \
-  coyote3-prod-app-net
+  coyote4-prod-app-net
 ```
 
 Choose a private subnet that does not overlap the host, VPN, center, Kubernetes,
@@ -331,7 +331,7 @@ still communicate by Compose DNS names rather than fixed container IPs.
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   up -d --build
 ```
@@ -344,45 +344,45 @@ that environment. Always provide the base file first and the overlay second.
 The environment filename is supplied with `--env-file`; Compose files do not
 contain a local filename and therefore work with any operator-selected name.
 Create each environment's configured network once before its first deployment,
-for example `coyote3-stage-app-net` or `coyote3-dev-app-net`.
+for example `coyote4-stage-app-net` or `coyote4-dev-app-net`.
 
 Example non-overlapping pools for environments hosted on the same machine are:
 
 | Environment | Network | Example subnet | Gateway |
 | --- | --- | --- | --- |
-| Production | `coyote3-prod-app-net` | `172.29.110.0/28` | `172.29.110.1` |
-| Staging | `coyote3-stage-app-net` | `172.29.110.16/28` | `172.29.110.17` |
-| Development | `coyote3-dev-app-net` | `172.29.110.32/28` | `172.29.110.33` |
-| Testing | `coyote3-test-app-net` | `172.29.110.48/28` | `172.29.110.49` |
+| Production | `coyote4-prod-app-net` | `172.29.110.0/28` | `172.29.110.1` |
+| Staging | `coyote4-stage-app-net` | `172.29.110.16/28` | `172.29.110.17` |
+| Development | `coyote4-dev-app-net` | `172.29.110.32/28` | `172.29.110.33` |
+| Testing | `coyote4-test-app-net` | `172.29.110.48/28` | `172.29.110.49` |
 
 Create each required pool once. These commands may be run on a host that keeps
 all four environments isolated:
 
 ```bash
 docker network create --driver bridge --subnet 172.29.110.0/28 \
-  --ip-range 172.29.110.0/28 --gateway 172.29.110.1 coyote3-prod-app-net
+  --ip-range 172.29.110.0/28 --gateway 172.29.110.1 coyote4-prod-app-net
 docker network create --driver bridge --subnet 172.29.110.16/28 \
-  --ip-range 172.29.110.16/28 --gateway 172.29.110.17 coyote3-stage-app-net
+  --ip-range 172.29.110.16/28 --gateway 172.29.110.17 coyote4-stage-app-net
 docker network create --driver bridge --subnet 172.29.110.32/28 \
-  --ip-range 172.29.110.32/28 --gateway 172.29.110.33 coyote3-dev-app-net
+  --ip-range 172.29.110.32/28 --gateway 172.29.110.33 coyote4-dev-app-net
 docker network create --driver bridge --subnet 172.29.110.48/28 \
-  --ip-range 172.29.110.48/28 --gateway 172.29.110.49 coyote3-test-app-net
+  --ip-range 172.29.110.48/28 --gateway 172.29.110.49 coyote4-test-app-net
 ```
 
-Set `COYOTE3_APP_NETWORK` in each environment file to the corresponding name.
+Set `COYOTE4_APP_NETWORK` in each environment file to the corresponding name.
 Do not assign static container IPs; Compose DNS names such as `api`, `worker`,
 `redis`, and `frontend` are the stable service addresses.
 
 ```bash
 # Staging deployment
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_stage_env \
+  --env-file .coyote4_stage_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.stage.yml \
   up -d --build
 
 # Development deployment
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env \
+  --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml -f deploy/compose/docker-compose.dev.yml \
   up -d --build
 ```
@@ -396,7 +396,7 @@ container.
 Modern service keys are stable in every environment: `frontend`, `docs`, `api`,
 `worker`, `maintenance-worker`, `beat`, `monitor`, `redis`, and `proxy`. Compose
 project names identify the environment. For example, the development overlay produces uniform names such
-as `coyote3_dev-api-1` and `coyote3_dev-redis-1`. Avoid explicit
+as `coyote4_dev-api-1` and `coyote4_dev-redis-1`. Avoid explicit
 `container_name` declarations: Compose-managed names prevent collisions and
 retain support for service scaling.
 
@@ -406,14 +406,14 @@ Check service health after each deployment:
 
 ```bash
 set -a
-. ./.coyote3_env
+. ./.coyote4_env
 set +a
 
 APP_URL="${PUBLIC_BASE_URL%/}${SCRIPT_NAME}"
 
 # Check container status
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_env \
+  --env-file .coyote4_env \
   -f deploy/compose/docker-compose.yml \
   ps
 

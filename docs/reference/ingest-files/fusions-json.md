@@ -61,12 +61,12 @@ state in pipeline files. The file must also satisfy the assay's required/expecte
   presented as out-of-frame. It is not a DNA VEP `Consequence` value.
 - `calls[].desc` is a comma-delimited, caller-controlled evidence vocabulary.
   Values such as `oncogene`, `cancer`, `reciprocal`, and caller-specific codes
-  are retained verbatim. Coyote3 does not discard unknown future tags. The UI
+  are retained verbatim. Coyote4 does not discard unknown future tags. The UI
   distinguishes curated/cancer-reference tags, cautionary context, and
   artifact-associated tags using the historical FusionCatcher vocabulary, but
   those visual groups are review aids rather than clinical classifications.
 - Fusion description colors are driven by
-  `config/examples/center/clinical_vocabulary.toml`. Important cancer/reference
+  `api/src/coyote_api/config/examples/center/clinical_vocabulary.toml`. Important cancer/reference
   terms are green, artifact or normal-tissue terms are red, contextual terms
   are gray, and unknown future caller terms remain visible with the neutral
   style.

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Download release-specific Ensembl reference definitions and install VEP metadata.
 
 Source code is read as data, never executed. Downloads and a provenance manifest
@@ -32,15 +35,21 @@ from pymongo import MongoClient
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.knowledgebase_publications import (  # noqa: E402
-    record_reference_publication,
-)
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.contracts.schemas.variant_annotations import (  # noqa: E402
+from coyote_api.config.bootstrap import configure_center_from_environment  # noqa: E402
+
+# Bind the host profile before importing vocabulary-dependent contracts.
+configure_center_from_environment()
+
+from coyote.contracts.schemas.variant_annotations import (  # noqa: E402
     VepMetadataDoc,
 )
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.knowledgebase_publications import (  # noqa: E402
+    record_reference_publication,
+)
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+
 from scripts.knowledgebase.vep_diagram_storage import (  # noqa: E402
     seed_diagram,
     split_diagram,
@@ -99,7 +108,7 @@ def consequences(text: str, policy: dict) -> tuple[dict, dict]:
 
     Args:
         text: Release-specific ConsequenceTable.pm contents; never evaluated as Perl.
-        policy: Reviewed Coyote3 group membership and display-label definitions.
+        policy: Reviewed Coyote4 group membership and display-label definitions.
 
     Returns:
         Consequence translations and their exhaustive, nonoverlapping group map.

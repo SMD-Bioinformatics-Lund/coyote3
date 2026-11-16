@@ -1,6 +1,6 @@
 # API route groups and visibility
 
-Coyote3 keeps endpoint paths stable under `/api/v1`, but the public API
+Coyote4 keeps endpoint paths stable under `/api/v1`, but the public API
 documentation is grouped by clinical and operational responsibility. This keeps
 Swagger usable for reviewers, developers, and automation authors without
 coupling the documentation to Python file names.
@@ -15,7 +15,7 @@ coupling the documentation to Python file names.
 | API explorer | `/api/v1/docs` | Inspect operations, authenticate, and explicitly execute requests. |
 | OpenAPI JSON | `/api/v1/openapi.json` | Machine-readable contract for client tooling. |
 
-Both views use the Coyote3 product header and display the application version,
+Both views use the Coyote4 product header and display the application version,
 API major version and deployment environment. Non-production warnings remain
 visible. Version badges describe the deployed contract, not clinical approval.
 Reference navigation groups access/discovery, clinical review, reporting, and
@@ -35,9 +35,9 @@ deployment. External schema validation and Google Fonts are disabled. The header
 logo is embedded, so it does not depend on a frontend asset route. A visible error
 and direct schema link remain available when the renderer or schema cannot load.
 
-Presentation templates live in `api/app/templates/`; page registration and the API
-introduction live in `api/app/documentation.py`. Tag descriptions and reference
-groups are defined in `api/interfaces/http/tags.py`. Update endpoint summaries and
+Presentation templates live in `api/src/coyote_api/app/templates/`; page registration and the API
+introduction live in `api/src/coyote_api/app/documentation.py`. Tag descriptions and reference
+groups are defined in `api/src/coyote_api/interfaces/http/tags.py`. Update endpoint summaries and
 descriptions at their route declarations; do not replace Pydantic contracts with
 handwritten schema copies or include real clinical payloads in examples.
 
@@ -50,10 +50,10 @@ and purple string values. HTTP method colors retain their meaning and are not
 used as decorative badges.
 
 All browser-facing API URLs are mounted below the configured `SCRIPT_NAME`.
-For example, with `SCRIPT_NAME=/coyote3_dev`, Swagger is available at:
+For example, with `SCRIPT_NAME=/coyote4_dev`, Swagger is available at:
 
 ```text
-https://localhost/coyote3_dev/api/v1/docs
+https://localhost/coyote4_dev/api/v1/docs
 ```
 
 Inside the API service, route handlers still use `/api/v1/...`. Reverse proxies
@@ -111,17 +111,17 @@ task-status, and metrics routes retain their existing user-permission or
 internal-token checks. Hiding them from OpenAPI neither grants access nor
 replaces authentication, authorization, proxy policy, or auditing.
 
-Router visibility is declared once in `api/interfaces/http/registry.py`.
+Router visibility is declared once in `api/src/coyote_api/interfaces/http/registry.py`.
 Adding a new service-integration router requires an explicit schema-visibility
 decision there, which prevents internal endpoints from becoming supported
 client contracts accidentally.
 
 ## Router Ownership
 
-The HTTP layer lives in domain-oriented packages under `api/interfaces/http`:
+The HTTP layer lives in domain-oriented packages under `api/src/coyote_api/interfaces/http`:
 
 ```text
-api/interfaces/http/
+api/src/coyote_api/interfaces/http/
   admin/          # governance, managed resources, clinical rules, users, roles, permissions
   clinical/
     samples.py    # sample lists, sample context, sample comments, settings
@@ -138,7 +138,7 @@ Route modules should stay thin:
 
 1. Declare the URL, method, response model, and required permission.
 2. Resolve the authenticated user with `require_access`.
-3. Delegate workflow behavior to `src/coyote3/application`.
+3. Delegate workflow behavior to `core/src/coyote/application`.
 4. Return contract-shaped Pydantic-compatible payloads.
 
 Clinical rules, filtering logic, report construction, and knowledgebase
@@ -275,8 +275,8 @@ this is a sample workflow, not a standalone knowledgebase query.
 
 When adding a route:
 
-1. Select one tag from `api/interfaces/http/tags.py`.
-2. Add or reuse a Pydantic response contract in `src/coyote3/contracts`.
+1. Select one tag from `api/src/coyote_api/interfaces/http/tags.py`.
+2. Add or reuse a Pydantic response contract in `core/src/coyote/contracts`.
 3. Declare the permission with `require_access(permission="resource:action")`
    unless the endpoint is explicitly public.
 4. Add route tests for authorization, empty state, and representative payloads.

@@ -1,43 +1,31 @@
-# Deployment and configuration
+# Install or update Coyote4
 
-Deployment covers service provisioning, database connections, center configuration,
-bootstrap data, and installation acceptance. New installations require initial
-account setup and resource validation. Legacy databases use the
-[clinical data migration procedure](../operations/migrations/clinical-data.md#select-the-source-version),
-with converters selected for Coyote v2 or v3.
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
 
-## Choose one deployment procedure
+Choose one procedure. These are alternatives, not a sequence of manuals to read.
 
-- **New installation:** [production requirements](production-requirements.md) →
-  [first installation](first-installation.md) → [acceptance checks](acceptance-checklist.md).
-- **New release on an existing installation:** [upgrade procedure](application-upgrades.md).
-- **Same release, restart or container replacement:** [restart or redeploy](application-redeployment.md).
-- **Local evaluation:** [try Coyote3 locally](../getting-started/local-quickstart.md).
-
-After installation, [set up and validate the center's assays](../administration/assay-setup.md).
-For daily service work, continue to [operations](../operations/README.md).
-Use [configuration references](../configuration/README.md) to look up file syntax
-and fields while following a procedure.
-
-## Guides
-
-| Guide | Use it to |
+| Installation state | Procedure |
 | --- | --- |
-| [Choose a deployment procedure](production-deployment.md) | Select first installation, an upgrade, or redeployment according to the installation's state. |
-| [Minimum Production Baseline](production-requirements.md) | Review infrastructure, access, backup, and monitoring prerequisites. |
-| [First installation](first-installation.md) | Follow one ordered procedure from environment files through network creation, storage, bootstrap, startup and first sign-in. |
-| [First-time MongoDB provisioning](mongodb-first-setup.md) | Prepare a new Docker/host replica set and grants, then return to application installation. |
-| [Installation operations](installation-operations.md) | Select installer stages, opt in to knowledgebase operations, and run each operation independently. |
-| [Deployment acceptance checklist](acceptance-checklist.md) | Collect center-specific acceptance checks and evidence. |
-| [Upgrade an existing installation](application-upgrades.md) | Preserve recovery artifacts, validate the release, pause writes, back up, apply required maintenance and verify or roll back. |
-| [Restart or redeploy](application-redeployment.md) | Start or replace containers using the same release, configuration and persistent state. |
-| [MongoDB deployment and recovery](mongodb-setup-and-recovery.md) | Initialize replica sets and verify database backup and recovery. |
-| [Container deployment and reverse proxy](containers-and-reverse-proxy.md) | Configure service limits, images, routing, proxies, and release deployment. |
-| [Installation bootstrap and data flow](bootstrap-data-flow.md) | Understand installed catalogs, seed ownership, and bootstrap order. |
-| [Deployment Data Requirements](required-data.md) | Check which collections must exist before sample ingestion. |
-| [New-center configuration review](center-configuration.md#new-center-configuration-review) | Review TOML, YAML, environment settings, and clinical resources before building images. |
-| [Deployment configuration reference](configuration-reference.md) | Look up deployment environment variables and configuration ownership. |
-| [Environments And Secrets](environments-and-secrets.md) | Separate environments, credentials, paths, and service endpoints. |
-| [Center configuration files](center-configuration.md) | Look up supported center configuration files and keys. |
+| New application database and initial account | [First installation](first-installation.md) |
+| Existing installation, new application release | [Upgrade](application-upgrades.md) |
+| Existing installation, same release | [Restart or redeploy](application-redeployment.md) |
+| Local evaluation with synthetic samples | [Local quickstart](../getting-started/local-quickstart.md) |
+| Data from Coyote version 2 or 3 | [Clinical data conversion](../operations/migrations/clinical-data.md#select-the-source-version) |
 
-[Documentation home](../README.md)
+Before a center deployment, review the [production requirements](production-requirements.md).
+The installation procedure includes the commands and checks in order.
+
+## References for installation choices
+
+- **MongoDB:** [first-time provisioning](mongodb-first-setup.md) and [topology](../architecture/mongodb-topology.md).
+- **Settings:** [environment variables](configuration-reference.md) and [center files](center-configuration.md).
+- **Containers:** [Compose and reverse proxy](containers-and-reverse-proxy.md), including support for the older deployment host.
+- **Installed data:** [baseline data flow](bootstrap-data-flow.md), [required data](required-data.md) and [individual installer operations](installation-operations.md).
+
+## After installation
+
+Complete the [acceptance checklist](acceptance-checklist.md), then
+[configure and validate the assays](../administration/assay-setup.md).
+Use [operations](../operations/README.md) for routine checks and incident recovery.

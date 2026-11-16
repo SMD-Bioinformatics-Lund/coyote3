@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Render collection dependency tables and SVG diagrams without connecting to MongoDB."""
 
 from __future__ import annotations
@@ -16,6 +19,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from scripts.docs.collection_diagram_style import definitions  # noqa: E402
+
 CATALOG = ROOT / "scripts/docs/collection_dependencies.json"
 DESTINATION = ROOT / "docs/reference/collection-dependencies"
 ASSETS = ROOT / "docs/assets/diagrams/collection-dependencies"
@@ -28,10 +34,12 @@ def inventory() -> dict[str, dict]:
         Namespaces mapped to their binding names and optional Pydantic schema.
         The same physical name in different databases remains a distinct entry.
     """
-    from api.config.operational_collections import OPERATIONAL_COLLECTIONS
-    from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+    from coyote.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+    from coyote_mongo.config.operational_collections import OPERATIONAL_COLLECTIONS
 
-    mapping = tomllib.loads((ROOT / "api/config/collections.toml").read_text())
+    mapping = tomllib.loads(
+        (ROOT / "adapters/mongo/src/coyote_mongo/config/collections.toml").read_text()
+    )
     result = {}
     for database, bindings in mapping.items():
         for binding, collection in bindings.items():
@@ -123,7 +131,7 @@ def relationships(catalog: dict, collections: dict) -> list[dict]:
                     "cardinality": "many → historical identity",
                     "notes": "Only populated actor fields apply. Preserve system and historical "
                     "usernames even if no current account exists; never substitute the migration user.",
-                    "evidence": "src/coyote3/contracts/schemas/registry.py",
+                    "evidence": "core/src/coyote/contracts/schemas/registry.py",
                 }
             )
         if namespace.startswith("knowledgebase.") and namespace != "knowledgebase.versions":
@@ -138,7 +146,7 @@ def relationships(catalog: dict, collections: dict) -> list[dict]:
                     "notes": "Applies only when this collection is named in a release manifest. "
                     "The manifest does not establish a foreign key from each provider row to versions._id. "
                     "Keep source, release, build and import counts/checksums together.",
-                    "evidence": "api/infra/knowledgebase/versions.py",
+                    "evidence": "adapters/mongo/src/coyote_mongo/knowledgebase/versions.py",
                 }
             )
     for edge in edges:
@@ -173,52 +181,55 @@ def diagram(namespace: str, edges: list[dict]) -> str:
         Standalone SVG with wrapped text, scalable dimensions and no external assets.
     """
     rows = [edge for edge in edges if edge["kind"] != "historical actor"]
-    y = 92
+    y = 110
     shapes = []
     for edge in rows:
-        left = [edge["source"], *textwrap.wrap(edge["field"], 56)]
-        right = [edge["target"], *textwrap.wrap(edge["target_field"], 56)]
-        height = 30 + max(len(left), len(right)) * 19
-        for x, lines, target in ((20, left, edge["source"]), (660, right, edge["target"])):
+        left = textwrap.wrap(edge["field"], 66)
+        right = textwrap.wrap(edge["target_field"], 66)
+        height = 112 + max(len(left), len(right)) * 18
+        for x, lines, target in ((300, left, edge["source"]), (1060, right, edge["target"])):
+            color = "purple" if target == namespace else "blue"
             shapes.append(
-                f'<rect x="{x}" y="{y}" width="520" height="{height}" rx="8" '
-                f'fill="{"#eee8f5" if target == namespace else "#f4f7fa"}" '
-                'stroke="#8c7aa2"/>'
+                f'<g class="entity {color}" data-namespace="{escape(target, quote=True)}">'
+                f"<title>{escape(target)}</title>"
+                f'<use href="#icon-database" x="{x - 29}" y="{y}" '
+                'width="58" height="58" aria-hidden="true"/>'
+                f'<text x="{x}" y="{y + 84}" text-anchor="middle" '
+                f'class="entity-title">{escape(target)}</text>'
             )
             for i, line in enumerate(lines):
                 shapes.append(
-                    f'<text x="{x + 14}" y="{y + 24 + i * 19}" '
-                    f'font-weight="{"600" if i == 0 else "400"}">{escape(line)}</text>'
+                    f'<text x="{x}" y="{y + 109 + i * 18}" text-anchor="middle" '
+                    f'class="entity-detail">{escape(line)}</text>'
                 )
-        mid = y + height / 2
+            shapes.append("</g>")
         shapes.append(
-            f'<path d="M540 {mid} H650" stroke="#644781" stroke-width="2" '
-            'marker-end="url(#arrow)"/>'
+            f'<g class="purple"><path d="M600 {y + 29}H760" class="connection" '
+            'marker-end="url(#arrow-purple)"/></g>'
         )
         shapes.append(
-            f'<text x="20" y="{y + height + 19}" class="kind">'
+            f'<text x="40" y="{y + height + 12}" class="figure-note">'
             f"{escape(edge['kind'])} · {escape(edge['cardinality'])}</text>"
         )
-        y += height + 45
+        y += height + 58
     if not rows:
         shapes.append(
-            '<text x="20" y="115">No typed business-document reference is declared; '
+            '<text x="40" y="126" class="entity-detail">'
+            "No typed business-document reference is declared; "
             "see provenance and provider lookup notes in the table.</text>"
         )
-        y = 155
+        y = 170
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{y}" '
-        f'viewBox="0 0 1200 {y}" role="img" aria-labelledby="title description">\n'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="{y}" '
+        f'viewBox="0 0 1360 {y}" role="img" aria-labelledby="title description">\n'
         f'<title id="title">{escape(namespace)} field dependencies</title>\n'
         '<desc id="description">Each arrow goes from the stored source field to its '
         "referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>\n"
-        '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
-        'markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" '
-        'fill="#644781"/></marker></defs>\n'
-        "<style>text{font:15px sans-serif;fill:#263449}.kind{font-size:13px;fill:#655774}</style>\n"
-        f'<rect width="1200" height="{y}" fill="white"/>\n'
-        f'<text x="20" y="32" style="font-size:23px;font-weight:600">{escape(namespace)}</text>\n'
-        '<text x="20" y="61">Source field → target key · See the relationship table for conditions and migration rules.</text>\n'
+        + definitions()
+        + "\n"
+        + f'<text x="40" y="36" class="figure-title">{escape(namespace)}</text>\n'
+        '<text x="40" y="68" class="figure-subtitle">'
+        "Source field → target key · See the relationship table for conditions and migration rules.</text>\n"
         + "\n".join(shapes)
         + "\n</svg>\n"
     )
@@ -235,7 +246,7 @@ def render(catalog: dict, collections: dict, edges: list[dict]) -> dict[Path, st
     Returns:
         Destination paths mapped to complete Markdown or standalone SVG content.
     """
-    from coyote3.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
+    from coyote.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     output = {}
     groups = catalog["groups"]
@@ -246,7 +257,7 @@ def render(catalog: dict, collections: dict, edges: list[dict]) -> dict[Path, st
         "",
         "[How to read these relationships and plan a migration](README.md)",
         "",
-        "Every physical binding in `api/config/collections.toml` and every operational collection",
+        "Every physical binding in `adapters/mongo/src/coyote_mongo/config/collections.toml` and every operational collection",
         "is listed below. Database labels are logical services, not deployment database names.",
         "",
         "| Namespace | Dependency reference | Binding |",
@@ -311,7 +322,7 @@ def render(catalog: dict, collections: dict, edges: list[dict]) -> dict[Path, st
             ):
                 lines += [
                     "Provider product rows retain `record_key` and `source_row`. The latter is an opaque",
-                    "provider payload: its columns are release-specific, not declared Coyote3 foreign keys.",
+                    "provider payload: its columns are release-specific, not declared Coyote4 foreign keys.",
                     "Do not infer a gene/transcript/variant join from a similarly named vendor column.",
                     "",
                 ]

@@ -15,9 +15,9 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from bson import ObjectId, json_util
+from coyote4.domain.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_chrom
 from pydantic import ValidationError
 
-from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_chrom
 from migrations_scripts.common import (
     derived_id,
     fingerprint,

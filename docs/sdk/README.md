@@ -1,41 +1,32 @@
-# Coyote3 SDK
+# Python packages
 
-The installable `Coyote3` distribution contains the core application library and
-root-level API modules. Core imports are independent of FastAPI; `[api]` installs
-server dependencies. The remote HTTP client is a separate `coyote3-client`
-distribution maintained in `clients/python/`.
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
+Coyote has four independently installable Python distributions in one repository.
+
+| Package | Purpose |
+| --- | --- |
+| `coyote-core` | Framework-independent clinical rules, contracts and application operations |
+| `coyote-mongo` | MongoDB repositories, query compilation, transactions and persistence |
+| `coyote-api` | HTTP API, authentication, composition and workers |
+| `coyote-pyclient` | Synchronous and asynchronous clients for a running API |
 
 ## Choose the Python interface
 
-| Where your code runs | Use | Continue with |
-| --- | --- | --- |
-| An external script or integration calling a running server | Independent `coyote3-client` HTTP package; server-side permissions remain enforced by the server. | [Remote Python client](python-client.md), then [API authentication](../api/authentication.md). |
-| A trusted application host composing local use cases | Core `coyote3` application SDK with configured repositories and authorization context. | [Getting started](getting-started.md), [application operations](application-sdk.md), then [host trust and permissions](permissions.md). |
-| A host running FastAPI | Core/server distribution with the API dependency extra. | [Core and server installation](server-installation.md). For the full deployed service, follow [deployment](../deployment/README.md). |
+Use the [HTTP client](python-client.md) for external integrations. Use the
+[core](core.md) to build a trusted host with explicit repository and authorization
+capabilities. Installing the core does not start a server or connect to MongoDB.
 
-## Guides
+Start with [editable uv development](uv-development.md), then consult
+[installation](server-installation.md), [package boundaries](package-boundaries.md),
+[application operations](application-sdk.md) and [release compatibility](compatibility.md).
 
-<details markdown="1">
-<summary>All Python reference guides</summary>
+## Package-owned documentation
 
-| Task | Guide |
-| --- | --- |
-| Install the library or choose local operations versus HTTP access | [Getting started](getting-started.md) |
-| Install and run the packaged FastAPI entry point | [Core and server installation](server-installation.md) |
-| Understand package ownership, clinical record fields and storage boundaries | [Package boundaries](package-boundaries.md) |
-| Invoke local operations and understand permissions, scopes and results | [Application operations](application-sdk.md) |
-| Understand enforced permissions and trusted-host responsibilities | [SDK permissions](permissions.md) |
-| Authenticate to a running installation from Python | [Remote Python client](python-client.md) |
-| Add operations, implement repository ports or compose a trusted host | [SDK development](extending.md) |
-| Look up public Python signatures and their documented behavior | [Python reference](reference.md) |
-| Release the library or select a compatible application/SDK combination | [Versions and compatibility](compatibility.md) |
-
-</details>
-
-Clinical users follow the [user guide](../user-guide/README.md). Administrators
-follow the [administration guide](../administration/README.md). Operators select
-external [center configuration](../deployment/center-configuration.md).
-
-SDK documentation is maintained here alongside its code and tests. It is published
-in the shared documentation site; it is not duplicated inside `src/coyote3/` or
-included as runtime package data.
+Use the individual guides for installation, usage, configuration, interfaces and
+package development: [core](../../core/docs/README.md),
+[API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
+[HTTP client](../../clients/python/docs/README.md). This section describes how
+those interfaces participate in the complete application.

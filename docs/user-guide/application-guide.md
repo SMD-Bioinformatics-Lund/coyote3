@@ -1,6 +1,6 @@
 # Application user guide
 
-Coyote3 provides clinical reviewers, laboratory staff, managers, and administrators
+Coyote4 provides clinical reviewers, laboratory staff, managers, and administrators
 with workspaces for sample review, classification, reporting, and resource management.
 Each workspace exposes the data and actions available to the signed-in account.
 This guide owns the clinical task sequence. Use [Main navigation](#main-navigation)
@@ -10,9 +10,9 @@ Development and deployment procedures are covered in the
 [developer guide](../development/developer-guide.md) and
 [deployment guides](../deployment/first-installation.md).
 
-## What Coyote3 does
+## What Coyote4 does
 
-Coyote3 brings assay configuration, analysis results, clinical review,
+Coyote4 brings assay configuration, analysis results, clinical review,
 comments, and reports into one application. It does not run a sequencing
 pipeline. It receives pipeline output that has passed ingest validation and
 presents the analyses enabled for that sample.
@@ -36,7 +36,7 @@ these definitions without editing deployment files.
 
 The login page shows the authentication methods enabled by the deployment.
 Local and LDAP sign-in may both be available. If a provider is shown but its
-service cannot be reached, Coyote3 reports the provider error without changing
+service cannot be reached, Coyote4 reports the provider error without changing
 the other sign-in method.
 
 The public catalog, assay matrix, gene-list pages, About page, and Contact page
@@ -404,7 +404,7 @@ finding-count columns.
 
 Reports use `smd-reports` exclusively. Review the current preview before saving;
 changes to clinical inputs or the renderer require a new preview.
-See [report formats](try-new-report.md) for PDF headers, accreditation and template versions.
+See [report previews and saving](report-preview-and-save.md) for PDF headers, accreditation and template versions.
 
 | Stage | Stored state |
 | --- | --- |

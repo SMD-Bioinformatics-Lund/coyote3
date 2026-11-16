@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Upgrade legacy query-rule identities and capture immutable revision baselines."""
 
 import argparse
@@ -13,18 +16,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from bson.json_util import dumps  # noqa: E402
-from dotenv import dotenv_values  # noqa: E402
-from pymongo import MongoClient  # noqa: E402
-
-from api.config.collections import load_collection_section  # noqa: E402
-from api.infra.mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
-from api.infra.mongo.repositories.query_rule_revisions import (  # noqa: E402
+from coyote.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
+from coyote_mongo.repositories.query_rule_revisions import (  # noqa: E402
     QueryRuleRevisionRepository,
     build_query_revision,
 )
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
-from coyote3.contracts.schemas.query_rules import QueryRuleDoc, QueryRuleScope  # noqa: E402
+from coyote_mongo.repositories.query_rules import QueryRuleRepository  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
+from dotenv import dotenv_values  # noqa: E402
+from pymongo import MongoClient  # noqa: E402
 
 
 def upgrade(db, *, actor: str, backup: Path | None = None, apply: bool = False) -> dict:
@@ -104,6 +106,8 @@ def upgrade(db, *, actor: str, backup: Path | None = None, apply: bool = False) 
 
         def write(session):
             """Recheck inspected versions and atomically save rules, history and audit."""
+            from coyote_api.config.backend import audit_context_from_runtime
+
             if rules.count_documents({}, session=session) != len(originals):
                 raise RuntimeError("Query rules changed during migration; rerun the plan")
             for original, candidate, changed in plans:
@@ -129,6 +133,7 @@ def upgrade(db, *, actor: str, backup: Path | None = None, apply: bool = False) 
             enqueue_audit(
                 db,
                 session,
+                context=audit_context_from_runtime(os.environ),
                 event_type="query_rules.storage_upgraded",
                 actor=actor,
                 resource_type="query_rule",
@@ -163,7 +168,7 @@ def main() -> None:
             {key: value for key, value in dotenv_values(args.env_file).items() if value is not None}
         )
     if args.apply:
-        from api.infra.mongo.repositories.audit_outbox import audit_route
+        from coyote_mongo.repositories.audit_outbox import audit_route
 
         audit_route(os.environ)
     with MongoClient(args.mongo_uri, serverSelectionTimeoutMS=5000) as client:

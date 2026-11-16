@@ -1,6 +1,6 @@
 # Installed defaults and demonstration configuration
 
-This reference describes the catalogs supplied by Coyote3 and their behavior on a
+This reference describes the catalogs supplied by Coyote4 and their behavior on a
 fresh installation. Follow [First installation](../deployment/first-installation.md)
 to install them. A registered assay group is an organizational scope; it does not
 create an assay, enable an analysis, or grant users access to samples.
@@ -58,7 +58,7 @@ translocations, see [application base queries by analysis](query-rules.md#applic
 The group publications listed below are applied on top of those application defaults.
 
 The software supplies a base query even without a database rule document. The base
-SNV evidence modes are `paired` for somatic intent and `exception_only` for germline
+SNV evidence modes are `paired` for somatic intent and `case_only` for germline
 intent. Population-frequency fields are `gnomad_frequency`, `gnomad_max`,
 `exac_frequency` and `thousandG_frequency`; thresholds come from the active sample
 filters. No global `default__all__base__germline_snvs` publication is installed.
@@ -79,7 +79,12 @@ It is not a named diagnosis. No assay-specific or named-diagnosis query sets shi
 ### Published set identifiers
 
 Each row below represents two separate documents, each with one data type and intent.
-Somatic sets use `paired` evidence; germline sets resolve to `exception_only`.
+Somatic sets use `paired` evidence; germline sets resolve to `case_only`.
+
+The installed germline sets also contain explicit admission rules listed below;
+those rules can admit findings outside the normal evidence thresholds. They apply
+only when that germline policy is selected. The default shared SNV flow uses one
+normal profile and never imports the other profile's rules automatically.
 
 These are additional group policies. Application defaults also provide the base
 SNV, CNV, fusion and translocation queries for groups without published policies.
@@ -131,11 +136,10 @@ Explicit exclusion exceptions still apply to admitted findings.
 SNV `exclude_flags` selections also apply after admission.
 Their choices come from the [configured flag metadata](../configuration/filter-flag-metadata-file.md#snv-flag-filtering-and-rule-conditions).
 
-Somatic and germline SNV review use separate filter profiles. During configuration
-compilation, the resolver also adds effective germline exceptions to the somatic
-SNV policy for the same scope. The somatic evidence mode remains unchanged.
-This applies to the hematology, myeloid and solid policies above. Appearing in a
-workspace does not establish a finding's biological origin.
+The ASPC defaults to one shared normal SNV filter flow. Independent mode retains
+separate enabled profiles. Each flow uses only its own published policy; germline
+rules are not copied into somatic selection. Appearing in a workspace does not
+establish a finding's biological origin.
 
 Lymphoid, PGX and newly registered groups receive none of these group
 exceptions automatically. No CNV, translocation or RNA fusion rule publications
@@ -144,13 +148,13 @@ are included in the standard seed; their implemented base queries remain active.
 Use [Finding query rules](query-rules.md) for inherit, extend and replace semantics,
 independent review, sample testing and effective-policy previews. Published seed
 sets are changed through that governed workflow. Seed sources are
-`api/bootstrap/catalogs/reference/query_rule_sets.seed.ndjson` and
-`api/bootstrap/catalogs/reference/clinical_query_seed.toml`; the latter supplies installation criteria,
+`api/src/coyote_api/bootstrap/catalogs/reference/query_rule_sets.seed.ndjson` and
+`api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml`; the latter supplies installation criteria,
 not a runtime center-editable policy.
 
 ## Low-level bootstrap configuration examples
 
-`api/bootstrap/catalogs/demo_center/` contains configuration fixtures for isolated
+`api/src/coyote_api/bootstrap/catalogs/demo_center/` contains configuration fixtures for isolated
 bootstrap and collection-import checks. These fixtures are not installed by the
 starter demo workflow and do not describe its catalog.
 
@@ -162,7 +166,7 @@ and expected database records used by ingest and offline validation.
 ## Default roles and initial accounts
 
 Role definitions are installed without creating an account for every role.
-Bootstrap creates `coyote3.sysadmin` assigned `sys_admin` and `coyote3.superuser`
+Bootstrap creates `coyote4.sysadmin` assigned `sys_admin` and `coyote4.superuser`
 assigned `superuser`. Independent temporary passwords are generated and printed once
 after successful account creation; there are no fixed passwords. Both require a
 password change on first sign-in. Routine clinical and governance users require
@@ -200,7 +204,7 @@ See [Clinical vocabulary](clinical-vocabulary.md),
 
 Center setup (`--setup-center`) loads the bundled HGNC snapshot and VEP releases
 98–116, including their diagram assets. Source attribution and release hashes are
-recorded under `api/bootstrap/catalogs/reference/`. These snapshots do not install
+recorded under `api/src/coyote_api/bootstrap/catalogs/reference/`. These snapshots do not install
 every external knowledgebase used by the application; follow the relevant
 [knowledgebase operations guides](../operations/README.md) for separate updates.
 

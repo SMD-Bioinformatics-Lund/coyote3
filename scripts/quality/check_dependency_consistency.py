@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Verify requirements exports match the authoritative pyproject declarations."""
 
 from __future__ import annotations
@@ -87,13 +90,20 @@ def _check(label: str, expected: set[str], actual: set[str]) -> list[str]:
 def main() -> int:
     """Compare all requirements exports with their pyproject source groups."""
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    project = config["project"]
-    optional = project["optional-dependencies"]
-    api_dependencies = optional["api"]
+    project = tomllib.loads((ROOT / "core/pyproject.toml").read_text())["project"]
+    optional = config["dependency-groups"]
+    runtime = list(project["dependencies"])
+    for relative in ("adapters/mongo", "api"):
+        member = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
+        runtime.extend(
+            dependency
+            for dependency in member["dependencies"]
+            if not dependency.startswith(("coyote-core==", "coyote-mongo=="))
+        )
 
     errors = _check(
         "requirements.txt",
-        _declared([*project["dependencies"], *api_dependencies]),
+        _declared(runtime),
         _read_requirements(ROOT / "requirements.txt"),
     )
     errors.extend(

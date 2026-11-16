@@ -18,7 +18,7 @@ npm --prefix frontend run api:check -- \
   --url https://COYOTE_HOST/COYOTE_PREFIX/api/v1/openapi.json
 ```
 
-`COYOTE3_OPENAPI_URL` supplies the same URL. TLS verification remains enabled;
+`COYOTE4_OPENAPI_URL` supplies the same URL. TLS verification remains enabled;
 configure the institution's trusted CA through Node's supported CA settings when
 needed. A remote fetch failure is an error, not a fallback to another schema.
 

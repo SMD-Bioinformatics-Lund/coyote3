@@ -2,7 +2,7 @@
 
 ## Persistence boundaries
 
-Coyote3 requires a MongoDB replica set or sharded cluster. A one-member replica
+Coyote4 requires a MongoDB replica set or sharded cluster. A one-member replica
 set supports transactions but does not provide failover. All repositories joining
 a transaction must use the same MongoClient and deployment, including repositories
 bound to different databases.
@@ -19,7 +19,7 @@ bound to different databases.
 | OncoKB public marker refresh | Both marker products are upserted and pruned in one transaction after successful retrieval and validation. |
 | File access, HTTP retrieval, Redis, index management, collection rename/import administration | Not covered by a MongoDB document transaction. Use their explicit validation and recovery procedures. |
 
-`api/infra/mongo/transactions.py` owns the required transaction helper. It uses
+`adapters/mongo/src/coyote_mongo/transactions.py` owns the required transaction helper. It uses
 snapshot reads, primary routing, and journaled majority writes. Session setup or
 transaction failure never falls back to ordinary writes. The driver can retry the
 callback: it must contain database work only, with stable identities. Do not put
@@ -125,7 +125,7 @@ PYTHONPATH=. .venv/bin/python scripts/database/inspect_report_artifacts.py \
   --database "$APPLICATION_DATABASE" --reports-root "$REPORTS_ROOT"
 ```
 
-The script reads `COYOTE3_MONGO_URI` from the environment, supports
+The script reads `COYOTE4_MONGO_URI` from the environment, supports
 `--reports-collection`, and prints counts by default. `--details` includes local
 report identifiers and relative paths and must be handled as sensitive output.
 Use the same report root mount/path representation as the report-writing service.

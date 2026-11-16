@@ -4,13 +4,13 @@
 
 ![Application request lifecycle](../assets/diagrams/request-lifecycle.svg)
 
-Coyote3's interface, API, background workers, and database collections support the
+Coyote4's interface, API, background workers, and database collections support the
 sample ingestion, clinical review, and reporting workflows. Their responsibilities
 and integration boundaries determine how requests are validated, processed, and stored.
 
 ## System Purpose
 
-Coyote3 is a clinical genomics review and reporting platform. It receives validated sample manifests and analysis files, persists normalized MongoDB documents, applies assay-specific configuration, exposes sample review workflows in React, and stores report and audit snapshots so clinical decisions can be reconstructed later.
+Coyote4 is a clinical genomics review and reporting platform. It receives validated sample manifests and analysis files, persists normalized MongoDB documents, applies assay-specific configuration, exposes sample review workflows in React, and stores report and audit snapshots so clinical decisions can be reconstructed later.
 
 > **Info: Architecture reference**
 >
@@ -40,16 +40,27 @@ current published sample scopes. New publications affect subsequent requests
 without an ASPC update. Report receipts retain the exact resolved rule content and
 source lineage; issued reports are not re-evaluated.
 
-The repository root builds `Coyote3` from the core in `src/coyote3/` and the server
-in `api/`. Server dependencies are optional through `[api]`; no core module imports
-the server. Concrete repositories and integrations remain runtime adapters selected
-by API and worker composition. `clients/python/` builds the independent HTTP-only
-`coyote3-client` distribution. See [installation boundaries](../sdk/server-installation.md).
+The `core/` project builds `coyote-core` from `core/src/coyote/`. Separate projects
+build `coyote-mongo` from `adapters/mongo/` and `coyote-api` from `api/`.
+The adapter depends on core; the API depends on both. Neither core nor adapter
+imports the API. `clients/python/` builds the independent HTTP-only
+`coyote-pyclient`. API and workers select concrete adapters through composition.
+See [installation boundaries](../sdk/server-installation.md) and
+[editable uv development](../sdk/uv-development.md).
 
-Version-one HTTP handlers live in `api/interfaces/http/v1/`. URL prefixes are
+Version-one HTTP handlers live in `api/src/coyote_api/interfaces/http/v1/`. URL prefixes are
 declared by the existing routers and application composition; the directory
 does not add or change a prefix. Future HTTP versions can reuse the same library
 operations. Shared HTTP utilities and the router registry stay outside `v1/`.
+
+Optional features follow the same layers. The core feature registry defines stable
+identities and control metadata; its entries do not contain HTTP paths. Cohesive API
+routers declare their required features, while endpoints in mixed routers declare
+their own requirements through `RequireModules`. An endpoint may require more than
+one feature. The frontend uses the public availability response for navigation,
+and MongoDB retains administrators' selected controls. Feature switches complement
+the existing permission and assay/environment checks. See
+[application-module boundaries](../administration/application-controls.md#application-module-boundaries).
 
 The web UI and remote Python client SDK are separate consumers of the HTTP API.
 The application SDK owns the shared use-case entry points:
@@ -57,7 +68,7 @@ The application SDK owns the shared use-case entry points:
 ```text
 React UI -------------------\
                              HTTP API ----\
-Remote SDK (clients/python/src/coyote3_client/) ----/              |
+Remote SDK (clients/python/src/coyote_pyclient/) ----/              |
                                            v
 Workers / trusted Python ----------> Application SDK operations
                                            |
@@ -70,47 +81,48 @@ Workers / trusted Python ----------> Application SDK operations
 
 | Location | Owns | Dependency boundary |
 | --- | --- | --- |
-| `src/coyote3/domain/` | Clinical value models, filtering rules, finding identity and query policy evaluation. | No HTTP handlers, application services, server contracts or runtime adapters. Policy vocabulary comes from `src/coyote3/config/`. |
-| `src/coyote3/application/` | Use cases, workflow coordination, audit policy, authorization requirements and repository/adapter ports. | Receives explicit query values and injected capabilities; no FastAPI requests, concrete infrastructure, task runtime or credential implementations. |
-| `src/coyote3/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
-| `api/services/`, `api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the API portion of the wheel, outside the core namespace. |
-| `api/presentation/` | Host selection of packaged report layouts. | HTML/CSS live in core templates; temporary rendering performs no report persistence. |
-| `api/infra/` | Repository implementations, provider IDs, transactions, external HTTP clients, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
-| `api/app/` | FastAPI composition, service factories, runtime configuration and lifecycle. | Selects concrete repositories, authorization engines, credential delivery, metrics and operational adapters. |
-| `api/interfaces/http/` | Routes, access dependencies, request conversion and response contracts. | Delegates workflows to SDK operations; analysis requests become `AnalysisQuery` values. |
-| `clients/python/src/coyote3_client/` | Remote sessions, Python resource objects, pagination, workflow calls and client-owned response models. | Uses HTTPX and Pydantic; imports no server package beyond its own `coyote3_client` namespace. |
+| `core/src/coyote/domain/` | Clinical value models, filtering rules, finding identity and query policy evaluation. | No HTTP handlers, application services, server contracts or runtime adapters. Policy vocabulary comes from `core/src/coyote/config/`. |
+| `core/src/coyote/application/` | Use cases, workflow coordination, audit policy, authorization requirements and repository/adapter ports. | Receives explicit query values and injected capabilities; no FastAPI requests, concrete infrastructure, task runtime or credential implementations. |
+| `core/src/coyote/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
+| `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the API wheel, outside the core namespace. |
+| `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |
+| `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
+| `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |
+| `api/src/coyote_api/app/` | FastAPI composition, service factories, runtime configuration and lifecycle. | Selects concrete repositories, authorization engines, credential delivery, metrics and operational adapters. |
+| `api/src/coyote_api/interfaces/http/` | Routes, access dependencies, request conversion and response contracts. | Delegates workflows to SDK operations; analysis requests become `AnalysisQuery` values. |
+| `clients/python/src/coyote_pyclient/` | Remote sessions, Python resource objects, pagination, workflow calls and client-owned response models. | Uses HTTPX and Pydantic; imports no server package beyond its own `coyote_pyclient` namespace. |
 | `frontend/src/` | React interactions, display models and HTTP query hooks. | Uses the API through the frontend client/query abstractions. |
 
 API and worker entry points supply runtime implementations. For example, sample
 deletion receives one atomic deletion operation; audit receives storage and request
 diagnostic ports; notifications receive a policy factory; analysis tables receive
 a page-sorting strategy. DNA reporting receives a registered-plot reader from
-`api/infra/report_images.py`; filesystem checks for report output locations live
-in `src/coyote3/application/reporting/report_paths.py`, outside the domain. Clinical
+`api/src/coyote_api/infra/report_images.py`; filesystem checks for report output locations live
+in `core/src/coyote/application/reporting/report_paths.py`, outside the domain. Clinical
 services use neither SDK resource objects nor
 router-provided utility modules.
 
 Release integrity accepts an explicitly supplied hashing capability through
-`src/coyote3/contracts/resource_integrity.py`. The host supplies the existing canonical
-BSON codec from `api/infra/mongo/resource_integrity.py`, preserving persisted digests.
+`core/src/coyote/contracts/resource_integrity.py`. The host supplies the existing canonical
+BSON codec from `adapters/mongo/src/coyote_mongo/resource_integrity.py`, preserving persisted digests.
 The SDK imports neither BSON nor a database driver. Domain filter profiles are authoritative in
-`src/coyote3/domain/filter_profiles.py`; collection schemas reuse those value models.
+`core/src/coyote/domain/filter_profiles.py`; collection schemas reuse those value models.
 
 ### Database-independent finding selection
 
 Clinical query builders return immutable `Selection` values from
-`src/coyote3/domain/selection.py`. The selection contains registered logical operators,
+`core/src/coyote/domain/selection.py`. The selection contains registered logical operators,
 application field paths and plain operands. Logical identities use `RecordField`
 values; executable database operators and provider-native identity objects are
 rejected. Selected gene lists and other operands are copied into immutable
 containers so callers cannot alter a selection after validation.
 
-`api/infra/mongo/selection.py` translates selections to MongoDB predicates and
+`adapters/mongo/src/coyote_mongo/selection.py` translates selections to MongoDB predicates and
 maps logical identifiers to the configured persistence representation. Finding
 repositories accept selections rather than raw query dictionaries. Their read
 results use application iterators and canonical string identities;
-`api/infra/mongo/records.py` projects native IDs without changing stored records.
-The bounded preview port in `src/coyote3/domain/finding_repositories.py` independently
+`adapters/mongo/src/coyote_mongo/records.py` projects native IDs without changing stored records.
+The bounded preview port in `core/src/coyote/domain/finding_repositories.py` independently
 requires a sample identity as well as the selection.
 
 Existing clinical field names remain application data contracts, including VCF
@@ -140,14 +152,14 @@ tests or deployment validation.
 
 ## Application SDK
 
-The application SDK is the reusable Python library for Coyote3 use cases and domain
+The application SDK is the reusable Python library for Coyote4 use cases and domain
 rules. FastAPI and workers invoke that library. The remote client SDK in
-`clients/python/src/coyote3_client/` invokes the HTTP API. These are distinct interfaces with different
+`clients/python/src/coyote_pyclient/` invokes the HTTP API. These are distinct interfaces with different
 deployment requirements: direct application calls need configured repositories and
 integrations; remote calls need a server URL and authenticated session.
 
-`src/coyote3/application/operations/` defines the supported in-process resource interface and
-authenticated execution boundary over `src/coyote3/application/` and `src/coyote3/domain/`.
+`core/src/coyote/application/operations/` defines the supported in-process resource interface and
+authenticated execution boundary over `core/src/coyote/application/` and `core/src/coyote/domain/`.
 See the [application SDK reference](../sdk/application-sdk.md) for its
 operation surface, values, authorization and composition. Clinical, administrative,
 authoring, knowledgebase and operational HTTP workflows consume the same operations
@@ -156,7 +168,7 @@ capability. Permission and sample-scope decisions are shared through
 framework-independent application functions. HTTP handlers own transport adaptation;
 internal services own the existing business algorithms and transaction boundaries.
 
-The root `pyproject.toml` builds the installable SDK, including its typed policy
+The `core/pyproject.toml` builds the installable SDK, including its typed policy
 inputs, shared contracts and software assets. Runtime configuration belongs to
 the consuming API/worker host. SDK and application releases have separate version
 sources and an exact dependency selection in `release.toml`; see
@@ -186,7 +198,7 @@ The supported application interface uses these boundaries:
   plus regression tests proving that HTTP, worker and direct Python entry points
   preserve the same clinical decisions and traceability requirements.
 
-For Coyote3, this lets an ingest worker, a report-preview endpoint and a trusted
+For Coyote4, this lets an ingest worker, a report-preview endpoint and a trusted
 validation tool invoke the same released clinical operations. A validation tool
 can bind synthetic repositories to exercise configuration revisions, tier
 selection and report snapshots without running the web server. Bulk operations
@@ -252,20 +264,28 @@ column ranks all matching rows, not only the visible page.
 ![Configuration authority and sample resolution](../assets/diagrams/configuration-authority.svg)
 
 The library owns validated policy inputs and software defaults under
-`src/coyote3/config/`. The API owns environment-derived settings under `api/config/`:
+`core/src/coyote/config/`. The API owns environment-derived settings under `api/src/coyote_api/config/`:
 
-- `api/config/runtime_settings.py`: runtime configuration classes and environment loading
-- `src/coyote3/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
-- `src/coyote3/config/database_versions.py`: canonical `samples.database_versions` keys and the VCF-header-only normalizer
-- `api/config/bootstrap.py`: selects the center profile before importing contracts
-- `api/config/security.py`: API session, credential and runtime-mode settings
-- `api/config/collections.toml`: MongoDB collection-name mapping
-- `api/config/application_metadata.py`: repository-owned product description and codebase links
-- `config/examples/center/contact.toml`: center-owned organization, support, hours, and contact content
+- `api/src/coyote_api/config/runtime_settings.py`: host settings assembled from the process environment and factory defaults
+- `api/src/coyote_api/config/backend.py`: validates and retains package-specific settings before infrastructure initialization
+- `core/src/coyote/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
+- `core/src/coyote/config/database_versions.py`: canonical `samples.database_versions` keys and the VCF-header-only normalizer
+- `api/src/coyote_api/config/bootstrap.py`: loads the host `.env` file and selects the center profile before importing contracts
+- `api/src/coyote_api/config/security.py`: API session, credential and runtime-mode settings
+- `adapters/mongo/src/coyote_mongo/config/collections.toml`: MongoDB collection-name mapping
+- `api/src/coyote_api/config/application_metadata.py`: repository-owned product description and codebase links
+- `api/src/coyote_api/config/examples/center/contact.toml`: bundled example of center-owned organization, support, hours and contacts; deployments use a reviewed external copy
 
-Collection names come from `api/config/collections.toml`, resolved relative to the
-API configuration module. Center configuration cannot override collection mappings.
+Collection names come from `adapters/mongo/src/coyote_mongo/config/collections.toml`, resolved relative to the
+MongoDB adapter configuration module. Center configuration cannot override collection mappings.
 The library does not discover database endpoints or external center files during import.
+
+The API retains validated `BackendSettings` for its runtime. The MongoDB adapter
+receives only `MongoSettings` and explicit logger/cache ports. Public core operations
+receive `PublicSettings` availability flags; dashboard invalidation receives a
+configured cache port. Audit writes and report-file cleanup receive explicit
+deployment ownership. The core, adapter and HTTP client do not load environment
+files or discover deployment settings through process environment variables.
 
 Environment variables remain the right place for deployment-specific or sensitive values:
 
@@ -276,7 +296,7 @@ Environment variables remain the right place for deployment-specific or sensitiv
 - Cookie, CSRF, and production hardening settings
 - organization identity and public content file paths
 - OpenAPI route grouping through the canonical tag taxonomy in
-  `api/interfaces/http/tags.py`
+  `api/src/coyote_api/interfaces/http/tags.py`
 
 Admin-controlled runtime settings are stored in MongoDB `app_controls`. Those controls are for behavior switches and retention policies, not infrastructure secrets.
 
@@ -302,7 +322,9 @@ same key.
 > Keep secrets, infrastructure endpoints, and mount paths in environment configuration. Use Admin application controls only for runtime behavior switches and retention policy.
 >
 
-Public contact content is controlled through `config/examples/center/contact.toml`.
+Public contact content comes from `contact.toml` in the selected external center
+directory. The bundled `api/src/coyote_api/config/examples/center/contact.toml`
+supplies initial example content.
 Public assay-catalog content is a validated primary-database document managed
 through the administrative catalog workspace. This allows each center or section
 to deploy the same application image with local service names, support contacts,
@@ -314,17 +336,17 @@ MongoDB data is divided by ownership and access boundary:
 
 | Database setting | Data owned by the database |
 | --- | --- |
-| `COYOTE3_DB` | Samples, findings, annotations, reports, comments, assay configuration, coverage, RNA results, notifications and application controls. |
+| `COYOTE4_DB` | Samples, findings, annotations, reports, comments, assay configuration, coverage, RNA results, notifications and application controls. |
 | `IDENTITY_DB` | User accounts, roles, permissions, API sessions, and durable audit events. |
 | `KNOWLEDGEBASE_DB` | HGNC genes, VEP metadata/diagrams, external knowledgebase releases, provenance and public integration caches. It must not contain sample or patient data. |
 | `BAM_DB` | BAM-service sample records. |
 
 These databases are required to have distinct names. Separating identity and
 audit data gives them a dedicated access, backup, and retention boundary while
-keeping clinical application data in `COYOTE3_DB`.
+keeping clinical application data in `COYOTE4_DB`.
 
 The Mongo adapter reads `DB_COLLECTIONS_CONFIG` from the active config object.
-It binds `[primary]` to `COYOTE3_DB`, `[identity]` to `IDENTITY_DB`,
+It binds `[primary]` to `COYOTE4_DB`, `[identity]` to `IDENTITY_DB`,
 `[knowledgebase]` to `KNOWLEDGEBASE_DB`, and `[bam]` to `BAM_DB`. Each
 configured collection key becomes an adapter attribute, and repositories bind
 to those attributes. The application layer therefore queries repository
@@ -339,12 +361,12 @@ The application should not hardcode clinical collection names in services or rou
 > **Tip: Adding collections**
 >
 >
-> Add collection names through `api/config/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
+> Add collection names through `adapters/mongo/src/coyote_mongo/config/collections.toml`, then bind them through repositories and typed contracts. Avoid hardcoded collection names in routes or domain services.
 >
 
 ## Document Contracts
 
-MongoDB document shapes are defined in `src/coyote3/contracts/schemas/`. They are grouped by domain:
+MongoDB document shapes are defined in `core/src/coyote/contracts/schemas/`. They are grouped by domain:
 
 - `samples.py`: sample, report, and sample-comment documents
 - `dna.py`: SNV, CNV, translocation, biomarker, coverage, and reported variant documents
@@ -404,7 +426,7 @@ grouping use `diagnosis[]`; the public catalog treats an empty list as the
 
 ## Sample Ingest Flow
 
-Sample ingest starts from a validated sample manifest, usually a `coyote3.yaml` file. The service parses the payload, normalizes paths, resolves assay policy, validates required files, reads source analysis files, and writes the canonical sample and dependent analysis documents.
+Sample ingest starts from a validated sample manifest, usually a `coyote4.yaml` file. The service parses the payload, normalizes paths, resolves assay policy, validates required files, reads source analysis files, and writes the canonical sample and dependent analysis documents.
 
 High-level flow:
 
@@ -452,7 +474,7 @@ Small variants, CNVs, fusions, and translocations have list pages and detail pag
 - knowledgebase and population/quality evidence
 - panel-of-normal and caller evidence where available
 
-Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `config/examples/center/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
+Flags are displayed as individual badges. Flag behavior and descriptions are metadata-driven through `api/src/coyote_api/config/examples/center/filter_flag_metadata.yaml`. Badges should use consistent severity coloring:
 
 - pass-like values: green
 - warning-like values: yellow/amber
@@ -528,7 +550,7 @@ authors, timestamps, visibility states and finding identities are preserved.
 
 ## Access Control
 
-Coyote3 uses role-driven permissions with PyCasbin-style RBAC and scoped checks. User documents carry assigned roles and scope attributes such as environments, assays, and assay groups. User-specific allow/deny permission overrides are not part of the current model.
+Coyote4 uses role-driven permissions with PyCasbin-style RBAC and scoped checks. User documents carry assigned roles and scope attributes such as environments, assays, and assay groups. User-specific allow/deny permission overrides are not part of the current model.
 
 Authorization rules:
 
@@ -659,7 +681,7 @@ When adding or changing functionality:
 
 1. Define or update the Pydantic contract first.
 2. Register collection models in the schema registry if the document is persisted.
-3. Keep collection names in `api/config/collections.toml`.
+3. Keep collection names in `adapters/mongo/src/coyote_mongo/config/collections.toml`.
 4. Add repository/service logic behind a domain boundary.
 5. Expose API routes with response models.
 6. Emit audit events for mutations and important operational actions.

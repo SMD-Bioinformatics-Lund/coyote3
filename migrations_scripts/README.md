@@ -1,5 +1,9 @@
 # MongoDB migration scripts
 
+<!-- badges:start -->
+![Scope: Legacy migration tools](https://img.shields.io/badge/Scope-Legacy%20migration%20tools-4F46A5?style=flat)
+<!-- badges:end -->
+
 Fresh sample converters live in `v2/` and `v3/`. They use the current collection
 contracts and shared file/inspection helpers in `common.py`. They do not import
 the older migration implementations and do not use SQLite.

@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="835" viewBox="0 0 1360 835" role="img" aria-labelledby="figure-title figure-description">
+  <title id="figure-title">Package dependencies and runtime request flow</title>
+  <desc id="figure-description">Code dependencies point toward the independent core. The API depends on core and the MongoDB adapter; the adapter implements core repository interfaces. React and the Python client communicate over HTTP. During a request, the API invokes core operations, which call an injected repository interface implemented by Mongo, then the database. These runtime calls do not create a core import dependency on Mongo.</desc>
+  <defs>
+    <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
+.figure-title{font-size:23px;font-weight:650;letter-spacing:-.45px}
+.figure-subtitle{font-size:13px;fill:var(--muted)}
+.entity-title{font-size:14px;font-weight:650}
+.entity-detail{font-size:12.5px;fill:var(--muted)}
+.edge-label{font-size:11.5px;font-weight:550;fill:currentColor}
+.figure-note{font-size:12px;fill:var(--muted)}
+.blue{color:var(--blue)}.teal{color:var(--teal)}.purple{color:var(--purple)}.amber{color:var(--amber)}.rose{color:var(--rose)}
+.glyph{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.connection{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.network,.conditional{stroke-dasharray:5 5}
+.step-number{font-size:10px;font-weight:700;fill:var(--badge-ink)}
+@media(prefers-color-scheme:dark){:root{--ink:#e2ecf8;--muted:#afc2d9;--blue:#77b7f0;--teal:#63cdae;--purple:#baa3ed;--amber:#edb46b;--rose:#f390a7;--badge-ink:#112235}}
+@media print{:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}}</style>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--blue)" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--teal)" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--purple)" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M1 1 9 5 1 9 3 5Z" fill="var(--rose)" />
+    </marker>
+    <symbol id="icon-browser" viewBox="0 0 24 24">
+      <path class="glyph" d="M2 3h20v17H2ZM2 8h20M5 5.5h.01M8 5.5h.01M6 12l-2 2 2 2M18 12l2 2-2 2M10 17l4-6" />
+    </symbol>
+    <symbol id="icon-client" viewBox="0 0 24 24">
+      <path class="glyph" d="M2 3h20v18H2ZM5 8l4 4-4 4M12 16h7" />
+    </symbol>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <path class="glyph" d="M4 6c0-4 16-4 16 0s-16 4-16 0Zm0 0v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0" />
+    </symbol>
+    <symbol id="icon-interface" viewBox="0 0 24 24">
+      <path class="glyph" d="m8 4-6 8 6 8M16 4l6 8-6 8M14 3l-4 18" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path class="glyph" d="m12 2 10 5-10 5L2 7ZM2 12l10 5 10-5M2 17l10 5 10-5" />
+    </symbol>
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <path class="glyph" d="M3 3h18v7H3ZM3 14h18v7H3ZM7 6.5h.01M7 17.5h.01M12 6.5h6M12 17.5h6" />
+    </symbol>
+  </defs>
+  <text x="40" y="36" class="figure-title">Core is the shared foundation</text>
+  <text x="40" y="68" class="figure-subtitle">Code depends on core contracts. Runtime persistence is supplied explicitly by the API host.</text>
+  <text x="40" y="112" class="entity-title">PACKAGE DEPENDENCIES</text>
+  <g class="blue">
+    <path class="connection network" d="M300 198H425" marker-end="url(#arrow-blue)" />
+    <text x="350" y="181" text-anchor="middle" class="edge-label">HTTP</text>
+    <path class="connection network" d="M300 385H365V225H425" marker-end="url(#arrow-blue)" />
+    <text x="317" y="369" class="edge-label">HTTP</text>
+  </g>
+  <g class="purple">
+    <path class="connection" d="M650 198H895" marker-end="url(#arrow-purple)" />
+    <text x="772" y="181" text-anchor="middle" class="edge-label">uses core operations</text>
+    <path class="connection" d="M590 286 748 343" marker-end="url(#arrow-purple)" />
+    <text x="590" y="369" class="edge-label">depends on adapter</text>
+    <path class="connection" d="M853 343 978 290" marker-end="url(#arrow-purple)" />
+    <text x="1000" y="328" class="edge-label">implements core interfaces</text>
+  </g>
+  <g class="blue">
+    <use href="#icon-browser" x="146" y="154" width="58" height="58" aria-hidden="true" />
+    <text x="175" y="239" text-anchor="middle" class="entity-title">React frontend</text>
+    <text x="175" y="262" text-anchor="middle" class="entity-detail">TypeScript HTTP client</text>
+    <use href="#icon-client" x="146" y="341" width="58" height="58" aria-hidden="true" />
+    <text x="175" y="426" text-anchor="middle" class="entity-title">coyote-pyclient</text>
+    <text x="175" y="449" text-anchor="middle" class="entity-detail">External Python integrations</text>
+  </g>
+  <g class="blue">
+    <use href="#icon-server" x="511" y="154" width="58" height="58" aria-hidden="true" />
+    <text x="540" y="239" text-anchor="middle" class="entity-title">coyote-api</text>
+    <text x="540" y="262" text-anchor="middle" class="entity-detail">HTTP, authentication and workers</text>
+  </g>
+  <g class="purple">
+    <use href="#icon-layers" x="991" y="154" width="58" height="58" aria-hidden="true" />
+    <text x="1020" y="239" text-anchor="middle" class="entity-title">coyote-core</text>
+    <text x="1020" y="262" text-anchor="middle" class="entity-detail">Clinical operations and rules</text>
+    <text x="1020" y="280" text-anchor="middle" class="entity-detail">Contracts and repository interfaces</text>
+  </g>
+  <g class="teal">
+    <use href="#icon-database" x="771" y="341" width="58" height="58" aria-hidden="true" />
+    <text x="800" y="426" text-anchor="middle" class="entity-title">coyote-mongo</text>
+    <text x="800" y="449" text-anchor="middle" class="entity-detail">Queries, repositories and transactions</text>
+  </g>
+  <g class="purple">
+    <path class="connection" d="M40 490h34" marker-end="url(#arrow-purple)" />
+    <text x="86" y="494" class="figure-note">Python package dependency</text>
+  </g>
+  <g class="blue">
+    <path class="connection network" d="M350 490h34" marker-end="url(#arrow-blue)" />
+    <text x="396" y="494" class="figure-note">HTTP communication</text>
+  </g>
+  <text x="40" y="551" class="entity-title">RUNTIME REQUEST FLOW</text>
+  <text x="40" y="578" class="figure-subtitle">The API supplies repository implementations when constructing core services.</text>
+  <g class="blue">
+    <path class="connection" d="M235 632H303" marker-end="url(#arrow-blue)" />
+  </g>
+  <g class="purple">
+    <path class="connection" d="M495 632H563" marker-end="url(#arrow-purple)" />
+  </g>
+  <g class="teal">
+    <path class="connection" d="M755 632H823" marker-end="url(#arrow-teal)" />
+    <path class="connection" d="M1015 632H1083" marker-end="url(#arrow-teal)" />
+  </g>
+  <g class="blue">
+    <use href="#icon-server" x="116" y="604" width="58" height="58" aria-hidden="true" />
+    <text x="145" y="690" text-anchor="middle" class="entity-title">API host</text>
+    <text x="145" y="713" text-anchor="middle" class="entity-detail">Authenticate and delegate</text>
+  </g>
+  <g class="purple">
+    <use href="#icon-layers" x="376" y="604" width="58" height="58" aria-hidden="true" />
+    <text x="405" y="690" text-anchor="middle" class="entity-title">Core operation</text>
+    <text x="405" y="713" text-anchor="middle" class="entity-detail">Apply the clinical workflow</text>
+    <use href="#icon-interface" x="636" y="604" width="58" height="58" aria-hidden="true" />
+    <text x="665" y="690" text-anchor="middle" class="entity-title">Repository interface</text>
+    <text x="665" y="713" text-anchor="middle" class="entity-detail">Contract owned by core</text>
+  </g>
+  <g class="teal">
+    <use href="#icon-database" x="896" y="604" width="58" height="58" aria-hidden="true" />
+    <text x="925" y="690" text-anchor="middle" class="entity-title">Mongo implementation</text>
+    <text x="925" y="713" text-anchor="middle" class="entity-detail">Translate and execute queries</text>
+    <use href="#icon-database" x="1156" y="604" width="58" height="58" aria-hidden="true" />
+    <text x="1185" y="690" text-anchor="middle" class="entity-title">MongoDB</text>
+    <text x="1185" y="713" text-anchor="middle" class="entity-detail">Store and retrieve records</text>
+  </g>
+  <text x="40" y="770" class="figure-note">Core calls an injected interface; it does not import the Mongo implementation. Results return along the same path.</text>
+  <text x="40" y="795" class="figure-note">API, core and adapter execute in the same backend process. MongoDB is the database service.</text>
+</svg>

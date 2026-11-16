@@ -1,6 +1,6 @@
 # MongoDB deployment and recovery
 
-Coyote3 selects app, identity, knowledgebase, and BAM databases through separate
+Coyote4 selects app, identity, knowledgebase, and BAM databases through separate
 URI/name pairs. MongoDB can be host-installed, managed externally, or enabled
 through the optional Docker profiles. See [MongoDB service topology](../architecture/mongodb-topology.md)
 for the connection contract, local/split examples, environment isolation, and
@@ -26,7 +26,7 @@ They do not change the modern Compose files or certify current images on an old 
 The base Compose stack starts no MongoDB. The optional
 `deploy/compose/docker-compose.mongo.yml` overlay selects app MongoDB with
 `--profile mongo` and knowledgebase MongoDB with `--profile mongo-kb`.
-Both use the operator-created `COYOTE3_APP_NETWORK`.
+Both use the operator-created `COYOTE4_APP_NETWORK`.
 For independently operated infrastructure, use an explicit Compose project name
 and keep its lifecycle separate from application updates.
 
@@ -54,7 +54,7 @@ stop/recreate operation, never while another process uses the same storage.
 Check each configured endpoint without assuming a common replica-set name:
 
 ```bash
-mongosh "$COYOTE3_MONGO_URI" --eval 'db.hello().isWritablePrimary'
+mongosh "$COYOTE4_MONGO_URI" --eval 'db.hello().isWritablePrimary'
 mongosh "$IDENTITY_MONGO_URI" --eval 'db.hello().isWritablePrimary'
 mongosh "$KNOWLEDGEBASE_MONGO_URI" --eval 'db.hello().isWritablePrimary'
 ```
@@ -65,14 +65,14 @@ unauthenticated MongoDB to an external network.
 
 ## Knowledgebase database migration
 
-Coyote3 stores external knowledgebase datasets in the database selected by
+Coyote4 stores external knowledgebase datasets in the database selected by
 `KNOWLEDGEBASE_DB` on `KNOWLEDGEBASE_MONGO_URI`. Its namespace must not overlap an
 app/identity/BAM namespace on the same deployment. HGNC and VEP reference data
 also belong in the knowledgebase database. Clinical annotations, samples, findings,
 comments and reports remain in the primary application database.
 
 Upgrade an installation that still has knowledgebase collections in
-`COYOTE3_DB` before starting the new API or workers. Starting first can create
+`COYOTE4_DB` before starting the new API or workers. Starting first can create
 empty destination collections and correctly block migration into them.
 
 1. Stop application writers and take a logical backup.
@@ -83,9 +83,9 @@ empty destination collections and correctly block migration into them.
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --report knowledgebase-migration-dry-run.json
 ```
@@ -95,9 +95,9 @@ PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_databa
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --apply \
   --report knowledgebase-migration-applied.json
@@ -107,7 +107,7 @@ The command removes `sample_ids` and `sample_names` from migrated
 `oncokb_public` documents. Those fields are forbidden in the destination. It
 does not modify any source collection during the normal apply operation.
 
-5. Start Coyote3 with `KNOWLEDGEBASE_DB` configured, verify knowledgebase
+5. Start Coyote4 with `KNOWLEDGEBASE_DB` configured, verify knowledgebase
    markers and finding-detail evidence, and retain the source collections for
    the center's rollback interval.
 6. After the migration has been accepted, remove only the verified source
@@ -115,13 +115,13 @@ does not modify any source collection during the normal apply operation.
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/knowledgebase/migrate_knowledgebase_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$KNOWLEDGEBASE_DB" \
   --apply \
   --drop-source \
-  --confirm-drop-source "$COYOTE3_DB" \
+  --confirm-drop-source "$COYOTE4_DB" \
   --report knowledgebase-migration-cleanup.json
 ```
 
@@ -132,11 +132,11 @@ for operator review; neither is overwritten automatically.
 
 ## Identity database migration
 
-Coyote3 stores `users`, `roles`, `permissions`, `api_sessions`, and
+Coyote4 stores `users`, `roles`, `permissions`, `api_sessions`, and
 `audit_events` in the database selected by `IDENTITY_DB`. Audit events remain
 with identity data because both require restricted access, durable backups,
 and security-controlled administration. Application controls and clinical data
-remain in `COYOTE3_DB`.
+remain in `COYOTE4_DB`.
 
 For an existing installation, stop API and worker processes and back up MongoDB
 before migration. Grant the application and migration account read/write access
@@ -144,9 +144,9 @@ to `IDENTITY_DB`, then inspect the source without writing:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$IDENTITY_DB" \
   --report identity-migration-dry-run.json
 ```
@@ -155,28 +155,28 @@ Copy documents and indexes through verified staging collections:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$IDENTITY_DB" \
   --apply \
   --report identity-migration-applied.json
 ```
 
-Start Coyote3 with `IDENTITY_DB` configured and verify local login, role and
+Start Coyote4 with `IDENTITY_DB` configured and verify local login, role and
 permission administration, session persistence, audit export, and index status.
 Keep the source collections for the approved rollback period. After acceptance,
 remove only the verified source copies:
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/identity/migrate_identity_database.py \
-  --source-mongo-uri "$COYOTE3_MONGO_URI" \
+  --source-mongo-uri "$COYOTE4_MONGO_URI" \
   --target-mongo-uri "$IDENTITY_MONGO_URI" \
-  --source-db "$COYOTE3_DB" \
+  --source-db "$COYOTE4_DB" \
   --target-db "$IDENTITY_DB" \
   --apply \
   --drop-source \
-  --confirm-drop-source "$COYOTE3_DB" \
+  --confirm-drop-source "$COYOTE4_DB" \
   --report identity-migration-cleanup.json
 ```
 
@@ -188,7 +188,7 @@ is never overwritten.
 
 MongoDB data and archives are host bind mounts. `docker compose down` stops and removes containers but does not remove either host directory. The project wrapper also rejects `down -v` and `down --volumes`.
 
-Do not manually delete, recreate, or move `COYOTE3_MONGO_DATA_HOST_ROOT` while MongoDB is running. A database volume can later be used by a non-Docker MongoDB installation only when the MongoDB version, storage engine, filesystem permissions, and startup procedure are compatible. This is a recovery operation, not a routine migration method. Use a logical archive to move data between hosts or deployments.
+Do not manually delete, recreate, or move `COYOTE4_MONGO_DATA_HOST_ROOT` while MongoDB is running. A database volume can later be used by a non-Docker MongoDB installation only when the MongoDB version, storage engine, filesystem permissions, and startup procedure are compatible. This is a recovery operation, not a routine migration method. Use a logical archive to move data between hosts or deployments.
 
 ## Adding replica members later
 
@@ -209,19 +209,19 @@ after restarts and upgrades.
 ## Logical backups
 
 The MongoDB server has no `/backup` mount by default. If an internal process
-handles backups, omit `COYOTE3_MONGO_BACKUP_HOST_ROOT` and the backup overlay.
+handles backups, omit `COYOTE4_MONGO_BACKUP_HOST_ROOT` and the backup overlay.
 The archive tool below mounts its own output directory and does not require a
-backup mount on the server. Set `COYOTE3_MONGO_BACKUP_HOST_ROOT` to the desired
+backup mount on the server. Set `COYOTE4_MONGO_BACKUP_HOST_ROOT` to the desired
 output directory before running this example, or pass a directory directly to
 `--out-dir`.
 
 For commands that need `/backup` inside the MongoDB server container, create the
 host directory, grant the container user appropriate access, and set
-`COYOTE3_MONGO_BACKUP_HOST_ROOT`. Include the optional overlay after the MongoDB
+`COYOTE4_MONGO_BACKUP_HOST_ROOT`. Include the optional overlay after the MongoDB
 definition:
 
 ```bash
-docker compose -p coyote3-dev-mongo --env-file .coyote3_dev_mongo_env \
+docker compose -p coyote4-dev-mongo --env-file .coyote4_dev_mongo_env \
   -f deploy/compose/docker-compose.mongo.yml \
   -f deploy/compose/docker-compose.mongo-backup.yml \
   --profile mongo up -d mongo
@@ -242,9 +242,9 @@ tools container must be able to resolve and reach the host in `MONGO_BACKUP_URI`
 ```bash
 bash scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \
-  --out-dir "$COYOTE3_MONGO_BACKUP_HOST_ROOT" \
+  --out-dir "$COYOTE4_MONGO_BACKUP_HOST_ROOT" \
   --label nightly \
-  --docker-network "$COYOTE3_APP_NETWORK"
+  --docker-network "$COYOTE4_APP_NETWORK"
 ```
 
 Schedule `database/mongo_backup_archive.sh` through the centre's approved backup platform. This may be an enterprise scheduler, infrastructure automation, or an existing operations service; scheduling configuration is intentionally not part of the application repository.

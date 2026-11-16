@@ -103,7 +103,7 @@ grant access, add report wording or introduce group-specific clinical query rule
 ## Installation
 
 New database bootstrap includes
-`api/bootstrap/catalogs/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
+`api/src/coyote_api/bootstrap/catalogs/reference/assay_groups.seed.ndjson`: `hematology`, `myeloid`,
 `lymphoid`, `solid` and `pgx`, with
 `system_managed: true`.
 
@@ -111,8 +111,8 @@ New database bootstrap includes
 assays use hematology or solid; sequencing technologies are not groups. Environment choices remain
 application-configured, not entries in this registry.
 
-For an existing deployment, export the intended `COYOTE3_MONGO_URI` and
-`COYOTE3_DB` in the shell, then run the installer before starting the updated API:
+For an existing deployment, export the intended `COYOTE4_MONGO_URI` and
+`COYOTE4_DB` in the shell, then run the installer before starting the updated API:
 
 ```bash
 # Validate and count missing definitions without writing.

@@ -1,7 +1,10 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* Keep optional references reversible; navigation remains ordinary same-tab links. */
 (() => {
   const root = new URL("../", document.currentScript.src);
-  const key = "coyote3.docs.reference-trail";
+  const key = "coyote4.docs.reference-trail";
   const read = () => {
     try { return JSON.parse(sessionStorage.getItem(key) || "[]").filter(item =>
       new URL(item.from).origin === location.origin && new URL(item.from).pathname.startsWith(root.pathname)); }

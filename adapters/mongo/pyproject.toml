@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coyote-mongo"
+version = "1.0.0"
+description = "MongoDB repositories and transaction adapters for Coyote"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"]
+authors = [{name = "Ram Nanduri"}]
+dependencies = [
+    "coyote-core==4.0.0",
+    "pymongo==4.18.3",
+    "httpx==0.28.1",
+    "pydantic==2.14.3",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.3", "pytest-cov==7.1.0", "pytest-asyncio==1.3.0", "mongomock==4.3.0"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.cmdclass]
+build_py = "package_build.CleanBuildPy"
+
+[tool.setuptools.package-dir]
+"" = "."
+coyote_mongo = "src/coyote_mongo"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["coyote_mongo", "coyote_mongo.*"]
+
+[tool.setuptools.package-data]
+coyote_mongo = ["py.typed", "config/*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+asyncio_mode = "auto"
+markers = [
+    "smoke: fast synthetic checks without external services or artifact builds",
+    "unit: isolated behavior with synthetic fixtures",
+    "api: HTTP and host-boundary behavior",
+    "client: synchronous and asynchronous HTTP client behavior",
+    "integration: explicitly configured service integration",
+    "contract: schema and architecture contracts",
+]
+filterwarnings = [
+    'ignore:tagMap is deprecated\. Please use TAG_MAP instead\.:DeprecationWarning:ldap3\.utils\.asn1',
+    'ignore:typeMap is deprecated\. Please use TYPE_MAP instead\.:DeprecationWarning:ldap3\.utils\.asn1',
+]
+
+[tool.coverage.run]
+branch = true
+source = ["coyote_mongo"]
+data_file = ".coverage"
+
+[tool.coverage.report]
+fail_under = 51
+show_missing = true
+precision = 2
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:", "raise NotImplementedError"]
+
+[tool.coverage.html]
+directory = "coverage/html"
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"

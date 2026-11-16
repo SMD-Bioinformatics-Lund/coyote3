@@ -11,7 +11,7 @@ Use isolated stacks and databases for each environment:
 ## Browser session cookie
 
 Set `API_SESSION_COOKIE_NAME` in each deployment's env file, for example
-`coyote3_dev_api_session` for dev and `coyote3_prod_api_session` for production.
+`coyote4_dev_api_session` for dev and `coyote4_prod_api_session` for production.
 Change this value when copying the example env to another environment. The application Compose file passes it to the API. The browser UI and interactive API
 docs use the same HttpOnly session cookie; they do not need separate cookie names.
 Workers, beat, Redis, MongoDB, and static documentation do not need browser
@@ -36,7 +36,7 @@ are routed behind that proxy; Redis stays internal.
 | Base plus test overlay | 6811 |
 
 These defaults are encoded in the compose files. The copied env file uses the
-single `COYOTE3_PORT` key to override the active stack port; its example value
+single `COYOTE4_PORT` key to override the active stack port; its example value
 `6801` takes precedence over these fallbacks. The separate MongoDB stack defaults
 to host ports `27017` for application MongoDB and `27018` for knowledgebase MongoDB,
 both bound to loopback. See the [environment-variable reference](configuration-reference.md#environment-variable-reference).
@@ -44,13 +44,13 @@ both bound to loopback. See the [environment-variable reference](configuration-r
 ## Host Drive Mounts Per Center
 
 Centers can have different host filesystem layouts. Configure only the host data
-root with `COYOTE3_DATA_HOST_ROOT` in the copied `.coyote3_*_env` file. Compose
+root with `COYOTE4_DATA_HOST_ROOT` in the copied `.coyote4_*_env` file. Compose
 mounts that directory at the fixed container path `/data`. It does not mirror
 the absolute host path inside containers. Manifest input paths must be readable
 inside the containers; use a [storage override](../configuration/compose-files.md#private-input-mount-example)
 for pipeline directories. The API and Celery containers
-use repository-defined locations `/data/coyote3_<env>/reports`,
-`/data/coyote3_<env>/ingest_staging`, and `/data/coyote3_<env>/copied_sample_files/yaml` for
+use repository-defined locations `/data/coyote4_<env>/reports`,
+`/data/coyote4_<env>/ingest_staging`, and `/data/coyote4_<env>/copied_sample_files/yaml` for
 application workspaces. Edit Compose only for permanent center infrastructure
 mounts that are outside the data root.
 
@@ -97,7 +97,7 @@ Use `validation` in persisted profile fields for stage/staging environments.
 Recommended:
 
 - separate Mongo instance per environment
-- same DB name (`coyote3`) is acceptable with isolated instances
+- same DB name (`coyote4`) is acceptable with isolated instances
 - app user credentials per environment
 
 ## Mongo credential roles
@@ -112,11 +112,11 @@ Example (existing volume/user rotation):
 
 ```bash
 mongosh "<admin-mongo-uri>" --eval '
-  db = db.getSiblingDB("'"${COYOTE3_DB:?COYOTE3_DB must be set}"'");
+  db = db.getSiblingDB("'"${COYOTE4_DB:?COYOTE4_DB must be set}"'");
   var user = "'"${MONGO_APP_USER}"'";
   var pwd  = "'"${MONGO_APP_PASSWORD}"'";
   var roles = [
-    {role: "readWrite", db: "'"${COYOTE3_DB:?COYOTE3_DB must be set}"'"},
+    {role: "readWrite", db: "'"${COYOTE4_DB:?COYOTE4_DB must be set}"'"},
     {role: "readWrite", db: "'"${IDENTITY_DB:?IDENTITY_DB must be set}"'"},
     {role: "read", db: "'"${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB must be set}"'"},
     {role: "readWrite", db: "'"${BAM_DB:?BAM_DB must be set}"'"}

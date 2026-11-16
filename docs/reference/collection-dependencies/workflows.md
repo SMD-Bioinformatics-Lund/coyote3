@@ -359,60 +359,60 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 ### S1
 
-`api/infra/mongo/repositories/assay_setup.py`
+`adapters/mongo/src/coyote_mongo/repositories/assay_setup.py`
 
 ### S2
 
-`api/infra/mongo/repositories/clinical_rule_sets.py`
+`adapters/mongo/src/coyote_mongo/repositories/clinical_rule_sets.py`
 
 ### S3
 
-`api/infra/mongo/repositories/public_assay_catalog_versions.py`
+`adapters/mongo/src/coyote_mongo/repositories/public_assay_catalog_versions.py`
 
 ### S4
 
-`api/infra/mongo/repositories/query_rule_revisions.py`
+`adapters/mongo/src/coyote_mongo/repositories/query_rule_revisions.py`
 
 ### S5
 
-`api/infra/mongo/repositories/reports.py`
+`adapters/mongo/src/coyote_mongo/repositories/reports.py`
 
 ### S6
 
-`src/coyote3/application/operations/application.py`
+`core/src/coyote/application/operations/application.py`
 
 ### S7
 
-`src/coyote3/application/public/offering_snapshots.py`
+`core/src/coyote/application/public/offering_snapshots.py`
 
 ### S8
 
-`src/coyote3/application/resources/assay_setup.py`
+`core/src/coyote/application/resources/assay_setup.py`
 
 ### S9
 
-`src/coyote3/application/resources/configuration_profiles.py`
+`core/src/coyote/application/resources/configuration_profiles.py`
 
 ### S10
 
-`src/coyote3/application/resources/configuration_promotions.py`
+`core/src/coyote/application/resources/configuration_promotions.py`
 
 ### S11
 
-`src/coyote3/contracts/configuration_profiles.py`
+`core/src/coyote/contracts/configuration_profiles.py`
 
 ### S12
 
-`src/coyote3/contracts/schemas/clinical_rules.py`
+`core/src/coyote/contracts/schemas/clinical_rules.py`
 
 ### S13
 
-`src/coyote3/contracts/schemas/public_catalog.py`
+`core/src/coyote/contracts/schemas/public_catalog.py`
 
 ### S14
 
-`src/coyote3/contracts/schemas/query_rules.py`
+`core/src/coyote/contracts/schemas/query_rules.py`
 
 ### S15
 
-`src/coyote3/contracts/schemas/registry.py`
+`core/src/coyote/contracts/schemas/registry.py`

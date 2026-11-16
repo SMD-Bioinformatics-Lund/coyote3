@@ -1,5 +1,9 @@
 # Raw ingest file formats
 
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
 Sample ingestion accepts a YAML manifest and the analysis files declared by that
 manifest. These are pipeline outputs, not MongoDB exports. The manifest identifies
 the sample and assay; each file supplies one analysis domain's evidence.

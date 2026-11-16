@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Block high-confidence secrets and clinical identifiers from staged content.
 
 The checker is intentionally conservative about what it classifies as sensitive:
@@ -26,10 +29,10 @@ BLOCKED_PRIVATE_FILENAMES = {
     ".env.production",
     ".env.stage",
     ".env.test",
-    ".coyote3_dev_env",
-    ".coyote3_env",
-    ".coyote3_stage_env",
-    ".coyote3_test_env",
+    ".coyote4_dev_env",
+    ".coyote4_env",
+    ".coyote4_stage_env",
+    ".coyote4_test_env",
     "id_rsa",
     "id_ed25519",
     "credentials.json",

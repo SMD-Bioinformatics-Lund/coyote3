@@ -7,7 +7,7 @@ Start with [getting started](getting-started.md),
 [application operations](application-sdk.md) or the [remote client](python-client.md).
 Internal modules and inherited framework helpers are not additional operations.
 
-## `coyote3.application.operations`
+## `coyote.application.operations`
 
 ### `Account`
 
@@ -114,7 +114,7 @@ Return the JSON error detail shape used by HTTP translation.
 ### `ApplicationRuntime`
 
 ```python
-ApplicationRuntime(*, authenticate: collections.abc.Callable[[], typing.Any | None], policy_factory: collections.abc.Callable[[typing.Any], coyote3.application.common.access.ScopePolicy], sample_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], assay_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], audit_access: collections.abc.Callable[[coyote3.application.operations.runtime.AccessEvent], None], correlation_id: str | None = None, project_result: collections.abc.Callable[[typing.Any], typing.Any] = <function deepcopy>, allowed_operations: frozenset[str] | None = None, document_editing: coyote3.application.editing.DocumentEditing | None = None, editor_id: uuid.UUID | None = None) -> None
+ApplicationRuntime(*, authenticate: collections.abc.Callable[[], typing.Any | None], policy_factory: collections.abc.Callable[[typing.Any], coyote.application.common.access.ScopePolicy], sample_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], assay_loader: collections.abc.Callable[[str], dict[str, typing.Any] | None], audit_access: collections.abc.Callable[[coyote.application.operations.runtime.AccessEvent], None], correlation_id: str | None = None, project_result: collections.abc.Callable[[typing.Any], typing.Any] = <function deepcopy>, allowed_operations: frozenset[str] | None = None, document_editing: coyote.application.editing.DocumentEditing | None = None, editor_id: uuid.UUID | None = None) -> None
 ```
 
 ```text
@@ -1560,7 +1560,7 @@ Raises:
 ### `Coverage`
 
 ```python
-Coverage(runtime: coyote3.application.operations.runtime.ApplicationRuntime, services: coyote3.application.operations.clinical.ClinicalServices) -> None
+Coverage(runtime: coyote.application.operations.runtime.ApplicationRuntime, services: coyote.application.operations.clinical.ClinicalServices) -> None
 ```
 
 ```text
@@ -2503,7 +2503,7 @@ Outcome of one transactional sample-bundle ingestion.
 ### `IngestSubmissionServices`
 
 ```python
-IngestSubmissionServices(*, jobs: 'Callable[[], IngestJobs]', publish: 'Callable[[str, str], None]', queue: 'str') -> 'None'
+IngestSubmissionServices(*, jobs: 'Callable[[], IngestJobs]', publish: 'Callable[[str, str], None]', queue: 'str', task_name: 'Callable[[str], str]') -> 'None'
 ```
 
 ```text
@@ -2814,7 +2814,7 @@ Host-owned reference lookups without exposing storage implementations.
 ### `InternalReferences`
 
 ```python
-InternalReferences(runtime: coyote3.application.operations.runtime.ApplicationRuntime, services: coyote3.application.operations.internal_references.InternalReferenceServices) -> None
+InternalReferences(runtime: coyote.application.operations.runtime.ApplicationRuntime, services: coyote.application.operations.internal_references.InternalReferenceServices) -> None
 ```
 
 ```text
@@ -3511,46 +3511,6 @@ OperationResult.failed(error: 'str', *, requested_count: 'int' = 0) -> "'Operati
 Return a failed operation summary.
 ```
 
-#### `OperationResult.from_delete`
-
-```python
-OperationResult.from_delete(result: 'Any', *, requested_count: 'int' = 1) -> "'OperationResult'"
-```
-
-```text
-Build from a Mongo delete result.
-```
-
-#### `OperationResult.from_insert_many`
-
-```python
-OperationResult.from_insert_many(result: 'Any', *, requested_count: 'int' = 0) -> "'OperationResult'"
-```
-
-```text
-Build from a Mongo insert-many result.
-```
-
-#### `OperationResult.from_insert_one`
-
-```python
-OperationResult.from_insert_one(result: 'Any') -> "'OperationResult'"
-```
-
-```text
-Build from a Mongo insert-one result.
-```
-
-#### `OperationResult.from_update`
-
-```python
-OperationResult.from_update(result: 'Any', *, requested_count: 'int' = 1) -> "'OperationResult'"
-```
-
-```text
-Build from a Mongo update result.
-```
-
 #### `OperationResult.ok`
 
 Return whether the operation was accepted and no local error occurred.
@@ -3793,7 +3753,7 @@ Raises:
 ### `PublicApplication`
 
 ```python
-PublicApplication(*, catalog: 'Callable[[], PublicCatalogService]', controls: 'Callable[[], AppControlsService]', config: 'Mapping[str, Any]', logger: 'Logger', filter_flags: 'Callable[[], dict[str, Any]]', gene_info: 'Callable[[str], dict[str, Any]]') -> 'None'
+PublicApplication(*, catalog: 'Callable[[], PublicCatalogService]', controls: 'Callable[[], AppControlsService]', settings: 'PublicSettings', logger: 'Logger', filter_flags: 'Callable[[], dict[str, Any]]', gene_info: 'Callable[[str], dict[str, Any]]') -> 'None'
 ```
 
 ```text
@@ -4379,10 +4339,10 @@ ReportPreview(*, template: str, context: dict[str, typing.Any], html: str, snaps
 Rendered report and the fingerprint required to save the reviewed inputs.
 ```
 
-### `ReportTrial`
+### `ReportPreviewBundle`
 
 ```python
-ReportTrial(*, html: str, pdf: bytes, filename: str, snapshot_count: int, reporting_warning: str | None = None) -> None
+ReportPreviewBundle(*, html: str, pdf: bytes, filename: str, snapshot_count: int, reporting_warning: str | None = None) -> None
 ```
 
 ```text
@@ -4392,7 +4352,7 @@ Hold an unsaved alternate report and its PDF entirely in memory.
 ### `ReportingServices`
 
 ```python
-ReportingServices(*, workflow: 'Callable[[Analyte], DNAWorkflowService | RNAWorkflowService]', configuration: 'Callable[[dict[str, Any]], dict[str, Any]]', render_html: 'Callable[..., str]', organization_name: 'str', reports_base_path: 'str', logger: 'Any', library: 'Callable[[], ReportLibraryService]', render_pdf: 'Callable[[str], bytes]', render_trial_html: 'Callable[..., str] | None' = None, presentation: 'Callable[[], ReportPresentation] | None' = None) -> 'None'
+ReportingServices(*, workflow: 'Callable[[Analyte], DNAWorkflowService | RNAWorkflowService]', configuration: 'Callable[[dict[str, Any]], dict[str, Any]]', render_html: 'Callable[..., str]', organization_name: 'str', reports_base_path: 'str', logger: 'Any', library: 'Callable[[], ReportLibraryService]', render_pdf: 'Callable[[str], bytes]', presentation: 'Callable[[], ReportPresentation] | None' = None) -> 'None'
 ```
 
 ```text
@@ -5541,7 +5501,7 @@ Raises:
 ### `configure_resource_hasher`
 
 ```python
-configure_resource_hasher(hasher: coyote3.contracts.resource_integrity.ResourceHasher) -> None
+configure_resource_hasher(hasher: coyote.contracts.resource_integrity.ResourceHasher) -> None
 ```
 
 ```text
@@ -5558,7 +5518,7 @@ Notes:
 ### `using_resource_hasher`
 
 ```python
-using_resource_hasher(hasher: coyote3.contracts.resource_integrity.ResourceHasher) -> collections.abc.Iterator[None]
+using_resource_hasher(hasher: coyote.contracts.resource_integrity.ResourceHasher) -> collections.abc.Iterator[None]
 ```
 
 ```text
@@ -5571,7 +5531,7 @@ Yields:
     Control while the supplied resource-integrity capability is active.
 ```
 
-## `coyote3.application.operations.inputs`
+## `coyote.application.operations.inputs`
 
 ### `ApiPasswordChangeRequest`
 
@@ -5692,7 +5652,7 @@ Concurrency precondition, notes and reviewer for optional review submission.
 ### `AssaySetupContent`
 
 ```python
-AssaySetupContent(*, panel: coyote3.contracts.schemas.assay.AssaySpecificPanelsDoc, scopes: Annotated[list[str], MaxLen(max_length=100)] = <factory>, environments: Annotated[list[str], MaxLen(max_length=20)] = <factory>, gene_lists: Annotated[list[dict[str, Any]], MaxLen(max_length=100)] = <factory>, existing_gene_list_ids: Annotated[list[str], MaxLen(max_length=100)] = <factory>, configurations: Annotated[list[dict[str, Any]], MaxLen(max_length=200)] = <factory>) -> None
+AssaySetupContent(*, panel: coyote.contracts.schemas.assay.AssaySpecificPanelsDoc, scopes: Annotated[list[str], MaxLen(max_length=100)] = <factory>, environments: Annotated[list[str], MaxLen(max_length=20)] = <factory>, gene_lists: Annotated[list[dict[str, Any]], MaxLen(max_length=100)] = <factory>, existing_gene_list_ids: Annotated[list[str], MaxLen(max_length=100)] = <factory>, configurations: Annotated[list[dict[str, Any]], MaxLen(max_length=200)] = <factory>) -> None
 ```
 
 ```text
@@ -5785,7 +5745,7 @@ Returns:
 ### `AssaySetupUpdate`
 
 ```python
-AssaySetupUpdate(*, revision: Annotated[int, Ge(ge=1)], content: coyote3.contracts.schemas.assay_setup.AssaySetupContent) -> None
+AssaySetupUpdate(*, revision: Annotated[int, Ge(ge=1)], content: coyote.contracts.schemas.assay_setup.AssaySetupContent) -> None
 ```
 
 ```text
@@ -5805,7 +5765,7 @@ Clinical approval or rejection with a reason and optional publisher.
 ### `ClinicalRuleDraftCreate`
 
 ```python
-ClinicalRuleDraftCreate(*, source_version_id: str | None = None, scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: str | None = None, source: Literal['ui', 'template', 'api'] = 'ui') -> None
+ClinicalRuleDraftCreate(*, source_version_id: str | None = None, scope: coyote.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: str | None = None, source: Literal['ui', 'template', 'api'] = 'ui') -> None
 ```
 
 ```text
@@ -5815,7 +5775,7 @@ Draft creation inputs for a new scope or a copied source version.
 ### `ClinicalRuleDraftUpdate`
 
 ```python
-ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote3.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, bulk_annotation_rules: list[coyote3.contracts.schemas.clinical_rules.BulkAnnotationRule] | None = None, test_cases: list[coyote3.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
+ClinicalRuleDraftUpdate(*, revision: Annotated[int, Ge(ge=1)], scope: coyote.contracts.schemas.clinical_rules.ClinicalRuleScope | None = None, name: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=160)] = None, analysis_declarations: dict[str, coyote.contracts.schemas.clinical_rules.ClinicalAnalysisDeclaration] | None = None, terminology: dict[str, Any] | None = None, blocks: list[coyote.contracts.schemas.clinical_rules.ClinicalRuleBlock] | None = None, bulk_annotation_rules: list[coyote.contracts.schemas.clinical_rules.BulkAnnotationRule] | None = None, test_cases: list[coyote.contracts.schemas.clinical_rules.ClinicalRuleTestCase] | None = None, references: list[dict[str, Any]] | None = None, change_summary: str | None = None) -> None
 ```
 
 ```text
@@ -5825,7 +5785,7 @@ Revision-qualified draft edits with optional authored content fields.
 ### `ClinicalRuleImportRequest`
 
 ```python
-ClinicalRuleImportRequest(*, document: dict[str, typing.Any], scope: coyote3.contracts.schemas.clinical_rules.ClinicalRuleScope, name: Annotated[str, MinLen(min_length=1), MaxLen(max_length=160)]) -> None
+ClinicalRuleImportRequest(*, document: dict[str, typing.Any], scope: coyote.contracts.schemas.clinical_rules.ClinicalRuleScope, name: Annotated[str, MinLen(min_length=1), MaxLen(max_length=160)]) -> None
 ```
 
 ```text
@@ -5861,7 +5821,7 @@ ConfigurationField(*args, **kwargs)
 ### `ConfigurationProfileDraft`
 
 ```python
-ConfigurationProfileDraft(*, profile_id: Annotated[str, MinLen(min_length=1), MaxLen(max_length=100), _PydanticGeneralMetadata(pattern='^[a-z0-9_-]+$')], name: Annotated[str, MinLen(min_length=1), MaxLen(max_length=200)], kind: Literal['filters', 'reporting', 'clinical_rules', 'template'], bindings: Annotated[list[coyote3.contracts.configuration_profiles.ConfigurationScope], MinLen(min_length=1), MaxLen(max_length=100)], content: dict[str, typing.Any], reason: Annotated[str, MinLen(min_length=3), MaxLen(max_length=2000)]) -> None
+ConfigurationProfileDraft(*, profile_id: Annotated[str, MinLen(min_length=1), MaxLen(max_length=100), _PydanticGeneralMetadata(pattern='^[a-z0-9_-]+$')], name: Annotated[str, MinLen(min_length=1), MaxLen(max_length=200)], kind: Literal['filters', 'reporting', 'clinical_rules', 'template'], bindings: Annotated[list[coyote.contracts.configuration_profiles.ConfigurationScope], MinLen(min_length=1), MaxLen(max_length=100)], content: dict[str, typing.Any], reason: Annotated[str, MinLen(min_length=3), MaxLen(max_length=2000)]) -> None
 ```
 
 ```text
@@ -6079,7 +6039,7 @@ Catalog replacement content qualified by the expected revision.
 ### `QueryConditionTest`
 
 ```python
-QueryConditionTest(*, analysis: Literal['snv', 'cnv', 'translocation', 'fusion'], condition: coyote3.contracts.schemas.query_rules.QueryConditionPredicate | coyote3.contracts.schemas.query_rules.QueryConditionGroup | coyote3.contracts.schemas.query_rules.QueryConditionNot | coyote3.contracts.schemas.query_rules.QueryConditionElement, documents: Annotated[list[dict[str, Any]], MinLen(min_length=1), MaxLen(max_length=50)]) -> None
+QueryConditionTest(*, analysis: Literal['snv', 'cnv', 'translocation', 'fusion'], condition: coyote.contracts.schemas.query_rules.QueryConditionPredicate | coyote.contracts.schemas.query_rules.QueryConditionGroup | coyote.contracts.schemas.query_rules.QueryConditionNot | coyote.contracts.schemas.query_rules.QueryConditionElement, documents: Annotated[list[dict[str, Any]], MinLen(min_length=1), MaxLen(max_length=50)]) -> None
 ```
 
 ```text
@@ -6099,7 +6059,7 @@ Reject unsupported paths, operators, values and excessive nesting.
 ### `QueryRuleDraft`
 
 ```python
-QueryRuleDraft(*, scope: coyote3.contracts.schemas.query_rules.QueryRuleScope, name: str = '', content: coyote3.contracts.schemas.query_rules.QueryRuleContent, reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000), _PydanticGeneralMetadata(pattern='\\S')]) -> None
+QueryRuleDraft(*, scope: coyote.contracts.schemas.query_rules.QueryRuleScope, name: str = '', content: coyote.contracts.schemas.query_rules.QueryRuleContent, reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000), _PydanticGeneralMetadata(pattern='\\S')]) -> None
 ```
 
 ```text
@@ -6119,7 +6079,7 @@ Validate typed exceptions and prevent nested scopes or raw queries.
 ### `QueryRulePreview`
 
 ```python
-QueryRulePreview(*, scope: coyote3.contracts.schemas.query_rules.QueryRuleScope, content: coyote3.contracts.schemas.query_rules.QueryRuleContent | None = None) -> None
+QueryRulePreview(*, scope: coyote.contracts.schemas.query_rules.QueryRuleScope, content: coyote.contracts.schemas.query_rules.QueryRuleContent | None = None) -> None
 ```
 
 ```text
@@ -6139,7 +6099,7 @@ Validate unsaved content at the request boundary, returning HTTP 422.
 ### `QueryRuleSampleSearch`
 
 ```python
-QueryRuleSampleSearch(*, scope: coyote3.contracts.schemas.query_rules.QueryRuleScope, search: Annotated[str, MaxLen(max_length=200)] = '', page: Annotated[int, Ge(ge=1)] = 1) -> None
+QueryRuleSampleSearch(*, scope: coyote.contracts.schemas.query_rules.QueryRuleScope, search: Annotated[str, MaxLen(max_length=200)] = '', page: Annotated[int, Ge(ge=1)] = 1) -> None
 ```
 
 ```text
@@ -6214,7 +6174,7 @@ Require an optimistic concurrency token and a clinical change explanation.
 ### `QueryRuleUpdate`
 
 ```python
-QueryRuleUpdate(*, scope: coyote3.contracts.schemas.query_rules.QueryRuleScope, name: str = '', content: coyote3.contracts.schemas.query_rules.QueryRuleContent, reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000), _PydanticGeneralMetadata(pattern='\\S')], expected_revision: Annotated[int, Ge(ge=1)]) -> None
+QueryRuleUpdate(*, scope: coyote.contracts.schemas.query_rules.QueryRuleScope, name: str = '', content: coyote.contracts.schemas.query_rules.QueryRuleContent, reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000), _PydanticGeneralMetadata(pattern='\\S')], expected_revision: Annotated[int, Ge(ge=1)]) -> None
 ```
 
 ```text
@@ -6267,12 +6227,12 @@ SharedDiagnosisUpdate.normalize_assays(values: list[str]) -> list[str]
 Normalize and deduplicate assays requested for association.
 ```
 
-## `coyote3_client`
+## `coyote_pyclient`
 
 ### `AsyncCoyoteClient`
 
 ```python
-AsyncCoyoteClient(base_url: 'str', *, cookie_name: 'str' = 'coyote3_api_session', timeout: 'float' = 30.0, transport: 'httpx.AsyncBaseTransport | None' = None) -> 'None'
+AsyncCoyoteClient(base_url: 'str', *, cookie_name: 'str' = 'coyote4_api_session', timeout: 'float' = 30.0, transport: 'httpx.AsyncBaseTransport | None' = None) -> 'None'
 ```
 
 ```text
@@ -6382,11 +6342,11 @@ An unsuccessful response with structured diagnostics and its original HTTP respo
 ### `CoyoteClient`
 
 ```python
-CoyoteClient(base_url: 'str', *, cookie_name: 'str' = 'coyote3_api_session', timeout: 'float' = 30.0, transport: 'httpx.BaseTransport | None' = None) -> 'None'
+CoyoteClient(base_url: 'str', *, cookie_name: 'str' = 'coyote4_api_session', timeout: 'float' = 30.0, transport: 'httpx.BaseTransport | None' = None) -> 'None'
 ```
 
 ```text
-Access Coyote3 resources and UI workflows using an authenticated bearer session.
+Access Coyote4 resources and UI workflows using an authenticated bearer session.
 ```
 
 #### `CoyoteClient.close`
@@ -6521,7 +6481,7 @@ ResponseValidationError (see class documentation)
 A successful server response does not satisfy the SDK's response contract.
 ```
 
-## `coyote3.config`
+## `coyote.config`
 
 ### `CenterConfiguration`
 
@@ -6550,7 +6510,7 @@ Raises:
 ### `configure_center`
 
 ```python
-configure_center(configuration: coyote3.config.selection.CenterConfiguration) -> None
+configure_center(configuration: coyote.config.selection.CenterConfiguration) -> None
 ```
 
 ```text
@@ -6569,7 +6529,7 @@ Notes:
     Content is validated by the vocabulary and flag loaders at startup.
 ```
 
-## `coyote3_client.resources`
+## `coyote_pyclient.resources`
 
 ### `Resource`
 
@@ -6708,7 +6668,7 @@ Returns:
     A reference suitable for endpoint operations without a metadata fetch.
 ```
 
-## `coyote3_client.clinical`
+## `coyote_pyclient.clinical`
 
 ### `Finding`
 
@@ -7000,28 +6960,10 @@ Returns:
     Preview HTML, context and meta.preview_fingerprint for explicit saving.
 ```
 
-#### `SampleReports.save`
+#### `SampleReports.preview_bundle`
 
 ```python
-SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern']" = 'modern') -> 'SavedReport'
-```
-
-```text
-Persist a report only when the reviewed preview still matches current inputs.
-
-Args:
-    report_type: dna or rna, as used in the reviewed preview.
-    preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
-    report_format: Compatibility value modern; reports use smd-reports.
-
-Returns:
-    Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.
-```
-
-#### `SampleReports.try_new`
-
-```python
-SampleReports.try_new(self, report_type: "Literal['dna', 'rna']") -> 'ReportTrial'
+SampleReports.preview_bundle(self, report_type: "Literal['dna', 'rna']") -> 'ReportPreviewBundle'
 ```
 
 ```text
@@ -7033,6 +6975,23 @@ Args:
 Returns:
     HTML and base64-encoded PDF generated from the same report inputs.
     The server creates no report record or report artifact.
+```
+
+#### `SampleReports.save`
+
+```python
+SampleReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str') -> 'SavedReport'
+```
+
+```text
+Persist a report only when the reviewed preview still matches current inputs.
+
+Args:
+    report_type: dna or rna, as used in the reviewed preview.
+    preview_fingerprint: Fingerprint returned by that preview; no automatic refresh or retry.
+
+Returns:
+    Saved report identifiers and artifact metadata. Changed inputs raise HTTP 409.
 ```
 
 ### `SampleResource`
@@ -7150,7 +7109,7 @@ Returns:
     and exclusion flags; this does not recalculate tiers in Python.
 ```
 
-## `coyote3_client.endpoints`
+## `coyote_pyclient.endpoints`
 
 ### `ApiEndpoint`
 
@@ -7257,7 +7216,7 @@ Returns:
     The response closes on context exit; server errors are raised on entry.
 ```
 
-## `coyote3_client.async_client`
+## `coyote_pyclient.async_client`
 
 ### `AsyncApiEndpoint`
 
@@ -7485,28 +7444,10 @@ AsyncReports.preview(self, report_type: "Literal['dna', 'rna']", **params: 'Any'
 Read an existing preview and its fingerprint without saving a report.
 ```
 
-#### `AsyncReports.save`
+#### `AsyncReports.preview_bundle`
 
 ```python
-AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str', report_format: "Literal['modern']" = 'modern') -> 'SavedReport'
-```
-
-```text
-Save the reviewed fingerprint using the smd-reports presentation.
-
-Args:
-    report_type: DNA or RNA modality from the reviewed preview.
-    preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
-    report_format: Compatibility value modern; reports use smd-reports.
-
-Returns:
-    Saved report identifiers and artifact metadata.
-```
-
-#### `AsyncReports.try_new`
-
-```python
-AsyncReports.try_new(self, report_type: "Literal['dna', 'rna']") -> 'ReportTrial'
+AsyncReports.preview_bundle(self, report_type: "Literal['dna', 'rna']") -> 'ReportPreviewBundle'
 ```
 
 ```text
@@ -7517,6 +7458,23 @@ Args:
 
 Returns:
     HTML and base64 PDF content; the caller decides whether to write local files.
+```
+
+#### `AsyncReports.save`
+
+```python
+AsyncReports.save(self, report_type: "Literal['dna', 'rna']", *, preview_fingerprint: 'str') -> 'SavedReport'
+```
+
+```text
+Save the reviewed fingerprint using the smd-reports presentation.
+
+Args:
+    report_type: DNA or RNA modality from the reviewed preview.
+    preview_fingerprint: Reviewed fingerprint; mutations are never automatically retried.
+
+Returns:
+    Saved report identifiers and artifact metadata.
 ```
 
 ### `AsyncResource`

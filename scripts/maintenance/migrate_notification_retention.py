@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Retain notification records while treating expiry as an inbox visibility deadline."""
 
 import argparse
@@ -10,9 +13,9 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import configured_mongo_uri  # noqa: E402
-from api.infra.mongo.transactions import run_transaction  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
 def migrate(collection, *, apply: bool = False) -> dict[str, int]:
@@ -57,9 +60,9 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     uri = configured_mongo_uri(os.environ, "primary")
-    database = os.getenv("COYOTE3_DB", "")
+    database = os.getenv("COYOTE4_DB", "")
     if not uri or not database:
-        parser.error("COYOTE3_MONGO_URI and COYOTE3_DB must be configured")
+        parser.error("COYOTE4_MONGO_URI and COYOTE4_DB must be configured")
     with MongoClient(uri, serverSelectionTimeoutMS=7000) as client:
         name = load_collection_section("primary")["notifications_collection"]
         print(migrate(client[database][name], apply=args.apply))

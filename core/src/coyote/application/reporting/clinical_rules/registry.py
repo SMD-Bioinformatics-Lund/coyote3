@@ -1,0 +1,638 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Typed, allowlisted facts exposed to clinical reporting rules."""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
+
+from coyote.config.loaders.filter_flags import filter_flag_options
+from coyote.domain.finding_types import FindingKind
+
+FactKind = Literal["boolean", "integer", "number", "string", "string_list", "object_list"]
+_ANNOTATION_KINDS: tuple[FindingKind, ...] = ("small_variant", "cnv", "fusion", "translocation")
+
+BULK_ANNOTATION_FACT_PATHS = frozenset(
+    {
+        "finding.gene",
+        "finding.fusion_gene_1",
+        "finding.fusion_gene_2",
+        "finding.fusion_breakpoint_1",
+        "finding.fusion_breakpoint_2",
+        "finding.chromosome",
+        "finding.start",
+        "finding.end",
+        "finding.cnv_effect",
+        "finding.consequence",
+        "finding.tier",
+        "finding.hgvsc",
+        "finding.hgvsp",
+        "sample.asp_id",
+        "sample.diagnosis_id",
+        "asp.asp_group",
+        "asp.group_name",
+        "asp.parent_group_id",
+        "asp.parent_group_name",
+        "asp.ancestor_group_ids",
+        "asp.ancestor_group_names",
+        "asp.group_path_ids",
+        "asp.group_path_names",
+        "asp.root_group_id",
+        "asp.root_group_name",
+        "finding.transcript",
+        "finding.variant_type",
+        "annotation.consequence_text",
+        "annotation.consequence_labels",
+        "annotation.oncokb_gene_present",
+        "annotation.oncokb_gene_url",
+        "annotation.oncokb_gene_description",
+    }
+)
+
+_STRUCTURAL_ANNOTATION_PATHS = {
+    "cnv": frozenset({"finding.chromosome", "finding.start", "finding.end", "finding.cnv_effect"}),
+    "fusion": frozenset(
+        {
+            "finding.fusion_gene_1",
+            "finding.fusion_gene_2",
+            "finding.fusion_breakpoint_1",
+            "finding.fusion_breakpoint_2",
+        }
+    ),
+    "translocation": frozenset({"finding.fusion_gene_1", "finding.fusion_gene_2"}),
+}
+
+
+def bulk_annotation_fact_paths(kind: FindingKind) -> frozenset[str]:
+    """Return annotation facts supplied by the selected finding workflow.
+
+    Args:
+        kind: Canonical finding type selected for this template.
+
+    Returns:
+        Shared assay/group/tier facts plus finding-specific identity fields.
+    """
+    if kind == "small_variant":
+        return BULK_ANNOTATION_FACT_PATHS - frozenset().union(
+            *_STRUCTURAL_ANNOTATION_PATHS.values()
+        )
+    shared = {path for path in BULK_ANNOTATION_FACT_PATHS if path.startswith(("sample.", "asp."))}
+    return frozenset(shared | {"finding.tier"}) | _STRUCTURAL_ANNOTATION_PATHS[kind]
+
+
+class ClinicalFactDefinition(BaseModel):
+    """Immutable fact metadata defining rule operators, scopes, and editor hints."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    label: str
+    group: str
+    kind: FactKind
+    operators: tuple[str, ...]
+    scopes: tuple[str, ...] = ("once", "each_finding", "each_item")
+    unit: str | None = None
+    description: str = ""
+    value_options: tuple[str, ...] = ()
+    value_format: Literal["gene", "integer", "number", "text"] = "text"
+    bulk_annotation_finding_kinds: tuple[FindingKind, ...] = ()
+
+
+def _fact(
+    path: str,
+    label: str,
+    group: str,
+    kind: FactKind,
+    operators: tuple[str, ...],
+    scopes: tuple[str, ...] = ("once", "each_finding", "each_item"),
+    unit: str | None = None,
+    value_options: tuple[str, ...] = (),
+    value_format: Literal["gene", "integer", "number", "text"] = "text",
+) -> ClinicalFactDefinition:
+    """Construct an allowlisted fact definition for the rule editor.
+
+    Args:
+        path: Dotted lookup path in prepared facts.
+        label: Display name for the fact.
+        group: Editor grouping label.
+        kind: Fact value category.
+        operators: Permitted predicate operator names.
+        scopes: Evaluation modes in which the fact is available; defaults to all.
+        unit: Display unit, or None for unitless facts.
+        value_options: Suggested fixed values; empty allows no fixed suggestions.
+        value_format: Editor input format, defaulting to text.
+
+    Returns:
+        Frozen fact metadata.
+    """
+    return ClinicalFactDefinition(
+        path=path,
+        label=label,
+        group=group,
+        kind=kind,
+        operators=operators,
+        scopes=(*scopes, "bulk_annotation")
+        if path in BULK_ANNOTATION_FACT_PATHS and "bulk_annotation" not in scopes
+        else scopes,
+        unit=unit,
+        value_options=value_options,
+        value_format=value_format,
+        bulk_annotation_finding_kinds=tuple(
+            kind for kind in _ANNOTATION_KINDS if path in bulk_annotation_fact_paths(kind)
+        ),
+    )
+
+
+_EQUALITY = ("eq", "ne", "in", "not_in", "exists", "is_unknown")
+_NUMBER = (
+    "eq",
+    "ne",
+    "in",
+    "not_in",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "between",
+    "exists",
+    "is_unknown",
+)
+_LIST = ("contains", "overlaps", "is_empty", "exists", "is_unknown")
+
+_FUSION_FACTS: tuple[tuple[str, str, FactKind, tuple[str, ...]], ...] = (
+    ("fusion_breakpoint_1", "First fusion breakpoint", "string", _EQUALITY),
+    ("fusion_breakpoint_2", "Second fusion breakpoint", "string", _EQUALITY),
+    ("fusion_effect", "Fusion effect", "string", _EQUALITY),
+    ("fusion_spanning_pairs", "Fusion spanning pairs", "integer", _NUMBER),
+    ("fusion_spanning_reads", "Fusion spanning reads", "integer", _NUMBER),
+    ("fusion_annotation", "Fusion annotation text", "string", _EQUALITY),
+)
+
+
+FACT_CATALOG: tuple[ClinicalFactDefinition, ...] = (
+    _fact("sample.asp_id", "Assay", "Sample", "string", _EQUALITY),
+    _fact("sample.diagnosis_id", "Diagnosis", "Sample", "string", _EQUALITY),
+    _fact("sample.environment", "Environment", "Sample", "string", _EQUALITY),
+    _fact(
+        "sample.asp_category",
+        "Omics layer",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
+    _fact(
+        "sample.analysis_intent",
+        "Analysis intent",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("somatic", "germline"),
+    ),
+    _fact("sample.paired", "Paired analysis", "Sample", "boolean", _EQUALITY),
+    _fact(
+        "aspc.snv_filter_mode",
+        "SNV filter flow",
+        "ASPC",
+        "string",
+        _EQUALITY,
+        value_options=("shared", "independent"),
+    ),
+    _fact(
+        "sample.genome_build",
+        "Genome build",
+        "Sample",
+        "string",
+        _EQUALITY,
+        value_options=("GRCh37", "GRCh38"),
+    ),
+    _fact("asp.asp_group", "Biological group: exact ID", "Biological group", "string", _EQUALITY),
+    *(
+        _fact(
+            path,
+            label,
+            "Biological group",
+            kind,
+            _LIST if kind == "string_list" else _EQUALITY,
+            ("bulk_annotation",),
+        )
+        for path, label, kind in (
+            ("asp.group_name", "Biological group: display name", "string"),
+            ("asp.parent_group_id", "Immediate parent group: ID", "string"),
+            ("asp.parent_group_name", "Immediate parent group: display name", "string"),
+            ("asp.ancestor_group_ids", "Ancestor groups: IDs", "string_list"),
+            ("asp.ancestor_group_names", "Ancestor groups: display names", "string_list"),
+            ("asp.group_path_ids", "Biological group or descendant of", "string_list"),
+            ("asp.group_path_names", "Full biological group path: names", "string_list"),
+            ("asp.root_group_id", "Root biological group: ID", "string"),
+            ("asp.root_group_name", "Root biological group: display name", "string"),
+        )
+    ),
+    _fact(
+        "finding.transcript",
+        "Selected transcript",
+        "Annotation",
+        "string",
+        _EQUALITY,
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "finding.variant_type",
+        "Selected variant class",
+        "Annotation",
+        "string",
+        _EQUALITY,
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "annotation.consequence_text",
+        "First consequence: readable text",
+        "Annotation",
+        "string",
+        _EQUALITY,
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "annotation.consequence_labels",
+        "All consequences: readable text",
+        "Annotation",
+        "string_list",
+        _LIST,
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "annotation.oncokb_gene_present",
+        "Gene present in local OncoKB",
+        "Annotation",
+        "boolean",
+        ("eq", "ne", "exists", "is_unknown"),
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "annotation.oncokb_gene_url",
+        "OncoKB gene link",
+        "Annotation",
+        "string",
+        _EQUALITY,
+        ("bulk_annotation",),
+    ),
+    _fact(
+        "annotation.oncokb_gene_description",
+        "Local OncoKB gene description",
+        "Annotation",
+        "string",
+        _EQUALITY,
+        ("bulk_annotation",),
+    ),
+    _fact("asp.display_name", "Assay full display name", "Assay", "string", _EQUALITY),
+    _fact("asp.name", "Assay short name", "Assay", "string", _EQUALITY),
+    _fact("asp.covered_genes_count", "Assay covered gene count", "Assay", "integer", _NUMBER),
+    *(
+        _fact(
+            f"gene_lists.{analysis}.{field}",
+            f"{analysis.upper()} selected lists: {label}",
+            "Selected gene lists",
+            kind,
+            operators,
+        )
+        for analysis in ("snv", "cnv", "translocation", "fusion", "expression", "pgx")
+        for field, label, kind, operators in (
+            ("ids", "identifiers", "string_list", _LIST),
+            ("names", "short names", "string_list", _LIST),
+            ("display_names", "full names", "string_list", _LIST),
+            ("genes", "unique genes", "string_list", _LIST),
+            ("gene_count", "unique gene count", "integer", _NUMBER),
+            ("germline_genes", "selected germline genes", "string_list", _LIST),
+        )
+    ),
+    _fact(
+        "item.isgl_id",
+        "Gene list identifier",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.name",
+        "Gene list short name",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.displayname",
+        "Gene list full name",
+        "Current gene list",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+    ),
+    _fact(
+        "item.gene_count",
+        "Gene list unique gene count",
+        "Current gene list",
+        "integer",
+        _NUMBER,
+        ("each_item",),
+    ),
+    _fact(
+        "item.selected_for",
+        "Gene list selected analyses",
+        "Current gene list",
+        "string_list",
+        _LIST,
+        ("each_item",),
+    ),
+    _fact(
+        "asp.asp_category",
+        "Assay category",
+        "Assay",
+        "string",
+        _EQUALITY,
+        value_options=("dna", "rna"),
+    ),
+    _fact("asp.accredited", "Accredited", "Assay", "boolean", _EQUALITY),
+    _fact("asp.germline_genes", "Germline genes", "Assay", "string_list", _LIST),
+    _fact(
+        "aspc.reporting.report_sections", "Report analyses", "Configuration", "string_list", _LIST
+    ),
+    _fact(
+        "finding.kind",
+        "Finding type",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_options=("snv", "cnv", "fusion", "translocation", "biomarker"),
+    ),
+    _fact(
+        "finding.gene",
+        "Gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
+        "finding.genes",
+        "Genes",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact("finding.tier", "Tier", "Finding", "integer", _NUMBER, ("each_finding",)),
+    _fact("finding.exon", "Exon", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact("finding.intron", "Intron", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact(
+        "finding.case_vaf_percent",
+        "Case VAF",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
+        "finding.control_vaf_percent",
+        "Control VAF",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact("finding.consequence", "Consequence", "Finding", "string_list", _LIST, ("each_finding",)),
+    _fact(
+        "finding.filter_flags",
+        "VCF filter flags",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+    ),
+    _fact("finding.hgvsc", "HGVS.c", "Finding", "string", _EQUALITY, ("each_finding",)),
+    _fact("finding.hgvsp", "HGVS.p", "Finding", "string", _EQUALITY, ("each_finding",)),
+    _fact(
+        "finding.cnv_ratio", "CNV recorded ratio", "Finding", "number", _NUMBER, ("each_finding",)
+    ),
+    _fact(
+        "finding.cnv_copy_number",
+        "CNV diploid copy number",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+    ),
+    _fact(
+        "finding.cnv_paired_read_percent",
+        "CNV paired-read support",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
+        "finding.cnv_split_read_percent",
+        "CNV split-read support",
+        "Finding",
+        "number",
+        _NUMBER,
+        ("each_finding",),
+        "%",
+    ),
+    _fact(
+        "finding.cnv_report_genes",
+        "CNV classified genes",
+        "Finding",
+        "string_list",
+        _LIST,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
+        "finding.cnv_other_gene_count",
+        "CNV other gene count",
+        "Finding",
+        "integer",
+        _NUMBER,
+        ("each_finding",),
+    ),
+    _fact(
+        "finding.chromosome", "CNV chromosome", "Finding", "string", _EQUALITY, ("each_finding",)
+    ),
+    _fact("finding.start", "CNV start", "Finding", "integer", _NUMBER, ("each_finding",)),
+    _fact("finding.end", "CNV end", "Finding", "integer", _NUMBER, ("each_finding",)),
+    *(
+        _fact(f"finding.{field}", label, "Fusion", kind, operators, ("each_finding",))
+        for field, label, kind, operators in _FUSION_FACTS
+    ),
+    _fact(
+        "finding.cnv_effect",
+        "Copy-number effect",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_options=("gain", "loss"),
+    ),
+    _fact(
+        "finding.fusion_gene_1",
+        "First fusion gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact(
+        "finding.fusion_gene_2",
+        "Second fusion gene",
+        "Finding",
+        "string",
+        _EQUALITY,
+        ("each_finding",),
+        value_format="gene",
+    ),
+    _fact("aggregates.finding_count", "Finding count", "Result", "integer", _NUMBER),
+    _fact("aggregates.snv_count", "SNV count", "Result", "integer", _NUMBER),
+    _fact("aggregates.cnv_count", "CNV count", "Result", "integer", _NUMBER),
+    _fact("aggregates.fusion_count", "Fusion count", "Result", "integer", _NUMBER),
+    _fact("aggregates.translocation_count", "Translocation count", "Result", "integer", _NUMBER),
+    _fact("aggregates.hrd_count", "HRD count", "Result", "integer", _NUMBER),
+    _fact("aggregates.msi_count", "MSI count", "Result", "integer", _NUMBER),
+    _fact("aggregates.tmb_count", "TMB count", "Result", "integer", _NUMBER),
+    _fact("aggregates.tier_4_count", "Tier IV SNV count", "Result", "integer", _NUMBER),
+    _fact("aggregates.has_tiered_snvs", "Has tiered SNVs", "Result", "boolean", _EQUALITY),
+    _fact("aggregates.cnv_summary_count", "CNV summary group count", "Result", "integer", _NUMBER),
+    *(
+        _fact(
+            f"aggregates.tier_{tier}_count", f"Tier {tier} SNV count", "Result", "integer", _NUMBER
+        )
+        for tier in (1, 2, 3, 4)
+    ),
+    _fact(
+        "aggregates.translocation_summary_count",
+        "DNA fusion summary group count",
+        "Result",
+        "integer",
+        _NUMBER,
+    ),
+    _fact("aggregates.cnv_summaries", "Grouped CNV evidence", "Result", "object_list", _LIST),
+    _fact(
+        "aggregates.has_reportable_findings",
+        "Has reportable findings",
+        "Result",
+        "boolean",
+        _EQUALITY,
+    ),
+    _fact("item.kind", "Item type", "Current item", "string", _EQUALITY, ("each_item",)),
+    _fact(
+        "item.gene",
+        "Item gene",
+        "Current item",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_format="gene",
+    ),
+    _fact(
+        "item.genes",
+        "Item genes",
+        "Current item",
+        "string_list",
+        _LIST,
+        ("each_item",),
+        value_format="gene",
+    ),
+    _fact("item.tier", "Item tier", "Current item", "integer", _NUMBER, ("each_item",)),
+    _fact(
+        "item.filter_flags",
+        "Item VCF filter flags",
+        "Current item",
+        "string_list",
+        _LIST,
+        ("each_item",),
+    ),
+)
+
+FACT_CATALOG += (
+    _fact(
+        "item.analysis_type",
+        "Analysis",
+        "Measurements",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_options=("HRD", "MSI", "TMB"),
+    ),
+    _fact(
+        "item.method",
+        "Measurement method",
+        "Measurements",
+        "string",
+        _EQUALITY,
+        ("each_item",),
+        value_options=("HRD", "MSIS", "MSIP", "TMB"),
+    ),
+    _fact("item.value", "Measured value", "Measurements", "number", _NUMBER, ("each_item",)),
+    _fact("item.unit", "Measurement unit", "Measurements", "string", _EQUALITY, ("each_item",)),
+    *(
+        _fact(f"item.{key}", label, "Measurements", "integer", _NUMBER, ("each_item",))
+        for key, label in (
+            ("tai", "HRD TAI component"),
+            ("hrd", "HRD component"),
+            ("lst", "HRD LST component"),
+            ("total", "MSI evaluated count"),
+            ("unstable", "MSI unstable count"),
+        )
+    ),
+)
+
+FACTS_BY_PATH = {definition.path: definition for definition in FACT_CATALOG}
+
+
+def validate_fact_path(path: str, *, scope: str | None = None) -> ClinicalFactDefinition:
+    """Require a registered fact path and, optionally, a supported evaluation scope.
+
+    Args:
+        path: Exact dotted path in the fact catalog.
+        scope: Evaluation mode to check; None or an empty string skips this check.
+
+    Returns:
+        The registered fact definition.
+
+    Raises:
+        ValueError: The path is unregistered or unavailable in the requested scope.
+    """
+    definition = FACTS_BY_PATH.get(path)
+    if definition is None:
+        raise ValueError(
+            f"Unsupported clinical rule fact '{path}'. Add a typed prepared-context fact "
+            "and tests before using it in a rule."
+        )
+    if scope and scope not in definition.scopes:
+        raise ValueError(f"Fact '{path}' is unavailable in {scope} evaluation")
+    return definition
+
+
+def fact_catalog_payload() -> list[dict[str, object]]:
+    """Serialize allowlisted facts and configured literal SNV flag choices for the editor.
+
+    Returns:
+        JSON-compatible fact definitions in catalog order.
+    """
+    facts = [definition.model_dump(mode="json") for definition in FACT_CATALOG]
+    flags = filter_flag_options("snv")
+    for fact in facts:
+        if fact["path"] in {"finding.filter_flags", "item.filter_flags"}:
+            fact["value_options"] = list(flags)
+    return facts

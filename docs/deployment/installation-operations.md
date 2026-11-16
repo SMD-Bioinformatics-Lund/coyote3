@@ -24,7 +24,7 @@ sequence; it cannot be combined with `--steps`. `--skip-build` uses existing ima
 Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
 installs application catalogs, bundled HGNC/VEP references, connected DNA/RNA demo
 configuration and both synthetic starter samples in their configured databases.
-The fixed logins are `coyote3.sysadmin` and `coyote3.superuser`. Independent temporary
+The fixed logins are `coyote4.sysadmin` and `coyote4.superuser`. Independent temporary
 passwords are generated and printed once after account creation. Both accounts must
 change their password on first API or browser use. Existing accounts are preserved.
 MongoDB connections without authentication produce a warning and do not block installation.
@@ -74,8 +74,8 @@ flags for fresh installation and the separate maintenance command for later work
 | `indexes` | Plan, apply and verify application, identity and BAM indexes. Conflicts stop execution. |
 | `start` | Verify initial accounts and required indexes, start services and wait for health. |
 | `health` | Check API/browser routes through the rendered local proxy address. |
-| `--sys-admin-email EMAIL` | Optional contact address for the fixed `coyote3.sysadmin` login. |
-| `--email EMAIL` | Optional contact address for the fixed `coyote3.superuser` login. |
+| `--sys-admin-email EMAIL` | Optional contact address for the fixed `coyote4.sysadmin` login. |
+| `--email EMAIL` | Optional contact address for the fixed `coyote4.superuser` login. |
 | `--with-knowledgebase-indexes` | Separately plan, apply and verify knowledgebase indexes. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional restricted URI file for fresh knowledgebase installation and selected knowledgebase indexes. It must target the configured endpoint/database; runtime credentials remain unchanged. |
 | `--identity-maintenance-uri-file FILE` | Explicitly upgrade the restricted identity runtime role using a maintenance connection before validation. It does not enable MongoDB authorization or create runtime passwords. |
@@ -111,7 +111,7 @@ The same freshness check applies when invoking Python directly through Compose:
 ```bash
 coyote_compose run --rm --no-deps -it api sh -c '
   exec python3 scripts/bootstrap/bootstrap_database.py \
-    --db "$COYOTE3_DB" --identity-db "$IDENTITY_DB"
+    --db "$COYOTE4_DB" --identity-db "$IDENTITY_DB"
 '
 ```
 
@@ -135,7 +135,7 @@ virtual environment is needed for that path.
 
 ```bash
 .venv/bin/python scripts/deployment/manage_data.py \
-  --api-url https://coyote.example.org/coyote3 \
+  --api-url https://coyote.example.org/coyote4 \
   --modules application knowledgebase
 ```
 
@@ -144,7 +144,7 @@ skipped. To repair selected bundled modules:
 
 ```bash
 .venv/bin/python scripts/deployment/manage_data.py \
-  --api-url https://coyote.example.org/coyote3 \
+  --api-url https://coyote.example.org/coyote4 \
   --modules application demo --force
 ```
 

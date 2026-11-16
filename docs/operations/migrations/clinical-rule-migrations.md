@@ -11,7 +11,7 @@ follow each procedure's preflight checks and write restrictions.
 ## Deploying report policy configuration
 
 `scripts/maintenance/migrate_reporting_policy.py` reads the configured application database.
-Supply `COYOTE3_MONGO_URI` and `COYOTE3_DB` through the deployment environment; it
+Supply `COYOTE4_MONGO_URI` and `COYOTE4_DB` through the deployment environment; it
 does not load a private environment file implicitly or print credentials.
 
 ```bash
@@ -50,7 +50,7 @@ Annotations, samples and saved reports are not modified by the migration.
 
 Pause application/configuration writers, back up the application database, and run
 the migration before starting the updated application. Export its
-`COYOTE3_MONGO_URI` and `COYOTE3_DB` without placing credentials on the command line:
+`COYOTE4_MONGO_URI` and `COYOTE4_DB` without placing credentials on the command line:
 
 ```bash
 .venv/bin/python scripts/maintenance/migrate_reporting_rule_resolution.py
@@ -81,31 +81,9 @@ whose selected rule identity changes. Review those changes before applying:
 an exact diagnosis release takes precedence even when the old binding selected Base.
 The command is idempotent after a successful migration.
 
-## Repairing Draft Revision Checksums
+## Revision checksum failures
 
-`scripts/maintenance/repair_clinical_rule_revision_hashes.py` repairs one specific serialization
-failure: a draft update hashed `content_hash: null` before omitting that null field
-from its stored snapshot. The repair reconstructs that exact input and requires
-its digest to match the original. Unknown checksum failures, broken chains and
-references from saved reports stop the operation without writes.
-
-With `COYOTE3_MONGO_URI` and `COYOTE3_DB` set explicitly, first run:
-
-```bash
-.venv/bin/python scripts/maintenance/repair_clinical_rule_revision_hashes.py
-```
-
-Before applying, stop rule writers and back up the application database. Supply a
-new file in a protected backup directory:
-
-```bash
-.venv/bin/python scripts/maintenance/repair_clinical_rule_revision_hashes.py \
-  --apply --backup-file /secure-backups/clinical-rule-revisions.bson
-```
-
-The command writes original affected revisions to an exclusive BSON file with
-owner-only permissions before replacing snapshots transactionally. It rebuilds
-downstream links without changing rule text or lifecycle metadata. Keep the backup
-outside Git and public storage. Rerun the dry run to confirm zero replacements,
-then run the scope-selection migration above and restart writers with the corrected
-application code. The runtime verifier does not accept the faulty serialization.
+A checksum failure stops the operation. Do not rewrite revision hashes to bypass
+verification. Stop rule writers, preserve the affected records and audit events,
+and investigate against a verified backup. See [backup and recovery](../backup-and-recovery.md)
+and [audit verification](../audit-and-logging.md) before restoring data.

@@ -1,7 +1,7 @@
 # Legacy Compose 1.29.2 definition. See README.md before deployment.
 x-runtime-defaults: &runtime-defaults
-  mem_limit: ${COYOTE3_CONTAINER_MEM_LIMIT:-2g}
-  cpus: ${COYOTE3_CONTAINER_CPU_LIMIT:-2.0}
+  mem_limit: ${COYOTE4_CONTAINER_MEM_LIMIT:-2g}
+  cpus: ${COYOTE4_CONTAINER_CPU_LIMIT:-2.0}
   restart: on-failure:5
   logging:
     driver: json-file
@@ -12,12 +12,12 @@ x-runtime-defaults: &runtime-defaults
 
 x-app-environment: &app-environment
   ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-  COYOTE3_CENTER_CONFIG_DIR: /app/center-config
-  COYOTE3_MONGO_URI: ${COYOTE3_MONGO_URI:?COYOTE3_MONGO_URI is required}
+  COYOTE4_CENTER_CONFIG_DIR: /app/center-config
+  COYOTE4_MONGO_URI: ${COYOTE4_MONGO_URI:?COYOTE4_MONGO_URI is required}
   IDENTITY_MONGO_URI: ${IDENTITY_MONGO_URI:-}
   KNOWLEDGEBASE_MONGO_URI: ${KNOWLEDGEBASE_MONGO_URI:-}
   BAM_MONGO_URI: ${BAM_MONGO_URI:-}
-  COYOTE3_DB: ${COYOTE3_DB:?COYOTE3_DB is required}
+  COYOTE4_DB: ${COYOTE4_DB:?COYOTE4_DB is required}
   IDENTITY_DB: ${IDENTITY_DB:?IDENTITY_DB is required}
   KNOWLEDGEBASE_DB: ${KNOWLEDGEBASE_DB:?KNOWLEDGEBASE_DB is required}
   BAM_DB: ${BAM_DB:?BAM_DB is required}
@@ -26,7 +26,7 @@ x-app-environment: &app-environment
   PASSWORD_TOKEN_SALT: ${PASSWORD_TOKEN_SALT:?PASSWORD_TOKEN_SALT is required}
   SCRIPT_NAME: ${SCRIPT_NAME:-}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}
-  ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+  ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote4}
   LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
   TZ: ${LOCAL_TIME_ZONE:-UTC}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -50,14 +50,14 @@ x-app-environment: &app-environment
   CELERY_TASK_SOFT_TIME_LIMIT: ${CELERY_TASK_SOFT_TIME_LIMIT:-6900}
   CELERY_RESULT_EXPIRES: ${CELERY_RESULT_EXPIRES:-86400}
   CELERY_WORKER_PREFETCH_MULTIPLIER: ${CELERY_WORKER_PREFETCH_MULTIPLIER:-1}
-  COYOTE3_MAINTENANCE_HOUR: ${COYOTE3_MAINTENANCE_HOUR:-0}
-  COYOTE3_INGEST_WATCH_ENABLED: ${COYOTE3_INGEST_WATCH_ENABLED:-0}
-  COYOTE3_INGEST_WATCH_FILENAME: ${COYOTE3_INGEST_WATCH_FILENAME:-coyote3.yaml}
-  COYOTE3_INGEST_DONE_SUFFIX: ${COYOTE3_INGEST_DONE_SUFFIX:-.done}
-  COYOTE3_INGEST_FAILED_SUFFIX: ${COYOTE3_INGEST_FAILED_SUFFIX:-.failed}
-  COYOTE3_INGEST_WATCH_INTERVAL_SECONDS: ${COYOTE3_INGEST_WATCH_INTERVAL_SECONDS:-30}
-  COYOTE3_INGEST_WATCH_UPDATE_EXISTING: ${COYOTE3_INGEST_WATCH_UPDATE_EXISTING:-0}
-  COYOTE3_INGEST_WATCH_INCREMENT: ${COYOTE3_INGEST_WATCH_INCREMENT:-0}
+  COYOTE4_MAINTENANCE_HOUR: ${COYOTE4_MAINTENANCE_HOUR:-0}
+  COYOTE4_INGEST_WATCH_ENABLED: ${COYOTE4_INGEST_WATCH_ENABLED:-0}
+  COYOTE4_INGEST_WATCH_FILENAME: ${COYOTE4_INGEST_WATCH_FILENAME:-coyote4.yaml}
+  COYOTE4_INGEST_DONE_SUFFIX: ${COYOTE4_INGEST_DONE_SUFFIX:-.done}
+  COYOTE4_INGEST_FAILED_SUFFIX: ${COYOTE4_INGEST_FAILED_SUFFIX:-.failed}
+  COYOTE4_INGEST_WATCH_INTERVAL_SECONDS: ${COYOTE4_INGEST_WATCH_INTERVAL_SECONDS:-30}
+  COYOTE4_INGEST_WATCH_UPDATE_EXISTING: ${COYOTE4_INGEST_WATCH_UPDATE_EXISTING:-0}
+  COYOTE4_INGEST_WATCH_INCREMENT: ${COYOTE4_INGEST_WATCH_INCREMENT:-0}
   AUTHENTICATION_PROVIDERS: ${AUTHENTICATION_PROVIDERS:-local,ldap}
   LDAP_HOST: ${LDAP_HOST:-}
   LDAP_PORT: ${LDAP_PORT:-}
@@ -82,12 +82,12 @@ x-app-environment: &app-environment
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_USE_TLS: ${SMTP_USE_TLS:-1}
   SMTP_USE_SSL: ${SMTP_USE_SSL:-0}
-  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@coyote3.local}
-  SMTP_INFO_FROM_EMAIL: ${SMTP_INFO_FROM_EMAIL:-info@coyote3.local}
-  SMTP_SECURITY_FROM_EMAIL: ${SMTP_SECURITY_FROM_EMAIL:-security@coyote3.local}
-  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Coyote3}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@coyote4.local}
+  SMTP_INFO_FROM_EMAIL: ${SMTP_INFO_FROM_EMAIL:-info@coyote4.local}
+  SMTP_SECURITY_FROM_EMAIL: ${SMTP_SECURITY_FROM_EMAIL:-security@coyote4.local}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Coyote4}
   PASSWORD_TOKEN_TTL_SECONDS: ${PASSWORD_TOKEN_TTL_SECONDS:-3600}
-  API_SESSION_COOKIE_NAME: ${API_SESSION_COOKIE_NAME:-coyote3_api_session}
+  API_SESSION_COOKIE_NAME: ${API_SESSION_COOKIE_NAME:-coyote4_api_session}
   API_SESSION_TTL_SECONDS: ${API_SESSION_TTL_SECONDS:-43200}
   API_SESSION_COOKIE_SAMESITE: ${API_SESSION_COOKIE_SAMESITE:-lax}
   API_RATE_LIMIT_ENABLED: ${API_RATE_LIMIT_ENABLED:-1}
@@ -110,17 +110,17 @@ x-app-environment: &app-environment
   BUILD_TIME: ${BUILD_TIME:-unknown}
 
 x-api-image: &api-image
-  image: coyote3-api:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+  image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
 
 x-app-volumes: &app-volumes
-  - ${COYOTE3_CENTER_CONFIG_HOST_DIR:-../../config/examples/center}:/app/center-config:ro
-  - ${COYOTE3_LOGS_HOST_ROOT:?COYOTE3_LOGS_HOST_ROOT is required}:/app/logs
-  - ${COYOTE3_DATA_HOST_ROOT:?COYOTE3_DATA_HOST_ROOT is required}:/data
+  - ${COYOTE4_CENTER_CONFIG_HOST_DIR:-../../api/src/coyote_api/config/examples/center}:/app/center-config:ro
+  - ${COYOTE4_LOGS_HOST_ROOT:?COYOTE4_LOGS_HOST_ROOT is required}:/app/logs
+  - ${COYOTE4_DATA_HOST_ROOT:?COYOTE4_DATA_HOST_ROOT is required}:/data
 
 services:
   frontend:
     <<: *runtime-defaults
-    image: coyote3-frontend:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-frontend:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.frontend
@@ -128,7 +128,7 @@ services:
       args:
         SCRIPT_NAME: ${SCRIPT_NAME:-}
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote4}
         LOCAL_TIME_ZONE: ${LOCAL_TIME_ZONE:-UTC}
         GENS_URI: ${GENS_URI:-}
         IGV_URI: ${IGV_URI:-}
@@ -142,7 +142,7 @@ services:
 
   docs:
     <<: *runtime-defaults
-    image: coyote3-docs:${COYOTE3_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    image: coyote4-docs:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
     build:
       context: ../..
       dockerfile: docker/Dockerfile.docs.legacy
@@ -150,28 +150,28 @@ services:
       args:
         PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         ENV_NAME: ${ENV_NAME:?ENV_NAME is required}
-        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote3}
+        ORGANIZATION_NAME: ${ORGANIZATION_NAME:-Coyote4}
     depends_on:
       monitor: {condition: service_started}
 
   api:
-    cpus: ${COYOTE3_API_CPU_LIMIT:-2.0}
-    mem_limit: ${COYOTE3_API_MEM_LIMIT:-2g}
+    cpus: ${COYOTE4_API_CPU_LIMIT:-2.0}
+    mem_limit: ${COYOTE4_API_MEM_LIMIT:-2g}
     <<: [*runtime-defaults, *api-image]
     build:
       context: ../..
       dockerfile: docker/Dockerfile.legacy
       network: host
-      target: coyote3_source_api
+      target: coyote4_source_api
       args:
         PYTHON_BASE_IMAGE: python:3.12-slim-bullseye
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
-        COYOTE3_UID: ${COYOTE3_UID:-10001}
-        COYOTE3_GID: ${COYOTE3_GID:-10001}
+        COYOTE4_UID: ${COYOTE4_UID:-10001}
+        COYOTE4_GID: ${COYOTE4_GID:-10001}
     environment: *app-environment
     volumes: *app-volumes
-    command: python3 -m api.infra.observability.run_service api python3 -m uvicorn api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-1}
+    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-1}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
       interval: 5s
@@ -182,20 +182,20 @@ services:
       redis: {condition: service_healthy}
 
   worker:
-    cpus: ${COYOTE3_WORKER_CPU_LIMIT:-2.0}
-    mem_limit: ${COYOTE3_WORKER_MEM_LIMIT:-2g}
+    cpus: ${COYOTE4_WORKER_CPU_LIMIT:-2.0}
+    mem_limit: ${COYOTE4_WORKER_MEM_LIMIT:-2g}
     <<: [*runtime-defaults, *api-image]
     environment:
       <<: *app-environment
       LOG_SERVICE_NAME: worker
     volumes: *app-volumes
-    command: python3 -m api.infra.observability.run_service worker celery -A api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
       redis: {condition: service_healthy}
 
   beat:
-    cpus: ${COYOTE3_BEAT_CPU_LIMIT:-0.25}
-    mem_limit: ${COYOTE3_BEAT_MEM_LIMIT:-256m}
+    cpus: ${COYOTE4_BEAT_CPU_LIMIT:-0.25}
+    mem_limit: ${COYOTE4_BEAT_MEM_LIMIT:-256m}
     <<: [*runtime-defaults, *api-image]
     # Beat is a single-process scheduler and does not require a /dev/shm mount.
     ipc: none
@@ -203,19 +203,19 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: beat
     volumes: *app-volumes
-    command: python3 -m api.infra.observability.run_service beat celery -A api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
+    command: python3 -m coyote_api.infra.observability.run_service beat celery -A coyote_api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
       redis: {condition: service_healthy}
 
   monitor:
-    cpus: ${COYOTE3_MONITOR_CPU_LIMIT:-0.5}
-    mem_limit: ${COYOTE3_MONITOR_MEM_LIMIT:-512m}
+    cpus: ${COYOTE4_MONITOR_CPU_LIMIT:-0.5}
+    mem_limit: ${COYOTE4_MONITOR_MEM_LIMIT:-512m}
     <<: [*runtime-defaults, *api-image]
     environment:
       <<: *app-environment
       LOG_SERVICE_NAME: monitor
     volumes: *app-volumes
-    command: python3 -m api.app.monitor
+    command: python3 -m coyote_api.app.monitor
 
   redis:
     <<: *runtime-defaults
@@ -236,14 +236,14 @@ services:
   proxy:
     <<: *runtime-defaults
     image: nginx:1.27-alpine
-    ports: ["${COYOTE3_PORT:-5815}:8088"]
+    ports: ["${COYOTE4_PORT:-5815}:8088"]
     command: ["sh", "-c", "sh /etc/nginx/render-config.sh && nginx -g 'daemon off;'"]
     environment:
       SCRIPT_NAME: ${SCRIPT_NAME:-}
-      COYOTE3_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
-      COYOTE3_NGINX_API_UPSTREAM: http://api:8001
-      COYOTE3_NGINX_DOCS_UPSTREAM: http://docs:8080
-      COYOTE3_NGINX_PUBLIC_SCHEME: ${COYOTE3_NGINX_PUBLIC_SCHEME:-http}
+      COYOTE4_NGINX_FRONTEND_UPSTREAM: http://frontend:3000
+      COYOTE4_NGINX_API_UPSTREAM: http://api:8001
+      COYOTE4_NGINX_DOCS_UPSTREAM: http://docs:8080
+      COYOTE4_NGINX_PUBLIC_SCHEME: ${COYOTE4_NGINX_PUBLIC_SCHEME:-http}
     volumes:
       - ../compose/nginx/render-config.sh:/etc/nginx/render-config.sh:ro
       - ../compose/nginx/error-pages:/etc/nginx/error-pages:ro
@@ -258,5 +258,5 @@ volumes:
 
 networks:
   app:
-    name: ${COYOTE3_APP_NETWORK:?COYOTE3_APP_NETWORK is required}
+    name: ${COYOTE4_APP_NETWORK:?COYOTE4_APP_NETWORK is required}
     external: true

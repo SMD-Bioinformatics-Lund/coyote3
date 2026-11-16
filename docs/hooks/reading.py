@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Attach explicit task navigation without changing documentation page URLs."""
 
 from pathlib import Path

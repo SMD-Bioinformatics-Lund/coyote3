@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Verify clinical audit chains and optionally compare an independently retained checkpoint."""
 
 import argparse
@@ -11,14 +14,15 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from coyote_mongo.audit_checkpoints import archive_checkpoint  # noqa: E402
+from coyote_mongo.config.collections import load_collection_section  # noqa: E402
+from coyote_mongo.config.endpoints import mongo_uri  # noqa: E402
+from coyote_mongo.config.operational_collections import (  # noqa: E402
+    get_audit_events_collection_name,  # noqa: E402
+)
+from coyote_mongo.repositories.audit_integrity import verify_chain  # noqa: E402
 from pymongo import MongoClient  # noqa: E402
 from pymongo.errors import PyMongoError  # noqa: E402
-
-from api.config.collections import load_collection_section  # noqa: E402
-from api.config.mongo import mongo_uri  # noqa: E402
-from api.config.security import get_audit_events_collection_name  # noqa: E402
-from api.infra.mongo.repositories.audit_integrity import verify_chain  # noqa: E402
-from api.infra.observability.audit_checkpoints import archive_checkpoint  # noqa: E402
 
 
 def main() -> int:

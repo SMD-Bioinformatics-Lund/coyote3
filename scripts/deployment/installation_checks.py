@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Read-only installation gates used by the deployment shell orchestrator."""
 
 import argparse
@@ -5,12 +8,11 @@ import logging
 import os
 from contextlib import ExitStack
 
+from coyote_mongo.config.collections import load_collection_section
+from coyote_mongo.config.endpoints import MONGO_SERVICES, MongoEndpoint, mongo_endpoints
+from coyote_mongo.runtime_roles import verify_runtime_audit_permissions
 from pydantic import ValidationError
 from pymongo import MongoClient
-
-from api.config.collections import load_collection_section
-from api.config.mongo import MONGO_SERVICES, MongoEndpoint, mongo_endpoints
-from api.infra.security.mongo_roles import verify_runtime_audit_permissions
 
 
 def has_documents(database) -> bool:
@@ -65,11 +67,16 @@ def installation_state(primary, identity) -> str:
 
 def validate_configuration() -> None:
     """Validate mounted center definitions without connecting to any database."""
-    from api.config.contact import load_contact_config
-    from api.config.paths import CONTACT_CONFIG_PATH
-    from api.config.report_presentation import load_report_presentation
-    from coyote3.config.clinical_vocabulary import load_clinical_vocabulary
-    from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
+    from coyote_api.config.bootstrap import configure_center_from_environment
+
+    # Select the host profile before any vocabulary-dependent module freezes it.
+    configure_center_from_environment()
+
+    from coyote.config.clinical_vocabulary import load_clinical_vocabulary
+    from coyote.config.loaders.filter_flags import load_filter_flag_metadata
+    from coyote_api.config.contact import load_contact_config
+    from coyote_api.config.paths import CONTACT_CONFIG_PATH
+    from coyote_api.config.report_presentation import load_report_presentation
 
     load_clinical_vocabulary()
     load_filter_flag_metadata()
@@ -147,7 +154,8 @@ def check_indexes(*, require_present: bool = False, scope: str = "application") 
     Raises:
         ValueError: Indexes conflict, or required indexes remain missing after application.
     """
-    from api.infra.mongo.index_management import build_index_plan
+    from coyote_mongo.index_management import build_index_plan
+
     from scripts.database.manage_mongo_indexes import _adapter
 
     adapter = _adapter(scope)

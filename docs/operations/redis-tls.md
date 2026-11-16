@@ -19,14 +19,14 @@ hostname. Run this once on a trusted administrator machine with OpenSSL installe
 the repository. These commands create new keys; do not rerun them over existing keys.
 
 ```bash
-mkdir -p "$HOME/.local/share/coyote3/redis-ca"
-chmod 700 "$HOME/.local/share/coyote3/redis-ca"
+mkdir -p "$HOME/.local/share/coyote4/redis-ca"
+chmod 700 "$HOME/.local/share/coyote4/redis-ca"
 (
-  cd "$HOME/.local/share/coyote3/redis-ca" || exit 1
+  cd "$HOME/.local/share/coyote4/redis-ca" || exit 1
   umask 077
   openssl genrsa -aes256 -out ca.key 4096
   openssl req -x509 -new -sha256 -days 3650 -key ca.key -out ca.crt \
-    -subj '/CN=Coyote3 production Redis CA' \
+    -subj '/CN=Coyote4 production Redis CA' \
     -addext 'basicConstraints=critical,CA:TRUE' \
     -addext 'keyUsage=critical,keyCertSign,cRLSign'
   openssl genrsa -out server.key 3072
@@ -58,11 +58,11 @@ the base stack and runs with networking disabled.
 ```bash
 redis_tls_uid=$(docker run --rm --network none --entrypoint id redis:7.4.3 -u redis)
 redis_tls_gid=$(docker run --rm --network none --entrypoint id redis:7.4.3 -g redis)
-sudo install -d -m 750 -o root -g "$redis_tls_gid" /etc/coyote3/redis-tls
-sudo install -m 644 "$HOME/.local/share/coyote3/redis-ca/ca.crt" /etc/coyote3/redis-tls/ca.crt
-sudo install -m 644 "$HOME/.local/share/coyote3/redis-ca/server.crt" /etc/coyote3/redis-tls/server.crt
+sudo install -d -m 750 -o root -g "$redis_tls_gid" /etc/coyote4/redis-tls
+sudo install -m 644 "$HOME/.local/share/coyote4/redis-ca/ca.crt" /etc/coyote4/redis-tls/ca.crt
+sudo install -m 644 "$HOME/.local/share/coyote4/redis-ca/server.crt" /etc/coyote4/redis-tls/server.crt
 sudo install -m 600 -o "$redis_tls_uid" -g "$redis_tls_gid" \
-  "$HOME/.local/share/coyote3/redis-ca/server.key" /etc/coyote3/redis-tls/server.key
+  "$HOME/.local/share/coyote4/redis-ca/server.key" /etc/coyote4/redis-tls/server.key
 ```
 
 For rootless Docker or user-namespace remapping, use the mapped host Redis identity for
@@ -71,7 +71,7 @@ ownership instead. Do not make the private key world-readable to work around acc
 Add this setting to your **production** environment file:
 
 ```dotenv
-COYOTE3_REDIS_TLS_DIR=/etc/coyote3/redis-tls
+COYOTE4_REDIS_TLS_DIR=/etc/coyote4/redis-tls
 ```
 
 Keep the existing `REDIS_PASSWORD`. The overlay supplies the verified `rediss://` URLs
@@ -80,14 +80,14 @@ and key only into Redis. Do not commit certificates, private keys or environment
 Missing source files fail deployment instead of creating empty host directories.
 
 For the production installer, include the overlay in its Compose selection (plus any
-other normal production installer options). Replace `coyote3-prod` below with your existing
+other normal production installer options). Replace `coyote4-prod` below with your existing
 production Compose project name and use that same name for every command; changing it
 selects a different stack and different project-scoped volumes.
 
 ```bash
 ./scripts/deployment/install_center.sh \
   --env-file /path/to/production.env \
-  --project coyote3-prod \
+  --project coyote4-prod \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.redis-tls.yml
 ```
@@ -97,7 +97,7 @@ For subsequent production Compose commands:
 ```bash
 ./scripts/deployment/compose-with-version.sh \
   --env-file /path/to/production.env \
-  -p coyote3-prod \
+  -p coyote4-prod \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.redis-tls.yml \
   up -d
@@ -114,7 +114,7 @@ After starting production, check the authenticated TLS connection:
 ```bash
 ./scripts/deployment/compose-with-version.sh \
   --env-file /path/to/production.env \
-  -p coyote3-prod \
+  -p coyote4-prod \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.redis-tls.yml \
   exec -T redis redis-cli --tls --cacert /run/redis-tls/ca.crt --sni redis -h redis ping
@@ -134,7 +134,7 @@ so bind mounts use the new files.
 Redis persistence remains on the existing data volume. Check the certificate expiry with:
 
 ```bash
-openssl x509 -in /etc/coyote3/redis-tls/server.crt -noout -dates
+openssl x509 -in /etc/coyote4/redis-tls/server.crt -noout -dates
 ```
 
 The base configuration continues to use authenticated plaintext on its private network.

@@ -41,7 +41,7 @@ Have the following available before proceeding:
   who can prepare them with the configured container UID/GID.
 
 Install missing prerequisites before continuing. Use the instructions for the
-host's operating system; installing software is separate from configuring Coyote3.
+host's operating system; installing software is separate from configuring Coyote4.
 
 The normal installer builds and installs the application wheel inside Docker.
 No host virtual environment, prebuilt SDK wheel or `.release/sdk` directory is
@@ -106,11 +106,11 @@ required values and exact defaults. `COYOTE_ENV_FILE` and `COYOTE_PROJECT` below
 are shell helper variables selecting the file and existing deployment name.
 
 Select a private persistent location outside the application checkout. The following
-examples use `/srv/coyote3/config` and the Compose project name `coyote3-prod`:
+examples use `/srv/coyote/config` and the Compose project name `coyote4-prod`:
 
 ```bash
-COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
-COYOTE_PROJECT="coyote3-prod"
+COYOTE_ENV_FILE="/srv/coyote/config/production.env"
+COYOTE_PROJECT="coyote4-prod"
 ```
 
 If the selected environment file does not exist, copy the template once:
@@ -134,7 +134,7 @@ COYOTE_COMPOSE_OVERLAYS=()
 ```
 
 Production Redis TLS is optional. If selected, complete the
-[certificate procedure](../operations/redis-tls.md), set `COYOTE3_REDIS_TLS_DIR` in
+[certificate procedure](../operations/redis-tls.md), set `COYOTE4_REDIS_TLS_DIR` in
 the production environment file, and add its overlay:
 
 ```bash
@@ -153,13 +153,13 @@ Set or confirm these values in the selected environment file:
 | Settings | Required decision |
 | --- | --- |
 | `ENV_NAME` | Use `production` for the production image and runtime profile. |
-| Four MongoDB URI settings | Set `COYOTE3_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE3_MONGO_URI`. Unauthenticated database connections produce a warning and do not block installation. Application authentication remains required. |
-| Four database names | Set `COYOTE3_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`; the selected namespaces must not overlap on the same endpoint. |
+| Four MongoDB URI settings | Set `COYOTE4_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE4_MONGO_URI`. Unauthenticated database connections produce a warning and do not block installation. Application authentication remains required. |
+| Four database names | Set `COYOTE4_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`; the selected namespaces must not overlap on the same endpoint. |
 | Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values of at least 16 characters. Redis accepts letters, digits, underscores and hyphens. |
-| `COYOTE3_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
-| `COYOTE3_DATA_HOST_ROOT`, `COYOTE3_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
-| `COYOTE3_UID`, `COYOTE3_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. Host-run API/worker commands inherit it; Compose sets the container path automatically. |
+| `COYOTE4_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
+| `COYOTE4_DATA_HOST_ROOT`, `COYOTE4_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
+| `COYOTE4_UID`, `COYOTE4_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
+| `COYOTE4_CENTER_CONFIG_HOST_DIR` | Absolute directory containing the three center files described in **step 4**. Host-run API/worker commands inherit it; Compose sets the container path automatically. |
 | `ORGANIZATION_NAME`, `LOCAL_TIME_ZONE` | Center identity and timezone. |
 | Authentication and email | Select the intended authentication providers and configure SMTP before relying on email delivery. |
 
@@ -169,11 +169,11 @@ the database names and cookie name explicitly, for example:
 
 ```dotenv
 ENV_NAME='production'
-COYOTE3_DB='coyote3_prod'
-IDENTITY_DB='coyote3_identity_prod'
-KNOWLEDGEBASE_DB='coyote3_knowledgebases'
+COYOTE4_DB='coyote4_prod'
+IDENTITY_DB='coyote4_identity_prod'
+KNOWLEDGEBASE_DB='coyote4_knowledgebases'
 BAM_DB='bam_prod'
-API_SESSION_COOKIE_NAME='coyote3_prod_api_session'
+API_SESSION_COOKIE_NAME='coyote4_prod_api_session'
 ```
 
 Use the center's actual reviewed names, not these examples, when databases already
@@ -183,39 +183,39 @@ MongoDB stack, copy the same names into its separate server environment file.
 For direct access through the included proxy on this local machine:
 
 ```dotenv
-COYOTE3_PORT='6802'
-SCRIPT_NAME='/coyote3'
+COYOTE4_PORT='6802'
+SCRIPT_NAME='/coyote4'
 PUBLIC_BASE_URL='http://localhost:6802'
-COYOTE3_NGINX_PUBLIC_SCHEME='http'
+COYOTE4_NGINX_PUBLIC_SCHEME='http'
 ```
 
-This configuration serves **http://localhost:6802/coyote3/**.
-`PUBLIC_BASE_URL` is the origin; do not include `/coyote3` in it.
+This configuration serves **http://localhost:6802/coyote4/**.
+`PUBLIC_BASE_URL` is the origin; do not include `/coyote4` in it.
 `SCRIPT_NAME` supplies that path prefix. Use `SCRIPT_NAME=''` to serve at `/`.
 
 **The included proxy listens on HTTP.** Setting
-`COYOTE3_NGINX_PUBLIC_SCHEME='https'` changes forwarded scheme information and
+`COYOTE4_NGINX_PUBLIC_SCHEME='https'` changes forwarded scheme information and
 security headers; it does not install a certificate or enable a TLS listener.
 Do not use `https://localhost:6802` for the direct HTTP port.
 
 For a center-facing HTTPS deployment, first provision the center's TLS ingress
 with its certificate and route it to the application's HTTP proxy. Then set
-`PUBLIC_BASE_URL` to the external HTTPS origin and `COYOTE3_NGINX_PUBLIC_SCHEME`
+`PUBLIC_BASE_URL` to the external HTTPS origin and `COYOTE4_NGINX_PUBLIC_SCHEME`
 to `https`. The browser uses that external origin and `SCRIPT_NAME`, not the
 internal HTTP listener. Select the actual ingress trust settings for that topology.
 
 ## 4. Prepare the center configuration directory
 
 Create the directory selected by
-`COYOTE3_CENTER_CONFIG_HOST_DIR` and copy only missing example files. Substitute
+`COYOTE4_CENTER_CONFIG_HOST_DIR` and copy only missing example files. Substitute
 the reviewed absolute directory in this command:
 
 ```bash
-COYOTE_CENTER_DIR="/srv/coyote3/config/center"
+COYOTE_CENTER_DIR="/srv/coyote/config/center"
 mkdir -p "$COYOTE_CENTER_DIR"
 for name in contact.toml clinical_vocabulary.toml filter_flag_metadata.yaml; do
   if [ ! -f "$COYOTE_CENTER_DIR/$name" ]; then
-    cp "config/examples/center/$name" "$COYOTE_CENTER_DIR/$name"
+    cp "api/src/coyote_api/config/examples/center/$name" "$COYOTE_CENTER_DIR/$name"
   fi
 done
 ```
@@ -274,10 +274,10 @@ and Docker firewall rules. Choose a subnet that does not overlap the host, VPN o
 other application networks. Compose does not create an external network automatically:
 
 ```bash
-if ! docker network inspect "$COYOTE3_APP_NETWORK" >/dev/null 2>&1; then
-  docker network create --driver bridge "$COYOTE3_APP_NETWORK"
+if ! docker network inspect "$COYOTE4_APP_NETWORK" >/dev/null 2>&1; then
+  docker network create --driver bridge "$COYOTE4_APP_NETWORK"
 fi
-docker network inspect "$COYOTE3_APP_NETWORK" --format '{{.Name}} {{.Driver}}'
+docker network inspect "$COYOTE4_APP_NETWORK" --format '{{.Name}} {{.Driver}}'
 ```
 
 The final command must show the configured name and `bridge`. If the center
@@ -316,12 +316,12 @@ when the API image is used in **step 8**.
 
 | Directory | Required state before application startup |
 | --- | --- |
-| `COYOTE3_DATA_HOST_ROOT` | Created by storage preparation if missing; writable by the container UID/GID. |
-| `<data root>/coyote3_prod/reports` | Created automatically. |
-| `<data root>/coyote3_prod/ingest_staging` | Created automatically. |
-| `<data root>/coyote3_prod/copied_sample_files/yaml` | Created automatically, including parents. |
-| `COYOTE3_LOGS_HOST_ROOT` | Created automatically; service log and spool subdirectories are created at runtime. |
-| `COYOTE3_CENTER_CONFIG_HOST_DIR` | Already contains the three reviewed files from **step 4**. |
+| `COYOTE4_DATA_HOST_ROOT` | Created by storage preparation if missing; writable by the container UID/GID. |
+| `<data root>/coyote4_prod/reports` | Created automatically. |
+| `<data root>/coyote4_prod/ingest_staging` | Created automatically. |
+| `<data root>/coyote4_prod/copied_sample_files/yaml` | Created automatically, including parents. |
+| `COYOTE4_LOGS_HOST_ROOT` | Created automatically; service log and spool subdirectories are created at runtime. |
+| `COYOTE4_CENTER_CONFIG_HOST_DIR` | Already contains the three reviewed files from **step 4**. |
 | Additional pipeline input directories | Already contain real pipeline files if mounted through a center override. |
 | Database and backup storage | Provisioned separately; application preparation does not manage it. |
 
@@ -329,8 +329,8 @@ Existing files, ownership and permissions are retained. If a protected parent
 prevents creation, an authorized host administrator can create the two roots:
 
 ```bash
-sudo install -d -o "$COYOTE3_UID" -g "$COYOTE3_GID" -m 0750 "$COYOTE3_DATA_HOST_ROOT"
-sudo install -d -o "$COYOTE3_UID" -g "$COYOTE3_GID" -m 0750 "$COYOTE3_LOGS_HOST_ROOT"
+sudo install -d -o "$COYOTE4_UID" -g "$COYOTE4_GID" -m 0750 "$COYOTE4_DATA_HOST_ROOT"
+sudo install -d -o "$COYOTE4_UID" -g "$COYOTE4_GID" -m 0750 "$COYOTE4_LOGS_HOST_ROOT"
 ```
 
 If the deploying account cannot create or assign directories for that UID/GID,
@@ -443,12 +443,12 @@ Fresh reference installation uses the configured knowledgebase connection or the
 maintenance URI from **step 6**, targeting the same endpoint and logical database.
 Existing deployments skip initial data operations completely.
 
-Fresh targets create the fixed local logins `coyote3.sysadmin` (`sys_admin`) and
-`coyote3.superuser` (`superuser`). Bootstrap generates separate temporary passwords
+Fresh targets create the fixed local logins `coyote4.sysadmin` (`sys_admin`) and
+`coyote4.superuser` (`superuser`). Bootstrap generates separate temporary passwords
 and displays them once in a terminal table after account creation. Both accounts
 require a password change at first sign-in. Existing accounts are not renamed or
 reset, and their passwords are never redisplayed. Contact emails default to
-`sysadmin@coyote3.invalid` and `superuser@coyote3.invalid`; set real distinct contact
+`sysadmin@coyote4.invalid` and `superuser@coyote4.invalid`; set real distinct contact
 addresses with the email options. Protect installer output containing the passwords.
 
 For later additions or forced repairs, run `scripts/deployment/manage_data.py` with
@@ -462,8 +462,8 @@ password change and signs in again before adding data. The service checks the
 | `--project NAME` | Required Compose project name; retain the existing name for redeployment. |
 | `--compose-file FILE` | Required; repeat for overlays in precedence order. |
 | `--setup-center` | Complete first-center setup, also the default stage selection. Fresh installation includes users, catalogs, bundled references and demos. Preserves existing deployments. Cannot combine with `--steps`. |
-| `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote3.sysadmin`. |
-| `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote3.superuser`. |
+| `--sys-admin-email EMAIL` | Optional initial system-administrator contact address. Login is fixed to `coyote4.sysadmin`. |
+| `--email EMAIL` | Optional initial superuser contact address. Login is fixed to `coyote4.superuser`. |
 | `--knowledgebase-maintenance-uri-file FILE` | Optional private URI file for fresh knowledgebase installation or selected knowledgebase indexes. Does not affect later API data maintenance. Protect it with restricted filesystem permissions. |
 | `--identity-maintenance-uri-file FILE` | Explicit restricted runtime-role upgrade before validation, using a separate maintenance connection. It does not enable MongoDB authorization or create passwords. |
 | `--skip-demo` | Disable the otherwise included connected DNA/RNA starter configuration and samples. |
@@ -495,8 +495,8 @@ for the complete group inventory, exact query-rule conditions, optional demo ass
 diagnoses, gene lists, report rules and default role responsibilities.
 
 The image packages the shared `factory_defaults.toml` catalog
-under `src/coyote3/config/`, collection mappings at `api/config/collections.toml`,
-and installation criteria at `api/bootstrap/catalogs/reference/clinical_query_seed.toml`.
+under `core/src/coyote/config/`, collection mappings at `adapters/mongo/src/coyote_mongo/config/collections.toml`,
+and installation criteria at `api/src/coyote_api/bootstrap/catalogs/reference/clinical_query_seed.toml`.
 These are application-owned; do not copy them into the editable center directory.
 
 Fresh bootstrap installs system permissions and roles, one named `sys_admin`, one
@@ -515,7 +515,7 @@ Use **step 10** only for manual index inspection or troubleshooting.
 ## 9. Start services and verify the browser URL
 
 The installer starts services and checks routes through the local proxy's published
-port (`COYOTE3_PORT`) before reporting success and displays it as **Local application**.
+port (`COYOTE4_PORT`) before reporting success and displays it as **Local application**.
 The separately labelled **Public application** address comes from `PUBLIC_BASE_URL`;
 for direct localhost access, use the same port in both
 settings. External HTTPS ingress and DNS require separate browser verification.
@@ -541,15 +541,15 @@ curl --fail --show-error --output /dev/null "$COYOTE_BROWSER_URL/"
 printf 'Open %s/ in the browser\n' "$COYOTE_BROWSER_URL"
 ```
 
-For the local values in **step 3**, open **http://localhost:6802/coyote3/**.
-Documentation is served at **http://localhost:6802/coyote3/docs-site/**.
+For the local values in **step 3**, open **http://localhost:6802/coyote4/**.
+Documentation is served at **http://localhost:6802/coyote4/docs-site/**.
 A running container does not imply that the published port supports HTTPS.
 
 | Symptom | Check and next action |
 | --- | --- |
 | HTTPS fails but HTTP works | The direct listener is HTTP. Use the HTTP URL or provision a separate TLS ingress; changing the public scheme variable alone does not enable TLS. |
 | Connection refused | Confirm `proxy` is running and `ps` shows the configured host port published to port `8088`. Read startup errors before retrying. |
-| `/` returns 404 while `/coyote3` works | A nonempty `SCRIPT_NAME` requires that prefix in the browser URL. |
+| `/` returns 404 while `/coyote4` works | A nonempty `SCRIPT_NAME` requires that prefix in the browser URL. |
 | Page loads but assets or API calls return 404 | Confirm `SCRIPT_NAME`, reload the environment, then rebuild and recreate services using the commands below. |
 | Proxy returns 502 or API is unhealthy | Inspect API and proxy logs and resolve the reported dependency or configuration failure. |
 
@@ -589,7 +589,7 @@ clinical samples; do not retire an existing index without reviewing its purpose.
 
 ## 11. Complete first sign-in
 
-Sign in separately with each initial account. Coyote3 redirects to `/change-password`
+Sign in separately with each initial account. Coyote4 redirects to `/change-password`
 before opening the workspace. Enter the current temporary password, a new password,
 and its confirmation. The new password must differ from the current one and contain
 at least 10 characters, including uppercase, lowercase, a number, and a symbol.
@@ -671,7 +671,7 @@ read -rsp "MongoDB backup URI reachable from the backup container: " MONGO_BACKU
 printf '\n'
 bash scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" --out-dir "$COYOTE_BACKUP_DIR" \
-  --label initial-installation --docker-network "$COYOTE3_APP_NETWORK"
+  --label initial-installation --docker-network "$COYOTE4_APP_NETWORK"
 unset MONGO_BACKUP_URI
 ```
 

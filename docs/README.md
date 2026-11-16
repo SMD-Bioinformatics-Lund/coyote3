@@ -1,61 +1,58 @@
-# Coyote3 documentation
+# Coyote4 documentation
 
-Choose the task you need to complete. The guides below give its steps and checks.
+<!-- badges:start -->
+![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
+<!-- badges:end -->
+
+These guides describe the complete application: clinical workflows, administration,
+deployment, operations and integration between components. Library and frontend
+interfaces are documented in their own package guides below.
 
 ## Start with a task
 
-<nav class="docs-task-start" aria-label="Choose a task" markdown="1">
+<div class="docs-task-start" markdown="1">
 
-- <span id="review-and-report-a-sample"></span>**[Review and report a sample](user-guide/clinical-review-workflow.md).**
-  Find a sample, review its results and save a report.
-- <span id="configure-an-assay"></span>**[Set up an assay](administration/assay-setup.md#step-by-step-add-a-new-assay).**
-  Prepare its configuration and verify it with a validation sample.
-- <span id="install-or-operate-coyote3"></span>**[Install, update or restart Coyote3](deployment/production-deployment.md).**
-  Choose the procedure for a new or existing installation.
-- <span id="connect-a-pipeline-or-python-application"></span>**[Connect a pipeline](api/authentication.md).**
-  Arrange access, prepare sample files and submit them to Coyote3.
-- <span id="develop-coyote3"></span>**[Develop Coyote3](getting-started/developer-environment.md).**
-  Prepare the development environment, make a change and verify it.
-- <span id="investigate-a-problem"></span>**[Get help with a problem](operations/troubleshooting.md).**
-  Investigate service failures. For missing sample results, use
-  [sample readiness](user-guide/sample-readiness-and-missing-results.md).
+- **[Review and report a sample](user-guide/clinical-review-workflow.md):** check findings, save your interpretation and issue a report.
+- **[Configure an assay](administration/assay-setup.md#step-by-step-add-a-new-assay):** prepare its settings, activate them and check a validation sample.
+- **[Try Coyote4 locally](getting-started/local-quickstart.md):** start an application with synthetic starter data.
+- **[Install at a center](deployment/first-installation.md):** prepare services, baseline data and the initial account.
+- **Update an existing installation:** [upgrade the release](deployment/application-upgrades.md) or [restart the same release](deployment/application-redeployment.md).
+- **Connect a pipeline:** [arrange authentication](api/authentication.md), then [submit and track samples](api/sample-ingestion.md).
+- **[Change the code](getting-started/developer-environment.md):** prepare a local development environment.
+- **Investigate a problem:** use [service troubleshooting](operations/troubleshooting.md) or [missing sample results](user-guide/sample-readiness-and-missing-results.md).
 
-</nav>
+</div>
 
-For evaluation with demonstration data, use the [local quickstart](getting-started/local-quickstart.md).
+Follow the numbered steps in the selected guide. You do not need to read the
+whole manual. The sidebar puts those procedures first; supporting references
+are one group below them. Search is useful when you already know a field or screen name.
 
-## Browse the documentation tree
+## Terms used in the guides
 
-The sidebar puts common actions first. The reference groups contain field
-definitions, examples, architecture and other supporting material. Use
-[How to use this manual](getting-started/README.md) if you are unsure which kind
-of guide you need.
+| Term | Meaning |
+| --- | --- |
+| Assay / ASP | The physical assay definition |
+| Assay configuration / ASPC | Analysis and reporting settings for an assay, diagnosis and environment |
+| Gene list / ISGL | A versioned list selected by a configuration or sample filter |
+| Query rule | A condition used to select findings |
+| Reporting rule | A condition and text used to suggest report wording |
+| Report template | The HTML/PDF layout supplied by `smd-reports` |
 
-## Frequently used references
+For exact fields, open the [configuration reference](configuration/README.md),
+[sample input formats](reference/ingest-files/README.md) or
+[collection contracts](reference/mongodb-collections.md). These are lookup material,
+not additional steps in every workflow.
 
-<details markdown="1">
-<summary>Look up a specific concept or field</summary>
+See [clinical concepts](reference/clinical-concepts.md) for detailed definitions,
+and [writing documentation](development/writing-documentation.md) for contribution guidance.
 
-- [Samples and clinical review](user-guide/sample-management.md)
-- [Assays, configurations, and gene lists](user-guide/gene-lists-and-assay-context.md)
-- [Assay groups](administration/assay-groups.md) and [diagnoses](administration/assay-diagnoses.md)
-- [Report preview and save](user-guide/application-guide.md#reports)
-- [Raw ingest files and examples](reference/ingest-files/README.md)
-- [Clinical concepts and resource identities](reference/clinical-concepts.md): ASP,
-  ASPC, ISGL, samples, cases, findings, and reports.
-- [Clinical reporting rules](reference/clinical-reporting-rules.md): rule syntax,
-  scope selection, validation, and publication.
-- [MongoDB collection contracts](reference/mongodb-collections.md): generated field
-  definitions used by collection validation.
-- [Permission catalog](administration/permission-catalog.md): generated identifiers
-  and capabilities installed with the application.
-- [Center configuration files](deployment/center-configuration.md): supported
-  center-owned files and settings.
+## Package guides
 
-</details>
+- [Clinical core](../core/docs/README.md): trusted in-process clinical operations.
+- [API and workers](../api/docs/README.md): HTTP handling and host composition.
+- [MongoDB adapter](../adapters/mongo/docs/README.md): persistence and transactions.
+- [Python HTTP client](../clients/python/docs/README.md): remote integration.
+- [Frontend](../frontend/docs/README.md): browser application development.
 
-## Documentation sources and site support
-
-Documentation is maintained alongside the application source. Contribution standards,
-site configuration, and validation commands are defined in
-[Writing documentation](development/writing-documentation.md).
+The [packaging decision](architecture/decisions/0004-installable-application-packages.md)
+explains the boundaries, artifact benefits and maintenance costs.

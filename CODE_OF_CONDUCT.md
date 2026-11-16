@@ -2,7 +2,7 @@
 
 ## Our commitment
 
-Coyote3 contributors and maintainers are committed to a respectful, professional, and inclusive collaboration environment.
+Coyote4 contributors and maintainers are committed to a respectful, professional, and inclusive collaboration environment.
 
 All participants are expected to communicate constructively, review responsibly, and prioritize patient-safety-oriented engineering quality.
 
@@ -49,4 +49,4 @@ All reports will be reviewed and handled as confidentially as practical.
 
 ## Scope
 
-This Code of Conduct applies to all project collaboration spaces, including issues, pull requests, reviews, and team communication channels related to Coyote3.
+This Code of Conduct applies to all project collaboration spaces, including issues, pull requests, reviews, and team communication channels related to Coyote4.

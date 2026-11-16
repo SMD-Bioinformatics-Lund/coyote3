@@ -3,7 +3,7 @@
 For the directory layout, sample manifest, analysis formats and offline mongomock
 replay, see the [demo data bundle reference](demo-data-bundle.md).
 
-The `demo_data/clinical_workflows/` bundle provides
+The `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/` bundle provides
 raw pipeline files and matching database examples for ingest, query policies,
 filters, classification, comments and reporting. Use an isolated demonstration
 deployment. It contains artificial evidence, including intentionally mismatched
@@ -124,7 +124,7 @@ ingest service must already be available.
 
 ## 3. Validate and ingest the raw files
 
-The bundle is at `demo_data/clinical_workflows/`. Copy the entire directory to a
+The bundle is at `api/src/coyote_api/bootstrap/demo_data/clinical_workflows/`. Copy the entire directory to a
 private working directory before uploading: the submission tool acknowledges
 successful manifests, so the tracked originals should remain unchanged.
 
@@ -141,8 +141,8 @@ a design BED supplies an optional target track. See
 [alignment resources](../reference/ingest-files/images-and-alignments.md).
 
 ```bash
-DEMO_WORK="$(mktemp -d /tmp/coyote3-demo.XXXXXX)"
-cp -R demo_data/clinical_workflows/. "$DEMO_WORK/"
+DEMO_WORK="$(mktemp -d /tmp/coyote4-demo.XXXXXX)"
+cp -R api/src/coyote_api/bootstrap/demo_data/clinical_workflows/. "$DEMO_WORK/"
 for manifest in "$DEMO_WORK"/manifests/*.yaml; do
   .venv/bin/python scripts/ingest/validate_ingest_spec.py \
     --yaml "$manifest" --check-files
@@ -151,13 +151,13 @@ done
 
 Obtain a scoped ingest token using the
 [ingest authentication guide](../api/sample-ingestion.md) and expose it as
-`COYOTE3_INGEST_TOKEN`. Set `COYOTE3_BASE_URL` to the demonstration application URL,
+`COYOTE4_INGEST_TOKEN`. Set `COYOTE4_BASE_URL` to the demonstration application URL,
 including its configured prefix and port. Then upload one sample first:
 
 ```bash
 .venv/bin/python scripts/ingest/submit_ingest_manifest.py \
   "$DEMO_WORK/manifests/demo_myeloid.yaml" \
-  --base-url "$COYOTE3_BASE_URL" --auth ingest
+  --base-url "$COYOTE4_BASE_URL" --auth ingest
 ```
 
 After its terminal success acknowledgement, ingest the remaining manifests in the
@@ -243,11 +243,10 @@ alternative at a time against the matching sample:
 1. `assay_inherit`: inherited conditions remain unchanged and read-only in the
    composition preview; results match the group policy.
 2. `assay_extend`: exclude TP53 at the myeloid assay scope. This also excludes
-   TP53 findings otherwise admitted by germline exceptions. Other assays retain
-   their results.
+   TP53 findings passing the normal shared flow. Other assays retain their results.
 3. `diagnosis_replace`: replace somatic exceptions with an empty list for
    `mpn`. This removes inherited FLT3 extensions; it does not remove the
-   separately composed germline admissions. Base-scope samples remain unchanged.
+   germline policy, which is inactive in shared mode. Base-scope samples remain unchanged.
 4. `nested_logic`: exercise AND, OR and NOT using FLT3/CEBPA and marker predicates
    in the lymphoid assay. Inspect positive and negative condition traces.
 5. Try draft deletion, independent approval, publication and retirement. Drafts

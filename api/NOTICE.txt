@@ -1,0 +1,28 @@
+Coyote4
+Copyright © 2026 Ram Nanduri.
+
+Original developer: Ram Nanduri
+
+Contributors:
+- Viktor Henmyr
+- Sailendra Pradhananga
+
+Affiliation: Sektion för molekylär diagnostik (SMD),
+Section for Molecular Diagnostics, Lund, Region Skåne, Sweden
+
+The first-party Coyote4 application, packages, tooling and documentation are
+licensed under GNU GPL version 3 only (GPL-3.0-only). See LICENSE.txt.
+COPYRIGHT.txt records the copyright-holder attribution, affiliation and
+contributor acknowledgments. Third-party components retain their own terms.
+
+Clinical-use notice
+-------------------
+Coyote4 is software for clinical genomics workflows. Deploying organizations
+are responsible for validating their configured pipelines, assay definitions,
+reporting rules, and operating procedures before using results for clinical
+decision-making. They are also responsible for meeting the applicable
+regulatory, privacy, security, quality-management, and professional-review
+requirements in their jurisdiction.
+
+The software does not provide medical advice and does not replace qualified
+clinical interpretation or local clinical governance.

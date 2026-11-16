@@ -1,33 +1,40 @@
 # Environment file reference
 
 An environment file is a private text file containing deployment settings, one
-`NAME=value` assignment per line. It tells Coyote3 where its databases and files
+`NAME=value` assignment per line. It tells Coyote4 where its databases and files
 are, which browser URL to use, and which credentials authenticate its services.
 It is not a database, Python program, or clinical assay definition.
 
-The filename is chosen by the operator. `.coyote3_env`, `production.env` and
-`/srv/coyote3/config/production.env` are examples, not special filenames. Docker Compose
+The filename is chosen by the operator. `.coyote4_env`, `production.env` and
+`/srv/coyote/config/production.env` are examples, not special filenames. Docker Compose
 uses the file explicitly selected by `--env-file`.
+
+For host-run API and worker processes, export the selected file before startup.
+The host bootstrap also loads `.env` from the runtime root, without replacing
+already exported values. Other private filenames are not discovered automatically.
+The application reads `COYOTE4_*` settings; do not reuse a production v3 environment
+file by changing its filename. Keep the two applications' endpoints and storage separate.
 
 ## Format and examples
 
 ```dotenv
 # Local HTTP example. These three settings combine into the browser URL.
 PUBLIC_BASE_URL='http://localhost:6802'
-SCRIPT_NAME='/coyote3'
-COYOTE3_PORT='6802'
-COYOTE3_NGINX_PUBLIC_SCHEME='http'
+SCRIPT_NAME='/coyote4'
+COYOTE4_PORT='6802'
+COYOTE4_NGINX_PUBLIC_SCHEME='http'
 
 # A directory on the host, not a MongoDB database or browser URL.
-COYOTE3_DATA_HOST_ROOT='/data/coyote3'
+COYOTE4_DATA_HOST_ROOT='/data/coyote4'
 
 # Center files: one host setting for Docker mounts and host-run API/worker commands.
-COYOTE3_CENTER_CONFIG_HOST_DIR='/srv/coyote3/center-config'
+COYOTE4_CENTER_CONFIG_HOST_DIR='/srv/coyote4/center-config'
 ```
 
-This example opens at `http://localhost:6802/coyote3/`. It is only a fragment:
-copy `deploy/env/example.env` for the complete deployment template, then review
-its values. For a center-facing HTTPS URL, a TLS ingress and certificate must
+This example opens at `http://localhost:6802/coyote4/`. It is only a fragment:
+copy `deploy/env/example.env` for the required deployment settings, then review
+its values. Optional tuning settings can be omitted to inherit their maintained
+defaults. For a center-facing HTTPS URL, a TLS ingress and certificate must
 already terminate HTTPS; setting the scheme variable does not enable encryption
 on the application's HTTP listener.
 
@@ -37,7 +44,7 @@ on the application's HTTP listener.
 | Single quotes | Literal text, suitable for spaces and special characters. | `ORGANIZATION_NAME='Molecular Diagnostics'` |
 | `# comment` | An explanation, not a setting. Put comments on separate lines. | `# Production storage` |
 | `NAME=''` | Explicit empty value. This is not always equivalent to omission. | `SCRIPT_NAME=''` serves the root path. |
-| Omitted line | Uses the applicable default, or fails if required. | Omitting `COYOTE3_DB` fails application Compose validation. |
+| Omitted line | Uses the applicable default, or fails if required. | Omitting `COYOTE4_DB` fails application Compose validation. |
 
 Use one assignment per name. Do not put YAML colons, TOML sections, passwords from
 another environment, or shell commands in the file. Guides sometimes load the file
@@ -46,8 +53,8 @@ operator-controlled file. Literal assignments as above work for both Compose and
 these shell commands. Do not print the file or full resolved Compose configuration
 into shared logs: both can contain secrets.
 
-Normally omit `COYOTE3_CENTER_CONFIG_DIR`. Host-run API and worker commands inherit
-`COYOTE3_CENTER_CONFIG_HOST_DIR`; Docker supplies `/app/center-config` inside its
+Normally omit `COYOTE4_CENTER_CONFIG_DIR`. Host-run API and worker commands inherit
+`COYOTE4_CENTER_CONFIG_HOST_DIR`; Docker supplies `/app/center-config` inside its
 containers. Set the process variable only when a different location is required.
 A nonblank process override wins. With neither variable set, bundled examples are
 used; a selected directory with missing required files fails startup.
@@ -55,7 +62,7 @@ used; a selected directory with missing required files fails startup.
 ## Supported keys, requirements and defaults
 
 The normal application build packages the SDK inside Docker. Only the optional
-`deploy/compose/docker-compose.release.yml` overlay uses `COYOTE3_SDK_ARTIFACT_DIR`
+`deploy/compose/docker-compose.release.yml` overlay uses `COYOTE4_SDK_ARTIFACT_DIR`
 to select the tested SDK wheel and `release-record.json`; that overlay defaults to
 the ignored `.release/sdk` directory. See the
 [verified-artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release)
@@ -74,7 +81,7 @@ consumer, not to whatever example was copied into a private file.
 | Runtime-only | Used by a process running directly on the host, or explicitly passed through a private Compose override. Adding it to `--env-file` alone does not inject it into a container. |
 | Wrapper/internal | Calculated by deployment code or wired between services. Do not use it as a center override unless the reference explicitly supports that. |
 
-For example, the template's `COYOTE3_PORT=6801` is an explicit example. The base
+For example, the template's `COYOTE4_PORT=6801` is an explicit example. The base
 production Compose fallback is `5815`; the installation guide explicitly selects `6802`. These are
 three different values with different sources, not competing defaults.
 
@@ -116,7 +123,7 @@ using an empty string to request a default.
 From the repository root:
 
 ```bash
-COYOTE_ENV_FILE="/srv/coyote3/config/production.env"
+COYOTE_ENV_FILE="/srv/coyote/config/production.env"
 bash scripts/deployment/validate_env_secrets.sh --env-file "$COYOTE_ENV_FILE"
 bash scripts/deployment/compose-with-version.sh \
   --env-file "$COYOTE_ENV_FILE" -f deploy/compose/docker-compose.yml config --quiet

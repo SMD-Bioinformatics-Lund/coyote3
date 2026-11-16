@@ -1,6 +1,6 @@
 # Report templates and rendering
 
-DNA and RNA reports use `smd-reports==0.5.3` exclusively. Coyote3 supplies evaluated
+DNA and RNA reports use `smd-reports==0.5.3` exclusively. Coyote4 supplies evaluated
 clinical content as JSON; the package owns HTML, styles, fonts, tables, detail
 cards and pagination. There are no bundled Jinja report templates or layout fallbacks.
 
@@ -10,12 +10,13 @@ cards and pagination. There are no bundled Jinja report templates or layout fall
    and governed clinical rules.
 2. `application/reporting/report_context.py` prepares presentation values.
 3. `application/reporting/smd_input.py` builds the native document contract using
-   the `coyote3` preset. It preserves missing measurements, zero counts, selected
+   the package's `coyote3` preset ID. This is an external renderer identifier;
+   application branding is Coyote4. It preserves missing measurements, zero counts, selected
    fusion calls, notation and reviewed Swedish text. Gene lists use ordered matrix
    items and numbered captions; reference tables use the package's compact style.
 4. `ReportLoader().loads(...)` validates the in-memory JSON document, then
    `ReportRenderer().render_html(...)` produces standalone HTML.
-5. Coyote3 adds its browser content-security policy. Its restricted WeasyPrint
+5. Coyote4 adds its browser content-security policy. Its restricted WeasyPrint
    renderer produces PDF from the same HTML. Saving retains the artifacts,
    finding snapshots and configuration/rule resolution receipt.
 
@@ -24,11 +25,9 @@ Clinical decisions remain in application/domain workflows, outside presentation.
 
 ### Template selection
 
-The canonical identifiers are `smd/dna_report.html` and `smd/report_fusion.html`.
-Earlier identifiers `dna_report.html`, `report_fusion.html` and their `modern/`
-forms remain registered aliases for the corresponding SMD document. All aliases
-for an analyte share the installed renderer's content hash. They never select a
-local file. Wrong-analyte identifiers and arbitrary paths are rejected.
+The only identifiers are `smd/dna_report.html` and `smd/report_fusion.html`.
+Each selects the package-owned document for its analyte. Earlier identifiers,
+wrong-analyte identifiers and arbitrary paths are rejected.
 
 Published configuration profiles capture `template_name` and `content_hash` in
 `template_release`. Rendering verifies both against installed resources. A profile
@@ -36,10 +35,9 @@ approved against a removed bundled template fails validation until its replaceme
 is reviewed and published through the existing governance workflow. It is never
 silently upgraded or treated as already approved.
 
-The API's retained `format=modern` and save field `report_format: modern` identify
-the sole rendering path. `format=legacy`, `report_format: legacy` and SDK
-`layout="legacy"` are rejected. The toolbar has no layout selector. SDK callers
-may omit `layout` or supply `layout="modern"`.
+Reports have one renderer. HTTP requests do not accept a format selector,
+and SDK calls do not accept a layout argument. Integrations can request matching
+HTML/PDF content through `/preview/bundle` without persisting report artifacts.
 
 Actual renderer identity, configuration, presentation values and clinical inputs
 participate in the preview fingerprint. Save requires the reviewed fingerprint.
@@ -61,19 +59,19 @@ confirmation and download flows after API changes.
 The installed package supplies DNA/RNA template versions through
 `smd_reports/themes/versions.json`. Its package and template versions appear in
 report metadata and the PDF footer, independently of the patient report number.
-Coyote3 has no separate report-template manifest or fallback version.
+Coyote4 has no separate report-template manifest or fallback version.
 
-The content hash covers installed package resources and Coyote3's input adapter.
+The content hash covers installed package resources and Coyote4's input adapter.
 Package upgrades and adapter changes require reviewed template configuration
 revisions before clinical rollout. Issued artifacts retain their original versions.
 See [Version identities](../sdk/compatibility.md#version-identities).
 
-### Modern PDF pagination
+### PDF pagination
 
 The package owns A4 geometry, embedded Source Sans 3 fonts, tables, repeating
 patient metadata, continuation headers and page numbering. HTML is a continuous
 preview; PDF adds pagination. Long finding content must remain visible across pages.
-Coyote3 passes compact body-sized bold labels inside the conclusion without changing
+Coyote4 passes compact body-sized bold labels inside the conclusion without changing
 reviewed words. Additional v4 CNV/translocation cards, germline, biomarker and PGx
 content remain available through the package document contract.
 

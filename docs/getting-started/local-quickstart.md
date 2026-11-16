@@ -1,4 +1,4 @@
-# Run Coyote3 locally
+# Run Coyote4 locally
 
 This procedure starts the container-based development stack with the connected
 synthetic DNA and RNA starter samples. It uses the same installer as a normal
@@ -14,8 +14,8 @@ Check access to the existing Docker daemon before continuing.
 ```bash
 git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
 cd coyote3
-cp deploy/env/example.env .coyote3_dev_env
-chmod 600 .coyote3_dev_env
+cp deploy/env/example.env .coyote4_dev_env
+chmod 600 .coyote4_dev_env
 ```
 
 Copy the example only for a new environment; retain existing secrets and settings
@@ -23,7 +23,7 @@ when resuming a local installation.
 
 ## 2. Configure infrastructure and storage
 
-Edit `.coyote3_dev_env`: replace every applicable placeholder secret, select four
+Edit `.coyote4_dev_env`: replace every applicable placeholder secret, select four
 database names with separate namespaces and configure each URI to a writable replica set with its
 intended grants when authentication is enabled. Unauthenticated connections produce
 a warning and do not block the installer. The restricted identity role is needed
@@ -36,14 +36,14 @@ For the URLs below, set:
 
 ```dotenv
 ENV_NAME=development
-COYOTE3_PORT=6801
-SCRIPT_NAME=/coyote3_dev
+COYOTE4_PORT=6801
+SCRIPT_NAME=/coyote4_dev
 PUBLIC_BASE_URL=http://localhost:6801
-COYOTE3_APP_NETWORK=coyote3-dev-app-net
+COYOTE4_APP_NETWORK=coyote4-dev-app-net
 ```
 
 `PUBLIC_BASE_URL` is the origin only. `SCRIPT_NAME` adds the path prefix once.
-Do not append `/coyote3_dev` to both settings. Use a Compose version that supports
+Do not append `/coyote4_dev` to both settings. Use a Compose version that supports
 the development overlay's `!reset` tags; `docker compose config` must parse both
 files before installation.
 
@@ -64,15 +64,15 @@ Run from the checkout after those prerequisites are ready:
 
 ```bash
 bash scripts/deployment/install_center.sh \
-  --env-file .coyote3_dev_env \
-  --project coyote3-dev \
+  --env-file .coyote4_dev_env \
+  --project coyote4-dev \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.dev.yml
 ```
 
 The installer builds images, validates mounted configuration and database/Redis
 connectivity, installs a fresh baseline and starts the stack. It creates a distinct
-`coyote3.superuser` and `coyote3.sysadmin` with separate generated temporary passwords
+`coyote4.superuser` and `coyote4.sysadmin` with separate generated temporary passwords
 displayed once in the terminal, then
 installs application catalogs, bundled references and `DEMO_STARTER_DNA` /
 `DEMO_STARTER_RNA` by default. Creations use `system` provenance.
@@ -89,10 +89,10 @@ host MkDocs installation is required for this procedure.
 
 For the settings above:
 
-- [Application](http://localhost:6801/coyote3_dev/)
-- [API health](http://localhost:6801/coyote3_dev/api/v1/health)
-- [API reference](http://localhost:6801/coyote3_dev/api/v1/docs)
-- [Documentation](http://localhost:6801/coyote3_dev/docs-site/)
+- [Application](http://localhost:6801/coyote4_dev/)
+- [API health](http://localhost:6801/coyote4_dev/api/v1/health)
+- [API reference](http://localhost:6801/coyote4_dev/api/v1/docs)
+- [Documentation](http://localhost:6801/coyote4_dev/docs-site/)
 
 Sign in with an account created during bootstrap and complete its required password
 change. Open both starter samples if demonstration installation was selected.
@@ -110,7 +110,7 @@ Retain the environment, project and both files:
 
 ```bash
 ./scripts/deployment/compose-with-version.sh \
-  --env-file .coyote3_dev_env -p coyote3-dev \
+  --env-file .coyote4_dev_env -p coyote4-dev \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.dev.yml down
 ```
