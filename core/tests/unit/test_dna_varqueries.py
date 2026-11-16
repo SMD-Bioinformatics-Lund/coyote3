@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict, replace
+
 import pytest
 from coyote.config.clinical_query_policy import load_clinical_query_policy
 from coyote.domain.dna.dna_filters import get_filter_conseq_terms
@@ -15,6 +17,51 @@ def _load_snv_policy(path):
         encoding="utf-8",
     )
     return load_clinical_query_policy(path).snv
+
+
+@pytest.mark.parametrize("analysis", ["snv", "cnv", "translocation", "fusion", "pgx"])
+def test_exception_scope_and_mode_preserve_order_for_every_finding_type(tmp_path, analysis):
+    """Rules require every declared scope, while unrestricted rules retain their order."""
+    source = "\n".join(f"[{name}]" for name in ("snv", "cnv", "translocation", "fusion", "pgx"))
+    source += f"""
+[[{analysis}.exceptions]]
+id = "scoped"
+mode = "admit"
+intents = ["somatic"]
+assay_groups = ["hematology"]
+asp_ids = ["synthetic"]
+diagnosis_ids = ["base"]
+genes = ["TP53"]
+
+[[{analysis}.exceptions]]
+id = "unrestricted"
+mode = "admit"
+genes = ["TP53"]
+
+[[{analysis}.exceptions]]
+id = "excluded"
+mode = "exclude"
+genes = ["TP53"]
+"""
+    path = tmp_path / "policy.toml"
+    path.write_text(source)
+    policy = getattr(load_clinical_query_policy(path), analysis)
+    scope = dict(
+        assay_group="hematology", asp_id="synthetic", diagnosis_id="base", intent="somatic"
+    )
+    before = asdict(policy)
+    assert [rule.rule_id for rule in policy.exceptions_for(**scope, mode="admit")] == [
+        "scoped",
+        "unrestricted",
+    ]
+    for field in scope:
+        changed = {**scope, field: "different"}
+        assert [rule.rule_id for rule in policy.exceptions_for(**changed, mode="admit")] == [
+            "unrestricted"
+        ]
+    assert [rule.rule_id for rule in policy.exceptions_for(**scope, mode="exclude")] == ["excluded"]
+    assert replace(policy, exceptions=()).exceptions_for(**scope, mode="admit") == ()
+    assert asdict(policy) == before
 
 
 def test_policy_rejects_unsupported_query_keys(tmp_path) -> None:

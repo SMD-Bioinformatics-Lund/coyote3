@@ -16,7 +16,7 @@ import re
 import tomllib
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from coyote.config.factory_defaults import factory_value
 from coyote.domain.query_conditions import compile_condition
@@ -174,8 +174,74 @@ def _case_preserving_identifiers(value: Any, *, key: str) -> tuple[str, ...]:
     return values
 
 
+class _QueryExceptionScope:
+    """Match the shared scope restrictions of typed finding exceptions."""
+
+    mode: str
+    intents: tuple[str, ...]
+    assay_groups: tuple[str, ...]
+    asp_ids: tuple[str, ...]
+    diagnosis_ids: tuple[str, ...]
+
+    def applies_to(self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str) -> bool:
+        """Match every nonempty restriction against the supplied request scope.
+
+        Args:
+            assay_group: Normalized assay group of the request.
+            asp_id: Normalized assay-specific panel identifier.
+            diagnosis_id: Normalized diagnosis identifier.
+            intent: Analysis intent, such as somatic or germline.
+
+        Returns:
+            True when all restrictions match. An empty restriction accepts any value.
+        """
+        return (
+            (not self.intents or intent in self.intents)
+            and (not self.assay_groups or assay_group in self.assay_groups)
+            and (not self.asp_ids or asp_id in self.asp_ids)
+            and (not self.diagnosis_ids or diagnosis_id in self.diagnosis_ids)
+        )
+
+
+_Exception = TypeVar("_Exception", bound=_QueryExceptionScope)
+
+
+class _QueryExceptionSelection(Generic[_Exception]):
+    """Select typed exceptions by mode and clinical scope."""
+
+    exceptions: tuple[_Exception, ...]
+
+    def exceptions_for(
+        self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str, mode: str
+    ) -> tuple[_Exception, ...]:
+        """Return matching exceptions in their configured order.
+
+        Args:
+            assay_group: Normalized assay group to match.
+            asp_id: Normalized assay-specific panel identifier to match.
+            diagnosis_id: Normalized diagnosis identifier to match.
+            intent: Analysis intent to match.
+            mode: Exception mode, such as admit or exclude.
+
+        Returns:
+            Matching exceptions, or an empty tuple. Order is retained for diagnostic
+            display; it does not introduce clinical precedence between alternatives.
+        """
+        return tuple(
+            exception
+            for exception in self.exceptions
+            if exception.mode == mode
+            and exception.applies_to(
+                assay_group=assay_group,
+                asp_id=asp_id,
+                diagnosis_id=diagnosis_id,
+                intent=intent,
+            )
+        )
+
+
 @dataclass(frozen=True)
-class SnvQueryException:
+class SnvQueryException(_QueryExceptionScope):
     """A scope-limited typed admission branch for the SNV query builder."""
 
     rule_id: str
@@ -196,18 +262,9 @@ class SnvQueryException:
     alt_regex: str | None
     condition: dict[str, Any] | None = None
 
-    def applies_to(self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str) -> bool:
-        """Return whether this released exception applies to the request scope."""
-        return (
-            (not self.intents or intent in self.intents)
-            and (not self.assay_groups or assay_group in self.assay_groups)
-            and (not self.asp_ids or asp_id in self.asp_ids)
-            and (not self.diagnosis_ids or diagnosis_id in self.diagnosis_ids)
-        )
-
 
 @dataclass(frozen=True)
-class SnvQueryPolicy:
+class SnvQueryPolicy(_QueryExceptionSelection[SnvQueryException]):
     """Validated SNV query policy used by the domain query builder."""
 
     default_somatic_policy: str
@@ -222,31 +279,9 @@ class SnvQueryPolicy:
             return self.default_germline_policy
         return self.assay_group_policies.get(assay_group, self.default_somatic_policy)
 
-    def exceptions_for(
-        self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str, mode: str
-    ) -> tuple[SnvQueryException, ...]:
-        """Return matching exceptions in the configuration's display order.
-
-        Query exceptions are additive alternatives in the clinical selection. Their order does
-        not convey clinical precedence and does not change the result set.
-        TOML ordering is retained only to keep diagnostic output familiar to
-        the configuration author.
-        """
-        return tuple(
-            exception
-            for exception in self.exceptions
-            if exception.mode == mode
-            and exception.applies_to(
-                assay_group=assay_group,
-                asp_id=asp_id,
-                diagnosis_id=diagnosis_id,
-                intent=intent,
-            )
-        )
-
 
 @dataclass(frozen=True)
-class FindingQueryException:
+class FindingQueryException(_QueryExceptionScope):
     """A scoped inclusion or exclusion rule for one non-SNV finding type."""
 
     rule_id: str
@@ -257,59 +292,12 @@ class FindingQueryException:
     diagnosis_ids: tuple[str, ...]
     criteria: dict[str, Any]
 
-    def applies_to(self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str) -> bool:
-        """Match the request scope against this exception's configured restrictions.
-
-        Args:
-            assay_group: Normalized assay group of the request.
-            asp_id: Normalized assay-specific panel identifier.
-            diagnosis_id: Normalized diagnosis identifier.
-            intent: Analysis intent, such as somatic or germline.
-
-        Returns:
-            True when every nonempty restriction contains its request value.
-            Empty restriction lists match any value.
-        """
-        return (
-            (not self.intents or intent in self.intents)
-            and (not self.assay_groups or assay_group in self.assay_groups)
-            and (not self.asp_ids or asp_id in self.asp_ids)
-            and (not self.diagnosis_ids or diagnosis_id in self.diagnosis_ids)
-        )
-
 
 @dataclass(frozen=True)
-class FindingQueryPolicy:
+class FindingQueryPolicy(_QueryExceptionSelection[FindingQueryException]):
     """Validated rules for one non-SNV analysis domain."""
 
     exceptions: tuple[FindingQueryException, ...]
-
-    def exceptions_for(
-        self, *, assay_group: str, asp_id: str, diagnosis_id: str, intent: str, mode: str
-    ) -> tuple[FindingQueryException, ...]:
-        """Select exceptions with the requested mode and matching scope.
-
-        Args:
-            assay_group: Normalized assay group to match.
-            asp_id: Normalized assay-specific panel identifier to match.
-            diagnosis_id: Normalized diagnosis identifier to match.
-            intent: Analysis intent to match.
-            mode: Exception mode, such as admit or exclude.
-
-        Returns:
-            Matching exceptions in their configured order, or an empty tuple.
-        """
-        return tuple(
-            exception
-            for exception in self.exceptions
-            if exception.mode == mode
-            and exception.applies_to(
-                assay_group=assay_group,
-                asp_id=asp_id,
-                diagnosis_id=diagnosis_id,
-                intent=intent,
-            )
-        )
 
 
 @dataclass(frozen=True)

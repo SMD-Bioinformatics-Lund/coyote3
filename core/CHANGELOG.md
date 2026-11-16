@@ -4,6 +4,8 @@
 
 - Share assay-file, analysis-selection and sequencing-platform normalization across
   contracts, analysis views and reports while preserving validation and selection order.
+- Apply one scope-matching implementation to SNV and structural finding query
+  exceptions, preserving their typed criteria, modes and diagnostic ordering.
 - Own reusable installation configuration compilation, reference-bundle provenance
   contracts and enabled host extension capabilities.
 
