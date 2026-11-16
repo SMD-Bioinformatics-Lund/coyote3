@@ -37,7 +37,8 @@ npm --prefix frontend run build:verified
 ```
 
 `build:verified` checks generated types against the selected source/server and then
-builds the UI. CI runs it on every non-draft change, including backend-only changes.
+builds the UI. The full local quality gate runs it before release; GitHub CI runs
+the smaller smoke suites and does not replace this contract/build check.
 Plain `build` compiles the checked-in generated contracts and remains available for
 the independent Node-only frontend container build. Production builds do not need
 access to a live clinical deployment. A running server check is useful for verifying

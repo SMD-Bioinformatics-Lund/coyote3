@@ -2,6 +2,8 @@
 
 import hashlib
 import json
+import shutil
+import subprocess
 import tomllib
 import zipfile
 from pathlib import Path
@@ -9,7 +11,13 @@ from pathlib import Path
 import pytest
 
 from scripts.release import build_sdk
-from scripts.release.check_release import release_identity, source_provenance, wheel_record
+from scripts.release.check_release import (
+    RELEASE_CHANGE_SCOPES,
+    release_identity,
+    source_provenance,
+    validate_pull_request,
+    wheel_record,
+)
 
 
 def test_core_metadata_does_not_install_a_server_or_database():
@@ -80,6 +88,120 @@ def release_root(tmp_path):
     configuration.mkdir(parents=True)
     (configuration / "selection.py").write_text("CENTER_CONFIGURATION_FORMAT = 1\n")
     return tmp_path
+
+
+def _commit_release_fixture(root):
+    """Record a disposable Git baseline without touching the workspace repository."""
+    subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Synthetic",
+            "-c",
+            "user.email=synthetic@example.test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--quiet",
+            "-m",
+            "Synthetic baseline",
+        ],
+        cwd=root,
+        check=True,
+    )
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+
+
+@pytest.fixture
+def pull_request_release(release_root):
+    """Provide complete release notes and a local target commit for PR comparisons."""
+    release = release_identity(release_root)
+    for field, (changelogs, _) in RELEASE_CHANGE_SCOPES.items():
+        for path in changelogs:
+            target = release_root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"# Changelog\n\n## {release[field]}\n\n- Initial release.\n")
+    base = _commit_release_fixture(release_root)
+    return release_root, release, base
+
+
+@pytest.mark.parametrize("skip", [False, True])
+def test_pull_request_requires_changelog_edit_unless_waived(pull_request_release, skip):
+    root, release, base = pull_request_release
+    if skip:
+        validate_pull_request(
+            root, release, base_ref=base, target_branch="dev", skip_changelog=True
+        )
+    else:
+        with pytest.raises(ValueError, match="Update CHANGELOG.md"):
+            validate_pull_request(root, release, base_ref=base, target_branch="dev")
+
+
+def test_pull_request_into_dev_allows_unchanged_versions(pull_request_release):
+    root, release, base = pull_request_release
+    changelog = root / "CHANGELOG.md"
+    changelog.write_text(changelog.read_text() + "- Correct synthetic behavior.\n")
+    validate_pull_request(root, release, base_ref=base, target_branch="dev")
+
+
+@pytest.mark.parametrize("field", ["application_version", "sdk_version", "server_version"])
+def test_pull_request_cannot_decrease_versions(pull_request_release, field):
+    root, release, base = pull_request_release
+    release[field] = "0.0.1"
+    with pytest.raises(ValueError, match=f"{field} cannot decrease"):
+        validate_pull_request(
+            root, release, base_ref=base, target_branch="dev", skip_changelog=True
+        )
+
+
+def test_pull_request_release_requires_new_application_version_even_with_waiver(
+    pull_request_release,
+):
+    root, release, base = pull_request_release
+    with pytest.raises(ValueError, match="Advance application_version"):
+        validate_pull_request(
+            root, release, base_ref=base, target_branch="master", skip_changelog=True
+        )
+
+
+def test_pull_request_release_rejects_reused_wheel_version(pull_request_release):
+    root, release, base = pull_request_release
+    release["application_version"] = "4.2.1"
+    (root / "CHANGELOG.md").write_text("# Changelog\n\n## 4.2.1\n\n- Core correction.\n")
+    source = root / "core/src/coyote/config/selection.py"
+    source.write_text(source.read_text() + "SYNTHETIC_NEW_OPTION = True\n")
+    with pytest.raises(ValueError, match="Advance sdk_version"):
+        validate_pull_request(root, release, base_ref=base, target_branch="master")
+
+
+def test_pull_request_version_bump_requires_matching_notes(pull_request_release):
+    root, release, base = pull_request_release
+    release["client_version"] = "1.2.1"
+    with pytest.raises(ValueError, match="clients/python/CHANGELOG.md needs a heading"):
+        validate_pull_request(
+            root, release, base_ref=base, target_branch="dev", skip_changelog=True
+        )
+
+
+def test_pull_request_first_packaged_release_compares_existing_application_version(
+    pull_request_release, tmp_path
+):
+    source, release, _ = pull_request_release
+    root = tmp_path / "previous-layout"
+    root.mkdir()
+    (root / "package.json").write_text('{"version":"3.4.3"}')
+    base = _commit_release_fixture(root)
+    for path in source.iterdir():
+        if path.name in {".git", root.name}:
+            continue
+        if path.is_dir():
+            shutil.copytree(path, root / path.name)
+        else:
+            shutil.copy2(path, root / path.name)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    validate_pull_request(root, release, base_ref=base, target_branch="master")
 
 
 def test_application_and_sdk_versions_can_differ(release_root):

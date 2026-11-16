@@ -19,7 +19,143 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+|\.dev[0-9]+)?")
+VERSION_PATTERN = re.compile(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:(a|b|rc|\.dev)([0-9]+))?")
+# Version field -> changelogs and inputs that require a new wheel at release time.
+RELEASE_CHANGE_SCOPES = {
+    "application_version": (("CHANGELOG.md",), ()),
+    "sdk_version": (
+        ("core/CHANGELOG.md",),
+        ("core/src", "core/pyproject.toml", "core/build_support.py", "core/MANIFEST.in"),
+    ),
+    "server_version": (
+        ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
+        ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
+    ),
+    "client_version": (
+        ("clients/python/CHANGELOG.md",),
+        ("clients/python/src", "clients/python/pyproject.toml"),
+    ),
+    "relay_version": (
+        ("services/relay/CHANGELOG.md",),
+        ("services/relay/src", "services/relay/pyproject.toml"),
+    ),
+    "atlas_version": (
+        ("services/atlas/CHANGELOG.md",),
+        ("services/atlas/src", "services/atlas/pyproject.toml"),
+    ),
+    "demo_version": (
+        ("services/demo/CHANGELOG.md",),
+        ("services/demo/src", "services/demo/pyproject.toml"),
+    ),
+}
+
+
+def _version_key(value: str) -> tuple[int, int, int, int, int]:
+    """Order the supported development, prerelease and final version spellings."""
+    match = VERSION_PATTERN.fullmatch(value)
+    if not match:
+        raise ValueError(f"Unsupported release version: {value!r}")
+    major, minor, patch, phase, number = match.groups()
+    return (
+        int(major),
+        int(minor),
+        int(patch),
+        {".dev": 0, "a": 1, "b": 2, "rc": 3, None: 4}[phase],
+        int(number or 0),
+    )
+
+
+def validate_pull_request(
+    root: Path,
+    release: dict[str, Any],
+    *,
+    base_ref: str,
+    target_branch: str,
+    skip_changelog: bool = False,
+) -> None:
+    """Check changelog updates and release progression against the PR's base commit.
+
+    Args:
+        root: Checkout containing the proposed changes and local base history.
+        release: Validated current release identity.
+        base_ref: Local Git commit or ref identifying the target branch baseline.
+        target_branch: Integration branch ``dev`` or release branch ``master``.
+        skip_changelog: Waive only the ordinary root changelog edit requirement.
+
+    Raises:
+        ValueError: Notes, version progression or a changed release component is invalid.
+        subprocess.CalledProcessError: The base commit or its metadata is unavailable.
+        OSError: A required changelog cannot be read.
+    """
+    if target_branch not in {"dev", "master"}:
+        raise ValueError("PR target must be dev or master")
+    base = subprocess.check_output(
+        ["git", "rev-parse", "--verify", "--end-of-options", f"{base_ref}^{{commit}}"],
+        cwd=root,
+        text=True,
+    ).strip()
+    changed = set(
+        subprocess.check_output(
+            ["git", "diff", "--name-only", "--no-renames", "-z", base, "--"],
+            cwd=root,
+        )
+        .decode()
+        .split("\0")
+    )
+    has_release_manifest = subprocess.check_output(
+        ["git", "ls-tree", "--name-only", base, "--", "release.toml"],
+        cwd=root,
+        text=True,
+    ).strip()
+    if has_release_manifest:
+        previous = tomllib.loads(
+            subprocess.check_output(
+                ["git", "show", f"{base}:release.toml"],
+                cwd=root,
+                text=True,
+            )
+        )
+    else:
+        # The first packaged release is compared with the application's existing
+        # package.json identity on master, before release.toml was introduced.
+        previous = {
+            "application_version": json.loads(
+                subprocess.check_output(
+                    ["git", "show", f"{base}:package.json"],
+                    cwd=root,
+                    text=True,
+                )
+            )["version"]
+        }
+
+    if "CHANGELOG.md" not in changed and not skip_changelog:
+        raise ValueError("Update CHANGELOG.md or obtain the skip-changelog-update label")
+    for field, (changelogs, sources) in RELEASE_CHANGE_SCOPES.items():
+        current = release[field]
+        old = previous.get(field)
+        if old is not None and _version_key(current) < _version_key(old):
+            raise ValueError(f"{field} cannot decrease from {old} to {current}")
+        if (
+            target_branch == "master"
+            and old is not None
+            and _version_key(current) == _version_key(old)
+        ):
+            source_changed = any(
+                path == source or path.startswith(source + "/")
+                for path in changed
+                for source in sources
+            )
+            if field == "application_version" or source_changed:
+                raise ValueError(f"Advance {field} before releasing changes into master")
+        for path in changelogs:
+            if not re.search(
+                rf"^##\s+\[?v?{re.escape(current)}(?:\]|\s|$)",
+                (root / path).read_text(),
+                re.MULTILINE,
+            ):
+                raise ValueError(f"{path} needs a heading for version {current}")
+            if current != old and path not in changed:
+                raise ValueError(f"Update {path} for the new {field} {current}")
 
 
 def validate_contract_generations(root: Path, release: dict[str, Any]) -> None:
@@ -288,6 +424,13 @@ def main() -> None:
         subprocess.CalledProcessError: Git provenance cannot be determined.
     """
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-ref", help="Local PR base commit for version and changelog checks")
+    parser.add_argument("--target-branch", choices=("dev", "master"))
+    parser.add_argument(
+        "--skip-changelog",
+        action="store_true",
+        help="Waive the ordinary root changelog edit; version changes still require release notes",
+    )
     parser.add_argument("--sdk-only", action="store_true")
     parser.add_argument("--wheel-dir", type=Path)
     parser.add_argument("--output", type=Path)
@@ -295,11 +438,25 @@ def main() -> None:
         "--production", action="store_true", help="Reject dirty production releases"
     )
     args = parser.parse_args()
+    if bool(args.base_ref) != bool(args.target_branch):
+        parser.error("--base-ref and --target-branch must be supplied together")
+    if args.skip_changelog and not args.base_ref:
+        parser.error("--skip-changelog requires --base-ref")
+    if args.base_ref and args.sdk_only:
+        parser.error("PR checks require the complete application release identity")
     if args.output and (not args.wheel_dir or args.sdk_only):
         parser.error("--output requires --wheel-dir and an application release check")
     if args.production and (not args.wheel_dir or not args.output):
         parser.error("--production requires --wheel-dir and --output")
     record = release_identity(ROOT, sdk_only=args.sdk_only)
+    if args.base_ref:
+        validate_pull_request(
+            ROOT,
+            record,
+            base_ref=args.base_ref,
+            target_branch=args.target_branch,
+            skip_changelog=args.skip_changelog,
+        )
     if args.wheel_dir:
         selected = {
             "coyote-core": record["sdk_source_version"] if args.sdk_only else record["sdk_version"]
@@ -330,6 +487,8 @@ def main() -> None:
         record["release_mode"] = "production" if args.production else "development"
         args.output.write_text(json.dumps(record, indent=2) + "\n")
     print("Release identity and selected artifacts are consistent.")
+    if args.base_ref:
+        print(f"Version and changelog checks passed for the PR into {args.target_branch}.")
 
 
 if __name__ == "__main__":

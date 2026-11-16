@@ -24,8 +24,8 @@
   emergency-superuser options, and existing-data safeguards.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
-- Minimal GitHub smoke checks, focused contribution templates and a documented
-  dev-to-master release process with semantic versioning.
+- Minimal GitHub smoke checks, version and changelog gates, focused contribution
+  templates and a documented dev-to-master release process with semantic versioning.
 - GNU GPL version 3 only, with separate copyright and contributor notices.
 
 See the [upgrade procedure](docs/deployment/application-upgrades.md) for deployment,

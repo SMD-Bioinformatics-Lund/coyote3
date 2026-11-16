@@ -47,6 +47,24 @@ npm run sync:version
 Update README version badges to match the selected component versions, preserving
 their established Shields.io styles, colors and groups.
 
+CI checks versions and changelogs before installing test dependencies. Each PR
+must edit `CHANGELOG.md`; a maintainer may waive that edit with the
+`skip-changelog-update` label for changes that need no release note. Version
+decreases are rejected. Every selected component needs a matching changelog heading,
+and changing its version requires an edit to its changelog. The label does not
+waive those version-specific requirements.
+
+Ordinary PRs into `dev` may retain their current versions. A release PR into
+`master` must increase the application version and the version of each existing
+component whose source or build metadata changed. API and Mongo share the server
+version and have separate changelogs. This prevents publishing changed wheels
+under an existing version. Run the same comparison locally against an available
+target commit:
+
+```bash
+.venv/bin/python scripts/release/check_release.py --base-ref master --target-branch master
+```
+
 ## Prepare the release PR
 
 Open a release PR from `dev` into `master`, titled `Release vX.Y.Z`. Include:

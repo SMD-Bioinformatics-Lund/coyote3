@@ -42,12 +42,15 @@ resources and shared confirmation behavior. They use synthetic inputs and in-pro
 transports. They do not start application services or contact a deployment database.
 Each smoke test also belongs to its component's full suite.
 
-The GitHub `quality` workflow runs these commands, Python lint, release metadata
-validation and the sensitive-file guard. It runs for PRs into `dev` and `master`,
+The GitHub `quality` workflow first checks release metadata, changelog edits and
+version progression against the PR base, then runs these commands, Python lint
+and the sensitive-file guard. It runs for PRs into `dev` and `master`,
 pushes to `master`, and manual dispatch. One job uses cached dependencies and cancels
 superseded runs. It has no full coverage, browser, container, load or database jobs.
 
 Smoke success is early feedback, not release approval or complete clinical validation.
+The [release workflow](../project/releasing.md#choose-the-version) defines the
+version and changelog requirements, including the limited changelog-label waiver.
 
 ### Independent package coverage
 

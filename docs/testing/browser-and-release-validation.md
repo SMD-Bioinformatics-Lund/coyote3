@@ -75,8 +75,9 @@ from competing with too many browser processes on a development workstation.
 It does not change test assertions or timeouts.
 
 The suite uses API fixtures for repeatable rendering and error-state tests. It
-does not replace deployment validation or clinical test data checks. GitHub
-Actions installs Chromium and runs the same command in the `quality` workflow.
+does not replace deployment validation or clinical test data checks. Run it as
+part of local release validation; the GitHub `quality` workflow runs smoke checks
+without installing browsers or running this suite.
 
 The sample-analysis browser contracts also assert that endpoints are requested
 only when their configured tab is opened. DNA tests distinguish somatic and
