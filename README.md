@@ -1,4 +1,4 @@
-# <img src="docs/assets/coyote4-logo.svg" alt="Coyote4" width="360">
+# ![Coyote4](docs/assets/coyote4-logo.svg)
 
 <!-- badges:start -->
 
