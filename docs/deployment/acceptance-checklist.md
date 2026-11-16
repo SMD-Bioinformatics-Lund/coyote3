@@ -40,6 +40,12 @@ For a new installation, also record these results before clinical acceptance:
 Keep the operator, date, release and configuration revisions with the evidence below.
 This checklist is the acceptance record for both new installations and upgrades;
 the [first-installation guide](first-installation.md) owns installation commands.
+Complete the [automated quality gates](../testing/test-strategy-and-quality-gates.md),
+including the disposable MongoDB transaction runner, before deployed acceptance.
+For the first Coyote4 installation with an empty database and new ingestion,
+legacy-data migration is outside the acceptance scope. A later upgrade importing
+Coyote3 records requires a separate, validated migration rehearsal. A staging
+deployment can host samples in the `validation` workflow; these are distinct settings.
 
 ## 1. Validate configuration
 
@@ -145,6 +151,26 @@ filters, report preview, and audit events with the approved validation record.
 Release mode requires all five deployment inputs and trusted HTTPS. It rejects
 skipped scenarios; run the complete suite without filters or test exclusions.
 A skipped authenticated browser test is incomplete evidence, not a pass.
+
+### Clinical expected-result checks
+
+Prepare expected results independently of the implementation and have the clinical
+owner approve them. Retain the inputs and comparisons with the release record.
+
+| Case | Evidence to compare |
+| --- | --- |
+| CNV ratio and size | Values below, on and above each configured cutoff; record the intended strict boundaries and any approved amplification exception. |
+| CNV caller types | Numeric log2-ratio calls and text event/read-evidence calls; missing values remain distinct from zero. |
+| CNV gene scope | Selected CNV list, panel-only fallback, no panel genes, and an explicitly selected empty list; compare analysis, exports, query previews and report eligibility. |
+| CNV normal marker | `NORMAL` absent, zero and one under each published family/assay policy; compare the effective rule receipt and selected records. |
+| DNA translocations | Matching transcripts for both gene partners, one unmatched partner, swapped accessions, explicit transcript selection and documented fallback selection. RNA fusions remain a separate analysis. |
+| Report inclusion | Selected tiers, matching annotations, false-positive/irrelevant exclusions, zero findings and missing analyses. Compare preview, saved HTML/PDF, finding snapshots and audit records. |
+| WGS ordering | Configure text and table order independently through ASPC; verify CNVs, translocations, SNVs, other analyses and closing summary in the approved report wording. |
+| Authorization and concurrency | Denied assay/environment access, changed configuration after preview, concurrent finalization and an interrupted worker. No partial report or unauthorized mutation should persist. |
+
+Schema validation checks the shape of ASPC and rules. It does not establish that
+the selected findings, clinical wording or order are correct. Record explicit
+clinical approval after these comparisons; passing unit tests alone is insufficient.
 
 ## 5. Validate backup restoration
 
