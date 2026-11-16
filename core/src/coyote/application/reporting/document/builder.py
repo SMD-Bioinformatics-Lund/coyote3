@@ -57,7 +57,9 @@ class ReportDocumentBuilder:
         Raises:
             ValueError: A selected call, timestamp or embedded artwork is invalid.
         """
-        document = ReportSections(self.context, self.analyte, self.presentation)
+        document = ReportSections(
+            context=self.context, analyte=self.analyte, presentation=self.presentation
+        )
         if self.preview:
             document.sections.append(
                 {"key": "preview", "kind": "text", "text": "PREVIEW · UNSAVED REPORT"}

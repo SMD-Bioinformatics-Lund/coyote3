@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Inject notification delivery when composing the refactored clinical-rule authoring
+  service, preserving assignment, review and publication notifications.
 - Load optional Atlas and Demo extensions, validate declared deployment constraints
   before persistence initialization, and expose enabled extensions to the frontend.
 - Keep synthetic data out of normal bootstrap; support isolated native storage and

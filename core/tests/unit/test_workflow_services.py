@@ -7,6 +7,7 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+from core_test_support.clinical_rules import _document
 from coyote.application.common.release_resources import capture_assay_resource, capture_gene_lists
 from coyote.application.reporting import dna_workflow, rna_workflow
 
@@ -123,7 +124,7 @@ def test_dna_clinical_rule_only_payload_skips_print_report_work(monkeypatch):
                 model_dump=lambda **options: {"sections": {}, "trace": []}
             )
         ),
-        clinical_rule_override=SimpleNamespace(),
+        clinical_rule_override=_document(status="draft", active=False),
         clinical_rule_only=True,
     ).build()
 

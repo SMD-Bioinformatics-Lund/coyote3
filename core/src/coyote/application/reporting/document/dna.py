@@ -200,9 +200,9 @@ class DnaResultSections:
         short = self.document.short
         details = self.document.details
         add_table = self.document.add_table
-        if "TRANSLOCATION" in enabled or "FUSION" in enabled:
+        if "TRANSLOCATION" in enabled:
             rows = []
-            for index, row in enumerate(data.get("translocs", data.get("fusions")) or []):
+            for index, row in enumerate(data.get("translocs") or []):
                 ann = _annotation(row)
                 tier = (row.get("classification") or {}).get("class")
                 title = (ann.get("Gene_Name") or "-").replace("&", "::")

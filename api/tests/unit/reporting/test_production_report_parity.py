@@ -58,11 +58,10 @@ def test_copy_number_uses_production_rounding_without_replacing_unknown_values(r
     assert row[2:] == [kind, copy]
 
 
-@pytest.mark.parametrize("enabled", ["TRANSLOCATION", "FUSION"])
-def test_structural_summary_and_details_use_the_selected_annotation(enabled):
-    """Both DNA config names show one fusion and preserve the picked transcript."""
+def test_structural_summary_and_details_use_the_selected_annotation():
+    """DNA translocations show one fusion and preserve the picked transcript."""
     inputs = structural_context()
-    inputs["report_sections"] = [enabled]
+    inputs["report_sections"] = ["TRANSLOCATION"]
     finding = inputs["report_sections_data"]["translocs"][0]
     finding["INFO"]["MANE_ANN"] = {"Gene_Name": "UNSELECTED&GENES", "HGVSp": "wrong"}
     finding["INFO"]["ANN"].append(
@@ -71,6 +70,17 @@ def test_structural_summary_and_details_use_the_selected_annotation(enabled):
     projected = sections(document(inputs))
     assert projected["translocations"]["rows"] == [["SYNTHETIC_A::SYNTHETIC_B", "p.Synthetic"]]
     assert projected["translocation-0"]["record_titles"] == ["SYNTHETIC_A::SYNTHETIC_B"]
+
+
+def test_dna_document_does_not_render_rna_fusion_data():
+    """The RNA namespace cannot enable or populate a DNA translocation section."""
+    inputs = structural_context()
+    inputs["report_sections"] = ["FUSION"]
+    assert "translocations" not in sections(document(inputs))
+    inputs["report_sections"] = ["TRANSLOCATION"]
+    inputs["report_sections_data"]["fusions"] = inputs["report_sections_data"].pop("translocs")
+    projected = sections(document(inputs))
+    assert "translocation-0" not in projected
 
 
 def test_numbered_tables_have_native_matching_captions_and_reference_borders():

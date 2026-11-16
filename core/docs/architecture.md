@@ -17,8 +17,8 @@ governed by core operations. Database-specific audit hashing is supplied by host
 `application/operations/administration/` groups services by the resource they manage.
 Clinical-rule authoring composes scope validation, reviewer assignments, record
 transitions and lifecycle services in `application/reporting/clinical_rules/authoring/`.
-`application/reporting/dna/DnaReportBuilder` assembles evidence and snapshots;
-`application/reporting/document/ReportDocumentBuilder` composes presentation sections.
+`DnaReportBuilder` in `application/reporting/dna/` assembles evidence and snapshots;
+`ReportDocumentBuilder` in `application/reporting/document/` composes presentation sections.
 Each report build uses fresh state. Changes to any document-builder module change
 the renderer fingerprint checked when a reviewed preview is saved.
 

@@ -3,8 +3,9 @@
 
 """Shared state for composing one report document."""
 
-from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import BaseModel, Field
 
 from coyote.application.reporting.presentation import ReportPresentation
 from coyote.domain.common.reporting import TIER_SHORT_DESC
@@ -12,15 +13,14 @@ from coyote.domain.common.reporting import TIER_SHORT_DESC
 from .formatting import _table
 
 
-@dataclass
-class ReportSections:
+class ReportSections(BaseModel):
     """Collect one document's ordered summary sections and finding details."""
 
     context: dict[str, Any]
     analyte: str
     presentation: ReportPresentation
-    sections: list[dict[str, Any]] = field(default_factory=list)
-    details: list[dict[str, Any]] = field(default_factory=list)
+    sections: list[dict[str, Any]] = Field(default_factory=list)
+    details: list[dict[str, Any]] = Field(default_factory=list)
 
     @property
     def sample(self) -> dict[str, Any]:
