@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose a concrete improvement to a workflow.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Search existing requests first and use synthetic examples only.
+  - type: input
+    id: component
+    attributes:
+      label: Affected module or workflow
+      placeholder: "Report preview, assay configuration, Relay submission, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Who needs this change, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed behavior
+      description: Describe what should happen and how you would verify that it works.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Alternatives and constraints
+      description: Optional workaround, clinical requirement, compatibility concern or related issue.

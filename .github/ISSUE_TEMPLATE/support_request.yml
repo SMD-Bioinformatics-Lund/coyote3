@@ -1,0 +1,32 @@
+name: Support request
+description: Ask for help with installation, configuration or usage.
+title: "[Support]: "
+labels: [support]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Check the documentation first. Do not upload environment files, credentials,
+        patient data or database exports. Use your center's incident process for
+        an active production incident.
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you need help with?
+      description: State the task, affected module and where you are blocked.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      placeholder: "Coyote4 4.0.0; Docker staging on Linux"
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+      description: Link the procedure followed and describe the result. Include a short redacted error if useful.
+    validations:
+      required: true

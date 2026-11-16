@@ -43,10 +43,19 @@ add compatibility shims or patch layers without an explicit requirement.
   required absolute paths from explicit configuration, package resources or runtime
   locations. Never embed a developer's checkout path or username.
 
-## Visual consistency
+## Preserve established structure and presentation
 
 - Preserve the approved appearance across pages, reports, documentation and READMEs.
-  A functional fix does not authorize a redesign.
+  Change layouts, organization, styles or themes only when the user explicitly
+  requests that change. A functional fix, cleanup or modernization request does
+  not authorize an unrelated redesign.
+- Apply the same rule to code and documentation: retain established module
+  ownership, naming, public interfaces, navigation, section order and formatting.
+  Reuse the existing implementation and patterns. Do not reorganize unaffected
+  files, introduce competing conventions or remove useful content incidentally.
+- When the user authorizes a structural change, update all affected consumers
+  consistently. Compare the result with the existing baseline and correct
+  regressions; do not redefine the baseline just to accept a different result.
 - Reuse existing components, PageFrame/PageShell, semantic tokens and typography.
   Preserve light/dark themes, accessibility, spacing, states, borders and elevation.
 - Keep the purple/orange branding, joined application header/sidebar and existing
@@ -82,9 +91,9 @@ Keep real-database tests opt-in and restricted to explicitly disposable targets.
 ## Repository hygiene and documentation
 
 Keep only maintained source, assets, fixtures, tools and documentation with an
-identified consumer. Put temporary probes, artwork experiments and coding-session
-scripts outside the repository. Preserve operational migration tools while their
-upgrade paths remain supported. Do not commit `.design/`, private center settings,
+identified consumer. Keep temporary probes in an ignored workspace directory and
+remove them when finished. Do not retain one-off backfills, initial-development
+migrations, badge generators or authoring experiments. Do not commit private center settings,
 credentials, patient data, real sample identifiers or database exports.
 
 Write concise, factual documentation for its audience. Explain what a component
@@ -105,20 +114,32 @@ For a release, prepare versions and changelogs on `dev`, open a release PR into
 GitHub release from that tag. Keep application, component and HTTP versions distinct;
 `release.toml` binds the selected components. Follow `docs/project/releasing.md`.
 
-## Remote access and sensitive data
+## Workspace and resource boundaries
 
-Remote access requires an explicit request identifying the server and the current
-task. A hostname, URL, config file or existing session is not authorization. Prefer
-local inspection. Never reuse permission from another task.
+The current workspace is the default boundary for task data and file operations.
+Do not inspect, enumerate, read, create, change or delete files outside it without
+explicit authorization for the resource and operation. This includes sibling
+checkouts, home directories, mounted storage, system configuration and temporary
+directories outside the workspace. Do not follow a symlink outside the boundary.
+Use relative paths or resolve paths from the workspace; check the resolved target
+before acting. Keep temporary task artifacts inside an ignored workspace directory.
 
-Authorized remote work is strictly read-only: inspect only necessary non-sensitive
-files, metadata, status or explicitly permitted database queries. No file writes,
-installs, permissions changes, Git mutations, database writes, service/container
-changes, deployments, migrations, elevation or remote AI agents. Do not use another
-protocol or an existing terminal to bypass these limits. File retrieval requires
-separate authorization. Do not access patient-identifiable data without separate
-organizational authorization; never expose credentials or private keys.
+Do not contact servers, databases, APIs, container daemons or other services unless
+the user explicitly authorizes access for the task. A URL, connection string,
+configured path, existing session or reachable endpoint does not grant permission.
+Writing an installer or connection configuration does not authorize running a
+deployment, connecting to its targets or changing service state. Test those paths
+with synthetic configuration and mocked processes unless execution is authorized.
 
-If the target, data access or read-only behavior is uncertain, stop that operation.
-Draft commands for manual execution when a remote change is needed; never execute
-it. Remote permission means specified server + current task + read-only operations.
+Requested public documentation research is limited to the relevant public sources.
+Never send workspace files, credentials or clinical information to those sources.
+Using an installed development tool does not authorize inspecting unrelated user
+files or application state. Do not change tool settings or use another protocol,
+shell session or privilege level to expand the authorized scope.
+
+Keep credentials and patient-identifiable information out of output, logs, commits
+and external services. Access such data only with the required explicit authority.
+If an operation needs an additional resource, explain which resource is needed,
+why, and whether it would be read or changed. Complete independent workspace work
+while that access remains unresolved. Permission for one operation does not extend
+to unrelated resources or later tasks.

@@ -1,20 +1,20 @@
-## Change
+## Summary
 
-<!-- State the problem and resulting behavior. Link the issue: Closes #123. -->
+<!-- Explain the problem, the resulting behavior and why this change is needed.
+Use a short before/after example when it helps. -->
 
-## Affected modules
+## Scope
 
-<!-- Core, API, Mongo, frontend, client, Relay, Atlas, Demo, deployment or docs. -->
+- Issue: <!-- Fixes #123, or explain why an issue is not needed. -->
+- Modules: <!-- Core / API / Mongo / frontend / client / Relay / Atlas / Demo / deployment / docs. -->
+- Change type: <!-- Fix / feature / refactor / documentation. -->
 
-## Validation
+## Verification
 
-<!-- List checks actually run and their results. Note any remaining gaps. -->
+<!-- List the tests or manual steps actually completed and their results.
+Include synthetic screenshots for intentional UI changes and note checks not run. -->
 
-## Release impact
+## Compatibility and rollout
 
-<!-- Mention changed configuration, contracts, migrations or clinical behavior.
-For a release PR, include the version, changelog link and release validation record.
-Write "None" when there is no deployment or compatibility impact. -->
-
-- [ ] The change and relevant documentation are complete.
-- [ ] Examples and evidence contain no patient data or secrets.
+<!-- State "None" or describe required configuration/data changes, affected public
+contracts or clinical behavior. For a release PR, link its changelog and validation record. -->

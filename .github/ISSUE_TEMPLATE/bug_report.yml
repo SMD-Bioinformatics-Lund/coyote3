@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible failure or an incorrect result.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Search existing issues first. Use synthetic examples and redacted evidence;
+        do not include patient data or credentials. Report vulnerabilities privately
+        through the repository's security reporting page.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected module
+      multiple: true
+      options:
+        - Clinical review or reports
+        - Administration or access control
+        - API or Python client
+        - Relay ingestion
+        - Atlas reference data
+        - Demo installation
+        - Deployment or configuration
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Application version or commit; add the package version if relevant.
+      placeholder: "Coyote4 4.0.0; coyote-server 1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Deployment mode and relevant browser, OS or client. Omit private hostnames.
+      placeholder: "Docker staging; Firefox on Linux"
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest synthetic input and any required role or configuration.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      placeholder: |
+        Expected:
+        Actual:
+        Impact or workaround, if known:
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Optional redacted error, screenshot, request ID, or last working version.
