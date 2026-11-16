@@ -1,7 +1,7 @@
 # Ingestion API
 
 To submit a pipeline result, use the
-[Relay submission procedure](../../services/relay/docs/usage.md).
+[sample submission procedure](submit-sample.md).
 This page is the detailed HTTP and operations reference. Common starting points:
 
 - [Endpoints and request modes](#endpoints) for a direct API integration.

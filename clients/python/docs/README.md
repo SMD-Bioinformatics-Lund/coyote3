@@ -7,10 +7,12 @@
 The client provides synchronous and asynchronous access to a running Coyote API.
 It owns its HTTP transport and response models and does not import the server.
 
-1. [Install and make a request](getting-started.md).
-2. [Use resources and reports](usage.md).
-3. [Configure transport and authentication](configuration.md).
-4. [Look up interfaces and errors](reference.md).
-5. [Develop and test the client](development.md).
+Choose a guide for your task:
+
+- [Install and make a request](getting-started.md).
+- [Use resources and reports](usage.md).
+- [Configure transport and authentication](configuration.md).
+- [Look up interfaces and errors](reference.md).
+- [Develop and test the client](development.md).
 
 Permissions and clinical interpretation remain authoritative on the server.

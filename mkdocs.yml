@@ -131,10 +131,11 @@ nav:
     - Reference database placement: operations/migrations/knowledgebase-database-migration.md
 - Integrate pipelines:
   - Arrange authentication: api/authentication.md
-  - Prepare and submit samples: api/sample-ingestion.md
+  - Prepare and submit samples: api/submit-sample.md
   - Use the Python HTTP client: sdk/python-client.md
   - API reference:
     - API integration index: api/README.md
+    - Ingestion API reference: api/sample-ingestion.md
     - API routes and workflows: api/routes-and-workflows.md
     - API route groups and visibility: api/route-groups.md
     - Individual resource fields: api/resource-fields.md

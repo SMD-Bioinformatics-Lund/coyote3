@@ -1,19 +1,18 @@
 # Clinical Reporting Rules
 
-For a step-by-step UI guide, see [build report wording from assay and sample data](../administration/report-rule-authoring.md).
-For a complete worked assay with default-branch condition comparisons, use the
-[hematology Base walkthrough](../administration/hematology-base-reporting.md).
-The [solid Base and diagnosis examples](../administration/solid-reporting-examples.md)
-apply the same pattern to a named subpanel and explain which complete publication
-is selected at runtime.
-It covers named section starters, dynamic assay/list names, distinct panel and
-selected-list gene counts, conditions and heading-free introduction/closing text.
+This is the reference for report-text rules, their inputs and their review
+lifecycle. Choose the procedure or reference section that matches your task.
 
-For assay setup, start with [optional reporting rules](../administration/assay-setup.md#5-optionally-publish-reporting-rules).
-Within this reference, use [the authoring workspace](#authoring-workspace),
-[sample-backed testing](#sample-backed-testing) and
-[lifecycle and permissions](#lifecycle-and-permissions) for the UI workflow.
-Finding selection is covered separately by [query rules](../administration/query-rules.md).
+| Task | Guide |
+| --- | --- |
+| Write and publish report wording | [Step-by-step authoring](../administration/report-rule-authoring.md) |
+| Follow a complete assay example | [Hematology Base](../administration/hematology-base-reporting.md) or [solid Base and diagnoses](../administration/solid-reporting-examples.md) |
+| Add reporting rules during assay setup | [Assay setup](../administration/assay-setup.md#5-optionally-publish-reporting-rules) |
+| Look up editor controls | [Authoring workspace](#authoring-workspace) |
+| Validate wording against a stored sample | [Sample-backed testing](#sample-backed-testing) |
+| Check review, publication or access requirements | [Lifecycle and permissions](#lifecycle-and-permissions) |
+
+For finding selection, use [query rules](../administration/query-rules.md).
 For HTML/CSS layout changes, use [report templates](../development/report-templates.md).
 
 ## Purpose

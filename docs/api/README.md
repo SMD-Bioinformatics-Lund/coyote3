@@ -18,7 +18,7 @@ in the [data reference](../reference/README.md).
    the application's internal core SDK.
 3. For ingestion, prepare a [sample manifest](../reference/sample-manifest.md) and
    [input files](../reference/ingest-files/README.md), then follow the
-   [ingestion API](sample-ingestion.md).
+   [submission procedure](submit-sample.md).
 4. Follow [ingest job recovery](../operations/ingest-job-recovery.md) when a submitted
    job fails or its outcome is uncertain.
 
@@ -53,7 +53,8 @@ always downloads the complete contract, regardless of the selected resource.
 | [API routes and workflows](routes-and-workflows.md) | Follow request workflows and their route responsibilities. |
 | [API route groups and visibility](route-groups.md) | Find route prefixes, API groups, and OpenAPI visibility rules. |
 | [Individual resource fields](resource-fields.md) | Retrieve one permitted metadata key from a resource. |
-| [Ingestion API](sample-ingestion.md) | Submit sample bundles, uploads, queued jobs, and updates. |
+| [Submit a sample](submit-sample.md) | Validate, upload and confirm a pipeline result with Relay. |
+| [Ingestion API reference](sample-ingestion.md) | Look up sample bundles, uploads, queued jobs, and updates. |
 | [Collection imports and permissions](collection-imports.md) | Import collection documents with the required permissions. |
 | [API versioning and compatibility](versioning-and-compatibility.md) | Check API compatibility and runtime support commitments. |
 | [Raw ingest file contracts](../reference/ingest-files/README.md) | Prepare pipeline files before submitting a sample bundle. |

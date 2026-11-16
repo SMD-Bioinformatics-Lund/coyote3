@@ -10,11 +10,13 @@ with the MongoDB adapter in `coyote-server`, while retaining its own source,
 documentation and test suites. Ingestion workers and submission commands ship
 in the separate `coyote-relay` distribution.
 
-1. [Install and start the API](getting-started.md).
-2. [Configure its runtime](configuration.md).
-3. [Understand requests, workers and reports](usage.md).
-4. [Look up entry points and assets](reference.md).
-5. [Develop and test the host](development.md).
+Choose a guide for your task:
+
+- [Install and start the API](getting-started.md).
+- [Configure its runtime](configuration.md).
+- [Understand requests, workers and reports](usage.md).
+- [Look up entry points and assets](reference.md).
+- [Develop and test the host](development.md).
 
 [Architecture](architecture.md) explains the host boundary. Full center
 installation, backup and release procedures belong to the application guides.

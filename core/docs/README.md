@@ -7,11 +7,13 @@
 The core provides clinical operations and typed contracts for a trusted Python
 host. It does not start a server, authenticate a remote caller or open a database.
 
-1. [Install and import the core](getting-started.md).
-2. [Use operations in a trusted host](usage.md).
-3. [Select center configuration](configuration.md).
-4. [Look up supported interfaces](reference.md).
-5. [Develop and test the core](development.md).
+Choose a guide for your task:
+
+- [Install and import the core](getting-started.md).
+- [Use operations in a trusted host](usage.md).
+- [Select center configuration](configuration.md).
+- [Look up supported interfaces](reference.md).
+- [Develop and test the core](development.md).
 
 [Architecture](architecture.md) describes its responsibilities and dependency
 boundaries. Application deployment is documented in the repository's root guides.

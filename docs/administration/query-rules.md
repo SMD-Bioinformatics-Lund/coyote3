@@ -1,5 +1,19 @@
 # Finding query rules
 
+Query rules change which findings pass the analysis query. They combine published
+policy with the sample's saved filters. They do not generate report wording;
+use [reporting rules](../reference/clinical-reporting-rules.md) for that task.
+
+| Task | Start here |
+| --- | --- |
+| Create or change a policy | [Prerequisites](#prerequisites), then [create and activate a policy](#create-and-activate-a-policy) |
+| Check the effect before publication | [Test with stored samples](#test-with-stored-samples) |
+| Understand the built-in selection | [Application base queries](#application-base-queries-by-analysis) |
+| Understand which policy applies | [Scope and inheritance](#scope-and-inheritance) |
+| Move a policy between installations | [Transfer a query policy](#transfer-a-query-policy) |
+
+## Transfer a query policy
+
 **Export JSON** downloads the selected saved version's editable name, scope and
 content by default. **Include metadata** is unchecked; select it to include saved
 version, author and workflow information for inspection. **Import JSON** ignores
@@ -17,14 +31,6 @@ and modality when previewed and saved.
 
 The change/review reason uses the same Markdown editor and preview as comments.
 Query identifiers, field paths and condition values remain literal query inputs.
-
-Start with [application base queries](#application-base-queries-by-analysis) to see
-the built-in selection behavior, then [scope and inheritance](#scope-and-inheritance)
-to understand how UI rules modify it. To make a change, follow
-[prerequisites](#prerequisites), [create and activate a policy](#create-and-activate-a-policy)
-and [test with stored samples](#test-with-stored-samples).
-For clinical report text instead of finding selection, use
-[reporting rules](../reference/clinical-reporting-rules.md).
 
 ## Application defaults and group policies
 

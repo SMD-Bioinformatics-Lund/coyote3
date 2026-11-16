@@ -1,12 +1,16 @@
 # UI Page And Table Reference
 
-This page describes the information shown by each Coyote4 screen, how the major tables are read, and which badges or compact symbols can appear in each data area.
+Look up a screen, column or badge here. For the steps to review a case and issue a
+report, follow the [clinical review procedure](clinical-review-workflow.md).
 
-> **Info: Scope**
->
->
-> This reference documents the React application as a clinical review surface. It describes what the user sees, what each table column means, and how badges should be interpreted. API contracts, collection schemas, and deployment details are documented separately in the API and operations sections.
->
+| Look up | Section |
+| --- | --- |
+| Review flags, tiers and evidence symbols | [Badge reference](#badge-reference) |
+| Sample list, filters and readiness | [Samples page](#samples-page) and [sample detail](#sample-detail) |
+| Small-variant, CNV or structural result columns | [Small variants](#small-variants), [CNVs](#cnvs-tab), [translocations](#translocations-tab) and [RNA fusions](#fusions-tab) |
+| Finding annotations and supporting evidence | [Finding detail pages](#finding-detail-pages) |
+| Report list and saved documents | [Reports and saved reports](#reports-page-and-saved-reports) |
+| Assay catalogs and administration tables | [Assay catalog](#assay-catalog), [matrix](#assay-catalog-matrix) and [admin pages](#admin-pages) |
 
 ## General Table Rules
 

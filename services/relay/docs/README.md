@@ -11,8 +11,10 @@ extension through `coyote.api.routers`; its authentication and permission checks
 protect submissions. Workers execute retained jobs through the core application
 workflow. The server can run without Relay installed.
 
-1. [Install the tools or worker](getting-started.md).
-2. [Validate and submit a manifest](usage.md).
-3. [Configure authentication and worker hosting](configuration.md).
-4. [Look up commands and message names](reference.md).
-5. [Develop and test this package](development.md).
+Choose a guide for your task:
+
+- [Install the tools or worker](getting-started.md).
+- [Validate and submit a manifest](usage.md).
+- [Configure authentication and worker hosting](configuration.md).
+- [Look up commands and message names](reference.md).
+- [Develop and test this package](development.md).

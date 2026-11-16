@@ -55,8 +55,10 @@ Create a session by calling the login endpoint through the same public mount
 prefix used by the application.
 
 Set the mounted public origin, then read the enabled providers. The response
-contains one or both of `local` and `ldap`, as configured in
-`api/src/coyote_api/config/examples/center/clinical_vocabulary.toml`.
+contains one or both of the software-supported values `local` and `ldap`.
+The host selects them through `AUTHENTICATION_PROVIDERS`; a blank override uses
+the packaged provider defaults. The center vocabulary file does not redefine
+authentication providers.
 
 ```bash
 BASE_URL="https://localhost/coyote4_dev"
@@ -85,8 +87,8 @@ Set-Cookie: coyote4_dev_api_session=<opaque-session-token>; HttpOnly; SameSite=l
 ```
 
 For LDAP users, submit the email address in the `username` field. For local
-users, submit the local username. The `provider` value must be enabled by the
-center's vocabulary configuration.
+users, submit the local username. The `provider` value must be present in the
+deployment's `/api/v1/auth/providers` response.
 
 > **Warning: Handle session tokens as secrets**
 >

@@ -8,9 +8,11 @@ The frontend is Coyote's browser interface. It owns presentation, navigation,
 editing interactions and HTTP client state. Clinical decisions and authoritative
 access checks remain on the API.
 
-1. [Run the development server](getting-started.md).
-2. [Configure its proxy and presentation](configuration.md).
-3. [Understand the UI boundaries](architecture.md).
-4. [Test and build changes](development.md).
+Choose a guide for your task:
+
+- [Run the development server](getting-started.md).
+- [Configure its proxy and presentation](configuration.md).
+- [Understand the UI boundaries](architecture.md).
+- [Test and build changes](development.md).
 
 Clinical user workflows and full application deployment belong to the root guides.

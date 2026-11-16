@@ -21,9 +21,14 @@ Use the [HTTP client](python-client.md) for external integrations. Use the
 [core](core.md) to build a trusted host with explicit repository and authorization
 capabilities. Installing the core does not start a server or connect to MongoDB.
 
-Start with [editable uv development](uv-development.md), then consult
-[installation](server-installation.md), [package boundaries](package-boundaries.md),
-[application operations](application-sdk.md) and [release compatibility](compatibility.md).
+Choose a guide for your task:
+
+- [Call a running API from Python](python-client.md).
+- [Develop the application locally with editable packages](uv-development.md).
+- [Install release wheels](server-installation.md).
+- [Implement a host using core operations](application-sdk.md).
+- [Understand package dependencies](package-boundaries.md) or
+  [check release compatibility](compatibility.md).
 
 ## Package-owned documentation
 

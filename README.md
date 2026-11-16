@@ -35,7 +35,7 @@ remains named `coyote3`; the production version 3 application is maintained sepa
 | Try the application with synthetic data | [Isolated demo installation](docs/deployment/demo-installation.md) |
 | Install at a center | [First installation](docs/deployment/first-installation.md) |
 | Update an existing installation | [Upgrade procedure](docs/deployment/application-upgrades.md) |
-| Submit data from a pipeline | [Sample ingestion](docs/api/sample-ingestion.md) |
+| Submit data from a pipeline | [Submit and track a sample](docs/api/submit-sample.md) |
 | Work on the code | [Developer setup](docs/getting-started/developer-environment.md) |
 | Investigate a problem | [Troubleshooting](docs/operations/troubleshooting.md) |
 

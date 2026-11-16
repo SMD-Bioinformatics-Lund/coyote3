@@ -17,7 +17,7 @@ interfaces are documented in their own package guides below.
 - **[Try Coyote4 with synthetic samples](deployment/demo-installation.md):** choose Docker or native processes with dedicated demo storage.
 - **[Install at a center](deployment/first-installation.md):** prepare services, baseline data and the initial account.
 - **Update an existing installation:** [upgrade the release](deployment/application-upgrades.md) or [restart the same release](deployment/application-redeployment.md).
-- **Connect a pipeline:** [arrange authentication](api/authentication.md), then [submit and track samples](api/sample-ingestion.md).
+- **Connect a pipeline:** [arrange authentication](api/authentication.md), then [submit and track samples](api/submit-sample.md).
 - **[Change the code](getting-started/developer-environment.md):** prepare a local development environment.
 - **Investigate a problem:** use [service troubleshooting](operations/troubleshooting.md) or [missing sample results](user-guide/sample-readiness-and-missing-results.md).
 

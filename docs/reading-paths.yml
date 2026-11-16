@@ -28,5 +28,5 @@ paths:
         label: Authenticate and arrange permissions
       - file: reference/sample-manifest.md
         label: Prepare the manifest
-      - file: api/sample-ingestion.md
+      - file: api/submit-sample.md
         label: Submit and track the job

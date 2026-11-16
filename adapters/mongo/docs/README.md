@@ -9,11 +9,13 @@ collections, provider identities, executable queries, indexes and transactions.
 It ships with the API in `coyote-server`, while retaining its own source,
 documentation and test suites.
 
-1. [Install and construct connections](getting-started.md).
-2. [Configure endpoints and concerns](configuration.md).
-3. [Use repositories and transactions](usage.md).
-4. [Look up adapter interfaces](reference.md).
-5. [Develop and test the adapter](development.md).
+Choose a guide for your task:
+
+- [Install and construct connections](getting-started.md).
+- [Configure endpoints and concerns](configuration.md).
+- [Use repositories and transactions](usage.md).
+- [Look up adapter interfaces](reference.md).
+- [Develop and test the adapter](development.md).
 
 [Architecture](architecture.md) describes persistence guarantees. Server
 provisioning and backup operations belong to application deployment guides.
