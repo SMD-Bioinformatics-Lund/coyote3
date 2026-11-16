@@ -83,14 +83,29 @@ Recommendation:
 
 ## Environment naming map
 
-Clinical profile normalization (distinct from the deployment `ENV_NAME` setting):
+Deployment selection accepts short and full names in both the installer's
+`--environment` argument and `ENV_NAME`:
 
-- `production` -> `production`
-- `development` / `dev` -> `development`
-- `test` / `testing` -> `test`
-- `validation` / `stage` / `staging` -> `validation`
+| Accepted deployment names | Normalized deployment label |
+| --- | --- |
+| `prod`, `production` | `prod` |
+| `dev`, `development` | `dev` |
+| `stage`, `staging` | `stage` |
+| `test`, `testing` | `test` |
 
-Use `validation` in persisted profile fields for stage/staging environments.
+The installer uses the short label for Compose selection, default project names
+and image tags. An explicit `--environment` must agree with `ENV_NAME` after
+normalization; `--environment stage` and `ENV_NAME=staging` select the same deployment.
+
+The sample manifest's `profile`, stored as `environment`, describes its clinical
+workflow. Its canonical values are `production`, `development`, `testing` and
+`validation`. These values also scope ASPC selection and assay access. Deployment
+aliases such as `dev`, `test`, `stage` and `staging` are not clinical profiles.
+
+For example, a deployment with `ENV_NAME=staging` can receive a sample with
+`profile: validation` when the matching ASPC and user access are configured.
+Deployment selection does not set or rewrite the sample profile. `validation`
+is not a deployment selector, and `staging` is not a sample profile.
 
 ## Database isolation
 

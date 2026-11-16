@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ENVIRONMENTS = {"development": "dev", "production": "prod", "testing": "test", "staging": "stage"}
+ENVIRONMENTS = {"production": "prod", "development": "dev", "staging": "stage", "testing": "test"}
 STEPS = ("network", "directories", "build", "validate", "bootstrap", "indexes", "start", "health")
 
 
@@ -91,12 +91,23 @@ def validate_secrets(settings: dict[str, str]) -> None:
 
 
 def environment_name(value: str) -> str:
-    """Normalize a supported environment name or reject an unknown profile."""
+    """Normalize a short or full deployment name, independently of sample profiles.
+
+    Args:
+        value: Deployment name from the command line or ENV_NAME.
+
+    Returns:
+        The short deployment label used for Compose files, projects and image tags.
+
+    Raises:
+        ValueError: The name is not a supported deployment environment.
+    """
     value = value.strip().lower()
     value = ENVIRONMENTS.get(value, value)
     if value not in ENVIRONMENTS.values():
+        choices = ", ".join(f"{short}/{full}" for full, short in ENVIRONMENTS.items())
         raise ValueError(
-            "ENV_NAME must select prod, dev, stage or test; use the demo command for isolation"
+            f"Deployment environment must select {choices}; use the demo command for isolation"
         )
     return value
 

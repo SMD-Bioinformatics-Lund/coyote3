@@ -87,15 +87,18 @@ content. Use the structured **Admin > Public Assay Catalog** builder to edit
 it; JSON is available only for portable import and export. It is not a file in
 `center/`.
 
-> **Info: One environment selector**
+> **Info: Deployment environment selector**
 >
 >
-> `ENV_NAME` is the environment selector. Use values such as `development`,
-> `testing`, `staging`, or `production`. Coyote4 does not use separate
-> `DEVELOPMENT=1` or `TESTING=1` flags.
+> `ENV_NAME` selects the application deployment. It accepts `production`/`prod`,
+> `development`/`dev`, `staging`/`stage`, or `testing`/`test`, as does the installer's
+> `--environment` option. Coyote4 does not use separate `DEVELOPMENT=1` or `TESTING=1`
+> flags. Sample profiles are separate: `production`, `development`, `testing` and
+> `validation`. A staging deployment does not assign samples to validation.
 
 `COYOTE4_RUNTIME_MODE` can explicitly select `production`, `development`, or
-`testing` protections independently of the clinical environment label. Without
+`testing` protections independently of the deployment label in `ENV_NAME`. It
+does not change sample profiles or clinical configuration selection. Without
 this override, existing `ENV_NAME` behavior is unchanged. Isolated demonstrations
 use `ENV_NAME=testing` with `COYOTE4_RUNTIME_MODE=production` so authentication,
 CSRF, persistence, and background workers retain their normal protections.
@@ -265,7 +268,7 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 
 | Variable | Required | Accepted value / units | Default when omitted | Purpose |
 | --- | --- | --- | --- | --- |
-| `ENV_NAME` | Required by Compose | `development`, `testing`, `staging`, or `production` | None; a nonempty value is required | Selects runtime behavior and labels audit/log context. Set it explicitly in copied env files so operators can identify the target immediately. |
+| `ENV_NAME` | Required by Compose | `production`/`prod`, `development`/`dev`, `staging`/`stage`, or `testing`/`test` | None; a nonempty value is required | Selects deployment behavior and labels audit/log context; independent of sample profiles. Set it explicitly in copied env files so operators can identify the target immediately. |
 | `COYOTE4_RUNTIME_MODE` | Optional | `production`, `development`, `testing` | Derived from `ENV_NAME` | Explicit process protections; does not change clinical assay environment selection. |
 | `COYOTE4_DATA_ROOT` | Optional | Absolute filesystem path | `/data` | Base for environment-specific stored files. Native demo launchers select a private directory. |
 | `COYOTE4_DB` | Required by application Compose | MongoDB database name | None; a nonempty value is required | Environment-specific primary database, independent of the URI path and authSource. |

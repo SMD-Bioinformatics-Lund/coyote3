@@ -14,18 +14,24 @@ Ordinary Docker installation needs no server packages installed on the host.
 
 | Selection | Default Compose files | Image tag |
 | --- | --- | --- |
-| `--environment prod` | Base | Application version |
-| `--environment dev` | Base + dev | Version + `-dev` |
-| `--environment stage` | Base + stage | Version + `-stage` |
-| `--environment test` | Base + test | Version + `-test` |
+| `--environment prod` or `production` | Base | Application version |
+| `--environment dev` or `development` | Base + dev | Version + `-dev` |
+| `--environment stage` or `staging` | Base + stage | Version + `-stage` |
+| `--environment test` or `testing` | Base + test | Version + `-test` |
 | `demo` | Dedicated isolated demo stack | Demo build targets |
 
-The profile must agree with `ENV_NAME` when explicitly selected. Without
+Both `--environment` and `ENV_NAME` accept short or full deployment names. An
+explicit selection must agree with `ENV_NAME` after normalization. Without
 `--environment`, the command derives it from the environment file, allowing an
 explicit process-environment override. Use `--legacy` for the maintained older-host
 Compose definitions. `--overlay FILE` appends an overlay; repeated
 `--compose-file FILE` options replace the default file selection entirely.
 Keep the same environment file, project name and ordered overlays for every operation.
+
+These deployment names are independent of the sample's clinical profile.
+Samples use `production`, `development`, `testing` or `validation`; the installer
+does not translate `staging` into sample `validation`. See the
+[environment naming map](environments-and-secrets.md#environment-naming-map).
 
 Preview a regular deployment using local files only:
 

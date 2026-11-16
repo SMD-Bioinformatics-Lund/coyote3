@@ -117,7 +117,7 @@ once, before ASP/ASPC lookup and before the sample schema is evaluated.
 | --- | --- | --- | --- |
 | `assay` | `asp_id` | DNA, RNA | Required clinical identity. Both names may be supplied only with the same value. |
 | `diagnosis` | `diagnosis_id` | DNA, RNA | Optional clinical identity. Omit for the configured `base` diagnosis. |
-| `profile` | `environment` | DNA, RNA | Required deployment/clinical environment. |
+| `profile` | `environment` | DNA, RNA | Required clinical workflow profile; independent of the application deployment. |
 | `sequencing_technology` | `platform` | DNA, RNA | Sequencing platform, such as `illumina`; read technology is derived from platform configuration. |
 
 Pipeline-authored YAML must use the left-hand names consistently. The
@@ -125,6 +125,11 @@ right-hand names describe only the canonical internal representation after
 ingest normalization. After normalization, no stored sample, ASPC lookup, or
 downstream service uses `assay`, `diagnosis`, `profile`, or
 `sequencing_technology`.
+
+The sample's clinical environment selects its ASPC and access scope. The
+deployment setting `ENV_NAME` does not assign or rename this value. `validation`
+is a sample profile; `stage` and `staging` are deployment names and are not accepted
+as sample profiles.
 
 ## Shared top-level fields
 
@@ -135,7 +140,7 @@ These keys are common to DNA and RNA sample bundles.
 | `name` | Yes | DNA, RNA | Unique sample name shown in the UI and stored in `samples.name`. |
 | `assay` | Yes | DNA, RNA | Pipeline ASP identifier. Ingest normalizes it to internal `asp_id`, which resolves the active physical assay definition and its allowed, expected, and required file keys. |
 | `diagnosis` | No | DNA, RNA | Pipeline diagnosis identifier. Ingest normalizes it to `diagnosis_id`; omitting it resolves the configured `base` diagnosis. |
-| `profile` | Yes | DNA, RNA | Pipeline environment. Ingest normalizes it to internal `environment`. Allowed values are `production`, `development`, `testing`, and `validation`. |
+| `profile` | Yes | DNA, RNA | Clinical workflow profile, mapped to internal `environment`. Allowed values are `production`, `development`, `testing`, and `validation`; deployment aliases are not accepted. |
 | `case_id` | Yes | DNA, RNA | Case/sample identifier from the upstream pipeline or LIMS. |
 | `control_id` | Paired only | DNA, RNA | Control sample identifier. Omit for single-sample ingest. |
 | `sample_no` | Yes | DNA, RNA | `1` for single-sample ingest, `2` for paired case/control ingest. |

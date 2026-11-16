@@ -8,8 +8,59 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from coyote_atlas.bundle import ReferenceBundle
 from coyote_demo.resources import DEMO_CENTER
+
+
+@pytest.mark.parametrize("environment", ["production", "development", "testing", "validation"])
+def test_aspc_consistency_accepts_canonical_clinical_profiles(environment):
+    """Seed consistency checks keep all four supported clinical environments."""
+    from scripts.bootstrap.validate_assay_consistency import _validate_aspc
+
+    assert not _validate_aspc(
+        {
+            "asp_configs": [
+                {
+                    "aspc_id": f"synthetic::base::{environment}",
+                    "asp_id": "synthetic",
+                    "diagnosis_id": "base",
+                    "environment": environment,
+                    "is_active": True,
+                }
+            ]
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "deployment,clinical",
+    [
+        ("prod", "production"),
+        ("dev", "development"),
+        ("test", "testing"),
+        ("stage", "validation"),
+        ("staging", "validation"),
+    ],
+)
+def test_aspc_consistency_rejects_deployment_aliases(deployment, clinical):
+    """A deployment alias cannot silently match a canonical clinical configuration."""
+    from scripts.bootstrap.validate_assay_consistency import _validate_aspc
+
+    errors = _validate_aspc(
+        {
+            "asp_configs": [
+                {
+                    "aspc_id": f"synthetic::base::{clinical}",
+                    "asp_id": "synthetic",
+                    "diagnosis_id": "base",
+                    "environment": deployment,
+                    "is_active": True,
+                }
+            ]
+        }
+    )
+    assert any("invalid environment" in error for error in errors)
 
 
 def _run_validator(

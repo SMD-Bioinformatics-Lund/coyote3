@@ -110,7 +110,7 @@ def _require_production_safe_setting(config: Mapping[str, Any], key: str) -> str
 
 
 def get_runtime_mode_flags() -> dict[str, bool]:
-    """Select process protections independently of the clinical environment label.
+    """Select process protections from deployment settings, not sample profiles.
 
     Returns:
         A mapping containing the normalized ``testing`` and ``development``

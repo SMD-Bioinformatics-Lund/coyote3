@@ -25,25 +25,13 @@ from coyote_api.config.bootstrap import configure_center_from_environment  # noq
 # Bind the host profile before importing vocabulary-dependent contracts.
 configure_center_from_environment()
 
-from coyote.config.constants import ENVIRONMENT_OPTIONS  # noqa: E402
+from coyote.config.constants import normalize_environment  # noqa: E402
 from coyote.contracts.schemas.registry import (  # noqa: E402
     supported_collections,
     validate_collection_document,
 )
 from coyote_api.infra.seed.bundle import load_reference_seed_pack, load_seed  # noqa: E402
 
-VALID_ENVIRONMENTS = set(ENVIRONMENT_OPTIONS)
-ENV_ALIASES = {
-    "prod": "production",
-    "production": "production",
-    "dev": "development",
-    "development": "development",
-    "test": "testing",
-    "testing": "testing",
-    "validation": "validation",
-    "stage": "validation",
-    "staging": "validation",
-}
 REQUIRED_BASELINE_COLLECTIONS = (
     "permissions",
     "roles",
@@ -348,20 +336,6 @@ def _collect_references(seed: dict[str, Any]) -> tuple[set[str], set[str]]:
     return assays, groups
 
 
-def _normalize_env(value: Any) -> str:
-    """Lowercase an environment label and expand recognized deployment aliases.
-
-    Args:
-        value: Environment value to stringify and trim.
-
-    Returns:
-        Canonical environment for known aliases, including stage/staging as validation;
-        unrecognized values remain stripped lowercase text without validation.
-    """
-    raw = _norm(value).lower()
-    return ENV_ALIASES.get(raw, raw)
-
-
 def _validate_lowercase_business_ids(seed: dict[str, Any]) -> list[str]:
     """Report uppercase characters in configured scalar and list business-key fields.
 
@@ -446,12 +420,12 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
 
     Returns:
         Diagnostics for malformed records, missing or inconsistent IDs, duplicate
-        ASPC IDs or active assay/diagnosis/environment tuples, unsupported nonempty
+        ASPC IDs or active assay/diagnosis/environment tuples, missing or unsupported
         environments, and missing boolean active flags; empty when checks pass.
 
     Notes:
-        Missing diagnosis IDs default to ``base`` for these checks. Environment aliases
-        are normalized for comparison without modifying the seed.
+        Missing diagnosis IDs default to ``base`` for these checks. Clinical
+        environments use the core validator; deployment aliases are not accepted.
     """
     errors: list[str] = []
     seen_ids: set[str] = set()
@@ -463,7 +437,11 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
         aspc_id = _norm(doc.get("aspc_id", ""))
         asp_id = _norm(doc.get("asp_id", ""))
         diagnosis_id = _norm(doc.get("diagnosis_id", "base"))
-        environment = _normalize_env(doc.get("environment", ""))
+        try:
+            environment = normalize_environment(doc.get("environment", ""))
+        except ValueError as error:
+            errors.append(f"asp_configs[{idx}] invalid environment: {error}")
+            continue
 
         if not aspc_id:
             errors.append(f"asp_configs[{idx}] must include aspc_id")
@@ -488,8 +466,6 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
                 f"asp_configs[{idx}] mismatch: aspc_id '{aspc_id}' != expected '{expected_aspc_id}'"
             )
 
-        if environment and environment not in VALID_ENVIRONMENTS:
-            errors.append(f"asp_configs[{idx}] invalid environment '{environment}'")
         if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
             errors.append(f"asp_configs[{idx}] must include boolean is_active")
         if doc.get("is_active") is True and asp_id and diagnosis_id and environment:

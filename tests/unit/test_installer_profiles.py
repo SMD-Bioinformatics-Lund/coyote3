@@ -43,12 +43,56 @@ def test_profiles_select_matching_files_and_versioned_images(environment_file, e
     )
 
 
-def test_mismatched_profile_stops_before_any_process(environment_file, monkeypatch):
+@pytest.mark.parametrize(
+    "short,full",
+    [("prod", "production"), ("dev", "development"), ("stage", "staging"), ("test", "testing")],
+)
+@pytest.mark.parametrize("full_argument", [False, True])
+def test_cli_accepts_equivalent_deployment_spellings(
+    environment_file, monkeypatch, capsys, short, full, full_argument
+):
+    """CLI names and ENV_NAME may use different spellings of the same deployment."""
+    argument, configured = (full, short) if full_argument else (short, full)
+    environment_file.write_text(environment_file.read_text() + f"ENV_NAME={configured}\n")
+    process = Mock(side_effect=AssertionError("No subprocess may run"))
+    monkeypatch.setattr(subprocess, "run", process)
+    monkeypatch.setattr(subprocess, "Popen", process)
+
+    assert cli.main(["plan", "--env-file", str(environment_file), "--environment", argument]) == 0
+
+    output = capsys.readouterr().err
+    assert f"Environment: {short}; project: coyote4-{short};" in output
+    if short != "prod":
+        assert f"deploy/compose/docker-compose.{short}.yml" in output
+    process.assert_not_called()
+
+
+@pytest.mark.parametrize("environment", ["stage", "staging"])
+def test_mismatched_profile_stops_before_any_process(environment_file, monkeypatch, environment):
     environment_file.write_text(environment_file.read_text() + "ENV_NAME=production\n")
     run = Mock(side_effect=AssertionError("No subprocess may run"))
     monkeypatch.setattr(subprocess, "run", run)
-    assert cli.main(["deploy", "--env-file", str(environment_file), "--environment", "stage"]) == 1
+    assert (
+        cli.main(["deploy", "--env-file", str(environment_file), "--environment", environment]) == 1
+    )
     run.assert_not_called()
+
+
+@pytest.mark.parametrize("source", ["argument", "file"])
+def test_clinical_validation_is_rejected_as_a_deployment(environment_file, monkeypatch, source):
+    """A sample validation profile must never select deployment files or services."""
+    process = Mock(side_effect=AssertionError("No subprocess may run"))
+    monkeypatch.setattr(subprocess, "run", process)
+    monkeypatch.setattr(subprocess, "Popen", process)
+    arguments = ["plan", "--env-file", str(environment_file)]
+    if source == "argument":
+        with pytest.raises(SystemExit) as error:
+            cli.main([*arguments, "--environment", "validation"])
+        assert error.value.code == 2
+    else:
+        environment_file.write_text(environment_file.read_text() + "ENV_NAME=validation\n")
+        assert cli.main(arguments) == 1
+    process.assert_not_called()
 
 
 def test_plan_never_executes_or_prepares_storage(environment_file, monkeypatch, capsys):

@@ -11,7 +11,14 @@ import sys
 from pathlib import Path
 
 from .compose import Compose
-from .config import STEPS, Profile, read_environment, validate_secrets
+from .config import (
+    ENVIRONMENTS,
+    STEPS,
+    Profile,
+    environment_name,
+    read_environment,
+    validate_secrets,
+)
 from .process import Console, Runner
 from .workflow import Installer, Options
 
@@ -23,8 +30,12 @@ def _profile_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--env-file", type=Path, required=True, help="Reviewed environment file")
     parser.add_argument(
         "--environment",
-        choices=("prod", "dev", "stage", "test"),
-        help="Must match ENV_NAME; otherwise inferred from the file",
+        type=environment_name,
+        choices=tuple(ENVIRONMENTS.values()),
+        help=(
+            f"Deployment environment; also accepts full names: {', '.join(ENVIRONMENTS)}. "
+            "Must match ENV_NAME after normalization; otherwise inferred from the file"
+        ),
     )
     parser.add_argument(
         "--project",
