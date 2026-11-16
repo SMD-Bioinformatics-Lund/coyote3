@@ -2,7 +2,9 @@
 
 Dependencies point from this adapter to `coyote-core`. Host composition supplies
 configuration, logging, optional caches and operation-observation callbacks.
-There are no API imports or HTTP-framework requirements.
+Adapter code imports neither the API nor a web framework. Installation uses the
+`coyote-server` distribution, which also includes API code and host dependencies.
+The shared distribution does not change the adapter's inward dependency boundary.
 
 Repository methods implement the operations consumed by core services. Record
 codecs convert provider identities and dates at this boundary; driver result
@@ -18,6 +20,6 @@ retains the existing pending-artifact and recovery flow. Retryable transaction
 callbacks must not send messages, change files or perform external side effects.
 
 Changes must preserve existing identity, query, snapshot and audit behavior.
-Run the package tests and affected application integration tests. Validate real
+Run the adapter tests and affected application integration tests. Validate real
 transaction behavior against a separately authorized synthetic replica set;
 mocked tests do not establish those guarantees.

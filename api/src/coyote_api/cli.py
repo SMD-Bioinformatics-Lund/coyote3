@@ -20,5 +20,5 @@ def main() -> None:
     try:
         import uvicorn
     except ImportError:
-        parser.error("Install coyote-api and its declared dependencies from the retained wheels")
+        parser.error("Install coyote-server and its declared dependencies from the retained wheels")
     uvicorn.run("coyote_api.app.main:app", host=args.host, port=args.port, workers=args.workers)

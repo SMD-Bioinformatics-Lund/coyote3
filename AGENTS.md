@@ -31,7 +31,7 @@ The system consists of:
 | `core/src/coyote/domain/` | Domain models, rules, and repository protocols without framework dependencies. |
 | `core/src/coyote/contracts/` | Pydantic request, response, and collection schemas. |
 | `api/src/coyote_api/infra/` | Host integrations, observability and infrastructure composition. |
-| `adapters/mongo/src/coyote_mongo/` | Independently installable MongoDB repositories and persistence adapters. |
+| `adapters/mongo/src/coyote_mongo/` | MongoDB repositories and persistence adapters in the server distribution. |
 | `core/src/coyote/config/` | Typed policy inputs, software defaults and validation. |
 | `api/src/coyote_api/bootstrap/` | Installation catalogs and host-owned catalog assembly. |
 | `api/src/coyote_api/services/` | Host installation operations and public-page composition. |
@@ -170,11 +170,15 @@ Important entry points are `api/src/coyote_api/app/main.py`, `asgi.py`, `run_api
   before importing vocabulary-dependent contracts; one process uses one immutable profile.
 - SDK release identity belongs to `core/pyproject.toml`; application identity and its exact
   SDK selection belong to `release.toml`. Keep HTTP and clinical configuration revisions separate.
-- The root is a virtual uv workspace. `core` builds `coyote-core`; `adapters/mongo` builds
-  `coyote-mongo`; `api` builds `coyote-api` with server assets.
+- The root builds `coyote-server` from the separate `api/src/coyote_api` and
+  `adapters/mongo/src/coyote_mongo` trees. Its uv workspace also contains `core`
+  (`coyote-core`) and `clients/python` (`coyote-pyclient`). API and Mongo retain
+  component-owned tests, coverage and docs while sharing one server distribution.
   Dependencies point API -> adapter -> core. The adapter never imports the API.
   The HTTP client has its own distribution and imports none of those packages.
-  Use the uv workspace for editable development; deployment installs separate wheels.
+  Use the uv workspace for editable development; deployment installs core, server
+  and independent client wheels. The client supports administrative HTTP tools;
+  API request handlers and core operations must not import it.
 
 - HTTP routers declare paths, permissions, dependencies, and response contracts, then
   delegate behavior to `core/src/coyote/application` services.

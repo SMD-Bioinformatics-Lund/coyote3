@@ -15,7 +15,8 @@
 | `coyote_mongo.repositories` | Collection-specific persistence operations |
 | `coyote_mongo.resource_integrity.resource_content_hash` | Canonical persisted-resource hashes |
 
-The distribution is `coyote-mongo`; its import is `coyote_mongo`.
+The distribution is `coyote-server`; the adapter's import is `coyote_mongo`.
+Its version is the shared server version, not an independent adapter release.
 Read method docstrings for selectors, return values and failure behavior.
 The adapter preserves existing document and hash contracts; replacing canonical
 BSON hashing with ordinary JSON hashing would invalidate recorded provenance.

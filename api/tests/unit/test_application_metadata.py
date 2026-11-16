@@ -13,7 +13,7 @@ def test_api_package_version_is_separate_from_the_application_label(monkeypatch)
     from coyote_api.app.main import app
     from coyote_api.config.runtime_settings import ProductionConfig
 
-    assert app.version == identity.__version__ == version("coyote-api")
+    assert app.version == identity.__version__ == version("coyote-server")
     assert ProductionConfig.APP_VERSION == identity.APPLICATION_VERSION
     monkeypatch.setattr(identity, "__version__", "99.0.0")
     assert identity.environment_version("production") == ProductionConfig.APP_VERSION

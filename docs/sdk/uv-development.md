@@ -1,19 +1,19 @@
 # Editable development with uv
 
-The repository is one uv workspace with four independently buildable packages:
+The repository is one uv workspace with three independently buildable distributions:
 
 | Project | Distribution | Import | Version owner |
 | --- | --- | --- | --- |
 | `core` | `coyote-core` | `coyote` | `core/pyproject.toml` |
-| `adapters/mongo` | `coyote-mongo` | `coyote_mongo` | Its `pyproject.toml` |
-| `api` | `coyote-api` | `coyote_api` | Its `pyproject.toml` |
+| Repository root | `coyote-server` | `coyote_api`, `coyote_mongo` | Root `pyproject.toml` |
 | `clients/python` | `coyote-pyclient` | `coyote_pyclient` | Its `pyproject.toml` |
 
 Workspace dependencies come from this checkout, not a public package index.
 uv installs workspace members editable. One lockfile resolves their dependencies
-together; separate wheel builds retain each package's own metadata. The root
-`pyproject.toml` is a virtual workspace with shared development dependency groups;
-it does not build a distribution. Every member owns its `src/`, tests and docs.
+together. The root `pyproject.toml` builds the server distribution from the separate
+`api/src/` and `adapters/mongo/src/` trees and owns shared development dependency groups.
+API and Mongo retain separate tests, coverage configurations and documentation;
+they share the server version and deployment wheel.
 
 ## Set up once
 
@@ -32,7 +32,7 @@ in their documented separate environment.
 ## Edit and run
 
 ```bash
-uv run --package coyote-api uvicorn coyote_api.app.main:app \
+uv run --package coyote-server uvicorn coyote_api.app.main:app \
   --host 127.0.0.1 --port 8001 --reload \
   --reload-dir core/src --reload-dir api/src --reload-dir adapters/mongo/src
 ```
@@ -60,8 +60,8 @@ scripts/quality/run_package_tests.sh api
 scripts/quality/run_package_tests.sh client
 scripts/quality/run_package_tests.sh all --smoke
 scripts/quality/run_package_tests.sh all --coverage
-uv run --package coyote-api pytest tests
-uv run --package coyote-api pytest
+uv run --package coyote-server pytest tests
+uv run --package coyote-server pytest
 ```
 
 Package suites exercise their own contracts. The shared application suite tests
@@ -78,8 +78,9 @@ application tests through root `pytest.ini`.
 uv run python scripts/release/build_sdk.py --output-dir .release/sdk
 ```
 
-The build produces separate core, MongoDB adapter and API wheels. Deployment
-installs these normally, without editable paths. The release workflow records
+The build produces core, combined server and independent Python client wheels.
+The client supplies the image's administrative HTTP tools. Deployment installs
+these normally, without editable paths. The release workflow records
 their versions and SHA-256 digests together and verifies them before installation.
 No PyPI publication or PostgreSQL adapter is introduced.
 
@@ -87,8 +88,7 @@ To build one package directly:
 
 ```bash
 uv build --package coyote-core
-uv build --package coyote-mongo
-uv build --package coyote-api
+uv build --package coyote-server
 uv build --package coyote-pyclient
 ```
 

@@ -5,7 +5,7 @@ From the repository root:
 ```bash
 uv sync --all-packages --group dev --group test --group docs
 scripts/quality/run_package_tests.sh api
-uv build --package coyote-api
+uv build --package coyote-server
 ```
 
 Use editable installs for Python work and reload the API after changes. Restart
@@ -16,9 +16,11 @@ Keep routes focused on transport and delegation. Changes to authentication,
 permissions, center selection or startup order need success and failure tests.
 Changes affecting clinical behavior also need the shared application regressions.
 
-The package's `pyproject.toml` owns its version, dependencies and console entry
-point. Update `CHANGELOG.md` for package changes. The application release process
-selects and verifies the complete core/adapter/API combination.
+The root `pyproject.toml` owns the shared server version, dependencies and console
+entry point. The API's `pyproject.toml` owns only its test and coverage settings.
+Update the component `CHANGELOG.md` for API changes. The application release process
+selects and verifies the core and server wheels, plus the independent Python client
+used by in-container administration commands.
 
 ## Test suites and coverage
 
@@ -26,10 +28,10 @@ selects and verifies the complete core/adapter/API combination.
 `tests/http` owns route behavior, validation and permissions. `tests/smoke` checks
 the health entry point and settings projection without starting infrastructure.
 All are included in a full run. Synthetic helpers belong to `tests/api_test_support`;
-they use declared core/adapter dependencies and packaged resources, without importing
+they use installed core and adapter code and packaged resources, without importing
 another project's tests. Frontend/API contract checks belong at the repository root.
 
-From this directory, after installing `.[test]`:
+From this directory, with the repository virtual environment activated:
 
 ```bash
 python -m pytest -q tests/smoke

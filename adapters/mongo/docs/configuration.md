@@ -1,6 +1,6 @@
 # MongoDB adapter configuration
 
-Construct `coyote_mongo.config.settings.MongoSettings` explicitly. The package does
+Construct `coyote_mongo.config.settings.MongoSettings` explicitly. The adapter does
 not load `.env`, inspect process environment variables or import an API host.
 
 Each logical service has a URI and database-name field:

@@ -17,7 +17,7 @@ from urllib.parse import quote, urlencode
 ROOT = Path(__file__).resolve().parents[2]
 START = "<!-- badges:start -->"
 END = "<!-- badges:end -->"
-PROJECTS = {"core": "core", "api": "api", "mongo": "adapters/mongo", "client": "clients/python"}
+PROJECTS = {"core": "core", "server": ".", "client": "clients/python"}
 EXTERNAL_BADGE = re.compile(
     r"(?m)^.*(?:img\.shields\.io/|actions/workflows/[^\s)]+/badge\.svg)[^\n]*\n"
 )
@@ -184,7 +184,12 @@ def generate(root: Path, *, check: bool = False) -> list[str]:
     ]
 
     component: dict[str, list[str]] = {}
-    for name, directory in PROJECTS.items():
+    for directory, name in (
+        ("core", "core"),
+        ("api", "server"),
+        ("adapters/mongo", "server"),
+        ("clients/python", "client"),
+    ):
         meta = metadata[name]
         component[directory] = [
             image("version", meta["name"], meta["version"]),

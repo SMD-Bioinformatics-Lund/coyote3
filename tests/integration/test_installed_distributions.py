@@ -1,5 +1,6 @@
 """Normal wheels work outside the checkout with independent core and client imports."""
 
+import json
 import os
 import subprocess
 import sys
@@ -10,6 +11,8 @@ from pathlib import Path
 import pytest
 
 from scripts.release.build_sdk import build_sdk
+from scripts.release.check_release import release_identity, wheel_record
+from scripts.release.verify_sdk_artifact import verify_sdk_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,29 +23,13 @@ def installed_distributions(tmp_path_factory):
     root = tmp_path_factory.mktemp("installed-distributions")
     wheels = root / "wheels"
     build_sdk(wheels, build_isolation=False)
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "wheel",
-            "--no-deps",
-            "--no-build-isolation",
-            "--wheel-dir",
-            str(wheels),
-            str(ROOT / "clients/python"),
-        ],
-        check=True,
-        capture_output=True,
-    )
     core = next(wheels.glob("coyote_core-*.whl"))
-    mongo = next(wheels.glob("coyote_mongo-*.whl"))
-    server = next(wheels.glob("coyote_api-*.whl"))
+    server = next(wheels.glob("coyote_server-*.whl"))
     client = next(wheels.glob("coyote_pyclient-*.whl"))
     for name, selected in (
         ("core", [core]),
-        ("adapter", [core, mongo]),
-        ("server", [core, mongo, server]),
+        ("adapter", [core, server]),
+        ("server", [core, server]),
         ("client", [client]),
     ):
         subprocess.run(
@@ -59,7 +46,7 @@ def installed_distributions(tmp_path_factory):
             check=True,
             capture_output=True,
         )
-    return root, {"coyote-core": core, "coyote-mongo": mongo, "coyote-api": server}, client
+    return root, {"coyote-core": core, "coyote-server": server}, client
 
 
 def run_installed(root, target, code):
@@ -89,6 +76,29 @@ def run_installed(root, target, code):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_actual_deployment_wheels_pass_retained_record_verification(installed_distributions):
+    """Core, server and the administrative client must all match the retained artifact record."""
+    root, packages, client = installed_distributions
+    record = release_identity(ROOT)
+    selections = {
+        "coyote-core": record["sdk_version"],
+        "coyote-server": record["server_version"],
+        "coyote-pyclient": record["client_version"],
+    }
+    record.update(
+        source_commit="a" * 40,
+        source_dirty=True,
+        release_mode="development",
+        artifacts={
+            distribution: wheel_record(wheel, selections[distribution], distribution)
+            for distribution, wheel in {**packages, "coyote-pyclient": client}.items()
+        },
+    )
+    directory = root / "wheels"
+    (directory / "release-record.json").write_text(json.dumps(record))
+    assert verify_sdk_artifact(directory, ROOT / "release.toml", production=False) == record
+
+
 def test_core_wheel_imports_and_renders_without_server_or_client(installed_distributions):
     root, _, _ = installed_distributions
     run_installed(
@@ -116,8 +126,8 @@ for analyte,name in [('dna','smd/dna_report.html'),('rna','smd/report_fusion.htm
     )
 
 
-def test_mongo_wheel_imports_without_api_or_http_frameworks(installed_distributions):
-    """An alternative host can use all adapter repositories without installing the API."""
+def test_mongo_component_imports_without_api_or_http_frameworks(installed_distributions):
+    """Importing the adapter does not load the API or its HTTP framework."""
     root, _, _ = installed_distributions
     run_installed(
         root,
@@ -132,7 +142,7 @@ sys.meta_path.insert(0,BlockHost())
 import coyote_mongo
 assert Path(coyote_mongo.__file__).is_relative_to(target)
 from importlib.metadata import version
-assert coyote_mongo.__version__ == version('coyote-mongo')
+assert coyote_mongo.__version__ == version('coyote-server')
 from coyote_mongo.runtime_adapter import MongoAdapter
 from coyote_mongo.sessions import MongoApiSessionRepository
 from coyote_mongo.config.collections import load_collection_mapping
@@ -152,7 +162,7 @@ def test_client_wheel_imports_without_core_or_server(installed_distributions):
 import importlib.abc
 class BlockCore(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'coyote_api','coyote','fastapi','starlette','pymongo','bson'}:
+        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','coyote','fastapi','starlette','pymongo','bson'}:
             raise AssertionError('Client imported server: '+fullname)
 sys.meta_path.insert(0,BlockCore())
 import asyncio, coyote_pyclient
@@ -170,7 +180,7 @@ asyncio.run(check())
 
 def test_server_asgi_entry_and_assets_exist_outside_checkout(installed_distributions):
     root, packages, _ = installed_distributions
-    with zipfile.ZipFile(packages["coyote-api"]) as wheel:
+    with zipfile.ZipFile(packages["coyote-server"]) as wheel:
         members = set(wheel.namelist())
         source = ROOT / "api/src/coyote_api"
         for directory in ("bootstrap/demo_data/clinical_workflows", "config/examples/center"):
@@ -188,7 +198,7 @@ from uvicorn.importer import import_from_string
 app=import_from_string('coyote_api.app.main:app')
 from coyote_api.version import APPLICATION_VERSION, __version__, environment_version
 from importlib.metadata import version
-assert app.version == __version__ == version('coyote-api')
+assert app.version == __version__ == version('coyote-server')
 assert environment_version('production') == APPLICATION_VERSION
 assert '/api/v1/samples/{sample_id}/reports/{report_type}/preview/bundle' in app.openapi()['paths']
 from coyote_api.config.paths import CENTER_CONFIG_DIR,DEMO_WORKFLOW_BUNDLE_PATH
@@ -211,9 +221,8 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
 ):
     _, packages, client = installed_distributions
     expected = {
-        "coyote-core": "coyote/",
-        "coyote-mongo": "coyote_mongo/",
-        "coyote-api": "coyote_api/",
+        "coyote-core": ("coyote/",),
+        "coyote-server": ("coyote_api/", "coyote_mongo/"),
     }
     for package, artifact in packages.items():
         with zipfile.ZipFile(artifact) as wheel:
@@ -227,9 +236,17 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
             assert {"LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"} <= {
                 Path(name).name for name in names if ".dist-info/licenses/" in name
             }
-            assert any(name.startswith(expected[package]) for name in names)
+            for prefix in expected[package]:
+                assert any(name.startswith(prefix) for name in names)
             assert not any(
-                name.startswith(tuple(prefix for key, prefix in expected.items() if key != package))
+                name.startswith(
+                    tuple(
+                        prefix
+                        for key, prefixes in expected.items()
+                        if key != package
+                        for prefix in prefixes
+                    )
+                )
                 for name in names
             )
             assert not any(
@@ -238,14 +255,16 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
             )
             if package == "coyote-core":
                 assert not any(
-                    r.lower().startswith(("fastapi", "pymongo", "coyote-mongo", "coyote-api"))
+                    r.lower().startswith(("fastapi", "pymongo", "coyote-server"))
                     for r in metadata.get_all("Requires-Dist")
                 )
-            elif package == "coyote-api":
+            elif package == "coyote-server":
                 assert "coyote_api/bootstrap/catalogs/reference/LICENSE.txt" in names
     with zipfile.ZipFile(client) as wheel:
         names = wheel.namelist()
-        assert not any(n.startswith(("coyote/", "coyote4/", "coyote_api/")) for n in names)
+        assert not any(
+            n.startswith(("coyote/", "coyote4/", "coyote_api/", "coyote_mongo/")) for n in names
+        )
         metadata = Parser().parsestr(
             wheel.read(next(n for n in names if n.endswith("/METADATA"))).decode()
         )
@@ -254,6 +273,6 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
             Path(name).name for name in names if ".dist-info/licenses/" in name
         }
         assert not any(
-            r.lower().startswith(("coyote4", "fastapi", "pymongo"))
+            r.lower().startswith(("coyote-core", "coyote-server", "fastapi", "pymongo"))
             for r in metadata.get_all("Requires-Dist")
         )

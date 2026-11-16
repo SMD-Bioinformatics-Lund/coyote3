@@ -21,6 +21,7 @@ def publication(tmp_path, monkeypatch):
     for directory in ("docs", "core/docs"):
         (tmp_path / directory).mkdir(parents=True)
     (tmp_path / "docs/README.md").write_text("# Application\n")
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "coyote-server"\n')
     (tmp_path / "core/docs/README.md").write_text("# Core\n")
     (tmp_path / "core/docs/usage.md").write_text("# Usage\n")
     (tmp_path / "core/README.md").write_text("# Core project\n")
@@ -56,11 +57,18 @@ def test_published_page_uses_the_package_source(publication):
     assert guide.content_string == "# Core\n"
     assert files.get_file_from_path("packages/core/overview.md") is not None
     assert files.get_file_from_path("packages/core/assets/logo.svg") is not None
+    metadata = files.get_file_from_path("packages/server/pyproject.toml")
+    assert Path(metadata.abs_src_path) == root / "pyproject.toml"
 
 
 @pytest.mark.parametrize(
     "page_uri,text,expected",
     [
+        (
+            "README.md",
+            "[Server metadata](../pyproject.toml)",
+            "[Server metadata](packages/server/pyproject.toml)",
+        ),
         (
             "packages/core/overview.md",
             '<img src="docs/assets/logo.svg" alt="Core" width="360">',

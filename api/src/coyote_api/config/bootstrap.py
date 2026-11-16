@@ -42,7 +42,7 @@ def configure_center_from_environment() -> None:
     runtime_root = Path(os.getenv("COYOTE4_RUNTIME_ROOT") or Path.cwd()).resolve()
     if version("coyote-core") != SDK_VERSION:
         raise RuntimeError(
-            "Installed core does not match coyote-api's dependency; install the selected core"
+            "Installed core does not match coyote-server's dependency; install the selected core"
         )
     load_dotenv(runtime_root / ".env")
     configure_resource_hasher(resource_content_hash)

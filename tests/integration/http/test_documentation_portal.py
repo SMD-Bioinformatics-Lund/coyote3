@@ -101,7 +101,7 @@ def test_documentation_dark_surfaces_match_application_theme():
 
 def test_documentation_assets_are_deployed_with_the_api_source():
     """The server wheel includes the API's independently owned documentation assets."""
-    config = tomllib.loads(Path("api/pyproject.toml").read_text())
+    config = tomllib.loads(Path("pyproject.toml").read_text())
     assert "coyote_api.*" in config["tool"]["setuptools"]["packages"]["find"]["include"]
     assert "app/templates/*" in config["tool"]["setuptools"]["package-data"]["coyote_api"]
     assert "COPY --chown=coyote4:coyote4 api/ ./api/" not in Path("docker/Dockerfile").read_text()

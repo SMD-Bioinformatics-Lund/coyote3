@@ -15,11 +15,12 @@
   unrelated deployment credentials into those packages.
 - Clarify environment loading, center-file ownership and packaged demo-data paths;
   correct configuration documentation after the source layout change.
-- Distribute the API and worker host separately as `coyote-api`.
-- Depend on independently versioned core and MongoDB adapter wheels.
+- Distribute the API, workers and MongoDB adapter together as `coyote-server`,
+  retaining separate component source folders, tests, coverage and documentation.
+- Depend on the independently versioned core wheel.
 - Include API assets, center examples and synthetic installation workflows.
 - Support editable uv workspace development and normal wheel deployment.
 - Preserve HTTP contracts, scoped access and clinical workflow behavior.
 - License this package under GNU GPL version 3 only.
-- Version the API host independently from the application release and core library;
-  retain Coyote4 application labels while OpenAPI identifies the API package release.
+- Version the server independently from the application release and core library;
+  retain Coyote4 application labels while OpenAPI identifies the server release.

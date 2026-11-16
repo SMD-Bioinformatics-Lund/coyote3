@@ -3,7 +3,7 @@ FROM ${PYTHON_BASE_IMAGE} AS coyote4_dev_runtime_base
 ARG PYTHON_BASE_IMAGE
 
 LABEL base_image="${PYTHON_BASE_IMAGE}"
-LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote4"
+LABEL about.home="https://github.com/SMD-Bioinformatics-Lund/coyote3"
 
 WORKDIR /app
 
@@ -51,9 +51,9 @@ COPY tests/ ./tests/
 COPY CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
 COPY clients/python/ ./clients/python/
-COPY pyproject.toml ./
+COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY release.toml ./
-RUN pip install --no-cache-dir --no-deps -e core -e adapters/mongo -e api -e clients/python
+RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python
 
 USER coyote4:coyote4
 

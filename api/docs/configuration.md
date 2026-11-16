@@ -14,11 +14,11 @@ has no separate `config/` directory.
 | `runtime_settings.py` | Assemble environment-derived API and worker settings |
 | `backend.py` | Validate and distribute package-owned settings without forwarding the full backend configuration |
 | `factory_defaults.toml` | Define host-owned fallback values |
-| `application_release.toml` | Supply the generated application label independently of the API package version |
+| `application_release.toml` | Supply the generated application label independently of the server distribution version |
 | `paths.py` | Resolve packaged assets, center files and runtime storage paths |
 | `examples/center/` | Provide complete example contact, vocabulary, filter and report-presentation files |
 
-The installed API package version is `coyote_api.version.__version__`.
+The installed server distribution version is `coyote_api.version.__version__`.
 `APPLICATION_VERSION` comes from the bundled application identity and supplies
 product labels; environment suffixes apply to that label. The application release
 workflow generates this file from its release selection before building the wheel.

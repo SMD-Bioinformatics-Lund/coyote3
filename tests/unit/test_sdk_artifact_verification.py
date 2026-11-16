@@ -14,14 +14,14 @@ def artifact(tmp_path):
     """Create a synthetic wheel and a matching retained production record."""
     release = tmp_path / "release.toml"
     release.write_text(
-        'application_version="4.0.0"\nsdk_version="4.0.0"\nmongo_version="1.0.0"\n'
-        'api_version="1.0.0"\nhttp_api_major=1\ncenter_configuration_format=1\n'
+        'application_version="4.0.0"\nsdk_version="4.0.0"\nserver_version="1.0.0"\n'
+        'client_version="1.0.0"\nhttp_api_major=1\ncenter_configuration_format=1\n'
     )
     artifacts = {}
     for package, version in (
         ("coyote-core", "4.0.0"),
-        ("coyote-mongo", "1.0.0"),
-        ("coyote-api", "1.0.0"),
+        ("coyote-server", "1.0.0"),
+        ("coyote-pyclient", "1.0.0"),
     ):
         wheel = tmp_path / f"{package.replace('-', '_')}-{version}-py3-none-any.whl"
         with zipfile.ZipFile(wheel, "w") as archive:
@@ -38,8 +38,8 @@ def artifact(tmp_path):
     record = {
         "application_version": "4.0.0",
         "sdk_version": "4.0.0",
-        "mongo_version": "1.0.0",
-        "api_version": "1.0.0",
+        "server_version": "1.0.0",
+        "client_version": "1.0.0",
         "http_api_major": 1,
         "center_configuration_format": 1,
         "source_commit": "a" * 40,
@@ -65,6 +65,20 @@ def test_image_rejects_modified_wheel(artifact):
         verify_sdk_artifact(directory, release, production=True, source_commit="a" * 40)
 
 
+@pytest.mark.parametrize("failure", ["missing", "modified"])
+def test_administrative_client_is_part_of_verified_deployment_artifacts(artifact, failure):
+    directory, release, _, record = artifact
+    client = record["artifacts"]["coyote-pyclient"]
+    if failure == "missing":
+        del record["artifacts"]["coyote-pyclient"]
+        (directory / "release-record.json").write_text(json.dumps(record))
+    else:
+        wheel = directory / client["filename"]
+        wheel.write_bytes(wheel.read_bytes() + b"modified")
+    with pytest.raises(ValueError, match="exactly the core, server and client|checksum"):
+        verify_sdk_artifact(directory, release, production=True, source_commit="a" * 40)
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
@@ -72,7 +86,8 @@ def test_image_rejects_modified_wheel(artifact):
         ("release_mode", "development"),
         ("source_commit", "b" * 40),
         ("sdk_version", "2.0.0"),
-        ("api_version", "2.0.0"),
+        ("server_version", "2.0.0"),
+        ("client_version", "2.0.0"),
         ("http_api_major", 2),
     ],
 )

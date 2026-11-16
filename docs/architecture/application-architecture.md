@@ -40,11 +40,13 @@ current published sample scopes. New publications affect subsequent requests
 without an ASPC update. Report receipts retain the exact resolved rule content and
 source lineage; issued reports are not re-evaluated.
 
-The `core/` project builds `coyote-core` from `core/src/coyote/`. Separate projects
-build `coyote-mongo` from `adapters/mongo/` and `coyote-api` from `api/`.
-The adapter depends on core; the API depends on both. Neither core nor adapter
-imports the API. `clients/python/` builds the independent HTTP-only
-`coyote-pyclient`. API and workers select concrete adapters through composition.
+The `core/` project builds `coyote-core` from `core/src/coyote/`. The root project
+builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
+`coyote_mongo` from `adapters/mongo/`. API and MongoDB code keep separate source,
+documentation and tests, but share one server version and wheel. The adapter
+depends on core; API code depends on both. Neither core nor adapter imports the
+API. `clients/python/` builds the independent HTTP-only `coyote-pyclient`.
+API and workers select concrete adapters through composition.
 See [installation boundaries](../sdk/server-installation.md) and
 [editable uv development](../sdk/uv-development.md).
 
@@ -63,6 +65,8 @@ the existing permission and assay/environment checks. See
 [application-module boundaries](../administration/application-controls.md#application-module-boundaries).
 
 The web UI and remote Python client SDK are separate consumers of the HTTP API.
+The deployment image also installs the client for HTTP-based administration commands
+such as `manage_data.py`; API runtime code does not import it.
 The application SDK owns the shared use-case entry points:
 
 ```text
@@ -84,7 +88,7 @@ Workers / trusted Python ----------> Application SDK operations
 | `core/src/coyote/domain/` | Clinical value models, filtering rules, finding identity and query policy evaluation. | No HTTP handlers, application services, server contracts or runtime adapters. Policy vocabulary comes from `core/src/coyote/config/`. |
 | `core/src/coyote/application/` | Use cases, workflow coordination, audit policy, authorization requirements and repository/adapter ports. | Receives explicit query values and injected capabilities; no FastAPI requests, concrete infrastructure, task runtime or credential implementations. |
 | `core/src/coyote/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
-| `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the API wheel, outside the core namespace. |
+| `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the server wheel, outside the core namespace. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |
 | `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
 | `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |

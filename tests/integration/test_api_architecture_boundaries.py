@@ -131,29 +131,38 @@ def test_library_excludes_deployment_content_and_product_pages() -> None:
         assert not any(target.rglob("*.toml")), relative
 
 
-def test_core_adapter_server_and_client_have_independent_distributions() -> None:
-    """Each wheel owns its namespace and depends only inward through declared packages."""
+def test_core_server_and_client_have_independent_distributions() -> None:
+    """The server bundles both host layers; core and client remain independent wheels."""
     library = tomllib.loads(Path("core/pyproject.toml").read_text())
     discovery = library["tool"]["setuptools"]["packages"]["find"]
     assert discovery["where"] == ["src"]
     assert discovery["include"] == ["coyote", "coyote.*"]
     assert library["project"]["name"] == "coyote-core"
     assert "api" not in library["project"]["optional-dependencies"]
-    mongo = tomllib.loads(Path("adapters/mongo/pyproject.toml").read_text())
-    server = tomllib.loads(Path("api/pyproject.toml").read_text())
-    assert mongo["project"]["name"] == "coyote-mongo"
-    assert f"coyote-core=={library['project']['version']}" in mongo["project"]["dependencies"]
-    assert f"coyote-mongo=={mongo['project']['version']}" in server["project"]["dependencies"]
+    server = tomllib.loads(Path("pyproject.toml").read_text())
+    assert server["project"]["name"] == "coyote-server"
+    assert f"coyote-core=={library['project']['version']}" in server["project"]["dependencies"]
+    assert server["tool"]["setuptools"]["package-dir"] == {
+        "": ".",
+        "coyote_api": "api/src/coyote_api",
+        "coyote_mongo": "adapters/mongo/src/coyote_mongo",
+    }
+    for component in ("api", "adapters/mongo"):
+        settings = tomllib.loads(Path(component, "pyproject.toml").read_text())
+        assert "project" not in settings
+        assert "build-system" not in settings
+        assert "pytest" in settings["tool"]
     assert server["project"]["scripts"]["coyote4-api"] == "coyote_api.cli:main"
     client = tomllib.loads(Path("clients/python/pyproject.toml").read_text())
     assert client["project"]["name"] == "coyote-pyclient"
     assert not any(
-        "coyote4" in dependency.lower() for dependency in client["project"]["dependencies"]
+        dependency.lower().startswith(("coyote-core", "coyote-server"))
+        for dependency in client["project"]["dependencies"]
     )
 
 
 def test_mongo_adapter_has_no_application_host_imports() -> None:
-    """The adapter can be installed by another host without importing this API."""
+    """The adapter remains independent of API imports within the server distribution."""
     offenders = [
         f"{path}:{line}: {module}"
         for path in _python_files(Path("adapters/mongo/src/coyote_mongo"))

@@ -1,9 +1,24 @@
 ARG PYTHON_BASE_IMAGE=python:3.14.7-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE} AS coyote4_dependency_builder
+WORKDIR /build
+ENV PIP_PROGRESS_BAR=off
+
+RUN apt-get update -o Acquire::Retries=5 && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
+      build-essential libxml2-dev libxslt1-dev zlib1g-dev libsasl2-dev libldap2-dev \
+      libssl-dev libffi-dev libjpeg-dev libpq-dev liblcms2-dev libblas-dev \
+      libatlas-base-dev libglib2.0-dev && \
+    rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt && \
+    pip install --no-cache-dir --no-index --ignore-installed --find-links=/wheels \
+      --prefix=/opt/runtime -r requirements.txt
+
 FROM ${PYTHON_BASE_IMAGE} AS coyote4_runtime_base
 ARG PYTHON_BASE_IMAGE
 
 LABEL base_image="${PYTHON_BASE_IMAGE}"
-LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote4"
+LABEL about.home="https://github.com/SMD-Bioinformatics-Lund/coyote3"
 
 WORKDIR /app
 
@@ -19,24 +34,15 @@ ENV BUILD_TIME=${BUILD_TIME}
 
 RUN apt-get update -o Acquire::Retries=5 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
-    curl \
-    libxml2-dev libxslt1-dev zlib1g-dev libsasl2-dev libldap2-dev \
-    build-essential libssl-dev libffi-dev libjpeg-dev libpq-dev \
-    liblcms2-dev libblas-dev libatlas-base-dev libglib2.0-dev \
-    libpango-1.0-0 && \
+    curl libxml2 libxslt1.1 zlib1g libsasl2-2 libldap-2.5-0 libssl3 libffi8 \
+    libjpeg62-turbo libpq5 liblcms2-2 libblas3 libatlas3-base libglib2.0-0 \
+    libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    python -c "from kombu.transport import get_transport_cls; get_transport_cls('redis')"
-COPY clients/python/ /tmp/coyote-pyclient/
-RUN pip install --no-cache-dir --no-deps /tmp/coyote-pyclient
-
-RUN apt-get update -o Acquire::Retries=5 && \
-    apt-get install -y --no-install-recommends -o Acquire::Retries=5 \
-    libpangoft2-1.0-0 fonts-dejavu-core && \
-    rm -rf /var/lib/apt/lists/*
+COPY --from=coyote4_dependency_builder /opt/runtime/ /usr/local/
+RUN python -c "from kombu.transport import get_transport_cls; get_transport_cls('redis')"
 
 RUN groupadd --gid "${COYOTE4_GID}" coyote4 && \
     useradd --uid "${COYOTE4_UID}" --gid coyote4 --create-home coyote4 && \
@@ -45,10 +51,11 @@ RUN groupadd --gid "${COYOTE4_GID}" coyote4 && \
 FROM ${PYTHON_BASE_IMAGE} AS coyote4_sdk_builder
 WORKDIR /build
 COPY pyproject.toml release.toml README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
-COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
+COPY LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md MANIFEST.in package_build.py ./
 COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
+COPY clients/python/ ./clients/python/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
 RUN python scripts/release/build_sdk.py --output-dir /wheels
 

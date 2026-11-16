@@ -44,6 +44,11 @@ def on_files(files, config):
             logical = f"project/{filename}"
             files.append(File.generated(config, logical, abs_src_path=str(source)))
             _published[source.resolve()] = logical
+    server_metadata = ROOT / "pyproject.toml"
+    if server_metadata.is_file():
+        logical = "packages/server/pyproject.toml"
+        files.append(File.generated(config, logical, abs_src_path=str(server_metadata)))
+        _published[server_metadata.resolve()] = logical
     for name, directory in PROJECTS.items():
         project = ROOT / directory
         for source in sorted((project / "docs").rglob("*")):

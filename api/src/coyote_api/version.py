@@ -1,20 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Independent API package identity and the bundled application release label."""
+"""Server distribution identity and the bundled application release label."""
 
 import sys
 import tomllib
 from importlib.metadata import requires, version
 from importlib.resources import files
 
-__version__ = version("coyote-api")
+__version__ = version("coyote-server")
 APPLICATION_VERSION = tomllib.loads(
     files("coyote_api").joinpath("config/application_release.toml").read_text(encoding="utf-8")
 )["application_version"]
 _core_requirement = next(
     requirement
-    for requirement in requires("coyote-api") or []
+    for requirement in requires("coyote-server") or []
     if requirement.startswith("coyote-core==")
 )
 SDK_VERSION = _core_requirement.split("==", 1)[1]

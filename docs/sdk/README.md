@@ -4,13 +4,12 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Coyote has four independently installable Python distributions in one repository.
+Coyote has three independently installable Python distributions in one repository.
 
 | Package | Purpose |
 | --- | --- |
 | `coyote-core` | Framework-independent clinical rules, contracts and application operations |
-| `coyote-mongo` | MongoDB repositories, query compilation, transactions and persistence |
-| `coyote-api` | HTTP API, authentication, composition and workers |
+| `coyote-server` | Separate API and Mongo components: HTTP, authentication, workers, queries and persistence |
 | `coyote-pyclient` | Synchronous and asynchronous clients for a running API |
 
 ## Choose the Python interface

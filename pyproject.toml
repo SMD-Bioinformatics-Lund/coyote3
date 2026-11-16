@@ -1,3 +1,81 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coyote-server"
+version = "1.0.0"
+description = "Coyote HTTP API, worker host and MongoDB adapter"
+requires-python = ">=3.12"
+readme = "api/README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"]
+authors = [{name = "Ram Nanduri"}]
+dependencies = [
+    "coyote-core==4.0.0",
+    "pymongo==4.18.3",
+    "pydantic==2.14.3",
+    "Jinja2==3.1.6",
+    "billiard==4.3.2",
+    "defusedxml==0.7.1",
+    "python-dotenv==1.2.2",
+    "Brotli==1.2.1",
+    "celery[redis]==5.6.3",
+    "colorlog==6.10.1",
+    "cffi==2.0.0",
+    "click==8.3.3",
+    "cssselect2==0.9.0",
+    "dnspython==2.9.0",
+    "filelock==4.2.1",
+    "fonttools==4.68.0",
+    "ldap3==2.9.1",
+    "itsdangerous==2.2.0",
+    "MarkupSafe==3.0.3",
+    "pillow==13.0.0",
+    "pydantic_core==2.50.4",
+    "casbin==1.36.1",
+    "fastapi==0.141.1",
+    "starlette==1.6.0",
+    "pyasn1==0.6.5",
+    "idna==3.19",
+    "python-multipart==0.0.31",
+    "uvicorn==0.44.0",
+    "pydyf==0.12.1",
+    "python-dateutil==2.9.0.post0",
+    "redis==7.4.0",
+    "tinycss2==1.5.1",
+    "tinyhtml5==2.1.0",
+    "typing_extensions==4.16.0",
+    "webencodings==0.5.1",
+    "Werkzeug==3.1.9",
+    "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.3", "pytest-cov==7.1.0", "pytest-asyncio==1.3.0", "mongomock==4.3.0"]
+
+[project.scripts]
+coyote4-api = "coyote_api.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.cmdclass]
+build_py = "package_build.CleanBuildPy"
+
+[tool.setuptools.package-dir]
+"" = "."
+coyote_api = "api/src/coyote_api"
+coyote_mongo = "adapters/mongo/src/coyote_mongo"
+
+[tool.setuptools.packages.find]
+where = ["api/src", "adapters/mongo/src"]
+include = ["coyote_api", "coyote_api.*", "coyote_mongo", "coyote_mongo.*"]
+
+[tool.setuptools.package-data]
+coyote_api = ["py.typed", "app/templates/*", "config/*.toml", "config/assets/*", "config/examples/center/*", "bootstrap/catalogs/**/*", "bootstrap/demo_data/clinical_workflows/**/*"]
+coyote_mongo = ["py.typed", "config/*.toml"]
+
 [dependency-groups]
 dev = [
     "pip==26.2.1",
@@ -155,10 +233,8 @@ module = ["pydantic", "pydantic.*"]
 follow_imports = "normal"
 
 [tool.uv.workspace]
-members = ["core", "api", "adapters/mongo", "clients/python"]
+members = ["core", "clients/python"]
 
 [tool.uv.sources]
 coyote-core = { workspace = true }
-coyote-mongo = { workspace = true }
-coyote-api = { workspace = true }
 coyote-pyclient = { workspace = true }

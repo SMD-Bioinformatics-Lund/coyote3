@@ -1,13 +1,15 @@
 # Install and construct MongoDB connections
 
-Python 3.12 or newer is required. Install `coyote-mongo` together with the selected
-`coyote-core` wheel. For repository development, install both projects editable:
+Python 3.12 or newer is required. Install `coyote-server` together with its selected
+`coyote-core` wheel. The server distribution contains both the adapter and API.
+For editable repository development, run from the repository root:
 
 ```bash
-python -m pip install -e core -e adapters/mongo
+uv sync --all-packages --group dev --group test --group docs
 ```
 
-Run that command at the repository root. The adapter does not require the API.
+Importing the adapter does not load or start the API. A host can construct its
+connections and repositories explicitly.
 
 A host supplies explicit endpoints and logical database names:
 

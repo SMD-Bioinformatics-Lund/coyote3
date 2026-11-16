@@ -11,49 +11,58 @@ requiring the API application. Deployment must identify and test the Python code
 and resources actually installed in an image.
 
 Running directly from a checkout can hide missing package files or undeclared
-dependencies. Keeping implementation responsibilities inside one distribution
-also makes it harder to verify that clinical logic is independent of web and
-database frameworks.
+dependencies. Clinical logic needs an independent installation boundary, while the
+API and MongoDB adapter are delivered together as the application's server.
 
 ## Decision
 
-Maintain the application in one repository with independently installable Python
-projects. Use a virtual uv workspace for coordinated editable development.
+Maintain three installable Python distributions in one uv workspace: the core
+library, the server application and the HTTP client. The root project builds the
+server; `core/` and `clients/python/` remain independent workspace projects.
 
-| Project | Responsibility | Local dependencies |
+| Distribution and source | Responsibility | Local dependencies |
 | --- | --- | --- |
-| `core/` (`coyote-core`) | Clinical contracts, rules and application operations | None |
-| `adapters/mongo/` (`coyote-mongo`) | MongoDB repositories, query compilation and transactions | Core |
-| `api/` (`coyote-api`) | HTTP handling, authentication, composition and workers | Core and MongoDB adapter |
-| `clients/python/` (`coyote-pyclient`) | Remote HTTP access and client-owned response models | None |
+| `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
+| `coyote-server`, at the root | API and worker host in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
+| `coyote-pyclient`, in `clients/python/` | Remote HTTP access and client-owned response models | None |
 
-Each Python project owns its metadata, version, `src/`, tests, documentation,
-changelog and license. The frontend remains a separate Node application in the
-same repository. Python project boundaries do not introduce additional deployed
-services or require separate repositories.
+The root `pyproject.toml` owns the server version, dependencies and wheel build.
+API and MongoDB code retain their `src/` namespaces, documentation, changelogs and
+test suites. Their component `pyproject.toml` files configure tests and coverage;
+they do not define separate distributions or releases. Core and client own their
+independent distribution metadata. The frontend remains a separate Node application
+in the same repository. Packaging does not introduce additional deployed services.
 
-The API is packaged as an installable server application. It is not a second
-clinical SDK. API and worker entry points consume installed packages, including
-their templates, logos, configuration defaults and installation resources.
+The server installs `coyote_api` and `coyote_mongo` together. Their code boundaries
+remain explicit: API composition supplies adapter implementations of core repository
+interfaces, and neither core nor adapter imports the API. The server is not a second
+clinical SDK. API and worker entry points consume installed code and resources,
+including templates, logos, configuration defaults and installation catalogs.
+
+The independent client communicates through HTTP and imports no server or core code.
+The deployment image includes its verified wheel for administration commands such
+as `manage_data.py`; the API runtime does not depend on or import the client.
 
 ## Benefits
 
 - **Reusable clinical behavior:** another trusted host can consume the core
   without importing FastAPI or MongoDB.
-- **Explicit dependencies:** each project declares the libraries it uses;
+- **Explicit dependencies:** each distribution declares the libraries it installs;
   architecture tests reject dependencies pointing back toward the API.
 - **Testable artifacts:** wheel-isolation tests run outside the checkout and
   detect missing resources or accidental imports from local source directories.
 - **Deployment traceability:** release records retain the selected versions and
-  SHA-256 hashes of the core, adapter and API wheels.
+  SHA-256 hashes of the core, server and administration-client wheels.
 - **Fast local iteration:** editable workspace installs expose Python edits after
   process reload. Ordinary edits do not require wheel rebuilds.
 - **Coordinated changes:** one repository retains shared integration tests,
   frontend/API contracts and review of changes spanning components.
+- **One server release:** API and MongoDB changes share a wheel and version while
+  retaining component-level tests and coverage.
 
 ## Costs and constraints
 
-Separate projects require dependency pins, build configuration, package data
+Installable distributions require dependency pins, build configuration, package data
 declarations and integration testing. Version changes must be adopted as a tested
 application combination. The release process verifies the selected artifacts;
 packaging alone does not establish clinical correctness or deployment readiness.
@@ -69,14 +78,15 @@ string does not supply that equivalence automatically.
 
 ## Documentation ownership
 
-Package guides describe the package's installation, use, configuration and
-interfaces. Root documentation describes the complete application, clinical user
-workflows, deployment, cross-package integration and architecture decisions.
-The documentation site publishes package guides directly from their source files.
+Core and client guides describe their independent packages. API and adapter guides
+describe their respective server components, including configuration, interfaces
+and tests. Root documentation describes the complete application, clinical user
+workflows, deployment, integration and architecture decisions. The documentation
+site publishes these guides directly from their source files.
 
 ## Verification
 
-Maintain package-owned tests, architecture guards, installed-wheel isolation,
+Maintain package and component tests, architecture guards, installed-wheel isolation,
 source-distribution builds and shared application regressions. Verify release
 metadata and artifact hashes before deployment. External-service tests require
 their documented synthetic environments.

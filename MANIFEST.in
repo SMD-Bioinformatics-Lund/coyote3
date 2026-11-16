@@ -1,0 +1,15 @@
+include package_build.py LICENSE.txt COPYRIGHT.txt NOTICE.txt LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md
+include api/README.md api/CHANGELOG.md api/pyproject.toml
+include api/LICENSE.txt api/COPYRIGHT.txt api/NOTICE.txt
+include adapters/mongo/README.md adapters/mongo/CHANGELOG.md adapters/mongo/pyproject.toml
+include adapters/mongo/LICENSE.txt adapters/mongo/COPYRIGHT.txt adapters/mongo/NOTICE.txt
+recursive-include api/src *
+recursive-include adapters/mongo/src *
+recursive-include api/docs *.md
+recursive-include adapters/mongo/docs *.md
+recursive-include api/tests *.py
+recursive-include adapters/mongo/tests *.py
+prune api/src/*.egg-info
+prune adapters/mongo/src/*.egg-info
+global-exclude *.pyc
+global-exclude __pycache__

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Validate application/SDK release identity and record a built library artifact."""
+"""Validate application release identity and record its tested deployment wheels."""
 
 from __future__ import annotations
 
@@ -93,8 +93,8 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
     for value in (
         release["application_version"],
         release["sdk_version"],
-        release["mongo_version"],
-        release["api_version"],
+        release["server_version"],
+        release["client_version"],
         project["version"],
     ):
         if not isinstance(value, str) or not VERSION_PATTERN.fullmatch(value):
@@ -106,23 +106,18 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         validate_contract_generations(root, release)
         if release["sdk_version"] != project["version"]:
             raise ValueError("Application SDK pin differs from this checkout's SDK version")
-        for relative, selected in (
-            ("adapters/mongo", release["mongo_version"]),
-            ("api", release["api_version"]),
+        for relative, distribution, selected in (
+            (".", "coyote-server", release["server_version"]),
+            ("clients/python", "coyote-pyclient", release["client_version"]),
         ):
             package = tomllib.loads((root / relative / "pyproject.toml").read_text())["project"]
-            if package["version"] != selected:
-                raise ValueError(f"{relative} version differs from the application selection")
-            requirements = package["dependencies"]
-            if f"coyote-core=={release['sdk_version']}" not in requirements:
-                raise ValueError(
-                    f"{relative} core dependency differs from the application selection"
-                )
+            if package["name"] != distribution or package["version"] != selected:
+                raise ValueError(f"{distribution} version differs from the application selection")
             if (
-                relative == "api"
-                and f"coyote-mongo=={release['mongo_version']}" not in requirements
+                distribution == "coyote-server"
+                and f"coyote-core=={release['sdk_version']}" not in package["dependencies"]
             ):
-                raise ValueError("API MongoDB dependency differs from the application selection")
+                raise ValueError("Server core dependency differs from the application selection")
         application_identity = tomllib.loads(
             (root / "api/src/coyote_api/config/application_release.toml").read_text()
         )
@@ -143,7 +138,7 @@ def wheel_record(
 
     Args:
         wheel: Built wheel selected for the application deployment.
-        expected_version: Exact SDK version required by the release record.
+        expected_version: Exact distribution version required by the release record.
         distribution: Required distribution name; defaults to the independent core.
 
     Returns:
@@ -151,7 +146,7 @@ def wheel_record(
 
     Raises:
         ValueError: Metadata is ambiguous, the identity differs, or the artifact
-            contains retired core modules or the independent HTTP client.
+            has missing namespaces, retired modules or another distribution's sources.
         OSError: The artifact cannot be read.
         zipfile.BadZipFile: The artifact is not a valid wheel archive.
     """
@@ -170,7 +165,6 @@ def wheel_record(
             "api/",
             "coyote/client/",
             "coyote4/",
-            "coyote_pyclient/",
             "coyote/config/bootstrap/",
             "coyote/config/assets/",
             "coyote/config/application_metadata.py",
@@ -198,15 +192,21 @@ def wheel_record(
         if any(name.startswith(retired) for name in names):
             raise ValueError("SDK wheel contains retired modules; rebuild from isolated source")
         namespaces = {
-            "coyote-core": "coyote/",
-            "coyote-mongo": "coyote_mongo/",
-            "coyote-api": "coyote_api/",
+            "coyote-core": ("coyote/",),
+            "coyote-server": ("coyote_api/", "coyote_mongo/"),
+            "coyote-pyclient": ("coyote_pyclient/",),
         }
         forbidden = tuple(
-            prefix for package, prefix in namespaces.items() if package != distribution
+            prefix
+            for package, prefixes in namespaces.items()
+            if package != distribution
+            for prefix in prefixes
         )
         if any(name.startswith(forbidden) for name in names):
             raise ValueError(f"{distribution} wheel contains another package's sources")
+        for namespace in namespaces[distribution]:
+            if not any(name.startswith(namespace) for name in names):
+                raise ValueError(f"{distribution} wheel is missing its {namespace} namespace")
     return {
         "filename": wheel.name,
         "version": expected_version,
@@ -264,8 +264,8 @@ def main() -> None:
         if not args.sdk_only:
             selected.update(
                 {
-                    "coyote-mongo": record["mongo_version"],
-                    "coyote-api": record["api_version"],
+                    "coyote-server": record["server_version"],
+                    "coyote-pyclient": record["client_version"],
                 }
             )
         artifacts = {}

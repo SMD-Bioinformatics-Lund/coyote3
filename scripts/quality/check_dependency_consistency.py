@@ -93,13 +93,11 @@ def main() -> int:
     project = tomllib.loads((ROOT / "core/pyproject.toml").read_text())["project"]
     optional = config["dependency-groups"]
     runtime = list(project["dependencies"])
-    for relative in ("adapters/mongo", "api"):
-        member = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
-        runtime.extend(
-            dependency
-            for dependency in member["dependencies"]
-            if not dependency.startswith(("coyote-core==", "coyote-mongo=="))
-        )
+    runtime.extend(
+        dependency
+        for dependency in config["project"]["dependencies"]
+        if not dependency.startswith("coyote-core==")
+    )
 
     errors = _check(
         "requirements.txt",

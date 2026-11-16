@@ -8,26 +8,25 @@ combination; package installation and public-index publication are separate task
 | Identity | Authoritative owner |
 | --- | --- |
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
-| MongoDB adapter version | `adapters/mongo/pyproject.toml` |
-| API package version | `api/pyproject.toml` |
+| Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
 | HTTP client version | `clients/python/pyproject.toml` |
-| Application selection | `release.toml`: application, core, MongoDB and API versions |
+| Application selection | `release.toml`: application, core, server and administrative client versions |
 | HTTP generation | Declared `/api/vN` routes, checked against `http_api_major` |
 | Center configuration format | Core loader, checked against `center_configuration_format` |
 | Report templates | Installed `smd-reports` version |
 
-`sdk_version` selects the core; `mongo_version` selects the adapter; `api_version`
-selects the API host. Each package version is independent of `application_version`.
+`sdk_version` selects the core; `server_version` selects the API and adapter together;
+`client_version` selects the Python client used by administrative tools.
+Each distribution version is independent of `application_version`.
 Declared package dependencies must agree with the selected combination. The initial
-Coyote4 application selects core `4.0.0`, API `1.0.0` and MongoDB adapter `1.0.0`;
-the HTTP client starts at `1.0.0` independently.
+Coyote4 application selects core `4.0.0`, server `1.0.0` and HTTP client `1.0.0`.
 
 `npm run sync:version` updates frontend metadata and generates the API's packaged
 `config/application_release.toml` from the application selection. It supplies the
 application label to the installed host without requiring the repository at runtime.
-Release validation rejects a stale generated label. OpenAPI identifies the API
+Release validation rejects a stale generated label. OpenAPI identifies the server
 package version; UI and deployment environment labels identify the application.
-As with other packaged content, changing the bundled label requires a new API
+As with other packaged content, changing the bundled label requires a new server
 artifact version after its first release; published wheels must remain immutable.
 
 The HTTP client follows the public HTTP contract and does not pin or import the
@@ -42,7 +41,7 @@ require release increments. Released artifacts are immutable.
 
 Change only affected package versions, then update the application's exact
 dependency selection when adopting those versions. A MongoDB-only implementation
-change does not require a new core version. A breaking core change does not
+change requires a server release but does not require a new core version. A breaking core change does not
 necessarily require a new HTTP generation if the host preserves its wire contract.
 
 Environment suffixes such as `-dev` label application images, not Python package
@@ -64,7 +63,7 @@ versions. Clinical changes retain their established review and validation needs.
    export GIT_COMMIT="$(git rev-parse HEAD)"
    ```
 
-4. Retain all three wheels and the record together. Production records require a
+4. Retain the core, server and Python client wheels and the record together. Production records require a
    clean checkout. Verification rejects missing, modified, extra or wrongly
    versioned wheels and mismatched source commits.
 5. Retain image digests and the reviewed center configuration alongside the record.

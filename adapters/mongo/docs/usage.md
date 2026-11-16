@@ -46,4 +46,4 @@ filesystem writes become atomic with MongoDB commits.
 
 Index inspection and index creation are separate operations. Hosts should invoke
 the appropriate operation explicitly rather than changing indexes merely by
-importing the package.
+importing the adapter.

@@ -1,74 +1,74 @@
-"""Distribution wheels never contain modules left by an older local build."""
+"""Deployment distributions rebuild cleanly from source and source archives."""
 
 import shutil
 import subprocess
 import sys
+import tarfile
 import zipfile
 from pathlib import Path
 
 import pytest
 
+ROOT = Path(__file__).resolve().parents[2]
 
-@pytest.mark.parametrize("distribution", ["client", "core", "api", "mongo"])
-def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
-    """Normal pip wheel builds replace deleted modules in both installable distributions."""
-    root = Path(__file__).resolve().parents[2]
+
+def stage_project(tmp_path, distribution):
+    """Copy maintained build inputs into a checkout-independent source directory."""
     source = {
-        "client": root / "clients/python",
-        "core": root / "core",
-        "api": root / "api",
-        "mongo": root / "adapters/mongo",
+        "client": ROOT / "clients/python",
+        "core": ROOT / "core",
+        "server": ROOT,
     }[distribution]
     project = tmp_path / "project"
     project.mkdir()
-    for name in [
+    for name in (
         "pyproject.toml",
         "README.md",
         "LICENSE.txt",
+        "COPYRIGHT.txt",
         "NOTICE.txt",
+        "LICENSING.md",
+        "THIRD_PARTY_NOTICES.md",
+        "CHANGELOG.md",
         "MANIFEST.in",
-        "client_build.py"
-        if distribution == "client"
-        else "build_support.py"
-        if distribution == "core"
-        else "package_build.py",
-    ]:
-        shutil.copyfile(source / name, project / name)
-    if distribution == "core":
-        for name in ["LICENSING.md", "THIRD_PARTY_NOTICES.md"]:
+        "client_build.py",
+        "build_support.py",
+        "package_build.py",
+    ):
+        if (source / name).is_file():
             shutil.copyfile(source / name, project / name)
-        shutil.copytree(source / "docs", project / "docs")
-    directories = ["src"]
-    for name in directories:
-        shutil.copytree(
-            source / name,
-            project / name,
-            ignore=shutil.ignore_patterns("*.egg-info", "__pycache__"),
-        )
-    deleted = (
-        ["coyote_pyclient/auth.py", "coyote4_client/__init__.py", "coyote3_client/__init__.py"]
-        if distribution == "client"
-        else [f"{'coyote_api' if distribution == 'api' else 'coyote_mongo'}/removed_module.py"]
-        if distribution in {"api", "mongo"}
-        else [
-            "coyote3/__init__.py",
-            "api/app/deps/auth.py",
-            "coyote/obsolete_compatibility.py",
-            "coyote/templates/reporting/legacy/dna.html",
-            "coyote/templates/reporting/assets/modern.css",
-        ]
-    )
-    for name in deleted:
-        stale = project / "build/lib" / name
-        stale.parent.mkdir(parents=True, exist_ok=True)
-        stale.write_text('"""Removed implementation."""\n')
-    output = tmp_path / "wheels"
+    components = ("api", "adapters/mongo") if distribution == "server" else (".",)
+    for component in components:
+        target = project / component
+        target.mkdir(parents=True, exist_ok=True)
+        if component != ".":
+            for name in (
+                "README.md",
+                "CHANGELOG.md",
+                "pyproject.toml",
+                "LICENSE.txt",
+                "COPYRIGHT.txt",
+                "NOTICE.txt",
+            ):
+                shutil.copyfile(source / component / name, target / name)
+        for name in ("src", "docs", "tests"):
+            shutil.copytree(
+                source / component / name,
+                target / name,
+                ignore=shutil.ignore_patterns("*.egg-info", "__pycache__", "*.pyc"),
+            )
+    return project
+
+
+def build_wheel(project, output):
+    """Build an actual wheel using installed tools without fetching dependencies."""
     result = subprocess.run(
         [
             sys.executable,
             "-m",
             "pip",
             "wheel",
+            "--no-index",
             "--no-build-isolation",
             "--no-deps",
             "--wheel-dir",
@@ -78,9 +78,35 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stdout + result.stderr
     with zipfile.ZipFile(next(output.glob("*.whl"))) as wheel:
-        names = wheel.namelist()
+        return set(wheel.namelist())
+
+
+@pytest.mark.parametrize("distribution", ["client", "core", "server"])
+def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
+    """All three distributions discard files removed since a previous wheel build."""
+    project = stage_project(tmp_path, distribution)
+    deleted = {
+        "client": [
+            "coyote_pyclient/auth.py",
+            "coyote4_client/__init__.py",
+            "coyote3_client/__init__.py",
+        ],
+        "core": [
+            "coyote3/__init__.py",
+            "api/app/deps/auth.py",
+            "coyote/obsolete_compatibility.py",
+            "coyote/templates/reporting/legacy/dna.html",
+            "coyote/templates/reporting/assets/modern.css",
+        ],
+        "server": ["coyote_api/removed_module.py", "coyote_mongo/removed_module.py"],
+    }[distribution]
+    for name in deleted:
+        stale = project / "build/lib" / name
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_text('"""Removed implementation."""\n')
+    names = build_wheel(project, tmp_path / "wheels")
     assert not set(deleted).intersection(names)
     if distribution == "client":
         assert "coyote_pyclient/resources.py" in names
@@ -90,6 +116,57 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         assert "coyote/application/reporting/smd_input.py" in names
         assert not any(name.startswith("coyote/templates/reporting/") for name in names)
     else:
-        assert (
-            "coyote_api/app/main.py" if distribution == "api" else "coyote_mongo/selection.py"
-        ) in names
+        assert "coyote_api/app/main.py" in names
+        assert "coyote_mongo/selection.py" in names
+        assert not any(name.startswith(("coyote/", "coyote_pyclient/")) for name in names)
+
+
+def test_server_source_distribution_rebuilds_both_components_without_checkout(tmp_path):
+    """An extracted server sdist retains component source, docs, tests and runtime resources."""
+    project = stage_project(tmp_path, "server")
+    for component, package in (("api", "coyote_api"), ("adapters/mongo", "coyote_mongo")):
+        retired_metadata = project / component / "src" / f"{package}.egg-info"
+        retired_metadata.mkdir()
+        (retired_metadata / "PKG-INFO").write_text("Retired independent distribution metadata")
+    output = tmp_path / "sdist"
+    output.mkdir()
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"from setuptools.build_meta import build_sdist; build_sdist({str(output)!r})",
+        ],
+        cwd=project,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    archive_path = next(output.glob("*.tar.gz"))
+    with tarfile.open(archive_path) as archive:
+        members = {str(Path(name).relative_to(Path(name).parts[0])) for name in archive.getnames()}
+    assert {
+        "package_build.py",
+        "api/README.md",
+        "api/pyproject.toml",
+        "api/LICENSE.txt",
+        "adapters/mongo/pyproject.toml",
+        "adapters/mongo/LICENSE.txt",
+        "api/src/coyote_api/app/main.py",
+        "adapters/mongo/src/coyote_mongo/selection.py",
+        "api/docs/README.md",
+        "adapters/mongo/docs/README.md",
+    } <= members
+    assert any(name.startswith("api/tests/") for name in members)
+    assert any(name.startswith("adapters/mongo/tests/") for name in members)
+    assert not any(name.startswith(("core/", "clients/", ".design/")) for name in members)
+    assert not any(
+        "coyote_api.egg-info" in name or "coyote_mongo.egg-info" in name for name in members
+    )
+    names = build_wheel(archive_path, tmp_path / "rebuilt-wheels")
+    assert {
+        "coyote_api/app/main.py",
+        "coyote_api/config/application_release.toml",
+        "coyote_api/app/templates/api_reference.html",
+        "coyote_mongo/selection.py",
+        "coyote_mongo/config/collections.toml",
+    } <= names

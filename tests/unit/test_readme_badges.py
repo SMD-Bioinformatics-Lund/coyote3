@@ -29,6 +29,8 @@ def repository(tmp_path, monkeypatch):
         "README.md",
         "core/README.md",
         "core/docs/README.md",
+        "api/README.md",
+        "adapters/mongo/README.md",
         "api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md",
     ):
         path = tmp_path / filename
@@ -79,6 +81,14 @@ def test_generation_is_idempotent_and_preserves_explanations(repository):
     ]
     positions = [readme.index("### " + group) for group in groups]
     assert positions == sorted(positions)
+    server_version = tomllib.loads((repository / "pyproject.toml").read_text())["project"][
+        "version"
+    ]
+    for component in ("api", "adapters/mongo"):
+        assert (
+            f"![coyote-server: {server_version}]"
+            in (repository / component / "README.md").read_text()
+        )
 
 
 def test_check_mode_reports_metadata_drift_without_writing(repository):

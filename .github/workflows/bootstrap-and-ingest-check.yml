@@ -46,7 +46,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
           python -m pip install -r requirements-dev.txt
           python scripts/release/build_sdk.py --output-dir .release/sdk
-          python -m pip install --no-deps .release/sdk/*.whl ./clients/python
+          python -m pip install --no-deps .release/sdk/*.whl
           PYTHONPATH=. python -m pytest -q api/tests/unit/test_application_sdk.py \
             core/tests/unit/test_application_sdk.py tests/unit/test_python_sdk_contracts.py \
             core/tests/unit/test_configuration_resource_receipts.py \

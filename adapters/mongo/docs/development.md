@@ -5,10 +5,10 @@ From the repository root:
 ```bash
 uv sync --all-packages --group dev --group test --group docs
 scripts/quality/run_package_tests.sh mongo
-uv build --package coyote-mongo
+uv build --package coyote-server
 ```
 
-Package tests use synthetic records and do not require a running database.
+Adapter tests use synthetic records and do not require a running database.
 They cover connection ownership, portable identities and driver-result conversion.
 Shared integration tests cover the adapter with clinical workflows.
 
@@ -20,9 +20,10 @@ Keep imports directed toward the core. The adapter must not import the API,
 HTTP client or web framework. Preserve query scope, missing/null handling,
 array correlation, numeric comparisons, audit evidence and saved snapshots.
 
-The project owns its version and dependency declarations in `pyproject.toml`.
-Record changes in `CHANGELOG.md` and adopt them through the application release
-selection.
+The root `pyproject.toml` owns the shared server version, dependencies and build
+configuration. The adapter's `pyproject.toml` owns only its test and coverage settings.
+Record adapter changes in the component `CHANGELOG.md` and adopt the server wheel
+through the application release selection.
 
 ## Test suites and coverage
 
@@ -35,7 +36,7 @@ explicit synthetic audit ownership and never import API settings or root fixture
 Real commit, rollback, replication and authorization still require the application's
 explicitly configured disposable-MongoDB integration suite.
 
-From this directory, after installing `.[test]`:
+From this directory, with the repository virtual environment activated:
 
 ```bash
 python -m pytest -q tests/smoke

@@ -36,7 +36,7 @@ targets.forEach(function (packageJsonPath) {
   }
 });
 
-// Package the application label separately from the independently versioned API.
+// Package the application label separately from the independently versioned server.
 var identityPath = path.join(repoRoot, "api/src/coyote_api/config/application_release.toml");
 var identity = "# Generated from release.toml by npm run sync:version.\n" +
   'application_version = "' + appVersion + '"\n';

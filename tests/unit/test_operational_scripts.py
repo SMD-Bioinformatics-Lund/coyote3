@@ -220,8 +220,33 @@ def test_center_check_forwards_an_explicit_authentication_provider() -> None:
 
 
 def test_api_images_include_center_check_runtime_dependencies() -> None:
-    for relative_path in ("docker/Dockerfile", "docker/Dockerfile.dev"):
+    for relative_path, stage in (
+        ("docker/Dockerfile", "coyote4_runtime_base"),
+        ("docker/Dockerfile.dev", "coyote4_dev_runtime_base"),
+        ("docker/Dockerfile.legacy", "coyote4_runtime_base"),
+    ):
         dockerfile = (REPOSITORY_ROOT / relative_path).read_text(encoding="utf-8")
-        install_block = dockerfile.split("apt-get install -y --no-install-recommends", 1)[1]
+        runtime = dockerfile.split(f" AS {stage}\n", 1)[1].split("\nFROM ", 1)[0]
+        install_block = runtime.split("apt-get install -y --no-install-recommends", 1)[1]
         install_block = install_block.split("&&", 1)[0]
         assert "curl" in install_block.split()
+
+
+@pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.legacy"])
+def test_production_images_build_dependencies_outside_runtime(dockerfile: str) -> None:
+    """Production bases retain shared libraries without compiler and header layers."""
+    definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
+    builder = definition.split(" AS coyote4_dependency_builder\n", 1)[1].split("\nFROM ", 1)[0]
+    runtime = definition.split(" AS coyote4_runtime_base\n", 1)[1].split("\nFROM ", 1)[0]
+    assert "pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt" in builder
+    assert "--ignore-installed" in builder
+    assert "--prefix=/opt/runtime -r requirements.txt" in builder
+    assert "COPY --from=coyote4_dependency_builder /opt/runtime/ /usr/local/" in runtime
+    assert "build-essential" not in runtime
+    assert "-dev " not in runtime
+    assert "pip install" not in runtime
+    assert "libpango-1.0-0" in runtime
+    assert "libpangoft2-1.0-0" in runtime
+    assert "fonts-dejavu-core" in runtime
+    assert "FROM coyote4_dependency_builder AS coyote4_runtime_base" not in definition
+    assert "/tmp/coyote-pyclient" not in definition

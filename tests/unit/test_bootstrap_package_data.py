@@ -23,7 +23,7 @@ def test_reference_seeds_are_host_data_excluded_from_the_sdk():
             + seed.relative_to(root / "api/src/coyote_api/bootstrap/catalogs").as_posix()
         )
         assert not any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns), path
-    server = tomllib.loads((root / "api/pyproject.toml").read_text())
+    server = tomllib.loads((root / "pyproject.toml").read_text())
     assert "bootstrap/catalogs/**/*" in server["tool"]["setuptools"]["package-data"]["coyote_api"]
     dockerfile = (root / "docker/Dockerfile").read_text()
     assert "COPY --chown=coyote4:coyote4 api/ ./api/" not in dockerfile

@@ -69,7 +69,7 @@ The packaging rationale is recorded in
 | --- | --- |
 | `core/` | Independent clinical core; importable code in `src/coyote/` |
 | `api/` | FastAPI host, background tasks and installation catalogs; code in `src/coyote_api/` |
-| `adapters/mongo/` | Independent MongoDB adapter; code in `src/coyote_mongo/` |
+| `adapters/mongo/` | MongoDB adapter component; code in `src/coyote_mongo/`, distributed with the API |
 | `clients/python/` | Independent HTTP client |
 | `frontend/` | React interface and frontend tests |
 | `deploy/` | Compose definitions, environment examples and deployment configuration |
@@ -81,8 +81,9 @@ The packaging rationale is recorded in
 | `tests/` | Backend tests and synthetic fixtures |
 | `docs/` | Procedures and technical references |
 
-Each Python project owns its `pyproject.toml`, `src/`, tests, docs, README,
-changelog and license. The root is a virtual uv workspace. See
+The root builds `coyote-server` from the separate API and Mongo source trees.
+Each component retains its tests, coverage, docs, README and changelog. Core and
+pyClient remain independently installable projects in the shared uv workspace. See
 [editable development](docs/sdk/uv-development.md) for setup and reload commands.
 
 Use [deployment requirements](docs/deployment/production-requirements.md) for

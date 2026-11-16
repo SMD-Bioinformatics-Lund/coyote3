@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Build separate core, MongoDB adapter and API wheels from isolated source trees."""
+"""Build the core, combined server and HTTP client from isolated source trees."""
 
 import argparse
 import shutil
@@ -15,10 +15,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
-    """Build the three deployment packages without stale build trees or editable paths.
+    """Build the three deployment distributions without stale generated sources.
 
     Args:
-        output_directory: Destination for the built wheel, created if absent.
+        output_directory: Destination for the three built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
 
@@ -28,7 +28,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    for project in (ROOT / "core", ROOT / "adapters/mongo", ROOT / "api"):
+    for project in (ROOT / "core", ROOT, ROOT / "clients/python"):
         with tempfile.TemporaryDirectory(prefix="coyote-package-build-") as temporary:
             staging = Path(temporary)
             for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
@@ -38,13 +38,35 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
                 "MANIFEST.in",
                 "build_support.py",
                 "package_build.py",
+                "client_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
                 "CHANGELOG.md",
             ):
                 if (project / name).is_file():
                     shutil.copyfile(project / name, staging / name)
-            sources = ("src", "docs")
+            if project == ROOT:
+                sources = (
+                    "api/src",
+                    "api/docs",
+                    "api/tests",
+                    "adapters/mongo/src",
+                    "adapters/mongo/docs",
+                    "adapters/mongo/tests",
+                )
+                for component in ("api", "adapters/mongo"):
+                    (staging / component).mkdir(parents=True, exist_ok=True)
+                    for name in (
+                        "README.md",
+                        "CHANGELOG.md",
+                        "pyproject.toml",
+                        "LICENSE.txt",
+                        "COPYRIGHT.txt",
+                        "NOTICE.txt",
+                    ):
+                        shutil.copyfile(project / component / name, staging / component / name)
+            else:
+                sources = ("src", "docs", "tests")
             for name in sources:
                 source = project / name
                 target = staging / name
@@ -72,7 +94,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
 
 
 def main() -> None:
-    """Build separate release wheels from current core, adapter and host sources."""
+    """Build the selected core, server and client distributions for deployment."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--no-build-isolation", action="store_true")

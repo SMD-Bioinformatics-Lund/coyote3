@@ -24,7 +24,7 @@ def test_component_notices_preserve_copyright_affiliation_and_contributor_roles(
 
 
 def test_python_and_node_metadata_identify_gpl_and_keep_contributors_separate():
-    for name in ("core", "api", "adapters/mongo", "clients/python"):
+    for name in ("core", ".", "clients/python"):
         project = tomllib.loads((ROOT / name / "pyproject.toml").read_text())["project"]
         assert project["license"] == "GPL-3.0-only"
         assert "COPYRIGHT.txt" in project["license-files"]

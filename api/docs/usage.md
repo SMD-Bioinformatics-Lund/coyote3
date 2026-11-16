@@ -10,7 +10,7 @@ selection and rule evaluation remain in the core; persistence remains in the
 MongoDB adapter.
 
 Celery processes use `coyote_api.celery_app`. API and workers must use the same
-tested package combination and compatible configuration. Uvicorn reload does
+tested core/server combination and compatible configuration. Uvicorn reload does
 not restart separate workers.
 
 Report endpoints prepare JSON through core operations and render it with
@@ -19,5 +19,5 @@ Finalization retains the selected findings, report artifacts and provenance usin
 the existing recoverable persistence flow.
 
 Installation catalogs, center examples, documentation templates and brand assets
-ship as package data. Importing the host does not install its catalogs into a
+ship as server package data. Importing the host does not install its catalogs into a
 database. Provisioning and maintenance remain explicit application operations.

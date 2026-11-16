@@ -1,13 +1,13 @@
 # Package boundaries
 
 The core imports as `coyote`; the application remains Coyote4. Each Python
-distribution has its own project metadata, tests, documentation and GPLv3 license.
+distribution has its own project metadata and GPLv3 license. API and Mongo
+components retain separate source, tests, coverage and guides inside one server distribution.
 
 | Distribution | Source | Permitted dependencies within this repository |
 | --- | --- | --- |
 | `coyote-core` | `core/src/coyote/` | None |
-| `coyote-mongo` | `adapters/mongo/src/coyote_mongo/` | Core |
-| `coyote-api` | `api/src/coyote_api/` | Core and MongoDB adapter |
+| `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `clients/python/src/coyote_pyclient/` | None; communicates over HTTP |
 
 ## Shared core and request flow
@@ -19,7 +19,7 @@ distribution has its own project metadata, tests, documentation and GPLv3 licens
 Core is the shared foundation for the API and MongoDB adapter. It owns clinical
 operations, typed contracts and repository interfaces. The adapter implements
 those interfaces; the API constructs the repositories and supplies them to core
-services. Both packages depend on core, and the API also depends on the adapter.
+services. Both components depend on core, and the API also depends on the adapter.
 Core does not import either implementation.
 
 For a variant-review request:
@@ -37,8 +37,9 @@ network services. Workers also invoke core operations through host composition.
 
 The Python HTTP client is intended for external integrations. The frontend uses
 its own TypeScript HTTP client, and backend services invoke core directly. Neither
-uses the Python client at runtime. Application integration tests use it to verify
-the HTTP boundary. Its separate repository and PyPI release are tracked in
+uses the Python client for application requests. Administrative HTTP commands
+shipped with the server image and application integration tests use it to verify
+and operate the HTTP boundary. Its separate repository and PyPI release are tracked in
 [future work](../project/future-work.md#independent-python-http-client-repository-and-pypi-release).
 
 ## Package responsibilities

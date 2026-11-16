@@ -1,4 +1,4 @@
-# Runtime declarations for coyote-core, coyote-mongo and coyote-api.
+# Runtime declarations for coyote-core and coyote-server.
 # For development/test tools see requirements-dev.txt
 bleach==6.4.0
 billiard==4.3.2
