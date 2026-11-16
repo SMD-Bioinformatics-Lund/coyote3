@@ -102,7 +102,7 @@ jobs:
       - name: Install transaction test dependencies
         run: |
           python -m pip install -r requirements-dev.txt
-          python -m pip install --no-deps -e core -e . -e clients/python
+          python -m pip install --no-deps -e core -e . -e clients/python -e services/ingest
       - name: Start isolated disposable replica set
         run: |
           for port in 27017 27018; do
@@ -201,8 +201,8 @@ jobs:
             --wheel-dir /tmp/coyote4-sdk \
             --output /tmp/coyote4-sdk/release-record.json
           python -m pip install --no-deps /tmp/coyote4-sdk/*.whl
-      - name: Test retained core, server and client distributions
-        run: PYTHONPATH=. python -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests clients/python/tests --no-cov
+      - name: Test retained core, server, client and ingestion distributions
+        run: PYTHONPATH=. python -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests clients/python/tests services/ingest/tests --no-cov
       - name: Retain tested SDK artifact and release record
         uses: actions/upload-artifact@v4
         with:
@@ -287,7 +287,7 @@ jobs:
                   backend=true
                   docs=true
                   ;;
-                core/*|api/*|adapters/*|clients/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|uv.lock|requirements*.txt|.coveragerc)
+                core/*|api/*|adapters/*|clients/*|services/*|tests/*|scripts/*|clinical_reporting_rules/*|demo_data/*|pyproject.toml|uv.lock|requirements*.txt|.coveragerc)
                   backend=true
                   ;;
                 frontend/*)
@@ -334,7 +334,7 @@ jobs:
         if: steps.scope.outputs.backend == 'true'
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
-          python -m pip install --no-deps -e core -e . -e clients/python
+          python -m pip install --no-deps -e core -e . -e clients/python -e services/ingest
 
       - name: Install documentation dependencies
         if: steps.scope.outputs.docs == 'true'
@@ -342,11 +342,11 @@ jobs:
 
       - name: Ruff check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff check core api adapters tests scripts
+        run: PYTHONPATH=. ruff check core api adapters services tests scripts
 
       - name: Ruff format check
         if: steps.scope.outputs.backend == 'true'
-        run: PYTHONPATH=. ruff format --check core api adapters tests scripts
+        run: PYTHONPATH=. ruff format --check core api adapters services tests scripts
 
       - name: Strict type check
         if: steps.scope.outputs.backend == 'true'
@@ -360,8 +360,8 @@ jobs:
       - name: Full backend tests and unified coverage
         if: steps.scope.outputs.backend == 'true'
         run: >-
-          PYTHONPATH=. pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests
-          --cov=coyote_api --cov=coyote --cov=coyote_mongo
+          PYTHONPATH=. pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests services/ingest/tests
+          --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov=coyote_ingest
           --cov-config=.coveragerc
           --cov-report=term-missing
           --cov-report=xml:coverage.xml
@@ -372,7 +372,7 @@ jobs:
           PYTHON_BIN="$(command -v python)" PYTHONPATH=.
           bash scripts/quality/run_family_coverage_gates.sh --from-existing
 
-      - name: Independent component and client coverage gates
+      - name: Independent component, client and ingestion coverage gates
         if: steps.scope.outputs.backend == 'true'
         run: PYTHON_BIN="$(command -v python)" bash scripts/quality/run_package_tests.sh all --coverage
 

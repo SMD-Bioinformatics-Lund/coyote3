@@ -9,13 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
-from pathlib import Path
-
-# Ensure repo root is importable when running as `python scripts/...`.
-REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,11 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Authenticate with the API and print session metadata as JSON.
 
     Args:
-        argv: Command-line arguments excluding the executable name.
+        argv: Arguments excluding the executable name; None reads process arguments.
 
     Returns:
         Zero after successful authentication and output.
@@ -98,4 +91,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(main())

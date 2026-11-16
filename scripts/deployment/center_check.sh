@@ -88,7 +88,7 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     printf '\n' >&2
   fi
   echo "[step] login and resolve bearer token"
-  AUTH_JSON="$(COYOTE_CENTER_CHECK_PASSWORD="$PASSWORD" PYTHONPATH=. "$PYTHON_BIN" scripts/ingest/api_login.py \
+  AUTH_JSON="$(COYOTE_CENTER_CHECK_PASSWORD="$PASSWORD" "$PYTHON_BIN" -m coyote_ingest.login \
     --base-url "$API_BASE_URL" \
     --mode password \
     --username "$USERNAME" \
@@ -118,20 +118,20 @@ curl -fsS "${API_BASE_URL%/}/api/v1/health" >/dev/null
 
 echo "[step] local ingest spec validation"
 if [[ "$SKIP_FILE_CHECK" -eq 1 || -n "$DATA_ARCHIVE" ]]; then
-  PYTHONPATH=. "$PYTHON_BIN" scripts/ingest/validate_ingest_spec.py --yaml "$YAML_FILE" >/dev/null
+  "$PYTHON_BIN" -m coyote_ingest.validate --yaml "$YAML_FILE" >/dev/null
 else
-  PYTHONPATH=. "$PYTHON_BIN" scripts/ingest/validate_ingest_spec.py --yaml "$YAML_FILE" --check-files >/dev/null
+  "$PYTHON_BIN" -m coyote_ingest.validate --yaml "$YAML_FILE" --check-files >/dev/null
 fi
 
 echo "[step] submit ingest sample-bundle upload"
-COYOTE_CENTER_CHECK_TOKEN="$BEARER_TOKEN" PYTHONPATH=. "$PYTHON_BIN" - \
+COYOTE_CENTER_CHECK_TOKEN="$BEARER_TOKEN" "$PYTHON_BIN" - \
   "$API_BASE_URL" "$YAML_FILE" "$DATA_ARCHIVE" <<'PY'
 import json
 import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from scripts.ingest.submit_ingest_manifest import upload
+from coyote_ingest.submit import upload
 
 token = os.environ["COYOTE_CENTER_CHECK_TOKEN"]
 if any(char in token for char in '\r\n"\\'):

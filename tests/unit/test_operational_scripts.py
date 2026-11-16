@@ -250,3 +250,30 @@ def test_production_images_build_dependencies_outside_runtime(dockerfile: str) -
     assert "fonts-dejavu-core" in runtime
     assert "FROM coyote4_dependency_builder AS coyote4_runtime_base" not in definition
     assert "/tmp/coyote-pyclient" not in definition
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "deploy/compose/docker-compose.yml",
+        "deploy/legacy/docker-compose.yml",
+        "deploy/legacy/docker-compose.dev.yml",
+    ],
+)
+def test_deployments_start_ingest_and_maintenance_from_their_own_apps(relative_path) -> None:
+    """Both deployment variants keep ingestion and maintenance on their owning task apps."""
+    services = yaml.safe_load((REPOSITORY_ROOT / relative_path).read_text())["services"]
+    assert "coyote-ingest-worker" in services["worker"]["command"]
+    assert "--queues=ingest " in services["worker"]["command"]
+    assert "coyote_api.celery_app:celery_app" in services["maintenance-worker"]["command"]
+    assert "--queues=default " in services["maintenance-worker"]["command"]
+    assert "coyote_api.celery_app:celery_app beat" in services["beat"]["command"]
+
+
+@pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.dev", "Dockerfile.legacy"])
+def test_source_images_include_the_ingestion_distribution(dockerfile) -> None:
+    """Source and editable image builds have the complete independently packaged service."""
+    definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
+    assert "COPY services/ingest/ ./services/ingest/" in definition
+    if dockerfile in {"Dockerfile.dev", "Dockerfile.legacy"}:
+        assert "-e clients/python -e services/ingest" in definition

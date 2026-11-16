@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
                 "coyote_api",
                 "coyote_mongo",
                 "coyote_pyclient",
+                "coyote_ingest",
                 "api_test_support",
                 "mongo_test_support",
                 "bson",
@@ -28,15 +29,27 @@ ROOT = Path(__file__).resolve().parents[2]
         ),
         (
             "adapters/mongo",
-            {"coyote_api", "coyote_pyclient", "api_test_support", "core_test_support", "tests"},
+            {
+                "coyote_api",
+                "coyote_pyclient",
+                "coyote_ingest",
+                "api_test_support",
+                "core_test_support",
+                "tests",
+            },
         ),
-        ("api", {"core_test_support", "mongo_test_support", "tests"}),
+        ("api", {"coyote_ingest", "core_test_support", "mongo_test_support", "tests"}),
+        (
+            "services/ingest",
+            {"core_test_support", "api_test_support", "mongo_test_support", "tests"},
+        ),
         (
             "clients/python",
             {
                 "coyote",
                 "coyote_api",
                 "coyote_mongo",
+                "coyote_ingest",
                 "core_test_support",
                 "api_test_support",
                 "mongo_test_support",

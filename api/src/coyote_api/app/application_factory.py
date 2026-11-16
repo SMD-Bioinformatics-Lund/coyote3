@@ -7,6 +7,7 @@ from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+from coyote.application.ingest.messages import ingest_task_name
 from coyote.application.operations import (
     ApplicationRuntime,
     ApplicationServices,
@@ -428,49 +429,6 @@ def ingest_submission_services() -> "IngestSubmissionServices":
     )
 
 
-def _ingest_task(kind: str) -> Any:
-    """Resolve a host worker from the allowlist shared by publication and metadata.
-
-    Args:
-        kind: Supported durable ingestion job kind.
-
-    Returns:
-        Registered Celery task owned by the API host.
-
-    Raises:
-        KeyError: The logical job kind has no registered worker.
-    """
-    from coyote_api.tasks.ingest import (
-        ingest_sample_bundle_task,
-        insert_collection_document_task,
-        insert_collection_documents_task,
-        upsert_collection_document_task,
-    )
-
-    tasks = {
-        "sample_bundle": ingest_sample_bundle_task,
-        "insert_document": insert_collection_document_task,
-        "insert_documents": insert_collection_documents_task,
-        "upsert_document": upsert_collection_document_task,
-    }
-    return tasks[kind]
-
-
-def ingest_task_name(kind: str) -> str:
-    """Return the registered host task name for a logical ingestion job.
-
-    Args:
-        kind: Supported durable ingestion job kind.
-
-    Returns:
-        Worker name used in the HTTP acknowledgement.
-
-    Raises:
-        KeyError: The logical job kind has no registered worker.
-    """
-    return str(_ingest_task(kind).name)
-
-
 def publish_ingest_job(kind: str, identity: str) -> None:
     """Notify the host worker for an already retained ingestion job.
 
@@ -481,10 +439,14 @@ def publish_ingest_job(kind: str, identity: str) -> None:
     Raises:
         KeyError: The logical job kind has no registered worker.
     """
+    from coyote_api.celery_app import celery_app
     from coyote_api.config.runtime_settings import DefaultConfig
 
-    _ingest_task(kind).apply_async(
-        kwargs={"job_id": identity}, task_id=identity, queue=DefaultConfig.CELERY_INGEST_QUEUE
+    celery_app.send_task(
+        ingest_task_name(kind),
+        kwargs={"job_id": identity},
+        task_id=identity,
+        queue=DefaultConfig.CELERY_INGEST_QUEUE,
     )
 
 

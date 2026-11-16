@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "coyote-core",
+    "coyote-ingest",
     "coyote-pyclient",
     "coyote-server",
 ]
@@ -658,6 +659,36 @@ requires-dist = [
     { name = "weasyprint", specifier = "==70.0" },
 ]
 provides-extras = ["test"]
+
+[[package]]
+name = "coyote-ingest"
+version = "1.0.0"
+source = { editable = "services/ingest" }
+dependencies = [
+    { name = "coyote-core" },
+    { name = "coyote-pyclient" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "mongomock" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+worker = [
+    { name = "coyote-server" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coyote-core", editable = "core" },
+    { name = "coyote-pyclient", editable = "clients/python" },
+    { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
+    { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = "==9.0.3" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
+]
+provides-extras = ["worker", "test"]
 
 [[package]]
 name = "coyote-pyclient"

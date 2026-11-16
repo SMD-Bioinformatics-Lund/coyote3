@@ -14,5 +14,14 @@ Report JSON is rendered by `smd-reports` using the existing `coyote3` preset.
 Report wording, finding eligibility, rule publication and saved provenance stay
 governed by core operations. Database-specific audit hashing is supplied by hosts.
 
+Ingestion services own parsing, validation, fenced job execution and stable manifest
+acknowledgement. Hosts supply an authorized executor, durable job repository,
+transaction completion callback, retry classification and audit delivery. Celery
+registration, database wiring and process configuration stay outside core.
+
+Core also packages canonical permission/role definitions and VEP grouping policy.
+Reading them does not install data. Hosts own reference snapshots, explicit
+installation and deployment-specific accounts and grants.
+
 Package tests cover standalone behavior. Repository-wide integration tests cover
 the core together with adapters, authentication, workers and the API.

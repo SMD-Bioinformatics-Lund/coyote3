@@ -13,7 +13,8 @@
 - HTML/PDF reports through `smd-reports`, reviewed previews, saved finding snapshots
   and traceable report artifacts.
 - Exact assay/environment access, scoped credentials and durable audit records.
-- Background ingestion with recovery support, container deployment and migration tools.
+- Installable ingestion workers and submission tools with core-owned workflows,
+  recovery support, container deployment and migration tools.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
 - GNU GPL version 3 only, with separate copyright and contributor notices.

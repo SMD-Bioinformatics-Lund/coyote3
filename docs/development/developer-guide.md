@@ -54,7 +54,8 @@ Use synthetic samples for local verification and browser fixtures.
 | `core/src/coyote/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
 | `core/src/coyote/domain/` | Domain rules, identity logic, query policies and repository protocols. |
 | `core/src/coyote/contracts/` | Request, response, collection and managed-resource contracts. |
-| `api/src/coyote_api/infra/` | MongoDB persistence, cache, integrations, notifications and observability. |
+| `api/src/coyote_api/infra/` | Cache, host integrations, notifications and observability. |
+| `adapters/mongo/src/coyote_mongo/` | MongoDB queries, persistence and transactions. |
 | `api/src/coyote_api/security/` | Authentication, authorization and password workflows. |
 | `core/src/coyote/config/` | Typed center inputs, software constants and policy validation. |
 | `api/src/coyote_api/bootstrap/` | Host installation catalogs and catalog assembly. |
@@ -63,15 +64,16 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
 | `core/src/coyote/application/reporting/smd_input.py` | JSON projection for package-owned `smd-reports` rendering. |
 | `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
+| `services/ingest/` | Installable ingestion submission tools and worker host. |
 | `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |
 | `docs/sdk/` | SDK installation, usage, development, generated reference and version compatibility. |
-| `api/src/coyote_api/tasks/` | Celery task entry points. |
+| `api/src/coyote_api/tasks/` | Server maintenance task entry points. |
 | `frontend/src/pages/` | Route-level React views. |
 | `frontend/src/components/` | Shared layouts, forms, tables and clinical display components. |
 | `frontend/src/hooks/` | Shared state and query hooks. |
 | `frontend/src/lib/` | HTTP client, route registry and display utilities. |
-| `tests/` | Backend unit, API and integration coverage. |
+| `tests/` | Repository tooling and cross-package integration coverage; component suites live with their owners. |
 | `frontend/tests/e2e/` | Playwright browser coverage. |
 | `scripts/` | Bootstrap, maintenance, contract generation and verification commands. |
 | `deploy/` | Container builds, Compose definitions, proxy configuration and environment templates. |

@@ -9,6 +9,7 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-core` | `core/src/coyote/` | None |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `clients/python/src/coyote_pyclient/` | None; communicates over HTTP |
+| `coyote-ingest` | `services/ingest/src/coyote_ingest/` | Core and Python client; the worker extra uses server composition |
 
 ## Shared core and request flow
 
@@ -20,7 +21,9 @@ Core is the shared foundation for the API and MongoDB adapter. It owns clinical
 operations, typed contracts and repository interfaces. The adapter implements
 those interfaces; the API constructs the repositories and supplies them to core
 services. Both components depend on core, and the API also depends on the adapter.
-Core does not import either implementation.
+Core does not import either implementation. The ingestion service also uses core;
+its workers obtain database and authentication wiring from the server. The server
+publishes named ingestion tasks without importing the ingestion service.
 
 For a variant-review request:
 
@@ -30,7 +33,7 @@ For a variant-review request:
 4. The Mongo implementation translates repository operations into database queries.
 5. Results return through the interfaces, core operation and API to the caller.
 
-The top diagram shows code dependencies; the lower diagram shows runtime calls.
+The diagram separates code dependencies, runtime calls and ingestion dependencies.
 Calling an injected repository does not make core import MongoDB. API, core and
 adapter run inside the same backend process; packaging does not create additional
 network services. Workers also invoke core operations through host composition.
@@ -55,9 +58,19 @@ Host callbacks provide optional operation metrics; importing the adapter does no
 import the API or start connections.
 
 The API owns web authentication, environment loading, request handling,
-composition, installation resources and workers. Routes delegate clinical behavior
-to core operations. The HTTP client owns independent wire models and never
-imports the core or adapter.
+composition, reference installation and maintenance workers. Routes delegate
+clinical behavior to core operations. The HTTP client owns independent wire models
+and never imports the core or adapter.
+
+The ingestion package owns pipeline submission commands and Celery ingestion tasks.
+Reusable parsing, validation, job execution and manifest-watching workflows belong
+to core. HTTP uploads, process entry points and task-queue integration stay outside
+core. See the [ingestion service guide](../../services/ingest/docs/README.md).
+
+Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
+policy. The server packages HGNC/VEP reference snapshots and installs them explicitly
+through the Mongo adapter. Installed accounts, grants and reference selections remain
+deployment state; importing packages or redeploying does not reset them.
 
 The API's `config/backend.py` assembles and validates package-specific deployment
 inputs. The Mongo adapter accepts `MongoSettings` and explicit logger/cache ports,

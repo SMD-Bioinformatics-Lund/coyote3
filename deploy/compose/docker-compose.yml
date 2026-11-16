@@ -198,7 +198,7 @@ services:
       LOG_SERVICE_NAME: worker
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: *app-volumes
-    command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker coyote-ingest-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
       redis: {condition: service_healthy}
 

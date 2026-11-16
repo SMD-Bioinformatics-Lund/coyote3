@@ -64,9 +64,6 @@ and preserve original sample ObjectIds; they do not use SQLite.
 | `api/src/coyote_api/infra/seed/query_rules.py` (outside `scripts/`) | Internal helper | Bootstrap and query-rule installer | Converts typed installation criteria into attributed version-one database policies; rejects unresolved group or unsupported assay/diagnosis scopes |
 | `deployment/center_check.sh` | Manual operation | Deployment acceptance | Validates a local manifest, checks health and performs a synchronous sample ingest with `increment=true`. Uses the canonical uploader's optional `data_archive` ZIP and terminal acknowledgement. Writes sample data; does not audit all baseline resources or rename the local manifest. |
 | `bootstrap/validate_assay_consistency.py` | Automated | preflight, contract integrity, bootstrap, tests | Verifies ASP, ASPC, ISGL, sample, catalog, and reporting-rule references before import |
-| `ingest/validate_ingest_spec.py` | Automated | `deployment/center_check.sh`; deployment checklist | Validates a DNA or RNA manifest through the current `SamplesDoc` contract and optionally checks every configured file path |
-| `ingest/api_login.py` | Internal helper | bootstrap and composed-workflow scripts | Creates an authenticated API session for script-driven checks |
-| `ingest/submit_ingest_manifest.py` | Manual operation | Sample ingestion guide | Submits a manifest through the authenticated ingest API |
 
 `deployment/install_center.sh` orchestrates application installation against prepared
 MongoDB endpoints. MongoDB provisioning and sample ingestion remain separate operations.
@@ -143,7 +140,15 @@ it against its temporary MkDocs output.
 | `knowledgebase/repair_vep_reference_links.py` | Manual maintenance | VEP metadata update guide | Repairs reference links in seed metadata or an explicitly selected knowledgebase |
 | `knowledgebase/migrate_vep_diagram_storage.py` | Upgrade operation | VEP metadata update guide | Moves embedded diagram payloads into the supported diagram storage format |
 | `knowledgebase/vep_diagram_storage.py` | Internal helper | VEP import and migration commands | Separates diagram metadata from payloads and reads or writes diagram storage |
-| `knowledgebase/ensembl_archives.json`, `knowledgebase/vep_metadata_policy.json` | Configuration inputs | VEP metadata update commands | Define archive locations and reference metadata policy |
+| `knowledgebase/ensembl_archives.json` | Configuration input | VEP metadata update commands | Defines reviewed archive locations; Coyote's grouping policy belongs to `core/src/coyote/config/vep_metadata_policy.json` |
+
+## Installed ingestion commands
+
+The `coyote-ingest` distribution owns `coyote-ingest-validate`, `coyote-ingest-login`
+and `coyote-ingest-submit`; these are installed commands, not repository scripts.
+Worker installations add `coyote-ingest-worker`. Shared parsing, validation and
+job workflows belong to core. See the
+[ingestion service guide](../../services/ingest/docs/README.md).
 
 ## Operational prerequisites
 

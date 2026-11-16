@@ -10,8 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-
-from scripts.ingest import submit_ingest_manifest as client
+from coyote_ingest import submit as client
 
 
 @pytest.mark.parametrize("outcome", ["ok", "error", "interrupted"])

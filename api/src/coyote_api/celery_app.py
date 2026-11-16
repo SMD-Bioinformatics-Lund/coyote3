@@ -1,63 +1,15 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Celery application for background Coyote4 jobs."""
+"""API task publisher, maintenance worker and deployment beat schedule."""
 
-from __future__ import annotations
-
-from celery import Celery
 from celery.schedules import crontab
-from celery.signals import setup_logging
+from coyote.application.ingest.messages import INGEST_DISPATCH_TASK, INGEST_WATCH_TASK
 
 from coyote_api.config.runtime_settings import DefaultConfig
-from coyote_api.infra.observability.logging import configure_json_logging
+from coyote_api.infra.task_queue import create_celery_app
 
-
-@setup_logging.connect
-def configure_celery_logging(**kwargs) -> None:
-    """Keep worker and beat logs in their own daily files, including task failures."""
-    configure_json_logging(
-        service_name=DefaultConfig.LOG_SERVICE_NAME,
-        level=DefaultConfig.CELERY_LOG_LEVEL,
-        log_root=DefaultConfig.LOG_ROOT,
-        file_enabled=DefaultConfig.LOG_FILE_ENABLED,
-        timezone_name=DefaultConfig.LOG_TIMEZONE,
-    )
-
-
-def _redis_url() -> str:
-    """Return the Celery broker/backend URL.
-
-    Celery uses a dedicated runtime value when provided, otherwise it reuses
-    the configured Redis cache URL used by the API stack.
-    """
-    return str(DefaultConfig.CELERY_BROKER_URL or DefaultConfig.CACHE_REDIS_URL or "")
-
-
-celery_app = Celery(
-    "coyote4",
-    broker=_redis_url(),
-    backend=DefaultConfig.CELERY_RESULT_BACKEND or _redis_url(),
-    include=("coyote_api.tasks.ingest", "coyote_api.tasks.maintenance"),
-)
-
-celery_app.conf.update(
-    timezone=DefaultConfig.LOG_TIMEZONE,
-    task_default_queue=DefaultConfig.CELERY_DEFAULT_QUEUE,
-    task_track_started=True,
-    task_time_limit=DefaultConfig.CELERY_TASK_TIME_LIMIT,
-    task_soft_time_limit=DefaultConfig.CELERY_TASK_SOFT_TIME_LIMIT,
-    result_expires=DefaultConfig.CELERY_RESULT_EXPIRES,
-    worker_prefetch_multiplier=DefaultConfig.CELERY_WORKER_PREFETCH_MULTIPLIER,
-    broker_transport_options={"visibility_timeout": DefaultConfig.CELERY_TASK_TIME_LIMIT + 120},
-    result_backend_transport_options={
-        "visibility_timeout": DefaultConfig.CELERY_TASK_TIME_LIMIT + 120
-    },
-    visibility_timeout=DefaultConfig.CELERY_TASK_TIME_LIMIT + 120,
-    task_routes={
-        "coyote_api.tasks.ingest.*": {"queue": DefaultConfig.CELERY_INGEST_QUEUE},
-    },
-)
+celery_app = create_celery_app("coyote4", include=("coyote_api.tasks.maintenance",))
 
 celery_app.conf.beat_schedule = {
     "coyote4-report-artifact-finalization": {
@@ -81,7 +33,7 @@ celery_app.conf.beat_schedule = {
         "schedule": 30,
     },
     "coyote4-ingest-job-dispatch": {
-        "task": "coyote_api.tasks.ingest.dispatch_pending_jobs",
+        "task": INGEST_DISPATCH_TASK,
         "schedule": 30,
     },
     "coyote4-retention-maintenance": {
@@ -101,7 +53,7 @@ if DefaultConfig.COYOTE4_INGEST_WATCH_ENABLED:
     celery_app.conf.beat_schedule.update(
         {
             "coyote4-ingest-watch-directory": {
-                "task": "coyote_api.tasks.ingest.ingest_watch_directory_once",
+                "task": INGEST_WATCH_TASK,
                 "schedule": DefaultConfig.COYOTE4_INGEST_WATCH_INTERVAL_SECONDS,
             },
         }

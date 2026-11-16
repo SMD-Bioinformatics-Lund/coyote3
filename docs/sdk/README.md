@@ -4,13 +4,14 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Coyote has three independently installable Python distributions in one repository.
+Coyote has four independently installable Python distributions in one repository.
 
 | Package | Purpose |
 | --- | --- |
 | `coyote-core` | Framework-independent clinical rules, contracts and application operations |
-| `coyote-server` | Separate API and Mongo components: HTTP, authentication, workers, queries and persistence |
+| `coyote-server` | Separate API and Mongo components: HTTP, authentication, maintenance, queries and persistence |
 | `coyote-pyclient` | Synchronous and asynchronous clients for a running API |
+| `coyote-ingest` | Pipeline submission commands and ingestion workers using core workflows |
 
 ## Choose the Python interface
 
@@ -27,5 +28,6 @@ Start with [editable uv development](uv-development.md), then consult
 Use the individual guides for installation, usage, configuration, interfaces and
 package development: [core](../../core/docs/README.md),
 [API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
-[HTTP client](../../clients/python/docs/README.md). This section describes how
+[HTTP client](../../clients/python/docs/README.md), and
+[ingestion service](../../services/ingest/docs/README.md). This section describes how
 those interfaces participate in the complete application.

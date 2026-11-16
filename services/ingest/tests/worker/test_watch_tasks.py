@@ -4,9 +4,10 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
-from api_test_support.mongo_settings import mongo_runtime
-from coyote_api.tasks import ingest
+from coyote.application.ingest.watcher import resolve_relative_sample_paths
+from coyote_ingest import tasks as ingest
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
+from ingest_test_support.mongo_settings import mongo_runtime
 
 
 def test_resolve_sample_paths_uses_container_visible_manifest_paths(tmp_path):
@@ -14,7 +15,7 @@ def test_resolve_sample_paths_uses_container_visible_manifest_paths(tmp_path):
     manifest.parent.mkdir(parents=True)
     manifest.write_text("name: SAMPLE_1\n", encoding="utf-8")
 
-    payload = ingest._resolve_relative_sample_paths(
+    payload = resolve_relative_sample_paths(
         {
             "name": "SAMPLE_1",
             "vcf_files": "/data/coyote4/vcf/sample.vcf",
@@ -78,7 +79,7 @@ def test_ingest_watch_directory_once_renames_manifest_done(tmp_path, monkeypatch
     monkeypatch.setattr(ingest, "get_ingest_jobs_repository", lambda: jobs)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE4_INGEST_WATCH_UPDATE_EXISTING", True)
     monkeypatch.setattr(ingest.DefaultConfig, "COYOTE4_INGEST_WATCH_INCREMENT", False)
-    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(ingest, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: _Service())
     if retry_marker:
@@ -137,7 +138,7 @@ def test_watch_preserves_manifest_when_disabled_midscan_then_processes_it(tmp_pa
     audit = Mock()
     monkeypatch.setattr(ingest, "WATCH_INGEST_DIRECTORY", tmp_path)
     monkeypatch.setattr(ingest, "WATCH_INGEST_LOCK_PATH", tmp_path / "scan.lock")
-    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(ingest, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "get_ingest_jobs_repository", lambda: jobs)
     monkeypatch.setattr(ingest, "get_internal_ingest_service", lambda: service)
     monkeypatch.setattr(ingest, "_record_ingest_audit", audit)
@@ -199,7 +200,7 @@ def test_ingest_watch_directory_once_skips_when_another_scan_is_active(tmp_path,
     lock = ingest.FileLock(lock_path)
 
     monkeypatch.setattr(ingest, "WATCH_INGEST_LOCK_PATH", lock_path)
-    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(ingest, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(
         ingest,
         "_run_watch_directory_once",

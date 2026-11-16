@@ -56,6 +56,7 @@ COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
 COPY clients/python/ ./clients/python/
+COPY services/ingest/ ./services/ingest/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
 RUN python scripts/release/build_sdk.py --output-dir /wheels
 

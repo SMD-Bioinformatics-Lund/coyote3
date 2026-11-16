@@ -157,7 +157,7 @@ def test_email_transport_failure_is_reported(monkeypatch) -> None:
 
 def test_retention_task_disabled_and_enabled(monkeypatch) -> None:
     """The task gate prevents work and enabled execution serializes the service result."""
-    monkeypatch.setattr(maintenance, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(maintenance, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: False)
     monkeypatch.setattr(maintenance, "disabled_result", lambda family: {"disabled": family})
     assert maintenance.run_retention_maintenance.run() == {"disabled": "maintenance"}
@@ -165,13 +165,13 @@ def test_retention_task_disabled_and_enabled(monkeypatch) -> None:
     service = SimpleNamespace(run_maintenance=lambda: {"removed": 4})
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(services, "get_app_controls_service", lambda: service)
-    monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
+    monkeypatch.setattr(maintenance, "serializable", lambda value: {**value, "serialized": True})
     assert maintenance.run_retention_maintenance.run() == {"removed": 4, "serialized": True}
 
 
 def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
     """The global public-reference refresh uses the maintenance task family."""
-    monkeypatch.setattr(maintenance, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(maintenance, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: False)
     monkeypatch.setattr(maintenance, "disabled_result", lambda family: {"disabled": family})
     assert maintenance.refresh_public_oncokb.run() == {"disabled": "maintenance"}
@@ -179,7 +179,7 @@ def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
     service = SimpleNamespace(refresh=lambda: {"status": "ok", "curated_genes_upserted": 8})
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(services, "get_public_oncokb_refresh_service", lambda: service)
-    monkeypatch.setattr(maintenance, "_serializable", lambda value: {**value, "serialized": True})
+    monkeypatch.setattr(maintenance, "serializable", lambda value: {**value, "serialized": True})
     assert maintenance.refresh_public_oncokb.run() == {
         "status": "ok",
         "curated_genes_upserted": 8,
@@ -189,7 +189,7 @@ def test_public_oncokb_refresh_task_obeys_maintenance_gate(monkeypatch) -> None:
 
 def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch, tmp_path) -> None:
     """Periodic refresh computes each distinct active access scope once."""
-    monkeypatch.setattr(maintenance, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(maintenance, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(maintenance, "task_family_enabled", lambda _family: True)
     monkeypatch.setattr(
         maintenance,
@@ -217,7 +217,7 @@ def test_dashboard_refresh_task_deduplicates_equivalent_user_scopes(monkeypatch,
         "api_user_from_user_doc",
         lambda doc: SimpleNamespace(username=doc["username"]),
     )
-    monkeypatch.setattr(maintenance, "_serializable", lambda value: value)
+    monkeypatch.setattr(maintenance, "serializable", lambda value: value)
 
     result = maintenance.refresh_dashboard_metrics.run(metrics=["samples", "findings"])
 

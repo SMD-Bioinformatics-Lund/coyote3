@@ -4,8 +4,8 @@
 
 """Submit an analysis-server manifest and apply only a saved terminal API acknowledgement.
 
-Requires Python 3.10+ and curl, plus SSH/SCP for remote inputs. No application
-imports or database access are used.
+Requires curl, plus SSH/SCP for remote inputs. No API host imports or database
+access are used.
 """
 
 from __future__ import annotations
@@ -665,7 +665,22 @@ def submit(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Parse the standalone client arguments and report unconfirmed outcomes as exit 2."""
+    """Submit a manifest and finalize it only after a terminal acknowledgement.
+
+    Args:
+        argv: Arguments excluding the executable name; None reads process arguments.
+
+    Returns:
+        Zero for success or an accepted background job, one for acknowledged ingest
+        failure, or two when the outcome is unconfirmed or local processing fails.
+
+    Raises:
+        SystemExit: Arguments are invalid or help is requested.
+
+    Notes:
+        Submission contacts the configured API. Remote mode fetches inputs and applies
+        acknowledged filename changes through the explicitly selected SSH host.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("yaml", help="Manifest path, on --remote-host when supplied")
     parser.add_argument(

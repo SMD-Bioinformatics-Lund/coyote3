@@ -1,12 +1,13 @@
 # Editable development with uv
 
-The repository is one uv workspace with three independently buildable distributions:
+The repository is one uv workspace with four independently buildable distributions:
 
 | Project | Distribution | Import | Version owner |
 | --- | --- | --- | --- |
 | `core` | `coyote-core` | `coyote` | `core/pyproject.toml` |
 | Repository root | `coyote-server` | `coyote_api`, `coyote_mongo` | Root `pyproject.toml` |
 | `clients/python` | `coyote-pyclient` | `coyote_pyclient` | Its `pyproject.toml` |
+| `services/ingest` | `coyote-ingest` | `coyote_ingest` | Its `pyproject.toml` |
 
 Workspace dependencies come from this checkout, not a public package index.
 uv installs workspace members editable. One lockfile resolves their dependencies
@@ -45,6 +46,15 @@ the process. Do not rebuild wheels for ordinary Python edits. Restart workers
 after changing imported code; Celery does not inherit Uvicorn's reload behavior.
 Run `uv sync` again after changing dependencies, versions or entry points.
 
+Start an ingestion worker with the same reviewed host configuration:
+
+```bash
+uv run --package coyote-ingest --extra worker coyote-ingest-worker --loglevel INFO
+```
+
+Restart this process after editing `services/ingest/src` or its core dependencies.
+Submission commands use the base package and do not need database credentials.
+
 Frontend development remains separate:
 
 ```bash
@@ -58,6 +68,7 @@ scripts/quality/run_package_tests.sh core
 scripts/quality/run_package_tests.sh mongo
 scripts/quality/run_package_tests.sh api
 scripts/quality/run_package_tests.sh client
+scripts/quality/run_package_tests.sh ingest
 scripts/quality/run_package_tests.sh all --smoke
 scripts/quality/run_package_tests.sh all --coverage
 uv run --package coyote-server pytest tests
@@ -78,8 +89,9 @@ application tests through root `pytest.ini`.
 uv run python scripts/release/build_sdk.py --output-dir .release/sdk
 ```
 
-The build produces core, combined server and independent Python client wheels.
-The client supplies the image's administrative HTTP tools. Deployment installs
+The build produces core, combined server, Python client and ingestion service wheels.
+The client supplies the image's administrative HTTP tools; the ingestion package
+supplies the worker and pipeline submission commands. Deployment installs
 these normally, without editable paths. The release workflow records
 their versions and SHA-256 digests together and verifies them before installation.
 No PyPI publication or PostgreSQL adapter is introduced.
@@ -90,6 +102,7 @@ To build one package directly:
 uv build --package coyote-core
 uv build --package coyote-server
 uv build --package coyote-pyclient
+uv build --package coyote-ingest
 ```
 
 See [uv workspace behavior](https://docs.astral.sh/uv/concepts/projects/workspaces/)

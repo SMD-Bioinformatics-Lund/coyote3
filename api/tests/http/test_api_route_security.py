@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import re
 from importlib.resources import files
 from pathlib import Path
+
+from coyote.config.governance_catalog import load_governance_catalog
 
 ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\("([^"]+)"')
 DEF_RE = re.compile(r"^\s*def\s+")
@@ -63,32 +64,21 @@ def test_declared_route_permissions_exist_in_seed_catalog():
     for route_file in Path(str(files("coyote_api").joinpath("interfaces/http"))).rglob("*.py"):
         declared.update(permission_pattern.findall(route_file.read_text(encoding="utf-8")))
 
-    with Path(
-        str(files("coyote_api").joinpath("bootstrap/catalogs/rbac/permissions.seed.ndjson"))
-    ).open("rt", encoding="utf-8") as handle:
-        catalog = {
-            str(json.loads(line)["permission_id"]).strip().lower()
-            for line in handle
-            if line.strip()
-        }
+    catalog = {
+        str(document["permission_id"]).strip().lower()
+        for document in load_governance_catalog("permissions")
+    }
 
     assert declared <= catalog, f"Route permissions missing from seed catalog: {declared - catalog}"
 
 
 def test_seeded_role_grants_reference_known_permissions():
     """Built-in roles must not contain grants absent from the permission catalog."""
-    with Path(
-        str(files("coyote_api").joinpath("bootstrap/catalogs/rbac/permissions.seed.ndjson"))
-    ).open("rt", encoding="utf-8") as handle:
-        catalog = {
-            str(json.loads(line)["permission_id"]).strip().lower()
-            for line in handle
-            if line.strip()
-        }
-    with Path(str(files("coyote_api").joinpath("bootstrap/catalogs/rbac/roles.seed.ndjson"))).open(
-        "rt", encoding="utf-8"
-    ) as handle:
-        role_docs = [json.loads(line) for line in handle if line.strip()]
+    catalog = {
+        str(document["permission_id"]).strip().lower()
+        for document in load_governance_catalog("permissions")
+    }
+    role_docs = load_governance_catalog("roles")
 
     unknown = {
         permission

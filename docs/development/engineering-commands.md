@@ -11,11 +11,12 @@ active.
 
 | Check | Command |
 | --- | --- |
-| Python lint | `PYTHONPATH=. ruff check core api adapters clients tests scripts` |
-| Python formatting | `ruff format --check core api adapters clients tests scripts` |
+| Python lint | `PYTHONPATH=. ruff check core api adapters clients services tests scripts` |
+| Python formatting | `ruff format --check core api adapters clients services tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
 | Independent Python client tests | `.venv/bin/python -m pytest -q clients/python/tests` |
+| Ingestion service tests | `scripts/quality/run_package_tests.sh ingest` |
 | Frontend lint | `npm --prefix frontend run lint` |
 | Frontend unit tests | `npm --prefix frontend run test:unit` |
 | Frontend build | `npm --prefix frontend run build` |

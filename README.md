@@ -68,9 +68,10 @@ The packaging rationale is recorded in
 | Directory | Contents |
 | --- | --- |
 | `core/` | Independent clinical core; importable code in `src/coyote/` |
-| `api/` | FastAPI host, background tasks and installation catalogs; code in `src/coyote_api/` |
+| `api/` | FastAPI host, maintenance tasks and reference installation; code in `src/coyote_api/` |
 | `adapters/mongo/` | MongoDB adapter component; code in `src/coyote_mongo/`, distributed with the API |
 | `clients/python/` | Independent HTTP client |
+| `services/ingest/` | Installable ingestion workers and pipeline submission commands; workflows live in core |
 | `frontend/` | React interface and frontend tests |
 | `deploy/` | Compose definitions, environment examples and deployment configuration |
 | `docker/` | Container build definitions and frontend proxy templates |

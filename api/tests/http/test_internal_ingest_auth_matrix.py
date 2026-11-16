@@ -16,10 +16,10 @@ from coyote.application.ingest.service import InternalIngestService
 from coyote.application.ingest.upload_bundle import prepare_uploaded_bundle
 from coyote.domain.exceptions import AppError
 from coyote_api.app.deps import repositories as host_repositories
+from coyote_api.celery_app import celery_app
 from coyote_api.interfaces.http.v1.operations import internal as internal_router
 from coyote_api.security import access
 from coyote_api.security.access import ApiUser
-from coyote_api.tasks import ingest as ingest_tasks
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
 from fastapi import HTTPException, UploadFile
 from starlette.requests import Request
@@ -400,14 +400,13 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
     """Async collection ingest enqueues the Celery task after route-level permission checks."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue, task_id):
+    def _fake_send_task(name, *, kwargs, queue, task_id):
+        captured["name"] = name
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-123")
 
-    monkeypatch.setattr(
-        ingest_tasks.insert_collection_document_task, "apply_async", _fake_apply_async
-    )
+    monkeypatch.setattr(celery_app, "send_task", _fake_send_task)
     payload = internal_router.InternalCollectionInsertRequest(
         collection="users",
         document={"username": "new.user", "email": "new.user@example.org"},
@@ -426,10 +425,11 @@ def test_internal_ingest_async_collection_enqueues_after_permission_check(monkey
     assert response == {
         "status": "accepted",
         "task_id": captured["kwargs"]["job_id"],
-        "task_name": "coyote_api.tasks.ingest.insert_collection_document",
+        "task_name": "coyote_ingest.tasks.insert_collection_document",
         "queue": "ingest",
     }
     assert captured["queue"] == "ingest"
+    assert captured["name"] == "coyote_ingest.tasks.insert_collection_document"
     assert ingest_jobs.get(response["task_id"])["source_payload"] == {
         "collection": "users",
         "document": {"username": "new.user", "email": "new.user@example.org"},
@@ -441,12 +441,13 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch, 
     """Async sample-bundle ingest parses YAML on the API side and enqueues worker execution."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue, task_id):
+    def _fake_send_task(name, *, kwargs, queue, task_id):
+        captured["name"] = name
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-sample")
 
-    monkeypatch.setattr(ingest_tasks.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(celery_app, "send_task", _fake_send_task)
     payload = internal_router.InternalIngestSampleBundleRequest(
         yaml_content="name: SAMPLE_1\nassay: assay_1\n",
         update_existing=True,
@@ -470,6 +471,7 @@ def test_internal_ingest_async_sample_bundle_enqueues_yaml_payload(monkeypatch, 
     assert response["status"] == "accepted"
     assert response["task_id"] == captured["kwargs"]["job_id"]
     assert captured["queue"] == "ingest"
+    assert captured["name"] == "coyote_ingest.tasks.ingest_sample_bundle"
     job = ingest_jobs.get(response["task_id"])
     assert job["source_payload"] == {
         "name": "SAMPLE_1",
@@ -486,13 +488,14 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
     """Async upload ingest stages uploaded files durably before enqueueing."""
     captured: dict[str, object] = {}
 
-    def _fake_apply_async(*, kwargs, queue, task_id):
+    def _fake_send_task(name, *, kwargs, queue, task_id):
+        captured["name"] = name
         captured["kwargs"] = kwargs
         captured["queue"] = queue
         return SimpleNamespace(id="task-upload")
 
     monkeypatch.setattr(internal_router, "INGEST_STAGING_DIR", tmp_path)
-    monkeypatch.setattr(ingest_tasks.ingest_sample_bundle_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(celery_app, "send_task", _fake_send_task)
     yaml_upload = _Upload(
         filename="sample.yaml",
         content=b"name: SAMPLE_1\nassay: assay_1\nvcf_files: case.vcf\n",
@@ -523,6 +526,7 @@ def test_internal_ingest_async_sample_bundle_upload_stages_files(
 
     assert response["status"] == "accepted"
     assert response["task_id"] == captured["kwargs"]["job_id"]
+    assert captured["name"] == "coyote_ingest.tasks.ingest_sample_bundle"
     kwargs = ingest_jobs.get(response["task_id"])
     assert kwargs["staging_dir"].startswith(str(tmp_path))
     staged_vcf = kwargs["source_payload"]["_runtime_files"]["vcf_files"]

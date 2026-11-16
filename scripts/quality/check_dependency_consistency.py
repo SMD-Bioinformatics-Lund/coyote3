@@ -90,14 +90,15 @@ def _check(label: str, expected: set[str], actual: set[str]) -> list[str]:
 def main() -> int:
     """Compare all requirements exports with their pyproject source groups."""
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    project = tomllib.loads((ROOT / "core/pyproject.toml").read_text())["project"]
     optional = config["dependency-groups"]
-    runtime = list(project["dependencies"])
-    runtime.extend(
-        dependency
-        for dependency in config["project"]["dependencies"]
-        if not dependency.startswith("coyote-core==")
-    )
+    runtime = []
+    local_names = {"coyote-core", "coyote-server", "coyote-pyclient", "coyote-ingest"}
+    for relative in (".", "core", "clients/python", "services/ingest"):
+        project = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
+        for dependency in project["dependencies"]:
+            name = re.split(r"[\[<>=!~; ]", _normalize(dependency), maxsplit=1)[0]
+            if name not in local_names:
+                runtime.append(dependency)
 
     errors = _check(
         "requirements.txt",

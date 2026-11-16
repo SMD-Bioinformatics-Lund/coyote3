@@ -168,7 +168,7 @@ def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch
                 worker: [
                     {
                         "id": "ingest-1",
-                        "name": "coyote_api.tasks.ingest.ingest_watch_directory_once",
+                        "name": "coyote_ingest.tasks.ingest_watch_directory_once",
                         "delivery_info": {"routing_key": "ingest"},
                     }
                 ]
@@ -188,7 +188,7 @@ def test_runtime_status_observes_active_tasks_before_worker_metadata(monkeypatch
 
         def registered(self):
             calls.append("registered")
-            return {worker: ["coyote_api.tasks.ingest.ingest_watch_directory_once"]}
+            return {worker: ["coyote_ingest.tasks.ingest_watch_directory_once"]}
 
         def active_queues(self):
             calls.append("active_queues")

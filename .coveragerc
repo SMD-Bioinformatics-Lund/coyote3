@@ -4,6 +4,7 @@ source =
     coyote_api
     coyote
     coyote_mongo
+    coyote_ingest
 omit =
     */tests/*
     */__pycache__/*

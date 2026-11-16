@@ -178,12 +178,16 @@ services:
       - ${COYOTE4_DATA_HOST_ROOT:?COYOTE4_DATA_HOST_ROOT is required}:/data
       - ../../.git:/app/.git:ro
       - ../../api:/app/api
+      - ../../adapters/mongo:/app/adapters/mongo
+      - ../../core:/app/core
+      - ../../clients/python:/app/clients/python
+      - ../../services/ingest:/app/services/ingest
       - ../../docs:/app/docs
       - ../../CHANGELOG.md:/app/CHANGELOG.md:ro
       - ../../README.md:/app/README.md:ro
       - ../../LICENSE.txt:/app/LICENSE.txt:ro
       - ../../NOTICE.txt:/app/NOTICE.txt:ro
-    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api
+    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api/src --reload-dir /app/adapters/mongo/src --reload-dir /app/core/src
     healthcheck:
       test:
         - CMD-SHELL
@@ -204,7 +208,20 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: worker
     volumes: *dev-app-volumes
-    command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest,default --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker coyote-ingest-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    depends_on:
+      redis:
+        condition: service_healthy
+  maintenance-worker:
+    cpus: ${COYOTE4_MAINTENANCE_CPU_LIMIT:-1.0}
+    mem_limit: ${COYOTE4_MAINTENANCE_MEM_LIMIT:-1g}
+    image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run scripts/deployment/compose-with-version.sh to select the environment image tag}
+    <<: *runtime-defaults
+    environment:
+      <<: *app-environment
+      LOG_SERVICE_NAME: worker
+    volumes: *dev-app-volumes
+    command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
     depends_on:
       redis:
         condition: service_healthy

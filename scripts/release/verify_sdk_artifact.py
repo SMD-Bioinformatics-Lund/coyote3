@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Verify retained core, server and administrative client wheels before image installation."""
+"""Verify retained core, server, client and ingestion wheels before image installation."""
 
 import argparse
 import hashlib
@@ -22,7 +22,7 @@ def verify_sdk_artifact(
     """Require every deployment package to match its tested release record.
 
     Args:
-        directory: Retained core, server and client wheels plus release-record.json.
+        directory: Retained core, server, client and ingestion wheels plus release-record.json.
         release_path: Application release selection copied into the image.
         production: Require a clean production record and matching source commit.
         source_commit: Image source commit; mandatory for production builds.
@@ -41,6 +41,7 @@ def verify_sdk_artifact(
         "sdk_version",
         "server_version",
         "client_version",
+        "ingest_version",
         "http_api_major",
         "center_configuration_format",
     ):
@@ -50,10 +51,13 @@ def verify_sdk_artifact(
         "coyote-core": release["sdk_version"],
         "coyote-server": release["server_version"],
         "coyote-pyclient": release["client_version"],
+        "coyote-ingest": release["ingest_version"],
     }
     artifacts = record.get("artifacts") or {}
     if set(artifacts) != set(selected):
-        raise ValueError("Release record must identify exactly the core, server and client wheels")
+        raise ValueError(
+            "Release record must identify exactly the core, server, client and ingestion wheels"
+        )
     filenames = []
     for distribution, expected in selected.items():
         artifact = artifacts[distribution]
@@ -126,7 +130,7 @@ def verify_compose_artifacts(config_path: Path, release_path: Path) -> None:
         except (OSError, ValueError, zipfile.BadZipFile) as error:
             raise ValueError(
                 f"SDK artifact preflight failed for {name} at {artifact_path}: {error}. "
-                "Stage the three tested release wheels and release-record.json in this directory, "
+                "Stage the four tested release wheels and release-record.json in this directory, "
                 "or set COYOTE4_SDK_ARTIFACT_DIR to their absolute directory. "
                 "Use the matching source checkout and GIT_COMMIT. "
                 "See docs/sdk/compatibility.md#build-and-record-an-application-release. "

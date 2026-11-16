@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Publish allowlisted ingestion jobs to the separately installable `coyote-ingest`
+  workers; retain server composition, maintenance tasks and beat scheduling.
 - Apply authentication, CSRF, rate limits and documentation security headers to
   mounted API paths as well as paths already stripped by a reverse proxy.
 - Fail startup consistently when runtime initialization fails, including under
@@ -17,7 +19,7 @@
   unrelated deployment credentials into those packages.
 - Clarify environment loading, center-file ownership and packaged demo-data paths;
   correct configuration documentation after the source layout change.
-- Distribute the API, workers and MongoDB adapter together as `coyote-server`,
+- Distribute the API, maintenance workers and MongoDB adapter as `coyote-server`,
   retaining separate component source folders, tests, coverage and documentation.
 - Depend on the independently versioned core wheel.
 - Include API assets, center examples and synthetic installation workflows.

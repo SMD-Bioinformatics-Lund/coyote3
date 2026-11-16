@@ -164,6 +164,7 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "api/**/*.py" = ["TID251"]
 "adapters/**/*.py" = ["TID251"]
+"services/ingest/**/*.py" = ["TID251"]
 "core/src/coyote/**/*.py" = ["TID251"]
 "core/tests/**/*.py" = ["TID251"]
 "scripts/**/*.py" = ["TID251"]
@@ -242,8 +243,10 @@ module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pyte
 follow_imports = "normal"
 
 [tool.uv.workspace]
-members = ["core", "clients/python"]
+members = ["core", "clients/python", "services/ingest"]
 
 [tool.uv.sources]
 coyote-core = { workspace = true }
 coyote-pyclient = { workspace = true }
+coyote-server = { workspace = true }
+coyote-ingest = { workspace = true }

@@ -4,8 +4,7 @@ import json
 
 import httpx
 import pytest
-
-from scripts.ingest.api_login import main
+from coyote_ingest.login import main
 
 
 @pytest.mark.parametrize("print_token", [False, True])

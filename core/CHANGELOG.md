@@ -2,6 +2,8 @@
 
 ## 4.0.0
 
+- Own durable ingestion job execution and manifest acknowledgement through
+  explicit host ports, preserving fenced claims, transaction completion and retry recovery.
 - Own the shared permission catalog and built-in role templates, with explicit
   server installation and no database access when loading packaged definitions.
 - Package VEP consequence grouping and label policy independently of server-owned

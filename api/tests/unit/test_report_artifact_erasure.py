@@ -1,6 +1,5 @@
 """Report erasure stays within managed storage and survives interrupted cleanup."""
 
-import json
 from types import SimpleNamespace
 
 import mongomock
@@ -220,10 +219,9 @@ def test_replaced_parent_symlink_cannot_erase_external_file(reports, tmp_path):
 @pytest.mark.parametrize("role", ["admin", "superuser", "viewer", "sysadmin"])
 def test_sample_deletion_dependency_enforces_seeded_role_permissions(monkeypatch, role):
     """Exercise the actual deletion route dependency with the configured role catalog."""
-    from importlib.resources import files
+    from coyote.config.governance_catalog import load_governance_catalog
 
-    path = files("coyote_api.bootstrap").joinpath("catalogs/rbac/roles.seed.ndjson")
-    roles = [json.loads(line) for line in path.read_text().splitlines() if line]
+    roles = load_governance_catalog("roles")
     assert {row["role_id"] for row in roles if "sample:delete:global" in row["permissions"]} == {
         "admin",
         "superuser",

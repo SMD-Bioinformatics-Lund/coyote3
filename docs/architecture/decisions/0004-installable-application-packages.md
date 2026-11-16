@@ -16,15 +16,16 @@ API and MongoDB adapter are delivered together as the application's server.
 
 ## Decision
 
-Maintain three installable Python distributions in one uv workspace: the core
-library, the server application and the HTTP client. The root project builds the
-server; `core/` and `clients/python/` remain independent workspace projects.
+Maintain four installable Python distributions in one uv workspace: the core
+library, server application, ingestion service and HTTP client. The root project builds
+the server; `core/`, `services/ingest/` and `clients/python/` are workspace projects.
 
 | Distribution and source | Responsibility | Local dependencies |
 | --- | --- | --- |
 | `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
-| `coyote-server`, at the root | API and worker host in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
+| `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
 | `coyote-pyclient`, in `clients/python/` | Remote HTTP access and client-owned response models | None |
+| `coyote-ingest`, in `services/ingest/` | Pipeline submission tools and ingestion workers | Core and client; worker extra uses server composition |
 
 The root `pyproject.toml` owns the server version, dependencies and wheel build.
 API and MongoDB code retain their `src/` namespaces, documentation, changelogs and
@@ -39,6 +40,11 @@ interfaces, and neither core nor adapter imports the API. The server is not a se
 clinical SDK. API and worker entry points consume installed code and resources,
 including templates, logos, configuration defaults and installation catalogs.
 
+Ingestion parsing and clinical workflows belong to core. The ingestion service
+owns worker entry points and submission transports; the server publishes named
+tasks without importing the service. Worker installation includes server composition
+and MongoDB integration, while submission-only installation requires no server.
+
 The independent client communicates through HTTP and imports no server or core code.
 The deployment image includes its verified wheel for administration commands such
 as `manage_data.py`; the API runtime does not depend on or import the client.
@@ -52,7 +58,7 @@ as `manage_data.py`; the API runtime does not depend on or import the client.
 - **Testable artifacts:** wheel-isolation tests run outside the checkout and
   detect missing resources or accidental imports from local source directories.
 - **Deployment traceability:** release records retain the selected versions and
-  SHA-256 hashes of the core, server and administration-client wheels.
+  SHA-256 hashes of the core, server, ingestion and administration-client wheels.
 - **Fast local iteration:** editable workspace installs expose Python edits after
   process reload. Ordinary edits do not require wheel rebuilds.
 - **Coordinated changes:** one repository retains shared integration tests,

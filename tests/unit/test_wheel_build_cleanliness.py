@@ -18,6 +18,7 @@ def stage_project(tmp_path, distribution):
         "client": ROOT / "clients/python",
         "core": ROOT / "core",
         "server": ROOT,
+        "ingest": ROOT / "services/ingest",
     }[distribution]
     project = tmp_path / "project"
     project.mkdir()
@@ -32,6 +33,7 @@ def stage_project(tmp_path, distribution):
         "CHANGELOG.md",
         "MANIFEST.in",
         "client_build.py",
+        "ingest_build.py",
         "build_support.py",
         "package_build.py",
     ):
@@ -83,9 +85,9 @@ def build_wheel(project, output):
         return set(wheel.namelist())
 
 
-@pytest.mark.parametrize("distribution", ["client", "core", "server"])
+@pytest.mark.parametrize("distribution", ["client", "core", "server", "ingest"])
 def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
-    """All three distributions discard files removed since a previous wheel build."""
+    """All distributions discard files removed since a previous wheel build."""
     project = stage_project(tmp_path, distribution)
     deleted = {
         "client": [
@@ -101,6 +103,7 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
             "coyote/templates/reporting/assets/modern.css",
         ],
         "server": ["coyote_api/removed_module.py", "coyote_mongo/removed_module.py"],
+        "ingest": ["coyote_ingest/removed_module.py", "coyote_api/tasks/ingest.py"],
     }[distribution]
     for name in deleted:
         stale = project / "build/lib" / name
@@ -115,10 +118,17 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         assert not any(name.startswith(("api/", "coyote_api/", "coyote_mongo/")) for name in names)
         assert "coyote/application/reporting/smd_input.py" in names
         assert not any(name.startswith("coyote/templates/reporting/") for name in names)
-    else:
+    elif distribution == "server":
         assert "coyote_api/app/main.py" in names
         assert "coyote_mongo/selection.py" in names
         assert not any(name.startswith(("coyote/", "coyote_pyclient/")) for name in names)
+    else:
+        assert "coyote_ingest/worker.py" in names
+        assert "coyote_ingest/py.typed" in names
+        assert not any(
+            name.startswith(("coyote/", "coyote_pyclient/", "coyote_api/", "coyote_mongo/"))
+            for name in names
+        )
 
 
 def test_server_source_distribution_rebuilds_both_components_without_checkout(tmp_path):

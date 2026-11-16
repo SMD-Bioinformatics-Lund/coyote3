@@ -15,13 +15,15 @@ def artifact(tmp_path):
     release = tmp_path / "release.toml"
     release.write_text(
         'application_version="4.0.0"\nsdk_version="4.0.0"\nserver_version="1.0.0"\n'
-        'client_version="1.0.0"\nhttp_api_major=1\ncenter_configuration_format=1\n'
+        'client_version="1.0.0"\ningest_version="1.0.0"\n'
+        "http_api_major=1\ncenter_configuration_format=1\n"
     )
     artifacts = {}
     for package, version in (
         ("coyote-core", "4.0.0"),
         ("coyote-server", "1.0.0"),
         ("coyote-pyclient", "1.0.0"),
+        ("coyote-ingest", "1.0.0"),
     ):
         wheel = tmp_path / f"{package.replace('-', '_')}-{version}-py3-none-any.whl"
         with zipfile.ZipFile(wheel, "w") as archive:
@@ -40,6 +42,7 @@ def artifact(tmp_path):
         "sdk_version": "4.0.0",
         "server_version": "1.0.0",
         "client_version": "1.0.0",
+        "ingest_version": "1.0.0",
         "http_api_major": 1,
         "center_configuration_format": 1,
         "source_commit": "a" * 40,
@@ -66,16 +69,17 @@ def test_image_rejects_modified_wheel(artifact):
 
 
 @pytest.mark.parametrize("failure", ["missing", "modified"])
-def test_administrative_client_is_part_of_verified_deployment_artifacts(artifact, failure):
+@pytest.mark.parametrize("package", ["coyote-pyclient", "coyote-ingest"])
+def test_independent_services_are_part_of_verified_deployment_artifacts(artifact, failure, package):
     directory, release, _, record = artifact
-    client = record["artifacts"]["coyote-pyclient"]
+    client = record["artifacts"][package]
     if failure == "missing":
-        del record["artifacts"]["coyote-pyclient"]
+        del record["artifacts"][package]
         (directory / "release-record.json").write_text(json.dumps(record))
     else:
         wheel = directory / client["filename"]
         wheel.write_bytes(wheel.read_bytes() + b"modified")
-    with pytest.raises(ValueError, match="exactly the core, server and client|checksum"):
+    with pytest.raises(ValueError, match="exactly the core, server, client and ingestion|checksum"):
         verify_sdk_artifact(directory, release, production=True, source_commit="a" * 40)
 
 
@@ -88,6 +92,7 @@ def test_administrative_client_is_part_of_verified_deployment_artifacts(artifact
         ("sdk_version", "2.0.0"),
         ("server_version", "2.0.0"),
         ("client_version", "2.0.0"),
+        ("ingest_version", "2.0.0"),
         ("http_api_major", 2),
     ],
 )

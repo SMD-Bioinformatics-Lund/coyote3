@@ -49,9 +49,10 @@ and [writing documentation](development/writing-documentation.md) for contributi
 ## Package guides
 
 - [Clinical core](../core/docs/README.md): trusted in-process clinical operations.
-- [API and workers](../api/docs/README.md): HTTP handling and host composition.
+- [API and maintenance](../api/docs/README.md): HTTP handling and host composition.
 - [MongoDB adapter](../adapters/mongo/docs/README.md): persistence and transactions.
 - [Python HTTP client](../clients/python/docs/README.md): remote integration.
+- [Ingestion service](../services/ingest/docs/README.md): submission tools and workers.
 - [Frontend](../frontend/docs/README.md): browser application development.
 
 The [packaging decision](architecture/decisions/0004-installable-application-packages.md)

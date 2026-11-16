@@ -98,6 +98,6 @@ if [[ -n "$SEED_FILE" ]]; then
   [[ -z "$YAML_FILE" ]] || seed_command+=(--yaml "$YAML_FILE")
   "${seed_command[@]}"
 elif [[ -n "$YAML_FILE" ]]; then
-  "$PYTHON_BIN" scripts/ingest/validate_ingest_spec.py --yaml "$YAML_FILE"
+  "$PYTHON_BIN" -m coyote_ingest.validate --yaml "$YAML_FILE"
 fi
 echo "[ok] preflight passed (no database or service connectivity check)"

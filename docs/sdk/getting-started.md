@@ -19,8 +19,8 @@ For application development use the [uv workspace](uv-development.md):
 uv sync --all-packages --group test --group dev --group docs
 ```
 
-Core, MongoDB adapter, API and HTTP client have separate wheels. Deployment
-builds and installs the three server-side packages; no public-index publication
+Deployment builds four wheels: core, server, HTTP client and ingestion service.
+The API and MongoDB adapter share the server wheel. No public-index publication
 is required. See [server installation](server-installation.md).
 
 After configuring the deployment environment and databases, run

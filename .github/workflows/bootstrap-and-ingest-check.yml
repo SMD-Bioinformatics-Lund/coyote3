@@ -50,7 +50,8 @@ jobs:
           PYTHONPATH=. python -m pytest -q api/tests/unit/test_application_sdk.py \
             core/tests/unit/test_application_sdk.py tests/unit/test_python_sdk_contracts.py \
             core/tests/unit/test_configuration_resource_receipts.py \
-            adapters/mongo/tests/integration/test_configuration_resource_receipts.py
+            adapters/mongo/tests/integration/test_configuration_resource_receipts.py \
+            services/ingest/tests/smoke
           python scripts/release/check_release.py --production \
             --wheel-dir .release/sdk --output .release/sdk/release-record.json
 

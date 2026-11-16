@@ -10,16 +10,19 @@ combination; package installation and public-index publication are separate task
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
 | HTTP client version | `clients/python/pyproject.toml` |
-| Application selection | `release.toml`: application, core, server and administrative client versions |
+| Ingestion service version | `services/ingest/pyproject.toml` |
+| Application selection | `release.toml`: application, core, server, ingestion and administrative client versions |
 | HTTP generation | Declared `/api/vN` routes, checked against `http_api_major` |
 | Center configuration format | Core loader, checked against `center_configuration_format` |
 | Report templates | Installed `smd-reports` version |
 
 `sdk_version` selects the core; `server_version` selects the API and adapter together;
-`client_version` selects the Python client used by administrative tools.
+`client_version` selects the Python client used by administrative tools;
+`ingest_version` selects the ingestion service and submission commands.
 Each distribution version is independent of `application_version`.
 Declared package dependencies must agree with the selected combination. The initial
-Coyote4 application selects core `4.0.0`, server `1.0.0` and HTTP client `1.0.0`.
+Coyote4 application selects core `4.0.0`, server `1.0.0`, ingestion service `1.0.0`
+and HTTP client `1.0.0`.
 
 `npm run sync:version` updates frontend metadata and generates the API's packaged
 `config/application_release.toml` from the application selection. It supplies the
@@ -63,13 +66,13 @@ versions. Clinical changes retain their established review and validation needs.
    export GIT_COMMIT="$(git rev-parse HEAD)"
    ```
 
-4. Retain the core, server and Python client wheels and the record together. Production records require a
+4. Retain the core, server, ingestion and Python client wheels and the record together. Production records require a
    clean checkout. Verification rejects missing, modified, extra or wrongly
    versioned wheels and mismatched source commits.
 5. Retain image digests and the reviewed center configuration alongside the record.
    Publishing to PyPI is not part of this workflow.
 
-Use an output directory containing only the selected three deployment wheels.
+Use an output directory containing only the selected four deployment wheels.
 Core-only validation can use `check_release.py --sdk-only`; it does not approve
 a complete application release.
 

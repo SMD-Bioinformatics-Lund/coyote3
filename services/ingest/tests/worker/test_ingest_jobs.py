@@ -6,10 +6,10 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
-from api_test_support.mongo_settings import mongo_runtime
 from coyote.application.ingest.jobs import job_status_payload, submit_ingest_job
-from coyote_api.tasks import ingest
+from coyote_ingest import tasks as ingest
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
+from ingest_test_support.mongo_settings import mongo_runtime
 from pymongo.errors import AutoReconnect
 
 
@@ -21,7 +21,7 @@ def jobs(monkeypatch):
         )
     )
     monkeypatch.setattr(ingest, "get_ingest_jobs_repository", lambda: repository)
-    monkeypatch.setattr(ingest, "_ensure_worker_runtime", lambda: None)
+    monkeypatch.setattr(ingest, "ensure_worker_runtime", lambda: None)
     monkeypatch.setattr(ingest, "task_family_enabled", lambda family: True)
     monkeypatch.setattr(ingest, "_record_ingest_audit", lambda *args, **kwargs: None)
     monkeypatch.setattr(ingest, "get_notification_service", lambda: Mock())

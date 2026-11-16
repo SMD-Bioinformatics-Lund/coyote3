@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import inspect
-import json
 from collections.abc import Callable, Generator
-from importlib.resources import files
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from coyote.config.governance_catalog import load_governance_catalog
 from coyote_api.app.main import app
 from coyote_api.security import access
 from coyote_api.security.access import ApiUser
@@ -19,24 +17,16 @@ from fastapi import HTTPException
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from starlette.requests import Request
 
-_RBAC_ROOT = Path(str(files("coyote_api").joinpath("bootstrap/catalogs/rbac")))
-
-
-def _seed_documents(name: str) -> list[dict[str, Any]]:
-    """Load one shipped RBAC catalog without requiring a database."""
-    path = _RBAC_ROOT / name
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
-
 
 def _catalog() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     permissions = {
         str(item["permission_id"]): item
-        for item in _seed_documents("permissions.seed.ndjson")
+        for item in load_governance_catalog("permissions")
         if item.get("is_active", True)
     }
     roles = {
         str(item["role_id"]): item
-        for item in _seed_documents("roles.seed.ndjson")
+        for item in load_governance_catalog("roles")
         if item.get("is_active", True)
     }
     return permissions, roles

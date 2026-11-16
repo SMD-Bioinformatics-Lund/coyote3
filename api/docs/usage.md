@@ -9,9 +9,10 @@ repositories, integration clients and worker capabilities. Clinical finding
 selection and rule evaluation remain in the core; persistence remains in the
 MongoDB adapter.
 
-Celery processes use `coyote_api.celery_app`. API and workers must use the same
-tested core/server combination and compatible configuration. Uvicorn reload does
-not restart separate workers.
+Maintenance workers and beat use `coyote_api.celery_app`. Ingestion workers use
+`coyote_ingest.celery_app` from the separately installed ingestion service. API and
+workers must use the tested core/server/ingestion combination and compatible
+configuration. Uvicorn reload does not restart separate workers.
 
 Report endpoints prepare JSON through core operations and render it with
 `smd-reports`. Previewing and downloading are distinct from finalizing a report.

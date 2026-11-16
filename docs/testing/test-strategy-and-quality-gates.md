@@ -14,6 +14,7 @@ The test suite is grouped by runtime boundary:
 - **MongoDB adapter (`adapters/mongo/tests`)**: query compilation, repository behavior and core-port integration.
 - **REST interface (`api/tests`)**: HTTP contracts, host composition, workers and permissions.
 - **HTTP client (`clients/python/tests`)**: transport, authentication, typed resources and failures.
+- **Ingestion (`services/ingest/tests`)**: submission tools and worker composition.
 - **Repository tooling (`tests/unit`)**: deployment definitions, maintenance tools, documentation and releases.
 - **Integration Layer (`tests/integration`)**: cross-component contracts, architecture boundaries, and recovery behavior.
 - **Frontend (`frontend`)**: TypeScript build, linting, Vitest unit coverage,
@@ -21,7 +22,7 @@ The test suite is grouped by runtime boundary:
 
 ### Python suite ownership
 
-API tests are grouped by the behavior they protect:
+Python tests are grouped by the behavior they protect:
 
 | Location | Scope |
 | --- | --- |
@@ -29,6 +30,7 @@ API tests are grouped by the behavior they protect:
 | `api/tests/unit`, `api/tests/http` | Host configuration, workers, authentication, HTTP validation and permission matrices. |
 | `adapters/mongo/tests/unit`, `adapters/mongo/tests/integration` | Repository behavior, query compilation and adapter/core integration without an external server. |
 | `clients/python/tests` | Independent synchronous and asynchronous HTTP client behavior. |
+| `services/ingest/tests/unit`, `services/ingest/tests/worker` | Submission receipts, CLI validation and server-backed worker composition. |
 | `tests/unit` | Repository tooling, deployment configuration, documentation and release validation. |
 | `tests/integration` | Installed distributions, application transactions, architecture boundaries and frontend/API contracts. |
 | Each package's `tests/smoke`, root `tests/smoke` | Fast package checks and in-process application composition. |
@@ -36,11 +38,12 @@ API tests are grouped by the behavior they protect:
 `tests/integration/test_api_architecture_boundaries.py` checks import direction
 and persistence boundaries in HTTP, application, and domain modules.
 
-Root `pytest.ini` discovers all five Python test roots. Package-local pytest
+Root `pytest.ini` discovers all six Python test roots. Package-local pytest
 configuration and fixtures allow each project to run from its own directory.
 Core and adapter unit tests receive `unit`; host tests receive `api`; client
 tests receive `client` and `unit`. Adapter integration tests receive `integration`;
-root integration tests also receive `contract`. Fast checks receive `smoke`.
+root integration tests also receive `contract`. Ingestion worker tests receive
+`integration`; its CLI tests receive `unit`. Fast checks receive `smoke`.
 Use `pytest -m MARKER` to filter an already collected suite.
 Configured-service tests require their documented opt-in environment settings.
 Package helpers must not import root tests or another package's test helpers.
@@ -63,7 +66,8 @@ npm --prefix frontend run test:smoke
 
 Python package smoke checks cover portable variant identity, settings projection,
 the API health entry point, BSON/portable record conversion and authenticated client
-preview transport. Root checks exercise the real client/API health request in
+preview transport and ingestion command parsing.
+Root checks exercise the real client/API health request in
 process, with synthetic session validation, and the host-bound record hashing port.
 Frontend smoke checks exercise confirmation actions, focus, keyboard handling and
 pending states with the actual shared component. Each selected test exists once
@@ -85,7 +89,8 @@ scripts/quality/run_package_tests.sh all --coverage
 
 The runner changes to each package directory and uses its own pytest/coverage
 configuration. Each Python package's `test` extra includes the test and coverage
-tools. For an isolated installation, install `.[test]` from that package, then run
+tools. For an isolated installation, install `.[test]` from that package
+(`.[worker,test]` for the complete ingestion suite), then run
 `python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml` there.
 The uv workspace keeps source editable; test changes do not require wheel builds.
 
@@ -100,6 +105,7 @@ Root integration results do not contribute to these independent package reports.
 | MongoDB adapter | 51% |
 | API host | 75% |
 | HTTP client | 81% |
+| Ingestion service | 75% |
 
 Core and adapter floors record the measured baseline after separating test ownership.
 Their remaining uncovered paths need package-local regression tests as those areas

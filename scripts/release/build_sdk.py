@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Build the core, combined server and HTTP client from isolated source trees."""
+"""Build core, server, HTTP client and ingestion wheels from isolated source trees."""
 
 import argparse
 import shutil
@@ -15,10 +15,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
-    """Build the three deployment distributions without stale generated sources.
+    """Build the four deployment distributions without stale generated sources.
 
     Args:
-        output_directory: Destination for the three built wheels, created if absent.
+        output_directory: Destination for the four built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
 
@@ -28,7 +28,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    for project in (ROOT / "core", ROOT, ROOT / "clients/python"):
+    for project in (ROOT / "core", ROOT, ROOT / "clients/python", ROOT / "services/ingest"):
         with tempfile.TemporaryDirectory(prefix="coyote-package-build-") as temporary:
             staging = Path(temporary)
             for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
@@ -39,6 +39,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
                 "build_support.py",
                 "package_build.py",
                 "client_build.py",
+                "ingest_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
                 "CHANGELOG.md",
@@ -94,7 +95,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
 
 
 def main() -> None:
-    """Build the selected core, server and client distributions for deployment."""
+    """Build the selected core, server, client and ingestion distributions for deployment."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--no-build-isolation", action="store_true")

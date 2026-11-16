@@ -8,20 +8,17 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import yaml
 from pydantic import ValidationError
 
-# Ensure repo root is importable when running as `python scripts/...`.
-REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
-
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse the ingestion YAML path and optional file-check and output modes.
+
+    Args:
+        argv: Arguments excluding the executable name; None reads process arguments.
 
     Returns:
         Process options; file existence checks, normalized JSON, and file listing
@@ -47,11 +44,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print resolved paths for every declared input file",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     """Validate ingestion YAML against the sample contract without submitting it.
+
+    Args:
+        argv: Arguments excluding the executable name; None reads process arguments.
 
     Returns:
         Zero after printing success, optional normalized JSON, or resolved file paths.
@@ -71,7 +71,7 @@ def main() -> int:
     from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
     from coyote.contracts.schemas.samples import SamplesDoc
 
-    args = parse_args()
+    args = parse_args(argv)
     spec_path = Path(args.yaml)
     if not spec_path.exists():
         raise SystemExit(f"YAML file not found: {spec_path}")

@@ -13,7 +13,7 @@ from filelock import FileLock, Timeout
 from coyote_api.app.application_factory import maintenance_executor
 from coyote_api.celery_app import celery_app
 from coyote_api.tasks.controls import disabled_result, task_family_enabled
-from coyote_api.tasks.ingest import _ensure_worker_runtime, _serializable
+from coyote_api.tasks.runtime import ensure_worker_runtime, serializable
 
 logger = get_task_logger(__name__)
 DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote4-dashboard-metrics-refresh.lock"
@@ -22,14 +22,14 @@ DASHBOARD_REFRESH_LOCK_PATH = "/tmp/coyote4-dashboard-metrics-refresh.lock"
 @celery_app.task(name="coyote_api.tasks.maintenance.erase_deleted_sample_reports")
 def erase_deleted_sample_reports() -> dict[str, int]:
     """Complete up to 100 report-file erasures authorized by committed sample deletions."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     return maintenance_executor(logger).erase_reports()
 
 
 @celery_app.task(name="coyote_api.tasks.maintenance.finalize_report_artifacts")
 def finalize_report_artifacts() -> dict[str, int]:
     """Resume checksum-verified publication of committed report files."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     return maintenance_executor(logger).finalize_reports()
 
 
@@ -40,7 +40,7 @@ def replay_audit_events() -> dict[str, Any]:
     Returns:
         Audit delivery count and up to 100 activity notifications processed this run.
     """
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     return maintenance_executor(logger).replay_audit()
 
 
@@ -51,39 +51,39 @@ def deliver_notification_emails() -> dict[str, Any]:
     Returns:
         Counts by terminal outcome, or not_configured when SMTP is unavailable.
     """
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     return maintenance_executor(logger).deliver_emails()
 
 
 @celery_app.task(name="coyote_api.tasks.maintenance.export_audit_checkpoint")
 def export_audit_checkpoint() -> dict[str, Any]:
     """Export verified chain hashes hourly when an archival mount is configured."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     return maintenance_executor(logger).export_audit_checkpoint()
 
 
 @celery_app.task(name="coyote_api.tasks.maintenance.run_retention_maintenance", bind=True)
 def run_retention_maintenance(self) -> dict[str, Any]:
     """Run audit and disk-log retention maintenance."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
     logger.info("celery_retention_maintenance_started task_id=%s", self.request.id)
     result = maintenance_executor(logger).retention()
     logger.info("celery_retention_maintenance_finished task_id=%s", self.request.id)
-    return _serializable(result)
+    return serializable(result)
 
 
 @celery_app.task(name="coyote_api.tasks.maintenance.refresh_public_oncokb", bind=True)
 def refresh_public_oncokb(self) -> dict[str, Any]:
     """Refresh public OncoKB gene collections from the local HGNC catalogue."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
     logger.info("celery_public_oncokb_refresh_started task_id=%s", self.request.id)
     result = maintenance_executor(logger).refresh_public_oncokb()
     logger.info("celery_public_oncokb_refresh_finished task_id=%s", self.request.id)
-    return _serializable(result)
+    return serializable(result)
 
 
 @celery_app.task(name="coyote_api.tasks.maintenance.refresh_dashboard_metrics", bind=True)
@@ -91,7 +91,7 @@ def refresh_dashboard_metrics(
     self, username: str | None = None, metrics: list[str] | None = None
 ) -> dict[str, Any]:
     """Refresh independently cached dashboard metrics for active user scopes."""
-    _ensure_worker_runtime()
+    ensure_worker_runtime()
     if not task_family_enabled("maintenance"):
         return disabled_result("maintenance")
 
@@ -111,4 +111,4 @@ def refresh_dashboard_metrics(
         result["refreshed"],
         len(result["failures"]),
     )
-    return _serializable(result)
+    return serializable(result)

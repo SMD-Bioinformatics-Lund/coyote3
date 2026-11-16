@@ -210,7 +210,16 @@ coyote_compose exec -T worker celery -A coyote_api.celery_app:celery_app inspect
 Require responses from all workers. Allow active tasks to complete; resolve reserved
 or scheduled tasks according to the release's queue compatibility plan. Do not
 purge Redis to obtain an empty queue. Check that direct API clients and other
-writers have stopped, then stop remaining application writers:
+writers have stopped.
+
+When adopting the separate ingestion service, drain tasks using the old
+`coyote_api.tasks.ingest.*` names before switching workers. New workers register
+`coyote_ingest.tasks.*` and do not execute retired task names. Keep durable job
+records and staging data intact; resume pending work through the new dispatcher
+after checking active leases and the retained completion receipts. Deploy the API,
+ingestion worker and beat configuration as the tested release combination.
+
+Then stop the remaining application writers:
 
 ```bash
 coyote_compose stop -t 300 api worker maintenance-worker monitor

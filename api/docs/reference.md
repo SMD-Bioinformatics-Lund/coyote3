@@ -5,7 +5,7 @@
 | `coyote4-api` | Console launcher with host, port and worker options |
 | `coyote_api.app.main:app` | ASGI application |
 | `coyote_api.app.main.create_api_app` | Application factory |
-| `coyote_api.celery_app` | Celery application and worker composition |
+| `coyote_api.celery_app` | Task publication, maintenance workers and beat configuration |
 | `coyote_api.version` | Server distribution version, bundled application label and selected core version |
 | `coyote_api.interfaces.http.v1` | Version-one HTTP routes |
 | `coyote_api.security` | Host authentication and authorization adaptation |

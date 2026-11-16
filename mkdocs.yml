@@ -183,6 +183,14 @@ nav:
     - Configuration: packages/client/configuration.md
     - Reference: packages/client/reference.md
     - Development: packages/client/development.md
+  - Ingestion service:
+    - Start here: packages/ingest/README.md
+    - Getting started: packages/ingest/getting-started.md
+    - Usage: packages/ingest/usage.md
+    - Configuration: packages/ingest/configuration.md
+    - Reference: packages/ingest/reference.md
+    - Development: packages/ingest/development.md
+    - Architecture: packages/ingest/architecture.md
   - Frontend:
     - Start here: packages/frontend/README.md
     - Getting started: packages/frontend/getting-started.md

@@ -161,7 +161,7 @@ Async response:
 {
   "status": "accepted",
   "task_id": "6f3a...",
-  "task_name": "coyote_api.tasks.ingest.ingest_sample_bundle",
+  "task_name": "coyote_ingest.tasks.ingest_sample_bundle",
   "queue": "ingest"
 }
 ```
@@ -220,7 +220,7 @@ INFO or DEBUG for progress messages. Only this submission's ingest logs are sent
 not other requests or background services.
 
 ```bash
-python3 scripts/ingest/submit_ingest_manifest.py /mounted/path/synthetic.coyote4.yaml \
+coyote-ingest-submit /mounted/path/synthetic.coyote4.yaml \
   --base-url https://example.org/coyote4_dev --auth ingest --verbose
 ```
 
@@ -356,7 +356,7 @@ Select **Upload a background sample bundle** and **Read status and results of
 jobs submitted with this token**, then run:
 
 ```bash
-.venv/bin/python scripts/ingest/submit_ingest_manifest.py \
+coyote-ingest-submit \
   /path/to/sample.yaml --base-url https://coyote.example.org \
   --auth bearer --token-file /secure/path/coyote-token --async --wait
 ```
@@ -405,7 +405,7 @@ retrieval endpoint. Issuance records the authenticated issuer, credential ID,
 scope, and expiry in the audit, never the credential value. If the audit cannot
 be persisted, issuance fails without returning a token.
 
-Use `--auth ingest` with `scripts/ingest/submit_ingest_manifest.py`, or send the token in
+Use `--auth ingest` with `coyote-ingest-submit`, or send the token in
 `X-Coyote-Ingest-Token`. Keep the file private. The token can be reused until its
 expiry (default 24 hours, maximum 720 hours); it is not a single-use token. Issue
 a replacement before expiry for scheduled pipelines. Its audit identity includes
@@ -451,12 +451,13 @@ fails, the error is logged without retrying committed ingestion. The audit is no
 an API-wide duplicate-prevention mechanism and contains no uploaded file contents
 or credentials. A request that fails authentication remains in the security audit.
 
-Run `scripts/ingest/submit_ingest_manifest.py` on the deployment server. Use
+Install `coyote-ingest` and run `coyote-ingest-submit` on the submission host. Use
 `--remote-host USER@ANALYSIS_SERVER` to fetch the YAML and optional ZIP with SCP,
 submit them to the API, then rename the original YAML through SSH after a terminal
 acknowledgement. SCP cannot rename remote files; SSH command access is required.
-The helper requires Python 3.10+, `curl`, `ssh`, and `scp` on the deployment server;
-it has no Coyote4 Python package or MongoDB dependency. The analysis server needs
+The command requires Python 3.12+ and `curl`; remote acknowledgement also requires
+`ssh` and `scp`. The base ingestion package uses core and the Python HTTP client,
+without a server or MongoDB-driver dependency. The analysis server needs
 a POSIX shell and `sha256sum`, `ln`, `rm`, `mktemp`, and `mv`, but no installed
 helper or API token. `mktemp` and `mv` preserve an existing completion file in
 a history directory when the same manifest name is submitted again.
@@ -479,7 +480,7 @@ target deployment's private env file; do not generate a different client token.
 ```bash
 read -rsp 'Internal API token: ' INTERNAL_API_TOKEN; echo
 export INTERNAL_API_TOKEN
-python3 scripts/ingest/submit_ingest_manifest.py /pipeline/outgoing/sample.yaml \
+coyote-ingest-submit /pipeline/outgoing/sample.yaml \
   --remote-host pipeline@analysis.example.org \
   --base-url https://coyote.example.org/coyote4_dev \
   --archive /pipeline/outgoing/sample.upload.zip
@@ -616,7 +617,7 @@ checking the acknowledgement `status`.
 
 Compose also defines the stable `beat` scheduler service. When
 `COYOTE4_INGEST_WATCH_ENABLED=1`, beat periodically enqueues
-`coyote_api.tasks.ingest.ingest_watch_directory_once`, which scans
+`coyote_ingest.tasks.ingest_watch_directory_once`, which scans
 the fixed `/data/coyote4_<env>/copied_sample_files/yaml` directory for `coyote4.yaml`.
 
 Watcher settings:
@@ -715,7 +716,7 @@ export BASE_URL="${BASE_URL%/}"
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
-${PYTHON_BIN:-python} scripts/ingest/api_login.py \
+coyote-ingest-login \
   --base-url "${BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \
@@ -748,7 +749,7 @@ Behavior:
 
 Seed source policy for a new deployment:
 
-- The application-owned RBAC catalog is `api/src/coyote_api/bootstrap/catalogs/rbac`. It installs
+- The application-owned RBAC catalog is `core/src/coyote/config/catalogs/rbac`. It installs
   every bundled permission policy and built-in role only during explicit
   direct bootstrap or explicit catalog synchronization.
 - `api/src/coyote_api/bootstrap/catalogs/demo_center` provides synthetic ASP, ASPC, and ISGL

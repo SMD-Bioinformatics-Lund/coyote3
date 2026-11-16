@@ -19,7 +19,7 @@ Changes affecting clinical behavior also need the shared application regressions
 The root `pyproject.toml` owns the shared server version, dependencies and console
 entry point. The API's `pyproject.toml` owns only its test and coverage settings.
 Update the component `CHANGELOG.md` for API changes. The application release process
-selects and verifies the core and server wheels, plus the independent Python client
+selects and verifies core, server and ingestion wheels, plus the independent Python client
 used by in-container administration commands.
 
 ## Test suites and coverage

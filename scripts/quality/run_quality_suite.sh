@@ -25,8 +25,8 @@ fi
 PYTHON_BIN="$("$PYTHON_BIN" -c 'import sys; print(sys.executable)')"
 
 echo "[quality] Backend tests"
-PYTHONPATH=. "$PYTHON_BIN" -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests \
-  --cov=coyote_api --cov=coyote --cov=coyote_mongo \
+PYTHONPATH=. "$PYTHON_BIN" -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests services/ingest/tests \
+  --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov=coyote_ingest \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-report=xml:coverage.xml

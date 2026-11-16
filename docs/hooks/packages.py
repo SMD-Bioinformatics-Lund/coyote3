@@ -16,6 +16,7 @@ PROJECTS = {
     "api": "api",
     "mongo": "adapters/mongo",
     "client": "clients/python",
+    "ingest": "services/ingest",
     "frontend": "frontend",
 }
 _published: dict[Path, str] = {}

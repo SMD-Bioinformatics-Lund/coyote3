@@ -131,8 +131,8 @@ def test_library_excludes_deployment_content_and_product_pages() -> None:
         assert not any(target.rglob("*.toml")), relative
 
 
-def test_core_server_and_client_have_independent_distributions() -> None:
-    """The server bundles both host layers; core and client remain independent wheels."""
+def test_core_server_client_and_ingest_have_independent_distributions() -> None:
+    """The server bundles host layers; core, client and ingestion remain independent wheels."""
     library = tomllib.loads(Path("core/pyproject.toml").read_text())
     discovery = library["tool"]["setuptools"]["packages"]["find"]
     assert discovery["where"] == ["src"]
@@ -159,6 +159,29 @@ def test_core_server_and_client_have_independent_distributions() -> None:
         dependency.lower().startswith(("coyote-core", "coyote-server"))
         for dependency in client["project"]["dependencies"]
     )
+    ingest = tomllib.loads(Path("services/ingest/pyproject.toml").read_text())["project"]
+    assert ingest["name"] == "coyote-ingest"
+    assert ingest["dependencies"] == [
+        f"coyote-core=={library['project']['version']}",
+        f"coyote-pyclient=={client['project']['version']}",
+    ]
+    assert ingest["optional-dependencies"]["worker"] == [
+        f"coyote-server=={server['project']['version']}"
+    ]
+    assert not any(
+        dependency.startswith("coyote-ingest") for dependency in server["project"]["dependencies"]
+    )
+
+
+def test_server_publishes_ingestion_without_importing_the_worker_service() -> None:
+    """Server startup and maintenance remain independent of ingestion worker installation."""
+    offenders = [
+        f"{path}:{line}: {module}"
+        for path in _python_files(Path("api/src/coyote_api"))
+        for line, module in _imported_modules(path)
+        if module.split(".")[0] == "coyote_ingest"
+    ]
+    assert not offenders, "Server imports ingestion service:\n" + "\n".join(offenders)
 
 
 def test_mongo_adapter_has_no_application_host_imports() -> None:
@@ -167,7 +190,8 @@ def test_mongo_adapter_has_no_application_host_imports() -> None:
         f"{path}:{line}: {module}"
         for path in _python_files(Path("adapters/mongo/src/coyote_mongo"))
         for line, module in _imported_modules(path)
-        if module.split(".")[0] in {"coyote_api", "fastapi", "starlette", "coyote_pyclient"}
+        if module.split(".")[0]
+        in {"coyote_api", "fastapi", "starlette", "coyote_pyclient", "coyote_ingest"}
     ]
     assert not offenders, "Adapter imports its consumer:\n" + "\n".join(offenders)
 
@@ -265,6 +289,7 @@ def test_core_has_no_runtime_adapter_or_transport_dependencies() -> None:
         "coyote_api.infra",
         "coyote_api.security",
         "coyote_pyclient",
+        "coyote_ingest",
         "fastapi",
         "starlette",
         "pymongo",

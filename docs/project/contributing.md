@@ -20,8 +20,8 @@ belong in the attribution notices, separately from the copyright-holder statemen
 ## Required checks before PR
 
 ```bash
-PYTHONPATH=. .venv/bin/ruff check core api adapters clients tests scripts
-PYTHONPATH=. .venv/bin/ruff format --check core api adapters clients tests scripts
+PYTHONPATH=. .venv/bin/ruff check core api adapters clients services tests scripts
+PYTHONPATH=. .venv/bin/ruff format --check core api adapters clients services tests scripts
 scripts/quality/run_quality_suite.sh
 ```
 
@@ -102,6 +102,7 @@ each module; do not invent a new version for each internal service or directory.
 | Core SDK | `[project].version` in `core/pyproject.toml` |
 | Server: API, workers and MongoDB adapter | `[project].version` in root `pyproject.toml` |
 | Python HTTP client | `[project].version` in `clients/python/pyproject.toml` |
+| Ingestion service and submission tools | `[project].version` in `services/ingest/pyproject.toml` |
 | DNA report template | `coyote3.dna` in the pinned `smd_reports/themes/versions.json` |
 | RNA report template | `coyote3.rna` in the same SMD package manifest |
 
@@ -110,7 +111,7 @@ belong to the affected release, and already published artifacts remain immutable
 Shared report HTML, CSS, or font releases affect both template versions in
 `smd-reports`; updating that dependency or Coyote4's input adapter also requires
 a new version of the package containing the changed input adapter. An application
-selects the tested core, server and Python client versions in `release.toml`.
+selects the tested core, server, ingestion and Python client versions in `release.toml`.
 The server has its own version, shared by its API and MongoDB components. The UI has no
 independent release counter; application package metadata is synchronized through
 `npm run sync:version` when the application version changes.
