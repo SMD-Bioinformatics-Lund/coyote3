@@ -1,5 +1,10 @@
 # Reporting workflow and finding snapshots
 
+This reference describes report eligibility, API operations, saved evidence and
+artifact recovery. To issue a report in the application, follow
+[preview and save](../user-guide/report-preview-and-save.md). For preparation
+boundaries, read [from sample input to saved report](../architecture/clinical-data-and-reporting.md).
+
 ## Report Identity
 
 DNA and RNA report previews and saved artifacts use `ORGANIZATION_NAME` for the
@@ -47,11 +52,15 @@ The effective ASPC's `reporting.reportable_tiers` selects report candidates:
 | --- | --- | --- |
 | `SNV` | Somatic and germline SNVs | `[1, 2, 3]` |
 | `FUSION` | RNA fusions | `[1, 2, 3]` |
+| `CNV` | Automatic tier-based CNV inclusion | `[1, 2, 3]` |
+| `TRANSLOCATION` | Automatic tier-based DNA translocation inclusion | `[1, 2, 3]` |
 
-Each list accepts tiers 1 through 4. An empty list excludes all findings of that
-type; it does not restore defaults. Gene-list and review-state exclusions still
-apply. CNVs and translocations retain their review-selection behavior and are not
-filtered by these tier settings. No assay group name changes the tier policy.
+Each list accepts tiers 1 through 4. An empty list disables tier-based inclusion;
+it does not restore defaults. Gene-list and review-state exclusions still apply.
+CNVs and translocations can also qualify through explicit report selection,
+independently of their tier. False-positive and irrelevant flags exclude both
+paths. A blacklisted structural finding cannot qualify through its tier alone.
+No assay group name changes this policy.
 
 Eligibility is applied before preparing clinical-rule facts, table rows and finding
 snapshots. The rule engine determines wording from those candidates; it does not
@@ -98,20 +107,6 @@ accepts embedded PNG/JPEG images and validated self-contained SVG logos; it cann
 fetch remote URLs or local files. SVG scripts, external references and nested images
 are rejected.
 HTML presentational hints remain disabled.
-
-This document describes the Coyote4 sample-to-report workflow, the rules used
-when building a report, what is persisted in MongoDB, and how persisted report
-snapshots support later search, mapping, dashboards, and cross-sample review.
-
-For the field-level preparation protocol, annotation matching order, filter
-authority, and the report-text boundary, see
-[Clinical data preparation and reporting flow](../architecture/clinical-data-and-reporting.md).
-
-The core rule is:
-
-> A report preview is temporary and filter-derived. A saved report is immutable
-> clinical evidence: HTML/PDF artifacts plus database metadata and per-variant
-> typed finding snapshot rows.
 
 ## High-Level Flow
 
@@ -178,18 +173,16 @@ The ASPC is the digital rulebook for report generation. It controls:
 - default filters for SNV, CNV, coverage, and related domains
 - report wording such as method, header, description, and output folder
 
-When a sample is loaded, the current filters should come from the matching ASPC:
+Intake resolves an active configuration by `asp_id`, `diagnosis_id` and
+environment, using the configured Base fallback when applicable. It records the
+resolved revision in `current_aspc_id` and initializes the sample's filters.
+Operational reads use that recorded revision; they do not silently switch the
+sample to a newly published ASPC.
 
-1. Match by `asp_id`, `diagnosis_id`, and environment/profile.
-2. If no specific diagnosis configuration exists, use the `base` diagnosis for
-   that assay and environment.
-3. Store the effective ASPC reference on the sample so filter reset can restore
-   the same default rulebook.
-4. Store the filter blob on the sample by domain, for example `filters.snv`,
-   `filters.cnv`, and `filters.cov`.
-
-When the user applies filters, the active filter blob changes. Report preview
-and save must use that active sample filter state.
+Filters are stored by intent and analysis, for example `filters.somatic.snv`,
+`filters.somatic.cnv`, `filters.somatic.coverage` and `filters.germline.snv`.
+Applying filters changes this sample state. Preview and save use the effective
+sample filters, retaining deliberate empty selections.
 
 ## Prepared Report Context
 
@@ -344,7 +337,6 @@ sections include:
 - `CNV_PROFILE`
 - `COVERAGE`
 - `TRANSLOCATION`
-- `FUSION`
 - `HRD`
 - `MSI`
 - `TMB`
@@ -372,12 +364,9 @@ Consequence filtering uses the VEP metadata group map for the sample VEP
 version. UI-facing groups such as `missense`, `frameshift`, or `splicing` are
 expanded to concrete VEP consequence terms before querying variants.
 
-Current query reproducibility rule:
-
-- consequence matching must preserve the clinical query behavior
-- selected transcript consequence and other transcript consequences can both
-  affect inclusion where the clinical query did so
-- hematology/solid germline rescue behavior is preserved where applicable
+Shared and independent SNV modes use the configured normal filter flows. Published
+query rules can add scoped admission or exclusion conditions. See
+[assay filtering](assay-filtering.md) for the authoritative query semantics.
 
 After querying:
 
@@ -387,8 +376,7 @@ After querying:
 4. report-only filtering keeps variants that:
    - are in selected report genes, unless no report gene filter is active
    - are not blacklisted
-   - have a classification
-   - are not Tier IV or `999`
+   - have a usable classification in `reporting.reportable_tiers.SNV`
 5. rows are simplified for the report template
 6. rows are sorted by class and allele frequency
 
@@ -398,17 +386,15 @@ CNV report rows are included only when `CNV` is in report sections.
 
 Rules:
 
-- load interesting CNVs for the sample
+- load CNVs for the sample and resolve their scoped classifications
+- include explicitly selected findings or usable allowed tiers, excluding false-positive and irrelevant findings
 - apply selected CNV effect filters, such as gain/loss
 - apply selected CNV gene lists
 - organize genes for display
 - render the clinical report CNV summary table
 
 Selected SNV lists are not reused as CNV filters. Each analysis consumes only
-gene-list types declared for that analysis. The historical application had one
-assay-specific development/tumor-exome branch in which the presence of any SNV
-list activated a fixed six-gene CNV query. That behavior did not apply the
-selected list itself and is not part of the general Coyote4 filtering contract.
+gene-list types declared for that analysis.
 
 ### CNV Profile Logic
 
@@ -427,7 +413,8 @@ Translocations are included only when `TRANSLOCATION` is in report sections.
 
 Rules:
 
-- load interesting sample translocations
+- load sample translocations and resolve their scoped classifications
+- include explicitly selected findings or usable allowed tiers, excluding false-positive and irrelevant findings
 - render the DNA fusion/translocation summary section
 
 ### Biomarker Logic
@@ -769,18 +756,12 @@ The flow fails during persistence when:
 
 ## Save transaction and artifact handling
 
-The save pipeline renders the PDF before writing either output. HTML and PDF files
-are created exclusively, so an existing artifact is not overwritten. The repository
-then saves report metadata, the sample report pointer, and finding snapshots in a
-MongoDB transaction.
-
-Filesystem writes are not part of that transaction. A known failure removes files
-created by the current attempt. If MongoDB's commit outcome is uncertain, the files
-are retained: deleting them could destroy artifacts belonging to a committed report.
-Reconcile database state and artifact paths before retrying an uncertain save.
-
-Saved reports retain their filters, configuration provenance, selected rules, and
-finding snapshots. Opening a historical report does not evaluate current rules.
+The [save guarantees](#save-guarantees) above define staging, transactional metadata,
+checksum verification and retry behaviour. Filesystem publication follows the
+database commit. An uncertain commit retains staging files for reconciliation;
+do not resubmit until saved-report metadata and artifact state have been checked.
+Opening a historical report reads its saved artifacts and snapshots without
+evaluating current rules.
 
 ## Operational behaviour
 

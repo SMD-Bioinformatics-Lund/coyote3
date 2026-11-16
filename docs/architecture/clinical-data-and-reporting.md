@@ -1,355 +1,169 @@
-# Clinical Data Preparation And Reporting Flow
+# From sample input to saved report
 
-This guide defines how Coyote4 turns an ingested sample into reviewable
-findings, a report preview, and an immutable saved report. It describes data
-ownership, preparation boundaries, rule evaluation, and persistence failures.
+Coyote prepares findings before it generates report wording. The core selects and
+interprets the data, published rules supply suggested text, and `smd-reports`
+renders the document. Saving captures the reviewed result and its provenance.
 
-The intended audience is:
-
-- clinical scientists who need to understand why a finding appears;
-- developers who maintain queries, contracts, and reporting;
-- administrators who configure ASP, ASPC, and gene lists;
-- operators who investigate incomplete ingest or report generation.
-
-> **Info**
->
-> Coyote4 stores timestamps in UTC. The UI converts timestamps to the
-> deployment's configured local timezone for display.
->
-
-## 1. Responsibility Model
-
-Reporting is divided into four stages:
-
-| Stage | Owner | Responsibility |
-|---|---|---|
-| Configuration | ASP, ASPC, and ISGL administration | Defines assay scope, enabled analyses, defaults, report sections, and gene lists |
-| Data preparation | Ingest and reporting application services | Validates source files, stores normalized findings, applies filters, resolves annotations, and builds reportable data |
-| Text generation | Published clinical rules and report composer | Produces clinical text from the prepared report context |
-| Persistence | Report service | Renders preview, writes HTML/PDF, stores report metadata and finding snapshots, and emits audit events |
-
-The stages have strict boundaries. Text generation does not decide which raw
-variants pass analytical filters. Persistence does not recompute clinical
-interpretation from a saved artifact.
-
-## 2. Configuration Sources
-
-### 2.0 Canonical clinical scope identifiers
-
-`asp_id`, `aspc_id`, `diagnosis_id`, and `isgl_id` are persisted join keys. They
-use lower-case letters, digits, underscores, and hyphens. The service lowers
-case only: accepted separators retain their meaning, so the display label
-`Hem-Snabb` has the stored identifier `hem-snabb`. Whitespace, dots, and all
-other special characters are rejected rather than silently rewritten.
-
-This convention applies consistently to ASP, ASPC, ISGL, samples, user scope,
-clinical rule-set identities, and YAML manifests. It prevents a casing or separator
-variant from making an otherwise valid ASPC or gene list unreachable.
-
-### 2.1 ASP: physical assay definition
-
-An Assay Specific Panel (ASP) describes the physical test.
-
-| Field | Meaning | Reporting use |
-|---|---|---|
-| `asp_id` | Stable assay identifier | Links samples and ASPCs to the assay |
-| `asp_group` | Clinical grouping | Selects assay-aware annotation context |
-| `asp_family` | Panel, WGS, WTS, or related family | Determines physical coverage behavior |
-| `asp_category` | `dna` or `rna` | Selects the analysis contract |
-| `expected_files` | File types accepted for the assay | Validates declared YAML resources |
-| `required_files` | File types always required | Blocks incomplete ingest |
-| `covered_genes` | Physically covered genes | Bounds effective gene scope for targeted assays |
-| `germline_genes` | Germline-capable genes | Supports germline-aware review and reporting |
-| `accredited` | Accreditation status | Supports report metadata and conclusion wording |
-
-ASP data is versioned clinical configuration. An edit creates a new document
-with the same `asp_id` and the next `version`, then retires the previous active
-revision. It does not contain sample-specific results or report text selected
-for one case. Retired revisions and permanent traceability audit events retain
-the configuration lineage.
-
-### 2.2 ASPC: analytical and reporting configuration
-
-An Assay Specific Panel Configuration (ASPC) binds an ASP to one diagnosis and
-environment. One ASPC carries every enabled analytical intent for that scope;
-it is not duplicated solely because the same physical assay supports both
-somatic and germline review.
-
-The logical identity is:
-
-```text
-ASP + diagnosis + environment
-```
-
-The `base` diagnosis is used when the assay has no specific diagnosis
-configuration.
-
-| Field | Meaning |
-|---|---|
-| `aspc_id` | Stable logical configuration identifier |
-| `asp_id` | Parent ASP |
-| `diagnosis_id` | Specific diagnosis or `base` |
-| `environment` | Production, validation, testing, or development |
-| `analysis_types` | Analyses available for sample review |
-| `analysis_intents` | `somatic` and, for DNA SNV where configured, `germline`. The value controls the available filter profiles, review tables, and reporting contexts. |
-| `reporting.report_sections` | Sections rendered in a report |
-| `filters` | Default analytical filters |
-| `reporting.report_header` | Report heading |
-| `reporting.report_method` | Method description |
-| Clinical-rule `analysis_description` section | Reviewed method and scope wording, with dynamic sample and applied gene-list values |
-| `reporting.language` | Language for exact assay/diagnosis/analyte rule selection, with assay Base fallback |
-| Published rule source | MongoDB `clinical_rule_sets` release resolved by assay, diagnosis, analyte and language, with assay Base fallback; `clinical_rule_revisions` preserves every state of that version, and the rendered report records its object ID, version, and content hash. |
-| `reporting.plots_path` | Approved source directory for report plots |
-| `reporting.report_folder` | Approved report output directory |
-
-`analysis_types` and `reporting.report_sections` answer different questions:
-
-- **Available:** can the analysis be reviewed for this configuration?
-- **Report section:** should this available analysis contribute content to the report?
-
-The saved report records the published rule-set identity, version, and deterministic
-content hash together with the resolved ASPC and filter snapshot. This makes the runtime
-lineage:
+This page explains those boundaries for developers and administrators. To perform
+a review, use the [clinical review procedure](../user-guide/clinical-review-workflow.md).
+For endpoint and saved-record details, use the
+[reporting reference](../reference/report-snapshots.md).
 
 ![Clinical report generation and persistence](../assets/diagrams/report-generation-flow.svg)
 
-> [!WARNING]
->
-> Operational reads load the exact revision referenced by `current_aspc_id`.
-> Intake selects a release by assay, diagnosis and environment. An explicitly
-> permitted Base fallback preserves the requested diagnosis and displays a
-> warning. A saved report captures the resolved context and effective filters.
->
+## Follow the data
 
-### 2.3 ISGL: in-silico gene lists
+1. **Ingest:** validate the manifest and readable evidence against the assay's
+   accepted and required file types. Commit the sample, findings and ready state
+   together. Missing optional expected evidence is recorded separately.
+2. **Resolve configuration:** use the sample's recorded ASPC revision, its captured
+   assay and gene lists, and the sample's saved filters.
+3. **Prepare findings:** apply clinical queries, gene scope, selected transcripts,
+   annotation matching and report eligibility.
+4. **Generate suggestions:** evaluate the currently applicable published clinical
+   rules against the prepared facts. Suggestions do not overwrite reviewed comments.
+5. **Preview:** render HTML/PDF without saving report history. The conclusion uses
+   the latest visible sample comment.
+6. **Save:** verify the reviewed inputs, persist report metadata and finding
+   snapshots in one transaction, and publish the staged HTML/PDF artifacts.
 
-ISGL documents provide named gene scope. Lists are typed by analysis domain,
-for example SNV, CNV, fusion, expression, or PGX.
+An accepted ingestion job is not yet a ready sample. A ready sample can still lack
+optional evidence. A preview is not an issued report. See
+[ingestion recovery](transactions-and-ingest-recovery.md) and
+[report save guarantees](../reference/report-snapshots.md#save-guarantees).
 
-An applied list does not prove that every listed gene is physically covered.
-For targeted assays, Coyote4 intersects the list with `ASP.covered_genes`.
-WGS/WTS configurations can treat the list itself as the effective scope.
+## Configuration and filter ownership
 
-The prepared report context records:
+| Resource | Owns |
+| --- | --- |
+| Assay / ASP | Physical coverage, accepted and required input files, family, platform and accreditation |
+| Assay configuration / ASPC | Diagnosis/environment settings, enabled analyses and intents, filter defaults, report sections and their ordering |
+| Gene list / ISGL | Versioned gene selections for a particular analysis |
+| Sample | Current review flags, sample filters and the recorded configuration reference |
+| Query rules | Published finding-selection policy resolved for the current scope |
+| Clinical reporting rules | Published conditions and suggested wording resolved for the current scope |
+| Saved report | Report-time configuration, findings, rules, filters and artifact provenance |
 
-- selected list identifiers;
-- list versions;
-- analysis domain in `selected_for`;
-- ad-hoc genes;
-- effective covered and uncovered genes.
+Identifiers such as `asp_id`, `aspc_id`, `diagnosis_id` and `isgl_id` use
+lowercase letters, digits, underscores and hyphens. They are join keys, not display
+labels. The `base` diagnosis is a configured fallback; it does not erase the
+sample's requested diagnosis.
 
-This allows a reviewer to distinguish the requested clinical scope from the
-physical assay scope.
+Intake chooses an active configuration for the assay, diagnosis and environment.
+Subsequent operational reads use the recorded `current_aspc_id`. Publishing new
+query or clinical rules can affect later requests independently of that ASPC
+revision; saved reports retain their original resolved content.
 
-DNA rule preparation carries selected SNV and CNV ISGLs. RNA rule preparation
-carries selected fusion ISGLs. These are the lists used for that report
-preparation, not every list configured for the assay.
+At ingestion, ASPC defaults initialize the sample's filter profiles. Applying
+filters changes the sample state; resetting restores the resolved configuration's
+defaults. Explicit empty lists remain empty. Table search affects displayed rows,
+while analytical filters affect the backend selection.
 
-## 3. Sample Ingest And Readiness
+DNA filter paths include `filters.somatic.snv`, `filters.somatic.cnv`,
+`filters.somatic.translocation` and `filters.somatic.coverage`. Independent
+germline SNV review uses `filters.germline.snv`; RNA fusion review uses
+`filters.somatic.fusion`. Use the [filter reference](../reference/assay-filtering.md)
+for fields and query semantics.
 
-### 3.1 Manifest and file policy
+### Shared and independent SNV review
 
-The sample YAML identifies the sample, `asp_id`, `diagnosis_id`, `environment`, pipeline,
-case/control relationship, and declared files.
+With `snv_filter_mode = "shared"`, analysis and reporting use one normal SNV filter
+flow. With `independent`, each enabled intent has its own filters, findings and
+report facts. A filter update for one intent does not replace the other profile.
 
-Ingest resolves the active ASP and ASPC before writing the sample. File policy
-is evaluated as follows:
+A clinical-rule section can target `analysis_intent: somatic` or
+`analysis_intent: germline`. An independent profile without approved wording
+produces no invented narrative; its enabled result tables remain available.
+Finding snapshots record their analysis intent.
 
-1. Every ASP `required_files` entry must be declared and readable.
-2. Missing or unreadable optional expected files are skipped, including declared
-   paths that cannot be read. Their keys are recorded in `missing_expected_files`.
-3. Every readable evidence file submitted to a parser must parse and validate.
-   Malformed readable optional evidence still fails the ingest.
-4. ASPC analysis selection does not change the ASP required-file policy.
-5. The sample, parsed evidence, ready state, and completion receipt commit in one
-   required transaction. Warnings about missing optional evidence are delivered after commit.
+### Gene scope and references
 
-> [!CAUTION]
->
-> A failed clinical transaction must not expose partial writes as ready. A ready
-> sample can still lack optional expected evidence. Failure must preserve
-> enough audit context to identify the sample name, declared resource, parser
-> stage, and underlying error without exposing secrets.
->
+For targeted assays, selected lists are bounded by physical assay coverage.
+Whole-genome/transcriptome scope and ad-hoc genes follow the assay's configured
+selection policy. SNV, CNV and fusion list selections are distinct; one domain's
+selection is not reused as another domain's gene filter.
 
-### 3.2 Canonical sample anchor
+Prepared facts retain the selected list identities, versions and effective gene
+scope. A list's total gene count is different from its covered gene count.
 
-The `samples` document is the operational anchor.
+VEP metadata is selected by `sample.database_versions.vep`. Transcript selection
+and HGNC normalization happen before rule evaluation. Report wording does not
+choose a different transcript. See [transcript selection](../reference/assay-filtering.md)
+and [reference ownership](../sdk/package-boundaries.md).
 
-Key fields include:
+## Finding eligibility
 
-| Field | Purpose |
-|---|---|
-| `name` | Human-facing sample identifier and route key |
-| `asp_id` | ASP identifier |
-| `diagnosis_id` | Selected diagnosis |
-| `environment` | Environment |
-| `current_aspc_id` | ASPC ObjectId resolved when sample state was established |
-| `asp_category` | DNA or RNA |
-| `sex` | Optional sample-level biological sex (`female`, `male`, or `unknown`) used by cohort summaries. It is not duplicated under case/control metadata. |
-| `platform` | Sequencing platform inherited from the resolved ASP, such as `illumina` or `pacbio` |
-| `read_mode` | Platform-supported read mode. It is currently applicable only to Illumina (`SE` or `PE`). |
-| `read_technology` | Immutable derived value: `short_read` for Illumina/Ion Torrent and `long_read` for PacBio/Nanopore. It is never entered independently. |
-| `paired` | Whether case/control data are present |
-| `genome_build` | Reference genome build |
-| `database_versions.vep` | VEP version used for annotation |
-| `database_versions` | Curated source-version metadata, including the canonical `vep` key |
-| `files` | Canonical file metadata by file type |
-| `filters` | Current per-domain filter state |
-| `case` / `control` | Sample identifiers and laboratory metadata |
-| `reported` | Whether at least one report was saved |
-| `latest_report_id` | Most recent saved report |
-| `latest_report_on` | Most recent report timestamp |
+An enabled report section does not automatically include every detected finding.
+Preparation applies the per-finding filters and sample context described in the
+report eligibility reference below.
 
-Dependent collections use `sample_id` or `sample_oid` to link findings and
-results to the sample anchor. Normal UI URLs use the sample name. Finding
-detail routes may additionally use the finding ObjectId because it is the
-unambiguous document identity.
+- SNVs and RNA fusions require a usable classification in the configured
+  `reporting.reportable_tiers` selection, subject to their review and gene filters.
+- CNVs and DNA translocations can qualify through explicit report selection or a
+  usable allowed tier. False-positive and irrelevant flags still exclude them.
+- Tier IV is available when explicitly selected by the configuration. An empty
+  tier list disables automatic tier inclusion; it does not restore defaults.
+- HRD, MSI and TMB are independent measurements. Missing evidence remains absent;
+  a measured numeric zero is not an unavailable result.
+- A CNV profile is an image under `files.cnvprofile`, separate from CNV calls and
+  coverage. The image itself does not establish a typed normal/abnormal result.
 
-### 3.3 File metadata
+The [report eligibility reference](../reference/report-snapshots.md#annotation-scope-and-report-eligibility)
+defines the per-finding selection policy. Clinical rules consume these candidates
+and cannot reinstate excluded findings.
 
-Each entry under `sample.files` uses:
+## Facts supplied to clinical rules
 
-```json
-{
-  "path": "/mounted/data/example.vcf",
-  "checksum": "optional checksum",
-  "size_bytes": 123456,
-  "registered_on": "UTC datetime"
-}
-```
+The authoritative model is `PreparedReportContext` in
+`core/src/coyote/application/reporting/clinical_rules/facts.py`. It contains typed
+sample, assay and configuration facts; applied gene lists; prepared findings;
+measurement rows; and aggregates. Use that model and the
+[rule-field reference](../reference/clinical-reporting-rules.md) when authoring test
+facts. Report payloads, rule facts and saved resolution snapshots are different
+contracts.
 
-File availability shown in the UI is based on the canonical nested file
-contract. A stored path is provenance; it is not a permanent guarantee that
-the file still exists. Runtime operations that need the file must check the
-mounted path at use time.
+The evaluator reads prepared facts without accessing databases, choosing
+transcripts, assigning tiers, applying analysis filters or calling external
+knowledgebases. Exact published assay/diagnosis/analyte/language scope takes
+precedence over the same assay's Base release. An invalid or ambiguous exact
+release fails instead of silently using Base.
 
-## 4. Filter Authority And Effective State
+Missing values, explicit false values and measured zeros remain distinct.
+A normal or indeterminate result requires the relevant typed measurement or
+assessment; it cannot be inferred from missing input. See
+[measurement contracts](../reference/measurement-analyses.md).
 
-### 4.1 Default state
+## Preview, save and provenance
 
-When no sample-specific filters exist, the application copies the complete
-ASPC profile map to the sample. DNA uses the following canonical shape:
+Preview uses the sample's recorded configuration and current review state. It
+returns rendered output and optional finding rows without creating `reports` or
+`reported_variants`.
 
-```yaml
-filters:
-  somatic:
-    snv: {}
-    cnv: {}
-    coverage: {}
-  germline:
-    snv: {}
-```
+Saving checks that the reviewed inputs are still current. Report metadata,
+finding snapshots and the sample's latest-report pointer commit together.
+Artifacts are staged exclusively and published with checksum verification; an
+existing report file is not overwritten. An uncertain commit is reconciled
+before retrying. The [saved-report reference](../reference/report-snapshots.md#save-guarantees)
+owns the full persistence and recovery protocol.
 
-RNA uses:
+Saved evidence includes applied configuration and gene-list snapshots, effective
+filters, rule identities/versions/hashes, reference and pipeline versions, selected
+annotations, author, UTC time and artifact checksums. Later edits or publications
+do not rewrite that evidence.
 
-```yaml
-filters:
-  somatic:
-    fusion: {}
-```
+`finding_comments` stores sample-specific review notes for findings. Reusable
+classifications and text belong to `annotation`; report-time rows belong to
+`reported_variants`.
 
-Only enabled profiles are stored. `germline` is currently available only for
-DNA `SNV`; CNV, coverage, fusion, biomarkers, and RNA remain somatic-only.
-The profile keys are a software contract: ASPC and sample documents may set
-values, but they cannot add arbitrary filter fields.
+## Annotation reference
 
-### 4.2 Intent-specific review and reporting
+The details below explain identity matching, publication scope and historical
+links. They are lookup material for interpretation and persistence changes.
 
-ASPC `snv_filter_mode = "shared"` uses one normal SNV flow for all variants.
-`independent` presents separate tables for each enabled profile:
-Somatic SNV and Germline SNV. A filter change updates only the selected
-`filters.<intent>.snv` section. It does not overwrite the other intent.
+<details markdown="1">
+<summary>Annotation identity, scope and historical provenance</summary>
 
-Shared reporting uses the same single filtered SNV set as analysis. Independent
-reporting prepares separate sets for the enabled profiles. Each saved
-reported-finding snapshot records the active profile's `analysis_intent`.
-Clinical rule sections can explicitly target `analysis_intent: somatic` or
-`analysis_intent: germline`. Each section receives only that profile's filtered
-SNVs, selected gene lists and aggregates. Unscoped sections use the primary/shared
-flow; they are not reused for an independent germline narrative. A profile with
-no approved wording supplies no generated narrative. Its enabled result tables
-remain available. Generated suggestions do not overwrite reviewed comments.
-
-### 4.2 DNA filter namespaces
-
-| Namespace | Supported settings |
-|---|---|
-| `filters.somatic.snv` | Depth, alternate reads, case VAF, control VAF, population frequency, VEP groups, SNV lists, ad-hoc genes |
-| `filters.germline.snv` | Depth, alternate reads, case VAF, population frequency, VEP groups, SNV lists, ad-hoc genes |
-| `filters.somatic.cnv` | Size bounds, gain/loss cutoffs, effects, CNV lists, ad-hoc genes |
-| `filters.somatic.coverage` | Warning and error coverage thresholds |
-
-### 4.3 RNA filter namespace
-
-`filters.somatic.fusion` contains caller, effect, gene-list, spanning-pair,
-spanning-read, and ad-hoc-gene settings.
-
-### 4.4 Update and reset behavior
-
-- **Apply** validates and persists the new sample filter state.
-- A successful update invalidates cached query results for that sample/domain.
-- The UI reloads the result set using the new filter state.
-- **Reset** restores defaults from the active ASPC resolved for the sample's
-  assay, diagnosis, and environment.
-- Saved reports retain their own filter snapshot and are not changed.
-
-> [!TIP]
->
-> The table search box filters the already returned table rows. Analytical
-> filters in the sidebar change the backend query and therefore change the
-> reportable data set.
->
-
-## 5. Small-Variant Preparation
-
-### 5.1 Query construction
-
-The DNA reporting application builds the SNV query from:
-
-- sample identity;
-- case VAF minimum and maximum;
-- control VAF maximum;
-- depth and alternate-read minimums;
-- population-frequency maximum;
-- selected VEP consequence groups;
-- selected SNV gene lists and ad-hoc genes;
-- configured verification positions;
-- false-positive and irrelevant exclusions.
-
-VEP groups are resolved using the metadata document for
-`sample.database_versions.vep`. A UI group such as `splicing` is expanded to concrete VEP
-terms before the query is executed.
-
-### 5.2 Transcript selection
-
-![Transcript selection protocol](../assets/diagrams/transcript-selection-flow.svg)
-
-The selected VEP consequence is established before report preparation.
-Transcript selection follows the documented preference:
-
-1. NCBI MANE Plus Clinical;
-2. Ensembl MANE Plus Clinical;
-3. NCBI MANE Select;
-4. Ensembl MANE Select;
-5. VEP canonical protein-coding;
-6. first protein-coding transcript;
-7. first available transcript.
-
-HGNC normalization links current symbols, previous symbols, and aliases to the
-same HGNC identity. The original display symbol from the variant is retained;
-the UI may indicate that a newer approved symbol exists.
-
-Each selector requires a native VEP transcript row in its own namespace. NCBI
-stages select only `NM_...` or `NR_...` rows that match HGNC RefSeq MANE
-metadata; Ensembl stages select only matching `ENST...` rows. Linked VEP
-`MANE` and `MANE_PLUS_CLINICAL` accessions remain review metadata and never
-allow an Ensembl row to supersede an available RefSeq row.
-
-Report-text generation receives the selected consequence. It does not choose a
-different transcript.
-
-### 5.3 Annotation identity and matching
+### Annotation identity and matching {#53-annotation-identity-and-matching}
 
 Every annotation stores the common review context (`variant`, `nomenclature`,
 `asp_group`, `asp_id`, `diagnosis_id`, `namespace`, `author`, and `time_created`) and only the identity fields
@@ -465,7 +279,7 @@ They do not inspect old `var_p`, `var_c`, `var_g`, or nested `variant_data`
 aliases. Existing report snapshots must therefore be normalized by migration
 before they are served by the current application.
 
-### 5.4 Assay and diagnosis context
+### Assay and diagnosis context
 
 Production tier changes and reusable interpretation text require `annotation:publish`
 in addition to their curation permission. Assigning a tier or submitting reusable text
@@ -513,340 +327,18 @@ The implementation owners are `domain/annotation_scope.py`,
 [search provenance reference](../reference/report-snapshots.md#tiered-variant-search)
 and [user action reference](../user-guide/actions-and-record-changes.md#inactive-annotations-and-sample-history).
 
-### 5.5 Reportability
-
-After query and annotation enrichment:
-
-1. blacklist metadata is attached;
-2. global annotation and classification are attached;
-3. hotspot metadata is hydrated;
-4. selected report gene scope is enforced;
-5. blacklisted findings are excluded;
-6. findings without a classification are excluded;
-7. Tier IV and class `999` are excluded;
-8. assay-specific tier policy is applied;
-9. remaining rows are simplified for report composition;
-10. rows are ordered by class and case allele frequency.
-
-The output of this stage is the prepared small-variant list. A report-text
-engine must not repeat or override these decisions.
-
-## 6. Other Prepared Data Domains
-
-### 6.1 CNVs
-
-CNVs are prepared only when the ASPC enables the CNV report section.
-
-The application:
-
-1. loads interesting CNVs for the sample;
-2. applies configured gain/loss effects;
-3. applies selected CNV gene scope;
-4. organizes genes for presentation;
-5. returns normalized report rows.
-
-CNV classification and report action behavior remain separate from SNV tier
-logic.
-
-### 6.2 CNV profile
-
-The CNV profile is an image artifact, not a CNV call and not coverage data.
-
-- The review UI displays it beside the CNV table.
-- The report application resolves `sample.files.cnvprofile`.
-- The image is encoded and embedded when `CNV_PROFILE` is a report section.
-- An image alone does not provide a structured result such as `normal` or
-  `complex_abnormal`.
-
-> [!WARNING]
->
-> Clinical text must not match on an interpreted CNV-profile status until a
-> typed status, authoritative producer, allowed values, and provenance are
-> implemented.
->
-
-### 6.3 Fusions and translocations
-
-Fusion and translocation rows are prepared from their dedicated collections.
-Only sections enabled by ASPC are loaded. Interesting/reportable state and
-annotation enrichment are resolved before text composition.
-
-Fusion and translocation matching must use their own typed identities. They
-must not be forced through SNV HGVSp/HGVSc matching.
-
-### 6.4 Biomarkers
-
-Biomarker documents provide structured assay results such as:
-
-- MSI single-sample and paired values;
-- HRD components and summary values;
-- TMB in mutations per megabase.
-
-The report context selects HRD, MSI, and TMB independently through their report sections.
-Visible report text requires an explicit template or a validated clinical text
-rule.
-
-> [!CAUTION]
->
-> Thresholds, units, and missing-value behavior must be defined before a
-> biomarker can drive conditional clinical wording. A workbook label is not
-> a machine-readable result.
->
-
-### 6.5 Coverage
-
-Coverage is DNA quality information. It can be available for review and can be
-enabled in ASPC analysis/report settings. Coverage thresholds come from
-`filters.coverage`.
-
-Coverage data and CNV profile data are independent and must not share a status
-or file key.
-
-## 7. Prepared Report Context
-
-The complete output of data preparation is a versioned report context. It
-contains only normalized, report-facing data.
-
-```yaml
-context_version: 1
-
-sample:
-  oid: "<ObjectId>"
-  name: "<sample name>"
-  asp_id: "<ASP ID>"
-  diagnosis_id: "<diagnosis or base>"
-  environment: "<environment>"
-  asp_category: dna
-  paired: true
-  genome_build: 38
-  database_versions:
-    vep: "103"
-  case: {}
-  control: {}
-
-asp:
-  oid: "<ObjectId>"
-  asp_id: "<ASP ID>"
-  asp_group: "<group>"
-  asp_family: "<family>"
-  asp_category: dna
-  accredited: true
-
-aspc:
-  oid: "<ObjectId>"
-  aspc_id: "<ASPC ID>"
-  version: 3
-  analysis_types: [SNV, CNV, HRD, MSI]
-  report_sections: [SNV, CNV, HRD, MSI]
-
-applied_gene_scope:
-  snv_lists: []
-  cnv_lists: []
-  fusion_lists: []
-  adhoc_genes: {}
-  effective_genes:
-    snv: []
-    cnv: []
-    fusion: []
-
-findings:
-  small_variants: []
-  cnvs: []
-  fusions: []
-  translocations: []
-
-results:
-  biomarkers: []
-  coverage: null
-  cnv_profile: null
-
-provenance:
-  filters_snapshot: {}
-  source_counts: {}
-  database_versions: {}
-  prepared_on: "<UTC datetime>"
-```
-
-### 7.1 Contract guarantees
-
-The producer guarantees that:
-
-- findings have passed the current analytical filters;
-- gene-list scope has already been applied;
-- selected transcripts are final;
-- classifications are current for the sample assay/diagnosis context;
-- excluded clinical states have already been removed;
-- enabled and missing domains are distinguishable;
-- source and output counts are available for traceability;
-- the context is read-only after construction.
-
-### 7.2 Values that must remain distinct
-
-The contract must distinguish:
-
-- `missing`: no source value exists;
-- `not_applicable`: the field does not apply;
-- `indeterminate`: the assay produced no conclusive result;
-- `normal`: a validated result is normal;
-- `false`: an explicit boolean result;
-- `0`: a measured numeric value.
-
-These values must not be collapsed into an empty string.
-
-## 8. Clinical Text Generation Boundary
-
-Reporting composes report text from the prepared context, ASPC reporting
-fields, and the active published clinical-rule release selected by assay, diagnosis,
-analyte, and reporting language. Exact scope takes precedence over the same assay's
-Base scope. An invalid or ambiguous exact release fails rather than falling back.
-Drafts and published releases are stored in MongoDB; runtime evaluation validates
-the selected release's contract and content hash.
-
-The evaluator may:
-
-- inspect prepared findings and results;
-- calculate deterministic counts and groups;
-- select a validated text rule;
-- render approved variables into text;
-- order text blocks;
-- return a trace of matched rules.
-
-The evaluator may not:
-
-- query MongoDB;
-- load ASP, ASPC, ISGL, or sample documents;
-- apply analytical filters;
-- select transcripts;
-- normalize genes;
-- assign tiers;
-- decide false-positive, irrelevant, or blacklist state;
-- call external knowledgebases;
-- mutate source or report documents.
-
-This separation prevents report wording from changing the clinical data set it
-is supposed to describe.
-
-## 9. Preview And Save
-
-### 9.1 Preview
-
-Preview:
-
-1. resolves the active sample configuration by `asp_id`, `diagnosis_id`, and
-   environment;
-2. builds the prepared report context from current filters;
-3. composes report text and sections;
-4. renders self-contained HTML;
-5. optionally renders a review PDF;
-6. returns temporary snapshot rows.
-
-Preview does not create `reports` or `reported_variants`.
-
-### 9.2 Save
-
-Save is an explicit, permissioned action. The backend does not trust
-client-supplied HTML.
-
-Save:
-
-1. rebuilds and validates the report context;
-2. allocates the next report number;
-3. verifies artifact paths do not conflict;
-4. renders HTML;
-5. renders PDF from the same HTML;
-6. writes report metadata;
-7. updates the sample's latest-report pointer;
-8. writes immutable reported-finding snapshots;
-9. emits an audit event.
-
-### 9.3 Persisted provenance
-
-A saved report preserves:
-
-- sample and report identity;
-- exact filters used;
-- ASPC identity and version;
-- report artifacts;
-- author and UTC creation time;
-- per-finding report snapshots;
-- selected annotation references;
-- data-version context available at creation time.
-
-The report also preserves the selected published MongoDB rule-set identity,
-content version, canonical content hash, and matched rule IDs. Selection uses
-assay, diagnosis, analyte, and reporting language, with Base used only when no
-exact active published release exists. See [clinical reporting rules](../reference/clinical-reporting-rules.md#rule-set-identity-and-selection).
-
-## 10. Collection Relationships
-
-![Clinical resources and saved evidence](../assets/diagrams/collection-relationships.svg)
-
-`samples` is the current operational state. `reports` and
-`reported_variants` preserve historical clinical output.
-
-`finding_comments` stores sample-specific review notes for small variants,
-CNVs, fusions, and translocations. Finding documents remain analysis records;
-their API representations are hydrated with comments when a detail page,
-report workflow, or paginated finding table needs them.
-
-## 11. Traceability And Failure Semantics
-
-### 11.1 Required trace data
-
-For each preparation request, operational logs should identify:
-
-- sample name;
-- sample ObjectId in structured detail;
-- ASP and resolved ASPC identity/version;
-- active filter hash or snapshot;
-- applied gene-list IDs;
-- source and prepared counts by domain;
-- omitted domains and reason;
-- request ID.
-
-### 11.2 Blocking failures
-
-Report preparation must fail when:
-
-- the sample cannot be resolved;
-- the active ASPC cannot be resolved for the sample scope;
-- ASP/ASPC/sample scope conflicts;
-- a required report domain cannot be loaded;
-- a declared critical value has the wrong type or unit;
-- an output path is unavailable during save;
-- artifact or database persistence fails.
-
-### 11.3 Non-blocking absence
-
-An optional section can be absent only when:
-
-- ASPC does not require it; and
-- no file or result was declared for it; and
-- the report section contract permits omission.
-
-Absence must remain visible in trace metadata rather than being converted to a
-normal result.
-
-## 12. Verification Checklist
-
-Before changing a query, annotation matcher, or report context:
-
-1. Identify the source collection and Pydantic contract.
-2. Confirm the field path, type, unit, and missing-value semantics.
-3. Confirm ASPC scope and sample filter authority.
-4. Add positive, negative, boundary, and missing-input tests.
-5. Verify source count, filtered count, and reportable count.
-6. Verify preview writes no clinical history.
-7. Verify save preserves filter and configuration provenance.
-8. Verify historical reports remain unchanged.
-9. Update this guide and the relevant user/API reference.
-
-## 13. Related Documentation
-
-- [System relationships](resource-relationships.md)
-- [Data contracts](data-contracts.md)
-- [ASPC-driven query strategy](../reference/assay-filtering.md)
-- [Reporting workflow and snapshots](../reference/report-snapshots.md)
-- [DNA and RNA workflow](../reference/dna-rna-data-model.md)
-- [Collection contracts](../reference/mongodb-collections.md)
-- [Sample YAML](../reference/sample-manifest.md)
+</details>
+
+## Investigate a discrepancy
+
+| Symptom | First check |
+| --- | --- |
+| A submitted sample is missing or not ready | [Job state and ingestion recovery](../operations/ingest-job-recovery.md) |
+| A finding is visible in analysis but absent from a report | Report section, sample filters, exact classification scope, tier policy and review flags |
+| An expected sentence is absent | Resolved published rule scope, intent, required facts and rule-test trace |
+| Preview and save disagree | Changed sample/configuration/review inputs; refresh and review the preview |
+| A saved artifact is unavailable | [Artifact state and recovery](../reference/report-snapshots.md#save-guarantees) |
+
+When changing this workflow, verify selected findings, gene scope, missing-value
+semantics, preview behaviour and persisted provenance with the affected clinical
+tests. Tests of rendering alone do not verify clinical eligibility.
