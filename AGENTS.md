@@ -70,6 +70,12 @@ and `frontend/src/main.tsx`.
   aliases or compatibility shims for renamed concepts unless explicitly required.
 - Never add secrets, credentials, tokens, patient information, real sample identifiers,
   or private operational data.
+- Use repository-relative paths in documentation, shared commands and developer handoffs.
+  State the working directory when it matters. Never hardcode a developer's checkout
+  location or username. When an absolute path is required, resolve it at runtime from
+  the repository or package location, an allocated temporary directory, or explicit
+  configuration. Access installed package assets through package-resource APIs rather
+  than assuming a source checkout exists.
 
 ### Python
 
