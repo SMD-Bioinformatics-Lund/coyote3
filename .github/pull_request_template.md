@@ -14,8 +14,11 @@ Demo, Deployment or Docs.
 
 ## Verification
 
-- Checks completed and results:
-- Checks not run and reason (or None):
+| Command or check | Result |
+| --- | --- |
+| | |
+
+Checks not run and reason (or None):
 
 For intentional UI or report changes, include synthetic screenshots or an example.
 
@@ -24,3 +27,16 @@ For intentional UI or report changes, include synthetic screenshots or an exampl
 State **None**, or describe affected interfaces, configuration, stored data,
 permissions or clinical behavior, with deployment and recovery steps.
 For a release PR, link the changelog and validation record.
+
+## Checklist
+
+Check completed items. For anything that does not apply, replace its checkbox
+with **N/A** and a short reason. Version bumps belong to release preparation;
+keep dependency requirements and release selections consistent whenever they change.
+
+- [ ] Related issue is linked and the target branch is `dev` (release PRs target `master`).
+- [ ] Relevant checks passed, results are recorded above, and regression coverage is updated where needed.
+- [ ] Root and affected component changelogs describe the changes.
+- [ ] Required versions, dependencies, `release.toml`, derived metadata and lock files are consistent.
+- [ ] Affected documentation, configuration examples and public contracts are updated.
+- [ ] Compatibility, deployment and recovery needs are documented, including clinical or access-control effects.

@@ -2,6 +2,7 @@ name: Feature request
 description: Propose a concrete improvement to a workflow.
 title: "[Feature]: "
 labels: [enhancement]
+projects: [SMD-Bioinformatics-Lund/22]
 body:
   - type: markdown
     attributes:

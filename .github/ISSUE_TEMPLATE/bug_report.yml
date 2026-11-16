@@ -2,6 +2,7 @@ name: Bug report
 description: Report a reproducible failure or an incorrect result.
 title: "[Bug]: "
 labels: [bug]
+projects: [SMD-Bioinformatics-Lund/22]
 body:
   - type: markdown
     attributes:

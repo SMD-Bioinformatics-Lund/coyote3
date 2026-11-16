@@ -26,16 +26,32 @@ fix should preserve the approved design.
 4. Open a PR into `dev`, linking the issue and recording actual validation results.
 5. Resolve review feedback before merging.
 
-The short PR template covers behavior, modules, validation and release impact.
+The PR template records behavior, modules, check results and release impact. Its
+checklist covers tests, changelogs, required version updates, documentation and
+compatibility. Mark non-applicable items with a reason; routine changes do not
+require a version bump before release preparation.
 Use the [module guidance](docs/project/contributing.md#module-update-checklist)
 for changes to clinical rules, interfaces or deployment. Avoid patient data,
 credentials, private environment files and internal discussion in public records.
 
 Issue templates in `.github/ISSUE_TEMPLATE/*.yml` define GitHub forms with text
 fields, dropdowns and required answers. Submitted issues remain editable Markdown.
+Separate Markdown issue templates are not needed for the same request types.
 The Markdown PR template, `.github/pull_request_template.md`, pre-fills a new PR's
 description. Templates become available on GitHub after they are merged into the
 repository's default branch.
+
+All three issue forms select the
+[coyote3 project](https://github.com/orgs/SMD-Bioinformatics-Lund/projects/22)
+through `projects: [SMD-Bioinformatics-Lund/22]`. GitHub applies this setting when
+the reporter has write access to the project. To include public contributors and
+issues opened through the API or CLI, maintainers must configure the project's
+**Workflows → Auto-add to project** with repository
+`SMD-Bioinformatics-Lund/coyote3` and filter `is:issue`, then save and enable it.
+This built-in workflow requires no repository token or Actions runner. It applies
+when matching issues are created or updated; enabling it does not import existing
+issues. See GitHub's [issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms)
+and [auto-add instructions](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically).
 
 ## Verification and releases
 

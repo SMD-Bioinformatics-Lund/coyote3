@@ -1,7 +1,8 @@
 name: Support request
 description: Ask for help with installation, configuration or usage.
 title: "[Support]: "
-labels: [support]
+labels: [question]
+projects: [SMD-Bioinformatics-Lund/22]
 body:
   - type: markdown
     attributes:
