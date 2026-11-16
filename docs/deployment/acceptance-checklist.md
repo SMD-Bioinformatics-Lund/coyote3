@@ -136,6 +136,7 @@ bash scripts/deployment/center_check.sh \
 Then run the real-browser suite:
 
 ```bash
+export COYOTE4_E2E_RELEASE=1
 export COYOTE4_E2E_BASE_URL='https://validation.example.org/coyote4/'
 export COYOTE4_E2E_USERNAME="$COYOTE4_VALIDATION_USER"
 export COYOTE4_E2E_PASSWORD="$COYOTE4_VALIDATION_PASSWORD"
@@ -146,6 +147,8 @@ npm --prefix frontend run test:e2e:real
 
 For each sample, compare loaded resources, finding counts, enabled tabs,
 filters, report preview, and audit events with the approved validation record.
+Release mode requires all five deployment inputs and trusted HTTPS. It rejects
+skipped scenarios; run the complete suite without filters or test exclusions.
 A skipped authenticated browser test is incomplete evidence, not a pass.
 
 ## 5. Validate backup restoration

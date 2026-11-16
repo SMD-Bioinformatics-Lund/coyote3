@@ -102,11 +102,28 @@ COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
   npm run test:e2e:real
 ```
 
-For release promotion, set the required env vars and run `cd frontend && npm run test:e2e:real`
-directly. All five env vars (`COYOTE4_E2E_BASE_URL`, `COYOTE4_E2E_USERNAME`,
+For release promotion, set `COYOTE4_E2E_RELEASE=1` and run
+`cd frontend && npm run test:e2e:real`. All five env vars (`COYOTE4_E2E_BASE_URL`, `COYOTE4_E2E_USERNAME`,
 `COYOTE4_E2E_PASSWORD`, `COYOTE4_E2E_DNA_SAMPLE`, `COYOTE4_E2E_RNA_SAMPLE`) must be
-exported before running. Deployment acceptance checks are maintained in
+exported before running. Release mode rejects missing inputs before starting a
+browser and requires trusted HTTPS. It rejects test-name/file filters, project
+selection, shards, listing and reporter overrides, and fails if any scenario is
+skipped, unfinished, marked as an expected failure or passes only after a retry.
+Focused `test.only` declarations also fail. Execution controls such as `--workers`,
+`--timeout`, `--output` and `--trace` remain available. Run the complete suite for
+promotion; use non-release mode for selective diagnosis. Deployment acceptance checks are maintained in
 [Target-center acceptance](../deployment/acceptance-checklist.md).
+
+Certificate verification is enabled for every real-deployment run. For local
+HTTPS development with a self-signed certificate, explicitly set
+`COYOTE4_E2E_ALLOW_SELF_SIGNED=1`; this is accepted only for `localhost`,
+`127.0.0.1` or `::1`, and never in release mode. Install a trusted certificate
+for remote validation targets.
+
+The report checks use the current HTML/PDF preview controls and compare the
+renderer metadata with the dependency selected by `core/pyproject.toml` in the
+release checkout. HTML downloads must match the preview response exactly, and
+preview/download actions must leave the saved-report library unchanged.
 
 Record the execution date, target environment, test-account scope, and evidence
 with each release candidate. This repository provides the procedure and test
@@ -122,7 +139,7 @@ COYOTE4_E2E_PASSWORD='<controlled-test-password>' \
 
 `COYOTE4_E2E_BASE_URL` must include the deployment prefix. Relative navigation
 is used deliberately so browser requests remain below that prefix. The
-authenticated smoke test is skipped when credentials are absent. Credentials
+authenticated smoke test is skipped when credentials are absent outside release mode. Credentials
 must come from the shell or CI secret store and must never be committed.
 
 ### Composed Stack Acceptance Check

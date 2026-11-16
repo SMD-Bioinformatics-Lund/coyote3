@@ -14,7 +14,8 @@
   and traceable report artifacts.
 - Exact assay/environment access, scoped credentials and durable audit records.
 - Background ingestion with recovery support, container deployment and migration tools.
-- Package-owned tests, fast smoke suites, separate coverage and streamlined documentation.
+- Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
+  and explicit deployed-release acceptance checks with streamlined documentation.
 - GNU GPL version 3 only, with separate copyright and contributor notices.
 
 See the [upgrade procedure](docs/deployment/application-upgrades.md) for deployment,

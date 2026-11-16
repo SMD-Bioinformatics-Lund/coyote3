@@ -1,22 +1,23 @@
 import { defineConfig, devices } from "@playwright/test"
+import { deploymentSettings, validateReleaseArguments } from "./tests/e2e-real/support/deployment-settings"
 
-const baseURL = process.env.COYOTE4_E2E_BASE_URL
-
-if (!baseURL) {
-  throw new Error("COYOTE4_E2E_BASE_URL is required for real-deployment browser tests.")
-}
-
-const deploymentBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`
+const settings = deploymentSettings(process.env)
+// Workers reload this file with their own entry-point arguments; validate in the CLI runner.
+if (settings.release && process.argv[2] === "test") validateReleaseArguments(process.argv.slice(2))
 
 export default defineConfig({
   testDir: "./tests/e2e-real",
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  reporter: "line",
+  forbidOnly: settings.release,
+  failOnFlakyTests: settings.release,
+  reporter: settings.release
+    ? [["line"], ["./tests/e2e-real/support/require-complete-acceptance.ts"]]
+    : "line",
   use: {
-    baseURL: deploymentBaseURL,
-    ignoreHTTPSErrors: true,
+    baseURL: settings.baseURL,
+    ignoreHTTPSErrors: settings.ignoreHTTPSErrors,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
