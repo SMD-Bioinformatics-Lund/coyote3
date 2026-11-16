@@ -2,6 +2,8 @@
 
 ## 4.0.0
 
+- Match assay-configuration repository contracts to the implemented active-state
+  filters and typed analysis rollups.
 - Own portable clinical, contract and workflow regression tests, isolated synthetic
   ports, a fast smoke suite and complete-source branch coverage.
 - Include the separate Ram Nanduri/SMD copyright and contributor notice in

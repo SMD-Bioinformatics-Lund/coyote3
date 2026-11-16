@@ -26,6 +26,7 @@ from coyote.config.constants import (
 )
 from coyote.contracts.operations import OperationResult
 from coyote.domain.common.errors import api_error
+from coyote.domain.repository_protocols import AnalysisTypeRollup
 from pymongo import cursor
 from pymongo.errors import DuplicateKeyError
 
@@ -149,16 +150,34 @@ class ASPConfigRepository(BaseRepository):
         raise ValueError("asp_configs.aspc_id is required in strict business-key mode")
 
     def count_aspcs(self, is_active: bool | None = None) -> int:
-        """
-        Count ASPCs with an optional active-status filter.
+        """Count assay configurations, optionally selecting an active state.
+
+        Args:
+            is_active: True selects active configurations; False selects inactive ones.
+                None, the default, counts all stored configurations.
+
+        Returns:
+            The number of stored configurations matching the selected state.
         """
         query = {}
         if is_active is not None:
             query["is_active"] = is_active
         return int(self.get_collection().count_documents(query))
 
-    def get_dashboard_analysis_type_rollup(self, *, asp_ids: list[str]) -> list[dict]:
-        """Count enabled and reportable analysis types for active targeted-panel ASPCs."""
+    def get_dashboard_analysis_type_rollup(self, *, asp_ids: list[str]) -> list[AnalysisTypeRollup]:
+        """Count analysis capabilities of active configurations for selected assays.
+
+        Args:
+            asp_ids: Required assay IDs; an empty list selects none. Blank IDs are
+                ignored, and duplicates select an assay only once.
+
+        Returns:
+            Rows sorted by uppercase analysis_type, each containing integer enabled
+            and reportable counts, including zero for an absent category.
+
+        Raises:
+            ValueError: A nonblank assay identifier has invalid syntax.
+        """
         normalized_ids = sorted(
             {
                 normalize_clinical_identifier(value, label="asp_id")
@@ -195,16 +214,21 @@ class ASPConfigRepository(BaseRepository):
             )
         )
         result = rows[0] if rows else {}
-        counts: dict[str, dict[str, int | str]] = {}
-        for field, output_key in (("enabled", "enabled"), ("reportable", "reportable")):
+        counts: dict[str, AnalysisTypeRollup] = {}
+        for field in ("enabled", "reportable"):
             for row in result.get(field, []) or []:
                 analysis_type = str(row.get("_id") or "").strip().upper()
                 if not analysis_type:
                     continue
-                counts.setdefault(
+                entry = counts.setdefault(
                     analysis_type,
                     {"analysis_type": analysis_type, "enabled": 0, "reportable": 0},
-                )[output_key] = int(row.get("count", 0) or 0)
+                )
+                count = int(row.get("count", 0) or 0)
+                if field == "enabled":
+                    entry["enabled"] = count
+                else:
+                    entry["reportable"] = count
         return [counts[key] for key in sorted(counts)]
 
     def get_all_aspc(self) -> cursor.Cursor:

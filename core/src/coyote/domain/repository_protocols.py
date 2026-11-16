@@ -3,7 +3,15 @@
 
 """Core repository protocols for dependency injection and type checking."""
 
-from typing import Any, Iterable, Protocol
+from typing import Any, Iterable, Protocol, TypedDict
+
+
+class AnalysisTypeRollup(TypedDict):
+    """Counts of active configurations enabling and reporting one analysis type."""
+
+    analysis_type: str
+    enabled: int
+    reportable: int
 
 
 class SampleRepositoryProtocol(Protocol):
@@ -173,40 +181,35 @@ class AssayConfigurationRepositoryProtocol(Protocol):
         """
         ...
 
-    def count_aspcs(self, is_active: bool = False) -> int:
-        """Count assay configurations matching an active-state filter.
+    def count_aspcs(self, is_active: bool | None = None) -> int:
+        """Count assay configurations, optionally selecting an active state.
 
         Args:
             is_active: True selects active configurations; False selects inactive ones.
+                None, the default, counts all stored configurations.
 
         Returns:
             The number of matching configuration documents.
-
-        Notes:
-            This protocol declares False as its default. The MongoDB implementation
-            defaults to None, which counts both states; pass a boolean explicitly
-            when relying on this protocol's active-state selection.
         """
         ...
 
     def get_dashboard_analysis_type_rollup(
         self,
         *,
-        asp_ids: list[str] | None = None,
-    ) -> dict[str, Any]:
+        asp_ids: list[str],
+    ) -> list[AnalysisTypeRollup]:
         """Count enabled and reportable analyses for selected active assay configurations.
 
         Args:
-            asp_ids: Assay IDs to include; an empty list selects none. Although this
-                protocol permits None, the MongoDB implementation requires a list.
+            asp_ids: Required assay IDs to include; an empty list selects none.
+                Blank identifiers are ignored and duplicate IDs select an assay once.
 
         Returns:
-            Counts by analysis type. The MongoDB implementation returns a sorted
-            list of analysis_type/enabled/reportable records, despite this protocol's
-            dictionary return annotation.
+            Rows sorted by uppercase analysis_type, with enabled and reportable counts.
+            Only active configurations of the selected assays contribute. An analysis
+            present in only one category has a zero count in the other category.
 
         Raises:
             ValueError: If a nonblank assay identifier has invalid syntax.
-            TypeError: If None is passed to the MongoDB implementation.
         """
         ...

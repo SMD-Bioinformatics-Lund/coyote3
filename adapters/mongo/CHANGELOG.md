@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Verify assay-configuration repository defaults, scope and typed rollups against
+  the core contract without changing dashboard results.
 - Select coyote-core 4.0.0 while retaining the adapter's independent 1.0.0 identity.
 - Own repository and adapter/core contract suites with explicit synthetic settings,
   fast record-conversion smoke checks and independent branch coverage.
