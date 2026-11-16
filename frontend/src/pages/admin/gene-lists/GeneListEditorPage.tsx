@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { AdminEditorActions, AdminEditorContent, SystemRecordNotice } from "@/components/admin/AdminEditorControls"
 import { useAdminEditor } from "@/components/admin/useAdminEditor"
 import { PageShell } from "@/components/layout/PageShell"

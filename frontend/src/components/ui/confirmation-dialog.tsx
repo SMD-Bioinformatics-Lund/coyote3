@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useEffectEvent, useId, useRef } from "react"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"

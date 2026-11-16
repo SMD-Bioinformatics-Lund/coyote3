@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { Condition, FactDefinition } from "./clinical-rules-types"
 
 export const CONDITION_PRESETS: { key: string; label: string; hint: string; condition: Condition }[] = [

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { MetricCard } from "@/components/cards/Panel"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { api } from "@/lib/api"

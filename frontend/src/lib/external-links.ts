@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { runtimeConfig } from "@/lib/runtime-config"
 
 export const EXTERNAL_LINK_BASES = {

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Suspense, lazy, type ReactNode } from "react"
 import { createBrowserRouter, createRoutesFromElements, Outlet, Route, RouterProvider, useRouteError } from "react-router-dom"

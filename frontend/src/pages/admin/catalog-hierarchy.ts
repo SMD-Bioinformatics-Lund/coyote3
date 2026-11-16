@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { Category, Modality } from "./catalog-types"
 
 export const CATALOG_INHERITED_FIELDS = ["description", "subheading", "input_material", "sample_modes", "analysis",

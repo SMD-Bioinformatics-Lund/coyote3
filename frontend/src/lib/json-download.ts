@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { downloadText } from "@/lib/browser-download"
 
 /** Download an application record without MongoDB implementation identifiers. */

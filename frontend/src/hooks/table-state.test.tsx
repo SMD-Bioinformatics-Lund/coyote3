@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { PropsWithChildren } from "react"
 import { act, renderHook } from "@testing-library/react"
 import { MemoryRouter, useLocation } from "react-router-dom"

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"

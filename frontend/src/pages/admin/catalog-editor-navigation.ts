@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { catalogNavigation, type CatalogBrowseNode, type CatalogNavigationOffering } from "../catalog/catalog-navigation"
 import { emptyCatalogInformation } from "../catalog/catalog-information"
 import type { CatalogNavigationNode } from "../catalog/offering-types"

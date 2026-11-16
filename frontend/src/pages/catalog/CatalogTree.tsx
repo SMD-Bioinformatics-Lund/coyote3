@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { Category } from "@/pages/admin/catalog-types"
 import { icon } from "@/lib/assets"
 import { useEffect, useState } from "react"

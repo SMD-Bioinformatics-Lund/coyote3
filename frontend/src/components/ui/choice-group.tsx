@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 import { SearchInput } from "@/components/ui/search-input"
 import { cn } from "@/lib/utils"

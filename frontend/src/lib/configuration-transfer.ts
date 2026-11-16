@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Application-owned fields at configuration-record boundaries, never inside rule content. */
 const metadataFields = new Set([
   "_id", "id_", "created_by", "updated_by", "created_at", "updated_at", "created_on", "updated_on",

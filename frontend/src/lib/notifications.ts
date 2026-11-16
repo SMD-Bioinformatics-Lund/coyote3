@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { notify } from "@/components/notifications/notification-store"
 import type { NotificationResource } from "@/components/notifications/notification-store"
 import { ApiClientError } from "@/lib/api"

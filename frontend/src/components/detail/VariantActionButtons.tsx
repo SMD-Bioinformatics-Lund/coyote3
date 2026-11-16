@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"

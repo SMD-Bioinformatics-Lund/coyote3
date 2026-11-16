@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")

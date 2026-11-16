@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type FilterSection = "snv" | "cnv" | "coverage" | "fusion" | "translocation"
 
 export function sampleFilePath(sample: any, key: string): string | undefined {

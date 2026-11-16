@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { TextField } from "./CatalogFields"
 import type { Presentation } from "./catalog-types"
 

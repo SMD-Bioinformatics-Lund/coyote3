@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Input } from "@/components/ui/input"
 import { MarkdownComposer } from "@/components/comments/MarkdownComposer"
 

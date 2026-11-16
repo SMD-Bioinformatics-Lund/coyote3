@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState } from "react"
 import { databaseLogo } from "@/lib/database-logos"
 import { appPath } from "@/lib/runtime-paths"

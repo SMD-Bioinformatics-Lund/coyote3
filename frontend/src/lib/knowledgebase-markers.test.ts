@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { expect, it } from "vitest"
 import { matchedKnowledgebaseGenes } from "./knowledgebase-markers"
 import { isOncoKbGene } from "./oncokb-ui"

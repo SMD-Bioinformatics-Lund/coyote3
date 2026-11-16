@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { BadgeList, HtmlText } from "./catalog-presentation"
 import { publishedGeneCount } from "./catalog-information"
 import { offeringPrice, type Offering } from "./offering-types"

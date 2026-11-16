@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { icon } from "@/lib/assets"
 

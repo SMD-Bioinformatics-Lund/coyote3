@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { renderHook } from "@testing-library/react"
 import { expect, it } from "vitest"
 import { useRuleWorkspaceLayout } from "./useRuleWorkspaceLayout"

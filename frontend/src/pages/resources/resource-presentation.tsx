@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { AppLoader } from "@/components/layout/AppLoader"
 import { sanitizeRichText } from "@/lib/safe-html"
 import { asList, display } from "./resource-values"

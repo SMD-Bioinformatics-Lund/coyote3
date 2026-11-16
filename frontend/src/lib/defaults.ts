@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Presentation defaults owned by the frontend. The API stores explicit preferences only. */
 const DEFAULT_LAYOUT = "classic" as const
 const MODERN_VIEW_TRIED = false

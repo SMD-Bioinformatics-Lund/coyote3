@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
 import { valueBadgeClass } from "@/lib/badge-colors"

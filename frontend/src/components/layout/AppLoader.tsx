@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export function AppLoader({ label = "Loading" }: { label?: string }) {
   return <GlobalLoadingIndicator label={label} />
 }

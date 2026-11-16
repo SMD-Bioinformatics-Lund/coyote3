@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { sanitizeRichText } from "@/lib/safe-html"
 import { configuredValueClasses } from "@/lib/badge-colors"
 import { cn } from "@/lib/utils"

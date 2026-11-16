@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { TierBadge } from "@/lib/variant-ui";
 import { percent } from "./cohort-formatters";
 

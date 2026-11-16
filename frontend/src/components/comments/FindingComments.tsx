@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { CommentsPanel, type CommentsPanelProps } from "@/components/comments/CommentsPanel"
 import type { FindingResourceType } from "@/lib/finding-actions"
 

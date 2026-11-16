@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Compile-time regression checks for the generated HTTP operation contracts. */
 import type { ApiOperations } from "./generated/operations.gen";
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { render, screen } from "@testing-library/react"
 import { Outlet, useParams } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"

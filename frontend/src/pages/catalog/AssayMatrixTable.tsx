@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { SearchInput } from "@/components/ui/search-input"

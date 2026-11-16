@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useState, type ComponentType } from "react"
 import { Link } from "react-router-dom"
 import { icon } from "@/lib/assets"

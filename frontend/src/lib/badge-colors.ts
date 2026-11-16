@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { GENELIST_TYPE_METADATA, configuredValueDescription } from "@/lib/configured-values"
 
 /** Workflow colors shared by resource tables and governed document workspaces. */

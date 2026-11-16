@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type AssayGrant = { asp_id: string; environments: string[] }
 
 export function AssayAccessEditor({ value, onChange, options = [], environments, disabled }: {

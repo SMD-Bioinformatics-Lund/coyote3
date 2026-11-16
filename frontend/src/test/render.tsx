@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { ReactElement } from "react"
 import { MemoryRouter } from "react-router-dom"
 import { render } from "@testing-library/react"

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { type LucideIcon } from "@/lib/assets"
 
 export function SetupEmptyState({ icon: Icon, title, description }: {

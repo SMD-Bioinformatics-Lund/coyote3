@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { TimeDisplay } from "@/components/ui/time-display"
 import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { api } from "@/lib/api"

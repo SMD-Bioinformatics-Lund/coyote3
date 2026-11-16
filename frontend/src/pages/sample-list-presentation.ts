@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import type { SampleDataSegment } from "./sample-data-status"
 import { FILE_ANALYSIS_LABELS } from "@/lib/sample-artifact-ui"
 import type { SortingState } from "@tanstack/react-table"

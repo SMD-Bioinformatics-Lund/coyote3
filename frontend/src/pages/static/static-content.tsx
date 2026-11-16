@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { icon as appIcon, type LucideIcon } from "@/lib/assets"
 

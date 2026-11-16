@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Link } from "react-router-dom"
 
 export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; canEdit: boolean }) {

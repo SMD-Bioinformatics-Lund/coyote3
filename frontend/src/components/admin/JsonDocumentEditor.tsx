@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type UIEvent } from "react"
 import { icon } from "@/lib/assets"
 

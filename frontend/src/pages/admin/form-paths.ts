@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export function readFormPath(source: Record<string, unknown>, path: string): unknown {
   return path.split(".").reduce<unknown>((value, key) => (
     value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined

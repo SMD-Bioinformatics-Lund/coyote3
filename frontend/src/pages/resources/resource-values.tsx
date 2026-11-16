@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { localDate } from "@/lib/detail-formatters"
 import { ColumnDef } from "@tanstack/react-table"

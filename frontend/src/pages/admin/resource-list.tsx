@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* eslint-disable react/only-export-components -- shared admin renderers and value helpers are intentionally colocated */
 import { TableBadge } from "@/components/ui/table-badge"
 import { TimeDisplay } from "@/components/ui/time-display"

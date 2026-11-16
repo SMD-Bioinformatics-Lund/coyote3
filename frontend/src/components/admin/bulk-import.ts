@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { parseDocument } from "yaml"
 import { configurationContent } from "@/lib/configuration-transfer"
 

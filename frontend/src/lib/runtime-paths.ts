@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 function normalizePrefix(value?: string) {
   const raw = String(value || "").trim()
   if (!raw || raw === "/") return ""

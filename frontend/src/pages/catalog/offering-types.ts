@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type GeneScope = {
   list_id: string; label: string; revision: number; analysis: string
   genes: string[]; excluded_gene_count: number

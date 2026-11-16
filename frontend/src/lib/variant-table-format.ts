@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type HotspotEntry = { source: string; identifiers: string[] }
 
 const COSMIC_IDENTIFIER = /^COS([VMN])(\d+)$/i

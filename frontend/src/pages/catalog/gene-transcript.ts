@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** HGNC reference fields used only to choose the catalog's displayed transcript. */
 export type GeneTranscriptMetadata = {
   refseq_mane_plus_clinical?: string[]

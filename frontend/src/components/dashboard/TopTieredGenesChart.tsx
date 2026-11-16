@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Link } from "react-router-dom"
 import { TableBadge } from "@/components/ui/table-badge"
 import { nomenclatureLabel } from "@/lib/application-constants"

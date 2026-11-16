@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /** Reject error pages and incomplete responses before opening the browser PDF viewer. */
 export async function validateReportPdf(blob: Blob): Promise<Blob> {
   const signature = await blob.slice(0, 5).text()

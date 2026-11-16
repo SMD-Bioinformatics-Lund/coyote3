@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { ChartPanel } from "@/components/plots/ChartPanel"
 import { donutMotion, donutTooltipLayer } from "@/components/plots/chart-options"

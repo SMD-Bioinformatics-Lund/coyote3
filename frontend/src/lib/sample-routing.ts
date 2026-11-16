@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export function sampleUrlKey(sample: any, fallback?: unknown) {
   const key = sample?.name || sample?.sample_name || fallback || sample?._id || sample?.id
   return encodeURIComponent(String(key || ""))

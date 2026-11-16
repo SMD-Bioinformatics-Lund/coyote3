@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useId, useMemo, useRef, useState } from "react"
 import { Dialog } from "@base-ui/react/dialog"
 import { useQuery, useQueryClient } from "@tanstack/react-query"

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 // Forward development UI output to the same internal syslog receiver as production Nginx.
 import { spawn } from "node:child_process"
 import { createSocket } from "node:dgram"

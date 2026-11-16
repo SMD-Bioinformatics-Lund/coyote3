@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export function isPresent(value: unknown) {
   if (value === null || value === undefined) return false
   if (typeof value === "string") return value.trim() !== "" && value !== "-"

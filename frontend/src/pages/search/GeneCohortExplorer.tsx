@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { DataTable } from "@/components/data-table/DataTable";
 import { GeneCohortCharts } from "@/components/gene-cohort/GeneCohortCharts";
 import {

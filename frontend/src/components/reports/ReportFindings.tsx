@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import type { ColumnDef } from "@tanstack/react-table"
 import { REPORT_SNAPSHOT_SECTIONS, isCompactReportBiomarker, type ReportSnapshotRow } from "./report-snapshot"

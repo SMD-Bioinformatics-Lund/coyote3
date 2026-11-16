@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { icon } from "@/lib/assets"
 import { Link, type LinkProps } from "react-router-dom"
 import { AppTooltip } from "@/components/ui/app-tooltip"

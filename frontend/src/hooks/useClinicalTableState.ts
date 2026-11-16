@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useEffect, useMemo, useState } from "react"
 import type { SortingState } from "@tanstack/react-table"
 import { useUrlTableState } from "@/hooks/useUrlTableState"

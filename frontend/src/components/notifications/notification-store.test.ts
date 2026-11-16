@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { describe, expect, it, vi } from "vitest"
 import { createNotification, notify, subscribeNotifications } from "./notification-store"
 

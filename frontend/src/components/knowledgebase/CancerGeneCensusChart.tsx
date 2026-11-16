@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { useState } from "react"
 import { shortCount } from "@/lib/detail-formatters"

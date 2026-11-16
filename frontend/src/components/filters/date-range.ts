@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 export type DateRangePreset = "all" | "today" | "1d" | "3d" | "7d" | "30d" | "custom"
 
 export const DATE_RANGE_OPTIONS = [

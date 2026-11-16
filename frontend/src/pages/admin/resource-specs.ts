@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { resource as aspc } from "./assay-configurations/resource"
 import { resource as asp } from "./assays/resource"
 import { resource as genelists } from "./gene-lists/resource"

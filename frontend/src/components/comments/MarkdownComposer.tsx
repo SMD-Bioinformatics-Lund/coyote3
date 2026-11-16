@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { useId, useRef, useState, type RefObject } from "react"
 import { icon as appIcon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"

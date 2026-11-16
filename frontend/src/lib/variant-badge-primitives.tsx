@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Ram Nanduri
+// SPDX-License-Identifier: GPL-3.0-only
+
 /* eslint-disable react/only-export-components -- shared badge primitives export components, styles, and positioning helpers together. */
 
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
