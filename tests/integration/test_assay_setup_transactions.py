@@ -5,13 +5,14 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from pymongo import MongoClient
-
-from api.infra.mongo.repositories.assay_setup import (
+from coyote.domain.exceptions import AppError
+from coyote_mongo.repositories.assay_setup import (
     AssaySetupRepository,
     AssaySetupRevisionRepository,
 )
-from coyote3.domain.exceptions import AppError
+from pymongo import MongoClient
+
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
@@ -21,8 +22,9 @@ def repository():
     if not uri:
         pytest.skip("Set ASSAY_SETUP_TEST_MONGO_URI for disposable replica-set tests")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    db = client[f"coyote3_setup_test_{uuid4().hex}"]
+    db = client[f"coyote4_setup_test_{uuid4().hex}"]
     adapter = SimpleNamespace(
+        app=mongo_runtime(),
         client=client,
         assay_groups_collection=db.groups,
         assay_setups_collection=db.setups,
@@ -75,7 +77,7 @@ def test_duplicate_resource_rolls_back_all_operational_writes(repository):
 
 def test_late_publication_failure_restores_pruned_snapshots(repository, monkeypatch):
     """An audit failure after pruning must roll back deletion and publication together."""
-    import api.infra.mongo.repositories.assay_setup as module
+    import coyote_mongo.repositories.assay_setup as module
 
     draft = repository.save(
         {"asp_id": "synthetic", "revision": 1, "status": "draft"}, action="created"

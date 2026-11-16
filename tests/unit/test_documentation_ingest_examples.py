@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
-
-from coyote3.application.ingest.parsers import DnaIngestParser, _normalize_fusion_docs
-from coyote3.contracts.schemas.dna import (
+from coyote.application.ingest.analysis_parsers import DnaIngestParser
+from coyote.application.ingest.parsers import _normalize_fusion_docs
+from coyote.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
     D4CoverageDoc,
@@ -14,7 +14,7 @@ from coyote3.contracts.schemas.dna import (
     TranslocationsDoc,
     VariantsDoc,
 )
-from coyote3.contracts.schemas.rna import (
+from coyote.contracts.schemas.rna import (
     FusionsDoc,
     RnaClassificationDoc,
     RnaExpressionDoc,
@@ -27,7 +27,7 @@ EXAMPLES = Path(__file__).resolve().parents[2] / "docs/assets/examples/ingest"
 @pytest.mark.parametrize("fail", [False, True])
 def test_small_variant_reader_closes_after_ingest(monkeypatch, fail):
     """Successful and rejected ingestion both release the open VCF handle."""
-    from coyote3.application.ingest import analysis_parsers
+    from coyote.application.ingest import analysis_parsers
 
     source = analysis_parsers.VariantFile(str(EXAMPLES / "small-variants-vcf.vcf"))
     monkeypatch.setattr(analysis_parsers, "VariantFile", lambda _: source)

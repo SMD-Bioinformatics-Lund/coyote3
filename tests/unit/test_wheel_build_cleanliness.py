@@ -9,11 +9,16 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.parametrize("distribution", ["client", "core"])
+@pytest.mark.parametrize("distribution", ["client", "core", "api", "mongo"])
 def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
     """Normal pip wheel builds replace deleted modules in both installable distributions."""
     root = Path(__file__).resolve().parents[2]
-    source = root / "clients/python" if distribution == "client" else root
+    source = {
+        "client": root / "clients/python",
+        "core": root / "core",
+        "api": root / "api",
+        "mongo": root / "adapters/mongo",
+    }[distribution]
     project = tmp_path / "project"
     project.mkdir()
     for name in [
@@ -22,17 +27,18 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         "LICENSE.txt",
         "NOTICE.txt",
         "MANIFEST.in",
-        "client_build.py" if distribution == "client" else "build_support.py",
+        "client_build.py"
+        if distribution == "client"
+        else "build_support.py"
+        if distribution == "core"
+        else "package_build.py",
     ]:
         shutil.copyfile(source / name, project / name)
     if distribution == "core":
-        for name in ["release.toml", "LICENSING.md", "THIRD_PARTY_NOTICES.md"]:
+        for name in ["LICENSING.md", "THIRD_PARTY_NOTICES.md"]:
             shutil.copyfile(source / name, project / name)
-    directories = (
-        ["src"]
-        if distribution == "client"
-        else ["src/coyote3", "api", "config/examples/center", "demo_data/clinical_workflows"]
-    )
+        shutil.copytree(source / "docs", project / "docs")
+    directories = ["src"]
     for name in directories:
         shutil.copytree(
             source / name,
@@ -40,13 +46,16 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
             ignore=shutil.ignore_patterns("*.egg-info", "__pycache__"),
         )
     deleted = (
-        ["coyote3_client/auth.py"]
+        ["coyote_pyclient/auth.py", "coyote4_client/__init__.py", "coyote3_client/__init__.py"]
         if distribution == "client"
+        else [f"{'coyote_api' if distribution == 'api' else 'coyote_mongo'}/removed_module.py"]
+        if distribution in {"api", "mongo"}
         else [
+            "coyote3/__init__.py",
             "api/app/deps/auth.py",
-            "coyote3/obsolete_compatibility.py",
-            "coyote3/templates/reporting/legacy/dna.html",
-            "coyote3/templates/reporting/assets/modern.css",
+            "coyote/obsolete_compatibility.py",
+            "coyote/templates/reporting/legacy/dna.html",
+            "coyote/templates/reporting/assets/modern.css",
         ]
     )
     for name in deleted:
@@ -74,9 +83,13 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         names = wheel.namelist()
     assert not set(deleted).intersection(names)
     if distribution == "client":
-        assert "coyote3_client/resources.py" in names
-        assert "coyote3_client/py.typed" in names
+        assert "coyote_pyclient/resources.py" in names
+        assert "coyote_pyclient/py.typed" in names
+    elif distribution == "core":
+        assert not any(name.startswith(("api/", "coyote_api/", "coyote_mongo/")) for name in names)
+        assert "coyote/application/reporting/smd_input.py" in names
+        assert not any(name.startswith("coyote/templates/reporting/") for name in names)
     else:
-        assert "api/app/main.py" in names
-        assert "coyote3/application/reporting/smd_input.py" in names
-        assert not any(name.startswith("coyote3/templates/reporting/") for name in names)
+        assert (
+            "coyote_api/app/main.py" if distribution == "api" else "coyote_mongo/selection.py"
+        ) in names

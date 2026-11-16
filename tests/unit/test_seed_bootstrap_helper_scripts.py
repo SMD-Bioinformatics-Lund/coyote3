@@ -8,13 +8,14 @@ import sys
 from pathlib import Path
 
 import mongomock
-
-from api.infra.seed.bundle import (
+import pytest
+from coyote_api.infra.seed.bundle import (
     canonicalize_seed_contract,
     load_seed,
     lower_business_keys,
     stamp_docs,
 )
+
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
@@ -38,7 +39,7 @@ def _run_script(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def test_sync_rbac_catalog_preserves_custom_policy_and_adds_missing_grants():
-    database = mongomock.MongoClient()["coyote3_test"]
+    database = mongomock.MongoClient()["coyote4_test"]
     database.permissions.insert_one(
         {
             "permission_id": "assay.config:view",
@@ -156,7 +157,7 @@ def test_sync_rbac_catalog_preserves_custom_policy_and_adds_missing_grants():
 def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_roles():
     """Maintenance sync adds new application roles and preserves center roles."""
     client = mongomock.MongoClient()
-    database = client.coyote3
+    database = client.coyote4
     database.roles.insert_one(
         {
             "role_id": "center_reviewer",
@@ -188,7 +189,7 @@ def test_sync_rbac_catalog_inserts_missing_bundled_role_without_removing_custom_
                 "name": "operations_viewer",
                 "label": "Operations Viewer",
                 "description": "Views operational state.",
-                "color": "slate",
+                "color": "#64748b",
                 "level": 180,
                 "is_active": True,
                 "permissions": ["app.controls:view"],
@@ -256,7 +257,7 @@ def test_application_bootstrap_catalog_contains_canonical_permissions_and_roles(
 
 def test_first_deployment_bootstrap_detects_empty_partial_and_complete_state():
     """First-run bootstrap runs only against empty governance collections."""
-    database = mongomock.MongoClient()["coyote3_test"]
+    database = mongomock.MongoClient()["coyote4_test"]
     assert _deployment_is_initialized(database, ("users", "roles", "permissions")) is False
     assert _superuser_exists(database, "users") is False
 
@@ -283,14 +284,14 @@ def test_database_bootstrap_prepares_rbac_and_reference_data_without_demo_center
 
 def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monkeypatch):
     """Seed export revisions become fresh baselines without altering clinical content."""
-    from api.infra.seed.bundle import load_seed
-    from coyote3.application.reporting.clinical_rules.validation import (
+    from coyote.application.reporting.clinical_rules.validation import (
         content_hash,
         validate_rule_set,
     )
-    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote_api.infra.seed.bundle import load_seed
 
-    source = load_seed(ROOT_DIR / "api/bootstrap/catalogs/demo_center")
+    source = load_seed(ROOT_DIR / "api/src/coyote_api/bootstrap/catalogs/demo_center")
     original_rules = json.loads(json.dumps(source["clinical_rule_sets"]))
     for collection, documents in source.items():
         for document in documents:
@@ -300,10 +301,10 @@ def test_bootstrap_installs_first_versions_with_administrator_audit_fields(monke
             else:
                 document["version"] = 8
                 document["system_managed"] = False
-    from api.infra.seed.documents import load_reference_seed_pack
+    from coyote_api.infra.seed.documents import load_reference_seed_pack
 
     monkeypatch.setattr(
-        "api.infra.seed.documents.load_reference_seed_pack",
+        "coyote_api.infra.seed.documents.load_reference_seed_pack",
         lambda directory, **kwargs: {
             **load_reference_seed_pack(directory, **kwargs),
             **(source if directory == DEFAULT_REFERENCE_DIR else {}),
@@ -361,9 +362,9 @@ def test_initial_rbac_uses_system_creation_provenance():
 
 def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
     monkeypatch.setattr(
-        "api.infra.mongo.transactions.run_transaction", lambda client, operation: operation(None)
+        "coyote_mongo.transactions.run_transaction", lambda client, operation: operation(None)
     )
-    database = mongomock.MongoClient()["coyote3_test"]
+    database = mongomock.MongoClient()["coyote4_test"]
     seed = {
         "permissions": [{"permission_id": "sample:view"}],
         "roles": [
@@ -432,7 +433,7 @@ def test_seed_normalization_canonicalizes_current_contract_shape(tmp_path):
     source_dir.mkdir()
 
     (source_dir / "permissions.json").write_text(
-        json.dumps([{"permission_name": "SAMPLES:VIEW"}]), encoding="utf-8"
+        json.dumps([{"permission_id": "SAMPLES:VIEW"}]), encoding="utf-8"
     )
     (source_dir / "roles.json").write_text(
         json.dumps(
@@ -440,7 +441,6 @@ def test_seed_normalization_canonicalizes_current_contract_shape(tmp_path):
                 {
                     "role_id": "Admin",
                     "permissions": ["SAMPLES:VIEW", "samples:view"],
-                    "deny_permissions": ["reports:delete"],
                 }
             ]
         ),
@@ -543,6 +543,21 @@ def test_seed_normalization_canonicalizes_current_contract_shape(tmp_path):
     assert "groups" not in sample
 
 
+@pytest.mark.parametrize(
+    "collection,document",
+    [
+        ("permissions", {"permission_name": "samples:view"}),
+        ("roles", {"deny_permissions": ["samples:view"]}),
+        ("samples", {"vcf_files": "synthetic.vcf"}),
+        ("samples", {"comments": []}),
+    ],
+)
+def test_seed_contract_rejects_retired_fields(collection, document):
+    """Seed input must satisfy the current contract without hidden translation or loss."""
+    with pytest.raises(ValueError):
+        canonicalize_seed_contract({collection: [document]})
+
+
 def test_check_markdown_links_script_runs_clean():
     result = _run_script(["scripts/docs/check_markdown_links.py"])
     assert result.returncode == 0, result.stderr
@@ -558,7 +573,7 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
                 "INTERNAL_API_TOKEN=synthetic-internal-token",
                 "PASSWORD_TOKEN_SALT=synthetic-password-salt",
                 "REDIS_PASSWORD=" + "a" * 64,
-                "COYOTE3_MONGO_URI=mongodb://mongo:27017/coyote3",
+                "COYOTE4_MONGO_URI=mongodb://mongo:27017/coyote4",
                 "AUTHENTICATION_PROVIDERS=local,ldap",
                 "LDAP_SECRET=",
             )
@@ -585,7 +600,7 @@ def test_env_secret_validation_requires_password_token_salt(tmp_path):
             (
                 "SECRET_KEY=secret-value",
                 "INTERNAL_API_TOKEN=internal-token",
-                "COYOTE3_MONGO_URI=mongodb://mongo:27017/coyote3",
+                "COYOTE4_MONGO_URI=mongodb://mongo:27017/coyote4",
             )
         ),
         encoding="utf-8",
@@ -703,7 +718,12 @@ def test_quality_workflow_uses_cost_bounded_current_branch_validation():
     assert "github.event.pull_request.draft == false" in workflow
     assert '"$EVENT_ACTION" == "labeled"' in workflow
     assert 'if [[ "$label_only" != "true" ]]' in workflow
-    assert workflow.count("PYTHONPATH=. pytest -q tests/unit tests/api tests/integration") == 1
+    assert (
+        workflow.count(
+            "PYTHONPATH=. pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests"
+        )
+        == 1
+    )
     assert "run_family_coverage_gates.sh --from-existing" in workflow
     assert "github.event_name != 'pull_request'" in workflow
     assert "retention-days: 7" in workflow
@@ -721,17 +741,17 @@ def test_manual_composed_workflow_uses_current_proxy_and_independent_mongodb_sta
     assert "  push:" not in workflow
     assert "docker-compose.mongo.yml" in workflow
     assert "Start disposable MongoDB replica set" in workflow
-    assert "MONGO_REPLICA_SET_NAME=coyote3-rs" in workflow
+    assert "MONGO_REPLICA_SET_NAME=coyote4-rs" in workflow
     assert "--with-mongo" not in workflow
     assert "--profile with-mongo" not in workflow
-    assert "COYOTE3_PORT:" in workflow
+    assert "COYOTE4_PORT:" in workflow
     assert "SCRIPT_NAME:" in workflow
-    assert "${COYOTE3_PORT}${SCRIPT_NAME}/api/v1/health" in workflow
+    assert "${COYOTE4_PORT}${SCRIPT_NAME}/api/v1/health" in workflow
     assert "retention-days: 3" in workflow
     for retired_key in (
-        "COYOTE3_STAGE_WEB_PORT",
-        "COYOTE3_STAGE_API_PORT",
-        "COYOTE3_STAGE_REDIS_PORT",
-        "COYOTE3_STAGE_MONGO_PORT",
+        "COYOTE4_STAGE_WEB_PORT",
+        "COYOTE4_STAGE_API_PORT",
+        "COYOTE4_STAGE_REDIS_PORT",
+        "COYOTE4_STAGE_MONGO_PORT",
     ):
         assert retired_key not in workflow

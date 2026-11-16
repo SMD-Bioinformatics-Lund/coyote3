@@ -30,7 +30,7 @@ def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid
                     "REDIS_PASSWORD",
                 )
             ]
-            + ["COYOTE3_MONGO_URI='mongodb://127.0.0.1:27017/'"]
+            + ["COYOTE4_MONGO_URI='mongodb://127.0.0.1:27017/'"]
         )
     )
     result = subprocess.run(
@@ -50,7 +50,7 @@ def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid
 
 def test_configuration_gate_reports_field_errors_without_echoing_input(monkeypatch, capsys):
     """Operators need the failing setting, not a dump of the submitted input value."""
-    from coyote3.application.reporting.presentation import ReportPresentation
+    from coyote.application.reporting.presentation import ReportPresentation
 
     def invalid_configuration():
         """Raise a representative optional center-file validation error."""
@@ -68,7 +68,7 @@ def test_configuration_gate_reports_field_errors_without_echoing_input(monkeypat
 def deployment(tmp_path):
     """Provide private synthetic configuration and a Docker stub with no network access."""
     center = tmp_path / "center"
-    shutil.copytree(ROOT / "config/examples/center", center)
+    shutil.copytree(ROOT / "api/src/coyote_api/config/examples/center", center)
     roots = {}
     for name in ("data", "logs"):
         roots[name] = tmp_path / name
@@ -79,14 +79,14 @@ def deployment(tmp_path):
         "INTERNAL_API_TOKEN": "synthetic-internal-token",
         "PASSWORD_TOKEN_SALT": "synthetic-password-salt",
         "REDIS_PASSWORD": "a" * 64,
-        "COYOTE3_MONGO_URI": "mongodb://synthetic:synthetic@127.0.0.1:27017/?authSource=admin&replicaSet=synthetic",
-        "COYOTE3_DB": "synthetic_application",
+        "COYOTE4_MONGO_URI": "mongodb://synthetic:synthetic@127.0.0.1:27017/?authSource=admin&replicaSet=synthetic",
+        "COYOTE4_DB": "synthetic_application",
         "IDENTITY_DB": "synthetic_identity",
         "KNOWLEDGEBASE_DB": "synthetic_knowledgebase",
         "BAM_DB": "synthetic_bam",
         "PUBLIC_BASE_URL": "http://127.0.0.1:6801",
         "SCRIPT_NAME": "/synthetic",
-        "COYOTE3_APP_NETWORK": "synthetic-app-network",
+        "COYOTE4_APP_NETWORK": "synthetic-app-network",
     }
     config = {
         "services": {
@@ -236,7 +236,7 @@ def test_center_check_uses_zip_upload_and_requires_terminal_success(tmp_path, st
             "bash",
             str(ROOT / "scripts/deployment/center_check.sh"),
             "--api-base-url",
-            "https://synthetic.invalid/coyote3",
+            "https://synthetic.invalid/coyote4",
             "--bearer-token",
             "synthetic-token",
             "--yaml-file",

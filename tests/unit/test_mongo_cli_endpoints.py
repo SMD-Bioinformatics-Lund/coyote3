@@ -6,8 +6,8 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
+from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH
 
-from api.config.paths import COLLECTIONS_CONFIG_PATH
 from scripts.identity import migrate_identity_database
 from scripts.knowledgebase import migrate_knowledgebase_database
 from scripts.knowledgebase.knowledgebase_update_common import add_common_arguments
@@ -53,7 +53,7 @@ def test_same_name_migration_fails_closed_for_unverifiable_cluster_identity():
 def test_migration_targets_independent_endpoints_or_explicit_shared_uri(
     monkeypatch, module, target_key, shared
 ):
-    monkeypatch.setenv("COYOTE3_MONGO_URI", "mongodb://source:27017")
+    monkeypatch.setenv("COYOTE4_MONGO_URI", "mongodb://source:27017")
     monkeypatch.setenv(target_key, "mongodb://target:27017")
     source = mongomock.MongoClient()
     target = mongomock.MongoClient()
@@ -84,7 +84,7 @@ def test_migration_targets_independent_endpoints_or_explicit_shared_uri(
 
 
 def test_importer_prefers_knowledgebase_uri_over_primary(monkeypatch):
-    monkeypatch.setenv("COYOTE3_MONGO_URI", "mongodb://app:27017")
+    monkeypatch.setenv("COYOTE4_MONGO_URI", "mongodb://app:27017")
     monkeypatch.setenv("KNOWLEDGEBASE_MONGO_URI", "mongodb://kb:27017")
     parser = argparse.ArgumentParser()
     add_common_arguments(parser)

@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 IMAGE = "nginx:1.27-alpine"
 
 
-@pytest.fixture(scope="module", params=["", "/coyote3"])
+@pytest.fixture(scope="module", params=["", "/coyote4"])
 def error_proxy(request, tmp_path_factory):
     """Start a synthetic proxy on loopback without touching application services."""
     if not shutil.which("docker"):
@@ -43,11 +43,11 @@ def error_proxy(request, tmp_path_factory):
         env={
             **os.environ,
             "SCRIPT_NAME": prefix,
-            "COYOTE3_NGINX_OUTPUT_PATH": str(output),
-            "COYOTE3_NGINX_FRONTEND_UPSTREAM": "http://127.0.0.1:8090",
-            "COYOTE3_NGINX_API_UPSTREAM": "http://127.0.0.1:8090",
-            "COYOTE3_NGINX_DOCS_UPSTREAM": "http://127.0.0.1:1",
-            "COYOTE3_NGINX_PUBLIC_SCHEME": "https",
+            "COYOTE4_NGINX_OUTPUT_PATH": str(output),
+            "COYOTE4_NGINX_FRONTEND_UPSTREAM": "http://127.0.0.1:8090",
+            "COYOTE4_NGINX_API_UPSTREAM": "http://127.0.0.1:8090",
+            "COYOTE4_NGINX_DOCS_UPSTREAM": "http://127.0.0.1:1",
+            "COYOTE4_NGINX_PUBLIC_SCHEME": "https",
         },
         capture_output=True,
         check=True,
@@ -137,7 +137,7 @@ def test_browser_errors_keep_status_and_security_headers(error_proxy, code):
     status, headers, body = _response(origin, f"{prefix}/fault/{code}?private=synthetic")
     assert status == code
     assert "Service temporarily unavailable" in body
-    assert "COYOT3" in body
+    assert "Coyote4" in body
     assert "synthetic upstream" not in body
     assert "private=synthetic" not in body
     assert headers["Content-Type"] == "text/html; charset=utf-8"
@@ -175,9 +175,9 @@ def test_api_and_non_server_errors_pass_through(error_proxy):
         status, _, body = _response(origin, f"{prefix}/fault/{code}")
         assert status == code
         assert body == "synthetic upstream"
-    status, _, body = _response(origin, "/_coyote3_unavailable.html")
+    status, _, body = _response(origin, "/_coyote4_unavailable.html")
     assert status == 404
-    assert "COYOT3" not in body
+    assert "Coyote4" not in body
 
 
 def test_error_page_handles_head_and_post_without_redirecting_browser(error_proxy):

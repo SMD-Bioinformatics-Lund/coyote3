@@ -3,14 +3,14 @@
 import json
 
 import pytest
-
-from api.config.operational_collections import OPERATIONAL_COLLECTIONS
-from api.infra.security.indexes import security_index_contracts
-from api.infra.security.mongo_roles import (
+from coyote_mongo.config.operational_collections import OPERATIONAL_COLLECTIONS
+from coyote_mongo.runtime_roles import (
     identity_role,
     runtime_roles,
     verify_runtime_audit_permissions,
 )
+from coyote_mongo.security_indexes import security_index_contracts
+
 from scripts.database.manage_mongo_roles import POLICY, policy_text, runtime_principal
 
 
@@ -61,16 +61,16 @@ def test_runtime_role_cannot_change_or_drop_clinical_audit_records():
 
 def test_identity_role_upgrade_does_not_grant_other_deployments_database_permissions():
     config = {
-        "COYOTE3_MONGO_URI": "mongodb://primary/?replicaSet=app",
+        "COYOTE4_MONGO_URI": "mongodb://primary/?replicaSet=app",
         "IDENTITY_MONGO_URI": "mongodb://identity/?replicaSet=identity",
         "KNOWLEDGEBASE_MONGO_URI": "mongodb://kb/?replicaSet=kb",
         "BAM_MONGO_URI": "mongodb://bam/?replicaSet=bam",
-        "COYOTE3_DB": "clinical",
+        "COYOTE4_DB": "clinical",
         "IDENTITY_DB": "clinical",
         "KNOWLEDGEBASE_DB": "references",
         "BAM_DB": "alignments",
     }
-    assert runtime_roles(config) == [{"role": "coyote3_runtime_identity", "db": "clinical"}]
+    assert runtime_roles(config) == [{"role": "coyote4_runtime_identity", "db": "clinical"}]
 
 
 @pytest.mark.parametrize(
@@ -86,9 +86,9 @@ def test_identity_role_upgrade_does_not_grant_other_deployments_database_permiss
 )
 def test_installer_selects_the_configured_runtime_principal(uri, authentication_database):
     config = {
-        "COYOTE3_MONGO_URI": "mongodb://primary",
+        "COYOTE4_MONGO_URI": "mongodb://primary",
         "IDENTITY_MONGO_URI": uri,
-        "COYOTE3_DB": "clinical",
+        "COYOTE4_DB": "clinical",
         "IDENTITY_DB": "identity",
         "KNOWLEDGEBASE_DB": "references",
         "BAM_DB": "alignments",
@@ -107,8 +107,8 @@ def test_role_upgrade_uses_inferred_runtime_user_and_cannot_replace_maintenance_
     from scripts.database import manage_mongo_roles
 
     for key, value in {
-        "COYOTE3_MONGO_URI": "mongodb://runtime@synthetic/?replicaSet=rs",
-        "COYOTE3_DB": "clinical",
+        "COYOTE4_MONGO_URI": "mongodb://runtime@synthetic/?replicaSet=rs",
+        "COYOTE4_DB": "clinical",
         "IDENTITY_DB": "identity",
         "KNOWLEDGEBASE_DB": "references",
         "BAM_DB": "alignments",

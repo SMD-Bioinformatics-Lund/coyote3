@@ -145,10 +145,10 @@ def test_root_proxy_preserves_frontend_asset_and_route_paths(tmp_path: Path) -> 
         env={
             **os.environ,
             "SCRIPT_NAME": "",
-            "COYOTE3_NGINX_OUTPUT_PATH": str(output),
-            "COYOTE3_NGINX_FRONTEND_UPSTREAM": "http://frontend:3000",
-            "COYOTE3_NGINX_API_UPSTREAM": "http://api:8001",
-            "COYOTE3_NGINX_DOCS_UPSTREAM": "http://docs:8080",
+            "COYOTE4_NGINX_OUTPUT_PATH": str(output),
+            "COYOTE4_NGINX_FRONTEND_UPSTREAM": "http://frontend:3000",
+            "COYOTE4_NGINX_API_UPSTREAM": "http://api:8001",
+            "COYOTE4_NGINX_DOCS_UPSTREAM": "http://docs:8080",
         },
         capture_output=True,
         text=True,
@@ -201,7 +201,7 @@ def test_preflight_requires_explicit_database_names() -> None:
         encoding="utf-8"
     )
 
-    assert "from api.config.mongo import mongo_endpoints" in script
+    assert "from coyote_mongo.config.endpoints import mongo_endpoints" in script
     assert "mongo_endpoints(settings)" in script
     assert "auth_source != db" not in script
 

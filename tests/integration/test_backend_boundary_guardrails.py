@@ -9,11 +9,11 @@ from pathlib import Path
 
 BASELINE_PATH = Path("tests/fixtures/backend_architecture_baseline.json")
 
-STORE_TARGET_DIRS = (Path("api/interfaces/http"), Path("src/coyote3/domain"))
+STORE_TARGET_DIRS = (Path("api/src/coyote_api/interfaces/http"), Path("core/src/coyote/domain"))
 MONGO_LEAK_TARGET_DIRS = (
-    Path("api/interfaces/http"),
-    Path("src/coyote3/domain"),
-    Path("src/coyote3/domain"),
+    Path("api/src/coyote_api/interfaces/http"),
+    Path("core/src/coyote/domain"),
+    Path("core/src/coyote/domain"),
 )
 
 STORE_PATTERN = re.compile(r"\bstore\.")
@@ -96,7 +96,9 @@ def test_store_usage_in_routes_core_does_not_increase():
     baseline = _load_baseline()["store_usage_by_file"]
     current = _count_store_usage_by_file()
     _assert_not_above_baseline(
-        "store.* usage in api/interfaces/http+src/coyote3/domain", current, baseline
+        "store.* usage in api/src/coyote_api/interfaces/http+core/src/coyote/domain",
+        current,
+        baseline,
     )
 
 

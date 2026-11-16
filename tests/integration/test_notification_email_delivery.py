@@ -7,14 +7,15 @@ from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
+from coyote.application.notifications.service import NotificationService
+from coyote.contracts.notifications import NotificationBroadcastRequest
+from coyote.domain.exceptions import AppError
+from coyote_mongo.repositories.notifications import NotificationsRepository
 from pydantic import ValidationError
 from pymongo import MongoClient
 
-from api.infra.mongo.repositories.notifications import NotificationsRepository
-from coyote3.application.notifications.service import NotificationService
-from coyote3.contracts.notifications import NotificationBroadcastRequest
-from coyote3.domain.exceptions import AppError
 from scripts.maintenance.migrate_notification_retention import migrate
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
@@ -24,9 +25,11 @@ def delivery():
     if not uri:
         pytest.skip("Set NOTIFICATION_TEST_MONGO_URI for disposable email-lease tests")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    database_name = "coyote3_notification_test_" + uuid4().hex
+    database_name = "coyote4_notification_test_" + uuid4().hex
     collection = client[database_name].notifications
-    repo = NotificationsRepository(SimpleNamespace(notifications_collection=collection))
+    repo = NotificationsRepository(
+        SimpleNamespace(app=mongo_runtime(), notifications_collection=collection)
+    )
     users = {
         "recipient": {
             "username": "recipient",
@@ -44,7 +47,7 @@ def delivery():
         ),
         retention_days=30,
         email_sender=sender,
-        inbox_url="https://coyote3.example.test/testing/notifications",
+        inbox_url="https://coyote4.example.test/testing/notifications",
     )
     try:
         yield service, repo, collection, users, sender

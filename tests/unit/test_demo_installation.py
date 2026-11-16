@@ -5,14 +5,15 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
+from coyote.application.ingest.collection_writes import parse_yaml_payload
+from coyote.application.ingest.service import InternalIngestService
+from coyote.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
+from coyote.domain.exceptions import AppError
+from coyote_api.services.provisioning.demo_installation import BUNDLE, DemoInstallationService
+from coyote_mongo.repositories import demo_installation
 
-from api.infra.mongo.repositories import demo_installation
-from api.services.provisioning.demo_installation import BUNDLE, DemoInstallationService
-from coyote3.application.ingest.collection_writes import parse_yaml_payload
-from coyote3.application.ingest.service import InternalIngestService
-from coyote3.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
-from coyote3.domain.exceptions import AppError
 from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
+from tests.fixtures.mongo_settings import audit_context
 
 
 def test_bootstrap_factory_builds_configurations_without_rule_publications():
@@ -31,7 +32,7 @@ def test_bootstrap_factory_builds_configurations_without_rule_publications():
 def installer(monkeypatch):
     """Bind real configuration validation and repository operations to isolated Mongo doubles."""
     database = mongomock.MongoClient().synthetic
-    repository = demo_installation.DemoInstallationRepository(database)
+    repository = demo_installation.DemoInstallationRepository(database, context=audit_context())
     ingest = Mock()
     ingest.parse_yaml_payload.side_effect = parse_yaml_payload
     monkeypatch.setattr(demo_installation, "run_transaction", lambda client, fn: fn(None))
@@ -179,7 +180,7 @@ def test_shared_diagnosis_requires_every_assay_association(installer):
 
 def test_bundle_does_not_infer_diagnosis_links_from_gene_list_applicability(installer):
     """Matching ISGL scope cannot silently authorize a diagnosis for another assay."""
-    from api.bootstrap.compilation import compile_bundle_configurations
+    from coyote_api.bootstrap.compilation import compile_bundle_configurations
 
     service, _, _ = installer
     documents = service.configuration("demo.admin")
@@ -245,7 +246,9 @@ def test_starter_first_sample_uses_real_ingest(installer):
         "insilico_genelists",
     }
     service.ingest = InternalIngestService(
-        collection_gateway=MemoryGateway(collections={name: db[name] for name in names}),
+        collection_gateway=MemoryGateway(
+            context=audit_context(), collections={name: db[name] for name in names}
+        ),
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )
@@ -284,8 +287,8 @@ def test_starter_first_sample_uses_real_ingest(installer):
     assert service.plan().starter_installed
     for name in ("variants", "cnvs", "translocations", "biomarkers"):
         assert db[name].count_documents({"SAMPLE_ID": str(sample["_id"])}) > 0
-    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
-    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
     for rule in db.clinical_rule_sets.find():
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(rule), require_tests=True)

@@ -37,13 +37,14 @@ def test_load_generator_is_opt_in_and_least_privilege():
 
 def test_load_dependency_is_separate_and_matches_container():
     """The generator pin agrees across packaging, standalone export and image."""
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    workspace = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    project = tomllib.loads((ROOT / "core/pyproject.toml").read_text())["project"]
     requirements = [
         line
         for line in (ROOT / "requirements-load.txt").read_text().splitlines()
         if line and not line.startswith("#")
     ]
-    assert requirements == project["optional-dependencies"]["load"]
+    assert requirements == workspace["dependency-groups"]["load"]
     assert len(requirements) == 1
     name, version = requirements[0].split("==")
     assert name == "locust"

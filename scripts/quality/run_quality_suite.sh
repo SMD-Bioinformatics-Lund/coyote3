@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -22,8 +25,8 @@ fi
 PYTHON_BIN="$("$PYTHON_BIN" -c 'import sys; print(sys.executable)')"
 
 echo "[quality] Backend tests"
-PYTHONPATH=. "$PYTHON_BIN" -m pytest -q tests/unit tests/api tests/integration \
-  --cov=api --cov=coyote3 \
+PYTHONPATH=. "$PYTHON_BIN" -m pytest -q core/tests tests/unit tests/integration tests/smoke adapters/mongo/tests api/tests \
+  --cov=coyote_api --cov=coyote --cov=coyote_mongo \
   --cov-config=.coveragerc \
   --cov-report=term-missing \
   --cov-report=xml:coverage.xml
@@ -36,6 +39,9 @@ echo "[quality] Strict Python type boundary"
 "$PYTHON_BIN" -m pytest -q clients/python/tests
 PYTHONPATH=. "$PYTHON_BIN" -m mypy
 
+echo "[quality] Independent package coverage gates"
+PYTHON_BIN="$PYTHON_BIN" bash scripts/quality/run_package_tests.sh all --coverage
+
 echo "[quality] Contract and repository checks"
 PYTHON_BIN="$PYTHON_BIN" bash scripts/quality/check_contract_integrity.sh
 
@@ -44,16 +50,16 @@ npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
 PYTHON_BIN="$PYTHON_BIN" npm --prefix frontend run build:verified
 
-echo "[quality] Frontend browser tests"
-npm --prefix frontend run test:e2e
-
 echo "[quality] Documentation lint and runner tests"
 npm run docs:lint
 npm run docs:test
 
 echo "[quality] Strict documentation build"
-"$PYTHON_BIN" -m mkdocs build --strict --site-dir /tmp/coyote3-docs-quality-build
-"$PYTHON_BIN" scripts/docs/check_built_site.py /tmp/coyote3-docs-quality-build
+"$PYTHON_BIN" -m mkdocs build --strict --site-dir "$ROOT_DIR/site"
+"$PYTHON_BIN" scripts/docs/check_built_site.py "$ROOT_DIR/site"
+
+echo "[quality] Frontend browser tests"
+npm --prefix frontend run test:e2e
 
 if [[ -n "${COMPOSE_FILES:-${COMPOSE_FILE:-}}" ]]; then
   read -r -a compose_files <<< "${COMPOSE_FILES:-${COMPOSE_FILE}}"

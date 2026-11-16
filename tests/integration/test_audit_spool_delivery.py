@@ -5,9 +5,8 @@ from uuid import uuid4
 
 import pytest
 from bson import ObjectId
+from coyote_mongo.audit_spool import AuditSpool
 from pymongo import MongoClient
-
-from api.infra.observability.audit_spool import AuditSpool
 
 
 def test_replaying_an_already_committed_event_keeps_one_immutable_record(tmp_path):
@@ -15,7 +14,7 @@ def test_replaying_an_already_committed_event_keeps_one_immutable_record(tmp_pat
     if not uri:
         pytest.skip("Set AUDIT_TEST_MONGO_URI for disposable audit recovery tests")
     with MongoClient(uri, serverSelectionTimeoutMS=3000) as client:
-        db = client[f"coyote3_audit_test_{uuid4().hex}"]
+        db = client[f"coyote4_audit_test_{uuid4().hex}"]
         try:
             original = {"_id": ObjectId(), "message": "Original synthetic event"}
             db.operational_audit_events.insert_one(original)

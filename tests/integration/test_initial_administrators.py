@@ -20,7 +20,7 @@ def bootstrap_database():
     if not uri:
         pytest.skip("Set BOOTSTRAP_TEST_MONGO_URI for disposable bootstrap transactions")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    name = "coyote3_bootstrap_test_" + uuid4().hex
+    name = "coyote4_bootstrap_test_" + uuid4().hex
     try:
         yield client[name]
     finally:
@@ -32,7 +32,7 @@ def initialize(database, *, duplicate_email=False):
     seed = {
         name: [
             json.loads(line)
-            for line in Path(f"api/bootstrap/catalogs/rbac/{name}.seed.ndjson")
+            for line in Path(f"api/src/coyote_api/bootstrap/catalogs/rbac/{name}.seed.ndjson")
             .read_text()
             .splitlines()
         ]

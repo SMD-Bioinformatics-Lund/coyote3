@@ -2,7 +2,7 @@
 
 import httpx
 import pytest
-from coyote3_client import CoyoteClient
+from coyote_pyclient import CoyoteClient
 
 from scripts.quality.check_demo_workflow import check_demo_workflow
 
@@ -17,7 +17,7 @@ def test_smoke_reads_current_contract_through_proxy_and_logs_out(ready):
             return httpx.Response(
                 200,
                 json={"user": {"username": "synthetic"}},
-                headers={"set-cookie": "coyote3_api_session=synthetic-token; HttpOnly; Secure"},
+                headers={"set-cookie": "coyote4_api_session=synthetic-token; HttpOnly; Secure"},
             )
         if request.method == "DELETE":
             return httpx.Response(204)

@@ -1,8 +1,7 @@
 """Verify environment labels are consistent across application versions."""
 
 import pytest
-
-from api.version import __version__, environment_version
+from coyote_api.version import APPLICATION_VERSION, environment_version
 
 
 @pytest.mark.parametrize(
@@ -19,4 +18,4 @@ from api.version import __version__, environment_version
     ],
 )
 def test_environment_version(environment, suffix):
-    assert environment_version(environment) == __version__ + suffix
+    assert environment_version(environment) == APPLICATION_VERSION + suffix

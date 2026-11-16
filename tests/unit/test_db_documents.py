@@ -7,24 +7,23 @@ import json
 from pathlib import Path
 
 import pytest
-
-from coyote3.config.database_versions import normalize_database_versions, require_sample_vep_version
-from coyote3.contracts.authoring.forms import build_form_spec
-from coyote3.contracts.authoring.resources import managed_resource_spec
-from coyote3.contracts.schemas.app_controls import AppControlsDoc
-from coyote3.contracts.schemas.assay import InsilicoGenelistsDoc
-from coyote3.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
-from coyote3.contracts.schemas.governance import RolesDoc, UsersDoc
-from coyote3.contracts.schemas.registry import (
+from coyote.config.database_versions import normalize_database_versions, require_sample_vep_version
+from coyote.contracts.authoring.forms import build_form_spec
+from coyote.contracts.authoring.resources import managed_resource_spec
+from coyote.contracts.schemas.app_controls import AppControlsDoc
+from coyote.contracts.schemas.assay import InsilicoGenelistsDoc
+from coyote.contracts.schemas.dna import CnvsDoc, VariantCsqDoc, VariantsDoc
+from coyote.contracts.schemas.governance import RolesDoc, UsersDoc
+from coyote.contracts.schemas.registry import (
     normalize_collection_document,
     supported_collections,
     validate_collection_document,
 )
-from coyote3.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
-from coyote3.contracts.schemas.variant_annotations import (
+from coyote.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
+from coyote.contracts.schemas.variant_annotations import (
     VepAnnoTranscriptDoc,
 )
-from coyote3.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
+from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
 
 def test_isgl_diagnosis_is_the_canonical_multi_diagnosis_scope():
@@ -51,9 +50,9 @@ def _load_seed_list(path: Path) -> list[dict]:
 
 def _load_reference_seed_list(filename: str) -> list[dict]:
     base = (
-        Path("api/bootstrap/catalogs/rbac")
+        Path("api/src/coyote_api/bootstrap/catalogs/rbac")
         if filename.startswith(("permissions.", "roles."))
-        else Path("api/bootstrap/catalogs/reference")
+        else Path("api/src/coyote_api/bootstrap/catalogs/reference")
     )
     path = base / filename
     if not path.exists() and filename.endswith(".gz"):
@@ -564,7 +563,7 @@ def test_app_controls_doc_accepts_persisted_created_timestamp():
             "modules": {"dna_analysis_enabled": True},
             "created_on": "2026-07-17T16:02:06.074000Z",
             "updated_on": "2026-07-17T16:02:06.074000Z",
-            "updated_by": "coyote3.admin",
+            "updated_by": "coyote4.admin",
         }
     )
     assert doc.created_on is not None
@@ -592,7 +591,7 @@ def test_managed_role_form_exposes_runtime_color_picker():
     assert form["fields"]["color"]["placeholder"] == "#4f46e5"
 
 
-def test_role_color_normalizes_hex_and_preserves_legacy_names():
+def test_role_color_normalizes_hex_and_rejects_legacy_names():
     base = {
         "role_id": "reviewer",
         "name": "reviewer",
@@ -601,7 +600,8 @@ def test_role_color_normalizes_hex_and_preserves_legacy_names():
     }
 
     assert RolesDoc.model_validate({**base, "color": " #DC2626 "}).color == "#dc2626"
-    assert RolesDoc.model_validate({**base, "color": "Slate"}).color == "slate"
+    with pytest.raises(ValueError, match="six-digit"):
+        RolesDoc.model_validate({**base, "color": "Slate"})
     with pytest.raises(ValueError, match="six-digit"):
         RolesDoc.model_validate({**base, "color": "#fff"})
 

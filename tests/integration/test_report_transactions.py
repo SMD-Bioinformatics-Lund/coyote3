@@ -7,11 +7,12 @@ from uuid import uuid4
 
 import pytest
 from bson import ObjectId
+from coyote.domain.exceptions import AppError
+from coyote_mongo.repositories.reported_variants import ReportedVariantsRepository
+from coyote_mongo.repositories.reports import ReportRepository
 from pymongo import MongoClient
 
-from api.infra.mongo.repositories.reported_variants import ReportedVariantsRepository
-from api.infra.mongo.repositories.reports import ReportRepository
-from coyote3.domain.exceptions import AppError
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
@@ -20,8 +21,9 @@ def reports():
     if not uri:
         pytest.skip("Set REPORT_TEST_MONGO_URI for disposable report transaction tests")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    database = client[f"coyote3_report_test_{uuid4().hex}"]
+    database = client[f"coyote4_report_test_{uuid4().hex}"]
     adapter = SimpleNamespace(
+        app=mongo_runtime(),
         client=client,
         reports_collection=database.reports,
         samples_collection=database.samples,

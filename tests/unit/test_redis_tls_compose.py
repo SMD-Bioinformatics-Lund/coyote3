@@ -38,9 +38,9 @@ def test_redis_tls_overlay_uses_verified_transport_without_network_changes():
         check=True,
         env={
             **os.environ,
-            "COYOTE3_VERSION": "tls-test",
-            "COYOTE3_IMAGE_TAG": "tls-test",
-            "COYOTE3_REDIS_TLS_DIR": "/synthetic/redis-certificates",
+            "COYOTE4_VERSION": "tls-test",
+            "COYOTE4_IMAGE_TAG": "tls-test",
+            "COYOTE4_REDIS_TLS_DIR": "/synthetic/redis-certificates",
         },
     )
     rendered = json.loads(result.stdout)

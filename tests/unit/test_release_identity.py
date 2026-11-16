@@ -12,12 +12,15 @@ from scripts.release import build_sdk
 from scripts.release.check_release import release_identity, source_provenance, wheel_record
 
 
-def test_aggregate_extra_selects_the_sdk_version_instead_of_application_version():
-    """Installing the all extra must not request a different Coyote3 distribution."""
-    project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
-    assert project["optional-dependencies"]["all"] == [
-        f"Coyote3[api,dev,test,docs,load]=={project['version']}"
-    ]
+def test_core_metadata_does_not_install_a_server_or_database():
+    """The core wheel owns its version and never pulls in a concrete host."""
+    project = tomllib.loads(Path("core/pyproject.toml").read_text())["project"]
+    assert project["name"] == "coyote-core"
+    assert "api" not in project["optional-dependencies"]
+    assert not any(
+        dependency.startswith(("coyote-api", "coyote-mongo", "pymongo", "fastapi"))
+        for dependency in project["dependencies"]
+    )
 
 
 @pytest.fixture
@@ -25,16 +28,30 @@ def release_root(tmp_path):
     """Supply independently numbered application and SDK release inputs."""
     (tmp_path / "frontend").mkdir()
     (tmp_path / "release.toml").write_text(
-        'application_version="4.2.0"\nsdk_version="1.3.1"\n'
+        'application_version="4.2.0"\nsdk_version="1.3.1"\nmongo_version="1.2.0"\n'
+        'api_version="1.5.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion="1.3.1"\n')
+    (tmp_path / "core").mkdir()
+    (tmp_path / "core/pyproject.toml").write_text('[project]\nversion="1.3.1"\n')
+    for package, version in (("mongo", "1.2.0"), ("api", "1.5.0")):
+        directory = tmp_path / ("adapters/mongo" if package == "mongo" else "api")
+        directory.mkdir(parents=True)
+        dependencies = (
+            '["coyote-core==1.3.1"' + (',"coyote-mongo==1.2.0"' if package == "api" else "") + "]"
+        )
+        (directory / "pyproject.toml").write_text(
+            f'[project]\nversion="{version}"\ndependencies={dependencies}\n'
+        )
     for path in ("package.json", "frontend/package.json"):
         (tmp_path / path).write_text(json.dumps({"version": "4.2.0"}))
-    routers = tmp_path / "api/interfaces/http/v1"
+    routers = tmp_path / "api/src/coyote_api/interfaces/http/v1"
     routers.mkdir(parents=True)
     (routers / "samples.py").write_text('router = APIRouter(prefix="/api/v1/samples")\n')
-    configuration = tmp_path / "src/coyote3/config"
+    identity = tmp_path / "api/src/coyote_api/config/application_release.toml"
+    identity.parent.mkdir(parents=True)
+    identity.write_text('application_version="4.2.0"\n')
+    configuration = tmp_path / "core/src/coyote/config"
     configuration.mkdir(parents=True)
     (configuration / "selection.py").write_text("CENTER_CONFIGURATION_FORMAT = 1\n")
     return tmp_path
@@ -44,10 +61,25 @@ def test_application_and_sdk_versions_can_differ(release_root):
     identity = release_identity(release_root)
     assert identity["application_version"] == "4.2.0"
     assert identity["sdk_source_version"] == "1.3.1"
+    assert identity["api_version"] == "1.5.0"
+
+
+def test_application_rejects_a_stale_api_package_selection(release_root):
+    path = release_root / "api/pyproject.toml"
+    path.write_text(path.read_text().replace('version="1.5.0"', 'version="1.4.0"'))
+    with pytest.raises(ValueError, match="api version differs"):
+        release_identity(release_root)
+
+
+def test_application_rejects_a_stale_packaged_application_label(release_root):
+    identity = release_root / "api/src/coyote_api/config/application_release.toml"
+    identity.write_text('application_version="4.1.0"\n')
+    with pytest.raises(ValueError, match="API application identity differs"):
+        release_identity(release_root)
 
 
 def test_application_cannot_silently_build_with_another_sdk(release_root):
-    (release_root / "pyproject.toml").write_text('[project]\nversion="1.4.0"\n')
+    (release_root / "core/pyproject.toml").write_text('[project]\nversion="1.4.0"\n')
     with pytest.raises(ValueError, match="pin differs"):
         release_identity(release_root)
     assert release_identity(release_root, sdk_only=True)["sdk_source_version"] == "1.4.0"
@@ -84,9 +116,11 @@ def test_production_release_rejects_a_dirty_checkout(release_root, monkeypatch):
 def test_wheel_record_verifies_the_actual_artifact(tmp_path, version, api_source):
     wheel = tmp_path / "synthetic.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
-        archive.writestr("coyote3-1.3.1.dist-info/METADATA", f"Name: Coyote3\nVersion: {version}\n")
-        archive.writestr("api/app/main.py" if api_source else "coyote3/__init__.py", "")
-    if version != "1.3.1":
+        archive.writestr(
+            "coyote_core-1.3.1.dist-info/METADATA", f"Name: coyote-core\nVersion: {version}\n"
+        )
+        archive.writestr("coyote_api/app/main.py" if api_source else "coyote/__init__.py", "")
+    if version != "1.3.1" or api_source:
         with pytest.raises(ValueError):
             wheel_record(wheel, "1.3.1")
     else:
@@ -98,21 +132,24 @@ def test_wheel_record_verifies_the_actual_artifact(tmp_path, version, api_source
 def test_retired_sdk_modules_are_rejected_in_built_artifacts(tmp_path):
     wheel = tmp_path / "stale.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
-        archive.writestr("coyote3-1.3.1.dist-info/METADATA", "Name: Coyote3\nVersion: 1.3.1\n")
-        archive.writestr("coyote3/application/sdk/old.py", "")
+        archive.writestr(
+            "coyote_core-1.3.1.dist-info/METADATA", "Name: coyote-core\nVersion: 1.3.1\n"
+        )
+        archive.writestr("coyote/application/sdk/old.py", "")
     with pytest.raises(ValueError, match="retired modules"):
         wheel_record(wheel, "1.3.1")
 
 
 def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     source = tmp_path / "checkout"
-    package = source / "src/coyote3"
+    package = source / "core/src/coyote"
     package.mkdir(parents=True)
     (package / "__init__.py").write_text('"""Synthetic library."""\n')
     for name in (
         "pyproject.toml",
         "README.md",
         "LICENSE.txt",
+        "COPYRIGHT.txt",
         "NOTICE.txt",
         "LICENSING.md",
         "THIRD_PARTY_NOTICES.md",
@@ -120,10 +157,16 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
         "build_support.py",
         "MANIFEST.in",
     ):
-        (source / name).write_text("synthetic")
-    for name in ("api", "config/examples/center", "demo_data/clinical_workflows"):
-        (source / name).mkdir(parents=True, exist_ok=True)
-    stale = source / "build/lib/coyote3/application/sdk"
+        (source / "core" / name).write_text("synthetic")
+    (source / "core/docs").mkdir(parents=True)
+    (source / "core/docs/architecture.md").write_text("Synthetic core documentation")
+    for package in ("api", "mongo"):
+        directory = source / ("api" if package == "api" else "adapters/mongo")
+        (directory / "src").mkdir(parents=True)
+        (directory / "docs").mkdir()
+        for name in ("pyproject.toml", "LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"):
+            (directory / name).write_text("synthetic")
+    stale = source / "build/lib/coyote/application/sdk"
     stale.mkdir(parents=True)
     (stale / "old.py").write_text("retired")
     monkeypatch.setattr(build_sdk, "ROOT", source)
@@ -133,28 +176,29 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
         """Inspect staged inputs before their temporary directory is removed."""
         staging = Path(command[-1])
         assert check
-        assert (staging / "src/coyote3/__init__.py").is_file()
+        assert (staging / "src").is_dir()
+        assert (staging / "COPYRIGHT.txt").is_file()
         assert not (staging / "build").exists()
-        assert (staging / "api").is_dir()
+        assert not (staging / "packages").exists()
         assert not (staging / "clients").exists()
         inspected.append(staging)
 
     monkeypatch.setattr(build_sdk.subprocess, "run", inspect_build)
     build_sdk.build_sdk(tmp_path / "wheels", build_isolation=False)
-    assert len(inspected) == 1
-    assert not inspected[0].exists()
+    assert len(inspected) == 3
+    assert all(not path.exists() for path in inspected)
 
 
 def test_application_startup_rejects_a_different_installed_sdk(monkeypatch):
-    from api.config import bootstrap
+    from coyote_api.config import bootstrap
 
     monkeypatch.setattr(bootstrap, "version", lambda name: "999.0.0")
-    with pytest.raises(RuntimeError, match="does not match release.toml"):
+    with pytest.raises(RuntimeError, match="does not match coyote-api's dependency"):
         bootstrap.configure_center_from_environment()
 
 
 def test_release_generations_match_the_actual_http_routes():
-    from api.app.main import create_api_app
+    from coyote_api.app.main import create_api_app
 
     release = release_identity(Path(__file__).resolve().parents[2])
     paths = create_api_app().openapi()["paths"]

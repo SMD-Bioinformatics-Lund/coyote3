@@ -8,8 +8,7 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
-
-from api.app.main import create_api_app
+from coyote_api.app.main import create_api_app
 
 
 def test_running_schema_endpoint_matches_source_generated_frontend_types():

@@ -54,11 +54,11 @@ def test_center_input_mounts_are_optional_and_shared(development, storage, tmp_p
         check=True,
         env={
             **os.environ,
-            "COYOTE3_VERSION": "storage-test",
-            "COYOTE3_IMAGE_TAG": "storage-test-dev",
+            "COYOTE4_VERSION": "storage-test",
+            "COYOTE4_IMAGE_TAG": "storage-test-dev",
             "CENTER_INPUT_SOURCE": "/synthetic/center/results",
             "CENTER_INPUT_TARGET": "/chosen/inputs",
-            "COYOTE3_DATA_HOST_ROOT": "/synthetic/app-data",
+            "COYOTE4_DATA_HOST_ROOT": "/synthetic/app-data",
         },
     )
     rendered = json.loads(result.stdout)

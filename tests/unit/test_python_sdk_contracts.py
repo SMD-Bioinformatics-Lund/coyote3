@@ -8,7 +8,16 @@ from typing import get_args
 
 import httpx
 import pytest
-from coyote3_client import (
+from coyote.contracts import resource_metadata as server_metadata
+from coyote.contracts.resource_fields import (
+    AssayField,
+    ConfigurationField,
+    DiagnosisField,
+    GeneListField,
+    GroupField,
+    SampleField,
+)
+from coyote_pyclient import (
     AuthenticationError,
     ConflictError,
     CoyoteAPIError,
@@ -20,7 +29,7 @@ from coyote3_client import (
     ResourceNotLoadedError,
     ResponseValidationError,
 )
-from coyote3_client.metadata import (
+from coyote_pyclient.metadata import (
     AssayMetadata,
     ConfigurationMetadata,
     DiagnosisMetadata,
@@ -28,17 +37,7 @@ from coyote3_client.metadata import (
     GroupMetadata,
     SampleMetadata,
 )
-from coyote3_client.models import FindingData, Page
-
-from coyote3.contracts import resource_metadata as server_metadata
-from coyote3.contracts.resource_fields import (
-    AssayField,
-    ConfigurationField,
-    DiagnosisField,
-    GeneListField,
-    GroupField,
-    SampleField,
-)
+from coyote_pyclient.models import FindingData, Page
 
 
 @pytest.mark.parametrize(
@@ -381,11 +380,11 @@ import importlib.abc
 import sys
 class BlockServerImports(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        blocked = ("fastapi", "starlette", "pymongo", "api.app", "coyote3.config", "api.infra", "coyote3.contracts", "coyote3.application", "coyote3.domain")
+        blocked = ("fastapi", "starlette", "pymongo", "coyote_api.app", "coyote.config", "coyote_api.infra", "coyote.contracts", "coyote.application", "coyote.domain")
         if any(fullname == name or fullname.startswith(name + ".") for name in blocked):
             raise AssertionError("SDK imported server dependency: " + fullname)
 sys.meta_path.insert(0, BlockServerImports())
-from coyote3_client import CoyoteClient
+from coyote_pyclient import CoyoteClient
 client = CoyoteClient("https://example.test")
 client.close()
 """

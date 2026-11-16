@@ -6,8 +6,8 @@ from unittest.mock import Mock
 
 import httpx
 import pytest
+from coyote_api.infra.seed.bundle import load_reference_seed_pack
 
-from api.infra.seed.bundle import load_reference_seed_pack
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
@@ -59,7 +59,7 @@ def api_transport(monkeypatch):
                         "must_change_password": responses["temporary"] and login_count == 1,
                     }
                 },
-                headers={"set-cookie": f"coyote3_api_session=synthetic-{login_count}; Path=/"},
+                headers={"set-cookie": f"coyote4_api_session=synthetic-{login_count}; Path=/"},
             )
         if request.url.path.endswith("/auth/password/change"):
             return httpx.Response(responses["change_status"], json={"status": "ok"})
@@ -84,10 +84,10 @@ def api_transport(monkeypatch):
 def test_client_uses_existing_login_and_revokes_its_session(api_transport):
     requests, _ = api_transport
     assert manage_data.manage_data(
-        api_url="https://synthetic.invalid/coyote3/", modules=["knowledgebase"], force=True
+        api_url="https://synthetic.invalid/coyote4/", modules=["knowledgebase"], force=True
     ) == {"hgnc_genes": "loaded"}
     assert [request.method for request in requests] == ["POST", "POST", "DELETE"]
-    assert requests[0].url.path == "/coyote3/api/v1/auth/sessions"
+    assert requests[0].url.path == "/coyote4/api/v1/auth/sessions"
     assert json.loads(requests[0].content) == {
         "username": "admin",
         "password": "synthetic-password",

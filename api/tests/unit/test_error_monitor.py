@@ -1,0 +1,311 @@
+"""Calendar rollover, durable error delivery, and service routing regressions."""
+
+import gzip
+import json
+import logging
+from datetime import datetime, timezone
+
+from coyote_api.infra.observability.error_monitor import DiskErrorMonitor, parse_syslog
+from coyote_api.infra.observability.logging import DailyServiceFileHandler, JsonFormatter
+
+
+def test_logs_change_date_at_local_midnight_and_keep_services_separate(tmp_path):
+    handler = DailyServiceFileHandler(tmp_path, "Europe/Stockholm")
+    handler.setFormatter(JsonFormatter())
+    for service in ("api", "worker", "beat", "ui"):
+        for hour, minute in ((21, 59), (22, 0)):
+            record = logging.makeLogRecord({"msg": "diagnostic", "service": service})
+            record.created = datetime(2026, 9, 9, hour, minute, tzinfo=timezone.utc).timestamp()
+            handler.handle(record)
+        assert (tmp_path / f"2026/09/09/{service}_2026-09-09.log").exists()
+        assert (tmp_path / f"2026/09/10/{service}_2026-09-10.log").exists()
+
+
+def test_monitor_retries_with_snapshot_and_does_not_repeat_successful_recipients(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr("coyote_api.infra.observability.error_monitor.time.time", lambda: 1000)
+    source = tmp_path / "2026/09/09/api_2026-09-09.log"
+    source.parent.mkdir(parents=True)
+    content = json.dumps({"severity": "error", "message": "database unavailable"}) + "\n"
+    source.write_text(content)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    calls = []
+
+    def sender(**message):
+        calls.append(message)
+        return message["to_email"] == "first@example.test"
+
+    assert monitor.deliver([], sender) == 0
+    assert monitor.deliver(["first@example.test", "second@example.test"], sender) == 0
+    attachment = calls[0]["attachments"][0]
+    assert attachment[0] == "api_2026-09-09.log"
+    assert attachment[1].decode() == content
+    assert "database unavailable" in calls[0]["text_body"]
+    source.unlink()
+    restarted = DiskErrorMonitor(tmp_path)
+    monkeypatch.setattr("coyote_api.infra.observability.error_monitor.time.time", lambda: 1031)
+    remaining = []
+    assert (
+        restarted.deliver(
+            ["first@example.test", "second@example.test"],
+            lambda **message: remaining.append(message) or True,
+        )
+        == 1
+    )
+    assert [message["to_email"] for message in remaining] == ["second@example.test"]
+    assert restarted.deliver(["first@example.test"], sender) == 0
+
+
+def test_failed_batches_do_not_starve_later_jobs_and_corrupt_jobs_are_quarantined(tmp_path):
+    monitor = DiskErrorMonitor(tmp_path)
+    for index in range(12):
+        path = monitor.spool / f"{index:03}.json"
+        path.write_text(
+            json.dumps({"source": "api.log", "errors": [], "sent": [], "snapshot_format": "plain"})
+        )
+        path.with_suffix(".excerpt").write_bytes(b"context")
+    (monitor.spool / "broken.json").write_text("invalid")
+    assert monitor.deliver(["ops@example.test"], lambda **kw: False) == 0
+    assert monitor.deliver(["ops@example.test"], lambda **kw: True) == 2
+    status = json.loads((monitor.spool / "status.json").read_text())
+    assert status["pending"] == 10
+    assert status["quarantined"] == 1
+
+
+def test_oversized_log_line_does_not_block_later_errors(tmp_path):
+    from coyote_api.infra.observability.error_monitor import MAX_BATCH_BYTES
+
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"x" * (MAX_BATCH_BYTES * 3) + b'\n{"severity":"error","message":"later"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["ops@example.test"], lambda **kw: sent.append(kw) or True) == 2
+    assert any(("later" in message["text_body"] for message in sent))
+    assert all((len(message["attachments"][0][1]) <= MAX_BATCH_BYTES for message in sent))
+
+
+def test_capacity_backpressure_preserves_unread_source_offsets(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_text('{"severity":"error","message":"retained"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monkeypatch.setattr("coyote_api.infra.observability.error_monitor.MAX_SPOOL_BYTES", 1)
+    monitor.scan()
+    assert not monitor.offsets
+    monkeypatch.setattr(
+        "coyote_api.infra.observability.error_monitor.MAX_SPOOL_BYTES", 256 * 1024 * 1024
+    )
+    monitor.scan()
+    assert monitor.deliver(["ops@example.test"], lambda **kw: True) == 1
+
+
+def test_exhausted_delivery_is_quarantined_with_recipient_history(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log"
+    source.parent.mkdir(parents=True)
+    source.write_text('{"severity":"error","message":"retained"}\n')
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    for attempt in range(20):
+        monkeypatch.setattr(
+            "coyote_api.infra.observability.error_monitor.time.time", lambda: 1000 + attempt * 3601
+        )
+        monitor.deliver(
+            ["ok@example.test", "blocked@example.test"],
+            lambda **kw: kw["to_email"] == "ok@example.test",
+        )
+    retained = json.loads(next(monitor.spool.glob("*.quarantined")).read_text())
+    assert retained["attempts"] == 20
+    assert retained["sent"] == ["ok@example.test"]
+    assert next(monitor.spool.glob("*.excerpt")).exists()
+
+
+def test_monitor_reads_compressed_logs_and_waits_for_complete_lines(tmp_path):
+    source = tmp_path / "2026/09/09/beat_2026-09-09.log"
+    source.parent.mkdir(parents=True)
+    record = json.dumps({"severity": "critical", "message": "scheduler stopped"})
+    source.write_text(record)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    assert monitor.offsets == {}
+    with gzip.open(str(source) + ".gz", "wt") as stream:
+        stream.write(record + "\n")
+    source.unlink()
+    monitor.scan()
+    calls = []
+    assert (
+        monitor.deliver(["monitor@example.test"], lambda **message: calls.append(message) or True)
+        == 1
+    )
+    monitor.scan()
+    assert monitor.deliver(["monitor@example.test"], lambda **message: False) == 0
+
+
+def test_monitor_emails_missing_expected_file_warnings_but_not_unrelated_warnings(tmp_path):
+    source = tmp_path / "2026/09/10/worker_2026-09-10.log"
+    source.parent.mkdir(parents=True)
+    records = [
+        {"severity": "warning", "message": "Unrelated warning"},
+        {
+            "severity": "warning",
+            "event_type": "ingest.expected_files_missing",
+            "message": "Sample synthetic: transloc not available; ingestion proceeded",
+        },
+    ]
+    source.write_text("".join((json.dumps(record) + "\n" for record in records)))
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: sent.append(kw) or True) == 1
+    assert sent[0]["severity"] == "warning"
+    assert "system warning" in sent[0]["subject"]
+    assert "transloc" in sent[0]["text_body"]
+    assert "Unrelated warning" not in sent[0]["text_body"]
+    assert "transloc" in sent[0]["attachments"][0][1].decode()
+    monitor.scan()
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: False) == 0
+
+
+def test_internal_syslog_routes_errors_and_rejects_unknown_services():
+    record = parse_syslog("<187>Sep 9 12:00:00 nginx ui: upstream failed")
+    assert record.service == "ui"
+    assert record.levelno == logging.ERROR
+    assert parse_syslog("<187>host arbitrary: message") is None
+    assert parse_syslog('<190>host proxy: client "GET / HTTP/1.1" 502 12').levelno == logging.ERROR
+
+
+def test_monitor_skips_unchanged_archives_even_after_restart(tmp_path, monkeypatch):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    with gzip.open(source, "wt") as stream:
+        stream.write('{"severity":"info","message":"old"}\n')
+    DiskErrorMonitor(tmp_path).scan()
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    monkeypatch.setattr(
+        gzip,
+        "open",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("Unchanged archive was decompressed again")
+        ),
+    )
+    monitor.scan()
+    monitor.scan()
+
+
+def test_monitor_changed_archive_is_scanned_and_snapshots_only_new_batch(tmp_path):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    old = '{"severity":"info","message":"old context"}\n'
+    new = '{"severity":"error","message":"new failure"}\n'
+    with gzip.open(source, "wt") as stream:
+        stream.write(old)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    with gzip.open(source, "wt") as stream:
+        stream.write(old + new)
+    monitor.scan()
+    sent = []
+    assert monitor.deliver(["monitor@example.test"], lambda **kw: sent.append(kw) or True) == 1
+    assert sent[0]["attachments"][0][1].decode() == new
+    assert "scanned batch" in sent[0]["text_body"]
+
+
+def test_monitor_drains_batches_before_caching_eof(tmp_path):
+    source = tmp_path / "2026/09/09/api.log.gz"
+    source.parent.mkdir(parents=True)
+    info = '{"severity":"info"}\n'
+    error = '{"severity":"error","message":"last record"}\n'
+    with gzip.open(source, "wt") as stream:
+        stream.write(info * 10000 + error)
+    monitor = DiskErrorMonitor(tmp_path)
+    monitor.scan()
+    assert not list(monitor.spool.glob("*.excerpt"))
+    monitor.scan()
+    assert next(monitor.spool.glob("*.excerpt")).read_text() == error
+
+
+def test_service_wrapper_records_startup_failures_and_exit_status(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "coyote_api.infra.observability.run_service",
+            "worker",
+            sys.executable,
+            "-c",
+            "raise RuntimeError('synthetic startup failure')",
+        ],
+        env={**os.environ, "LOG_ROOT": str(tmp_path), "LOCAL_TIME_ZONE": "UTC"},
+        capture_output=True,
+        timeout=10,
+    )
+    assert result.returncode == 1
+    assert b"[worker]" in result.stdout
+    assert b"synthetic startup failure" in result.stdout
+    records = [
+        json.loads(line)
+        for path in tmp_path.glob("*/*/*/*.log")
+        for line in path.read_text().splitlines()
+    ]
+    assert all((record["service"] == "worker" for record in records))
+    assert any(("synthetic startup failure" in record["message"] for record in records))
+    assert records[-1]["severity"] == "error"
+
+
+def test_wrapper_preserves_ui_diagnostics_and_tracebacks():
+    from coyote_api.infra.observability.run_service import output_record
+
+    record = output_record(
+        json.dumps(
+            {
+                "logger": "coyote.ui",
+                "service": "ui",
+                "severity": "error",
+                "message": "render failed",
+                "exception": "synthetic stack",
+            }
+        ),
+        "api",
+    )
+    assert record.service == "ui"
+    assert json.loads(JsonFormatter().format(record))["exception"] == "synthetic stack"
+
+
+def test_console_output_preserves_context_and_exception():
+    from coyote_api.infra.observability.logging import ConsoleFormatter
+    from coyote_api.infra.observability.run_service import output_record
+
+    record = output_record(
+        json.dumps(
+            {
+                "severity": "error",
+                "logger": "ingest",
+                "message": "Upload failed",
+                "request_id": "synthetic-request",
+                "exception": "ValueError: invalid manifest\ntrace detail",
+            }
+        ),
+        "worker",
+    )
+    console = ConsoleFormatter().format(record)
+    assert "ERROR" in console and "[worker]" in console
+    assert "Upload failed" in console and "request_id=synthetic-request" in console
+    assert "\nValueError: invalid manifest\ntrace detail" in console
+    assert "\\n" not in console
+
+
+def test_health_probe_filter_keeps_failures_and_other_requests():
+    from coyote_api.infra.observability.run_service import is_successful_health_probe
+
+    assert is_successful_health_probe('INFO: 127.0.0.1 - "GET /api/v1/health HTTP/1.1" 200 OK')
+    assert not is_successful_health_probe('"GET /api/v1/health HTTP/1.1" 503 Unavailable')
+    assert not is_successful_health_probe('"GET /api/v1/samples HTTP/1.1" 200 OK')

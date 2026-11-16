@@ -36,10 +36,16 @@ def _populate_seed_dir(seed_path: Path) -> None:
         (seed_path / file.name).write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
 
     reference_map = {
-        Path("api/bootstrap/catalogs/reference/hgnc_genes.seed.ndjson"): "hgnc_genes.json",
-        Path("api/bootstrap/catalogs/rbac/permissions.seed.ndjson"): "permissions.json",
-        Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson"): "roles.json",
-        Path("api/bootstrap/catalogs/reference/vep_metadata.seed.ndjson"): "vep_metadata.json",
+        Path(
+            "api/src/coyote_api/bootstrap/catalogs/reference/hgnc_genes.seed.ndjson"
+        ): "hgnc_genes.json",
+        Path(
+            "api/src/coyote_api/bootstrap/catalogs/rbac/permissions.seed.ndjson"
+        ): "permissions.json",
+        Path("api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson"): "roles.json",
+        Path(
+            "api/src/coyote_api/bootstrap/catalogs/reference/vep_metadata.seed.ndjson"
+        ): "vep_metadata.json",
     }
     for source, target_name in reference_map.items():
         if not source.exists() and source.suffix != ".gz":
@@ -69,14 +75,14 @@ def test_validate_assay_consistency_merges_separate_rbac_and_reference_packs(tmp
     seed_path = tmp_path / "seed"
     seed_path.mkdir()
     for source_name in ("asp_configs.json", "assay_specific_panels.json"):
-        source = Path("api/bootstrap/catalogs/demo_center") / source_name
+        source = Path("api/src/coyote_api/bootstrap/catalogs/demo_center") / source_name
         (seed_path / source_name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
     result = _run_validator(
         seed_path,
         reference_dirs=(
-            Path("api/bootstrap/catalogs/rbac"),
-            Path("api/bootstrap/catalogs/reference"),
+            Path("api/src/coyote_api/bootstrap/catalogs/rbac"),
+            Path("api/src/coyote_api/bootstrap/catalogs/reference"),
         ),
     )
 

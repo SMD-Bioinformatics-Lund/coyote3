@@ -9,12 +9,51 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
+from coyote.config.loaders.filter_flags import load_filter_flag_metadata
 
-from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY, load_clinical_vocabulary
-from coyote3.config.loaders.filter_flags import load_filter_flag_metadata
 from scripts.deployment.prepare_center_config import FILES, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "scripts.bootstrap.bootstrap_database",
+        "scripts.bootstrap.install_assay_groups",
+        "scripts.bootstrap.validate_assay_consistency",
+        "scripts.bootstrap.demo_service",
+        "scripts.knowledgebase.update_vep_metadata",
+        "scripts.identity.sync_rbac_catalog",
+    ],
+)
+def test_host_tools_select_center_before_loading_clinical_contracts(tmp_path, module):
+    """CLI module imports retain the selected profile without opening databases."""
+    center = tmp_path / "center"
+    center.mkdir()
+    for name in FILES:
+        shutil.copyfile(ROOT / "api/src/coyote_api/config/examples/center" / name, center / name)
+    code = (
+        "import importlib; from pathlib import Path; "
+        f"importlib.import_module({module!r}); "
+        "from coyote.config.selection import center_policy_path; "
+        "assert center_policy_path('clinical_vocabulary.toml', Path('unused')) "
+        f"== Path({str(center / 'clinical_vocabulary.toml')!r})"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=ROOT,
+        env={
+            **os.environ,
+            "COYOTE4_RUNTIME_ROOT": str(tmp_path),
+            "COYOTE4_CENTER_CONFIG_DIR": str(center),
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("explicit", [None, "", "   ", "override"])
@@ -26,17 +65,19 @@ def test_host_directory_selects_both_policy_and_application_paths(tmp_path, expl
     for directory in (host, override):
         directory.mkdir()
         for name in FILES:
-            shutil.copyfile(ROOT / "config/examples/center" / name, directory / name)
-    env = dict(os.environ, COYOTE3_RUNTIME_ROOT=str(tmp_path))
-    env.pop("COYOTE3_CENTER_CONFIG_DIR", None)
-    env.pop("COYOTE3_CENTER_CONFIG_HOST_DIR", None)
+            shutil.copyfile(
+                ROOT / "api/src/coyote_api/config/examples/center" / name, directory / name
+            )
+    env = dict(os.environ, COYOTE4_RUNTIME_ROOT=str(tmp_path))
+    env.pop("COYOTE4_CENTER_CONFIG_DIR", None)
+    env.pop("COYOTE4_CENTER_CONFIG_HOST_DIR", None)
     settings = {
-        "COYOTE3_CENTER_CONFIG_HOST_DIR": str(tmp_path / "unmounted-host")
+        "COYOTE4_CENTER_CONFIG_HOST_DIR": str(tmp_path / "unmounted-host")
         if explicit == "override"
         else str(host)
     }
     if explicit is not None:
-        settings["COYOTE3_CENTER_CONFIG_DIR"] = (
+        settings["COYOTE4_CENTER_CONFIG_DIR"] = (
             str(override) if explicit == "override" else explicit
         )
     if from_dotenv:
@@ -50,8 +91,8 @@ def test_host_directory_selects_both_policy_and_application_paths(tmp_path, expl
         [
             sys.executable,
             "-c",
-            "from api.config.paths import CENTER_CONFIG_DIR; "
-            "from coyote3.config.selection import center_policy_path; "
+            "from coyote_api.config.paths import CENTER_CONFIG_DIR; "
+            "from coyote.config.selection import center_policy_path; "
             "from pathlib import Path; "
             f"assert CENTER_CONFIG_DIR == Path({str(expected)!r}); "
             "assert center_policy_path('clinical_vocabulary.toml', Path('unused')) "
@@ -72,13 +113,13 @@ def test_invalid_inherited_host_directory_fails_startup(tmp_path, exists):
     if exists:
         host.mkdir()
     result = subprocess.run(
-        [sys.executable, "-c", "import api"],
+        [sys.executable, "-c", "import coyote_api"],
         cwd=ROOT,
         env={
             **os.environ,
-            "COYOTE3_RUNTIME_ROOT": str(tmp_path),
-            "COYOTE3_CENTER_CONFIG_DIR": "",
-            "COYOTE3_CENTER_CONFIG_HOST_DIR": str(host),
+            "COYOTE4_RUNTIME_ROOT": str(tmp_path),
+            "COYOTE4_CENTER_CONFIG_DIR": "",
+            "COYOTE4_CENTER_CONFIG_HOST_DIR": str(host),
         },
         capture_output=True,
         text=True,
@@ -93,7 +134,7 @@ def test_optional_report_wording_is_validated_and_recorded_in_release(tmp_path, 
     source = tmp_path / "source"
     source.mkdir()
     for name in FILES:
-        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
+        shutil.copyfile(ROOT / "api/src/coyote_api/config/examples/center" / name, source / name)
     wording = (
         '[empty_results]\nSNV = "Synthetic no findings"\n'
         if valid
@@ -115,7 +156,9 @@ def test_optional_report_wording_is_validated_and_recorded_in_release(tmp_path, 
 @pytest.mark.parametrize("key", ["required_aspc_fields", "unrecognized_setting"])
 def test_unused_vocabulary_settings_are_rejected(tmp_path, key):
     """Inactive or misspelled settings cannot appear to configure runtime behavior."""
-    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
+    source = (
+        ROOT / "api/src/coyote_api/config/examples/center/clinical_vocabulary.toml"
+    ).read_text()
     path = tmp_path / "vocabulary.toml"
     path.write_text(source.replace("[snv]", f'[snv]\n{key} = ["example"]'))
     with pytest.raises(RuntimeError, match="Unknown clinical vocabulary key"):
@@ -128,7 +171,7 @@ def test_configuration_release_is_independent_and_never_overwritten(tmp_path, mo
     source = tmp_path / "source"
     source.mkdir()
     for name in FILES:
-        shutil.copyfile(ROOT / "config/examples/center" / name, source / name)
+        shutil.copyfile(ROOT / "api/src/coyote_api/config/examples/center" / name, source / name)
     destination = tmp_path / "release"
     prepare(str(source), destination, None, ".")
     assert {p.name for p in destination.iterdir()} == {*FILES, "manifest.json"}
@@ -145,7 +188,7 @@ def test_configuration_release_is_independent_and_never_overwritten(tmp_path, mo
 def test_external_directory_never_overrides_application_collection_mapping(tmp_path):
     """All center assets resolve externally while physical collections remain software-owned."""
     for name in FILES:
-        shutil.copyfile(ROOT / "config/examples/center" / name, tmp_path / name)
+        shutil.copyfile(ROOT / "api/src/coyote_api/config/examples/center" / name, tmp_path / name)
     (tmp_path / "collections.toml").write_text("malformed = [")
     (tmp_path / "factory_defaults.toml").write_text("malformed = [")
     (tmp_path / "clinical_query_policy.toml").write_text("malformed = [")
@@ -155,12 +198,12 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
             sys.executable,
             "-c",
             (
-                "from api.config.paths import CENTER_CONFIG_DIR,COLLECTIONS_CONFIG_PATH; "
-                "from api.config.collections import load_collection_mapping; "
-                "from coyote3.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
-                "from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
-                "from coyote3.config.clinical_query_policy import load_clinical_query_policy; "
-                "from api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH; "
+                "from coyote_api.config.paths import CENTER_CONFIG_DIR; from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH; "
+                "from coyote_mongo.config.collections import load_collection_mapping; "
+                "from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY; "
+                "from coyote.config.clinical_query_policy import CLINICAL_QUERY_POLICY; "
+                "from coyote.config.clinical_query_policy import load_clinical_query_policy; "
+                "from coyote_api.bootstrap.paths import CLINICAL_QUERY_SEED_PATH; "
                 "assert CLINICAL_QUERY_SEED_PATH.parent != CENTER_CONFIG_DIR; "
                 "assert load_clinical_query_policy(CLINICAL_QUERY_SEED_PATH).snv.exceptions; "
                 "assert 'wes' in CLINICAL_VOCABULARY.assay_families; "
@@ -170,16 +213,16 @@ def test_external_directory_never_overrides_application_collection_mapping(tmp_p
             ),
         ],
         cwd=ROOT,
-        env=dict(os.environ, COYOTE3_CENTER_CONFIG_DIR=str(tmp_path)),
+        env=dict(os.environ, COYOTE4_CENTER_CONFIG_DIR=str(tmp_path)),
         capture_output=True,
         text=True,
     )
     assert result.returncode == 0, result.stderr
     (tmp_path / "contact.toml").unlink()
     result = subprocess.run(
-        [sys.executable, "-c", "import api.config.paths"],
+        [sys.executable, "-c", "import coyote_api.config.paths"],
         cwd=ROOT,
-        env=dict(os.environ, COYOTE3_CENTER_CONFIG_DIR=str(tmp_path)),
+        env=dict(os.environ, COYOTE4_CENTER_CONFIG_DIR=str(tmp_path)),
         capture_output=True,
         text=True,
     )
@@ -215,7 +258,9 @@ def test_caller_flags_validate_registry_and_keep_analysis_scopes_separate(tmp_pa
 
 def test_dna_caller_registries_are_optional_and_do_not_enable_fusion_callers(tmp_path):
     """Merged DNA provenance needs no registry; fusion retains implemented caller choices."""
-    source = (ROOT / "config/examples/center/clinical_vocabulary.toml").read_text()
+    source = (
+        ROOT / "api/src/coyote_api/config/examples/center/clinical_vocabulary.toml"
+    ).read_text()
     assert CLINICAL_VOCABULARY.snv_callers == ()
     assert CLINICAL_VOCABULARY.cnv_callers == ()
     assert CLINICAL_VOCABULARY.translocation_callers == ()
@@ -252,7 +297,9 @@ def test_git_source_extracts_only_configuration_at_the_requested_commit(
             names = (*FILES, "report_presentation.toml") if include_wording else FILES
             return "\n".join(f"center/{name}" for name in names)
         assert command[-1].startswith("a" * 40 + ":center/")
-        return (ROOT / "config/examples/center" / command[-1].rsplit("/", 1)[1]).read_bytes()
+        return (
+            ROOT / "api/src/coyote_api/config/examples/center" / command[-1].rsplit("/", 1)[1]
+        ).read_bytes()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "check_output", fake_output)

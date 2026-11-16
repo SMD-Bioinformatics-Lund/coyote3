@@ -1,8 +1,9 @@
 [run]
 branch = True
 source =
-    api
-    coyote3
+    coyote_api
+    coyote
+    coyote_mongo
 omit =
     */tests/*
     */__pycache__/*

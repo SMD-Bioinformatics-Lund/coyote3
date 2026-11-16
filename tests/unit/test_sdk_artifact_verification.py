@@ -14,24 +14,38 @@ def artifact(tmp_path):
     """Create a synthetic wheel and a matching retained production record."""
     release = tmp_path / "release.toml"
     release.write_text(
-        'application_version="4.0.0"\nsdk_version="1.0.0"\nhttp_api_major=1\ncenter_configuration_format=1\n'
+        'application_version="4.0.0"\nsdk_version="4.0.0"\nmongo_version="1.0.0"\n'
+        'api_version="1.0.0"\nhttp_api_major=1\ncenter_configuration_format=1\n'
     )
-    wheel = tmp_path / "coyote3-1.0.0-py3-none-any.whl"
-    with zipfile.ZipFile(wheel, "w") as archive:
-        archive.writestr("coyote3-1.0.0.dist-info/METADATA", "Name: Coyote3\nVersion: 1.0.0\n")
+    artifacts = {}
+    for package, version in (
+        ("coyote-core", "4.0.0"),
+        ("coyote-mongo", "1.0.0"),
+        ("coyote-api", "1.0.0"),
+    ):
+        wheel = tmp_path / f"{package.replace('-', '_')}-{version}-py3-none-any.whl"
+        with zipfile.ZipFile(wheel, "w") as archive:
+            archive.writestr(
+                f"{package.replace('-', '_')}-{version}.dist-info/METADATA",
+                f"Name: {package}\nVersion: {version}\n",
+            )
+        artifacts[package] = {
+            "filename": wheel.name,
+            "version": version,
+            "sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
+        }
+    wheel = tmp_path / artifacts["coyote-core"]["filename"]
     record = {
         "application_version": "4.0.0",
-        "sdk_version": "1.0.0",
+        "sdk_version": "4.0.0",
+        "mongo_version": "1.0.0",
+        "api_version": "1.0.0",
         "http_api_major": 1,
         "center_configuration_format": 1,
         "source_commit": "a" * 40,
         "source_dirty": False,
         "release_mode": "production",
-        "sdk_artifact": {
-            "filename": wheel.name,
-            "version": "1.0.0",
-            "sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
-        },
+        "artifacts": artifacts,
     }
     (tmp_path / "release-record.json").write_text(json.dumps(record))
     return tmp_path, release, wheel, record
@@ -58,6 +72,7 @@ def test_image_rejects_modified_wheel(artifact):
         ("release_mode", "development"),
         ("source_commit", "b" * 40),
         ("sdk_version", "2.0.0"),
+        ("api_version", "2.0.0"),
         ("http_api_major", 2),
     ],
 )
@@ -108,7 +123,7 @@ def test_compose_preflight_checks_resolved_context_and_provenance(artifact, fail
         )
     )
     if failure:
-        with pytest.raises(ValueError, match="COYOTE3_SDK_ARTIFACT_DIR"):
+        with pytest.raises(ValueError, match="COYOTE4_SDK_ARTIFACT_DIR"):
             verify_compose_artifacts(config, release)
     else:
         verify_compose_artifacts(config, release)

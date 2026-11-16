@@ -1,0 +1,215 @@
+"""Immutable clinical rule revision repository tests."""
+
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
+
+import mongomock
+import pytest
+from coyote_mongo.repositories.clinical_rule_sets import (
+    ClinicalRuleRevisionRepository,
+    ClinicalRuleSetRepository,
+    build_revision_snapshot,
+    verify_revision_snapshot,
+)
+from mongo_test_support.clinical_rules import _document
+from mongo_test_support.settings import mongo_runtime
+from pydantic import ValidationError
+from pymongo.errors import ConnectionFailure
+
+
+@pytest.fixture(autouse=True)
+def isolate_outbox(monkeypatch):
+    """Test revision hashing in memory; real transaction and outbox tests use MongoDB."""
+    monkeypatch.setattr("coyote_mongo.repositories.clinical_rule_sets.enqueue_audit", Mock())
+
+
+def _payload() -> dict:
+    return _document().model_dump(mode="python", by_alias=True, exclude_none=True)
+
+
+def _adapter():
+    database = mongomock.MongoClient().coyote4
+    return SimpleNamespace(
+        app=mongo_runtime(),
+        clinical_rule_sets_collection=database.clinical_rule_sets,
+        clinical_rule_revisions_collection=database.clinical_rule_revisions,
+    )
+
+
+@pytest.mark.parametrize("candidate_available_on_retry", [False, True])
+def test_publish_returns_committed_callback_result(monkeypatch, candidate_available_on_retry):
+    """Publication must not return a candidate from an aborted transaction attempt."""
+    candidate = {**_payload(), "status": "approved"}
+    aborted = {**candidate, "status": "published", "revision": 2}
+    committed = {**aborted, "revision": 3} if candidate_available_on_retry else None
+    collection = Mock()
+    collection.find_one.side_effect = [
+        candidate,
+        candidate if candidate_available_on_retry else None,
+    ]
+    collection.find.return_value = []
+    collection.find_one_and_update.side_effect = [aborted, committed]
+    client = MagicMock()
+    session = client.start_session.return_value.__enter__.return_value
+    repository = ClinicalRuleSetRepository(
+        SimpleNamespace(
+            app=mongo_runtime(),
+            client=client,
+            clinical_rule_sets_collection=collection,
+            clinical_rule_revisions_collection=Mock(),
+        )
+    )
+    insert_revision = Mock(side_effect=[ConnectionFailure("Synthetic aborted attempt"), None])
+    monkeypatch.setattr(repository, "_insert_revision", insert_revision)
+
+    def retry_transaction(callback, **kwargs):
+        with pytest.raises(ConnectionFailure, match="Synthetic aborted attempt"):
+            callback(session)
+        return callback(session)
+
+    session.with_transaction.side_effect = retry_transaction
+    event = {
+        "action": "published",
+        "actor": "publisher",
+        "occurred_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+    }
+
+    result = repository.publish(
+        candidate["_id"],
+        expected_revision=candidate["revision"],
+        changes={"status": "published", "active": True},
+        event=event,
+    )
+
+    assert result is committed
+    assert collection.find_one.call_count == 2
+    assert collection.find_one_and_update.call_count == 1 + candidate_available_on_retry
+    assert insert_revision.call_count == 1 + candidate_available_on_retry
+
+
+def test_revision_hash_is_canonical_and_content_sensitive() -> None:
+    document = _payload()
+    occurred_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    first = build_revision_snapshot(
+        document,
+        action="draft_created",
+        actor="author",
+        occurred_at=occurred_at,
+        reason=None,
+        previous_revision_hash=None,
+    )
+    same = build_revision_snapshot(
+        deepcopy(document),
+        action="draft_created",
+        actor="author",
+        occurred_at=occurred_at,
+        reason=None,
+        previous_revision_hash=None,
+    )
+    changed_document = deepcopy(document)
+    changed_document["name"] = "Changed"
+    changed = build_revision_snapshot(
+        changed_document,
+        action="draft_created",
+        actor="author",
+        occurred_at=occurred_at,
+        reason=None,
+        previous_revision_hash=None,
+    )
+
+    assert first["revision_hash"] == same["revision_hash"]
+    assert changed["revision_hash"] != first["revision_hash"]
+    assert verify_revision_snapshot(first)["revision_hash"] == first["revision_hash"]
+    with pytest.raises(RuntimeError, match="integrity verification failed"):
+        verify_revision_snapshot({**first, "actor": "another-author"})
+    with pytest.raises(ValidationError, match="revision number must match"):
+        verify_revision_snapshot({**first, "revision": 2})
+
+
+def test_baseline_and_subsequent_revision_form_a_contiguous_hash_chain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "coyote_mongo.repositories.clinical_rule_sets.run_transaction",
+        lambda _client, callback: callback(None),
+    )
+    adapter = _adapter()
+    repository = ClinicalRuleSetRepository(adapter)
+    first_document = _payload()
+    first_document["revision"] = 4
+    baseline = repository.capture_baseline(
+        first_document, actor="operator", occurred_at=datetime.now(timezone.utc)
+    )
+    assert baseline is not None
+    assert (
+        repository.capture_baseline(
+            first_document, actor="operator", occurred_at=datetime.now(timezone.utc)
+        )
+        is None
+    )
+
+    next_document = deepcopy(first_document)
+    next_document["revision"] = 5
+    next_document["name"] = "Edited"
+    next_revision = repository._insert_revision(
+        next_document,
+        action="draft_updated",
+        actor="author",
+        reason="Updated wording",
+        occurred_at=datetime.now(timezone.utc) + timedelta(seconds=1),
+        session=None,
+    )
+
+    assert next_revision["previous_revision_hash"] == baseline["revision_hash"]
+    with pytest.raises(RuntimeError, match="not contiguous"):
+        repository._insert_revision(
+            {**next_document, "revision": 7},
+            action="draft_updated",
+            actor="author",
+            reason=None,
+            occurred_at=datetime.now(timezone.utc),
+            session=None,
+        )
+
+
+def test_revision_reader_orders_history_and_rejects_invalid_identifiers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "coyote_mongo.repositories.clinical_rule_sets.run_transaction",
+        lambda _client, callback: callback(None),
+    )
+    adapter = _adapter()
+    writer = ClinicalRuleSetRepository(adapter)
+    document = _payload()
+    writer.capture_baseline(document, actor="operator", occurred_at=datetime.now(timezone.utc))
+    document = {**document, "revision": 2}
+    writer._insert_revision(
+        document,
+        action="draft_updated",
+        actor="author",
+        reason=None,
+        occurred_at=datetime.now(timezone.utc),
+        session=None,
+    )
+    reader = ClinicalRuleRevisionRepository(adapter)
+    reader.ensure_indexes()
+
+    assert [item["revision"] for item in reader.list_for_version(document["_id"])] == [2, 1]
+    assert reader.get_revision(document["_id"], 1)["revision"] == 1
+    assert reader.list_for_version("invalid") == []
+    assert reader.get_revision("invalid", 1) is None
+
+    adapter.clinical_rule_revisions_collection.update_one(
+        {"revision": 2}, {"$set": {"previous_revision_hash": "b" * 64}}
+    )
+    tampered = adapter.clinical_rule_revisions_collection.find_one({"revision": 2})
+    tampered["revision_hash"] = build_revision_snapshot(
+        tampered["document"],
+        action=tampered["action"],
+        actor=tampered["actor"],
+        occurred_at=tampered["occurred_at"],
+        reason=tampered.get("reason"),
+        previous_revision_hash=tampered["previous_revision_hash"],
+    )["revision_hash"]
+    adapter.clinical_rule_revisions_collection.replace_one({"_id": tampered["_id"]}, tampered)
+    with pytest.raises(RuntimeError, match="hash chain is broken"):
+        reader.list_for_version(document["_id"])

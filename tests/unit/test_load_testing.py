@@ -66,7 +66,7 @@ def runner(cfg, responses):
 def about(cfg):
     """Return metadata matching explicit pins."""
     return {
-        "application": {"environment": cfg["environment"], "script_name": "/coyote3"},
+        "application": {"environment": cfg["environment"], "script_name": "/coyote4"},
         "databases": cfg["databases"].copy(),
     }
 
@@ -406,7 +406,7 @@ def test_preview_requires_report_type(inputs):
 
 def test_example_ingest_matches_api_contract(inputs):
     """Keep the shipped template aligned with the actual canonical ingest contract."""
-    from api.contracts.internal import InternalIngestSampleBundleRequest
+    from coyote_api.contracts.internal import InternalIngestSampleBundleRequest
 
     sample = inputs[2]["ingest_sample_template"]
     payload = InternalIngestSampleBundleRequest.model_validate(
@@ -421,7 +421,7 @@ def test_example_ingest_matches_api_contract(inputs):
 
 def test_synthetic_biomarker_matches_api_contract():
     """Check shipped biomarker rows with the sample identity supplied by ingestion."""
-    from coyote3.contracts.schemas.dna import BiomarkersDoc
+    from coyote.contracts.schemas.dna import BiomarkersDoc
 
     path = Path(__file__).parents[1] / "load" / "synthetic" / "msi.json"
     rows = [json.loads(path.read_text())]

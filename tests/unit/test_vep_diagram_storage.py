@@ -5,12 +5,12 @@ import json
 
 import mongomock
 import pytest
-from pydantic import ValidationError
-
-from api.infra.seed.diagrams import load_seed_diagrams
-from coyote3.contracts.schemas.variant_annotations import (
+from coyote.contracts.schemas.variant_annotations import (
     VepConsequenceDiagramDoc,
 )
+from coyote_api.infra.seed.diagrams import load_seed_diagrams
+from pydantic import ValidationError
+
 from scripts.knowledgebase.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
 from scripts.knowledgebase.update_vep_metadata import diagram_document
 from scripts.knowledgebase.vep_diagram_storage import (

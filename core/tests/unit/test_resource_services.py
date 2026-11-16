@@ -1,0 +1,717 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+from coyote.application.classification.tiering import ResourceClassificationService
+from coyote.application.classification.variant_annotation import ResourceAnnotationService
+from coyote.application.common.release_resources import capture_assay_resource
+from coyote.domain.exceptions import AppError
+
+
+class _AnnotationHandlerStub:
+    """Provide  AnnotationHandlerStub behavior."""
+
+    def __init__(self) -> None:
+        """__init__."""
+        self.global_comments: list[dict] = []
+        self.inserted_bulk: list[dict] | None = None
+        self.deleted: list[dict] = []
+
+    def add_anno_comment(self, comment: dict) -> None:
+        """Add anno comment."""
+        self.global_comments.append(comment)
+
+    def insert_annotation_bulk(self, docs: list[dict]) -> None:
+        """Insert annotation bulk."""
+        self.inserted_bulk = docs
+
+    def deactivate_classified_variant(self, **kwargs) -> None:
+        """Deactivate classified variant.
+
+        Args:
+            **kwargs: Additional keyword values for ``kwargs``.
+
+        Returns:
+            None.
+        """
+        self.deleted.append(kwargs)
+
+
+class _FusionHandlerStub:
+    """Provide  FusionHandlerStub behavior."""
+
+    def __init__(self) -> None:
+        """__init__."""
+        self.comments: list[tuple[str, dict]] = []
+
+    def add_fusion_comment(self, fusion_id: str, comment: dict) -> None:
+        """Add fusion comment."""
+        self.comments.append((fusion_id, comment))
+
+    def get_fusion(self, fusion_id: str) -> dict:
+        """Return fusion."""
+        return {
+            "_id": fusion_id,
+            "SAMPLE_ID": "S1",
+            "gene1": "EML4",
+            "gene2": "ALK",
+            "calls": [{"selected": 1, "breakpoint1": "2:100", "breakpoint2": "2:200"}],
+        }
+
+    def get_selected_fusioncall(self, fusion: dict) -> dict:
+        """Return selected fusioncall."""
+        return fusion["calls"][0]
+
+
+class _CnvHandlerStub:
+    """Provide  CnvHandlerStub behavior."""
+
+    def __init__(self) -> None:
+        """__init__."""
+        self.comments: list[tuple[str, dict]] = []
+
+    def add_cnv_comment(self, cnv_id: str, comment: dict) -> None:
+        """Add cnv comment."""
+        self.comments.append((cnv_id, comment))
+
+    def get_cnv(self, cnv_id: str) -> dict:
+        """Return cnv."""
+        return {
+            "_id": cnv_id,
+            "SAMPLE_ID": "S1",
+            "chr": "7",
+            "start": 10,
+            "end": 20,
+            "genes": [{"gene": "EGFR"}],
+        }
+
+
+class _TranslocHandlerStub:
+    """Provide  TranslocHandlerStub behavior."""
+
+    def __init__(self) -> None:
+        """__init__."""
+        self.comments: list[tuple[str, dict]] = []
+
+    def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
+        """Add transloc comment."""
+        self.comments.append((transloc_id, comment))
+
+    def get_transloc(self, transloc_id: str) -> dict:
+        """Return transloc."""
+        return {
+            "_id": transloc_id,
+            "SAMPLE_ID": "S1",
+            "CHROM": "1",
+            "POS": 100,
+            "ALT": "2:200",
+            "INFO": {"ANN": [{"Gene_Name": "BCR&ABL1"}]},
+        }
+
+
+class _VariantHandlerStub:
+    """Provide  VariantHandlerStub behavior."""
+
+    def add_var_comment(self, variant_id: str, comment: dict) -> None:
+        """Add var comment."""
+        self.variant_comment = (variant_id, comment)
+
+    def get_variant(self, variant_id: str) -> dict:
+        """Return a small variant fixture for classification tests."""
+        return {
+            "_id": variant_id,
+            "SAMPLE_ID": "S1",
+            "CHROM": "17",
+            "POS": 76736896,
+            "REF": "T",
+            "ALT": "C",
+            "simple_id": "17_76736896_T_C",
+            "simple_id_hash": "029e8e74947bc798c060013909b9e2da",
+            "INFO": {
+                "selected_CSQ": {
+                    "Feature": "ENST00000359995",
+                    "SYMBOL": "SRSF2",
+                    "HGVSp": "p.Met89Val",
+                    "HGVSc": "c.265A>G",
+                    "Consequence": "missense_variant",
+                }
+            },
+        }
+
+
+class _RepoStub:
+    """Provide  RepoStub behavior."""
+
+    def __init__(self) -> None:
+        """__init__."""
+        self.annotation_repository = _AnnotationHandlerStub()
+        self.fusion_repository = _FusionHandlerStub()
+        self.copy_number_variant_repository = _CnvHandlerStub()
+        self.translocation_repository = _TranslocHandlerStub()
+        self.variant_repository = _VariantHandlerStub()
+        self.oncokb_repository = type(
+            "_OncoKb",
+            (),
+            {"get_oncokb_gene": staticmethod(lambda gene: {"hugo_symbol": gene})},
+        )()
+        self.assay_configuration_repository = type(
+            "_Aspc",
+            (),
+            {
+                "get_aspc_no_meta": staticmethod(
+                    lambda assay, profile, diagnosis: {
+                        "_id": "aspc-oid",
+                        "aspc_id": "assay:production:base",
+                        "asp_id": assay,
+                        "asp_group": "dna",
+                        "analysis_types": ["SNV", "TRANSLOCATION"],
+                        "analysis_intents": ["somatic"],
+                        "diagnosis_id": diagnosis or "base",
+                        "environment": profile,
+                        "version": 2,
+                        "assay_resource_release": capture_assay_resource(
+                            self.assay_panel_repository.get_asp(assay)
+                        ),
+                    }
+                )
+            },
+        )()
+        self.assay_panel_repository = type(
+            "_Asp",
+            (),
+            {
+                "get_asp": staticmethod(
+                    lambda asp_id: {
+                        "asp_id": asp_id,
+                        "asp_group": "dna",
+                        "asp_family": "panel-dna",
+                        "asp_category": "dna",
+                        "version": 1,
+                    }
+                )
+            },
+        )()
+
+
+def _nomenclature(form_data: dict) -> tuple[str, str]:
+    """Nomenclature."""
+    return form_data["nomenclature"], form_data["variant"]
+
+
+def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
+    """Comment doc."""
+    return {"text": form_data["text"], "nomenclature": nomenclature, "variant": variant}
+
+
+def _classification_doc(
+    *, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
+) -> dict:
+    """Classification doc."""
+    assert "source" not in kwargs
+    return {
+        "variant": variant,
+        "nomenclature": nomenclature,
+        "class": class_num,
+        "variant_data": variant_data,
+        "text": kwargs.get("text"),
+    }
+
+
+def _classification_service(repo: _RepoStub) -> ResourceClassificationService:
+    return ResourceClassificationService(
+        annotation_repository=repo.annotation_repository,
+        variant_repository=repo.variant_repository,
+        fusion_repository=repo.fusion_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        translocation_repository=repo.translocation_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_group_repository=SimpleNamespace(
+            list=lambda: [
+                {"group_id": "hematology", "display_name": "Hematology"},
+                {"group_id": "solid", "display_name": "Solid"},
+            ]
+        ),
+        oncokb_repository=repo.oncokb_repository,
+    )
+
+
+def test_resource_annotation_service_routes_cnv_comment_to_copy_number_variant_repository():
+    """An owned CNV receives its local annotation through the CNV repository."""
+    repo = _RepoStub()
+    service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
+    )
+
+    resource = service.create_annotation(
+        form_data={"text": "note", "nomenclature": "cn", "variant": "7:10-20"},
+        target_id="cnv-1",
+        sample={"_id": "S1"},
+        get_variant_nomenclature_fn=_nomenclature,
+        create_comment_doc_fn=_comment_doc,
+    )
+
+    assert resource == "cnv_comment"
+    assert repo.copy_number_variant_repository.comments == [
+        ("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})
+    ]
+
+
+def test_resource_annotation_service_routes_translocation_comment_to_translocation_repository():
+    """An owned translocation receives its local annotation through its repository."""
+    repo = _RepoStub()
+    service = ResourceAnnotationService(
+        assay_configuration_repository=repo.assay_configuration_repository,
+        assay_panel_repository=repo.assay_panel_repository,
+        annotation_repository=repo.annotation_repository,
+        fusion_repository=repo.fusion_repository,
+        translocation_repository=repo.translocation_repository,
+        copy_number_variant_repository=repo.copy_number_variant_repository,
+        variant_repository=repo.variant_repository,
+    )
+
+    resource = service.create_annotation(
+        form_data={"text": "note", "nomenclature": "t", "variant": "1:100^2:200"},
+        target_id="tl-1",
+        sample={"_id": "S1"},
+        get_variant_nomenclature_fn=_nomenclature,
+        create_comment_doc_fn=_comment_doc,
+    )
+
+    assert resource == "translocation_comment"
+    assert repo.translocation_repository.comments[0][0] == "tl-1"
+
+
+def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatch):
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="fusion",
+        resource_ids=["fus-1"],
+        apply=True,
+        class_num=2,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    docs = repo.annotation_repository.inserted_bulk
+    assert docs is not None
+    assert len(docs) == 1
+    assert docs[0]["nomenclature"] == "f"
+    assert docs[0]["variant"] == "2:100^2:200"
+    assert docs[0]["variant_data"]["gene1"] == "EML4"
+    assert docs[0]["variant_data"]["gene2"] == "ALK"
+    assert set(docs[0]["variant_data"]) == {
+        "asp_group",
+        "asp_id",
+        "namespace",
+        "diagnosis_id",
+        "gene1",
+        "gene2",
+        "source_sample_id",
+        "source_finding_id",
+    }
+
+
+@pytest.mark.parametrize(
+    "kind,analyte,identity,path,expected",
+    [
+        ("fusion", "rna", "fus-1", "fusion_gene_1", "EML4"),
+        ("cnv", "dna", "cnv-1", "chromosome", "7"),
+        ("translocation", "dna", "tl-1", "fusion_gene_1", "BCR"),
+    ],
+)
+def test_structural_bulk_annotation_preview_and_persistence(
+    monkeypatch, kind, analyte, identity, path, expected
+):
+    """Structural bulk text preserves preview provenance and writes only after confirmation."""
+    from core_test_support.clinical_rules import _document
+    from coyote.application.reporting.clinical_rules.validation import content_hash
+    from coyote.contracts.schemas.clinical_rules import BulkAnnotationRule
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _: {
+            "asp_group": "hematology",
+            "asp_id": "assay",
+            "namespace": "production",
+            "diagnosis_id": "base",
+            "configuration": {},
+        },
+    )
+    release = _document(status="published", active=True)
+    release.scope.analyte = analyte
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="structural",
+            name="Structural text",
+            tier=3,
+            finding_kind=kind,
+            order=10,
+            output=[{"type": "fact", "path": f"finding.{path}"}],
+        )
+    ]
+    release.content_hash = content_hash(release)
+    service.clinical_rule_service = SimpleNamespace(bulk_annotation_release=lambda **_: release)
+    arguments = dict(
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "environment": "production",
+            "asp_category": analyte,
+        },
+        resource_type=kind,
+        resource_ids=[identity],
+        apply=True,
+        class_num=3,
+        include_automatic_text=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    preview = service.set_tier_bulk(**arguments, preview_only=True)
+    assert preview[0]["text"] == expected
+    assert repo.annotation_repository.inserted_bulk is None
+    with pytest.raises(AppError, match="changed after preview") as error:
+        service.set_tier_bulk(**arguments, annotation_rule_hash="outdated")
+    assert error.value.status_code == 409
+    assert repo.annotation_repository.inserted_bulk is None
+    service.set_tier_bulk(**arguments, annotation_rule_hash=release.content_hash)
+    assert repo.annotation_repository.inserted_bulk[1]["text"] == expected
+    assert (
+        repo.annotation_repository.inserted_bulk[1]["rule_source"]["content_hash"]
+        == release.content_hash
+    )
+
+
+def test_resource_classification_service_persists_tier_three_classification_only():
+    """Tier 3 SNV bulk classification persists only the classification."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=3,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    docs = repo.annotation_repository.inserted_bulk
+    assert docs is not None
+    assert len(docs) == 1
+    assert docs[0]["class"] == 3
+    assert docs[0]["text"] is None
+    assert docs[0]["variant_data"]["hgvsp"] == "p.Met89Val"
+    assert docs[0]["variant_data"]["hgvsc"] == "c.265A>G"
+    assert docs[0]["variant_data"]["genomic"] == "17_76736896_T_C"
+    assert docs[0]["variant_data"]["genomic_hash"] == "029e8e74947bc798c060013909b9e2da"
+    assert "simple_id" not in docs[0]["variant_data"]
+
+
+def test_tiering_uses_requested_diagnosis_when_configuration_resolves_to_base(monkeypatch):
+    """Using Base settings must not write a named-diagnosis decision into the Base scope."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        "coyote.application.classification.tiering.get_formatted_assay_config",
+        lambda *args, **kwargs: {
+            "asp_group": "solid",
+            "diagnosis_id": "base",
+            "aspc_resolution": {"context": {"group_id": "solid", "diagnosis_id": "lung"}},
+        },
+    )
+    service.set_tier_bulk(
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "diagnosis_id": "lung",
+            "environment": "production",
+        },
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=2,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    assert repo.annotation_repository.inserted_bulk[0]["variant_data"]["diagnosis_id"] == "lung"
+
+
+@pytest.mark.parametrize("tier", [1, 2, 3])
+def test_resource_classification_service_adds_bulk_annotation_template_when_requested(
+    monkeypatch,
+    tier,
+):
+    """Bulk tiers use a published template and capture its provenance."""
+    from core_test_support.clinical_rules import _document
+    from coyote.application.reporting.clinical_rules.validation import content_hash
+    from coyote.contracts.schemas.clinical_rules import BulkAnnotationRule
+
+    release = _document(status="published", active=True)
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="reviewed_text",
+            name="Reviewed text",
+            tier=tier,
+            order=10,
+            output=[
+                {"type": "text", "value": "Reviewed "},
+                {"type": "fact", "path": "finding.gene"},
+            ],
+        )
+    ]
+    release.content_hash = content_hash(release)
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    service.clinical_rule_service = SimpleNamespace(
+        bulk_annotation_release=lambda **kwargs: release
+    )
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _sample: {
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
+            "configuration": {"asp_id": "assay", "environment": "production"},
+        },
+    )
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_category": "dna", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=tier,
+        include_automatic_text=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    assert repo.annotation_repository.inserted_bulk is not None
+    assert [doc["text"] for doc in repo.annotation_repository.inserted_bulk] == [
+        None,
+        "Reviewed SRSF2",
+    ]
+    assert repo.annotation_repository.inserted_bulk[1]["rule_source"] == {
+        "rule_set_id": release.rule_set_id,
+        "content_version": release.content_version,
+        "revision": release.revision,
+        "content_hash": release.content_hash,
+        "rule_id": "reviewed_text",
+        "tier": tier,
+    }
+
+    repo.annotation_repository.inserted_bulk = None
+    preview = service.set_tier_bulk(
+        sample={"_id": "S1", "asp_category": "dna", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=tier,
+        include_automatic_text=True,
+        preview_only=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    assert preview[0]["text"] == "Reviewed SRSF2"
+    assert preview[0]["content_hash"] == release.content_hash
+    assert repo.annotation_repository.inserted_bulk is None
+    from coyote.domain.exceptions import AppError
+
+    with pytest.raises(AppError) as error:
+        service.set_tier_bulk(
+            sample={
+                "_id": "S1",
+                "asp_category": "dna",
+                "asp_id": "assay",
+                "environment": "production",
+            },
+            resource_type="small_variant",
+            resource_ids=["var-1"],
+            apply=True,
+            class_num=tier,
+            include_automatic_text=True,
+            annotation_rule_hash="outdated",
+            create_classified_variant_doc_fn=_classification_doc,
+        )
+    assert error.value.status_code == 409
+    assert repo.annotation_repository.inserted_bulk is None
+
+
+def test_bulk_annotation_uses_registered_parents_and_local_gene_metadata(monkeypatch):
+    """Parent matching changes wording without broadening the persisted annotation scope."""
+    from core_test_support.clinical_rules import _document
+    from coyote.application.reporting.clinical_rules.validation import content_hash
+    from coyote.contracts.schemas.clinical_rules import BulkAnnotationRule
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    service.assay_group_repository = SimpleNamespace(
+        list=lambda: [
+            {"group_id": "hematology", "display_name": "Hematology", "parent_group_id": "root"},
+            {"group_id": "root", "display_name": "Root"},
+        ]
+    )
+    service.oncokb_repository = SimpleNamespace(
+        get_oncokb_gene=lambda gene: {"name": gene, "description": "Gene description"}
+    )
+    release = _document(status="published", active=True)
+    release.bulk_annotation_rules = [
+        BulkAnnotationRule(
+            rule_id="parent_gene",
+            name="Parent and gene",
+            tier=3,
+            order=10,
+            condition={
+                "type": "all",
+                "children": [
+                    {
+                        "type": "predicate",
+                        "fact": "asp.group_path_ids",
+                        "operator": "contains",
+                        "value": "root",
+                    },
+                    {
+                        "type": "predicate",
+                        "fact": "annotation.oncokb_gene_present",
+                        "operator": "eq",
+                        "value": True,
+                    },
+                ],
+            },
+            output=[
+                {"type": "fact", "path": "asp.parent_group_name"},
+                {"type": "text", "value": ": "},
+                {"type": "fact", "path": "annotation.consequence_text"},
+                {"type": "text", "value": " "},
+                {"type": "fact", "path": "annotation.oncokb_gene_url"},
+            ],
+        )
+    ]
+    release.content_hash = content_hash(release)
+    service.clinical_rule_service = SimpleNamespace(bulk_annotation_release=lambda **_: release)
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _: {
+            "asp_group": "hematology",
+            "asp_id": "assay",
+            "diagnosis_id": "base",
+            "namespace": "clinical",
+            "configuration": {},
+        },
+    )
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_category": "dna"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=3,
+        include_automatic_text=True,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+    annotation = repo.annotation_repository.inserted_bulk[1]
+    assert annotation["text"] == "Root: missense variant https://www.oncokb.org/gene/SRSF2"
+    assert annotation["variant_data"]["asp_group"] == "hematology"
+
+
+def test_resource_classification_service_does_not_generate_text_without_opt_in(monkeypatch):
+    """Ordinary bulk assignment never executes annotation templates."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(
+        service,
+        "classification_context",
+        lambda _sample: {
+            "asp_group": "hematology",
+            "diagnosis_id": "base",
+            "asp_id": "assay",
+            "namespace": "clinical",
+        },
+    )
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=True,
+        class_num=2,
+        include_automatic_text=False,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    assert repo.annotation_repository.inserted_bulk is not None
+    assert [doc["text"] for doc in repo.annotation_repository.inserted_bulk] == [None]
+
+
+def test_automatic_annotation_requires_published_terminology(monkeypatch):
+    """Missing terminology rejects explicit automatic text before any write."""
+    from coyote.domain.exceptions import AppError
+
+    repo = _RepoStub()
+    service = _classification_service(repo)
+    monkeypatch.setattr(service, "classification_context", lambda sample: {"configuration": {}})
+    with pytest.raises(AppError) as error:
+        service.set_tier_bulk(
+            sample={"asp_id": "assay", "asp_category": "dna"},
+            resource_type="small_variant",
+            resource_ids=["var-1"],
+            apply=True,
+            class_num=3,
+            include_automatic_text=True,
+            create_classified_variant_doc_fn=_classification_doc,
+        )
+    assert error.value.status_code == 422
+    assert repo.annotation_repository.inserted_bulk is None
+
+
+def test_tier_removal_deletes_only_the_matching_classification():
+    """Removing a tier deletes only its matching classification."""
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    service.set_tier_bulk(
+        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+        resource_type="small_variant",
+        resource_ids=["var-1"],
+        apply=False,
+        class_num=2,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    assert len(repo.annotation_repository.deleted) == 1
+    assert repo.annotation_repository.deleted[0]["class_num"] == 2
+    assert repo.annotation_repository.deleted[0]["annotation_text"] is None
+
+
+def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
+    repo = _RepoStub()
+    service = _classification_service(repo)
+
+    service.set_tier_bulk(
+        sample={
+            "_id": "S1",
+            "asp_id": "assay",
+            "environment": "production",
+            "diagnosis_id": "solid",
+        },
+        resource_type="translocation",
+        resource_ids=["tl-1"],
+        apply=False,
+        class_num=3,
+        create_classified_variant_doc_fn=_classification_doc,
+    )
+
+    assert len(repo.annotation_repository.deleted) == 1
+    assert repo.annotation_repository.deleted[0]["nomenclature"] == "t"
+    assert repo.annotation_repository.deleted[0]["variant"] == "1:100^2:200"

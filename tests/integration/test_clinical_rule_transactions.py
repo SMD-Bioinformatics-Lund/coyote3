@@ -5,14 +5,15 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from pymongo import MongoClient
-
-from api.config.collections import load_collection_section
-from api.infra.mongo.repositories.clinical_rule_sets import (
+from core_test_support.clinical_rules import _document
+from coyote_mongo.config.collections import load_collection_section
+from coyote_mongo.repositories.clinical_rule_sets import (
     ClinicalRuleSetRepository,
     build_revision_snapshot,
 )
-from tests.unit.reporting.test_clinical_rules import _document
+from pymongo import MongoClient
+
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 def seed_database(db):
@@ -44,7 +45,7 @@ def database():
     if not uri:
         pytest.skip("Set CLINICAL_RULE_TEST_MONGO_URI for disposable rule transactions")
     with MongoClient(uri, serverSelectionTimeoutMS=3000, tz_aware=True) as client:
-        db = client[f"coyote3_rule_test_{uuid4().hex}"]
+        db = client[f"coyote4_rule_test_{uuid4().hex}"]
         try:
             yield db, seed_database(db)
         finally:
@@ -56,6 +57,7 @@ def test_lifecycle_refuses_stale_validation_revision(database, operation):
     db, mapping = database
     repository = ClinicalRuleSetRepository(
         SimpleNamespace(
+            app=mongo_runtime(),
             client=db.client,
             clinical_rule_sets_collection=db[mapping["clinical_rule_sets_collection"]],
             clinical_rule_revisions_collection=db[mapping["clinical_rule_revisions_collection"]],

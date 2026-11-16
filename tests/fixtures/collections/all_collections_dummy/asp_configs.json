@@ -6,6 +6,7 @@
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "dna",
+    "snv_filter_mode": "shared",
     "analysis_types": [
       "SNV",
       "CNV",
@@ -130,6 +131,7 @@
     "environment": "testing",
     "asp_group": "hematology",
     "asp_category": "dna",
+    "snv_filter_mode": "shared",
     "analysis_types": [
       "SNV",
       "CNV",
@@ -254,6 +256,7 @@
     "environment": "production",
     "asp_group": "hematology",
     "asp_category": "rna",
+    "snv_filter_mode": "shared",
     "analysis_types": [
       "FUSION",
       "EXPRESSION",

@@ -10,6 +10,9 @@ import yaml
 from scripts.docs.check_built_site import check_site
 
 HOOK = runpy.run_path(str(Path(__file__).resolve().parents[2] / "docs/hooks/reading.py"))
+PACKAGES = runpy.run_path(str(Path(__file__).resolve().parents[2] / "docs/hooks/packages.py"))[
+    "PROJECTS"
+]
 
 
 def test_sidebar_keeps_every_page_in_one_primary_location_and_starts_with_actions():
@@ -27,9 +30,25 @@ def test_sidebar_keeps_every_page_in_one_primary_location_and_starts_with_action
         ]
 
     pages = destinations(navigation)
+
+    def depth(items):
+        """Count the menu levels readers must open to reach a page."""
+        return max(
+            1 + (depth(value) if isinstance(value, list) else 0)
+            for item in items
+            for value in item.values()
+        )
+
+    assert depth(navigation) <= 3
     assert len(pages) == len(set(pages))
-    assert all((root / "docs" / page).is_file() for page in pages)
-    task_areas = navigation[1:-1]
+    for page in pages:
+        if page.startswith("packages/"):
+            _, package, guide = page.split("/", 2)
+            assert (root / PACKAGES[package] / "docs" / guide).is_file()
+        else:
+            assert (root / "docs" / page).is_file()
+    # Package manuals are reference material, separate from application task paths.
+    task_areas = [area for area in navigation[1:-1] if "Package guides" not in area]
     assert len(task_areas) <= 5
     for area in task_areas:
         first = next(iter(next(iter(area.values()))[0].values()))

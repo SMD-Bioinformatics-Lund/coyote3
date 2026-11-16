@@ -27,11 +27,11 @@ def test_identity_audit_gate_is_checked_in_every_environment(monkeypatch, enviro
 
     monkeypatch.setenv("ENV_NAME", environment)
     for key, value in {
-        "COYOTE3_MONGO_URI": "mongodb://synthetic.invalid/?replicaSet=synthetic",
+        "COYOTE4_MONGO_URI": "mongodb://synthetic.invalid/?replicaSet=synthetic",
         "IDENTITY_MONGO_URI": "",
         "KNOWLEDGEBASE_MONGO_URI": "",
         "BAM_MONGO_URI": "",
-        "COYOTE3_DB": "synthetic_app",
+        "COYOTE4_DB": "synthetic_app",
         "IDENTITY_DB": "synthetic_identity",
         "KNOWLEDGEBASE_DB": "synthetic_kb",
         "BAM_DB": "synthetic_bam",
@@ -127,8 +127,8 @@ def test_complete_initial_accounts_allow_start_before_authenticated_catalog_inst
 
 def test_maintenance_credentials_cannot_redirect_knowledgebase(monkeypatch):
     for key, value in {
-        "COYOTE3_MONGO_URI": "mongodb://reader@synthetic.invalid/?replicaSet=example",
-        "COYOTE3_DB": "application",
+        "COYOTE4_MONGO_URI": "mongodb://reader@synthetic.invalid/?replicaSet=example",
+        "COYOTE4_DB": "application",
         "IDENTITY_DB": "identity",
         "KNOWLEDGEBASE_DB": "knowledgebase",
         "BAM_DB": "bam",
@@ -150,8 +150,7 @@ def fake_installation(tmp_path):
     deployment.mkdir(parents=True)
     shutil.copy(ROOT / "scripts/deployment/install_center.sh", deployment)
     shutil.copy(ROOT / "scripts/deployment/python_runtime.sh", deployment)
-    (tmp_path / "api").mkdir(parents=True)
-    (tmp_path / "api/version.py").write_text('print("synthetic")\n')
+    (tmp_path / "release.toml").write_text('application_version="synthetic"\n')
     (deployment / "validate_env_secrets.sh").write_text("#!/bin/bash\nexit 0\n")
     shutil.copy(ROOT / "scripts/deployment/compose-with-version.sh", deployment)
     release_scripts = tmp_path / "scripts/release"
@@ -172,11 +171,11 @@ if [[ "$1" == network ]]; then
   echo "${INSTALL_TEST_NETWORK_DRIVER:-bridge}"
   exit 0
 fi
-if [[ "${COYOTE3_IMAGE_TAG:-}" != "$INSTALL_TEST_EXPECTED_TAG" ]]; then
+if [[ "${COYOTE4_IMAGE_TAG:-}" != "$INSTALL_TEST_EXPECTED_TAG" ]]; then
   echo "Missing or incorrect environment image tag" >&2; exit 1
 fi
 printf '%s\\n' "$*" >> "$INSTALL_TEST_LOG"
-printf 'tag=%s\\n' "$COYOTE3_IMAGE_TAG" >> "$INSTALL_TEST_LOG"
+printf 'tag=%s\\n' "$COYOTE4_IMAGE_TAG" >> "$INSTALL_TEST_LOG"
 printf 'commit=%s\\n' "$GIT_COMMIT" >> "$INSTALL_TEST_LOG"
 if [[ "$*" == *"config --format json"* ]]; then cat "$INSTALL_TEST_CONFIG"; fi
 if [[ "$*" == *"installation_checks state"* ]]; then
@@ -196,12 +195,12 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
             "proxy": {"ports": [{"target": 8088, "published": "5815", "protocol": "tcp"}]},
             "api": {
                 "environment": {
-                    "COYOTE3_DB": "synthetic",
+                    "COYOTE4_DB": "synthetic",
                     "IDENTITY_DB": "synthetic_identity",
                     "ENV_NAME": "production",
-                    "COYOTE3_MONGO_URI": "mongodb://synthetic-runtime:synthetic-secret@synthetic.invalid/?authSource=admin",
+                    "COYOTE4_MONGO_URI": "mongodb://synthetic-runtime:synthetic-secret@synthetic.invalid/?authSource=admin",
                     "PUBLIC_BASE_URL": "http://synthetic.invalid:6802",
-                    "SCRIPT_NAME": "/coyote3",
+                    "SCRIPT_NAME": "/coyote4",
                 }
             },
         },
@@ -232,8 +231,8 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
     }
     for key in (
         "ENV_NAME",
-        "COYOTE3_IMAGE_TAG",
-        "COYOTE3_VERSION",
+        "COYOTE4_IMAGE_TAG",
+        "COYOTE4_VERSION",
         "LOG_LEVEL",
         "CELERY_LOG_LEVEL",
     ):
@@ -248,11 +247,11 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         "--compose-file",
         str(compose),
         "--sys-admin-username",
-        "coyote3.sysadmin",
+        "coyote4.sysadmin",
         "--sys-admin-email",
         "admin@example.test",
         "--username",
-        "coyote3.superuser",
+        "coyote4.superuser",
         "--email",
         "emergency@example.test",
     ]
@@ -287,7 +286,7 @@ def test_anonymous_identity_does_not_block_installation(
     path = Path(env["INSTALL_TEST_CONFIG"])
     config = json.loads(path.read_text())
     config["services"]["api"]["environment"].update(
-        ENV_NAME=environment, COYOTE3_MONGO_URI=shared_uri, IDENTITY_MONGO_URI=identity_uri
+        ENV_NAME=environment, COYOTE4_MONGO_URI=shared_uri, IDENTITY_MONGO_URI=identity_uri
     )
     path.write_text(json.dumps(config))
     result = subprocess.run(
@@ -485,7 +484,7 @@ def test_bootstrap_runs_only_for_fresh_databases(fake_installation, state):
             < calls.index("installation_checks indexes-ready")
             < calls.index("up -d --no-build --wait")
         )
-        assert "http://127.0.0.1:5815/coyote3/api/v1/health" in calls
+        assert "http://127.0.0.1:5815/coyote4/api/v1/health" in calls
         assert "synthetic.invalid:6802" not in calls
     assert "mongodb://" not in calls
     assert "install_reference_data.py" not in calls
@@ -700,10 +699,10 @@ def test_start_cannot_bypass_missing_baseline(fake_installation):
 @pytest.mark.parametrize(
     "host_ip,published,expected_host,prefix",
     [
-        ("0.0.0.0", "9123", "127.0.0.1", "/coyote3"),
+        ("0.0.0.0", "9123", "127.0.0.1", "/coyote4"),
         ("127.0.0.1", "7456", "127.0.0.1", ""),
         ("::", "8123", "[::1]", "/clinical"),
-        ("192.0.2.10", "9555", "192.0.2.10", "/coyote3"),
+        ("192.0.2.10", "9555", "192.0.2.10", "/coyote4"),
     ],
 )
 def test_health_uses_published_proxy_port_not_public_url(
@@ -765,7 +764,7 @@ def test_index_gate_summarizes_and_closes_connections(
     adapter = Mock()
     monkeypatch.setattr("scripts.database.manage_mongo_indexes._adapter", lambda scope: adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.index_management.build_index_plan",
+        "coyote_mongo.index_management.build_index_plan",
         lambda _, **kwargs: [
             {
                 "repository": "brca",

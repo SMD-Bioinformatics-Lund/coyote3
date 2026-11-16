@@ -6,16 +6,17 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
+from coyote.domain.exceptions import AppError
+from coyote_api.services.provisioning.deployment_data import DeploymentDataService
+from coyote_mongo.repositories import deployment_data
 
-from api.infra.mongo.repositories import deployment_data
-from api.services.provisioning.deployment_data import DeploymentDataService
-from coyote3.domain.exceptions import AppError
 from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
     DEFAULT_RBAC_DIR,
     DEFAULT_REFERENCE_DIR,
     build_seed_documents,
 )
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 @pytest.mark.parametrize("roles", [[], ["viewer"], ["demo_installer"], ["SUPERUSER"]])
@@ -64,7 +65,7 @@ def test_repository_preserves_records_captures_policy_revisions_and_audits(monke
     application = mongomock.MongoClient().application
     knowledgebase = mongomock.MongoClient().knowledgebase
     repository = deployment_data.DeploymentDataRepository(
-        application, knowledgebase, mongomock.MongoClient().identity
+        application, knowledgebase, mongomock.MongoClient().identity, context=audit_context()
     )
     transactions, receipts = [], []
 
@@ -136,6 +137,7 @@ def test_empty_payloads_do_not_publish_success(monkeypatch):
         mongomock.MongoClient().application,
         mongomock.MongoClient().knowledgebase,
         mongomock.MongoClient().identity,
+        context=audit_context(),
     )
     audit = Mock()
     monkeypatch.setattr(deployment_data, "enqueue_audit", audit)
@@ -148,7 +150,7 @@ def test_reference_installation_does_not_require_application_transactions():
     application = mongomock.MongoClient().application
     knowledgebase = mongomock.MongoClient().knowledgebase
     repository = deployment_data.DeploymentDataRepository(
-        application, knowledgebase, mongomock.MongoClient().identity
+        application, knowledgebase, mongomock.MongoClient().identity, context=audit_context()
     )
     result = repository.install(
         {
@@ -199,15 +201,15 @@ def fresh_installation(monkeypatch):
     monkeypatch.setattr(bootstrap_database, "parse_args", lambda: args)
     monkeypatch.setattr(bootstrap_database, "build_seed_documents", loader)
     monkeypatch.setattr(
-        "api.infra.mongo.connections.MongoConnections",
+        "coyote_mongo.connections.MongoConnections",
         lambda *args, **kwargs: SimpleNamespace(databases=databases, close=lambda: None),
     )
     monkeypatch.setattr(
-        "api.infra.seed.diagrams.load_seed_diagrams",
+        "coyote_api.infra.seed.diagrams.load_seed_diagrams",
         lambda *args: [{"_id": "asset"}],
     )
     monkeypatch.setattr(
-        "api.infra.mongo.transactions.run_transaction", lambda client, write: write(None)
+        "coyote_mongo.transactions.run_transaction", lambda client, write: write(None)
     )
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
@@ -246,7 +248,7 @@ def test_fresh_accounts_use_fixed_logins_and_print_generated_passwords_once(
     output = capsys.readouterr().out
     users = databases["identity"].users
     for username, password in zip(
-        ["coyote3.superuser", "coyote3.sysadmin"], passwords, strict=True
+        ["coyote4.superuser", "coyote4.sysadmin"], passwords, strict=True
     ):
         user = users.find_one({"username": username})
         assert user["must_change_password"] is True
@@ -350,7 +352,7 @@ def test_force_is_limited_to_explicit_modules():
 def test_force_identity_repairs_grants_without_touching_users(monkeypatch):
     client = mongomock.MongoClient()
     repository = deployment_data.DeploymentDataRepository(
-        client.primary, client.knowledgebase, client.identity
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
     )
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
@@ -388,11 +390,11 @@ def test_force_identity_repairs_grants_without_touching_users(monkeypatch):
 def test_force_application_preserves_center_scopes_and_query_history(monkeypatch):
     from copy import deepcopy
 
-    from api.infra.mongo.repositories.query_rule_revisions import QueryRuleRevisionRepository
+    from coyote_mongo.repositories.query_rule_revisions import QueryRuleRevisionRepository
 
     client = mongomock.MongoClient()
     repository = deployment_data.DeploymentDataRepository(
-        client.primary, client.knowledgebase, client.identity
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
     )
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
@@ -436,7 +438,9 @@ def test_force_application_preserves_center_scopes_and_query_history(monkeypatch
     )
     assert [row["status"] for row in retained] == ["retired", "published"]
     history = QueryRuleRevisionRepository(
-        SimpleNamespace(query_rule_revisions_collection=client.primary.query_rule_revisions)
+        SimpleNamespace(
+            app=mongo_runtime(), query_rule_revisions_collection=client.primary.query_rule_revisions
+        )
     )
     assert len(history.list_for_version(str(retained[0]["_id"]))) == 2
     assert retained[1]["created_by"] == "system"
@@ -448,11 +452,11 @@ def test_force_application_preserves_center_scopes_and_query_history(monkeypatch
 
 
 def test_force_reference_preserves_external_releases_and_unrelated_genes():
-    from api.infra.mongo.repositories.knowledgebase_publications import record_reference_publication
+    from coyote_mongo.repositories.knowledgebase_publications import record_reference_publication
 
     client = mongomock.MongoClient()
     repository = deployment_data.DeploymentDataRepository(
-        client.primary, client.knowledgebase, client.identity
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
     )
     documents = {
         "hgnc_genes": [
@@ -482,7 +486,7 @@ def test_force_reference_preserves_external_releases_and_unrelated_genes():
 def test_force_recovers_system_reference_batch_before_publication_receipt():
     client = mongomock.MongoClient()
     repository = deployment_data.DeploymentDataRepository(
-        client.primary, client.knowledgebase, client.identity
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
     )
     client.knowledgebase.hgnc_genes.insert_one({"hgnc_id": "first", "created_by": "system"})
     documents = {
@@ -500,7 +504,7 @@ def test_force_recovers_system_reference_batch_before_publication_receipt():
 def test_force_preserves_unknown_reference_collection_without_bundled_provenance():
     client = mongomock.MongoClient()
     repository = deployment_data.DeploymentDataRepository(
-        client.primary, client.knowledgebase, client.identity
+        client.primary, client.knowledgebase, client.identity, context=audit_context()
     )
     client.knowledgebase.hgnc_genes.insert_one(
         {"hgnc_id": "center_gene", "created_by": "center.importer"}

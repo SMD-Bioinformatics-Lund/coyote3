@@ -5,49 +5,16 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
-from bson.codec_options import CodecOptions
+from coyote_mongo.config.collections import load_collection_mapping
+from coyote_mongo.index_management import build_index_plan, retire_index
+from coyote_mongo.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
+from coyote_mongo.repositories.assay_setup import AssaySetupRepository
+from coyote_mongo.repositories.query_rules import QueryRuleRepository
+from coyote_mongo.runtime_adapter import MongoAdapter
+from coyote_mongo.security_indexes import ensure_security_indexes
 
-from api.config.collections import load_collection_mapping
-from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
-from api.infra.mongo.index_management import build_index_plan, retire_index
-from api.infra.mongo.repositories.assay_setup import AssaySetupRepository
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
-from api.infra.mongo.runtime_adapter import MongoAdapter
-from api.infra.security.indexes import ensure_security_indexes
-
-
-class FakeCollection:
-    def __init__(self, name: str, indexes: list[dict]):
-        self.name = name
-        self.indexes = indexes
-        self.dropped: list[str] = []
-        self.codec_options = CodecOptions()
-
-    def with_options(self, *, codec_options):
-        """Support read-only codec selection without permitting index writes."""
-        self.codec_options = codec_options
-        return self
-
-    def list_indexes(self):
-        return list(self.indexes)
-
-    def drop_index(self, name: str):
-        self.dropped.append(name)
-
-
-class FakeRepository:
-    def __init__(self, collection: FakeCollection):
-        self.collection = collection
-
-    def get_collection(self):
-        return self.collection
-
-    def set_collection(self, collection):
-        self.collection = collection
-
-    def ensure_indexes(self):
-        self.collection.create_index([("sample_id", 1)], name="sample_id_1", unique=True)
-        self.collection.create_index([("updated_on", -1)], name="updated_on_desc_1")
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
+from tests.support.mongo_indexes import FakeCollection, FakeRepository, adapter_for
 
 
 class FakeDatabase(dict):
@@ -59,29 +26,6 @@ class FakeDatabase(dict):
 
     def list_collection_names(self):
         return list(self)
-
-
-def adapter_for(repository: FakeRepository):
-    security_collections = {
-        "api_sessions": FakeCollection("api_sessions", []),
-        "service_tokens": FakeCollection("service_tokens", []),
-        "audit_events": FakeCollection("audit_events", []),
-        "operational_audit_events": FakeCollection("operational_audit_events", []),
-        "app_controls": FakeCollection("app_controls", []),
-        "report_artifact_erasure": FakeCollection("report_artifact_erasure", []),
-    }
-    primary_database = type(
-        "FakeDatabase", (), {"__getitem__": lambda self, key: security_collections[key]}
-    )()
-    identity_database = type(
-        "FakeIdentityDatabase", (), {"__getitem__": lambda self, key: security_collections[key]}
-    )()
-    return SimpleNamespace(
-        iter_repositories=lambda: iter([("samples", repository)]),
-        app=SimpleNamespace(config={}),
-        coyote_db=primary_database,
-        identity_db=identity_database,
-    )
 
 
 def test_index_plan_reports_present_and_missing_contracts():
@@ -117,7 +61,9 @@ def test_assay_setup_index_plan_is_read_only(existing):
         {"name": "setup_status_updated", "key": {"status": 1, "updated_at": -1}},
     ]
     collection = FakeCollection("assay_setups", indexes if existing else [])
-    repository = AssaySetupRepository(SimpleNamespace(assay_setups_collection=collection))
+    repository = AssaySetupRepository(
+        SimpleNamespace(app=mongo_runtime(), assay_setups_collection=collection)
+    )
 
     # No create_index method on FakeCollection: inspection must never write indexes.
     plan = build_index_plan(adapter_for(repository))
@@ -142,6 +88,7 @@ def test_query_rule_index_plan_preserves_existing_index_names(existing):
     collection = mongomock.MongoClient().application.query_rule_sets
     repository = QueryRuleRepository(
         SimpleNamespace(
+            app=mongo_runtime(),
             query_rule_sets_collection=collection,
             query_rule_revisions_collection=collection.database.query_rule_revisions,
         )
@@ -168,7 +115,7 @@ def test_all_registered_repository_indexes_can_be_planned_without_writes():
     """Cover the complete installation plan using collections that cannot create indexes."""
     mapping = load_collection_mapping()
     adapter = MongoAdapter()
-    adapter.app = SimpleNamespace(config={"DB_COLLECTIONS_CONFIG": mapping})
+    adapter.app = SimpleNamespace(audit=audit_context(), config={"DB_COLLECTIONS_CONFIG": mapping})
     for service, attribute in (
         ("primary", "coyote_db"),
         ("identity", "identity_db"),
@@ -194,6 +141,7 @@ def test_full_index_installation_and_rerun_preserve_records():
     """Install every repository/security index twice on an isolated in-memory database."""
     adapter = MongoAdapter()
     adapter.app = SimpleNamespace(
+        audit=audit_context(),
         config={"DB_COLLECTIONS_CONFIG": load_collection_mapping()},
         logger=logging.getLogger("test.index_installation"),
     )
@@ -253,8 +201,10 @@ def test_standalone_index_scope_isolates_database_writes(monkeypatch, scope):
 
     client = mongomock.MongoClient()
 
-    def connect(adapter, app):
-        adapter.app = app
+    def connect(adapter, settings, *, logger=None, cache=None):
+        from coyote_mongo.runtime_adapter import MongoRuntime
+
+        adapter.app = MongoRuntime(settings.runtime_values(), logger, settings.audit, cache)
         for attribute in ("coyote_db", "identity_db", "knowledgebase_db", "bam_db"):
             setattr(adapter, attribute, client[attribute])
 
@@ -262,7 +212,14 @@ def test_standalone_index_scope_isolates_database_writes(monkeypatch, scope):
     monkeypatch.setattr(
         manage_mongo_indexes,
         "_config",
-        lambda: SimpleNamespace(DB_COLLECTIONS_CONFIG=load_collection_mapping()),
+        lambda: SimpleNamespace(
+            DB_COLLECTIONS_CONFIG=load_collection_mapping(),
+            COYOTE4_MONGO_URI="mongodb://synthetic-mongo:27017",
+            COYOTE4_DB="application",
+            IDENTITY_DB="identity",
+            KNOWLEDGEBASE_DB="reference",
+            BAM_DB="alignments",
+        ),
     )
     monkeypatch.setattr(
         "sys.argv", ["manage_mongo_indexes.py", "apply", "--summary", "--scope", scope]
@@ -275,6 +232,7 @@ def test_standalone_index_scope_isolates_database_writes(monkeypatch, scope):
 
 def test_oncokb_index_plan_only_reads_all_three_collections():
     collections = SimpleNamespace(
+        app=mongo_runtime(),
         oncokb_public_collection=FakeCollection("oncokb_public", []),
         oncokb_genes_public_collection=FakeCollection("oncokb_genes_public", []),
         oncokb_cancer_genes_public_collection=FakeCollection("oncokb_cancer_genes_public", []),

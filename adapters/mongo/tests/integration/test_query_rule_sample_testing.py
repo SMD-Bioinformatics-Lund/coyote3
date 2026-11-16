@@ -1,0 +1,477 @@
+"""Exercise stored-sample comparisons using synthetic repositories only."""
+
+from copy import deepcopy
+from datetime import datetime, timezone
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import mongomock
+import pytest
+from coyote.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote.application.query_rules import testing
+from coyote.contracts.schemas.query_rules import (
+    QueryRuleDoc,
+    QueryRulePreview,
+    QueryRuleSampleResult,
+    QueryRuleScope,
+)
+from coyote.domain.exceptions import AppError
+from coyote.domain.selection import select
+from coyote_mongo.repositories.base import BaseRepository
+from coyote_mongo.repositories.query_rules import QueryRuleRepository
+from mongo_test_support.settings import mongo_runtime
+
+
+@pytest.fixture
+def context(monkeypatch):
+    db = mongomock.MongoClient().synthetic
+    repos = {}
+    for name in ["variant", "copy_number_variant", "translocation", "fusion"]:
+        repo = BaseRepository(SimpleNamespace())
+        repo.set_collection(db[name])
+        repos[name + "_repository"] = repo
+    panel = {
+        "asp_id": "example",
+        "asp_group": "group",
+        "asp_category": "dna",
+        "asp_family": "wgs",
+        "covered_genes": ["ALK"],
+    }
+    config = {
+        "asp_id": "example",
+        "asp_group": "group",
+        "analysis_types": ["SNV", "CNV", "TRANSLOCATION", "FUSION"],
+        "filters": {},
+        "assay_resource_release": capture_assay_resource(panel),
+        "gene_list_release": capture_gene_lists([]),
+    }
+    store = SimpleNamespace(
+        **repos,
+        query_rule_repository=QueryRuleRepository(
+            SimpleNamespace(
+                app=mongo_runtime(),
+                query_rule_sets_collection=db.rules,
+                query_rule_revisions_collection=db.query_rule_revisions,
+            )
+        ),
+        assay_group_repository=SimpleNamespace(get=lambda key: {"group_id": key}),
+        assay_panel_repository=SimpleNamespace(
+            get_asp=lambda *a, **kw: panel, get_all_asps=lambda **kw: [panel]
+        ),
+        assay_diagnosis_repository=SimpleNamespace(),
+        assay_configuration_repository=SimpleNamespace(),
+        gene_list_repository=SimpleNamespace(get_isgl_by_ids=lambda ids: {}),
+        vep_metadata_repository=SimpleNamespace(
+            get_consequence_group_map=lambda *args: {"missense": ["missense_variant"]}
+        ),
+        sample_repository=Mock(),
+    )
+    sample = {
+        "_id": "sample",
+        "name": "SYNTHETIC",
+        "asp_id": "example",
+        "diagnosis_id": "base",
+        "asp_category": "dna",
+        "environment": "validation",
+        "ingest_status": "ready",
+        "analysis_intents": ["somatic"],
+        "database_versions": {"vep": "115"},
+    }
+    monkeypatch.setattr(testing, "get_formatted_assay_config", lambda *a, **kw: config)
+    return testing.QueryRuleTestingService(store), db, sample, config
+
+
+def request(analysis, field, value):
+    return QueryRulePreview(
+        scope=QueryRuleScope(assay_group="group", analysis=analysis),
+        content={
+            "exceptions": [
+                {
+                    "id": "exclude_example",
+                    "mode": "exclude",
+                    "condition": {
+                        "type": "predicate",
+                        "field": field,
+                        "operator": "eq",
+                        "value": value,
+                    },
+                }
+            ]
+        },
+    )
+
+
+def preview(service, req, sample):
+    return service.preview(
+        req, sample, allowed_asp_ids=["example"], allowed_environments=["validation"]
+    )
+
+
+@pytest.mark.parametrize(
+    "analysis,repository,field,rows",
+    [
+        (
+            "snv",
+            "variant",
+            "CHROM",
+            [
+                {
+                    "CHROM": "1",
+                    "GT": [{"type": "case", "AF": 0.2, "DP": 1000, "VD": 200}],
+                    "consequence_terms": ["missense_variant"],
+                },
+                {
+                    "CHROM": "2",
+                    "GT": [{"type": "case", "AF": 0.2, "DP": 1000, "VD": 200}],
+                    "consequence_terms": ["missense_variant"],
+                },
+            ],
+        ),
+        (
+            "cnv",
+            "copy_number_variant",
+            "chr",
+            [
+                {"chr": "1", "start": 1, "end": 1001, "size": 1000, "ratio": 1.0, "type": "AMP"},
+                {"chr": "2", "start": 1, "end": 1001, "size": 1000, "ratio": 1.0, "type": "AMP"},
+            ],
+        ),
+        ("translocation", "translocation", "CHROM", [{"CHROM": "1"}, {"CHROM": "2"}]),
+        (
+            "fusion",
+            "fusion",
+            "gene1",
+            [
+                {
+                    "gene1": "1",
+                    "gene2": "ALK",
+                    "calls": [{"caller": "arriba", "spanreads": 10, "spanpairs": 10}],
+                },
+                {
+                    "gene1": "2",
+                    "gene2": "ALK",
+                    "calls": [{"caller": "arriba", "spanreads": 10, "spanpairs": 10}],
+                },
+            ],
+        ),
+    ],
+)
+def test_sample_comparison_uses_real_query_builders_without_writes(
+    context, monkeypatch, analysis, repository, field, rows
+):
+    service, db, sample, config = context
+    config["filters"] = {
+        "somatic": {
+            "snv": {"vep_consequences": ["missense"]},
+            "cnv": {
+                "cnv_loss_cutoff": -0.3,
+                "cnv_gain_cutoff": 0.3,
+                "min_cnv_size": 100,
+                "max_cnv_size": 50000000,
+            },
+        }
+    }
+    if analysis == "fusion":
+        sample["asp_category"] = "rna"
+        config["filters"] = {}
+        workflow = object.__new__(testing.RNAWorkflowService)
+        workflow.gene_list_repository = service.store.gene_list_repository
+        monkeypatch.setattr(testing.RNAWorkflowService, "from_store", lambda store: workflow)
+    docs = [{"_id": str(index), "SAMPLE_ID": "sample", **row} for index, row in enumerate(rows)]
+    for document in docs:
+        if analysis == "snv":
+            document["genes"] = ["ALK"]
+        elif analysis == "cnv":
+            document["genes"] = [{"gene": "ALK"}]
+        elif analysis == "translocation":
+            document["gene1"] = "ALK"
+    db[repository].insert_many(docs + [{"_id": "other", "SAMPLE_ID": "different", **rows[0]}])
+    before = deepcopy(sample)
+    collection = db[repository]
+    original_find = collection.find
+    executed_queries = []
+
+    def capture_find(query, *args, **kwargs):
+        """Capture the exact predicates submitted to the in-memory Mongo boundary."""
+        executed_queries.append(deepcopy(query))
+        return original_find(query, *args, **kwargs)
+
+    monkeypatch.setattr(collection, "find", capture_find)
+    result = preview(service, request(analysis, field, "1"), sample)
+    QueryRuleSampleResult.model_validate(result)
+    assert result["published_query"] == executed_queries[0]
+    assert result["draft_query"] == executed_queries[1]
+    assert result["draft_query"]["$and"][0] == {"SAMPLE_ID": "sample"}
+    assert result["published_count"] == 2
+    assert result["draft_count"] == 1
+    assert result["removed_count"] == 1 and result["removed"][0]["id"] == "0"
+    assert result["added_count"] == 0 and result["persisted"] is False
+    assert sample == before
+    assert db[repository].count_documents({}) == 3
+    assert db.rules.count_documents({}) == 0
+    assert not service.store.sample_repository.method_calls
+
+
+@pytest.mark.parametrize("change", [{"environment": "production"}, {"asp_id": "other"}])
+def test_preview_denies_sample_scope_before_loading_configuration(context, change):
+    service, _, sample, _ = context
+    with pytest.raises(AppError):
+        preview(service, request("snv", "CHROM", "1"), {**sample, **change})
+
+
+def test_preview_rejects_unready_sample_and_unavailable_analysis(context):
+    service, _, sample, config = context
+    with pytest.raises(AppError):
+        preview(service, request("snv", "CHROM", "1"), {**sample, "ingest_status": "loading"})
+    config["analysis_types"] = []
+    with pytest.raises(AppError):
+        preview(service, request("snv", "CHROM", "1"), sample)
+
+
+def test_group_draft_does_not_override_published_assay_child(context):
+    service, db, _, _ = context
+    scope = QueryRuleScope(assay_group="group", asp_id="example", analysis="snv")
+    now = datetime.now(timezone.utc)
+    child = QueryRuleDoc(
+        scope=scope,
+        scope_key=scope.key(),
+        name="Child",
+        reason="Synthetic",
+        content={"exceptions": []},
+        version=3,
+        status="published",
+        created_by="a",
+        updated_by="b",
+        created_on=now,
+        updated_on=now,
+    )
+    db.rules.insert_one(child.model_dump(by_alias=True))
+    proposed = service._proposed_service(request("snv", "CHROM", "1")).resolve(scope)
+    assert proposed.exceptions == []
+    assert proposed.lineage[-1]["source"] == scope.key()
+    assert db.rules.count_documents({}) == 1
+
+
+@pytest.mark.parametrize("resource", ["assay", "gene_list"])
+def test_sample_comparison_uses_pinned_gene_scope_after_live_resources_change(context, resource):
+    """Policy comparisons must use the same immutable eligibility as sample analysis."""
+    service, db, sample, config = context
+    pinned = {"asp_id": "example", "asp_group": "group", "covered_genes": ["ALK", "BRAF"]}
+    config["assay_resource_release"] = capture_assay_resource(pinned)
+    config["filters"] = {"somatic": {"snv": {"vep_consequences": ["missense"]}}}
+    if resource == "assay":
+        config["assay_resource_release"] = capture_assay_resource(
+            {**pinned, "covered_genes": ["ALK"]}
+        )
+        service.store.assay_panel_repository.get_asp = lambda _key: {
+            **pinned,
+            "covered_genes": ["BRAF"],
+        }
+    else:
+        config["filters"]["somatic"]["snv"]["snvlists"] = ["curated"]
+        config["gene_list_release"] = capture_gene_lists(
+            [{"isgl_id": "curated", "list_type": ["snv"], "genes": ["ALK"], "is_active": True}]
+        )
+        service.store.gene_list_repository.get_isgl_by_ids = lambda _ids: {
+            "curated": {"list_type": ["snv"], "genes": ["BRAF"], "is_active": True}
+        }
+    db.variant.insert_many(
+        [
+            {
+                "_id": gene,
+                "SAMPLE_ID": "sample",
+                "CHROM": str(index),
+                "genes": [gene],
+                "consequence_terms": ["missense_variant"],
+                "GT": [{"type": "case", "AF": 0.2, "DP": 1000, "VD": 200}],
+            }
+            for index, gene in enumerate(["ALK", "BRAF"], start=1)
+        ]
+    )
+    result = preview(service, request("snv", "CHROM", "1"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "ALK"
+
+
+def test_rna_sample_comparison_uses_pinned_lists_without_live_lookup(context, monkeypatch):
+    """Fusion comparisons retain the sample's eligible genes after list edits."""
+    service, db, sample, config = context
+    sample["asp_category"] = "rna"
+    config["filters"] = {"somatic": {"fusion": {"fusionlists": ["curated"]}}}
+    config["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "curated", "list_type": ["fusion"], "genes": ["ALK"], "is_active": True}]
+    )
+    live_lookup = Mock(side_effect=AssertionError("Sample preview must not read live lists"))
+    service.store.gene_list_repository.get_isgl_by_ids = live_lookup
+    monkeypatch.setattr(
+        testing.RNAWorkflowService,
+        "from_store",
+        lambda _store: object.__new__(testing.RNAWorkflowService),
+    )
+    db.fusion.insert_many(
+        [
+            {"_id": gene, "SAMPLE_ID": "sample", "gene1": gene, "gene2": "PARTNER"}
+            for gene in ["ALK", "BRAF"]
+        ]
+    )
+    result = preview(service, request("fusion", "gene1", "ALK"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "ALK"
+    live_lookup.assert_not_called()
+
+
+@pytest.mark.parametrize("filters", [None, {}, {"somatic": {}}])
+def test_rna_comparison_applies_pinned_read_thresholds_to_missing_profiles(
+    context, monkeypatch, filters
+):
+    """Completed RNA defaults must affect actual candidate membership."""
+    service, db, sample, config = context
+    sample.update(asp_category="rna", filters=filters)
+    config["filters"] = {"somatic": {"fusion": {"min_spanning_reads": 7}}}
+    monkeypatch.setattr(
+        testing.RNAWorkflowService,
+        "from_store",
+        lambda _store: object.__new__(testing.RNAWorkflowService),
+    )
+    db.fusion.insert_many(
+        [
+            {
+                "_id": str(reads),
+                "SAMPLE_ID": "sample",
+                "gene1": "ALK",
+                "gene2": "PARTNER",
+                "calls": [{"caller": "arriba", "spanreads": reads}],
+            }
+            for reads in [6, 7]
+        ]
+    )
+    result = preview(service, request("fusion", "gene1", "ALK"), sample)
+    assert result["published_count"] == 1
+    assert result["draft_count"] == 0
+    assert result["removed"][0]["id"] == "7"
+
+
+@pytest.mark.parametrize("resource", ["assay_resource_release", "gene_list_release"])
+def test_sample_comparison_rejects_corrupt_pinned_resources(context, resource):
+    """A corrupt receipt cannot silently fall back to mutable registry data."""
+    service, _db, sample, config = context
+    config[resource]["content_hash"] = "corrupted"
+    with pytest.raises(AppError, match="invalid hash"):
+        preview(service, request("snv", "CHROM", "1"), sample)
+
+
+def test_search_intersects_access_and_never_treats_empty_assays_as_unrestricted(context):
+    service, _, _, _ = context
+    result = service.search_samples(
+        scope=QueryRuleScope(analysis="snv"),
+        search="",
+        page=1,
+        allowed_asp_ids=[],
+        allowed_environments=["validation"],
+    )
+    assert result["items"] == []
+    service.store.sample_repository.search_samples_for_admin.assert_not_called()
+
+
+def test_repository_forces_sample_scope_even_for_a_broad_predicate(context):
+    service, db, _, _ = context
+    db.variant.insert_many([{"SAMPLE_ID": "sample"}, {"SAMPLE_ID": "other"}])
+    assert len(service.store.variant_repository.preview_sample_findings("sample", select({}))) == 1
+
+
+def test_candidate_overflow_rejects_partial_comparison(context):
+    service, _, sample, _ = context
+    service.store.translocation_repository.preview_sample_findings = Mock(return_value=[{}] * 10001)
+    with pytest.raises(AppError, match="10000"):
+        preview(service, request("translocation", "CHROM", "1"), sample)
+
+
+def test_sample_preview_resolves_references_from_saved_filters(context):
+    service, db, sample, config = context
+    config["filters"] = {"somatic": {"snv": {"vep_consequences": ["missense"]}}}
+    for index, af in enumerate([0.2, 0.3]):
+        db.variant.insert_one(
+            {
+                "_id": str(index),
+                "SAMPLE_ID": "sample",
+                "consequence_terms": ["missense_variant"],
+                "genes": ["ALK"],
+                "GT": [{"type": "case", "AF": af, "DP": 1000, "VD": 200}],
+            }
+        )
+    req = request("snv", "GT.AF", {"source": "sample.filters", "key": "min_freq"})
+    sample["filters"] = {"somatic": {"snv": {"min_freq": 0.2, "vep_consequences": ["missense"]}}}
+    assert preview(service, req, sample)["removed"][0]["id"] == "0"
+    sample["filters"]["somatic"]["snv"]["min_freq"] = 0.3
+    assert preview(service, req, sample)["removed"][0]["id"] == "1"
+    assert req.content.exceptions[0]["condition"]["value"] == {
+        "source": "sample.filters",
+        "key": "min_freq",
+    }
+
+
+def test_germline_draft_uses_its_own_profile_in_independent_mode(context):
+    service, db, sample, config = context
+    config["snv_filter_mode"] = "independent"
+    sample["analysis_intents"] = ["somatic", "germline"]
+    config["filters"] = {"germline": {"snv": {"vep_consequences": ["missense"]}}}
+    db.variant.insert_one(
+        {"_id": "germline-finding", "SAMPLE_ID": "sample", "FILTER": "GERMLINE", "genes": ["ALK"]}
+    )
+    db.variant.insert_one({"_id": "other-sample", "SAMPLE_ID": "different", "FILTER": "GERMLINE"})
+    req = QueryRulePreview(
+        scope=QueryRuleScope(assay_group="group", analysis="snv", intent="germline"),
+        content={
+            "evidence_mode": "exception_only",
+            "exceptions": [
+                {
+                    "id": "marker",
+                    "mode": "admit",
+                    "condition": {
+                        "type": "predicate",
+                        "field": "FILTER",
+                        "operator": "eq",
+                        "value": "GERMLINE",
+                    },
+                }
+            ],
+        },
+    )
+    result = preview(service, req, sample)
+    assert result["intent"] == "germline"
+    assert result["published_count"] == 0
+    assert result["draft_count"] == 1
+    assert result["added"][0]["id"] == "germline-finding"
+    assert sample["analysis_intents"] == ["somatic", "germline"]
+    excluded = req.model_copy(deep=True)
+    excluded.content.exceptions.append(
+        {
+            "id": "remove_marker",
+            "mode": "exclude",
+            "condition": {
+                "type": "predicate",
+                "field": "FILTER",
+                "operator": "eq",
+                "value": "GERMLINE",
+            },
+        }
+    )
+    assert preview(service, excluded, sample)["draft_count"] == 0
+
+
+def test_search_passes_assay_and_environment_intersection(context):
+    service, _, _, _ = context
+    service.store.sample_repository.search_samples_for_admin.return_value = ([], 0)
+    service.search_samples(
+        scope=QueryRuleScope(assay_group="group", analysis="snv"),
+        search="SYNTHETIC",
+        page=1,
+        allowed_asp_ids=["example", "other"],
+        allowed_environments=["validation"],
+    )
+    params = service.store.sample_repository.search_samples_for_admin.call_args.kwargs
+    assert params["asp_ids"] == ["example"]
+    assert params["environments"] == ["validation"]
+    assert params["ready_only"] is True

@@ -9,14 +9,13 @@ from pathlib import Path
 import pytest
 import yaml
 from bson import json_util
-from pydantic import ValidationError
-
-from coyote3.contracts.schemas.registry import (
+from coyote.contracts.schemas.registry import (
     COLLECTION_MODEL_ADAPTERS,
     normalize_collection_document,
     validate_collection_document,
 )
-from coyote3.contracts.schemas.samples import SamplesDoc
+from coyote.contracts.schemas.samples import SamplesDoc
+from pydantic import ValidationError
 
 
 def _load_fixture_bundle(source: Path) -> dict[str, list[dict]]:
@@ -139,7 +138,7 @@ def test_assay_panel_fixture_includes_required_files() -> None:
 
 
 def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
-    from coyote3.application.ingest.collection_writes import parse_yaml_payload
+    from coyote.application.ingest.collection_writes import parse_yaml_payload
 
     for manifest_path in (
         Path("tests/fixtures/ingest/generic_case_control.yaml"),

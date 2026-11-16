@@ -109,7 +109,7 @@ def test_preparation_creates_runtime_tree_and_preserves_existing_files(tmp_path)
     """Reruns preserve data and modes; unrelated input folders remain absent."""
     config = configuration(tmp_path)
     prepare(config)
-    runtime = tmp_path / "data/coyote3_prod"
+    runtime = tmp_path / "data/coyote4_prod"
     assert (runtime / "reports").is_dir()
     assert (runtime / "ingest_staging").is_dir()
     assert (runtime / "copied_sample_files/yaml").is_dir()
@@ -171,7 +171,7 @@ def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):
         "if 'config' in sys.argv:\n"
         " print(pathlib.Path(os.environ['TEST_COMPOSE_JSON']).read_text())\n"
         "else:\n"
-        " assert pathlib.Path(os.environ['TEST_STORAGE_ROOT'], 'data/coyote3_prod/reports').is_dir()\n"
+        " assert pathlib.Path(os.environ['TEST_STORAGE_ROOT'], 'data/coyote4_prod/reports').is_dir()\n"
     )
     binary.chmod(0o755)
     env = dict(
@@ -186,4 +186,4 @@ def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):
     subprocess.run([*command, "config"], env=env, check=True, capture_output=True)
     assert not (tmp_path / "data").exists()
     subprocess.run([*command, "up", "-d"], env=env, check=True, capture_output=True)
-    assert (tmp_path / "data/coyote3_prod/reports").is_dir()
+    assert (tmp_path / "data/coyote4_prod/reports").is_dir()

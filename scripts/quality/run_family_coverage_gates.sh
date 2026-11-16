@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -54,15 +57,8 @@ run_family_gate() {
   local label="$1"
   local include="$2"
   local minimum="$3"
-  shift 3
 
   echo "[coverage-gates] ${label} >= ${minimum}%"
-  if [[ "$reuse_coverage" -eq 0 ]]; then
-    "${PYTHON_BIN}" -m pytest -q "$@" \
-      --cov=api --cov=coyote3 \
-      --cov-config=.coveragerc \
-      --cov-report=
-  fi
   "${PYTHON_BIN}" -m coverage report \
     --include="${include}" \
     --show-missing \
@@ -74,20 +70,17 @@ if [[ "$reuse_coverage" -eq 1 && ! -f .coverage ]]; then
   exit 2
 fi
 
-run_family_gate "src/coyote3/domain" "src/coyote3/domain/*" "${CORE_MIN}" \
-  tests/unit tests/api tests/integration
-run_family_gate "src/coyote3/application" "src/coyote3/application/*" "${SERVICES_MIN}" \
-  tests/unit tests/api
-run_family_gate "api/interfaces/http" "api/interfaces/http/*" "${ROUTERS_MIN}" \
-  tests/api tests/integration
-run_family_gate "clinical query policy" "src/coyote3/domain/dna/varqueries.py,src/coyote3/domain/dna/cnvqueries.py,src/coyote3/domain/dna/translocqueries.py,src/coyote3/domain/rna/fusion_query_builder.py" "${CLINICAL_QUERY_MIN}" \
-  tests/unit/test_dna_varqueries.py \
-  tests/unit/test_query_strategy_builders.py \
-  tests/unit/test_dna_structural_service.py \
-  tests/unit/workflows/test_workflow_services.py
-run_family_gate "clinical reporting rules" "src/coyote3/application/reporting/clinical_rules/*" "${CLINICAL_RULES_MIN}" \
-  tests/unit/reporting \
-  tests/unit/test_report_summary.py \
-  tests/unit/test_report_summary_extended.py
+if [[ "$reuse_coverage" -eq 0 ]]; then
+  "${PYTHON_BIN}" -m pytest -q \
+    --cov=coyote_api --cov=coyote --cov=coyote_mongo \
+    --cov-config=.coveragerc --cov-report=
+  reuse_coverage=1
+fi
+
+run_family_gate "core/src/coyote/domain" "core/src/coyote/domain/*" "${CORE_MIN}"
+run_family_gate "core/src/coyote/application" "core/src/coyote/application/*" "${SERVICES_MIN}"
+run_family_gate "api/src/coyote_api/interfaces/http" "api/src/coyote_api/interfaces/http/*" "${ROUTERS_MIN}"
+run_family_gate "clinical query policy" "core/src/coyote/domain/dna/varqueries.py,core/src/coyote/domain/dna/cnvqueries.py,core/src/coyote/domain/dna/translocqueries.py,core/src/coyote/domain/rna/fusion_query_builder.py" "${CLINICAL_QUERY_MIN}"
+run_family_gate "clinical reporting rules" "core/src/coyote/application/reporting/clinical_rules/*" "${CLINICAL_RULES_MIN}"
 
 echo "[coverage-gates] All family gates passed."

@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 import mongomock
 import pytest
+from coyote.contracts.schemas.query_rules import QueryRuleDoc
 
-from coyote3.contracts.schemas.query_rules import QueryRuleDoc
 from scripts.database import upgrade_query_rule_storage as migration
 
 

@@ -33,7 +33,7 @@ def test_old_host_build_compatibility_is_confined_to_legacy_compose(definitions,
     result = subprocess.run(
         [*command, "config", "--format", "json"],
         cwd=ROOT,
-        env={**os.environ, "COYOTE3_IMAGE_TAG": "synthetic-compatibility-test"},
+        env={**os.environ, "COYOTE4_IMAGE_TAG": "synthetic-compatibility-test"},
         capture_output=True,
         text=True,
         check=True,
@@ -77,7 +77,7 @@ def test_wrapper_selects_environment(tmp_path, label, suffix, level, explicit):
         "#!/usr/bin/env python3\nimport os,json,sys\n"
         "if sys.argv[-1] != 'version':\n"
         " print(json.dumps({k:os.environ.get(k) for k in "
-        "['COYOTE3_IMAGE_TAG','CELERY_LOG_LEVEL','LOG_LEVEL']}))\n"
+        "['COYOTE4_IMAGE_TAG','CELERY_LOG_LEVEL','LOG_LEVEL']}))\n"
     )
     binary.chmod(0o755)
     env_file = tmp_path / "settings.env"
@@ -106,10 +106,10 @@ def test_wrapper_selects_environment(tmp_path, label, suffix, level, explicit):
         check=True,
     )
     settings = json.loads(result.stdout.splitlines()[-1])
-    from api.version import __version__
+    from coyote_api.version import APPLICATION_VERSION
 
-    assert settings["COYOTE3_IMAGE_TAG"] == (
-        __version__ if suffix == "prod" else f"{__version__}-{suffix}"
+    assert settings["COYOTE4_IMAGE_TAG"] == (
+        APPLICATION_VERSION if suffix == "prod" else f"{APPLICATION_VERSION}-{suffix}"
     )
     assert settings["LOG_LEVEL"] == ("INFO" if explicit else level)
     assert settings["CELERY_LOG_LEVEL"] == ("WARNING" if explicit else level)
@@ -121,15 +121,15 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
     binary.write_text(
         "#!/usr/bin/env python3\nimport os,sys,json,shlex\n"
         "if 'config' in sys.argv:\n"
-        " assert os.environ.get('COYOTE3_IMAGE_TAG'), 'Missing image tag'\n"
+        " assert os.environ.get('COYOTE4_IMAGE_TAG'), 'Missing image tag'\n"
         " assert os.environ.get('LOG_LEVEL') == 'INFO'\n"
         " source=sys.argv[sys.argv.index('--env-file')+1]\n"
         " settings=dict(shlex.split(line)[0].split('=',1) for line in open(source) if line.strip())\n"
-        " api={'environment':settings,'user':settings['COYOTE3_UID']+':'+settings['COYOTE3_GID']}\n"
-        f" center={str(ROOT / 'config/examples/center')!r}\n"
+        " api={'environment':settings,'user':settings['COYOTE4_UID']+':'+settings['COYOTE4_GID']}\n"
+        f" center={str(ROOT / 'api/src/coyote_api/config/examples/center')!r}\n"
         " api['volumes']=[{'type':'bind','target':target,'source':path} for target,path in "
-        "[('/app/center-config',center),('/data',settings['COYOTE3_DATA_HOST_ROOT']),"
-        "('/app/logs',settings['COYOTE3_LOGS_HOST_ROOT'])]]\n"
+        "[('/app/center-config',center),('/data',settings['COYOTE4_DATA_HOST_ROOT']),"
+        "('/app/logs',settings['COYOTE4_LOGS_HOST_ROOT'])]]\n"
         " print(json.dumps({'services':{'api':api}}))\n"
     )
     binary.chmod(0o755)
@@ -139,23 +139,23 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
         "INTERNAL_API_TOKEN": "synthetic-preflight-token",
         "PASSWORD_TOKEN_SALT": "synthetic-preflight-salt",
         "REDIS_PASSWORD": "a" * 64,
-        "COYOTE3_MONGO_URI": "mongodb://127.0.0.1:27017/",
-        "COYOTE3_DB": "preflight_app",
+        "COYOTE4_MONGO_URI": "mongodb://127.0.0.1:27017/",
+        "COYOTE4_DB": "preflight_app",
         "IDENTITY_DB": "preflight_identity",
         "KNOWLEDGEBASE_DB": "preflight_kb",
         "BAM_DB": "preflight_bam",
-        "COYOTE3_APP_NETWORK": "preflight-net",
-        "COYOTE3_UID": str(os.getuid()),
-        "COYOTE3_GID": str(os.getgid()),
-        "COYOTE3_DATA_HOST_ROOT": str(tmp_path),
-        "COYOTE3_LOGS_HOST_ROOT": str(tmp_path),
+        "COYOTE4_APP_NETWORK": "preflight-net",
+        "COYOTE4_UID": str(os.getuid()),
+        "COYOTE4_GID": str(os.getgid()),
+        "COYOTE4_DATA_HOST_ROOT": str(tmp_path),
+        "COYOTE4_LOGS_HOST_ROOT": str(tmp_path),
     }
     env_file = tmp_path / "settings.env"
     env_file.write_text("".join(f"{key}='{value}'\n" for key, value in values.items()))
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in {"ENV_NAME", "LOG_LEVEL", "CELERY_LOG_LEVEL", "COYOTE3_IMAGE_TAG"}
+        if k not in {"ENV_NAME", "LOG_LEVEL", "CELERY_LOG_LEVEL", "COYOTE4_IMAGE_TAG"}
     }
     env.update(PATH=str(tmp_path) + os.pathsep + env["PATH"], PYTHON_BIN=sys.executable)
     result = subprocess.run(

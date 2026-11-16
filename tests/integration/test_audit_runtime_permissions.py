@@ -10,24 +10,24 @@ from uuid import uuid4
 
 import pytest
 from bson import ObjectId
-from pymongo import MongoClient
-from pymongo.errors import OperationFailure, PyMongoError
-from pymongo.uri_parser import parse_uri
-
-from api.infra.mongo.repositories.audit_integrity import append_event, verify_chain
-from api.infra.security.indexes import ensure_security_indexes
-from api.infra.security.mongo_roles import (
+from coyote_mongo.repositories.audit_integrity import append_event, verify_chain
+from coyote_mongo.runtime_roles import (
     IDENTITY_ROLE,
     provision_identity,
     verify_runtime_audit_permissions,
 )
+from coyote_mongo.security_indexes import ensure_security_indexes
+from pymongo import MongoClient
+from pymongo.errors import OperationFailure, PyMongoError
+from pymongo.uri_parser import parse_uri
+
 from scripts.quality.run_transaction_tests import start_replica
 
 
 @pytest.fixture(scope="module")
 def authenticated_replica(tmp_path_factory):
     """Start a fresh replica, provision users, and restart it with authorization enabled."""
-    if os.getenv("COYOTE3_RUN_DISPOSABLE_TESTS") != "1":
+    if os.getenv("COYOTE4_RUN_DISPOSABLE_TESTS") != "1":
         pytest.skip("Use run_transaction_tests.py for on-demand database-permission tests")
     if shutil.which("mongod") is None:
         pytest.skip("mongod is required for the isolated database-permission test")

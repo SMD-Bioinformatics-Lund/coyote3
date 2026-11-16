@@ -7,22 +7,23 @@ from types import SimpleNamespace
 import mongomock
 import pytest
 from bson import ObjectId
+from coyote.domain.selection import RecordField, select
+from coyote_mongo.repositories.annotations import AnnotationsRepository
+from coyote_mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote_mongo.repositories.assay_panels import ASPRepository
+from coyote_mongo.repositories.base import BaseRepository
+from coyote_mongo.repositories.copy_number_variants import CNVsRepository
+from coyote_mongo.repositories.finding_comments import FindingCommentsRepository
+from coyote_mongo.repositories.fusions import FusionsRepository
+from coyote_mongo.repositories.gene_lists import ISGLRepository
+from coyote_mongo.repositories.permissions import PermissionsRepository
+from coyote_mongo.repositories.roles import RolesRepository
+from coyote_mongo.repositories.samples import SampleRepository
+from coyote_mongo.repositories.translocations import TranslocsRepository
+from coyote_mongo.repositories.users import UsersRepository
+from coyote_mongo.repositories.variants import VariantsRepository
 
-from api.infra.mongo.repositories.annotations import AnnotationsRepository
-from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
-from api.infra.mongo.repositories.assay_panels import ASPRepository
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.copy_number_variants import CNVsRepository
-from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
-from api.infra.mongo.repositories.fusions import FusionsRepository
-from api.infra.mongo.repositories.gene_lists import ISGLRepository
-from api.infra.mongo.repositories.permissions import PermissionsRepository
-from api.infra.mongo.repositories.roles import RolesRepository
-from api.infra.mongo.repositories.samples import SampleRepository
-from api.infra.mongo.repositories.translocations import TranslocsRepository
-from api.infra.mongo.repositories.users import UsersRepository
-from api.infra.mongo.repositories.variants import VariantsRepository
-from coyote3.domain.selection import RecordField, select
+from tests.fixtures.mongo_settings import audit_context
 
 
 class _Cache:
@@ -50,20 +51,21 @@ def emulated_repository_transactions(monkeypatch):
     def execute(client, operation):
         return operation(None)
 
-    monkeypatch.setattr("api.infra.mongo.repositories.base.run_transaction", execute)
-    monkeypatch.setattr("api.infra.mongo.repositories.samples.run_transaction", execute)
-    monkeypatch.setattr("api.infra.mongo.repositories.assay_panels.run_transaction", execute)
-    monkeypatch.setattr("api.infra.mongo.repositories.revision_rotation.run_transaction", execute)
-    monkeypatch.setattr("api.infra.mongo.repositories.audit_outbox.run_transaction", execute)
+    monkeypatch.setattr("coyote_mongo.repositories.base.run_transaction", execute)
+    monkeypatch.setattr("coyote_mongo.repositories.samples.run_transaction", execute)
+    monkeypatch.setattr("coyote_mongo.repositories.assay_panels.run_transaction", execute)
+    monkeypatch.setattr("coyote_mongo.repositories.revision_rotation.run_transaction", execute)
+    monkeypatch.setattr("coyote_mongo.repositories.audit_outbox.run_transaction", execute)
     for module in ("audit_outbox", "assay_panels", "revision_rotation", "samples"):
         monkeypatch.setattr(
-            f"api.infra.mongo.repositories.{module}.enqueue_audit", lambda *_a, **_k: None
+            f"coyote_mongo.repositories.{module}.enqueue_audit", lambda *_a, **_k: None
         )
 
 
 def _adapter():
-    database = mongomock.MongoClient()["coyote3_repository_contracts"]
+    database = mongomock.MongoClient()["coyote4_repository_contracts"]
     app = SimpleNamespace(
+        audit=audit_context(),
         config={"CACHE_DEFAULT_TIMEOUT": 60},
         cache=_Cache(),
         logger=logging.getLogger("repository-contracts"),
@@ -180,7 +182,7 @@ def test_finding_comments_repository_persists_hydrates_visibility_and_deletes(
         }
     ).inserted_id
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.finding_comments.current_username",
+        "coyote_mongo.repositories.finding_comments.current_username",
         lambda default="": "curator",
     )
 
@@ -280,7 +282,7 @@ def test_finding_comments_capture_typed_finding_identity(
     collection = adapter.coyote_db[collection_name]
     finding_id = collection.insert_one({**finding, "SAMPLE_ID": str(sample_id)}).inserted_id
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.finding_comments.current_username",
+        "coyote_mongo.repositories.finding_comments.current_username",
         lambda default="": "curator",
     )
 
@@ -356,7 +358,7 @@ def test_roles_repository_search_colors_permissions_and_lifecycle(monkeypatch) -
     adapter = _adapter()
     repository = RolesRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
     )
     repository.ensure_indexes()
     repository.create_role(
@@ -527,7 +529,7 @@ def test_asp_repository_business_keys_scope_genes_and_lifecycle(monkeypatch) -> 
     )
     repository = ASPRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics",
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics",
         lambda *_, **__: None,
     )
     repository.create_panel(
@@ -612,7 +614,7 @@ def test_aspc_repository_business_keys_queries_and_lifecycle(monkeypatch) -> Non
     adapter = _adapter()
     repository = ASPConfigRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics",
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics",
         lambda *_, **__: None,
     )
     assert repository.build_aspc_id("HEMA_GMSV1", "Production", "Hem-Snabb") == (
@@ -688,7 +690,7 @@ def test_isgl_repository_scope_gene_selection_and_lifecycle(monkeypatch) -> None
     adapter = _adapter()
     repository = ISGLRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics",
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics",
         lambda *_, **__: None,
     )
     repository.create_genelist(
@@ -780,7 +782,7 @@ def test_users_repository_identity_search_notifications_passwords_and_lifecycle(
     adapter = _adapter()
     repository = UsersRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
     )
     repository.ensure_indexes()
     repository.create_user(
@@ -914,10 +916,10 @@ def test_samples_repository_lifecycle_scope_counts_versions_and_delegates(monkey
     adapter.report_repository = _ReportRepository()
     repository = SampleRepository(adapter)
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
+        "coyote_mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
     )
     repository.ensure_indexes()
     now = datetime.now(timezone.utc)

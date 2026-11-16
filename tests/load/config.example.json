@@ -1,10 +1,10 @@
 {
-  "target_url": "http://localhost:8080/coyote3",
+  "target_url": "http://localhost:8080/coyote4",
   "environment": "test",
   "databases": {
-    "primary": "coyote3_load",
-    "identity": "coyote3_load_identity",
-    "bam_service": "coyote3_load_bam"
+    "primary": "coyote4_load",
+    "identity": "coyote4_load_identity",
+    "bam_service": "coyote4_load_bam"
   },
   "synthetic_data": true,
   "external_lookups_disabled": true,

@@ -5,16 +5,16 @@ from pathlib import Path
 
 import pytest
 
-SOURCE = Path(__file__).resolve().parents[2] / "api/config/paths.py"
+SOURCE = Path(__file__).resolve().parents[2] / "api/src/coyote_api/config/paths.py"
 
 
 def test_container_directory_maps_to_expected_host_directory(monkeypatch):
     monkeypatch.setenv("ENV_NAME", "development")
     config = runpy.run_path(str(SOURCE))
-    container_root = config["COYOTE3_DATA_CONTAINER_ROOT"]
-    assert container_root == Path("/data/coyote3_dev")
-    host_root = Path("/data/coyote3") / container_root.relative_to("/data")
-    assert host_root == Path("/data/coyote3/coyote3_dev")
+    container_root = config["COYOTE4_DATA_CONTAINER_ROOT"]
+    assert container_root == Path("/data/coyote4_dev")
+    host_root = Path("/data/coyote4") / container_root.relative_to("/data")
+    assert host_root == Path("/data/coyote4/coyote4_dev")
 
 
 @pytest.mark.parametrize(
@@ -34,7 +34,7 @@ def test_container_directory_maps_to_expected_host_directory(monkeypatch):
 def test_environment_directory(environment, folder, tmp_path):
     config = runpy.run_path(str(SOURCE))
     assert (
-        config["environment_storage_root"](environment, tmp_path) == tmp_path / f"coyote3_{folder}"
+        config["environment_storage_root"](environment, tmp_path) == tmp_path / f"coyote4_{folder}"
     )
 
 
@@ -57,4 +57,4 @@ def test_startup_creates_directories_without_overwriting_files(tmp_path, monkeyp
     report.write_text("saved report")
     initialize()
     assert report.read_text() == "saved report"
-    assert (tmp_path / "coyote3_dev/copied_sample_files/yaml").is_dir()
+    assert (tmp_path / "coyote4_dev/copied_sample_files/yaml").is_dir()

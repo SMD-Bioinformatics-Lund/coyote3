@@ -8,7 +8,14 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DIRECTORIES = ("src/coyote3", "api", "scripts", "deploy/gunicorn", "tests/load")
+SOURCE_DIRECTORIES = (
+    "core/src/coyote",
+    "api/src/coyote_api",
+    "adapters/mongo/src/coyote_mongo",
+    "scripts",
+    "deploy/gunicorn",
+    "tests/load",
+)
 DEFINITION_TYPES = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
 
 

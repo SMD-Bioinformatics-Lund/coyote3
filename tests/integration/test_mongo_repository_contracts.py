@@ -6,10 +6,9 @@ from types import SimpleNamespace
 
 import mongomock
 from bson import ObjectId
-
-from api.infra.mongo.repositories.finding_comments import FindingCommentsRepository
-from api.infra.mongo.repositories.samples import SampleRepository
-from api.infra.mongo.repositories.variants import VariantsRepository
+from coyote_mongo.repositories.finding_comments import FindingCommentsRepository
+from coyote_mongo.repositories.samples import SampleRepository
+from coyote_mongo.repositories.variants import VariantsRepository
 
 
 class _Cache:
@@ -25,7 +24,7 @@ class _Cache:
 
 
 def _adapter():
-    db = mongomock.MongoClient()["coyote3_test"]
+    db = mongomock.MongoClient()["coyote4_test"]
     app = SimpleNamespace(
         config={"CACHE_DEFAULT_TIMEOUT": 60},
         cache=_Cache(),
@@ -163,10 +162,10 @@ def test_sample_repository_update_and_missing_document_semantics(monkeypatch) ->
     repository = SampleRepository(adapter)
     sample_id = adapter.samples_collection.insert_one({"name": "CASE_A", "version": 1}).inserted_id
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
+        "coyote_mongo.repositories.samples.invalidate_samples_cache", lambda *_: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
+        "coyote_mongo.repositories.base.invalidate_dashboard_metrics", lambda *_, **__: None
     )
 
     result = repository.update_sample(sample_id, {"name": "CASE_A", "reported": True, "version": 1})

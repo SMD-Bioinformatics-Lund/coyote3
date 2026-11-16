@@ -22,10 +22,10 @@ COMPOSE_FILES = (
 def test_server_only_settings_are_separate_from_application_templates():
     app_keys = set(dotenv_values(TEMPLATE, interpolate=False))
     mongo_keys = set(dotenv_values(ROOT / "deploy/env/example.mongo-server.env", interpolate=False))
-    shared = {"COYOTE3_APP_NETWORK", "COYOTE3_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"}
+    shared = {"COYOTE4_APP_NETWORK", "COYOTE4_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"}
     assert app_keys & mongo_keys == shared
-    assert {"MONGO_ROOT_PASSWORD", "MONGO_UID", "COYOTE3_MONGO_KEYFILE_HOST_PATH"} <= mongo_keys
-    assert {"COYOTE3_MONGO_URI", "IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI"} <= app_keys
+    assert {"MONGO_ROOT_PASSWORD", "MONGO_UID", "COYOTE4_MONGO_KEYFILE_HOST_PATH"} <= mongo_keys
+    assert {"COYOTE4_MONGO_URI", "IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI"} <= app_keys
     for name in ("example.mongo-local.env", "example.mongo-split.env"):
         keys = set(dotenv_values(ROOT / "deploy/env" / name, interpolate=False))
         assert not keys & (mongo_keys - shared)
@@ -70,7 +70,7 @@ def test_every_template_variable_has_a_reference_table_entry(template):
 
 def test_template_runtime_settings_have_consumers_outside_their_declarations():
     keys = set(dotenv_values(TEMPLATE, interpolate=False))
-    settings_path = ROOT / "api/config/runtime_settings.py"
+    settings_path = ROOT / "api/src/coyote_api/config/runtime_settings.py"
     settings = ast.parse(settings_path.read_text())
     declared = {
         node.args[0].value
@@ -87,7 +87,11 @@ def test_template_runtime_settings_have_consumers_outside_their_declarations():
         )
     }
     referenced = set()
-    sources = list((ROOT / "api").rglob("*.py")) + list((ROOT / "src/coyote3").rglob("*.py"))
+    sources = (
+        list((ROOT / "api/src/coyote_api").rglob("*.py"))
+        + list((ROOT / "core/src/coyote").rglob("*.py"))
+        + list((ROOT / "adapters/mongo/src/coyote_mongo").rglob("*.py"))
+    )
     for path in sources:
         if path == settings_path:
             continue

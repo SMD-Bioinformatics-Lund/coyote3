@@ -1,0 +1,192 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+from coyote.application.public.catalog import PublicCatalogService
+from coyote.application.sample.catalog import SampleCatalogService
+
+
+def test_gene_extraction_does_not_turn_metadata_into_gene_symbols():
+    """Structured gene entries contribute symbols only, never their keys or metadata."""
+    assert SampleCatalogService._collect_doc_gene_names(
+        {"genes": [{"gene": "GENE_A", "description": "synthetic metadata"}]}
+    ) == {"GENE_A"}
+    assert SampleCatalogService._collect_doc_gene_names({"genes": ["GENE_A", "GENE-B"]}) == {
+        "GENE_A",
+        "GENE-B",
+    }
+    assert SampleCatalogService._collect_doc_gene_names({"genes": "GENE_A&GENE_B"}) == {
+        "GENE_A",
+        "GENE_B",
+    }
+
+
+def test_gene_list_option_uses_short_name_and_retains_full_name():
+    """Filter labels are compact while tooltips retain the full clinical name."""
+    option = SampleCatalogService._genelist_option(
+        {"isgl_id": "follicular", "name": "FL", "displayname": "Follicular lymphoma"}
+    )
+    assert option["name"] == "FL"
+    assert option["display_name"] == "Follicular lymphoma"
+    assert option["isgl_id"] == "follicular"
+
+
+@pytest.mark.parametrize("group", ["hematology", "solid", "tumwgs", "center_custom"])
+def test_analysis_counts_apply_assay_eligibility_even_when_all_panel_genes_are_selected(group):
+    """Off-assay findings stay excluded regardless of a center's biological group name."""
+    service = object.__new__(SampleCatalogService)
+    service._effective_genes_for_target = lambda **kwargs: (["TP53"], ["TP53"], group)
+    stats = Mock(return_value={"variants": 1})
+    service.variant_repository = SimpleNamespace(get_variant_stats=stats)
+    service.copy_number_variant_repository = SimpleNamespace(get_sample_cnvs=lambda _: [])
+    service.translocation_repository = SimpleNamespace(get_sample_translocations=lambda _: [])
+    service.fusion_repository = SimpleNamespace(get_sample_fusions=lambda _: [])
+    service.biomarker_repository = SimpleNamespace(get_sample_biomarkers=lambda _: [])
+    raw, filtered, _ = service._analysis_counts(
+        sample={"_id": "sample", "asp_category": "dna", "filters": {}},
+        asp={"asp_group": group, "covered_genes": ["TP53"]},
+        variant_stats_raw={"variants": 2},
+    )
+    assert raw["snv"] == 2
+    assert filtered["snv"] == 1
+    stats.assert_called_once_with("sample", genes=["TP53"])
+
+
+def test_file_rows_read_current_sample_files_shape(tmp_path):
+    vcf_path = tmp_path / "sample.vcf"
+    vcf_path.write_text("##fileformat=VCFv4.2\n", encoding="utf-8")
+
+    rows = SampleCatalogService._file_rows_for_sample(
+        {
+            "asp_category": "dna",
+            "files": {
+                "vcf_files": {
+                    "path": str(vcf_path),
+                    "checksum": "sha256:seed",
+                    "size_bytes": 123,
+                }
+            },
+        },
+        {
+            "expected_files": ["vcf_files", "cnv"],
+            "required_files": ["vcf_files"],
+        },
+    )
+
+    by_key = {row["key"]: row for row in rows}
+    assert by_key["vcf_files"]["path"] == str(vcf_path)
+    assert by_key["vcf_files"]["analysis_type"] == "SNV"
+    assert by_key["vcf_files"]["present"] is True
+    assert by_key["vcf_files"]["exists"] is True
+    assert by_key["vcf_files"]["availability"] == "available"
+    assert by_key["vcf_files"]["size_bytes"] == 123
+    assert by_key["vcf_files"]["checksum"] == "sha256:seed"
+    assert by_key["cnv"]["analysis_type"] == "CNV"
+    assert by_key["cnv"]["availability"] == "optional_missing"
+
+
+def test_shared_measurement_file_does_not_claim_a_single_analysis(tmp_path):
+    source = tmp_path / "biomarkers.json"
+    source.write_text('{"name":"DEMO","TMB":{"value":0}}')
+    rows = SampleCatalogService._file_rows_for_sample(
+        {
+            "asp_category": "dna",
+            "files": {"biomarkers": {"path": str(source)}},
+            "data_counts": {"tmb": 1},
+        },
+        {"expected_files": ["biomarkers"]},
+    )
+    assert len(rows) == 1
+    assert rows[0]["key"] == "biomarkers"
+    assert rows[0]["analysis_type"] is None
+    assert rows[0]["data_count"] is None
+    assert rows[0]["availability"] == "available"
+
+
+def test_recorded_unavailable_file_stays_missing_until_ingested(tmp_path):
+    source = tmp_path / "late-transloc.vcf"
+    source.write_text("synthetic")
+    rows = SampleCatalogService._file_rows_for_sample(
+        {
+            "asp_category": "dna",
+            "files": {"transloc": {"path": str(source)}},
+            "missing_expected_files": ["transloc"],
+        },
+        {"expected_files": ["transloc"], "required_files": []},
+    )
+    assert rows[0]["availability"] == "optional_missing"
+    assert rows[0]["required"] is False
+    assert (
+        SampleCatalogService._file_rows_for_sample({"asp_category": "dna"}, {"expected_files": []})
+        == []
+    )
+
+
+def test_sample_catalog_attaches_flat_biomarkers_with_one_bulk_lookup():
+    calls: list[list[str]] = []
+
+    def get_samples_biomarkers(sample_ids: list[str]):
+        calls.append(sample_ids)
+        return {
+            "s1": [
+                {
+                    "SAMPLE_ID": "s1",
+                    "name": "demo-biomarker",
+                    "MSIS": {"tot": 120, "som": 6, "per": 5.0},
+                    "HRD": {"sum": 30},
+                }
+            ],
+            "s2": [],
+        }
+
+    service = object.__new__(SampleCatalogService)
+    service.biomarker_repository = SimpleNamespace(get_samples_biomarkers=get_samples_biomarkers)
+    service._get_formatted_assay_config = lambda sample: {"analysis_types": ["HRD", "MSI"]}
+    samples = [{"_id": "s1"}, {"_id": "s2"}]
+
+    service._attach_biomarker_values(samples)
+
+    assert calls == [["s1", "s2"]]
+    assert samples[0]["biomarker_values"] == {
+        "HRD.sum": 30,
+        "MSIS.per": 5.0,
+        "MSIS.som": 6,
+        "MSIS.tot": 120,
+    }
+    assert samples[1]["biomarker_values"] == {}
+
+
+def test_public_catalog_merges_previous_symbol_without_unresolved_placeholder():
+    rows = PublicCatalogService._merge_with_placeholders(
+        ["OLD1"],
+        [
+            {
+                "_id": "HGNC:1",
+                "hgnc_id": "HGNC:1",
+                "hgnc_symbol": "NEW1",
+                "prev_symbol": ["OLD1"],
+                "alias_symbol": ["ALIAS1"],
+                "status": "Approved",
+            }
+        ],
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["display_symbol"] == "OLD1"
+    assert rows[0]["resolved_symbol"] == "NEW1"
+    assert rows[0]["hgnc_id"] == "HGNC:1"
+    assert rows[0]["hgnc_match_source"] == "previous_symbol"
+    assert rows[0]["symbol_changed"] is True
+
+
+def test_public_catalog_unresolved_gene_has_no_fake_hgnc_identifier():
+    rows = PublicCatalogService._merge_with_placeholders(["MISSING1"], [])
+
+    assert len(rows) == 1
+    assert rows[0]["display_symbol"] == "MISSING1"
+    assert rows[0]["hgnc_symbol"] == "MISSING1"
+    assert rows[0]["hgnc_id"] is None
+    assert rows[0]["_id"] is None
+    assert rows[0]["status"] == "Unresolved"

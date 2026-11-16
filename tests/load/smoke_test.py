@@ -180,7 +180,7 @@ class LocustSmokeTests(unittest.TestCase):
         Returns:
             Process return code, parsed metric rows, and recorded stub requests.
         """
-        with tempfile.TemporaryDirectory(prefix="coyote3-load-smoke-") as directory:
+        with tempfile.TemporaryDirectory(prefix="coyote4-load-smoke-") as directory:
             root = Path(directory)
             server = ThreadingHTTPServer(("127.0.0.1", 0), SyntheticHandler)
             server.mode, server.seen = mode, []
@@ -221,8 +221,8 @@ class LocustSmokeTests(unittest.TestCase):
                 )
                 env = {k: v for k, v in os.environ.items() if not k.startswith("LOCUST_")}
                 env.update(
-                    COYOTE3_LOAD_CONFIG=str(root / "config.json"),
-                    COYOTE3_LOAD_CREDENTIALS=str(root / "credentials.json"),
+                    COYOTE4_LOAD_CONFIG=str(root / "config.json"),
+                    COYOTE4_LOAD_CREDENTIALS=str(root / "credentials.json"),
                 )
                 command = [
                     sys.executable,

@@ -9,10 +9,10 @@ import json
 import mongomock
 import pytest
 from bson import decode_all
-
-from coyote3.contracts.schemas.variant_annotations import (
+from coyote.contracts.schemas.variant_annotations import (
     VepMetadataDoc,
 )
+
 from scripts.knowledgebase import update_vep_metadata as importer
 
 

@@ -35,9 +35,16 @@ def installed_distributions(tmp_path_factory):
         check=True,
         capture_output=True,
     )
-    server = next(wheels.glob("coyote3-*.whl"))
-    client = next(wheels.glob("coyote3_client-*.whl"))
-    for name, wheel in (("server", server), ("client", client)):
+    core = next(wheels.glob("coyote_core-*.whl"))
+    mongo = next(wheels.glob("coyote_mongo-*.whl"))
+    server = next(wheels.glob("coyote_api-*.whl"))
+    client = next(wheels.glob("coyote_pyclient-*.whl"))
+    for name, selected in (
+        ("core", [core]),
+        ("adapter", [core, mongo]),
+        ("server", [core, mongo, server]),
+        ("client", [client]),
+    ):
         subprocess.run(
             [
                 sys.executable,
@@ -47,12 +54,12 @@ def installed_distributions(tmp_path_factory):
                 "--no-deps",
                 "--target",
                 str(root / name),
-                str(wheel),
+                *(str(wheel) for wheel in selected),
             ],
             check=True,
             capture_output=True,
         )
-    return root, server, client
+    return root, {"coyote-core": core, "coyote-mongo": mongo, "coyote-api": server}, client
 
 
 def run_installed(root, target, code):
@@ -86,24 +93,52 @@ def test_core_wheel_imports_and_renders_without_server_or_client(installed_distr
     root, _, _ = installed_distributions
     run_installed(
         root,
-        "server",
+        "core",
         """
 import importlib.abc
 class BlockHost(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'api','fastapi','starlette','pymongo','bson','coyote3_client'}:
+        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','fastapi','starlette','pymongo','bson','coyote_pyclient'}:
             raise AssertionError('Core imported host dependency: '+fullname)
 sys.meta_path.insert(0,BlockHost())
-import coyote3
-assert Path(coyote3.__file__).is_relative_to(target)
-from coyote3.application.operations import CoyoteApplication
-from coyote3.application.reporting.report_renderer import render_report_html, render_pdf_bytes
-for analyte,name in [('dna','dna_report.html'),('rna','report_fusion.html')]:
-    for layout in [None,'modern']:
-        html=render_report_html(template_name=name,template_context={'sample':{'name':'SYNTHETIC'},'assay_config':{'reporting':{}},'report_sections':[],'report_sections_data':{},'fusions':[],'genes_covered_in_panel':{}},snapshot_rows=[],analyte=analyte,preview=True,layout=layout)
-        assert 'SYNTHETIC' in html and '<style' in html
-        assert 'name="smd-reports:package_version"' in html
-        assert render_pdf_bytes(html).startswith(b'%PDF-')
+import coyote
+assert Path(coyote.__file__).is_relative_to(target)
+from importlib.metadata import version
+assert coyote.__version__ == version('coyote-core')
+from coyote.application.operations import CoyoteApplication
+from coyote.application.reporting.report_renderer import render_report_html, render_pdf_bytes
+for analyte,name in [('dna','smd/dna_report.html'),('rna','smd/report_fusion.html')]:
+    html=render_report_html(template_name=name,template_context={'sample':{'name':'SYNTHETIC'},'assay_config':{'reporting':{}},'report_sections':[],'report_sections_data':{},'fusions':[],'genes_covered_in_panel':{}},snapshot_rows=[],analyte=analyte,preview=True)
+    assert 'SYNTHETIC' in html and '<style' in html
+    assert 'name="smd-reports:package_version"' in html
+    assert render_pdf_bytes(html).startswith(b'%PDF-')
+""",
+    )
+
+
+def test_mongo_wheel_imports_without_api_or_http_frameworks(installed_distributions):
+    """An alternative host can use all adapter repositories without installing the API."""
+    root, _, _ = installed_distributions
+    run_installed(
+        root,
+        "adapter",
+        """
+import importlib.abc
+class BlockHost(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] in {'coyote_api','fastapi','starlette','coyote_pyclient'}:
+            raise AssertionError('Adapter imported host: '+fullname)
+sys.meta_path.insert(0,BlockHost())
+import coyote_mongo
+assert Path(coyote_mongo.__file__).is_relative_to(target)
+from importlib.metadata import version
+assert coyote_mongo.__version__ == version('coyote-mongo')
+from coyote_mongo.runtime_adapter import MongoAdapter
+from coyote_mongo.sessions import MongoApiSessionRepository
+from coyote_mongo.config.collections import load_collection_mapping
+assert load_collection_mapping()['primary']['samples_collection']=='samples'
+adapter=MongoAdapter()
+assert adapter.client is None
 """,
     )
 
@@ -117,12 +152,12 @@ def test_client_wheel_imports_without_core_or_server(installed_distributions):
 import importlib.abc
 class BlockCore(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'api','coyote3','fastapi','starlette','pymongo','bson'}:
+        if fullname.split('.')[0] in {'coyote_api','coyote','fastapi','starlette','pymongo','bson'}:
             raise AssertionError('Client imported server: '+fullname)
 sys.meta_path.insert(0,BlockCore())
-import asyncio, coyote3_client
-assert Path(coyote3_client.__file__).is_relative_to(target)
-from coyote3_client import CoyoteClient, AsyncCoyoteClient
+import asyncio, coyote_pyclient
+assert Path(coyote_pyclient.__file__).is_relative_to(target)
+from coyote_pyclient import CoyoteClient, AsyncCoyoteClient
 with CoyoteClient('https://example.test') as client:
     assert client.user is None
 async def check():
@@ -134,64 +169,91 @@ asyncio.run(check())
 
 
 def test_server_asgi_entry_and_assets_exist_outside_checkout(installed_distributions):
-    root, _, _ = installed_distributions
+    root, packages, _ = installed_distributions
+    with zipfile.ZipFile(packages["coyote-api"]) as wheel:
+        members = set(wheel.namelist())
+        source = ROOT / "api/src/coyote_api"
+        for directory in ("bootstrap/demo_data/clinical_workflows", "config/examples/center"):
+            files = [path for path in (source / directory).rglob("*") if path.is_file()]
+            assert files, directory
+            for path in files:
+                assert f"coyote_api/{path.relative_to(source).as_posix()}" in members
     run_installed(
         root,
         "server",
         """
-import api
-assert Path(api.__file__).is_relative_to(target)
+import coyote_api
+assert Path(coyote_api.__file__).is_relative_to(target)
 from uvicorn.importer import import_from_string
-app=import_from_string('api.app.main:app')
-assert '/api/v1/samples/{sample_id}/reports/{report_type}/try-new' in app.openapi()['paths']
-from api.config.paths import CENTER_CONFIG_DIR,DEMO_WORKFLOW_BUNDLE_PATH
-from api.bootstrap.paths import BOOTSTRAP_ROOT
+app=import_from_string('coyote_api.app.main:app')
+from coyote_api.version import APPLICATION_VERSION, __version__, environment_version
+from importlib.metadata import version
+assert app.version == __version__ == version('coyote-api')
+assert environment_version('production') == APPLICATION_VERSION
+assert '/api/v1/samples/{sample_id}/reports/{report_type}/preview/bundle' in app.openapi()['paths']
+from coyote_api.config.paths import CENTER_CONFIG_DIR,DEMO_WORKFLOW_BUNDLE_PATH
+from coyote_api.bootstrap.paths import BOOTSTRAP_ROOT
 assert CENTER_CONFIG_DIR.is_relative_to(target)
 assert (CENTER_CONFIG_DIR/'contact.toml').is_file()
 assert (BOOTSTRAP_ROOT/'rbac/permissions.seed.ndjson').is_file()
 assert (DEMO_WORKFLOW_BUNDLE_PATH/'README.md').is_file()
-assert (target/'api/app/templates/api_reference.html').is_file()
-from api.cli import main
-sys.argv=['coyote3-api','--help']
+assert (target/'coyote_api/app/templates/api_reference.html').is_file()
+from coyote_api.cli import main
+sys.argv=['coyote4-api','--help']
 try: main()
 except SystemExit as exc: assert exc.code==0
 """,
     )
 
 
-def test_wheel_metadata_declares_extras_and_excludes_the_other_distribution(
+def test_wheel_metadata_declares_only_its_own_package_and_license(
     installed_distributions,
 ):
-    _, server, client = installed_distributions
-    with zipfile.ZipFile(server) as wheel:
-        names = wheel.namelist()
-        metadata = Parser().parsestr(
-            wheel.read(next(n for n in names if n.endswith("/METADATA"))).decode()
-        )
-        assert {"api", "all"} <= set(metadata.get_all("Provides-Extra"))
-        assert metadata["Author"] == "Ram Nanduri"
-        assert metadata["License-Expression"] == "LicenseRef-COYOTE3-Free-Use-Source-Available-1.0"
-        assert {"LICENSE.txt", "NOTICE.txt", "LICENSING.md", "THIRD_PARTY_NOTICES.md"} <= {
-            Path(name).name for name in names if ".dist-info/licenses/" in name
-        }
-        assert not any(n.startswith(("coyote3/client/", "coyote3_client/")) for n in names)
-        assert "api/app/main.py" in names and "api/release.toml" in names
-        assert "api/bootstrap/catalogs/reference/LICENSE.txt" in names
-        assert "coyote3/application/reporting/smd_input.py" in names
-        assert not any(name.startswith("coyote3/templates/reporting/") for name in names)
-        requirements = metadata.get_all("Requires-Dist")
-        assert not any("fastapi" in r.lower() and ";" not in r for r in requirements)
+    _, packages, client = installed_distributions
+    expected = {
+        "coyote-core": "coyote/",
+        "coyote-mongo": "coyote_mongo/",
+        "coyote-api": "coyote_api/",
+    }
+    for package, artifact in packages.items():
+        with zipfile.ZipFile(artifact) as wheel:
+            names = wheel.namelist()
+            metadata = Parser().parsestr(
+                wheel.read(next(n for n in names if n.endswith("/METADATA"))).decode()
+            )
+            assert metadata["Name"] == package
+            assert metadata["Author"] == "Ram Nanduri"
+            assert metadata["License-Expression"] == "GPL-3.0-only"
+            assert {"LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"} <= {
+                Path(name).name for name in names if ".dist-info/licenses/" in name
+            }
+            assert any(name.startswith(expected[package]) for name in names)
+            assert not any(
+                name.startswith(tuple(prefix for key, prefix in expected.items() if key != package))
+                for name in names
+            )
+            assert not any(
+                name.startswith(("coyote4/", "coyote_pyclient/", "coyote/templates/reporting/"))
+                for name in names
+            )
+            if package == "coyote-core":
+                assert not any(
+                    r.lower().startswith(("fastapi", "pymongo", "coyote-mongo", "coyote-api"))
+                    for r in metadata.get_all("Requires-Dist")
+                )
+            elif package == "coyote-api":
+                assert "coyote_api/bootstrap/catalogs/reference/LICENSE.txt" in names
     with zipfile.ZipFile(client) as wheel:
         names = wheel.namelist()
-        assert not any(n.startswith(("coyote3/", "api/")) for n in names)
+        assert not any(n.startswith(("coyote/", "coyote4/", "coyote_api/")) for n in names)
         metadata = Parser().parsestr(
             wheel.read(next(n for n in names if n.endswith("/METADATA"))).decode()
         )
-        assert metadata["License-Expression"] == "Apache-2.0"
-        assert {"LICENSE.txt", "NOTICE.txt"} <= {
+        assert metadata["License-Expression"] == "GPL-3.0-only"
+        assert {"LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"} <= {
             Path(name).name for name in names if ".dist-info/licenses/" in name
         }
         assert not any(
-            r.lower().startswith(("coyote3", "fastapi", "pymongo"))
+            r.lower().startswith(("coyote4", "fastapi", "pymongo"))
             for r in metadata.get_all("Requires-Dist")
         )

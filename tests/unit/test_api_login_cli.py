@@ -21,7 +21,7 @@ def test_cli_uses_validated_sessions_and_exports_only_when_requested(
         return httpx.Response(
             200,
             json={"user": {"username": "synthetic"}},
-            headers={"set-cookie": "coyote3_api_session=synthetic-token; HttpOnly; Secure"},
+            headers={"set-cookie": "coyote4_api_session=synthetic-token; HttpOnly; Secure"},
         )
 
     original_client = httpx.Client

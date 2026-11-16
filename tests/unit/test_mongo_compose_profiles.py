@@ -34,15 +34,15 @@ def render(*profiles, backup_mount=False, backup_root=None):
         **{
             key: value
             for key, value in os.environ.items()
-            if not key.startswith(("COYOTE3_", "IDENTITY_", "KNOWLEDGEBASE_", "BAM_", "MONGO_"))
+            if not key.startswith(("COYOTE4_", "IDENTITY_", "KNOWLEDGEBASE_", "BAM_", "MONGO_"))
         },
-        "COYOTE3_VERSION": "4.0.0",
-        "COYOTE3_IMAGE_TAG": "4.0.0-prod",
+        "COYOTE4_VERSION": "4.0.0",
+        "COYOTE4_IMAGE_TAG": "4.0.0-prod",
         "MONGO_UID": "12345",
         "MONGO_GID": "23456",
     }
     if backup_root is not None:
-        environment["COYOTE3_MONGO_BACKUP_HOST_ROOT"] = backup_root
+        environment["COYOTE4_MONGO_BACKUP_HOST_ROOT"] = backup_root
     for profile in profiles:
         command.extend(["--profile", profile])
     result = subprocess.run(
@@ -72,8 +72,8 @@ def test_mongo_services_are_selected_only_by_profile(profiles, expected):
 
 def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance():
     services = render("mongo", "mongo-kb")["services"]
-    assert "coyote3-rs" in services["mongo"]["command"]
-    assert "coyote3-kb-rs" in services["mongo-kb"]["command"]
+    assert "coyote4-rs" in services["mongo"]["command"]
+    assert "coyote4-kb-rs" in services["mongo-kb"]["command"]
     sources = []
     for name in ("mongo", "mongo-kb"):
         service = services[name]
@@ -82,8 +82,8 @@ def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance(
         assert float(service["cpus"]) == 4.0
         assert service["environment"]["MONGO_GID"] == "23456"
         assert service["environment"]["HOME"] == "/tmp"
-        assert service["command"][-1] == "/run/coyote3-mongo/keyfile"
-        assert service["tmpfs"] == ["/run/coyote3-mongo"]
+        assert service["command"][-1] == "/run/coyote4-mongo/keyfile"
+        assert service["tmpfs"] == ["/run/coyote4-mongo"]
         assert service["healthcheck"]["test"][1].startswith('gosu "$$MONGO_UID:$$MONGO_GID"')
         assert "security_opt" not in service
         paths = [v for v in services[name]["volumes"] if v["target"] == "/data/db"]
@@ -94,7 +94,7 @@ def test_split_profile_has_independent_replica_sets_and_one_dbpath_per_instance(
         assert services[name]["user"] == "12345:23456"
     for name in ("api", "worker", "maintenance-worker", "beat"):
         env = services[name]["environment"]
-        assert "mongo-app:27017" in env["COYOTE3_MONGO_URI"]
+        assert "mongo-app:27017" in env["COYOTE4_MONGO_URI"]
         assert "mongo-kb:27017" in env["KNOWLEDGEBASE_MONGO_URI"]
 
 
@@ -123,4 +123,4 @@ def test_backup_overlay_preserves_other_mounts_and_knowledgebase_service():
 def test_backup_overlay_requires_explicit_directory():
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("mongo", backup_mount=True, backup_root="")
-    assert "COYOTE3_MONGO_BACKUP_HOST_ROOT" in error.value.stderr
+    assert "COYOTE4_MONGO_BACKUP_HOST_ROOT" in error.value.stderr

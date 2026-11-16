@@ -5,20 +5,21 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from pymongo import MongoClient
-from pymongo.collection import Collection
-from pymongo.errors import AutoReconnect, OperationFailure
-
-from api.infra.mongo.repositories.audit_integrity import append_event, verify_chain
-from api.infra.mongo.repositories.audit_outbox import (
+from core_test_support.clinical_rules import _document
+from coyote_mongo.repositories.audit_integrity import append_event, verify_chain
+from coyote_mongo.repositories.audit_outbox import (
     AuditOutboxRepository,
     enqueue_audit,
     insert_audited,
     update_audited,
 )
-from api.infra.mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepository
-from api.infra.mongo.transactions import run_transaction
-from tests.unit.reporting.test_clinical_rules import _document
+from coyote_mongo.repositories.clinical_rule_sets import ClinicalRuleSetRepository
+from coyote_mongo.transactions import run_transaction
+from pymongo import MongoClient
+from pymongo.collection import Collection
+from pymongo.errors import AutoReconnect, OperationFailure
+
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 @pytest.fixture
@@ -32,8 +33,8 @@ def databases(monkeypatch):
             os.getenv("AUDIT_TEST_DEST_URI") or uri, serverSelectionTimeoutMS=3000
         ) as destination,
     ):
-        source_db = owner[f"coyote3_outbox_test_{uuid4().hex}"]
-        target_db = destination[f"coyote3_outbox_test_{uuid4().hex}"]
+        source_db = owner[f"coyote4_outbox_test_{uuid4().hex}"]
+        target_db = destination[f"coyote4_outbox_test_{uuid4().hex}"]
         monkeypatch.setenv("ENV_NAME", "test")
         monkeypatch.setenv("IDENTITY_MONGO_URI", os.getenv("AUDIT_TEST_DEST_URI") or uri)
         monkeypatch.setenv("IDENTITY_DB", target_db.name)
@@ -50,6 +51,7 @@ def commit_change(database, *, fail=False):
         enqueue_audit(
             database,
             session,
+            context=audit_context(),
             event_type="synthetic.created",
             resource_type="synthetic",
             resource_id="synthetic",
@@ -114,23 +116,31 @@ def test_audit_event_and_head_roll_back_together(databases, monkeypatch):
 def test_configuration_receipts_are_only_written_for_committed_changes(databases):
     source, _ = databases
     collection = source.configuration
-    insert_audited(collection, {"_id": "synthetic", "is_active": True})
+    insert_audited(collection, {"_id": "synthetic", "is_active": True}, context=audit_context())
     assert source.audit_outbox.count_documents({}) == 1
     assert (
-        update_audited(collection, {"_id": "missing"}, {"$set": {"is_active": False}}).matched_count
+        update_audited(
+            collection, {"_id": "missing"}, {"$set": {"is_active": False}}, context=audit_context()
+        ).matched_count
         == 0
     )
     assert source.audit_outbox.count_documents({}) == 1
     assert (
         update_audited(
-            collection, {"_id": "synthetic"}, {"$set": {"is_active": False}}
+            collection,
+            {"_id": "synthetic"},
+            {"$set": {"is_active": False}},
+            context=audit_context(),
         ).modified_count
         == 1
     )
     assert source.audit_outbox.count_documents({}) == 2
     assert (
         update_audited(
-            collection, {"_id": "synthetic"}, {"$set": {"is_active": False}}
+            collection,
+            {"_id": "synthetic"},
+            {"$set": {"is_active": False}},
+            context=audit_context(),
         ).modified_count
         == 0
     )
@@ -145,7 +155,12 @@ def test_committed_change_survives_until_separate_client_delivers(databases):
     assert pending["event"]["metadata"]["token"] == "[redacted]"
     assert source.business.count_documents({}) == 1
     assert target.audit_events.count_documents({}) == 0
-    assert AuditOutboxRepository(source).deliver(target.audit_events, environment="test") == 1
+    assert (
+        AuditOutboxRepository(source).deliver(
+            target.audit_events, environment="test", route=audit_context().route
+        )
+        == 1
+    )
     assert source.audit_outbox.count_documents({}) == 0
     stored = target.audit_events.find_one()
     assert stored["_id"] == pending["_id"]
@@ -166,10 +181,17 @@ def test_crash_after_delivery_does_not_duplicate_or_overwrite(databases, monkeyp
     with monkeypatch.context() as scoped:
         scoped.setattr(Collection, "delete_one", crash)
         with pytest.raises(RuntimeError, match="Synthetic crash"):
-            AuditOutboxRepository(source).deliver(target.audit_events, environment="test")
+            AuditOutboxRepository(source).deliver(
+                target.audit_events, environment="test", route=audit_context().route
+            )
     first = target.audit_events.find_one()
     assert source.audit_outbox.count_documents({}) == 1
-    assert AuditOutboxRepository(source).deliver(target.audit_events, environment="test") == 1
+    assert (
+        AuditOutboxRepository(source).deliver(
+            target.audit_events, environment="test", route=audit_context().route
+        )
+        == 1
+    )
     assert target.audit_events.count_documents({}) == 1
     assert target.audit_events.find_one() == first
 
@@ -179,7 +201,12 @@ def test_outbox_rejects_sessions_from_another_client(databases):
     with target.client.start_session() as session, session.start_transaction():
         with pytest.raises(ValueError, match="owning database"):
             enqueue_audit(
-                source, session, event_type="synthetic", resource_type="test", resource_id="one"
+                source,
+                session,
+                context=audit_context(),
+                event_type="synthetic",
+                resource_type="test",
+                resource_id="one",
             )
 
 
@@ -187,9 +214,17 @@ def test_worker_cannot_consume_another_environment_or_destination(databases, mon
     source, target = databases
     commit_change(source)
     repository = AuditOutboxRepository(source)
-    assert repository.deliver(target.audit_events, environment="production") == 0
+    assert (
+        repository.deliver(
+            target.audit_events, environment="production", route=audit_context().route
+        )
+        == 0
+    )
     monkeypatch.setenv("IDENTITY_DB", "another_center")
-    assert repository.deliver(target.audit_events, environment="test") == 0
+    assert (
+        repository.deliver(target.audit_events, environment="test", route=audit_context().route)
+        == 0
+    )
     assert source.audit_outbox.count_documents({}) == 1
     assert target.audit_events.count_documents({}) == 0
 
@@ -206,7 +241,9 @@ def test_destination_outage_keeps_committed_receipt(databases, monkeypatch):
 
     monkeypatch.setattr(Collection, "insert_one", fail)
     with pytest.raises(AutoReconnect):
-        AuditOutboxRepository(source).deliver(target.audit_events, environment="test")
+        AuditOutboxRepository(source).deliver(
+            target.audit_events, environment="test", route=audit_context().route
+        )
     assert source.business.count_documents({}) == 1
     assert source.audit_outbox.count_documents({}) == 1
 
@@ -222,6 +259,7 @@ def test_transaction_retry_does_not_keep_aborted_attempt_receipt(databases):
         enqueue_audit(
             source,
             session,
+            context=audit_context(),
             event_type="synthetic.created",
             resource_type="test",
             resource_id="synthetic",
@@ -243,6 +281,7 @@ def test_clinical_rule_insert_rolls_back_when_outbox_write_fails(databases, monk
     source, _ = databases
     repository = ClinicalRuleSetRepository(
         SimpleNamespace(
+            app=mongo_runtime(),
             client=source.client,
             clinical_rule_sets_collection=source.rules,
             clinical_rule_revisions_collection=source.revisions,

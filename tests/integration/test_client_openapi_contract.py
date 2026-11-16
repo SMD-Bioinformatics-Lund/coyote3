@@ -4,9 +4,8 @@ import re
 
 import httpx
 import pytest
-from coyote3_client import AsyncCoyoteClient, CoyoteClient
-
-from api.app.main import create_api_app
+from coyote_api.app.main import create_api_app
+from coyote_pyclient import AsyncCoyoteClient, CoyoteClient
 
 
 @pytest.fixture
@@ -30,7 +29,7 @@ def contract_transport():
             payload = {"user": {"username": "synthetic"}}
         elif path.endswith("/tiered"):
             payload = [{"_id": "synthetic-variant"}]
-        elif path.endswith("/try-new"):
+        elif path.endswith("/preview/bundle"):
             payload = {
                 "html": "<p>Synthetic</p>",
                 "pdf_base64": "JVBERi0=",
@@ -63,7 +62,7 @@ def test_synchronous_typed_workflows_match_actual_server_operations(contract_tra
         sample.variants.tiered_variants()
         preview = sample.reports.preview("dna")
         sample.reports.save("dna", preview_fingerprint=preview.meta.preview_fingerprint)
-        sample.reports.try_new("dna")
+        sample.reports.preview_bundle("dna")
     assert len(calls) == 7
 
 
@@ -77,5 +76,5 @@ async def test_asynchronous_typed_workflows_use_the_same_openapi_operations(cont
         await sample.variants.tiered_variants()
         preview = await sample.reports.preview("dna")
         await sample.reports.save("dna", preview_fingerprint=preview.meta.preview_fingerprint)
-        await sample.reports.try_new("dna")
+        await sample.reports.preview_bundle("dna")
     assert len(calls) == 7

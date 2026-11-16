@@ -4,19 +4,20 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from coyote.application.query_rules.service import QueryRuleService
+from coyote.application.reporting.clinical_rules.resolution import resolve_published_rule_set
+from coyote.config.clinical_query_policy import resolved_query_policy
+from coyote.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
+from coyote.domain.dna.cnvqueries import build_cnv_query
+from coyote.domain.dna.structural_annotations import structural_transcript_rows
+from coyote.domain.dna.transcript_payloads import build_hgnc_lookup_maps
+from coyote.domain.dna.varqueries import build_query
+from coyote.domain.rna.fusion_query_builder import build_fusion_query
+from coyote_mongo.repositories.query_rules import QueryRuleRepository
+from coyote_mongo.selection import compile_selection
 
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
-from api.infra.mongo.selection import compile_selection
-from coyote3.application.query_rules.service import QueryRuleService
-from coyote3.application.reporting.clinical_rules.resolution import resolve_published_rule_set
-from coyote3.config.clinical_query_policy import resolved_query_policy
-from coyote3.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleScope
-from coyote3.domain.dna.cnvqueries import build_cnv_query
-from coyote3.domain.dna.structural_annotations import structural_transcript_rows
-from coyote3.domain.dna.transcript_payloads import build_hgnc_lookup_maps
-from coyote3.domain.dna.varqueries import build_query
-from coyote3.domain.rna.fusion_query_builder import build_fusion_query
 from scripts.quality.export_demo_workflows import FIXTURES, ROOT, replay, review_examples
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 @pytest.fixture(scope="module")
@@ -133,6 +134,7 @@ def selected_labels(db, name, **overrides):
     service = QueryRuleService(
         QueryRuleRepository(
             SimpleNamespace(
+                app=mongo_runtime(),
                 query_rule_sets_collection=db.query_rule_sets,
                 query_rule_revisions_collection=db.query_rule_revisions,
             )
@@ -184,14 +186,20 @@ def test_raw_variants_cover_installed_rules(demo_db, group):
         expected |= {
             "flt3_svtype",
             "flt3_long_alt",
+        }
+    if group == "SOLID":
+        expected |= {"tert_regulatory", "nfkbie_binding"}
+    assert selected == expected
+    # These fixtures fail the ordinary filters and must not bypass them via origin flags.
+    assert selected.isdisjoint(
+        {
             "marker_admitted",
             "cebpa_germline",
             "interval_first",
             "interval_last",
+            "non_cebpa_germline",
         }
-    if group == "SOLID":
-        expected |= {"tert_regulatory", "nfkbie_binding", "cebpa_germline", "non_cebpa_germline"}
-    assert selected == expected
+    )
 
 
 def test_unpaired_and_gene_restrictions(demo_db):
@@ -267,8 +275,8 @@ def test_query_draft_examples_use_current_contract():
 
 def test_report_drafts_have_passing_embedded_cases():
     """The supplied drafts satisfy submission-time validation, including embedded cases."""
-    from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
-    from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+    from coyote.application.reporting.clinical_rules.validation import validate_rule_set
+    from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 
     for row in json.loads((ROOT / "setup/clinical_rule_sets.json").read_text()):
         result = validate_rule_set(ClinicalRuleSetDoc.model_validate(row), require_tests=True)
@@ -278,9 +286,9 @@ def test_report_drafts_have_passing_embedded_cases():
 @pytest.mark.parametrize(
     "uri,database",
     [
-        ("mongodb://remote.example:27017", "coyote3_demo"),
-        ("mongodb://localhost:27017", "coyote3_smd_prod"),
-        ("mongodb://localhost:27017,remote.example:27017", "coyote3_demo"),
+        ("mongodb://remote.example:27017", "coyote4_demo"),
+        ("mongodb://localhost:27017", "coyote4_smd_prod"),
+        ("mongodb://localhost:27017,remote.example:27017", "coyote4_demo"),
     ],
 )
 def test_demo_installer_rejects_non_demo_targets(uri, database):
@@ -296,14 +304,17 @@ def test_demo_installer_rejects_non_demo_targets(uri, database):
 )
 def test_negative_manifests_reject_before_writes(filename):
     """Invalid fixture resources and scopes fail before sample/dependent insertion."""
-    from coyote3.application.ingest.service import InternalIngestService
-    from coyote3.config.constants import ALL_SAMPLE_FILE_KEYS
+    from coyote.application.ingest.service import InternalIngestService
+    from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
+
     from scripts.quality.export_demo_workflows import MemoryGateway, MemoryVault
 
     db = replay()
     names = set(db.list_collection_names()) | {"hgnc_genes"}
     service = InternalIngestService(
-        collection_gateway=MemoryGateway(collections={name: db[name] for name in names}),
+        collection_gateway=MemoryGateway(
+            context=audit_context(), collections={name: db[name] for name in names}
+        ),
         anno_vep_repository=MemoryVault(db.anno_vep),
         invalidate_dashboard_metrics=lambda: None,
     )

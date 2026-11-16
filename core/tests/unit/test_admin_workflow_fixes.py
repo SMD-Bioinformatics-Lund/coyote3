@@ -1,0 +1,93 @@
+"""Regression checks for managed forms, ingestion diagnostics, and email control wiring."""
+
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+from coyote.application.accounts.users import UserManagementService
+from coyote.application.ingest.json_resources import read_ingest_json
+from coyote.contracts.authoring.forms import build_form_spec
+from coyote.contracts.authoring.resources import managed_resource_spec
+from coyote.domain.common.assay_filters import create_assay_group_map
+
+
+@pytest.mark.parametrize(
+    "resource,key,label",
+    [
+        ("asp", "asp_id", "Assay ID"),
+        ("asp", "asp_group", "Biological group"),
+        ("aspc_dna", "aspc_id", "Configuration ID"),
+        ("aspc_dna", "asp_id", "Assay"),
+        ("isgl", "isgl_id", "Gene list ID"),
+    ],
+)
+def test_managed_form_resource_labels(resource, key, label):
+    """Forms use clinical names while retaining their API field keys."""
+    form = build_form_spec(managed_resource_spec(resource))
+    assert form["fields"][key]["label"] == label
+
+
+def test_assay_sequencing_form_defaults():
+    """Expose editable sequencing defaults with platform-specific read modes."""
+    fields = build_form_spec(managed_resource_spec("asp"))["fields"]
+    assert fields["platform"]["default"] == "illumina"
+    assert fields["read_mode"]["default"] == "PE"
+    assert fields["read_length"]["default"] == 150
+    assert fields["read_mode"]["options_by_field"]["values"]["illumina"] == ["SE", "PE"]
+
+
+def test_assay_form_uses_registered_capabilities_and_hides_compiled_receipts():
+    """Form choices follow the capability registry; generated receipts are not authored."""
+    fields = build_form_spec(managed_resource_spec("asp"))["fields"]
+    assert fields["asp_category"]["options_by_field"]["values"]["wgs"] == ["dna"]
+    assert "options_by_field" not in fields["asp_family"]
+    assert "wgs" in fields["asp_family"]["options"]
+    assert fields["asp_category"]["readonly"] is True
+    assert "fusion_files" not in fields["expected_files"]["options_by_field"]["values"]["dna"]
+    assert fields["required_files"]["options_from_field"] == "expected_files"
+    assert fields["supported_analyses"]["options_require_inputs"]["values"]["SNV"] == ["vcf_files"]
+    for kind in ("aspc_dna", "aspc_rna"):
+        fields = build_form_spec(managed_resource_spec(kind))["fields"]
+        assert not {
+            "profile_sources",
+            "profile_overrides",
+            "template_release",
+            "clinical_rule_base",
+            "promotion",
+        }.intersection(fields)
+
+
+def test_user_assay_options_follow_active_groups():
+    service = object.__new__(UserManagementService)
+    service._common_util = SimpleNamespace(create_assay_group_map=create_assay_group_map)
+    service.assay_panel_repository = Mock()
+    service.assay_panel_repository.group_options.return_value = ["hematology", "solid"]
+    service.assay_panel_repository.get_all_asps.return_value = [
+        {"asp_id": "heme_a", "asp_group": "hematology", "display_name": "Heme A"},
+        {"asp_id": "solid_a", "asp_group": "solid", "display_name": "Solid A"},
+    ]
+    form = build_form_spec(managed_resource_spec("user"))
+    service._configure_assay_choices(form)
+    field = form["fields"]["asp_ids"]
+    assert field["display_type"] == "checkbox-group"
+    assert field["options_by_field"]["field"] == "asp_groups"
+    assert field["options_by_field"]["values"]["hematology"][0]["value"] == "heme_a"
+    assert field["options_by_field"]["values"]["solid"][0]["value"] == "solid_a"
+    service.assay_panel_repository.get_all_asps.assert_called_once_with(is_active=True)
+
+
+@pytest.mark.parametrize("content,reason", [("", "is empty"), ("{broken", "line 1, column 2")])
+def test_json_error_identifies_resource_and_filename(tmp_path, content, reason):
+    source = tmp_path / "synthetic.cnv.json"
+    source.write_text(content)
+    with pytest.raises(ValueError) as caught:
+        read_ingest_json(str(source), "CNV")
+    message = str(caught.value)
+    assert "CNV" in message and "synthetic.cnv.json" in message and reason in message
+    assert str(tmp_path) not in message
+
+
+def test_valid_empty_json_is_distinct_from_empty_file(tmp_path):
+    source = tmp_path / "synthetic.cnv.json"
+    source.write_text("{}")
+    assert read_ingest_json(str(source), "CNV") == {}

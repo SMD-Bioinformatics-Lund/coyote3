@@ -7,10 +7,10 @@ import sys
 import mongomock
 import pytest
 from bson import decode_all
+from coyote_mongo.config.collections import load_collection_section
 
-from api.config.collections import load_collection_section
-from scripts import gene_db_creation
-from scripts.gene_db_creation import HGNC_FIELDS, build_genes, convert, read_rows
+from scripts.knowledgebase import install_hgnc_genes
+from scripts.knowledgebase.install_hgnc_genes import HGNC_FIELDS, build_genes, convert, read_rows
 
 
 @pytest.fixture
@@ -100,17 +100,17 @@ def test_scoped_install_preserves_unrelated_records_and_backs_up(inputs, tmp_pat
     database.hgnc_genes.insert_one(previous)
     database.hgnc_genes.insert_one({"_id": "unrelated", "hgnc_id": "HGNC:OTHER"})
     monkeypatch.setattr(
-        gene_db_creation, "run_transaction", lambda client, callback: callback(None)
+        install_hgnc_genes, "run_transaction", lambda client, callback: callback(None)
     )
     backup = tmp_path / "backup.bson"
-    gene_db_creation.install_genes(database, documents, backup, {"release": "demo"})
+    install_hgnc_genes.install_genes(database, documents, backup, {"release": "demo"})
     assert decode_all(backup.read_bytes()) == [previous]
     assert database.hgnc_genes.find_one({"_id": "existing-id"})["gene_name"] == "Demo gene"
     assert database.hgnc_genes.find_one({"_id": "unrelated"})
     versions = load_collection_section("knowledgebase")["knowledgebase_versions_collection"]
     assert database[versions].find_one({"source": "hgnc_genes"})
     with pytest.raises(FileExistsError):
-        gene_db_creation.install_genes(database, documents, backup, {"release": "demo"})
+        install_hgnc_genes.install_genes(database, documents, backup, {"release": "demo"})
 
 
 def test_concurrent_change_stops_publication(inputs, tmp_path, monkeypatch):
@@ -121,9 +121,9 @@ def test_concurrent_change_stops_publication(inputs, tmp_path, monkeypatch):
         database.hgnc_genes.insert_one(documents[0])
         callback(None)
 
-    monkeypatch.setattr(gene_db_creation, "run_transaction", concurrent_write)
+    monkeypatch.setattr(install_hgnc_genes, "run_transaction", concurrent_write)
     with pytest.raises(RuntimeError, match="changed after backup"):
-        gene_db_creation.install_genes(
+        install_hgnc_genes.install_genes(
             database, documents, tmp_path / "backup.bson", {"release": "demo"}
         )
     versions = load_collection_section("knowledgebase")["knowledgebase_versions_collection"]
@@ -135,8 +135,8 @@ def test_cli_review_does_not_connect_to_mongo(inputs, tmp_path, monkeypatch):
     genes, rows = inputs
     paths = []
     for filename, mapping, source, delimiter in (
-        ("hgnc.tsv", gene_db_creation.HGNC_FIELDS, genes[0], "\t"),
-        ("biomart.csv", gene_db_creation.BIOMART_FIELDS, rows[0], ","),
+        ("hgnc.tsv", install_hgnc_genes.HGNC_FIELDS, genes[0], "\t"),
+        ("biomart.csv", install_hgnc_genes.BIOMART_FIELDS, rows[0], ","),
     ):
         path = tmp_path / filename
         with path.open("w", newline="") as stream:
@@ -157,7 +157,7 @@ def test_cli_review_does_not_connect_to_mongo(inputs, tmp_path, monkeypatch):
         sys,
         "argv",
         [
-            "gene_db_creation.py",
+            "install_hgnc_genes.py",
             "--hgnc",
             str(paths[0]),
             "--biomart",
@@ -174,7 +174,7 @@ def test_cli_review_does_not_connect_to_mongo(inputs, tmp_path, monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("Review must not connect to MongoDB")
 
-    monkeypatch.setattr(gene_db_creation, "MongoClient", forbidden)
-    assert gene_db_creation.main() == 0
+    monkeypatch.setattr(install_hgnc_genes, "MongoClient", forbidden)
+    assert install_hgnc_genes.main() == 0
     assert '"hgnc_id": "HGNC:999999"' in output.read_text()
     assert '"sha256"' in output.read_text()

@@ -29,6 +29,7 @@ from scripts.knowledgebase.update_cosmic import (
     vcf_documents,
 )
 from scripts.knowledgebase.update_tp53_database import documents as tp53_documents
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 def _write(path: Path, value: str) -> Path:
@@ -284,10 +285,11 @@ def test_brca_loader_indexes_match_runtime_contract(monkeypatch):
     """A published reference release must pass application index planning unchanged."""
     from types import SimpleNamespace
 
-    from api.infra.knowledgebase.brcaexchange import BRCARepository
-    from api.infra.mongo.index_management import build_index_plan
+    from coyote_mongo.index_management import build_index_plan
+    from coyote_mongo.knowledgebase.brcaexchange import BRCARepository
+
     from scripts.knowledgebase import update_brca_exchange
-    from tests.unit.test_mongo_index_management import adapter_for
+    from tests.support.mongo_indexes import adapter_for
 
     collection = mongomock.MongoClient().knowledgebase.brcaexchange
     monkeypatch.setattr(
@@ -303,7 +305,9 @@ def test_brca_loader_indexes_match_runtime_contract(monkeypatch):
 
     monkeypatch.setattr(update_brca_exchange, "execute_update", publish_indexes)
     assert update_brca_exchange.main() == 0
-    repository = BRCARepository(SimpleNamespace(brcaexchange_collection=collection))
+    repository = BRCARepository(
+        SimpleNamespace(app=mongo_runtime(), brcaexchange_collection=collection)
+    )
     plan = build_index_plan(adapter_for(repository))
     assert all(item["state"] == "present" for item in plan if item["collection"] == "brcaexchange")
     assert collection.index_information()["chr38_pos38_ref38_alt38"]["sparse"] is True

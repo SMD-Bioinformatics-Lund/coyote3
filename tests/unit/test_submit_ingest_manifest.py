@@ -278,7 +278,7 @@ def test_job_polling_preserves_prefix_and_does_not_leak_secrets(args, monkeypatc
         response["task_id"] = "other-job"
 
     def run(command, **kwargs):
-        assert command[-1] == "https://example.test/coyote3_dev/api/v1/internal/tasks/synthetic-job"
+        assert command[-1] == "https://example.test/coyote4_dev/api/v1/internal/tasks/synthetic-job"
         assert "synthetic-secret" not in str(command)
         assert "Bearer synthetic-secret" in kwargs["input"]
         body = "not json" if failure == "invalid_json" else json.dumps(response)
@@ -349,7 +349,7 @@ def args(tmp_path, monkeypatch):
     monkeypatch.setenv("API_BEARER_TOKEN", "synthetic-token")
     return argparse.Namespace(
         yaml=str(manifest),
-        base_url="https://example.test/coyote3_dev",
+        base_url="https://example.test/coyote4_dev",
         auth="bearer",
         archive=None,
         timeout=60,
@@ -570,7 +570,7 @@ def test_changed_manifest_is_not_marked_done(args, monkeypatch):
 def test_upload_streams_files_and_keeps_token_out_of_arguments(args, monkeypatch, tmp_path, auth):
     args.auth = auth
     monkeypatch.setenv("INTERNAL_API_TOKEN", "synthetic-token")
-    monkeypatch.setenv("COYOTE3_INGEST_TOKEN", "synthetic-token")
+    monkeypatch.setenv("COYOTE4_INGEST_TOKEN", "synthetic-token")
     args.archive = str(tmp_path / 'sample,"data".zip')
     Path(args.archive).write_bytes(b"synthetic")
 
@@ -586,7 +586,7 @@ def test_upload_streams_files_and_keeps_token_out_of_arguments(args, monkeypatch
         assert header in kwargs["input"]
         assert (
             command[-1]
-            == "https://example.test/coyote3_dev/api/v1/internal/ingest/sample-bundle/upload"
+            == "https://example.test/coyote4_dev/api/v1/internal/ingest/sample-bundle/upload"
         )
         assert "acknowledge=true" in command
         assert client.form_file("data_archive", Path(args.archive), "application/zip") in command

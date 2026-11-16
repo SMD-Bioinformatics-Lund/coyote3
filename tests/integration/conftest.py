@@ -20,4 +20,4 @@ def transaction_audit_destination(monkeypatch):
     if uri:
         monkeypatch.setenv("ENV_NAME", "test")
         monkeypatch.setenv("IDENTITY_MONGO_URI", uri)
-        monkeypatch.setenv("IDENTITY_DB", "coyote3_audit_integration")
+        monkeypatch.setenv("IDENTITY_DB", "coyote4_audit_integration")

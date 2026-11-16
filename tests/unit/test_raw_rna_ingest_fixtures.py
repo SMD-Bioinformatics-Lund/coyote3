@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from coyote3.application.ingest.analysis_parsers import RnaIngestParser
-from coyote3.contracts.schemas.registry import (
+from coyote.application.ingest.analysis_parsers import RnaIngestParser
+from coyote.contracts.schemas.registry import (
     INGEST_DEPENDENT_COLLECTIONS,
     normalize_collection_document,
 )

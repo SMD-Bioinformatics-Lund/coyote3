@@ -9,18 +9,19 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
+from api_test_support import application_sdk as sdk_fixtures
+from coyote.application.public.catalog import PublicCatalogService
+from coyote.contracts.public import PublicVepReferencePayload
+from coyote.domain.exceptions import AppError
+from coyote_api.app.deps import services
+from coyote_api.infra.seed.diagrams import load_seed_diagrams
+from coyote_api.interfaces.http.v1.public import routes
+from coyote_mongo.repositories.vep_metadata import VEPMetaRepository
 from PIL import Image
 
-from api.app.deps import services
-from api.infra.mongo.repositories.vep_metadata import VEPMetaRepository
-from api.infra.seed.diagrams import load_seed_diagrams
-from api.interfaces.http.v1.public import routes
-from coyote3.application.public.catalog import PublicCatalogService
-from coyote3.contracts.public import PublicVepReferencePayload
-from coyote3.domain.exceptions import AppError
 from scripts.knowledgebase import update_vep_diagrams
 from scripts.knowledgebase.update_vep_metadata import SEED, diagram_document
-from tests.fixtures.api import application_sdk as sdk_fixtures
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 def test_public_reference_projects_only_reference_fields(monkeypatch):
@@ -124,7 +125,9 @@ def test_binary_endpoint_is_release_scoped_and_metadata_has_no_image_bytes(monke
     assert len(assets) < len(rows)
     repository = object.__new__(VEPMetaRepository)
     repository.get_collection = lambda: database.vep_metadata
-    repository.adapter = SimpleNamespace(vep_diagrams_collection=database.vep_diagrams)
+    repository.adapter = SimpleNamespace(
+        app=mongo_runtime(), vep_diagrams_collection=database.vep_diagrams
+    )
     service = object.__new__(PublicCatalogService)
     service.vep_metadata_repository = repository
     monkeypatch.setattr(services, "get_public_catalog_service", lambda: service)

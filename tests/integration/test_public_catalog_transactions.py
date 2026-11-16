@@ -7,17 +7,18 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from pymongo import MongoClient
-
-from api.infra.mongo.repositories.public_assay_catalog import PublicAssayCatalogRepository
-from api.infra.mongo.repositories.public_assay_catalog_versions import (
-    PublicAssayCatalogRevisionRepository,
-    PublicAssayCatalogVersionRepository,
-)
-from coyote3.contracts.schemas.public_catalog import (
+from coyote.contracts.schemas.public_catalog import (
     PublicAssayCatalogDoc,
     PublicAssayCatalogVersionDoc,
 )
+from coyote_mongo.repositories.public_assay_catalog import PublicAssayCatalogRepository
+from coyote_mongo.repositories.public_assay_catalog_versions import (
+    PublicAssayCatalogRevisionRepository,
+    PublicAssayCatalogVersionRepository,
+)
+from pymongo import MongoClient
+
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
@@ -26,9 +27,10 @@ def repository():
     if not uri:
         pytest.skip("Set CATALOG_TEST_MONGO_URI to run disposable replica-set tests")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    name = f"coyote3_catalog_test_{uuid4().hex}"
+    name = f"coyote4_catalog_test_{uuid4().hex}"
     db = client[name]
     adapter = SimpleNamespace(
+        app=mongo_runtime(),
         client=client,
         public_assay_catalog_collection=db.public_assay_catalog,
         public_assay_catalog_versions_collection=db.public_assay_catalog_versions,

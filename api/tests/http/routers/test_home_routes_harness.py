@@ -1,0 +1,74 @@
+"""Integration-style sample workflow route tests using shared fake-store harness."""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+from api_test_support import application_sdk as sdk_fixtures
+from api_test_support import mock_collections as fx
+from api_test_support.fake_store import build_fake_store
+from coyote.application.sample.catalog import SampleCatalogService
+from coyote_api.interfaces.http.v1.clinical import samples
+
+
+def _catalog_service(fake_store) -> SampleCatalogService:
+    return SampleCatalogService(
+        sample_repository=fake_store.sample_repository,
+        gene_list_repository=fake_store.gene_list_repository,
+        assay_panel_repository=fake_store.assay_panel_repository,
+        assay_configuration_repository=fake_store.assay_configuration_repository,
+        variant_repository=fake_store.variant_repository,
+        copy_number_variant_repository=fake_store.copy_number_variant_repository,
+        fusion_repository=fake_store.fusion_repository,
+        translocation_repository=fake_store.translocation_repository,
+        biomarker_repository=fake_store.biomarker_repository,
+        d4_coverage_blacklist_repository=getattr(
+            fake_store, "d4_coverage_blacklist_repository", SimpleNamespace()
+        ),
+    )
+
+
+def test_home_isgls_read_with_fake_store(monkeypatch):
+    fake_store = build_fake_store()
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(samples, "convert_to_serializable", lambda payload: payload)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_genelists_read,
+        "S1",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
+    )
+
+    assert payload["items"][0]["isgl_id"] == str(fx.isgl_doc()["isgl_id"])
+    assert payload["items"][0]["gene_count"] == int(fx.isgl_doc().get("gene_count") or 0)
+    assert "cnv" in payload["items"][0]["list_types"]
+
+
+def test_home_effective_genes_read_with_fake_store(monkeypatch):
+    fake_store = build_fake_store()
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(samples, "convert_to_serializable", lambda payload: payload)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_effective_genes_read,
+        "S1",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
+    )
+
+    assert "items" in payload
+    assert payload["asp_covered_genes_count"] >= 1
+
+
+def test_home_effective_genes_read_with_target(monkeypatch):
+    fake_store = build_fake_store()
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(samples, "convert_to_serializable", lambda payload: payload)
+    payload = sdk_fixtures.invoke_route(
+        samples.sample_effective_genes_read,
+        "S1",
+        target="cnv",
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(_catalog_service(fake_store), fx.api_user(), "S1"),
+    )
+
+    assert payload["target"] == "cnv"

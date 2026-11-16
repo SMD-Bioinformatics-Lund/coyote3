@@ -5,34 +5,36 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
-
-from api.infra.mongo.repositories.assay_configurations import ASPConfigRepository
-from api.infra.mongo.repositories.configuration_profiles import ConfigurationProfileRepository
-from coyote3.application.reporting.clinical_rules.validation import validate_rule_set
-from coyote3.application.resources.configuration_profiles import (
+from coyote.application.reporting.clinical_rules.validation import validate_rule_set
+from coyote.application.resources.configuration_profiles import (
     ConfigurationProfileService,
     compile_profile_rules,
     compile_profiles,
     prepare_profile_update,
     profile_hash,
 )
-from coyote3.application.resources.configuration_promotions import ConfigurationPromotionService
-from coyote3.contracts.configuration_profiles import (
+from coyote.application.resources.configuration_promotions import ConfigurationPromotionService
+from coyote.contracts.configuration_profiles import (
     ConfigurationProfileDraft,
     ConfigurationPromotionRequest,
 )
-from coyote3.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
-from coyote3.domain.exceptions import AppError
+from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
+from coyote.domain.exceptions import AppError
+from coyote_mongo.repositories.assay_configurations import ASPConfigRepository
+from coyote_mongo.repositories.configuration_profiles import ConfigurationProfileRepository
+
 from scripts.quality.export_demo_workflows import replay
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
 def profiles(monkeypatch):
     """Exercise real repositories in memory; transaction rollback has separate integration coverage."""
-    import api.infra.mongo.repositories.configuration_profiles as module
+    import coyote_mongo.repositories.configuration_profiles as module
 
     db = mongomock.MongoClient().governance
     adapter = SimpleNamespace(
+        app=mongo_runtime(),
         configuration_profiles_collection=db.profiles,
         configuration_promotions_collection=db.promotions,
         aspc_collection=db.configs,
@@ -153,7 +155,7 @@ def test_duplicate_binding_and_changed_source_content_fail_compilation(profiles)
 def test_template_profile_records_the_installed_layout_hash(profiles):
     service, _, _, _ = profiles
     row = service.create(
-        draft(kind="template", content={"template_name": "dna_report.html"}), actor="author"
+        draft(kind="template", content={"template_name": "smd/dna_report.html"}), actor="author"
     )
     assert len(row["content"]["content_hash"]) == 64
     assert row["content_hash"] == profile_hash(row)

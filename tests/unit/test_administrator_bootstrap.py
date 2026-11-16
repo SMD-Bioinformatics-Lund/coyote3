@@ -5,15 +5,15 @@ import json
 from pathlib import Path
 
 import pytest
+from api_test_support import application_sdk as sdk_fixtures
+from api_test_support import mock_collections as fx
+from coyote.application.operations.account import Account
+from coyote.contracts.auth import ApiPasswordChangeRequest
+from coyote.domain.exceptions import AppError
+from coyote_api.contracts.system import WhoamiPayload
+from coyote_api.interfaces.http.v1.operations.auth import change_password
 
-from api.contracts.system import WhoamiPayload
-from api.interfaces.http.v1.operations.auth import change_password
-from coyote3.application.operations.account import Account
-from coyote3.contracts.auth import ApiPasswordChangeRequest
-from coyote3.domain.exceptions import AppError
 from scripts.bootstrap.bootstrap_database import _make_bootstrap_user
-from tests.fixtures.api import application_sdk as sdk_fixtures
-from tests.fixtures.api import mock_collections as fx
 
 
 def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkeypatch):
@@ -22,8 +22,8 @@ def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkey
 
     monkeypatch.setattr("sys.argv", ["bootstrap", "--db", "synthetic", "--identity-db", "identity"])
     args = bootstrap_database.parse_args()
-    assert args.username == "coyote3.superuser"
-    assert args.sys_admin_username == "coyote3.sysadmin"
+    assert args.username == "coyote4.superuser"
+    assert args.sys_admin_username == "coyote4.sysadmin"
     credentials = bootstrap_database._prepare_initial_credentials(args)
     assert len(credentials) == 2
     assert args.password != args.sys_admin_password
@@ -41,7 +41,7 @@ def test_bootstrap_cli_defaults_are_fixed_logins_with_generated_passwords(monkey
 
 
 def test_role_bundles_separate_clinical_and_system_responsibilities():
-    path = Path("api/bootstrap/catalogs/rbac/roles.seed.ndjson")
+    path = Path("api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson")
     roles = {row["role_id"]: row for row in map(json.loads, path.read_text().splitlines())}
     clinical = set(roles["admin"]["permissions"])
     system = set(roles["sys_admin"]["permissions"])

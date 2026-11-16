@@ -7,15 +7,16 @@ from uuid import uuid4
 
 import pytest
 from bson import ObjectId
+from coyote.application.ingest.service import InternalIngestService
+from coyote_mongo.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
+from coyote_mongo.repositories.base import BaseRepository
+from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
+from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
+from coyote_mongo.repositories.revision_rotation import rotate_active_revision
+from coyote_mongo.repositories.sample_deletion import delete_all_sample_traces
 from pymongo import MongoClient
 
-from api.infra.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
-from api.infra.mongo.repositories.base import BaseRepository
-from api.infra.mongo.repositories.ingest_gateway import IngestCollectionGateway
-from api.infra.mongo.repositories.ingest_jobs import IngestJobsRepository
-from api.infra.mongo.repositories.revision_rotation import rotate_active_revision
-from api.infra.mongo.repositories.sample_deletion import delete_all_sample_traces
-from coyote3.application.ingest.service import InternalIngestService
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 def test_bulk_update_failure_aborts_all_documents(database, monkeypatch):
@@ -38,6 +39,7 @@ def test_bulk_update_failure_aborts_all_documents(database, monkeypatch):
 def test_public_catalogue_refresh_failure_restores_both_products(database, monkeypatch):
     repository = OncoKbPublicCacheRepository(
         SimpleNamespace(
+            app=mongo_runtime(),
             oncokb_public_collection=database.oncokb_public,
             oncokb_genes_public_collection=database.oncokb_genes_public,
             oncokb_cancer_genes_public_collection=database.oncokb_cancer_genes_public,
@@ -64,6 +66,7 @@ def test_concurrent_revision_rotation_has_one_winner(database):
         try:
             rotate_active_revision(
                 collection,
+                context=audit_context(),
                 selector={"asp_id": "synthetic"},
                 expected_version=1,
                 new_document={"asp_id": "synthetic", "version": 2, "is_active": True},
@@ -85,7 +88,7 @@ def database():
     if not uri:
         pytest.skip("Set LIFECYCLE_TEST_MONGO_URI for disposable transaction tests")
     client = MongoClient(uri, serverSelectionTimeoutMS=3000)
-    database = client[f"coyote3_lifecycle_test_{uuid4().hex}"]
+    database = client[f"coyote4_lifecycle_test_{uuid4().hex}"]
     try:
         yield database
     finally:
@@ -96,6 +99,7 @@ def database():
 @pytest.fixture
 def service(database, monkeypatch):
     gateway = IngestCollectionGateway(
+        context=audit_context(),
         collections={
             name: database[name]
             for name in (
@@ -106,7 +110,7 @@ def service(database, monkeypatch):
                 "assay_specific_panels",
                 "assay_groups",
             )
-        }
+        },
     )
     database.assay_groups.insert_one({"group_id": "demo", "is_active": True})
     database.assay_specific_panels.insert_one(
@@ -190,7 +194,9 @@ def test_update_success_replaces_evidence_and_metadata_together(database, servic
 
 
 def test_job_receipt_is_atomic_with_bundle_and_fences_stale_worker(database, service):
-    jobs = IngestJobsRepository(SimpleNamespace(ingest_jobs_collection=database.ingest_jobs))
+    jobs = IngestJobsRepository(
+        SimpleNamespace(app=mongo_runtime(), ingest_jobs_collection=database.ingest_jobs)
+    )
     job_id = jobs.submit(source_payload=payload(), submitted_by="synthetic")
     job = jobs.claim(job_id, lease_seconds=10)
     with pytest.raises(RuntimeError, match="lease changed"):
@@ -215,7 +221,8 @@ def test_job_receipt_is_atomic_with_bundle_and_fences_stale_worker(database, ser
 
 def test_ignored_duplicates_do_not_allow_partial_batch_failure(database):
     gateway = IngestCollectionGateway(
-        collections={"samples": database.samples, "values": database.values}
+        context=audit_context(),
+        collections={"samples": database.samples, "values": database.values},
     )
     database.values.insert_one({"_id": "existing"})
     result = gateway.insert_documents(
@@ -239,6 +246,7 @@ def test_revision_rotation_failure_keeps_original_active(database, monkeypatch):
     with pytest.raises(RuntimeError, match="synthetic failure"):
         rotate_active_revision(
             collection,
+            context=audit_context(),
             selector={"asp_id": "synthetic"},
             expected_version=1,
             new_document={"asp_id": "synthetic", "version": 2, "is_active": True},
@@ -280,6 +288,7 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(
             [{field: oid if field == "sample_oid" else str(oid)}, {field: "other-owner"}]
         )
         repositories[f"{key}_repository"] = SimpleNamespace(
+            app=mongo_runtime(),
             get_collection=lambda collection=database[name]: collection,
             invalidate_dashboard_metrics=lambda: None,
         )
@@ -287,12 +296,13 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(
     artifact.write_text("synthetic report")
     database.reports.update_one({"sample_oid": oid}, {"$set": {"filepath": str(artifact)}})
     samples = SimpleNamespace(
+        app=mongo_runtime(),
         adapter=SimpleNamespace(client=database.client),
         get_collection=lambda: database.samples,
         invalidate_dashboard_metrics=lambda: None,
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.sample_deletion.invalidate_samples_cache",
+        "coyote_mongo.repositories.sample_deletion.invalidate_samples_cache",
         lambda adapter: None,
     )
     if fail:

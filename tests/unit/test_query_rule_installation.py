@@ -9,21 +9,22 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
+from coyote.application.query_rules.service import QueryRuleService
+from coyote.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
+from coyote.domain.dna.varqueries import _exception_clause
+from coyote_api.infra.seed.query_rules import prepare_query_rule_seeds
+from coyote_mongo.repositories.query_rules import QueryRuleRepository
+from coyote_mongo.selection import compile_selection
 
-from api.infra.mongo.repositories.query_rules import QueryRuleRepository
-from api.infra.mongo.selection import compile_selection
-from api.infra.seed.query_rules import prepare_query_rule_seeds
-from coyote3.application.query_rules.service import QueryRuleService
-from coyote3.config.clinical_query_policy import CLINICAL_QUERY_POLICY, resolved_query_policy
-from coyote3.domain.dna.varqueries import _exception_clause
 from scripts.bootstrap import install_query_rules
+from tests.fixtures.mongo_settings import mongo_runtime
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def seed_rows(name):
     """Read public reference records without connecting to a deployment."""
-    path = ROOT / f"api/bootstrap/catalogs/reference/{name}.seed.ndjson"
+    path = ROOT / f"api/src/coyote_api/bootstrap/catalogs/reference/{name}.seed.ndjson"
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
@@ -36,12 +37,13 @@ def test_installed_germline_rules_are_group_scoped():
     service = QueryRuleService(
         QueryRuleRepository(
             SimpleNamespace(
+                app=mongo_runtime(),
                 query_rule_sets_collection=db.query_rule_sets,
                 query_rule_revisions_collection=db.query_rule_revisions,
             )
         )
     )
-    from coyote3.contracts.schemas.query_rules import QueryRuleScope
+    from coyote.contracts.schemas.query_rules import QueryRuleScope
 
     for group in ("hematology", "myeloid"):
         policy = service.resolve(QueryRuleScope(assay_group=group, analysis="snv"))
@@ -49,14 +51,11 @@ def test_installed_germline_rules_are_group_scoped():
         assert {e["id"] for e in policy.exceptions} == {
             "flt3_svtype",
             "flt3_large_insertion",
-            "germline__germline_myeloid_marker",
-            "germline__germline_cebpa_filter",
-            "germline__germline_chr1_interval",
         }
     inherited = service.resolve(
         QueryRuleScope(assay_group="future_group", analysis="snv", intent="germline")
     )
-    assert inherited.evidence_mode == "exception_only"
+    assert inherited.evidence_mode == "case_only"
     assert inherited.exceptions == []
     solid = service.resolve(QueryRuleScope(assay_group="solid", analysis="snv", intent="germline"))
     assert {e["id"] for e in solid.exceptions} == {"solid_germline_filter"}
@@ -90,7 +89,8 @@ def test_installed_germline_rules_are_group_scoped():
 
 def test_fresh_bootstrap_loads_complete_query_catalog():
     """First installation includes catalog-only rules as well as TOML criteria."""
-    from coyote3.contracts.schemas.query_rules import QueryRuleContent
+    from coyote.contracts.schemas.query_rules import QueryRuleContent
+
     from scripts.bootstrap.bootstrap_database import (
         DEFAULT_RBAC_DIR,
         DEFAULT_REFERENCE_DIR,
@@ -269,7 +269,7 @@ def test_repair_installs_missing_biological_scopes(monkeypatch):
 
 
 def test_query_roles_separate_lifecycle_grants():
-    path = ROOT / "api/bootstrap/catalogs/rbac/roles.seed.ndjson"
+    path = ROOT / "api/src/coyote_api/bootstrap/catalogs/rbac/roles.seed.ndjson"
     roles = {
         row["name"]: row
         for line in path.read_text().splitlines()

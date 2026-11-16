@@ -4,27 +4,28 @@ from types import SimpleNamespace
 
 import mongomock
 import pytest
+from coyote.application.resources.asp import AspService
+from coyote.application.resources.assay_groups import AssayGroupService
+from coyote.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupStatus
+from coyote.domain.exceptions import AppError
+from coyote_mongo.index_management import build_index_plan
+from coyote_mongo.repositories.assay_groups import AssayGroupRepository
+from coyote_mongo.repositories.assay_panels import ASPRepository
 from pydantic import ValidationError
 
-from api.infra.mongo.index_management import build_index_plan
-from api.infra.mongo.repositories.assay_groups import AssayGroupRepository
-from api.infra.mongo.repositories.assay_panels import ASPRepository
-from coyote3.application.resources.asp import AspService
-from coyote3.application.resources.assay_groups import AssayGroupService
-from coyote3.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupStatus
-from coyote3.domain.exceptions import AppError
 from scripts.bootstrap.install_assay_groups import install
-from tests.unit.test_mongo_index_management import adapter_for
+from tests.fixtures.mongo_settings import mongo_runtime
+from tests.support.mongo_indexes import adapter_for
 
 
 @pytest.fixture
 def registry(monkeypatch):
     """Use synthetic storage with transaction callbacks executed synchronously."""
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.assay_groups.enqueue_audit", lambda *_a, **_k: None
+        "coyote_mongo.repositories.assay_groups.enqueue_audit", lambda *_a, **_k: None
     )
     monkeypatch.setattr(
-        "api.infra.mongo.repositories.assay_groups.run_transaction",
+        "coyote_mongo.repositories.assay_groups.run_transaction",
         lambda _, callback: callback(None),
     )
     monkeypatch.setattr(
@@ -32,7 +33,9 @@ def registry(monkeypatch):
     )
     db = mongomock.MongoClient().test
     adapter = SimpleNamespace(
-        assay_groups_collection=db.assay_groups, asp_collection=db.assay_specific_panels
+        app=mongo_runtime(),
+        assay_groups_collection=db.assay_groups,
+        asp_collection=db.assay_specific_panels,
     )
     repository = AssayGroupRepository(adapter)
     repository.ensure_indexes()

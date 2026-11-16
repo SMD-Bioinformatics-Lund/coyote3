@@ -10,7 +10,7 @@ from support import WEIGHTS, LoadError, WorkflowRunner, load_settings
 
 try:
     SETTINGS = load_settings(
-        os.environ.get("COYOTE3_LOAD_CONFIG", ""), os.environ.get("COYOTE3_LOAD_CREDENTIALS", "")
+        os.environ.get("COYOTE4_LOAD_CONFIG", ""), os.environ.get("COYOTE4_LOAD_CREDENTIALS", "")
     )
 except LoadError as exc:
     raise SystemExit(str(exc)) from None

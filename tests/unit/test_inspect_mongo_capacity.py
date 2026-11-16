@@ -3,10 +3,11 @@
 from types import SimpleNamespace
 
 from scripts.database.inspect_mongo_capacity import collection_snapshot, snapshot
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 class FakeDatabase:
-    name = "coyote3_test"
+    name = "coyote4_test"
 
     def command(self, command: str, collection_name: str):
         assert command == "collStats"
@@ -46,8 +47,9 @@ class FakeMongoDatabase:
 def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
     return SimpleNamespace(
         app=SimpleNamespace(
+            audit=audit_context(),
             config={
-                "COYOTE3_DB": "coyote3_test",
+                "COYOTE4_DB": "coyote4_test",
                 "IDENTITY_DB": "identity_test",
                 "KNOWLEDGEBASE_DB": "knowledgebase_test",
                 "BAM_DB": "bam_test",
@@ -60,9 +62,9 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
                     "knowledgebase": {},
                     "bam": {},
                 },
-            }
+            },
         ),
-        coyote_db=FakeMongoDatabase("coyote3_test"),
+        coyote_db=FakeMongoDatabase("coyote4_test"),
         identity_db=FakeMongoDatabase("identity_test"),
         knowledgebase_db=FakeMongoDatabase("knowledgebase_test"),
         bam_db=FakeMongoDatabase("bam_test"),
@@ -84,7 +86,9 @@ def test_collection_snapshot_uses_metadata_only() -> None:
 def test_snapshot_filters_and_sorts_managed_collections() -> None:
     variants = FakeCollection()
     adapter = fake_adapter(
-        repositories=[("variants", SimpleNamespace(get_collection=lambda: variants))]
+        repositories=[
+            ("variants", SimpleNamespace(app=mongo_runtime(), get_collection=lambda: variants))
+        ]
     )
     variants.database = adapter.coyote_db
     adapter.coyote_db.command = FakeDatabase().command
@@ -100,7 +104,9 @@ def test_snapshot_filters_and_sorts_managed_collections() -> None:
 def test_snapshot_rejects_unknown_collection() -> None:
     variants = FakeCollection()
     adapter = fake_adapter(
-        repositories=[("variants", SimpleNamespace(get_collection=lambda: variants))]
+        repositories=[
+            ("variants", SimpleNamespace(app=mongo_runtime(), get_collection=lambda: variants))
+        ]
     )
     variants.database = adapter.coyote_db
 

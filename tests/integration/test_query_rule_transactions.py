@@ -5,11 +5,12 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from coyote.application.query_rules.service import QueryRuleService
+from coyote.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleTransition
+from coyote_mongo.repositories import query_rules as persistence
 from pymongo import MongoClient
 
-from api.infra.mongo.repositories import query_rules as persistence
-from coyote3.application.query_rules.service import QueryRuleService
-from coyote3.contracts.schemas.query_rules import QueryRuleDraft, QueryRuleTransition
+from tests.fixtures.mongo_settings import mongo_runtime
 
 
 @pytest.fixture
@@ -19,7 +20,7 @@ def service(monkeypatch):
     if not uri:
         pytest.skip("Set QUERY_RULE_TEST_MONGO_URI to a disposable replica set")
     with MongoClient(uri, serverSelectionTimeoutMS=3000, tz_aware=True) as client:
-        database = client[f"coyote3_query_rule_test_{uuid4().hex}"]
+        database = client[f"coyote4_query_rule_test_{uuid4().hex}"]
 
         def receipt(db, session, **values):
             """Use an isolated receipt sink to verify the shared transaction boundary."""
@@ -28,6 +29,7 @@ def service(monkeypatch):
         monkeypatch.setattr(persistence, "enqueue_audit", receipt)
         repository = persistence.QueryRuleRepository(
             SimpleNamespace(
+                app=mongo_runtime(),
                 query_rule_sets_collection=database.query_rule_sets,
                 query_rule_revisions_collection=database.query_rule_revisions,
             )

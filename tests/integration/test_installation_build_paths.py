@@ -35,8 +35,8 @@ def test_compose_selects_source_or_verified_artifact_build(retained_artifact, tm
         command,
         env={
             **os.environ,
-            "COYOTE3_IMAGE_TAG": "installation-test",
-            "COYOTE3_SDK_ARTIFACT_DIR": str(absent_directory),
+            "COYOTE4_IMAGE_TAG": "installation-test",
+            "COYOTE4_SDK_ARTIFACT_DIR": str(absent_directory),
         },
         capture_output=True,
         text=True,
@@ -45,10 +45,10 @@ def test_compose_selects_source_or_verified_artifact_build(retained_artifact, tm
     )
     build = json.loads(result.stdout)["services"]["api"]["build"]
     if retained_artifact:
-        assert build["target"] == "coyote3_api"
+        assert build["target"] == "coyote4_api"
         assert build["additional_contexts"]["sdk_artifact"] == str(absent_directory)
     else:
-        assert build["target"] == "coyote3_source_api"
+        assert build["target"] == "coyote4_source_api"
         assert "sdk_artifact" not in build.get("additional_contexts", {})
     assert not absent_directory.exists()
 
@@ -71,7 +71,7 @@ def test_development_does_not_hide_built_docs_with_an_empty_host_site():
             "--format",
             "json",
         ],
-        env={**os.environ, "COYOTE3_IMAGE_TAG": "synthetic-dev"},
+        env={**os.environ, "COYOTE4_IMAGE_TAG": "synthetic-dev"},
         text=True,
         capture_output=True,
         check=True,
