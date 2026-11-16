@@ -118,5 +118,5 @@ identities include the analysis and source name, so a source's HRD and TMB resul
 remain distinct. Saved reports preserve their original evidence and wording when
 configuration or measurements change later.
 
-For existing installations, see the
-[configuration migration](../operations/migrations/independent-biomarker-analyses.md).
+Enable the required analysis types in the assay configuration before ingesting
+measurements. Each analysis retains its own filters and reporting selection.

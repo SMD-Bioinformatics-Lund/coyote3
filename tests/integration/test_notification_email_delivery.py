@@ -14,7 +14,6 @@ from coyote_mongo.repositories.notifications import NotificationsRepository
 from pydantic import ValidationError
 from pymongo import MongoClient
 
-from scripts.maintenance.migrate_notification_retention import migrate
 from tests.fixtures.mongo_settings import mongo_runtime
 
 
@@ -210,18 +209,3 @@ def test_broadcast_rejects_past_and_timezone_naive_expiry(expiry):
         NotificationBroadcastRequest(
             audience="all", title="Notice", message="Synthetic", expires_at=expiry
         )
-
-
-def test_retention_migration_is_idempotent_and_preserves_records(delivery):
-    service, repo, collection, users, sender = delivery
-    publish(service)
-    collection.update_one({}, {"$unset": {"is_broadcast": ""}})
-    collection.create_index("expires_on", name="expires_on_1", expireAfterSeconds=0)
-    assert migrate(collection) == {"ttl_indexes": 1, "broadcasts": 1}
-    assert "expireAfterSeconds" in collection.index_information()["expires_on_1"]
-    migrate(collection, apply=True)
-    assert migrate(collection) == {"ttl_indexes": 0, "broadcasts": 0}
-    assert collection.count_documents({}) == 1
-    assert "expireAfterSeconds" not in collection.index_information()["expires_on_1"]
-    with pytest.raises(AppError):
-        service.dismiss(notification_id=str(collection.find_one()["_id"]), username="recipient")

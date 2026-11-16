@@ -13,36 +13,13 @@ access. Bootstrap accepts `--knowledgebase-mongo-uri` and `--knowledgebase-db`,
 or their environment variables. The URI may use a different replica set from
 the application. Existing nonempty reference collections are not reseeded.
 
-## Existing deployments
+## Installation and reference updates
 
-1. Stop API, worker and beat processes and any reference importers across all
-   environments sharing the affected reference database. Keep databases running.
-2. Export the intended `COYOTE4_MONGO_URI`, `COYOTE4_DB`,
-   `KNOWLEDGEBASE_MONGO_URI` and `KNOWLEDGEBASE_DB`. The script does not load a
-   private environment file automatically. Use an operator with read, create,
-   index, rename and drop privileges on the relevant collections.
-3. Run the read-only inspection, then apply with a new backup directory:
+Coyote Atlas owns the bundled HGNC/VEP resources. Fresh installation loads that
+bundle into the selected knowledgebase database; existing reference collections
+are preserved. Use the [HGNC](../hgnc-gene-installation.md) and
+[VEP](../vep-metadata-updates.md) import procedures for reviewed updates.
 
-```bash
-.venv/bin/python scripts/knowledgebase/migrate_reference_database.py
-mkdir -p logs/maintenance-backups
-.venv/bin/python scripts/knowledgebase/migrate_reference_database.py --apply \
-  --backup-dir logs/maintenance-backups/reference-relocation
-```
-
-The script verifies that every current named legacy `assay_subpanels` scope has
-a current shared definition and assay association. Current registry status and
-metadata take precedence over old records. Missing replacements block removal;
-run `scripts/maintenance/migrate_assay_subpanels.py` first if needed.
-
-Original documents, collection options and indexes are backed up as BSON in a
-mode-0700 directory with mode-0600 files. HGNC/VEP documents retain their IDs and
-fields. Copying uses staging collections, copies indexes and compares complete
-content hashes before dropping either source. Conflicting target data is never
-overwritten. Legacy diagnosis history remains in the backup after removal.
-
-Cross-deployment copy/rename/drop is not a single transaction. Keep writers
-stopped throughout; after interruption, inspect the staging collections and rerun
-the dry run before proceeding. Preserve the backup under center retention policy.
-When complete, apply the normal index plan and restart the updated services.
-Verify reference lookups before reopening clinical workflows.
+The application does not relocate collections during startup or redeployment.
+Review separately scoped database moves before using the maintained
+[knowledgebase relocation procedure](../../deployment/mongodb-setup-and-recovery.md).

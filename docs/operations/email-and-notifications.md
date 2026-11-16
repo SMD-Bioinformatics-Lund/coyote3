@@ -134,24 +134,6 @@ writes, so replaying an old event does not reset read or dismissal state. Actual
 new publications, including forced reference replacements, can generate new messages.
 Browser-only notices are not server records and remain scoped to the current session.
 
-### Existing installations
-
-Stop notification producers and workers while changing the expiry index. With the
-application's MongoDB environment loaded, run the dry run and then apply:
-
-```bash
-.venv/bin/python scripts/maintenance/migrate_notification_retention.py
-.venv/bin/python scripts/maintenance/migrate_notification_retention.py --apply
-PYTHONPATH=. .venv/bin/python scripts/database/manage_mongo_indexes.py apply
-```
-
-The migration replaces the `expires_on` TTL index with a normal index and marks
-existing administrative broadcasts. It preserves bodies, recipients, read state,
-and existing expiry dates. Already deleted records cannot be recovered by this
-script. Index DDL runs outside transactions; document changes are transactional.
-Re-running the migration is safe. Deploy the updated API, worker, and frontend
-together; old code does not enforce the retained broadcast lifecycle.
-
 ## Local testing without an SMTP relay
 
 [Mailpit](https://mailpit.axllent.org/docs/install/docker/) captures test messages

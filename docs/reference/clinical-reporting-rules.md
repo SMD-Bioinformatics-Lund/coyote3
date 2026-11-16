@@ -223,9 +223,6 @@ and resolved diagnosis, matched rules and rendered text. They are not re-evaluat
 when a source release changes. Configuration or finding changes invalidate the
 reviewed preview; refresh and review it before saving.
 
-For database transitions and revision repairs, see
-[clinical-rule data maintenance](../operations/migrations/clinical-rule-migrations.md).
-
 For the distinction between rule documents, API requests and installed examples,
 see [file-format conventions](file-format-conventions.md). Complete persisted fields
 and defaults are listed in the [rule-set contract](mongodb-collections.md#clinical_rule_sets);
@@ -907,20 +904,8 @@ PYTHONPATH=. .venv/bin/python scripts/identity/sync_rbac_catalog.py \
   --identity-db "${IDENTITY_DB}"
 ```
 
-Before the first clinical-rule edit, capture one immutable baseline of every current version:
-
-```bash
-PYTHONPATH=. .venv/bin/python scripts/maintenance/backfill_clinical_rule_revisions.py \
-  --mongo-uri "${COYOTE4_MONGO_URI}" \
-  --db coyote4_new \
-  --actor reporting.migration \
-  --dry-run
-```
-
-Review the count, remove `--dry-run`, and run the same command. It is idempotent and never changes
-`clinical_rule_sets`. A baseline preserves the complete state that exists at execution time;
-earlier overwritten draft revisions cannot be reconstructed and the command reports this limit.
-New database bootstrap creates baselines for bundled demo rule sets automatically.
+Rule creation and lifecycle operations capture immutable revisions transactionally.
+Missing historical evidence is not reconstructed during installation.
 
 Bundled CNV, DNA translocation, HRD, and MSI scopes use `narrative: none`.
 Enabling narrative text requires a reviewed content version with approved result

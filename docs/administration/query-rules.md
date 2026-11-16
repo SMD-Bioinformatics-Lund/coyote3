@@ -403,23 +403,6 @@ Retrieval selects published IDs for the shared default, group, assay and optiona
 named diagnosis, in that order. It resolves inheritance before building and executing
 the sample-scoped query. No separate base-diagnosis rule is evaluated.
 
-### Existing query-rule storage
-
-Stop query-rule editing during the storage upgrade. Run
-`scripts/database/upgrade_query_rule_storage.py --env-file "$COYOTE_ENV_FILE" --mongo-uri "$MONGO_URI" --db "$COYOTE4_DB" --actor "$OPERATOR"`
-to validate and inspect the plan. Apply the same command with
-`--apply --backup /private/backup/query-rules.json`; the backup path must not exist.
-The script preserves conditions, release versions and lifecycle states, updates
-generated identities, increments changed document revisions and records immutable
-baselines and an audit receipt in one transaction. It never reconstructs past edits.
-Deploy matching API and worker code with the upgraded storage.
-The environment file supplies identity-database settings for transactional audit
-routing; the explicit URI and database arguments select the migration target.
-
-If old assay-wide and base-specific versions collapse to a duplicate version or
-publication, the upgrade stops for explicit resolution. Existing immutable history
-is never rewritten automatically. A second run with no remaining changes is a no-op.
-
 ### Revision history and lifecycle
 
 Rule versions are stored in `query_rule_sets`; immutable, hash-linked snapshots are

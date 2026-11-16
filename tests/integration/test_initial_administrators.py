@@ -10,7 +10,6 @@ from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
 from scripts.bootstrap.bootstrap_database import _initialize_governance, _make_bootstrap_user
-from scripts.identity.migrate_administrator_roles import migrate
 
 
 @pytest.fixture
@@ -68,17 +67,3 @@ def test_account_failure_rolls_back_all_governance(bootstrap_database):
         initialize(db, duplicate_email=True)
     assert error.value.details["writeErrors"][0]["code"] == 11000
     assert all(db[name].count_documents({}) == 0 for name in ("users", "roles", "permissions"))
-
-
-def test_role_migration_requires_a_named_owner_and_is_repeatable(bootstrap_database):
-    db = bootstrap_database
-    db.users.insert_one({"username": "operator", "is_active": True, "roles": ["admin"]})
-    db.roles.insert_one({"role_id": "admin", "permissions": ["app.controls:edit"]})
-    with pytest.raises(ValueError):
-        migrate(db, username="missing", apply=True)
-    migrate(db, username="operator")
-    assert db.users.find_one()["roles"] == ["admin"]
-    migrate(db, username="operator", apply=True)
-    migrate(db, username="operator", apply=True)
-    assert db.users.find_one()["roles"] == ["admin", "sys_admin"]
-    assert "app.controls:edit" not in db.roles.find_one({"role_id": "admin"})["permissions"]

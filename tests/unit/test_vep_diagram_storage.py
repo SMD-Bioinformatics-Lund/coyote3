@@ -1,8 +1,5 @@
 """Binary diagram migration, deduplication and seed integrity tests."""
 
-import gzip
-import json
-
 import mongomock
 import pytest
 from coyote.contracts.schemas.variant_annotations import (
@@ -10,7 +7,6 @@ from coyote.contracts.schemas.variant_annotations import (
 )
 from pydantic import ValidationError
 
-from scripts.knowledgebase.migrate_vep_diagram_storage import embedded_diagrams, migrate_seed
 from scripts.knowledgebase.update_vep_metadata import diagram_document
 from scripts.knowledgebase.vep_diagram_storage import (
     split_diagram,
@@ -43,22 +39,3 @@ def test_checksum_mismatch_is_rejected_before_write():
     corrupt = {**image(), "sha256": "0" * 64}
     with pytest.raises(ValueError, match="checksum"):
         split_diagram(corrupt)
-    with pytest.raises(ValueError, match="checksum"):
-        embedded_diagrams([{"vep_id": "116", "consequence_diagram": corrupt}])
-
-
-def test_seed_migration_is_lossless_and_idempotent(tmp_path):
-    source = image()
-    seed = tmp_path / "vep_metadata.seed.ndjson.gz"
-    row = {"vep_id": "116", "conseq_translations": {"unchanged": {}}, "consequence_diagram": source}
-    seed.write_bytes(gzip.compress((json.dumps(row) + "\n").encode()))
-    assert migrate_seed(seed) == 1
-    assert migrate_seed(seed) == 0
-    with gzip.open(seed, "rt") as stream:
-        result = json.loads(stream.readline())
-    assert result["conseq_translations"] == row["conseq_translations"]
-    assert "data_base64" not in result["consequence_diagram"]
-    descriptor, content = split_diagram(source)
-    assert result["consequence_diagram"] == descriptor
-    assert (tmp_path / "vep_diagrams" / source["sha256"]).read_bytes() == content
-    assert embedded_diagrams([result]) == {}

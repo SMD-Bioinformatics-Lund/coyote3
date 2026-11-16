@@ -73,7 +73,6 @@ echo "[check] shell script static analysis"
 bash scripts/quality/check_shell_quality.sh
 
 echo "[check] docs internal links"
-"$PYTHON_BIN" scripts/docs/generate_badges.py --check
 "$PYTHON_BIN" scripts/docs/check_markdown_links.py
 "$PYTHON_BIN" scripts/docs/check_operational_examples.py
 

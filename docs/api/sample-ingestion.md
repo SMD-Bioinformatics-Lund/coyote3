@@ -94,12 +94,6 @@ or request bodies cannot override server attribution. Existing samples without
 recoverable submission evidence retain null attribution rather than being
 assigned to the administrator performing a migration.
 
-Run `scripts/maintenance/backfill_sample_ingest_provenance.py --env-file <deployment-env>`
-to preview a backfill from successful initial sample-bundle jobs. Add
-`--apply --backup <new-backup-file>` to persist it. The backup contains only
-sample identifiers and the previous attribution fields. The command preserves
-recorded values and leaves unknown history null.
-
 ![Celery-backed sample ingest flow](../assets/diagrams/celery-ingest-flow.svg)
 
 ## Persistence and recovery boundaries

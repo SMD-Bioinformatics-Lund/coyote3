@@ -51,7 +51,7 @@ Use `README.md` as each section's entry page so GitHub renders its contents when
 someone opens the directory. The documentation homepage is `docs/README.md`.
 
 Name the subject and operation where needed: `sample-manifest.md`,
-`mongodb-setup-and-recovery.md`, and `clinical-rule-migrations.md`. Avoid vague
+`mongodb-setup-and-recovery.md`, and `clinical-data.md`. Avoid vague
 names such as `current-context.md`, multiple competing `complete` manuals, and
 filenames that require an unexplained internal acronym. Architecture decisions
 retain their ordered numeric prefixes.
@@ -257,7 +257,6 @@ Run these commands from the repository root:
 
 ```bash
 npm run docs:lint
-.venv/bin/python scripts/docs/generate_badges.py --check
 .venv/bin/python scripts/docs/check_markdown_links.py
 .venv/bin/python -m mkdocs build --strict
 .venv/bin/python scripts/docs/check_built_site.py
@@ -268,10 +267,9 @@ README badges use the original Shields.io renderer, including in package guides.
 Preserve its standard `flat` style, white technology logos, established colors and root
 README groups: Build and validation, Core Stack, Domain & Capabilities, and
 Security & Governance. Rendering fixes must retain this presentation.
-Versions and supported runtimes come from release and package metadata. After
-changing that metadata, run `.venv/bin/python scripts/docs/generate_badges.py`
-and include the updated README links. The contract gate checks for
-drift. Workflow links show CI results; metadata badges do not claim tests passed.
+Versions and supported runtimes come from release and package metadata. When
+changing that metadata, update the affected README badge links in the same change.
+Workflow links show CI results; metadata badges do not claim tests passed.
 Badge images require access to `img.shields.io`.
 
 For a generated-reference change, also run its generator and the relevant

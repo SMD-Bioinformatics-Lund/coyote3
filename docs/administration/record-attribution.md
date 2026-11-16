@@ -42,21 +42,3 @@ a table column does not remove attribution or audit data from stored records.
 Missing historical actors are null and appear as **Unknown**. The current user is
 never substituted for a missing creator. Installing this code does not rewrite
 existing database records.
-
-The maintenance command below plans attribution changes for one explicitly selected
-collection. It uses existing installation flags, sample ingest attribution, comment
-or report authors, and retained first-revision diagnosis attribution. It cannot reconstruct
-missing history. Immutable revision evidence is excluded.
-
-```bash
-# Load the correct URI through your normal secret-management process.
-# Set TARGET_DB to the intended database name.
-PYTHONPATH=.:src .venv/bin/python scripts/maintenance/backfill_record_attribution.py \
-  --database "$TARGET_DB" --collection diagnoses
-```
-
-Review the counts, back up the target database, then repeat with `--apply` to write.
-Use `--mongo-uri-env KNOWLEDGEBASE_MONGO_URI` for a separately configured reference
-service and `--storage-collection NAME` if its physical collection name differs
-from the logical contract name. Writes check that attribution evidence has not
-changed since inspection. No command in this guide runs automatically on deployment.

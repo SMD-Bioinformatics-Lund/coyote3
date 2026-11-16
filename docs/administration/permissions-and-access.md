@@ -172,21 +172,6 @@ through general user administration.
 Additional named administrators can be assigned roles; there is no singleton role
 constraint. Assign clinical roles separately when an operator also performs clinical work.
 
-For an existing installation, select an active, non-superuser system owner before
-installing the narrower clinical-administrator grants. With the identity connection
-configured, review and then apply:
-
-```bash
-.venv/bin/python scripts/identity/migrate_administrator_roles.py --system-admin-user ACCOUNT
-.venv/bin/python scripts/identity/migrate_administrator_roles.py --system-admin-user ACCOUNT --apply
-```
-
-This transaction adds `sys_admin` to the selected account and replaces the bundled
-`admin` and `sys_admin` definitions. Existing memberships, custom roles, passwords,
-and installed-account flags remain unchanged. Review any custom grants on these two
-bundled roles first: their definitions are replaced, not merged. Ordinary seed
-synchronization does not remove obsolete grants and is not a substitute for this step.
-
 Permission granularity is not uniform: for example, `snv:manage` covers transcript,
 flag, blacklist, and bulk-tier operations. Splitting these grants requires updating
 routes, UI actions, role seeds, and existing memberships together. Creating a new

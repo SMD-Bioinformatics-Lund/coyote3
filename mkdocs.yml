@@ -126,8 +126,6 @@ nav:
     - Choose a migration: operations/migrations/README.md
     - 'Clinical data: order and commands': operations/migrations/clinical-data.md
     - Variant blacklist: operations/migrations/variant-blacklist.md
-    - Independent measurement analyses: operations/migrations/independent-biomarker-analyses.md
-    - Clinical-rule data maintenance: operations/migrations/clinical-rule-migrations.md
     - Reference database placement: operations/migrations/knowledgebase-database-migration.md
 - Integrate pipelines:
   - Arrange authentication: api/authentication.md

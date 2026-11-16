@@ -41,9 +41,11 @@ changelogs with their changes. Synchronize derived metadata from the repository 
 
 ```bash
 npm run sync:version
-.venv/bin/python scripts/docs/generate_badges.py
 .venv/bin/python scripts/release/check_release.py
 ```
+
+Update README version badges to match the selected component versions, preserving
+their established Shields.io styles, colors and groups.
 
 ## Prepare the release PR
 

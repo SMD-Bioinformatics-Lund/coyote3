@@ -17,9 +17,7 @@ shared VEP records, report snapshots and historical identities that must be pres
 | --- | --- |
 | [Variant blacklist](variant-blacklist.md) | Consolidate allele records, retain group scopes and assign normal-sample frequencies to their exact assays. |
 | [Clinical data: execution order and commands](clinical-data.md) | Run the fresh v2/v3 export and preparation tools, then import reviewed data in dependency order. |
-| [Independent measurement analyses](independent-biomarker-analyses.md) | Convert generic biomarker configuration to explicit HRD, MSI, and TMB selections. |
-| [Clinical-Rule Data Maintenance](clinical-rule-migrations.md) | Migrate report policy and clinical-rule configuration. |
-| [Reference database placement](knowledgebase-database-migration.md) | Move reference collections to the configured knowledgebase database. |
+| [Reference database placement](knowledgebase-database-migration.md) | Understand reference ownership and the supported relocation procedure. |
 
 An application release upgrade is covered by [deployment upgrades](../../deployment/application-upgrades.md).
 Use a migration only when its source and target requirements match your data.
