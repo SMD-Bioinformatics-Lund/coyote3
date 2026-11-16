@@ -71,6 +71,7 @@
 {% block content %}
 {% set article_parts = page.content.split('</h1>', 1) if page else [] %}
 {% if article_parts | length == 2 %}{{ article_parts[0] | safe }}</h1>{% endif %}
+{% if page and article_parts | length != 2 %}<h1 class="visuallyhidden">{{ page.title | e }}</h1>{% endif %}
 {% if page and page.file.src_uri != 'README.md' %}
 <div class="docs-reading-tools">
 <div id="docs-return-context" class="docs-return-context" hidden></div>

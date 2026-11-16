@@ -137,16 +137,30 @@ for (const theme of ["light", "dark"]) {
         await page.goto(`/docs-site/assets/diagrams/${filename}.svg`)
         const overflow = await page.locator("svg > g > text").evaluateAll(elements => elements.flatMap(element => {
           const text = element as SVGGraphicsElement
+          if (!text.textContent?.trim()) return []
           const box = text.getBBox()
-          const card = text.parentElement!.querySelector("rect")!
-          const right = Number(card.getAttribute("x")) + Number(card.getAttribute("width"))
-          const bottom = Number(card.getAttribute("y")) + Number(card.getAttribute("height"))
-          return box.x + box.width > right - 8 || box.y + box.height > bottom - 4 ? [text.textContent] : []
+          const group = text.parentElement!
+          if (["left", "right", "top", "bottom"].some(side => !group.hasAttribute(`data-${side}`))) {
+            return [`Missing layout bounds for ${text.textContent}`]
+          }
+          const left = Number(group.getAttribute("data-left"))
+          const right = Number(group.getAttribute("data-right"))
+          const top = Number(group.getAttribute("data-top"))
+          const bottom = Number(group.getAttribute("data-bottom"))
+          return box.x < left + 4 || box.y < top + 4 ||
+            box.x + box.width > right - 8 || box.y + box.height > bottom - 4 ? [text.textContent] : []
         }))
-        expect.soft(overflow, `${filename}: labels must fit their cards`).toEqual([])
+        expect.soft(overflow, `${filename}: labels must fit their layout regions`).toEqual([])
       }
-      for (const project of ["core", "api", "mongo", "client", "frontend"]) {
+      for (const project of ["core", "api", "mongo", "client", "relay", "atlas", "demo", "frontend"]) {
         await page.goto(`/docs-site/packages/${project}/overview/`)
+        await expect(article.getByRole("heading", { level: 1 })).toHaveCount(1)
+        if (!["mongo", "frontend"].includes(project)) {
+          const logo = article.locator('img[src$="-logo.svg"]')
+          await expect(logo).toHaveCount(1)
+          await expect(logo).toBeVisible()
+          expect(await logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+        }
         const badges = page.locator('[itemprop="articleBody"] img[src^="https://img.shields.io/badge/"]')
         await expect(badges).toHaveCount(project === "frontend" ? 4 : 3)
         for (const source of await badges.evaluateAll(images => images.map(image => image.getAttribute("src")!))) {

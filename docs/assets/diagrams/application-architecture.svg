@@ -112,7 +112,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
   <path class="connection blue" d="M362 470 H405" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <path class="connection blue" d="M735 470 H778" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <text x="38.86" y="600" class="entity-title">HOST ADAPTERS IMPLEMENT THE CORE'S PROTOCOLS</text>
-  <g class="entity teal" data-node="5" data-left="38.86" data-right="439.57" data-top="660.0" data-bottom="785.0">
+  <g class="entity teal" data-node="5" data-left="38.86" data-right="439.57" data-top="660.0" data-bottom="805.0">
     <title>MongoDB repositories</title>
     <use href="#icon-database" x="218.21" y="663.0" width="42" height="42" aria-hidden="true" />
     <text x="239.21" y="723.0" text-anchor="middle" class="entity-title">MongoDB repositories</text>
@@ -120,7 +120,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="239.21" y="763.0" text-anchor="middle" class="entity-detail">Driver operations and indexes.</text>
     <text x="239.21" y="781.0" text-anchor="middle" class="entity-detail">No database calls in routes.</text>
   </g>
-  <g class="entity teal" data-node="6" data-left="491.79" data-right="892.5" data-top="660.0" data-bottom="785.0">
+  <g class="entity teal" data-node="6" data-left="491.79" data-right="892.5" data-top="660.0" data-bottom="805.0">
     <title>Integrations</title>
     <use href="#icon-processor" x="671.14" y="663.0" width="42" height="42" aria-hidden="true" />
     <text x="692.14" y="723.0" text-anchor="middle" class="entity-title">Integrations</text>
@@ -128,7 +128,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="692.14" y="763.0" text-anchor="middle" class="entity-detail">External APIs, cache, storage,</text>
     <text x="692.14" y="781.0" text-anchor="middle" class="entity-detail">delivery and observability.</text>
   </g>
-  <g class="entity amber" data-node="7" data-left="944.71" data-right="1321.14" data-top="660.0" data-bottom="785.0">
+  <g class="entity amber" data-node="7" data-left="944.71" data-right="1321.14" data-top="660.0" data-bottom="805.0">
     <title>Report presentation</title>
     <use href="#icon-report" x="1111.93" y="663.0" width="42" height="42" aria-hidden="true" />
     <text x="1132.93" y="723.0" text-anchor="middle" class="entity-title">Report presentation</text>
@@ -140,7 +140,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
   <path class="connection blue" d="M570 660 V575" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />
   <text x="38.86" y="821" class="figure-note">API and MongoDB share coyote-server. The independent coyote-core accepts repository implementations supplied by hosts.</text>
   <text x="38.86" y="876" class="entity-title">OPTIONAL PACKAGES OWN THEIR RESOURCES AND ENTRY POINTS</text>
-  <g class="blue">
+  <g class="blue" data-node="8" data-left="38.86" data-right="439.57" data-top="907.0" data-bottom="1070.0">
     <use href="#icon-processor" x="218.21" y="910" width="42" height="42" aria-hidden="true" />
     <text x="239.21" y="970" text-anchor="middle" class="entity-title">Coyote Relay</text>
     <text x="239.21" y="992" text-anchor="middle" class="entity-detail">services/relay/</text>
@@ -148,7 +148,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="239.21" y="1028" text-anchor="middle" class="entity-detail">Shared parsing and workflow rules remain in core.</text>
     <text x="239.21" y="1046" text-anchor="middle" class="entity-detail">API and workers use server composition.</text>
   </g>
-  <g class="purple">
+  <g class="purple" data-node="9" data-left="491.79" data-right="892.5" data-top="907.0" data-bottom="1070.0">
     <use href="#icon-layers" x="671.14" y="910" width="42" height="42" aria-hidden="true" />
     <text x="692.14" y="970" text-anchor="middle" class="entity-title">Coyote Atlas</text>
     <text x="692.14" y="992" text-anchor="middle" class="entity-detail">services/atlas/</text>
@@ -156,7 +156,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="692.14" y="1028" text-anchor="middle" class="entity-detail">Inspect and validate reference bundles offline.</text>
     <text x="692.14" y="1046" text-anchor="middle" class="entity-detail">Install explicitly through the authorized API.</text>
   </g>
-  <g class="amber">
+  <g class="amber" data-node="10" data-left="944.71" data-right="1321.14" data-top="907.0" data-bottom="1070.0">
     <use href="#icon-layers" x="1111.93" y="910" width="42" height="42" aria-hidden="true" />
     <text x="1132.93" y="970" text-anchor="middle" class="entity-title">Coyote Demo</text>
     <text x="1132.93" y="992" text-anchor="middle" class="entity-detail">services/demo/</text>
