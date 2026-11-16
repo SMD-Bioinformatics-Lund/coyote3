@@ -23,13 +23,19 @@ def test_deployment_selects_supported_python_over_old_system_default(tmp_path, e
     interpreter = tmp_path / ("custom python" if explicit else ".venv/bin/python")
     interpreter.parent.mkdir(parents=True, exist_ok=True)
     interpreter.symlink_to(sys.executable)
-    environment = {**os.environ, "PATH": f"{binaries}:/usr/bin:/bin"}
+    environment = {
+        **os.environ,
+        "PATH": f"{binaries}:/usr/bin:/bin",
+        "PYTHONPATH": str(ROOT),
+    }
     environment.pop("PYTHON_BIN", None)
     if explicit:
         environment["PYTHON_BIN"] = str(interpreter)
     shutil.copy(LAUNCHER, tmp_path / "install.sh")
     package = tmp_path / "deploy/installer"
     package.mkdir(parents=True)
+    (package.parent / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("")
     (package / "__main__.py").write_text("import sys; print(sys.executable, end='')")
     result = subprocess.run(
         ["/bin/bash", str(tmp_path / "install.sh")],
