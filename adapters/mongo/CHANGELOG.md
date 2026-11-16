@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Share structural finding index installation while preserving collection-specific
+  indexes, key order and existing index names.
 - Record checked source-bundle provenance with reference publication and inspect
   authenticated privileges for isolated demonstration deployments.
 

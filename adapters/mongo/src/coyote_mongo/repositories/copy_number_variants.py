@@ -54,26 +54,8 @@ class CNVsRepository(FindingCommentOwnerMixin, BaseRepository):
         self.set_collection(self.adapter.cnvs_collection)
 
     def ensure_indexes(self) -> None:
-        """
-        Create indexes used by dashboard and sample lookup paths.
-        """
-        col = self.get_collection()
-        col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
-        col.create_index(
-            [("SAMPLE_ID", 1), ("interesting", 1)],
-            name="sample_id_1_interesting_1",
-            background=True,
-        )
-        col.create_index(
-            [("SAMPLE_ID", 1), ("fp", 1)],
-            name="sample_id_1_fp_1",
-            background=True,
-        )
-        col.create_index(
-            [("SAMPLE_ID", 1), ("irrelevant", 1)],
-            name="sample_id_1_irrelevant_1",
-            background=True,
-        )
+        """Ensure CNV sample lookup and review-flag indexes."""
+        self._ensure_sample_finding_indexes()
 
     def get_sample_cnvs(
         self,

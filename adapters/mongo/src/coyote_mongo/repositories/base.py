@@ -100,6 +100,22 @@ class BaseRepository:
             return self.repository_collection
         raise NotImplementedError("get_collection or set_collection must be implemented")
 
+    def _ensure_sample_finding_indexes(self) -> None:
+        """Ensure the shared sample lookup and review-flag indexes on this collection.
+
+        Notes:
+            Index names and key order are stable storage contracts. Concrete finding
+            repositories explicitly opt in and retain their additional indexes.
+        """
+        collection = self.get_collection()
+        collection.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+        for flag in ("interesting", "fp", "irrelevant"):
+            collection.create_index(
+                [("SAMPLE_ID", 1), (flag, 1)],
+                name=f"sample_id_1_{flag}_1",
+                background=True,
+            )
+
     def update_many_atomic(
         self, selector: Mapping[str, Any], update: Mapping[str, Any] | Sequence[Mapping[str, Any]]
     ) -> UpdateResult:
