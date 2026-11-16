@@ -16,9 +16,9 @@ test("repository discovery includes source documentation and excludes templates 
   const relative = files.map((file) => path.relative(process.cwd(), file).split(path.sep).join("/"))
   assert.ok(relative.includes("README.md"))
   assert.ok(relative.includes("docs/testing/demo-data-bundle.md"))
-  assert.ok(relative.includes("api/src/coyote_api/bootstrap/demo_data/clinical_workflows/README.md"))
+  assert.ok(relative.includes("services/demo/src/coyote_demo/data/clinical_workflows/README.md"))
   assert.ok(relative.includes("migrations_scripts/README.md"))
-  for (const project of ["core", "api", "adapters/mongo", "clients/python", "frontend"]) {
+  for (const project of ["core", "api", "adapters/mongo", "clients/python", "services/relay", "services/atlas", "services/demo", "frontend"]) {
     assert.ok(relative.includes(`${project}/README.md`))
     assert.ok(relative.includes(`${project}/docs/README.md`))
   }

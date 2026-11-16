@@ -20,9 +20,9 @@ case_ffpe: false
 case_sequencing_run: DEMO_RUN
 case_reads: 1000000
 case_purity: null
-fusion_files: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/fusions.json
-qc: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/qc.json
-vcf_files: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/dna.vcf
+fusion_files: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/fusions.json
+qc: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/qc.json
+vcf_files: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/dna.vcf
 
 # Optional IGV references; supply filenames only when matching files are served.
 case_bam: null

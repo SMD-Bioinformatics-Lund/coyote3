@@ -284,10 +284,19 @@ def test_report_drafts_have_passing_embedded_cases():
 
 
 @pytest.mark.parametrize(
-    "filename", ["missing_required_file.yaml", "missing_aspc.yaml", "rna_with_snv.yaml"]
+    "filename,error,reason",
+    [
+        (
+            "missing_required_file.yaml",
+            FileNotFoundError,
+            "Declared ingest file.*not readable: vcf_files=",
+        ),
+        ("missing_aspc.yaml", ValueError, "No active ASPC.*environment='validation'"),
+        ("rna_with_snv.yaml", ValueError, "does not accept declared ingest file.*vcf_files"),
+    ],
 )
-def test_negative_manifests_reject_before_writes(filename):
-    """Invalid fixture resources and scopes fail before sample/dependent insertion."""
+def test_negative_manifests_reject_before_writes(filename, error, reason):
+    """Each fixture fails for its intended reason without inserting dependent data."""
     from coyote.application.ingest.service import InternalIngestService
     from coyote.config.constants import ALL_SAMPLE_FILE_KEYS
 
@@ -306,8 +315,13 @@ def test_negative_manifests_reject_before_writes(filename):
     payload = service.parse_yaml_payload(path.read_text())
     for key in ALL_SAMPLE_FILE_KEYS:
         if payload.get(key):
-            payload[key] = str((path.parent / payload[key]).resolve())
+            resource = (path.parent / payload[key]).resolve()
+            if filename == "missing_required_file.yaml" and key == "vcf_files":
+                assert not resource.exists()
+            else:
+                assert resource.is_file(), f"Unintentionally missing fixture: {resource}"
+            payload[key] = str(resource)
     counts = {name: db[name].count_documents({}) for name in names}
-    with pytest.raises((ValueError, FileNotFoundError)):
+    with pytest.raises(error, match=reason):
         service.ingest_sample_bundle(payload, ingested_by="demo.ingester", ingest_source="api")
     assert counts == {name: db[name].count_documents({}) for name in names}

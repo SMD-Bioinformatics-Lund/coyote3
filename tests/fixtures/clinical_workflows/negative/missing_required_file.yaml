@@ -29,13 +29,13 @@ case_reads: 49039064
 control_reads: 45889968
 case_purity: null
 control_purity: null
-vcf_files: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/file_does_not_exist.vcf
-cnv: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/cnvs.json
-cnvprofile: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/cnvprofile.png
-cov: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/coverage.json
-transloc: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/translocations.vcf
-biomarkers: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/biomarkers.json
-pgx: ../../../../api/src/coyote_api/bootstrap/demo_data/clinical_workflows/raw/pgx.json
+vcf_files: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/file_does_not_exist.vcf
+cnv: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/cnvs.json
+cnvprofile: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/cnvprofile.png
+cov: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/coverage.json
+transloc: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/translocations.vcf
+biomarkers: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/biomarkers.json
+pgx: ../../../../services/demo/src/coyote_demo/data/clinical_workflows/raw/pgx.json
 
 # Optional IGV references; supply filenames only when matching files are served.
 case_bam: null
