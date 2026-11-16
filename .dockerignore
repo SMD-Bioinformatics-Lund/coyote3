@@ -2,6 +2,7 @@
 **/*.pyc
 .git
 .design
+.smd_configs
 .internal
 .agents
 .ruff_cache
@@ -32,3 +33,5 @@ htmlcov
 test-results
 playwright-report
 .coyote3*_env
+# Artwork is maintained in Git, not generated inside application images.
+scripts/branding

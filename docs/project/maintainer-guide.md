@@ -25,7 +25,8 @@ The sole logo blueprint is `scripts/branding/generate_logos.py`. Its source is
 Export SVGs to a review directory before replacing maintained files:
 
 ```bash
-.venv/bin/python scripts/branding/generate_logos.py --output-dir /tmp/coyote-brand-review
+brand_output="$(mktemp -d)"
+.venv/bin/python scripts/branding/generate_logos.py --output-dir "$brand_output"
 ```
 
 To regenerate transparent PNG/ICO assets, install CairoSVG and Pillow in a separate

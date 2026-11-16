@@ -46,7 +46,8 @@ documents the packaged installer. Offline ingest and reporting fixtures belong i
 from each package directory. The default is its full suite; `--smoke` selects fast
 checks and `--coverage` enforces that package's branch-coverage floor and writes
 its local reports. It uses `PYTHON_BIN`, the active virtual environment, or root
-`.venv/bin/python`. It starts no application services and configures no CI jobs.
+`.venv/bin/python`. It starts no application services. GitHub CI uses smoke mode;
+full suites and coverage remain available for local release validation.
 
 `branding/generate_logos.py` is the sole logo blueprint. It derives package logos
 from the approved application SVG and stored lettering outlines, without installed

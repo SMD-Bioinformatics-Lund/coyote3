@@ -888,7 +888,7 @@ def export_raster(output: Path, animal: ET.Element, source: bytes) -> None:
         target.write_bytes(icon.getvalue())
     target = output / "api/src/coyote_api/config/assets/coyote4-email-logo.png"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(cairosvg.svg2png(bytestring=source, output_width=711, output_height=255))
+    target.write_bytes(cairosvg.svg2png(bytestring=source, output_width=1422, output_height=510))
 
 
 def main() -> None:
