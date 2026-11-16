@@ -4,14 +4,18 @@
 """Shared collection operations, transactions and repository-scoped cache invalidation."""
 
 import logging
+from collections.abc import Iterable, Mapping, Sequence
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pymongo
 from bson.objectid import ObjectId
 from coyote.application.dashboard.cache import DashboardMetricCache, invalidate_dashboard_metrics
 from coyote.contracts.operations import OperationResult
 from coyote.domain.selection import Selection
+from pymongo.client_session import ClientSession
+from pymongo.collection import Collection
+from pymongo.results import BulkWriteResult, DeleteResult, InsertManyResult, UpdateResult
 
 from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.records import application_record
@@ -23,8 +27,13 @@ from coyote_mongo.transactions import run_transaction
 class BaseRepository:
     """Base repository for collection-scoped MongoDB operations."""
 
-    def __init__(self, adapter):
-        """Initialize the repository with a Mongo adapter."""
+    def __init__(self, adapter: object) -> None:
+        """Retain the adapter and its optional runtime context before binding a collection.
+
+        Args:
+            adapter: Persistence host supplying the collection and, for audited or cached
+                operations, an app context with audit identity and cache configuration.
+        """
         self.adapter = adapter
         self.app = getattr(
             adapter,
@@ -32,20 +41,24 @@ class BaseRepository:
             SimpleNamespace(logger=logging.getLogger("coyote_mongo.repositories")),
         )
 
-        self.repository_collection = None
+        self.repository_collection: Collection[dict[str, Any]] | None = None
 
     @property
     def audit_context(self) -> AuditContext:
         """Return the deployment identity explicitly supplied by this repository's host."""
         return self.app.audit
 
-    def set_collection(self, collection: pymongo.collection.Collection) -> None:
-        """Bind the repository to a MongoDB collection."""
+    def set_collection(self, collection: Collection[dict[str, Any]]) -> None:
+        """Bind the repository to a MongoDB collection.
+
+        Args:
+            collection: Driver collection whose documents this repository owns.
+        """
         self.repository_collection = collection
 
     def preview_sample_findings(
         self, sample_id: str, query: Selection, limit: int = 10001
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Read bounded finding candidates for a non-persisting rule comparison.
 
         Args:
@@ -74,28 +87,59 @@ class BaseRepository:
             )
         ]
 
-    def get_collection(self) -> pymongo.collection.Collection:
-        """Return the MongoDB collection bound to this repository."""
+    def get_collection(self) -> Collection[dict[str, Any]]:
+        """Return the MongoDB collection bound to this repository.
+
+        Returns:
+            The collection previously supplied to set_collection.
+
+        Raises:
+            NotImplementedError: No collection has been bound by the concrete repository.
+        """
         if self.repository_collection is not None:
             return self.repository_collection
         raise NotImplementedError("get_collection or set_collection must be implemented")
 
-    def update_many_atomic(self, selector, update):
-        """Apply a bulk update as one commit, not one independent write per document."""
+    def update_many_atomic(
+        self, selector: Mapping[str, Any], update: Mapping[str, Any] | Sequence[Mapping[str, Any]]
+    ) -> UpdateResult:
+        """Apply all matching updates in one required transaction.
+
+        Args:
+            selector: MongoDB predicate selecting the documents.
+            update: MongoDB update operators or an aggregation update pipeline.
+
+        Returns:
+            The driver's acknowledged result after the transaction commits.
+        """
         return run_transaction(
             self.get_collection().database.client,
             lambda session: self.get_collection().update_many(selector, update, session=session),
         )
 
-    def delete_many_atomic(self, selector):
-        """Delete matching documents as one commit."""
+    def delete_many_atomic(self, selector: Mapping[str, Any]) -> DeleteResult:
+        """Delete matching documents as one commit.
+
+        Args:
+            selector: MongoDB predicate selecting the documents.
+
+        Returns:
+            The driver's deletion result after the transaction commits.
+        """
         return run_transaction(
             self.get_collection().database.client,
             lambda session: self.get_collection().delete_many(selector, session=session),
         )
 
-    def insert_many_atomic(self, documents):
-        """Insert all documents together or abort the entire batch."""
+    def insert_many_atomic(self, documents: Iterable[Mapping[str, Any]]) -> InsertManyResult:
+        """Insert copies of all documents together or abort the entire batch.
+
+        Args:
+            documents: Documents to copy and insert within the owning transaction.
+
+        Returns:
+            The driver's inserted identities after the transaction commits.
+        """
         return run_transaction(
             self.get_collection().database.client,
             lambda session: self.get_collection().insert_many(
@@ -103,10 +147,30 @@ class BaseRepository:
             ),
         )
 
-    def bulk_write_atomic(self, operations, *, session=None):
-        """Join an owning transaction, or start a required transaction for the batch."""
+    def bulk_write_atomic(
+        self,
+        operations: Sequence[
+            pymongo.InsertOne[dict[str, Any]]
+            | pymongo.ReplaceOne[dict[str, Any]]
+            | pymongo.UpdateOne
+            | pymongo.UpdateMany
+            | pymongo.DeleteOne
+            | pymongo.DeleteMany
+        ],
+        *,
+        session: ClientSession | None = None,
+    ) -> BulkWriteResult:
+        """Join an owning transaction, or start a required transaction for the batch.
 
-        def write(active_session):
+        Args:
+            operations: Driver operations executed as an unordered bulk write.
+            session: Existing owning session; None starts a required transaction.
+
+        Returns:
+            The driver's bulk-write result from the supplied or new transaction.
+        """
+
+        def write(active_session: ClientSession) -> BulkWriteResult:
             """Execute the captured unordered bulk operations in the supplied session.
 
             Args:
@@ -131,7 +195,7 @@ class BaseRepository:
             cache = getattr(runtime, "cache", None)
             if cache is None:
                 return
-            config = runtime.config
+            config = cast(Mapping[str, Any], getattr(runtime, "config"))
             options = {
                 field: int(config[key])
                 for field, key in (
@@ -401,7 +465,7 @@ class BaseRepository:
             )
         )
 
-    def add_comment(self, comment_doc: dict) -> Any:
+    def add_comment(self, comment_doc: dict[str, Any]) -> Any:
         """
         Add a comment to a variant.
 

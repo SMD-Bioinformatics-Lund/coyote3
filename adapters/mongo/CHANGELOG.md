@@ -4,6 +4,8 @@
 
 - Verify assay-configuration repository defaults, scope and typed rollups against
   the core contract without changing dashboard results.
+- Strictly type the assay repository, shared collection operations and transaction
+  callbacks; check the concrete implementation against its core protocol.
 - Select coyote-core 4.0.0 and share the server's 1.0.0 distribution identity.
 - Own repository and adapter/core contract suites with explicit synthetic settings,
   fast record-conversion smoke checks and independent branch coverage.

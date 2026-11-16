@@ -4,7 +4,7 @@
 """User model and auth/session shaping helpers."""
 
 from datetime import datetime
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 from coyote.config.constants import (
     DEFAULT_AUTH_PROVIDER,
@@ -110,7 +110,7 @@ class UserModel(BaseModel):
     @classmethod
     def _normalize_auth_type(cls, value: Any) -> list[str]:
         """Normalize scalar or list auth-provider values from persistence."""
-        return cast(list[str], normalize_auth_types(value))
+        return normalize_auth_types(value)
 
     # -------------------- STATIC METHODS --------------------
     @staticmethod

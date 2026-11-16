@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from typing import Iterable, cast
 
 from coyote.config.clinical_vocabulary import CENTER_CLINICAL_CONTRACT, CLINICAL_VOCABULARY
 from coyote.config.contracts.governance import PERMISSION_CATALOG
@@ -273,11 +273,12 @@ def normalize_auth_types(value: object) -> list[str]:
     """Normalize and validate a user auth-provider list."""
     if value is None:
         return [DEFAULT_AUTH_PROVIDER]
+    raw_values: list[object]
     if isinstance(value, (str, bytes)):
         raw_values = [value]
     else:
         try:
-            raw_values = list(value)  # type: ignore[arg-type]
+            raw_values = list(cast(Iterable[object], value))
         except TypeError:
             raw_values = [value]
     normalized: list[str] = []

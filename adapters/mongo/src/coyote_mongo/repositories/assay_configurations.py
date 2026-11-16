@@ -15,6 +15,7 @@ It is part of the MongoDB infrastructure layer.
 # Imports
 # -------------------------------------------------------------------------
 import re
+from typing import Any, Protocol
 
 from bson import ObjectId
 from coyote.config.constants import (
@@ -28,6 +29,7 @@ from coyote.contracts.operations import OperationResult
 from coyote.domain.common.errors import api_error
 from coyote.domain.repository_protocols import AnalysisTypeRollup
 from pymongo import cursor
+from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError
 
 from coyote_mongo.repositories.audit_outbox import insert_audited, update_audited
@@ -39,6 +41,15 @@ from coyote_mongo.results import operation_from_insert_one, operation_from_updat
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
+class AssayConfigurationCollections(Protocol):
+    """Collection binding required to construct the assay configuration repository."""
+
+    @property
+    def aspc_collection(self) -> Collection[dict[str, Any]]:
+        """Return the collection containing current and historical ASPC documents."""
+        ...
+
+
 class ASPConfigRepository(BaseRepository):
     """
     ASPConfigRepository is a class responsible for managing assay configuration data
@@ -48,12 +59,15 @@ class ASPConfigRepository(BaseRepository):
     a key component for handling assay-related data efficiently in the database.
     """
 
-    def __init__(self, adapter):
-        """
-        Initialize the repository with a given adapter and bind the collection.
+    def __init__(self, adapter: AssayConfigurationCollections) -> None:
+        """Retain the adapter context and bind its assay configuration collection.
+
+        Args:
+            adapter: Persistence host exposing the ASPC collection and any audit or
+                cache context required by write operations.
         """
         super().__init__(adapter)
-        self.set_collection(self.adapter.aspc_collection)
+        self.set_collection(adapter.aspc_collection)
 
     def ensure_indexes(self) -> None:
         """
@@ -116,20 +130,31 @@ class ASPConfigRepository(BaseRepository):
             return None
         return normalize_clinical_identifier(aspc_id, label="aspc_id")
 
-    def _aspc_lookup_query(self, aspc_id: str) -> dict:
-        """Aspc lookup query.
+    def _aspc_lookup_query(self, aspc_id: str) -> dict[str, Any]:
+        """Select the normalized stable business identifier without restricting its revision.
 
         Args:
-                aspc_id: Aspc id.
+            aspc_id: Configuration business identifier to validate and normalize.
 
         Returns:
-                The  aspc lookup query result.
+            MongoDB equality predicate for the aspc_id field.
         """
         normalized = self._normalize_aspc_id(aspc_id)
         return {"aspc_id": normalized}
 
-    def ensure_aspc_id(self, data: dict) -> dict:
-        """Ensure an ASP-config payload carries a normalized business key."""
+    def ensure_aspc_id(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Populate and normalize a configuration's business key in the supplied document.
+
+        Args:
+            data: Mutable document with aspc_id, or assay/environment fields from which
+                to derive it; a missing diagnosis selects the base diagnosis.
+
+        Returns:
+            The same document with normalized configuration, assay and diagnosis IDs.
+
+        Raises:
+            ValueError: Required identifiers are absent or have invalid syntax.
+        """
         if not isinstance(data, dict):
             return data
         normalized = self._normalize_aspc_id(data.get("aspc_id"))
@@ -231,7 +256,7 @@ class ASPConfigRepository(BaseRepository):
                     entry["reportable"] = count
         return [counts[key] for key in sorted(counts)]
 
-    def get_all_aspc(self) -> cursor.Cursor:
+    def get_all_aspc(self) -> cursor.Cursor[dict[str, Any]]:
         """
         Retrieves all assay configuration documents from the collection.
 
@@ -242,9 +267,19 @@ class ASPConfigRepository(BaseRepository):
 
     def search_aspcs(
         self, *, q: str = "", page: int = 1, per_page: int = 30, is_active: bool | None = True
-    ) -> tuple[list[dict], int]:
-        """Search assay configs directly in MongoDB and return paged results."""
-        query: dict = {}
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search configuration identities and metadata using a literal case-insensitive query.
+
+        Args:
+            q: Search text across identifiers, environment, assay type and category.
+            page: One-based page; values below one select the first page.
+            per_page: Page size, constrained to 1–200; zero selects the default of 30.
+            is_active: Active-state filter; None includes all revisions.
+
+        Returns:
+            Documents ordered by assay, diagnosis and environment, plus the total match count.
+        """
+        query: dict[str, Any] = {}
         if is_active is not None:
             query["is_active"] = is_active
         normalized_q = str(q or "").strip()
@@ -271,7 +306,7 @@ class ASPConfigRepository(BaseRepository):
         )
         return docs, total
 
-    def list_versions(self, identifier: str) -> list[dict]:
+    def list_versions(self, identifier: str) -> list[dict[str, Any]]:
         """Read all retained revisions of one exact resource without changing activation.
 
         Args:
@@ -284,7 +319,7 @@ class ASPConfigRepository(BaseRepository):
 
     def get_aspc(
         self, assay: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """
         Retrieve the active configuration for an assay, environment, and diagnosis.
 
@@ -301,7 +336,7 @@ class ASPConfigRepository(BaseRepository):
         )
 
     @staticmethod
-    def _scope_lookup_query(assay: str, profile: str, diagnosis_id: str | None) -> dict:
+    def _scope_lookup_query(assay: str, profile: str, diagnosis_id: str | None) -> dict[str, Any]:
         """Resolve the unique active runtime scope without inferring a business ID."""
         return {
             "asp_id": normalize_clinical_identifier(assay, label="asp_id"),
@@ -312,12 +347,13 @@ class ASPConfigRepository(BaseRepository):
             "is_active": True,
         }
 
-    def get_aspc_with_id(self, aspc_id: str) -> dict | None:
+    def get_aspc_with_id(self, aspc_id: str) -> dict[str, Any] | None:
         """
         Retrieves a specific assay configuration document by its ID.
 
         Args:
-            aspc_id (str): The unique identifier of the assay configuration. Usually formatted as "assay:profile".
+            aspc_id: Stable configuration business identifier, including a full
+                assay::diagnosis::environment identifier when generated from its scope.
 
         Returns:
             dict | None: The assay configuration document if found, otherwise None.
@@ -328,7 +364,7 @@ class ASPConfigRepository(BaseRepository):
 
     def get_aspc_no_meta(
         self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """
         Retrieve an active scope configuration without creation/update metadata.
 
@@ -351,7 +387,7 @@ class ASPConfigRepository(BaseRepository):
             projection,
         )
 
-    def get_aspc_revision_no_meta(self, revision_id: object) -> dict | None:
+    def get_aspc_revision_no_meta(self, revision_id: object) -> dict[str, Any] | None:
         """Return one stored ASPC revision, including an inactive historical revision.
 
         Samples store this MongoDB identity when they are ingested or deliberately
@@ -376,7 +412,7 @@ class ASPConfigRepository(BaseRepository):
 
     def get_active_aspcs_for_asp(
         self, asp_id: str, environment: str = DEFAULT_ENVIRONMENT
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Return active assay configurations for one ASP and environment."""
         assay_id = normalize_clinical_identifier(asp_id, label="asp_id") if asp_id else ""
         env = normalize_environment(environment)
@@ -391,10 +427,10 @@ class ASPConfigRepository(BaseRepository):
     def rotate_aspc(
         self,
         aspc_id: str,
-        data: dict,
+        data: dict[str, Any],
         *,
         expected_version: int,
-        retire_fields: dict,
+        retire_fields: dict[str, Any],
     ) -> OperationResult:
         """Retire the active ASPC revision and insert its successor."""
         operation = rotate_active_revision(
@@ -408,7 +444,7 @@ class ASPConfigRepository(BaseRepository):
         self.invalidate_dashboard_metrics()
         return operation
 
-    def create_assay_config(self, data: dict) -> OperationResult:
+    def create_assay_config(self, data: dict[str, Any]) -> OperationResult:
         """
         Inserts a new assay configuration document into the collection.
 
@@ -484,12 +520,15 @@ class ASPConfigRepository(BaseRepository):
         self.invalidate_dashboard_metrics()
         return operation
 
-    def get_all_assay_names(self, is_active: bool | None = None) -> dict:
-        """
-        Retrieves a distinct list of all assay names from the collection.
+    def get_all_assay_names(self, is_active: bool | None = None) -> list[str]:
+        """List distinct assay identifiers, optionally selecting an activation state.
+
+        Args:
+            is_active: True selects active configurations; False selects inactive ones.
+                None, the default, includes both states.
 
         Returns:
-            dict: A dictionary containing all unique assay names.
+            Distinct stored asp_id values with no guaranteed order; empty if none match.
         """
         if is_active is None:
             return self.get_collection().distinct("asp_id")
@@ -499,15 +538,16 @@ class ASPConfigRepository(BaseRepository):
     def get_available_assay_envs(
         self,
         assay_name: str,
-        all_envs: list,
+        all_envs: list[str],
         diagnosis_id: str | None = None,
-    ) -> list:
+    ) -> list[str]:
         """
         Retrieves a list of available environments for a specific assay configuration.
 
         Args:
             assay_name (str): The base assay name (e.g., "Demo").
             all_envs (list): All supported environments (e.g., ["production", "development", "validation"]).
+            diagnosis_id: Diagnosis scope to exclude; None selects the base diagnosis.
 
         Returns:
             list: A list of environments not yet used for this assay.

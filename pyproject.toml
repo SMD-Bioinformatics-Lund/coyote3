@@ -197,6 +197,10 @@ files = [
     "core/src/coyote/application/accounts/users.py",
     "core/src/coyote/application/audit/service.py",
     "adapters/mongo/src/coyote_mongo/repositories/audit.py",
+    "adapters/mongo/src/coyote_mongo/repositories/base.py",
+    "adapters/mongo/src/coyote_mongo/repositories/assay_configurations.py",
+    "adapters/mongo/src/coyote_mongo/transactions.py",
+    "adapters/mongo/tests/integration/test_assay_configuration_port.py",
     "core/src/coyote/application/notifications/access.py",
     "core/src/coyote/application/notifications/service.py",
     "core/src/coyote/application/notifications/activity.py",
@@ -222,6 +226,7 @@ files = [
     "core/src/coyote/application/reporting/report_library.py",
     "core/src/coyote/application/resources/asp.py",
     "core/src/coyote/config/application_modules.py",
+    "core/src/coyote/config/constants.py",
     "api/src/coyote_api/infra/notifications/email.py",
     "core/src/coyote/application/common/observability.py",
     "api/src/coyote_api/infra/observability/prometheus_metrics.py",
@@ -230,6 +235,10 @@ files = [
 
 [[tool.mypy.overrides]]
 module = ["pydantic", "pydantic.*"]
+follow_imports = "normal"
+
+[[tool.mypy.overrides]]
+module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pytest", "_pytest.*"]
 follow_imports = "normal"
 
 [tool.uv.workspace]

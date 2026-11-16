@@ -193,7 +193,7 @@ PYTHONPATH=. python -m pytest -q \
 # Execute static analysis and linting
 PYTHONPATH=. python -m ruff check core api adapters clients tests scripts
 
-# Check the strict typed security/account boundary
+# Check the configured strict type boundaries
 PYTHONPATH=. python -m mypy
 
 # Generate frontend unit coverage and LCOV
@@ -394,10 +394,12 @@ CI should run these checks:
 6. **UI/API route registry**: Every literal API operation declared by the
    React route registry must resolve to a FastAPI route. This detects stale
    page contracts before manual browser validation.
-7. **Strict type boundary**: `mypy` strict mode covers authentication,
-   password, notification-email, and user-management modules. New modules are
-   added to the configured boundary only after they pass strict mode; the
-   boundary must not be weakened to admit a module.
+7. **Strict type boundary**: `mypy` checks the modules selected in root
+   `pyproject.toml`, including domain contracts, selected ingest/reporting services,
+   authentication, accounts, and the MongoDB base, transaction and assay-configuration
+   repositories. The assay conformance test checks the concrete implementation against
+   its core protocol. This is a selected boundary, not whole-application strict typing.
+   Add modules only after they pass strict mode; do not weaken the boundary to admit them.
 8. **Coverage artifacts**: Backend XML and frontend LCOV results are retained
    for seven days after default-branch and manually dispatched runs.
 
