@@ -4,8 +4,13 @@ Run installation commands from the repository root in an activated Python
 environment:
 
 ```bash
-python -m pip install -e core
+./install.sh dependencies
+python -m pip install .release/contracts/coyote_contracts-*.whl -e core
 ```
+
+The installer prepares the reviewed external Git artifacts. The command above
+uses the selected Contracts wheel with editable core; no public package-index
+release of either Coyote package is required.
 
 For HTTP tooling, use the independent [Python client](python-client.md).
 
@@ -19,10 +24,11 @@ For application development use the [uv workspace](uv-development.md):
 uv sync --all-packages --group test --group dev --group docs
 ```
 
-Release builds produce five wheels: core, server, Relay, Atlas and
-Demo. The normal application image installs the first four; the isolated demo
+Release builds produce six wheels: Contracts, core, server, Relay, Atlas and
+Demo. The normal application image installs the first five; the isolated demo
 image additionally installs Demo. API and MongoDB share the server wheel. No
-public-index publication is required. See [server installation](server-installation.md).
+public-index publication is required. The independent Python client is not installed
+with the application. See [server installation](server-installation.md).
 
 After configuring the deployment environment and databases, run
 `coyote4-api --host 127.0.0.1 --port 8001`, or

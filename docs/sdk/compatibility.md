@@ -7,25 +7,34 @@ combination; package installation and public-index publication are separate task
 
 | Identity | Authoritative owner |
 | --- | --- |
+| Shared contracts version | [Contracts metadata](https://github.com/SMD-Bioinformatics-Lund/coyote-contracts/blob/dev/pyproject.toml) |
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
 | HTTP client version | [`coyote-pyclient/pyproject.toml`](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/pyproject.toml) |
 | Ingestion service version | [Relay metadata](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/pyproject.toml) |
 | Reference service version | `services/atlas/pyproject.toml` |
 | Demo package version | `services/demo/pyproject.toml` |
-| Application selection | `release.toml`: application and five installed Python distribution versions |
+| Application selection | `release.toml`: application and six selected Python distribution versions |
 | HTTP generation | Declared `/api/vN` routes, checked against `http_api_major` |
 | Center configuration format | Core loader, checked against `center_configuration_format` |
 | Report templates | Installed `smd-reports` version |
 
-`sdk_version` selects the core; `server_version` selects the API and adapter together;
+`contracts_version` selects shared structural contracts; `sdk_version` selects
+the core; `server_version` selects the API and adapter together;
 `relay_version` selects the ingestion service and submission commands;
 `atlas_version` selects reference resources and workflows; `demo_version` selects
 the optional demonstration package.
 Each distribution version is independent of `application_version`.
 Declared package dependencies must agree with the selected combination. The initial
 Coyote4 application selects core `4.0.0` and version `1.0.0` for the server,
-Relay, Atlas and Demo. The independent HTTP client has its own version and compatibility checks.
+Contracts, Relay, Atlas and Demo. The independent HTTP client has its own version
+and compatibility checks; it is not part of the application artifact set.
+
+Contracts and Relay are external Git dependencies. Their full reviewed commits
+belong to `[tool.uv.sources]` in the root `pyproject.toml` and the resolved
+`uv.lock`. Adopting an external change requires updating those pins and selecting
+the corresponding version in `release.toml`. Build provenance retains the Git
+source and artifact checksum. No floating branch is used for deployment.
 
 `npm run sync:version` updates frontend metadata and generates the API's packaged
 `config/application_release.toml` from the application selection. It supplies the
@@ -69,19 +78,20 @@ versions. Clinical changes retain their established review and validation needs.
    export GIT_COMMIT="$(git rev-parse HEAD)"
    ```
 
-4. Retain all five wheels and the record together. Production records require a
+4. Retain all six wheels and the record together. Production records require a
    clean checkout. Verification rejects missing, modified, extra or wrongly
    versioned wheels and mismatched source commits.
 5. Retain image digests and the reviewed center configuration alongside the record.
    Publishing to PyPI is not part of this workflow.
 
-Use an output directory containing only the selected five release wheels.
+Use an output directory containing only the selected six release wheels.
 Core-only validation can use `check_release.py --sdk-only`; it does not approve
 a complete application release.
 
 Normal installations use the `coyote4_source_api` Docker target, which builds
 separate wheels during deployment. API and workers share the resulting image.
-This image installs four distributions; the separate demo target adds Demo.
+This image installs five distributions (Contracts, core, server, Relay and Atlas);
+the separate demo target adds Demo.
 
 Release CI can use `coyote4_api` or the release Compose overlay. Its
 `sdk_artifact` build context points to the retained artifact directory.

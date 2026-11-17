@@ -12,11 +12,11 @@ from os import stat_result
 from pathlib import Path
 from typing import Any
 
+from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS
 from pydantic import BaseModel, ConfigDict
 
 from coyote.application.common.observability import timed_operation
 from coyote.application.ingest.failures import ingest_failure_message
-from coyote.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +77,14 @@ def resolve_relative_sample_paths(payload: dict[str, Any], manifest_path: Path) 
         empty inputs and non-path metadata retain their original values.
     """
     resolved = dict(payload)
-    for key in SAMPLE_SOURCE_PATH_KEYS:
+    for key in ALL_MANIFEST_FILE_KEYS:
         if resolved.get(key):
             resolved[key] = _translate_payload_source_path(resolved[key], manifest_path)
     files = resolved.get("files")
     if isinstance(files, dict):
         resolved["files"] = {
             key: _translate_payload_source_path(value, manifest_path)
-            if key in SAMPLE_SOURCE_PATH_KEYS and value
+            if key in ALL_MANIFEST_FILE_KEYS and value
             else value
             for key, value in files.items()
         }

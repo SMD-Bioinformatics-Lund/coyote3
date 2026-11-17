@@ -9,7 +9,7 @@ import pytest
 
 from deploy.installer import compose
 from scripts.release import build_sdk
-from scripts.release.build_sdk import RelayArtifact
+from scripts.release.build_sdk import ExternalArtifact
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def builder(monkeypatch):
 
 
 def test_matching_cache_is_reused_without_network(selection, builder):
-    artifact = RelayArtifact(selection)
+    artifact = ExternalArtifact(selection, "coyote-relay")
     wheel = artifact.prepare(build_isolation=False)
     assert artifact.prepare() == artifact.validate() == wheel
     builder.assert_called_once()
@@ -51,7 +51,7 @@ def test_matching_cache_is_reused_without_network(selection, builder):
 
 @pytest.mark.parametrize("change", ["version", "source", "filename", "sha256"])
 def test_invalid_artifact_record_cannot_be_consumed(selection, builder, change):
-    artifact = RelayArtifact(selection)
+    artifact = ExternalArtifact(selection, "coyote-relay")
     artifact.prepare()
     path = artifact.directory / "artifact.json"
     record = json.loads(path.read_text())
@@ -63,7 +63,7 @@ def test_invalid_artifact_record_cannot_be_consumed(selection, builder, change):
 
 
 def test_corrupt_wheel_is_rebuilt_before_reuse(selection, builder):
-    artifact = RelayArtifact(selection)
+    artifact = ExternalArtifact(selection, "coyote-relay")
     artifact.prepare().write_bytes(b"corrupted")
     with pytest.raises(ValueError, match="checksum"):
         artifact.validate()
@@ -84,16 +84,16 @@ def test_unpinned_or_credential_bearing_sources_are_rejected(selection, old, new
     metadata = selection / "pyproject.toml"
     metadata.write_text(metadata.read_text().replace(old, new))
     with pytest.raises(ValueError, match="HTTPS Git URL and full commit"):
-        RelayArtifact(selection)
+        ExternalArtifact(selection, "coyote-relay")
 
 
 @pytest.mark.parametrize(
     "target,expected",
     [("coyote4_source_api", True), ("coyote4_dev_api", True), ("coyote4_verified_api", False)],
 )
-def test_only_source_image_builds_prepare_the_external_relay(monkeypatch, target, expected):
+def test_only_source_image_builds_prepare_external_dependencies(monkeypatch, target, expected):
     relay = Mock()
-    monkeypatch.setattr(compose, "RelayArtifact", Mock(return_value=relay))
+    monkeypatch.setattr(compose, "ExternalArtifact", Mock(return_value=relay))
     operation = object.__new__(compose.Compose)
     operation._config = {"services": {"api": {"build": {"target": target}}}}
     operation._executable = ["synthetic-compose"]
@@ -101,4 +101,4 @@ def test_only_source_image_builds_prepare_the_external_relay(monkeypatch, target
     operation.profile.arguments.return_value = []
     operation.runner = Mock()
     operation.run(["build"])
-    assert relay.prepare.called is expected
+    assert relay.prepare.call_count == (2 if expected else 0)

@@ -138,7 +138,7 @@ def test_assay_panel_fixture_includes_required_files() -> None:
 
 
 def test_demo_ingest_manifests_use_the_canonical_sample_contract() -> None:
-    from coyote.application.ingest.collection_writes import parse_yaml_payload
+    from coyote_contracts.manifests import parse_yaml_payload
 
     for manifest_path in (
         Path("tests/fixtures/ingest/generic_case_control.yaml"),

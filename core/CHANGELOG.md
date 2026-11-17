@@ -2,6 +2,9 @@
 
 ## v4.0.0
 
+- Depend on `coyote-contracts` for portable manifest structure, YAML normalization
+  and permitted resource metadata. Extend its sample manifest with center policy,
+  sequencing validation, clinical filters and persistence fields in core.
 - Use typed `dna`/`rna` report identities and the shared `coyote3` renderer preset;
   reject old file-like identifiers and require renewed template-profile approval.
   Validate the full assay modality when compiling published template profiles.

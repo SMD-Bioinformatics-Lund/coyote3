@@ -1,6 +1,9 @@
 # Install and import the core
 
-Python 3.12 or newer is required. From this package directory, install the project:
+Python 3.12 or newer is required. Core requires the selected `coyote-contracts`
+version. If it is not available from your package index, install its reviewed
+wheel first. The Coyote application workspace resolves it from an exact Git commit.
+Then, from this package directory, install the project:
 
 ```bash
 python -m pip install .

@@ -8,6 +8,12 @@ from __future__ import annotations
 import shlex
 from typing import Any, Callable
 
+from coyote_contracts.database_versions import (
+    canonical_vcf_header_database_version_key,
+    normalize_database_versions,
+)
+from coyote_contracts.manifests import normalize_null_placeholders
+
 from coyote.application.common.assay_context import build_assay_context
 from coyote.application.common.release_resources import assay_resource
 from coyote.config.constants import (
@@ -16,10 +22,6 @@ from coyote.config.constants import (
     normalize_clinical_identifier,
     normalize_environment,
     primary_analysis_file_key,
-)
-from coyote.config.database_versions import (
-    canonical_vcf_header_database_version_key,
-    normalize_database_versions,
 )
 from coyote.domain.common.sample_filters import sample_filters_from_aspc_filters
 
@@ -43,27 +45,6 @@ _CASE_CONTROL_KEYS = [
     "case_purity",
     "control_purity",
 ]
-
-_NULL_PLACEHOLDER_STRINGS = {"", "null", "none", "nil", "na", "n/a"}
-
-
-def normalize_null_placeholders(value: Any) -> Any:
-    """Convert common string null placeholders to real ``None`` values.
-
-    YAML producers in the historical pipeline sometimes quote nulls, which turns
-    them into ordinary strings. The ingest schema needs those placeholders to
-    behave like missing values.
-    """
-    if isinstance(value, str):
-        stripped = value.strip()
-        if stripped.lower() in _NULL_PLACEHOLDER_STRINGS:
-            return None
-        return stripped
-    if isinstance(value, dict):
-        return {key: normalize_null_placeholders(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [normalize_null_placeholders(item) for item in value]
-    return value
 
 
 def normalize_sample_version_metadata(payload: dict[str, Any]) -> dict[str, Any]:
@@ -155,20 +136,6 @@ def _sample_path_value(payload: dict[str, Any], key: str) -> str | None:
     if not path:
         return None
     return str(path)
-
-
-def _validate_yaml_manifest_minimum_fields(payload: dict[str, Any]) -> None:
-    """Validate the minimum fields required for an ingest YAML manifest."""
-    if (
-        (
-            primary_analysis_file_key("dna", "SNV") not in payload
-            or primary_analysis_file_key("rna", "FUSION") not in payload
-        )
-        and "groups" not in payload
-        and "name" not in payload
-        and "genome_build" not in payload
-    ):
-        raise ValueError("YAML is missing mandatory fields: vcf, groups, name or build")
 
 
 def normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

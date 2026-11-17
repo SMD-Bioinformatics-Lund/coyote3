@@ -12,6 +12,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from coyote_contracts.manifests import MANIFEST_FILE_KEYS
+
 FACTORY_CATALOG_PATH = Path(__file__).with_name("factory_defaults.toml")
 _SECTIONS = {
     "capabilities",
@@ -54,6 +56,9 @@ def load_factory_catalog(path: Path = FACTORY_CATALOG_PATH) -> dict[str, Any]:
         or values["pagination"]["max_page_size"] < 1
     ):
         raise ValueError("Core pagination maximum must be a positive integer")
+    values["capabilities"]["files"] = {
+        category: {"keys": list(keys)} for category, keys in MANIFEST_FILE_KEYS.items()
+    }
     for omics in values["capabilities"]["assay"]["categories"]:
         analysis = values["capabilities"]["analysis"][omics]
         stored = set(values["contracts"]["analysis_preload"][omics])

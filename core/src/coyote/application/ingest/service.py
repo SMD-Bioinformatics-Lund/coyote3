@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS, parse_yaml_payload
 from pydantic import ValidationError
 
 from coyote.application.common.execution_context import current_username
@@ -34,7 +35,6 @@ from coyote.config.constants import (
 )
 from coyote.contracts.schemas.registry import normalize_collection_document
 from coyote.contracts.schemas.samples import (
-    SAMPLE_SOURCE_PATH_KEYS,
     SampleAspcResolutionDoc,
     SamplesDoc,
 )
@@ -225,7 +225,7 @@ class InternalIngestService:
         Raises:
             ValueError: If the YAML does not decode to a dict or is missing mandatory fields.
         """
-        return collection_writes.parse_yaml_payload(yaml_content)
+        return parse_yaml_payload(yaml_content)
 
     def _hgnc_metadata_maps(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         """Build HGNC metadata lookup maps by HGNC ID and symbol aliases."""
@@ -582,7 +582,7 @@ class InternalIngestService:
         runtime_files = parsed_payload.get("_runtime_files")
         if isinstance(runtime_files, dict) and runtime_files:
             preload_payload["_runtime_files"] = dict(runtime_files)
-        for key in SAMPLE_SOURCE_PATH_KEYS:
+        for key in ALL_MANIFEST_FILE_KEYS:
             if key in parsed_payload and parsed_payload.get(key):
                 preload_payload[key] = parsed_payload[key]
 

@@ -10,10 +10,11 @@ from hashlib import sha256
 from pathlib import Path
 from typing import BinaryIO, Protocol
 
+from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS
+
 from coyote.application.ingest.parsers import runtime_file_path
 from coyote.application.ingest.service import InternalIngestService
 from coyote.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
-from coyote.contracts.schemas.samples import SAMPLE_SOURCE_PATH_KEYS
 
 
 class BinaryUpload(Protocol):
@@ -90,7 +91,7 @@ def prepare_uploaded_bundle(
     missing: list[str] = []
     ambiguous: list[str] = []
     warnings: list[str] = []
-    for key in SAMPLE_SOURCE_PATH_KEYS:
+    for key in ALL_MANIFEST_FILE_KEYS:
         raw_value = runtime_file_path(source_payload, key)
         if not raw_value or not raw_value.strip():
             continue

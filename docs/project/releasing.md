@@ -36,6 +36,12 @@ the affected component versions, update selected dependencies and `uv.lock`, and
 keep application, package, HTTP API and configuration revisions distinct.
 See [release compatibility](../sdk/compatibility.md) for their responsibilities.
 
+Contracts and Relay are maintained independently. Adopt reviewed full Git commits
+through `[tool.uv.sources]`, update `uv.lock`, and select their package versions in
+`release.toml`. The release artifact set contains six wheels: Contracts, core,
+server, Relay, Atlas and Demo. The normal image installs five; Demo is reserved for
+the isolated demo target. The Python client is not an application dependency.
+
 Update the root changelog with application highlights and affected package
 changelogs with their changes. Synchronize derived metadata from the repository root:
 

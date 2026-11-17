@@ -22,3 +22,13 @@ preserve selection and transaction semantics, not just method names.
 
 The distribution is named `coyote-core`; its Python import is `coyote`.
 Its version is independent of the complete application's release version.
+
+## Shared structural contracts
+
+The separate `coyote-contracts` dependency owns sample manifest structure, YAML
+normalization, database-version metadata and permitted resource response fields.
+Import these directly from `coyote_contracts`; they require no clinical host or
+database adapter. `coyote.contracts.schemas.samples.SamplesDoc` extends
+`coyote_contracts.samples.SampleManifest` with center vocabulary, sequencing
+policy, clinical filters and persistence fields. Clinical validation remains
+mandatory in core workflows.

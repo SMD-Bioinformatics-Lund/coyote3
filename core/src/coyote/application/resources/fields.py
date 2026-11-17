@@ -5,7 +5,7 @@
 
 from typing import Any, get_args
 
-from coyote.contracts.resource_fields import (
+from coyote_contracts.resource_fields import (
     AssayField,
     ConfigurationField,
     DiagnosisField,
@@ -13,7 +13,7 @@ from coyote.contracts.resource_fields import (
     GroupField,
     SampleField,
 )
-from coyote.contracts.resource_metadata import (
+from coyote_contracts.resource_metadata import (
     AssayMetadata,
     ConfigurationMetadata,
     DiagnosisMetadata,
@@ -21,6 +21,7 @@ from coyote.contracts.resource_metadata import (
     GroupMetadata,
     SampleMetadata,
 )
+
 from coyote.domain.common.errors import api_error
 
 

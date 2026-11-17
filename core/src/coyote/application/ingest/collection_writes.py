@@ -7,52 +7,14 @@ from __future__ import annotations
 
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
-
 from coyote.application.common.protected_records import reject_system_managed_change
 from coyote.application.common.record_attribution import attribute_record
-from coyote.application.ingest.helpers import (
-    _validate_yaml_manifest_minimum_fields,
-    normalize_null_placeholders,
-)
-from coyote.config.contracts.application import PIPELINE_MANIFEST
 from coyote.contracts.schemas.registry import normalize_collection_document, supported_collections
-
-
-def _normalize_pipeline_manifest_fields(payload: dict[str, Any]) -> dict[str, Any]:
-    """Map supported pipeline field names to the canonical ingest contract."""
-    normalized = dict(payload)
-    for pipeline_key, canonical_key in PIPELINE_MANIFEST.field_aliases.items():
-        if pipeline_key not in normalized:
-            continue
-        pipeline_value = normalized.pop(pipeline_key)
-        canonical_value = normalized.get(canonical_key)
-        if (
-            canonical_value is not None
-            and pipeline_value is not None
-            and str(canonical_value).strip() != str(pipeline_value).strip()
-        ):
-            raise ValueError(
-                f"YAML defines conflicting values for '{pipeline_key}' and '{canonical_key}'"
-            )
-        if canonical_value is None:
-            normalized[canonical_key] = pipeline_value
-    return normalized
 
 
 def list_supported_collections() -> list[str]:
     """List collection names that can be validated and inserted by ingest APIs."""
     return supported_collections()
-
-
-def parse_yaml_payload(yaml_content: str) -> dict[str, Any]:
-    """Parse and validate a YAML ingest payload string."""
-    parsed = yaml.safe_load(yaml_content)
-    if not isinstance(parsed, dict):
-        raise ValueError("YAML body must decode to an object")
-    parsed = _normalize_pipeline_manifest_fields(normalize_null_placeholders(parsed))
-    _validate_yaml_manifest_minimum_fields(parsed)
-    return parsed
 
 
 def upsert_collection_document(

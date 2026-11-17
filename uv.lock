@@ -649,11 +649,21 @@ requires-dist = [
 provides-extras = ["api", "test"]
 
 [[package]]
+name = "coyote-contracts"
+version = "1.0.0"
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-contracts.git?rev=30219fd54da41666ee5bc0c579dee72bb4404ca1#30219fd54da41666ee5bc0c579dee72bb4404ca1" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[[package]]
 name = "coyote-core"
 version = "4.0.0"
 source = { editable = "core" }
 dependencies = [
     { name = "bleach" },
+    { name = "coyote-contracts" },
     { name = "jinja2" },
     { name = "markdown" },
     { name = "pydantic" },
@@ -674,6 +684,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "bleach", specifier = "==6.4.0" },
+    { name = "coyote-contracts", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-contracts.git?rev=30219fd54da41666ee5bc0c579dee72bb4404ca1" },
     { name = "jinja2", specifier = "==3.1.6" },
     { name = "markdown", specifier = "==3.11.3" },
     { name = "pydantic", specifier = "==2.14.3" },
@@ -713,7 +724,7 @@ worker = [
 [package.metadata]
 requires-dist = [
     { name = "coyote-core", editable = "core" },
-    { name = "coyote-relay", marker = "extra == 'worker'", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=3d859127a2a5813cbaa6fd0263dcf1c0ce04ca57" },
+    { name = "coyote-relay", marker = "extra == 'worker'", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b702066701de446d7eae60aa8c0c3b6d1f4899e6" },
     { name = "coyote-server", marker = "extra == 'api'", editable = "." },
     { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
     { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },
@@ -725,9 +736,9 @@ provides-extras = ["api", "worker", "test"]
 [[package]]
 name = "coyote-relay"
 version = "1.0.0"
-source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=3d859127a2a5813cbaa6fd0263dcf1c0ce04ca57#3d859127a2a5813cbaa6fd0263dcf1c0ce04ca57" }
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b702066701de446d7eae60aa8c0c3b6d1f4899e6#b702066701de446d7eae60aa8c0c3b6d1f4899e6" }
 dependencies = [
-    { name = "coyote-core" },
+    { name = "coyote-contracts" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -745,6 +756,7 @@ dependencies = [
     { name = "cffi" },
     { name = "click" },
     { name = "colorlog" },
+    { name = "coyote-contracts" },
     { name = "coyote-core" },
     { name = "cssselect2" },
     { name = "defusedxml" },
@@ -786,6 +798,9 @@ test = [
 ]
 
 [package.dev-dependencies]
+application = [
+    { name = "coyote-relay" },
+]
 dev = [
     { name = "mypy" },
     { name = "mypy-extensions" },
@@ -827,6 +842,7 @@ requires-dist = [
     { name = "cffi", specifier = "==2.0.0" },
     { name = "click", specifier = "==8.3.3" },
     { name = "colorlog", specifier = "==6.10.1" },
+    { name = "coyote-contracts", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-contracts.git?rev=30219fd54da41666ee5bc0c579dee72bb4404ca1" },
     { name = "coyote-core", editable = "core" },
     { name = "cssselect2", specifier = "==0.9.0" },
     { name = "defusedxml", specifier = "==0.7.1" },
@@ -865,6 +881,7 @@ requires-dist = [
 provides-extras = ["test"]
 
 [package.metadata.requires-dev]
+application = [{ name = "coyote-relay", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b702066701de446d7eae60aa8c0c3b6d1f4899e6" }]
 dev = [
     { name = "mypy", specifier = "==1.20.1" },
     { name = "mypy-extensions", specifier = "==1.1.0" },

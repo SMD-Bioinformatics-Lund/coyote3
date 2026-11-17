@@ -33,12 +33,6 @@ adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "ad
 [capabilities.fusion]
 callers = ["arriba", "fusioncatcher", "starfusion"]
 
-[capabilities.files.dna]
-keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
-
-[capabilities.files.rna]
-keys = ["fusion_files", "expression_path", "classification_path", "qc"]
-
 [capabilities.analysis.dna]
 types = ["SNV", "CNV", "CNV_PROFILE", "TRANSLOCATION", "HRD", "MSI", "COVERAGE", "TMB", "PGX"]
 
@@ -82,12 +76,6 @@ exceptions = []
 [contracts]
 app_controls_id = "default"
 permission_categories = ["Analysis Actions", "Application Control Management", "Assay Configuration Management", "Assay Panel Management", "Audit & Monitoring", "Clinical Reporting Rules", "Query Rules", "Data Downloads", "Gene List Management", "Permission Policy Management", "Reports", "Role Management", "Sample Management", "Schema Management", "User Management", "Variant Curation", "Visualization"]
-
-[contracts.pipeline_manifest]
-assay = "asp_id"
-diagnosis = "diagnosis_id"
-profile = "environment"
-sequencing_technology = "platform"
 
 [contracts.notifications]
 tones = ["error", "info", "success", "warning"]

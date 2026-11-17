@@ -1,6 +1,8 @@
 # Develop the core
 
-For isolated package work, run from this package directory:
+For isolated package work, first install the reviewed `coyote-contracts` wheel or
+editable checkout at the version required by `pyproject.toml`. Then run from this
+package directory:
 
 ```bash
 python -m pip install -e ".[test]"

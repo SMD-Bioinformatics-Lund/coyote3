@@ -60,7 +60,7 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/src/coyote_api/interfaces/http/` | HTTP routes, transport contracts and access dependencies. |
 | `core/src/coyote/application/` | Clinical and administrative workflows coordinating domain rules, repositories and integrations. |
 | `core/src/coyote/domain/` | Domain rules, identity logic, query policies and repository protocols. |
-| `core/src/coyote/contracts/` | Request, response, collection and managed-resource contracts. |
+| `core/src/coyote/contracts/` | Clinical request, response, collection and managed-resource contracts. |
 | `api/src/coyote_api/infra/` | Cache, host integrations, notifications and observability. |
 | `adapters/mongo/src/coyote_mongo/` | MongoDB queries, persistence and transactions. |
 | `api/src/coyote_api/security/` | Authentication, authorization and password workflows. |
@@ -71,6 +71,7 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
 | `core/src/coyote/application/reporting/document/` | JSON projection for package-owned `smd-reports` rendering. |
 | External `coyote-pyclient` repository | Independent typed sync/async HTTP client distribution and tests. |
+| External `coyote-contracts` repository | Structural manifests, resource metadata and bounded retrieval contracts; no clinical host or database dependencies. |
 | external `coyote-relay` repository | Installable ingestion submission tools and worker host. |
 | `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |

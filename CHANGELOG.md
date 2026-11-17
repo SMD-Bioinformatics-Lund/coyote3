@@ -8,6 +8,8 @@
   in one server distribution, editable uv development and verified wheel deployments.
 - Keep the Python client outside the application; consume public Coyote Relay from
   an exact Git commit and stage its verified wheel for Docker builds.
+- Share portable schemas through independent Coyote Contracts; keep Relay's base
+  tools lightweight, with core validation and server integration as optional features.
 - Local development backend reload and frontend hot updates; Docker backend
   services use explicit restarts or rebuilds, with source bind mounts for editing.
 - Unified DNA/RNA review, structural variants, coverage, biomarkers, classification

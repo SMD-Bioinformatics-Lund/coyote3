@@ -9,6 +9,8 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
+from coyote_contracts.database_versions import require_sample_vep_version, sample_vep_version
+
 from coyote.application.common.analysis_query import AnalysisQuery
 from coyote.application.common.assay_config import get_formatted_assay_config
 from coyote.application.common.observability import measured_operation
@@ -23,7 +25,6 @@ from coyote.application.interpretation.annotation_enrichment import (
 )
 from coyote.application.query_rules.service import QueryRuleService, effective_policy
 from coyote.application.reporting.clinical_rules.service import ClinicalRuleService
-from coyote.config.database_versions import require_sample_vep_version, sample_vep_version
 from coyote.contracts.operations import OperationResult
 from coyote.domain.dna.cnvqueries import build_cnv_query
 from coyote.domain.dna.dna_filters import (

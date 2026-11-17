@@ -13,8 +13,8 @@ from coyote.contracts.admin import (
     AdminChangePayload,
     AdminExistsPayload,
 )
-from coyote.contracts.resource_fields import ConfigurationField, FieldValue
-from coyote.contracts.resource_metadata import ConfigurationMetadata
+from coyote_contracts.resource_fields import ConfigurationField, FieldValue
+from coyote_contracts.resource_metadata import ConfigurationMetadata
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from coyote_api.app.deps.application import get_assay_configurations, get_reference_data

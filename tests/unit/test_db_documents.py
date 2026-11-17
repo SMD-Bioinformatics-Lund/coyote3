@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 
 import pytest
-from coyote.config.database_versions import normalize_database_versions, require_sample_vep_version
 from coyote.contracts.authoring.forms import build_form_spec
 from coyote.contracts.authoring.resources import managed_resource_spec
 from coyote.contracts.schemas.app_controls import AppControlsDoc
@@ -19,12 +18,17 @@ from coyote.contracts.schemas.registry import (
     supported_collections,
     validate_collection_document,
 )
-from coyote.contracts.schemas.samples import SampleCaseControlDoc, SamplesDoc
+from coyote.contracts.schemas.samples import SamplesDoc
 from coyote.contracts.schemas.variant_annotations import (
     VepAnnoTranscriptDoc,
 )
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from coyote_atlas.bundle import ReferenceBundle
+from coyote_contracts.database_versions import (
+    normalize_database_versions,
+    require_sample_vep_version,
+)
+from coyote_contracts.samples import SampleCaseControlDoc
 
 
 def test_isgl_diagnosis_is_the_canonical_multi_diagnosis_scope():

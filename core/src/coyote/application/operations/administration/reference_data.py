@@ -8,14 +8,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from coyote.application.operations.runtime import ApplicationRuntime
-from coyote.contracts.resource_fields import (
+from coyote_contracts.resource_fields import (
     AssayField,
     ConfigurationField,
     DiagnosisField,
     GeneListField,
     GroupField,
 )
+
+from coyote.application.operations.runtime import ApplicationRuntime
 
 if TYPE_CHECKING:
     from coyote.application.resources.fields import ResourceFieldService

@@ -4,9 +4,18 @@
 """Supported authored-content models shared with existing HTTP validation contracts.
 
 These exports retain the authoritative validators and null/omission semantics.
-They do not depend on persistence implementations. Their source modules remain
-in coyote.contracts while the SDK is distributed inside the application repository.
+They do not depend on persistence implementations. Portable field selections are
+owned by coyote_contracts; clinical request models are owned by coyote.contracts.
 """
+
+from coyote_contracts.resource_fields import (
+    AssayField,
+    ConfigurationField,
+    DiagnosisField,
+    GeneListField,
+    GroupField,
+    SampleField,
+)
 
 from coyote.contracts.auth import (
     ApiPasswordChangeRequest,
@@ -25,14 +34,6 @@ from coyote.contracts.public import (
     PublicAssayCatalogImportRequest,
     PublicAssayCatalogTransitionRequest,
     PublicAssayCatalogUpdateRequest,
-)
-from coyote.contracts.resource_fields import (
-    AssayField,
-    ConfigurationField,
-    DiagnosisField,
-    GeneListField,
-    GroupField,
-    SampleField,
 )
 from coyote.contracts.samples import ConfigurationApplyRequest
 from coyote.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupStatus

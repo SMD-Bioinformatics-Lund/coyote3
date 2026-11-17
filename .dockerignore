@@ -19,6 +19,10 @@
 .release/relay/*
 !.release/relay/*.whl
 !.release/relay/artifact.json
+!.release/contracts
+.release/contracts/*
+!.release/contracts/*.whl
+!.release/contracts/artifact.json
 build
 skills
 .venv*

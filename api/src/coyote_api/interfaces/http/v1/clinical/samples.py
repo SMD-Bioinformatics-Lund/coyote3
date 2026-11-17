@@ -21,8 +21,6 @@ from coyote.contracts.home import (
     HomeSamplesPayload,
     SampleNavigationCountsPayload,
 )
-from coyote.contracts.resource_fields import FieldValue, SampleField
-from coyote.contracts.resource_metadata import SampleMetadata
 from coyote.contracts.samples import (
     ConfigurationApplyRequest,
     ConfigurationPreviewPayload,
@@ -32,6 +30,8 @@ from coyote.contracts.samples import (
     SampleCommentCreateRequest,
     SampleFiltersUpdateRequest,
 )
+from coyote_contracts.resource_fields import FieldValue, SampleField
+from coyote_contracts.resource_metadata import SampleMetadata
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import FileResponse, HTMLResponse
 

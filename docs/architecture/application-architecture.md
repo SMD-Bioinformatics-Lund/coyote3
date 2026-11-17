@@ -45,14 +45,21 @@ builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
 `coyote_mongo` from `adapters/mongo/`. API and MongoDB code keep separate source,
 documentation and tests, but share one server version and wheel. The adapter
 depends on core; API code depends on both. Neither core nor adapter imports the
-API. The separate `coyote-pyclient` repository owns the independent HTTP-only client.
-external `coyote-relay` repository builds `coyote-relay`, with submission commands and separately
+API. The external `coyote-contracts` package owns structural sample manifests,
+resource metadata and bounded retrieval requests, with only Pydantic and PyYAML
+as dependencies. Core extends `SampleManifest` as `SamplesDoc` to enforce center
+vocabulary, sequencing policy, clinical filters and persistence requirements.
+The separate `coyote-pyclient` repository owns the independent HTTP-only client.
+The external `coyote-relay` repository builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
 worker dependency; API code publishes task messages without importing worker code.
 Relay's optional API integration supplies ingestion routers through installed
 `coyote.api.routers` entry points, preserving the server's access checks. Without
 Relay installed, the server omits those routes and their OpenAPI entries.
-Reusable ingestion coordination, parsing and clinical decisions belong to core.
+Relay submission uses contracts and HTTPX without core. Full clinical local
+validation is an optional extra; the receiving server always performs its clinical
+checks. Reusable ingestion coordination, analysis-file parsing and clinical
+decisions belong to core; YAML envelope and file-shape normalization belong to contracts.
 `services/atlas/` owns HGNC/VEP resources and reference publication. Its installed
 provider supplies validated bundles to server installation; clinical VEP grouping
 policy remains in core. `services/demo/` owns synthetic datasets and demonstration
@@ -77,8 +84,8 @@ the existing permission and assay/environment checks. See
 [application-module boundaries](../administration/application-controls.md#application-module-boundaries).
 
 The web UI and remote Python client SDK are separate consumers of the HTTP API.
-The deployment image also installs the client for HTTP-based administration commands
-such as `install.sh data`; API runtime code does not import it.
+The server does not install the external Python client. Host-owned administration
+and Relay submission tools use their own HTTP transport.
 The application SDK owns the shared use-case entry points:
 
 ```text
@@ -289,7 +296,7 @@ The library owns validated policy inputs and software defaults under
 - `api/src/coyote_api/config/runtime_settings.py`: host settings assembled from the process environment and factory defaults
 - `api/src/coyote_api/config/backend.py`: validates and retains package-specific settings before infrastructure initialization
 - `core/src/coyote/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
-- `core/src/coyote/config/database_versions.py`: canonical `samples.database_versions` keys and the VCF-header-only normalizer
+- `coyote_contracts.database_versions` (external contracts package): canonical `samples.database_versions` keys and the VCF-header-only normalizer
 - `api/src/coyote_api/config/bootstrap.py`: loads the host `.env` file and selects the center profile before importing contracts
 - `api/src/coyote_api/config/security.py`: API session, credential and runtime-mode settings
 - `adapters/mongo/src/coyote_mongo/config/collections.toml`: MongoDB collection-name mapping

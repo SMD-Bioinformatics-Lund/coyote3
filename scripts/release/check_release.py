@@ -18,7 +18,7 @@ from email.parser import Parser
 from pathlib import Path
 from typing import Any
 
-from .build_sdk import RelayArtifact
+from .build_sdk import EXTERNAL_DISTRIBUTIONS, ExternalArtifact
 
 ROOT = Path(__file__).resolve().parents[2]
 VERSION_PATTERN = re.compile(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:(a|b|rc|\.dev)([0-9]+))?")
@@ -33,6 +33,7 @@ RELEASE_CHANGE_SCOPES = {
         ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
         ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
     ),
+    "contracts_version": ((), ()),
     "relay_version": ((), ()),  # External package owns its changelog.
     "atlas_version": (
         ("services/atlas/CHANGELOG.md",),
@@ -221,11 +222,15 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
     """
     release = tomllib.loads((root / "release.toml").read_text())
     project = tomllib.loads((root / "core/pyproject.toml").read_text())["project"]
+    contracts_requirement = f"coyote-contracts=={release['contracts_version']}"
+    if contracts_requirement not in project.get("dependencies", []):
+        raise ValueError("Core contracts dependency differs from the application selection")
     for value in (
         release["application_version"],
         release["sdk_version"],
         release["server_version"],
         release["relay_version"],
+        release["contracts_version"],
         release["atlas_version"],
         release["demo_version"],
         project["version"],
@@ -239,16 +244,19 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         validate_contract_generations(root, release)
         if release["sdk_version"] != project["version"]:
             raise ValueError("Application SDK pin differs from this checkout's SDK version")
-        relay = RelayArtifact(root)
         lock = tomllib.loads((root / "uv.lock").read_text())
-        selected_relay = [
-            package for package in lock["package"] if package["name"] == "coyote-relay"
-        ]
-        expected_source = f"{relay.source['git']}?rev={relay.source['rev']}#{relay.source['rev']}"
-        if len(selected_relay) != 1 or selected_relay[0]["version"] != release["relay_version"]:
-            raise ValueError("coyote-relay version differs from the application selection")
-        if selected_relay[0]["source"] != {"git": expected_source}:
-            raise ValueError("Relay lockfile source differs from the selected Git commit")
+        for distribution, version_field in EXTERNAL_DISTRIBUTIONS.items():
+            artifact = ExternalArtifact(root, distribution)
+            selected = [package for package in lock["package"] if package["name"] == distribution]
+            expected_source = (
+                f"{artifact.source['git']}?rev={artifact.source['rev']}#{artifact.source['rev']}"
+            )
+            if len(selected) != 1 or selected[0]["version"] != release[version_field]:
+                raise ValueError(f"{distribution} version differs from the application selection")
+            if selected[0]["source"] != {"git": expected_source}:
+                raise ValueError(
+                    f"{distribution} lockfile source differs from the selected Git commit"
+                )
         for relative, distribution, selected in (
             (".", "coyote-server", release["server_version"]),
             ("services/atlas", "coyote-atlas", release["atlas_version"]),
@@ -262,6 +270,13 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                 and f"coyote-core=={release['sdk_version']}" not in package["dependencies"]
             ):
                 raise ValueError("Server core dependency differs from the application selection")
+            if (
+                distribution == "coyote-server"
+                and contracts_requirement not in package["dependencies"]
+            ):
+                raise ValueError(
+                    "Server contracts dependency differs from the application selection"
+                )
             if distribution in {"coyote-atlas", "coyote-demo"}:
                 if f"coyote-core=={release['sdk_version']}" not in package["dependencies"]:
                     raise ValueError(f"{distribution} core dependency differs from selection")
@@ -351,6 +366,7 @@ def wheel_record(
             raise ValueError("SDK wheel contains retired modules; rebuild from isolated source")
         namespaces = {
             "coyote-core": ("coyote/",),
+            "coyote-contracts": ("coyote_contracts/",),
             "coyote-server": ("coyote_api/", "coyote_mongo/"),
             "coyote-relay": ("coyote_relay/",),
             "coyote-atlas": ("coyote_atlas/",),
@@ -440,7 +456,8 @@ def main() -> None:
         )
     if args.wheel_dir:
         selected = {
-            "coyote-core": record["sdk_source_version"] if args.sdk_only else record["sdk_version"]
+            "coyote-core": record["sdk_source_version"] if args.sdk_only else record["sdk_version"],
+            "coyote-contracts": record["contracts_version"],
         }
         if not args.sdk_only:
             selected.update(

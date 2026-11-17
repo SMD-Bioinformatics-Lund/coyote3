@@ -5,10 +5,10 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
-from coyote.application.ingest.collection_writes import parse_yaml_payload
 from coyote.application.ingest.service import InternalIngestService
 from coyote.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
 from coyote.domain.exceptions import AppError
+from coyote_contracts.manifests import parse_yaml_payload
 from coyote_demo.installation import BUNDLE, DemoInstallationService
 from coyote_mongo.repositories import demo_installation
 from demo_test_support.persistence import MemoryGateway, MemoryVault, audit_context

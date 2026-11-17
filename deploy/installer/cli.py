@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from scripts.release.build_sdk import RelayArtifact
+from scripts.release.build_sdk import EXTERNAL_DISTRIBUTIONS, ExternalArtifact
 
 from .compose import Compose
 from .config import (
@@ -31,11 +31,14 @@ def _dependencies(argv: list[str]) -> int:
     """Prepare external dependency artifacts with host credentials before an image build."""
     parser = argparse.ArgumentParser(
         prog="install.sh dependencies",
-        description="Prepare the pinned relay wheel using the host Git credential helper.",
+        description="Prepare the pinned external wheels using the host Git credential helper.",
     )
     parser.parse_args(argv)
-    RelayArtifact(ROOT).prepare()
-    Console().log("Pinned relay artifact is ready in .release/relay", "DONE")
+    for distribution in EXTERNAL_DISTRIBUTIONS:
+        ExternalArtifact(ROOT, distribution).prepare()
+    Console().log(
+        "Pinned external artifacts are ready in .release/contracts and .release/relay", "DONE"
+    )
     return 0
 
 

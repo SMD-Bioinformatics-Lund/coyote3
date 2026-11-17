@@ -131,6 +131,7 @@ def main() -> int:
     optional = config["dependency-groups"]
     runtime = []
     local_names = {
+        "coyote-contracts",
         "coyote-core",
         "coyote-server",
         "coyote-relay",
@@ -152,21 +153,22 @@ def main() -> int:
     # The independently maintained Relay is resolved by Git in uv.lock. Export
     # its direct runtime requirements without needing a second source checkout.
     packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
-    relay = next(package for package in packages if package["name"] == "coyote-relay")
-    for dependency in relay["dependencies"]:
-        if dependency["name"] in local_names:
-            continue
-        matches = [
-            package
-            for package in packages
-            if package["name"] == dependency["name"]
-            and ("version" not in dependency or package["version"] == dependency["version"])
-        ]
-        if len(matches) != 1:
-            raise ValueError(
-                f"Relay runtime dependency is not uniquely locked: {dependency['name']}"
-            )
-        runtime.append(f"{dependency['name']}=={matches[0]['version']}")
+    for distribution in ("coyote-contracts", "coyote-relay"):
+        external = next(package for package in packages if package["name"] == distribution)
+        for dependency in external["dependencies"]:
+            if dependency["name"] in local_names:
+                continue
+            matches = [
+                package
+                for package in packages
+                if package["name"] == dependency["name"]
+                and ("version" not in dependency or package["version"] == dependency["version"])
+            ]
+            if len(matches) != 1:
+                raise ValueError(
+                    f"{distribution} runtime dependency is not uniquely locked: {dependency['name']}"
+                )
+            runtime.append(f"{dependency['name']}=={matches[0]['version']}")
 
     errors = _check(
         "requirements.txt",

@@ -7,10 +7,12 @@ actor attribution and existing application/domain services through injected port
 It is distinct from the
 [remote Python client](python-client.md), which sends HTTP requests.
 Neither SDK is part of FastAPI. `core/pyproject.toml` builds `coyote-core`
-from `core/src/coyote/`. It contains application operations, domain rules, contracts,
+from `core/src/coyote/`. It contains application operations, domain rules, clinical contracts,
 report-input construction and software defaults. Report templates belong to
-`smd-reports`. The API and MongoDB adapter consume the core through separate
-distributions. The remote client is the independent `coyote-pyclient` distribution.
+`smd-reports`. Shared structural models come from the external `coyote-contracts`
+dependency. The API and MongoDB adapter consume core and ship together as
+`coyote-server`. The remote client is the independent `coyote-pyclient` distribution
+and is not installed by this application.
 
 ## Installation and development
 
@@ -22,15 +24,24 @@ dependency combination while loading Python edits from the checkout.
 For API development, also install `requirements-dev.txt`, which includes the
 production dependency export. Each project's `pyproject.toml` owns its runtime
 dependencies. The root server project owns shared workspace development groups.
-The requirements export combines core and server dependencies.
+The requirements export combines application dependencies. Contracts and Relay
+come from reviewed Git commits; the default uv `application` group includes Relay.
+Use the [installation guide](server-installation.md) for the equivalent pip steps.
 The ASGI entry point is `coyote_api.app.main:app`.
 
-Production API images install core and the combined API/Mongo server wheel.
-Development images install those projects editable and mount their source trees.
+Production API images install Contracts, core, the combined API/Mongo server wheel,
+Relay and Atlas. The isolated demo image also installs Demo.
+Development images install local projects editable and mount their source trees;
+Contracts and Relay remain installed from their selected external wheels.
 File edits are visible in the container immediately, but API and worker processes
 load Python changes only after an explicit restart. Use the local development
 watcher for automatic reload when running native editable processes.
 Workers consume the same installed packages through their runtime composition.
+
+Structural manifest and metadata models belong to Contracts. Core's `SamplesDoc`
+extends its `SampleManifest` with center vocabulary, sequencing policy, clinical
+filters and persistence fields. Contracts reads no environment or center settings;
+structural validation does not replace clinical acceptance.
 
 Software defaults, RBAC catalogs and VEP interpretation policy are core package data.
 Report templates belong to `smd-reports`. The server packages deployment seeds and

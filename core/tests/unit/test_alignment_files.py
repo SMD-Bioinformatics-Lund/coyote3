@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 from coyote.application.common.alignment_files import alignment_files_payload
 from coyote.application.ingest.helpers import build_sample_meta_dict
-from coyote.contracts.schemas.samples import SampleCaseControlDoc
+from coyote_contracts.samples import SampleCaseControlDoc
 from pydantic import ValidationError
 
 

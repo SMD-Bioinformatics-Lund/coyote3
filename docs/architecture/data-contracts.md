@@ -2,9 +2,10 @@
 
 ## API contracts
 
-Request/response contracts live in `core/src/coyote/contracts/*.py` and are the API
-boundary schema. Routers accept and return these models rather than exposing
-raw MongoDB documents.
+Clinical request/response contracts live in `core/src/coyote/contracts/*.py`.
+Portable resource metadata and retrieval request shapes belong to the external
+`coyote-contracts` package. HTTP envelopes belong to `coyote_api.contracts`.
+Routers compose these models rather than exposing raw MongoDB documents.
 
 ## DB contracts
 
@@ -49,8 +50,10 @@ Design principles:
 
 Sample ingestion contract ownership:
 
-- `core/src/coyote/contracts/schemas/samples.py` defines DNA/RNA ingest file-key groups and source-path keys
-- `core/src/coyote/application/ingest/service.py` is the public ingest service and consumes those schema-defined constants directly, with helper modules in the same package handling parsing, dependent writes, and updates
+- `coyote_contracts.manifests` owns DNA/RNA file-key groups, YAML normalization and file descriptors
+- `coyote_contracts.samples.SampleManifest` validates shared structure without center settings or clinical dependencies
+- `core/src/coyote/contracts/schemas/samples.py` extends that manifest with center vocabulary, sequencing policy, clinical filters and persistence fields
+- `core/src/coyote/application/ingest/service.py` consumes the shared contracts and core schema, with helper modules handling analysis-file parsing, dependent writes and updates
 - sample documents persist canonical file path fields from the ingest payload
 - dependent writes use registry-owned mappings in `core/src/coyote/contracts/schemas/registry.py`
 

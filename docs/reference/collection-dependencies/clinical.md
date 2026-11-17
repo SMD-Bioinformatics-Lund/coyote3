@@ -643,7 +643,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMP
 
 ### S18
 
-`core/src/coyote/config/database_versions.py`
+`coyote_contracts.database_versions` (external contracts package)
 
 ### S19
 

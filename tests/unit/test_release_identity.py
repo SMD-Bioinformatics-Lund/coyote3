@@ -38,14 +38,17 @@ def release_root(tmp_path):
     (tmp_path / "frontend").mkdir()
     (tmp_path / "release.toml").write_text(
         'application_version="4.2.0"\nsdk_version="1.3.1"\nserver_version="1.5.0"\n'
-        'relay_version="1.1.0"\n'
+        'relay_version="1.1.0"\ncontracts_version="1.1.0"\n'
         'atlas_version="1.1.0"\ndemo_version="1.1.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     (tmp_path / "core").mkdir()
-    (tmp_path / "core/pyproject.toml").write_text('[project]\nversion="1.3.1"\n')
+    (tmp_path / "core/pyproject.toml").write_text(
+        '[project]\nversion="1.3.1"\ndependencies=["coyote-contracts==1.1.0"]\n'
+    )
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname="coyote-server"\nversion="1.5.0"\ndependencies=["coyote-core==1.3.1"]\n'
+        '[project]\nname="coyote-server"\nversion="1.5.0"\n'
+        'dependencies=["coyote-core==1.3.1", "coyote-contracts==1.1.0"]\n'
     )
     source = "https://github.com/example/relay.git"
     commit = "a" * 40
@@ -55,6 +58,12 @@ def release_root(tmp_path):
         f'[[package]]\nname="coyote-relay"\nversion="1.1.0"\n'
         f'source={{git="{source}?rev={commit}#{commit}"}}\n'
     )
+    with (tmp_path / "pyproject.toml").open("a") as output:
+        output.write(f'coyote-contracts = {{git="{source}", rev="{commit}"}}\n')
+    with (tmp_path / "uv.lock").open("a") as output:
+        output.write(
+            f'[[package]]\nname="coyote-contracts"\nversion="1.1.0"\nsource={{git="{source}?rev={commit}#{commit}"}}\n'
+        )
     for service in ("atlas", "demo"):
         directory = tmp_path / "services" / service
         directory.mkdir(parents=True)
@@ -213,7 +222,11 @@ def test_application_rejects_a_stale_server_package_selection(release_root):
 
 def test_application_rejects_a_stale_relay_selection(release_root):
     path = release_root / "uv.lock"
-    path.write_text(path.read_text().replace('version="1.1.0"', 'version="1.0.0"'))
+    path.write_text(
+        path.read_text().replace(
+            'name="coyote-relay"\nversion="1.1.0"', 'name="coyote-relay"\nversion="1.0.0"'
+        )
+    )
     with pytest.raises(ValueError, match="coyote-relay version differs"):
         release_identity(release_root)
 
@@ -226,7 +239,8 @@ def test_application_rejects_a_stale_packaged_application_label(release_root):
 
 
 def test_application_cannot_silently_build_with_another_sdk(release_root):
-    (release_root / "core/pyproject.toml").write_text('[project]\nversion="1.4.0"\n')
+    metadata = release_root / "core/pyproject.toml"
+    metadata.write_text(metadata.read_text().replace('version="1.3.1"', 'version="1.4.0"'))
     with pytest.raises(ValueError, match="pin differs"):
         release_identity(release_root)
     assert release_identity(release_root, sdk_only=True)["sdk_source_version"] == "1.4.0"
@@ -370,7 +384,7 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     relay_wheel.write_bytes(b"synthetic cached dependency")
     relay = Mock()
     relay.prepare.return_value = relay_wheel
-    monkeypatch.setattr(build_sdk, "RelayArtifact", Mock(return_value=relay))
+    monkeypatch.setattr(build_sdk, "ExternalArtifact", Mock(return_value=relay))
     inspected = []
 
     def inspect_build(command, *, check):
