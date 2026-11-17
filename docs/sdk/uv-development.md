@@ -10,6 +10,12 @@ The repository is one uv workspace with four editable distributions and the exte
 | `services/atlas` | `coyote-atlas` | `coyote_atlas` | Its `pyproject.toml` |
 | `services/demo` | `coyote-demo` | `coyote_demo` | Its `pyproject.toml` |
 
+For integrated development, uv's core dependency override selects the workspace
+copy with the server's `reporting` and `alignment` features. This replaces Relay's
+standalone Git source without installing a second core. The application release
+checks still verify the core version against the server and release selection.
+Relay installed outside this workspace uses its reviewed Git pin.
+
 uv installs workspace members editable. Relay comes from its exact Git commit
 in `[tool.uv.sources]`; it is not a workspace member. One lockfile
 resolves their dependencies together. The root `pyproject.toml` builds the server distribution from the separate

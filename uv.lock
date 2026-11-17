@@ -13,6 +13,7 @@ members = [
     "coyote-demo",
     "coyote-server",
 ]
+overrides = [{ name = "coyote-core", extras = ["reporting", "alignment"], editable = "core" }]
 
 [[package]]
 name = "amqp"
@@ -625,7 +626,7 @@ name = "coyote-atlas"
 version = "1.0.0"
 source = { editable = "services/atlas" }
 dependencies = [
-    { name = "coyote-core" },
+    { name = "coyote-core", extra = ["alignment", "reporting"] },
     { name = "httpx" },
 ]
 
@@ -668,12 +669,6 @@ reporting = [
     { name = "smd-reports" },
     { name = "weasyprint" },
 ]
-test = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-mock" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -697,7 +692,7 @@ name = "coyote-demo"
 version = "1.0.0"
 source = { editable = "services/demo" }
 dependencies = [
-    { name = "coyote-core" },
+    { name = "coyote-core", extra = ["alignment", "reporting"] },
 ]
 
 [package.optional-dependencies]
@@ -717,7 +712,7 @@ worker = [
 [package.metadata]
 requires-dist = [
     { name = "coyote-core", editable = "core" },
-    { name = "coyote-relay", marker = "extra == 'worker'", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=567218a2bc3b8d430c661958538d5b8587b23979" },
+    { name = "coyote-relay", marker = "extra == 'worker'", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1" },
     { name = "coyote-server", marker = "extra == 'api'", editable = "." },
     { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
     { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },
@@ -729,9 +724,9 @@ provides-extras = ["api", "worker", "test"]
 [[package]]
 name = "coyote-relay"
 version = "1.0.0"
-source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=567218a2bc3b8d430c661958538d5b8587b23979#567218a2bc3b8d430c661958538d5b8587b23979" }
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1#b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }
 dependencies = [
-    { name = "coyote-core" },
+    { name = "coyote-core", extra = ["alignment", "reporting"] },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -872,7 +867,7 @@ requires-dist = [
 provides-extras = ["test"]
 
 [package.metadata.requires-dev]
-application = [{ name = "coyote-relay", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=567218a2bc3b8d430c661958538d5b8587b23979" }]
+application = [{ name = "coyote-relay", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }]
 dev = [
     { name = "mypy", specifier = "==1.20.1" },
     { name = "mypy-extensions", specifier = "==1.1.0" },

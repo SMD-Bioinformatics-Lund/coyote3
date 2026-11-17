@@ -151,6 +151,13 @@ def test_core_server_and_ingest_have_independent_distributions() -> None:
     )
     assert str(core_requirement.specifier) == f"=={library['project']['version']}"
     assert core_requirement.extras == {"reporting", "alignment"}
+    override = next(
+        item
+        for text in server["tool"]["uv"]["override-dependencies"]
+        if (item := Requirement(text)).name == "coyote-core"
+    )
+    assert override.extras == core_requirement.extras
+    assert server["tool"]["uv"]["sources"]["coyote-core"] == {"workspace": True}
     assert server["tool"]["setuptools"]["package-dir"] == {
         "": ".",
         "coyote_api": "api/src/coyote_api",

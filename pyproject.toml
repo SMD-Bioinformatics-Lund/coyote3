@@ -250,6 +250,8 @@ module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pyte
 follow_imports = "normal"
 
 [tool.uv]
+# Integrated development uses the local core selected by the workspace.
+override-dependencies = ["coyote-core[reporting,alignment]"]
 default-groups = ["dev", "application"]
 
 [tool.uv.workspace]
@@ -258,6 +260,6 @@ members = ["core", "services/atlas", "services/demo"]
 [tool.uv.sources]
 coyote-core = { workspace = true }
 coyote-server = { workspace = true }
-coyote-relay = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git", rev = "567218a2bc3b8d430c661958538d5b8587b23979" }
+coyote-relay = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git", rev = "b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }
 coyote-atlas = { workspace = true }
 coyote-demo = { workspace = true }
