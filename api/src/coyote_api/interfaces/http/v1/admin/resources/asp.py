@@ -18,6 +18,13 @@ from coyote.contracts.admin import (
     AdminPanelCreateContextPayload,
     AdminPanelsListPayload,
 )
+from coyote.contracts.resource_fields import (
+    AssayField,
+    DiagnosisField,
+    FieldValue,
+    GroupField,
+)
+from coyote.contracts.resource_metadata import AssayMetadata, DiagnosisMetadata, GroupMetadata
 from coyote.contracts.schemas.assay_groups import (
     AssayGroupCreate,
     AssayGroupImpact,
@@ -33,13 +40,6 @@ from coyote.contracts.schemas.diagnoses import (
     SharedDiagnosisCreate,
     SharedDiagnosisUpdate,
 )
-from coyote_contracts.resource_fields import (
-    AssayField,
-    DiagnosisField,
-    FieldValue,
-    GroupField,
-)
-from coyote_contracts.resource_metadata import AssayMetadata, DiagnosisMetadata, GroupMetadata
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from coyote_api.app.deps.application import (

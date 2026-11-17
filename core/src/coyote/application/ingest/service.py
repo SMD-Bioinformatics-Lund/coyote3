@@ -9,7 +9,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS, parse_yaml_payload
 from pydantic import ValidationError
 
 from coyote.application.common.execution_context import current_username
@@ -33,6 +32,7 @@ from coyote.config.constants import (
     manifest_file_preload_keys,
     non_database_manifest_file_keys,
 )
+from coyote.contracts.manifests import ALL_MANIFEST_FILE_KEYS, parse_yaml_payload
 from coyote.contracts.schemas.registry import normalize_collection_document
 from coyote.contracts.schemas.samples import (
     SampleAspcResolutionDoc,

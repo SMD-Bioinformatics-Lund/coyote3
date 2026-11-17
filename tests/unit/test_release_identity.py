@@ -38,17 +38,15 @@ def release_root(tmp_path):
     (tmp_path / "frontend").mkdir()
     (tmp_path / "release.toml").write_text(
         'application_version="4.2.0"\nsdk_version="1.3.1"\nserver_version="1.5.0"\n'
-        'relay_version="1.1.0"\ncontracts_version="1.1.0"\n'
+        'relay_version="1.1.0"\n'
         'atlas_version="1.1.0"\ndemo_version="1.1.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     (tmp_path / "core").mkdir()
-    (tmp_path / "core/pyproject.toml").write_text(
-        '[project]\nversion="1.3.1"\ndependencies=["coyote-contracts==1.1.0"]\n'
-    )
+    (tmp_path / "core/pyproject.toml").write_text('[project]\nversion="1.3.1"\ndependencies=[]\n')
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname="coyote-server"\nversion="1.5.0"\n'
-        'dependencies=["coyote-core==1.3.1", "coyote-contracts==1.1.0"]\n'
+        'dependencies=["coyote-core[reporting,alignment]==1.3.1"]\n'
     )
     source = "https://github.com/example/relay.git"
     commit = "a" * 40
@@ -58,12 +56,6 @@ def release_root(tmp_path):
         f'[[package]]\nname="coyote-relay"\nversion="1.1.0"\n'
         f'source={{git="{source}?rev={commit}#{commit}"}}\n'
     )
-    with (tmp_path / "pyproject.toml").open("a") as output:
-        output.write(f'coyote-contracts = {{git="{source}", rev="{commit}"}}\n')
-    with (tmp_path / "uv.lock").open("a") as output:
-        output.write(
-            f'[[package]]\nname="coyote-contracts"\nversion="1.1.0"\nsource={{git="{source}?rev={commit}#{commit}"}}\n'
-        )
     for service in ("atlas", "demo"):
         directory = tmp_path / "services" / service
         directory.mkdir(parents=True)
@@ -244,6 +236,27 @@ def test_application_cannot_silently_build_with_another_sdk(release_root):
     with pytest.raises(ValueError, match="pin differs"):
         release_identity(release_root)
     assert release_identity(release_root, sdk_only=True)["sdk_source_version"] == "1.4.0"
+
+
+@pytest.mark.parametrize(
+    "declaration,valid",
+    [
+        ("coyote-core[alignment,reporting]==1.3.1", True),
+        ("coyote-core[reporting]==1.3.1", False),
+        ("coyote-core[alignment,reporting]==1.3.2", False),
+    ],
+)
+def test_server_requires_the_selected_core_and_runtime_features(release_root, declaration, valid):
+    """The application must install its renderer and alignment capabilities."""
+    metadata = release_root / "pyproject.toml"
+    metadata.write_text(
+        metadata.read_text().replace("coyote-core[reporting,alignment]==1.3.1", declaration)
+    )
+    if valid:
+        release_identity(release_root)
+    else:
+        with pytest.raises(ValueError, match="Server core dependency"):
+            release_identity(release_root)
 
 
 @pytest.mark.parametrize(

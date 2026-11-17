@@ -9,13 +9,12 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
 
-from coyote_contracts.database_versions import require_sample_vep_version
-
 from coyote.application.common.assay_config import get_formatted_assay_config
 from coyote.application.common.release_resources import assay_resource, gene_list_resources
 from coyote.application.query_rules.service import QueryRuleService
 from coyote.application.reporting.rna_workflow import RNAWorkflowService
 from coyote.config.clinical_query_policy import resolved_query_policy
+from coyote.contracts.database_versions import require_sample_vep_version
 from coyote.contracts.schemas.query_rules import QueryRuleDoc, QueryRulePreview, QueryRuleScope
 from coyote.domain.common.assay_filters import get_sample_effective_genes
 from coyote.domain.common.errors import api_error

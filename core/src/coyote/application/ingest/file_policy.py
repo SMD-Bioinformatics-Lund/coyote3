@@ -9,14 +9,13 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS
-
 from coyote.application.ingest.parsers import infer_asp_category, runtime_file_path
 from coyote.config.constants import (
     SAMPLE_FILE_KEYS,
     expected_file_keys,
     normalize_clinical_identifier,
 )
+from coyote.contracts.manifests import ALL_MANIFEST_FILE_KEYS
 from coyote.domain.common.biomarkers import BIOMARKER_ANALYSES
 
 DocumentReader = Callable[[str, dict[str, Any]], dict[str, Any] | None]

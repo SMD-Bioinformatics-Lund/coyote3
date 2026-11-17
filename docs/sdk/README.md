@@ -5,12 +5,11 @@
 <!-- badges:end -->
 
 Coyote combines four local Python distributions with the independently maintained
-`coyote-contracts` and `coyote-relay` Git dependencies. The Python client is maintained separately for external integrations;
+`coyote-relay` Git dependency. The Python client is maintained separately for external integrations;
 it is not installed by the application.
 
 | Package | Purpose |
 | --- | --- |
-| `coyote-contracts` | Portable structural manifests, metadata and bounded retrieval models |
 | `coyote-core` | Framework-independent clinical rules, contracts and application operations |
 | `coyote-server` | Separate API and Mongo components: HTTP, authentication, maintenance, queries and persistence |
 | `coyote-pyclient` | Synchronous and asynchronous clients for a running API |
@@ -37,9 +36,8 @@ Choose a guide for your task:
 
 Use the individual guides for installation, usage, configuration, interfaces and
 package development: [core](../../core/docs/README.md),
-[API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
-[shared contracts](https://github.com/SMD-Bioinformatics-Lund/coyote-contracts/blob/dev/docs/README.md),
-[HTTP client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md), and
+[API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md),
+[HTTP client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md),
 [ingestion service](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md),
 [reference service](../../services/atlas/docs/README.md) and
 [demo package](../../services/demo/docs/README.md). This section describes how

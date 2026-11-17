@@ -10,9 +10,8 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-from coyote_contracts.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
-
 from coyote.config.constants import TRANSCRIPT_SELECTION_ORDER
+from coyote.contracts.sample_manifest import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from coyote.contracts.schemas.normalizers import normalize_ampersand_terms
 from coyote.domain.dna.transcript_payloads import (
     canonicalize_selected_transcript_symbol,

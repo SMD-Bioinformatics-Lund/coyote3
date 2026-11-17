@@ -14,8 +14,8 @@ from coyote.contracts.admin import (
     AdminGenelistsListPayload,
     AdminGenelistViewContextPayload,
 )
-from coyote_contracts.resource_fields import FieldValue, GeneListField
-from coyote_contracts.resource_metadata import GeneListMetadata
+from coyote.contracts.resource_fields import FieldValue, GeneListField
+from coyote.contracts.resource_metadata import GeneListMetadata
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from coyote_api.app.deps.application import get_gene_lists, get_reference_data

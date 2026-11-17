@@ -1,8 +1,8 @@
 """Clinical sample validation remains stricter than portable manifest structure."""
 
 import pytest
+from coyote.contracts.sample_manifest import SampleManifest
 from coyote.contracts.schemas.samples import SamplesDoc
-from coyote_contracts.samples import SampleManifest
 from pydantic import ValidationError
 
 

@@ -1246,7 +1246,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sour
 
 ### S8
 
-`coyote_contracts.database_versions` (external contracts package)
+`coyote.contracts.database_versions` (core package)
 
 ### S9
 

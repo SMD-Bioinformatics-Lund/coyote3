@@ -39,7 +39,6 @@ def verify_sdk_artifact(
     for key in (
         "application_version",
         "sdk_version",
-        "contracts_version",
         "server_version",
         "relay_version",
         "atlas_version",
@@ -51,7 +50,6 @@ def verify_sdk_artifact(
             raise ValueError(f"SDK artifact record differs from application release: {key}")
     selected = {
         "coyote-core": release["sdk_version"],
-        "coyote-contracts": release["contracts_version"],
         "coyote-server": release["server_version"],
         "coyote-relay": release["relay_version"],
         "coyote-atlas": release["atlas_version"],
@@ -60,7 +58,7 @@ def verify_sdk_artifact(
     artifacts = record.get("artifacts") or {}
     if set(artifacts) != set(selected):
         raise ValueError(
-            "Release record must identify exactly the selected contracts, core, server, Relay, Atlas and Demo wheels"
+            "Release record must identify exactly the selected core, server, Relay, Atlas and Demo wheels"
         )
     filenames = []
     for distribution, expected in selected.items():

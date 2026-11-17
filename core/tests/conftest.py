@@ -28,3 +28,19 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.unit)
             if "smoke" in path.relative_to(directory).parts:
                 item.add_marker(pytest.mark.smoke)
+
+
+@pytest.fixture
+def manifest_payload() -> dict:
+    """Return a single-case DNA manifest without host-specific configuration."""
+    return {
+        "name": "SYNTHETIC-CASE",
+        "asp_id": "example-assay",
+        "environment": "development",
+        "asp_family": "panel-dna",
+        "asp_category": "dna",
+        "case_id": "SYNTHETIC-CASE",
+        "sample_no": 1,
+        "pipeline": "example-pipeline",
+        "vcf_files": "variants.vcf.gz",
+    }

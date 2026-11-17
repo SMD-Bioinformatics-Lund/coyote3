@@ -6,11 +6,10 @@ components retain separate source, tests, coverage and guides inside one server 
 
 | Distribution | Source | Dependencies between Coyote components |
 | --- | --- | --- |
-| `coyote-contracts` | `src/coyote_contracts/` in its external repository | None; Pydantic and PyYAML only |
-| `coyote-core` | `core/src/coyote/` | Contracts; no API or database implementation |
+| `coyote-core` | `core/src/coyote/` | No API or database implementation; reporting and alignment dependencies are extras |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `src/coyote_pyclient/` in the external client repository | None; Pydantic and HTTPX for its independent HTTP interface |
-| `coyote-relay` | `coyote_relay` in the external Relay repository | Contracts and HTTPX; clinical validation adds core, API/worker integrations add server |
+| `coyote-relay` | `coyote_relay` in the external Relay repository | Base core and HTTPX; API/worker integrations add server |
 | `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and HTTPX; optional API integration uses the server |
 | `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
 
@@ -24,11 +23,10 @@ Core is the shared foundation for the API and MongoDB adapter. It owns clinical
 operations, typed contracts and repository interfaces. The adapter implements
 those interfaces; the API constructs the repositories and supplies them to core
 services. Both components depend on core, and the API also depends on the adapter.
-Core does not import either implementation. Its portable sample input models and
-permitted resource metadata come from `coyote-contracts`, which has no dependency
-on core. Relay's submission commands use contracts directly; its optional clinical
-validation and workers use core. Workers obtain database and authentication wiring
-from the server. The server
+Core does not import either implementation. All reusable models and their validators
+belong to core, including portable manifests and resource metadata. Relay uses
+base core for structural and clinical validation. Its workers obtain persistence,
+authentication and full feature dependencies from the server. The server
 publishes named ingestion tasks without importing worker code. Installed Relay
 API routes are discovered through the `coyote.api.routers` entry-point group.
 The server distribution has no required dependency on Relay.
@@ -54,11 +52,12 @@ and Relay use their own HTTP transport. Its repository is independent; PyPI publ
 
 ## Package responsibilities
 
-Contracts owns structural manifests, YAML normalization, permitted metadata and
-bounded retrieval request models. It reads no environment settings and has no
-database or clinical dependencies. Core's `SamplesDoc` extends its `SampleManifest`
-with center vocabulary, sequencing policy, clinical filters and persistence fields.
-A successful structural check is not clinical acceptance.
+Core owns structural manifests, YAML normalization, metadata and retrieval models
+alongside its clinical contracts. `SamplesDoc` extends `SampleManifest` within the
+same package; structural validation does not establish clinical acceptance.
+Base dependencies are Pydantic, PyYAML and bleach. `reporting` adds report rendering
+libraries; `alignment` adds pysam for alignment and VCF processing. Extras select
+dependencies within one distribution and version, not separate implementations.
 
 The core contains domain decisions, clinical contracts and use cases. Hosts supply
 identities, current permission policy, repositories, clocks and integration ports.
@@ -73,13 +72,12 @@ import the API or start connections.
 The API owns web authentication, environment loading, request handling,
 composition, installation orchestration and maintenance workers. Routes delegate
 clinical behavior to core operations. The HTTP client owns its independent wire
-models and never imports contracts, core or the adapter.
+models and never imports core or the adapter.
 
 Relay owns pipeline submission commands, ingestion HTTP routes and Celery tasks.
-YAML and structural validation belong to contracts. Clinical parsing, validation,
+Manifest normalization, structural validation, clinical parsing,
 job execution and manifest-watching workflows belong to core. HTTP uploads, process
-entry points and task-queue integration stay outside
-core. See the [ingestion service guide](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md).
+entry points and task-queue integration stay outside core. See the [ingestion service guide](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
 policy. Atlas owns HGNC/VEP snapshots, provenance, validation and reference

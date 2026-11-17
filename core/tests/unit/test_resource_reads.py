@@ -6,8 +6,8 @@ from unittest.mock import Mock
 import pytest
 from coyote.application.operations.resource_reads import ResourceReads
 from coyote.application.operations.runtime import ApplicationRuntime
+from coyote.contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 from coyote.domain.exceptions import AppError
-from coyote_contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 
 
 @pytest.fixture

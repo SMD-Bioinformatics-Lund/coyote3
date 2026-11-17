@@ -12,11 +12,11 @@ from os import stat_result
 from pathlib import Path
 from typing import Any
 
-from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS
 from pydantic import BaseModel, ConfigDict
 
 from coyote.application.common.observability import timed_operation
 from coyote.application.ingest.failures import ingest_failure_message
+from coyote.contracts.manifests import ALL_MANIFEST_FILE_KEYS
 
 logger = logging.getLogger(__name__)
 

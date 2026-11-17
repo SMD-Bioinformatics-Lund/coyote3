@@ -12,8 +12,7 @@ license = "GPL-3.0-only"
 license-files = ["LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"]
 authors = [{name = "Ram Nanduri"}]
 dependencies = [
-    "coyote-core==4.0.0",
-    "coyote-contracts==1.0.0",
+    "coyote-core[reporting,alignment]==4.0.0",
     "pymongo==4.18.3",
     "pydantic==2.14.3",
     "Jinja2==3.1.6",
@@ -257,9 +256,8 @@ default-groups = ["dev", "application"]
 members = ["core", "services/atlas", "services/demo"]
 
 [tool.uv.sources]
-coyote-contracts = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-contracts.git", rev = "30219fd54da41666ee5bc0c579dee72bb4404ca1" }
 coyote-core = { workspace = true }
 coyote-server = { workspace = true }
-coyote-relay = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git", rev = "b702066701de446d7eae60aa8c0c3b6d1f4899e6" }
+coyote-relay = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git", rev = "567218a2bc3b8d430c661958538d5b8587b23979" }
 coyote-atlas = { workspace = true }
 coyote-demo = { workspace = true }

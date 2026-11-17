@@ -36,10 +36,10 @@ the affected component versions, update selected dependencies and `uv.lock`, and
 keep application, package, HTTP API and configuration revisions distinct.
 See [release compatibility](../sdk/compatibility.md) for their responsibilities.
 
-Contracts and Relay are maintained independently. Adopt reviewed full Git commits
-through `[tool.uv.sources]`, update `uv.lock`, and select their package versions in
-`release.toml`. The release artifact set contains six wheels: Contracts, core,
-server, Relay, Atlas and Demo. The normal image installs five; Demo is reserved for
+Relay is maintained independently. Adopt its reviewed full Git commit
+through `[tool.uv.sources]`, update `uv.lock`, and select its package version in
+`release.toml`. The release artifact set contains five wheels: core,
+server, Relay, Atlas and Demo. The normal image installs four; Demo is reserved for
 the isolated demo target. The Python client is not an application dependency.
 
 Update the root changelog with application highlights and affected package

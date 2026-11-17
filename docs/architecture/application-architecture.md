@@ -45,10 +45,11 @@ builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
 `coyote_mongo` from `adapters/mongo/`. API and MongoDB code keep separate source,
 documentation and tests, but share one server version and wheel. The adapter
 depends on core; API code depends on both. Neither core nor adapter imports the
-API. The external `coyote-contracts` package owns structural sample manifests,
-resource metadata and bounded retrieval requests, with only Pydantic and PyYAML
-as dependencies. Core extends `SampleManifest` as `SamplesDoc` to enforce center
-vocabulary, sequencing policy, clinical filters and persistence requirements.
+API. Core owns structural sample manifests, resource metadata and retrieval
+requests alongside clinical models. Its `SamplesDoc` extends `SampleManifest`
+with center vocabulary, sequencing policy, clinical filters and persistence
+requirements. Base installation uses Pydantic, PyYAML and bleach; reporting and
+alignment/VCF libraries are optional dependency extras.
 The separate `coyote-pyclient` repository owns the independent HTTP-only client.
 The external `coyote-relay` repository builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
@@ -56,10 +57,10 @@ worker dependency; API code publishes task messages without importing worker cod
 Relay's optional API integration supplies ingestion routers through installed
 `coyote.api.routers` entry points, preserving the server's access checks. Without
 Relay installed, the server omits those routes and their OpenAPI entries.
-Relay submission uses contracts and HTTPX without core. Full clinical local
-validation is an optional extra; the receiving server always performs its clinical
-checks. Reusable ingestion coordination, analysis-file parsing and clinical
-decisions belong to core; YAML envelope and file-shape normalization belong to contracts.
+Relay submission uses base core and HTTPX. Both structural and clinical manifest
+validation are available locally; the receiving server always applies its own
+current clinical and access checks. Core owns ingestion coordination, manifest
+normalization and clinical decisions. VCF processing requires its alignment extra.
 `services/atlas/` owns HGNC/VEP resources and reference publication. Its installed
 provider supplies validated bundles to server installation; clinical VEP grouping
 policy remains in core. `services/demo/` owns synthetic datasets and demonstration
@@ -296,7 +297,7 @@ The library owns validated policy inputs and software defaults under
 - `api/src/coyote_api/config/runtime_settings.py`: host settings assembled from the process environment and factory defaults
 - `api/src/coyote_api/config/backend.py`: validates and retains package-specific settings before infrastructure initialization
 - `core/src/coyote/config/constants.py`: fixed product vocabularies such as assay categories, list types, auth providers, ASP groups, file keys, and analysis types
-- `coyote_contracts.database_versions` (external contracts package): canonical `samples.database_versions` keys and the VCF-header-only normalizer
+- `coyote.contracts.database_versions` (core package): canonical `samples.database_versions` keys and the VCF-header-only normalizer
 - `api/src/coyote_api/config/bootstrap.py`: loads the host `.env` file and selects the center profile before importing contracts
 - `api/src/coyote_api/config/security.py`: API session, credential and runtime-mode settings
 - `adapters/mongo/src/coyote_mongo/config/collections.toml`: MongoDB collection-name mapping

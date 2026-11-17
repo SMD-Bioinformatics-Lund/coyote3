@@ -12,7 +12,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from coyote_contracts.manifests import MANIFEST_FILE_KEYS
+from coyote.contracts.manifests import MANIFEST_FILE_KEYS
 
 FACTORY_CATALOG_PATH = Path(__file__).with_name("factory_defaults.toml")
 _SECTIONS = {

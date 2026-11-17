@@ -9,8 +9,6 @@ from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
-from coyote_contracts.database_versions import sample_vep_version
-
 from coyote.application.common.release_resources import assay_resource, gene_list_resources
 from coyote.application.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
@@ -20,6 +18,7 @@ from coyote.application.reporting.eligibility import (
     reportable_tiers,
 )
 from coyote.config.clinical_query_policy import CLINICAL_QUERY_POLICY, FindingQueryPolicy
+from coyote.contracts.database_versions import sample_vep_version
 from coyote.domain.common.assay_filters import (
     get_sample_effective_genes,
 )

@@ -8,9 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from coyote_contracts.samples import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
-
 from coyote.application.ingest.parsers import infer_asp_category
+from coyote.contracts.sample_manifest import DNA_SAMPLE_FILE_KEYS, RNA_SAMPLE_FILE_KEYS
 from coyote.domain.selection import (
     Operator,
     select,

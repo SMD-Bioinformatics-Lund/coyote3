@@ -1,11 +1,9 @@
 # Develop the core
 
-For isolated package work, first install the reviewed `coyote-contracts` wheel or
-editable checkout at the version required by `pyproject.toml`. Then run from this
-package directory:
+For isolated package development, run from this package directory:
 
 ```bash
-python -m pip install -e ".[test]"
+python -m pip install -e ".[reporting,alignment,test]"
 python -m pytest tests
 ```
 
@@ -32,13 +30,13 @@ the repository release process.
 ## Test suites and coverage
 
 `tests/unit` owns portable contracts, clinical rules, filtering, ingest and reporting
-behavior. `tests/smoke` is a fast subset for settings and canonical variant identity.
+behavior. `tests/smoke` is a fast subset for settings, manifest validation and canonical variant identity.
 Both are collected by a full package run. Synthetic helpers in `tests/core_test_support`
 use core contracts and fake ports; they do not import a host, adapter or root tests.
 The test hashing port is scoped to each case. Real persistence codecs are checked
 by adapter and application integration suites.
 
-From this directory, after installing `.[test]`:
+From this directory, after installing `.[reporting,alignment,test]`:
 
 ```bash
 python -m pytest -q tests/smoke
@@ -51,3 +49,15 @@ branches. The independent baseline floor is 62%. Reports are local `.coverage` a
 `coverage/coverage.xml`; add `--cov-report=html` for `coverage/html/`. Application
 integration coverage and the stricter clinical gates are checked separately at
 the repository root. Smoke runs do not enforce the full-suite coverage floor.
+
+## Model ownership and base installation
+
+Core owns reusable models in `coyote.contracts`, grouped by domain, and the
+validation rules and application operations that consume them. API transport and
+database adapters remain separate consumers. Portable manifests and persisted
+sample documents use different models for their distinct boundaries; shared
+fields and structural validation are defined once in `SampleManifest`.
+
+For work on models and base validation only, install `.[test]`. Reporting and
+alignment test modules require their matching extras. The complete package suite
+uses `.[reporting,alignment,test]`; it does not need a running database or host.

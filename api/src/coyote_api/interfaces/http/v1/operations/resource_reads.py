@@ -4,8 +4,8 @@
 """Typed read-only metadata queries for authenticated integrations."""
 
 from coyote.application.operations.resource_reads import ResourceReads
+from coyote.contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 from coyote.domain.common.errors import api_error
-from coyote_contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 from fastapi import APIRouter, Depends, Request
 
 from coyote_api.app.deps.application import get_resource_reads

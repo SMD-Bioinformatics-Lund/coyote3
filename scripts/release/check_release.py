@@ -33,7 +33,6 @@ RELEASE_CHANGE_SCOPES = {
         ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
         ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
     ),
-    "contracts_version": ((), ()),
     "relay_version": ((), ()),  # External package owns its changelog.
     "atlas_version": (
         ("services/atlas/CHANGELOG.md",),
@@ -222,15 +221,11 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
     """
     release = tomllib.loads((root / "release.toml").read_text())
     project = tomllib.loads((root / "core/pyproject.toml").read_text())["project"]
-    contracts_requirement = f"coyote-contracts=={release['contracts_version']}"
-    if contracts_requirement not in project.get("dependencies", []):
-        raise ValueError("Core contracts dependency differs from the application selection")
     for value in (
         release["application_version"],
         release["sdk_version"],
         release["server_version"],
         release["relay_version"],
-        release["contracts_version"],
         release["atlas_version"],
         release["demo_version"],
         project["version"],
@@ -265,18 +260,25 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
             package = tomllib.loads((root / relative / "pyproject.toml").read_text())["project"]
             if package["name"] != distribution or package["version"] != selected:
                 raise ValueError(f"{distribution} version differs from the application selection")
-            if (
-                distribution == "coyote-server"
-                and f"coyote-core=={release['sdk_version']}" not in package["dependencies"]
-            ):
-                raise ValueError("Server core dependency differs from the application selection")
-            if (
-                distribution == "coyote-server"
-                and contracts_requirement not in package["dependencies"]
-            ):
-                raise ValueError(
-                    "Server contracts dependency differs from the application selection"
-                )
+            if distribution == "coyote-server":
+                core_dependencies = [
+                    match
+                    for declaration in package["dependencies"]
+                    if (
+                        match := re.fullmatch(
+                            r"coyote-core(?:\[([^]]+)\])?==(\S+)",
+                            declaration.replace(" ", ""),
+                        )
+                    )
+                ]
+                if (
+                    len(core_dependencies) != 1
+                    or core_dependencies[0][2] != release["sdk_version"]
+                    or set((core_dependencies[0][1] or "").split(",")) != {"reporting", "alignment"}
+                ):
+                    raise ValueError(
+                        "Server core dependency must select the release version and reporting/alignment features"
+                    )
             if distribution in {"coyote-atlas", "coyote-demo"}:
                 if f"coyote-core=={release['sdk_version']}" not in package["dependencies"]:
                     raise ValueError(f"{distribution} core dependency differs from selection")
@@ -366,7 +368,6 @@ def wheel_record(
             raise ValueError("SDK wheel contains retired modules; rebuild from isolated source")
         namespaces = {
             "coyote-core": ("coyote/",),
-            "coyote-contracts": ("coyote_contracts/",),
             "coyote-server": ("coyote_api/", "coyote_mongo/"),
             "coyote-relay": ("coyote_relay/",),
             "coyote-atlas": ("coyote_atlas/",),
@@ -457,7 +458,6 @@ def main() -> None:
     if args.wheel_dir:
         selected = {
             "coyote-core": record["sdk_source_version"] if args.sdk_only else record["sdk_version"],
-            "coyote-contracts": record["contracts_version"],
         }
         if not args.sdk_only:
             selected.update(

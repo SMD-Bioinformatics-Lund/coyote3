@@ -25,11 +25,11 @@ Its version is independent of the complete application's release version.
 
 ## Shared structural contracts
 
-The separate `coyote-contracts` dependency owns sample manifest structure, YAML
-normalization, database-version metadata and permitted resource response fields.
-Import these directly from `coyote_contracts`; they require no clinical host or
+Core owns sample manifest structure, YAML normalization, database-version metadata
+and permitted resource response fields alongside its clinical models.
+Import these directly from `coyote.contracts`; they require no application host or
 database adapter. `coyote.contracts.schemas.samples.SamplesDoc` extends
-`coyote_contracts.samples.SampleManifest` with center vocabulary, sequencing
+`coyote.contracts.sample_manifest.SampleManifest` with center vocabulary, sequencing
 policy, clinical filters and persistence fields. Clinical validation remains
 mandatory in core workflows.
 
@@ -40,5 +40,5 @@ resource permissions and exact assay/environment scope before invoking
 `coyote.application.operations.resource_reads.ResourceReadRepository`. The host
 supplies this database-independent port through
 `ApplicationServices.resource_reads`. Portable request and response models live in
-`coyote_contracts.retrieval`. The repository must apply scope before filtering,
+`coyote.contracts.retrieval`. The repository must apply scope before filtering,
 aggregating or paging and must return only the declared safe metadata.

@@ -20,7 +20,6 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_DISTRIBUTIONS = {
-    "coyote-contracts": "contracts_version",
     "coyote-relay": "relay_version",
 }
 
@@ -155,7 +154,6 @@ def build_sdk(
     *,
     build_isolation: bool = True,
     relay_artifact: Path | None = None,
-    contracts_artifact: Path | None = None,
 ) -> None:
     """Build the selected application distributions without stale generated sources.
 
@@ -163,7 +161,6 @@ def build_sdk(
         output_directory: Destination for the built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
-        contracts_artifact: Prepared external contracts directory for builds without Git access.
         relay_artifact: Prepared external relay directory for builds without Git access.
             None prepares or reuses the host cache from the pinned Git revision.
 
@@ -173,15 +170,11 @@ def build_sdk(
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    for distribution, directory in (
-        ("coyote-contracts", contracts_artifact),
-        ("coyote-relay", relay_artifact),
-    ):
-        artifact = ExternalArtifact(ROOT, distribution, directory)
-        wheel = (
-            artifact.validate() if directory else artifact.prepare(build_isolation=build_isolation)
-        )
-        shutil.copyfile(wheel, output_directory / wheel.name)
+    artifact = ExternalArtifact(ROOT, "coyote-relay", relay_artifact)
+    wheel = (
+        artifact.validate() if relay_artifact else artifact.prepare(build_isolation=build_isolation)
+    )
+    shutil.copyfile(wheel, output_directory / wheel.name)
     for project in (
         ROOT / "core",
         ROOT,
@@ -260,13 +253,11 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--no-build-isolation", action="store_true")
     parser.add_argument("--relay-artifact", type=Path)
-    parser.add_argument("--contracts-artifact", type=Path)
     args = parser.parse_args()
     build_sdk(
         args.output_dir,
         build_isolation=not args.no_build_isolation,
         relay_artifact=args.relay_artifact,
-        contracts_artifact=args.contracts_artifact,
     )
 
 

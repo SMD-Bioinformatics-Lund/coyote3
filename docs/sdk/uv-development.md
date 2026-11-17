@@ -1,26 +1,27 @@
 # Editable development with uv
 
-The repository is one uv workspace with four editable distributions and two external Git dependencies:
+The repository is one uv workspace with four editable distributions and the external Relay Git dependency:
 
 | Project | Distribution | Import | Version owner |
 | --- | --- | --- | --- |
 | `core` | `coyote-core` | `coyote` | `core/pyproject.toml` |
 | Repository root | `coyote-server` | `coyote_api`, `coyote_mongo` | Root `pyproject.toml` |
-| External Contracts repository | `coyote-contracts` | `coyote_contracts` | Its `pyproject.toml` |
 | External Relay repository | `coyote-relay` | `coyote_relay` | Its `pyproject.toml` |
 | `services/atlas` | `coyote-atlas` | `coyote_atlas` | Its `pyproject.toml` |
 | `services/demo` | `coyote-demo` | `coyote_demo` | Its `pyproject.toml` |
 
-uv installs workspace members editable. Contracts and Relay come from their
-exact Git commits in `[tool.uv.sources]`; neither is a workspace member. One lockfile
+uv installs workspace members editable. Relay comes from its exact Git commit
+in `[tool.uv.sources]`; it is not a workspace member. One lockfile
 resolves their dependencies together. The root `pyproject.toml` builds the server distribution from the separate
 `api/src/` and `adapters/mongo/src/` trees and owns shared development dependency groups.
 API and Mongo retain separate tests, coverage configurations and documentation;
 they share the server version and deployment wheel.
 
 The default `application` dependency group installs Relay during `uv sync`, so
-the application retains its ingestion commands and routes. Contracts is a runtime
-dependency of core and server. The independent Python client is not installed.
+the application retains its ingestion commands and routes. Core owns all reusable
+models and validation; the server selects its `reporting` and `alignment` extras.
+These extras install feature dependencies, not separate core distributions. The
+independent Python client is not installed.
 
 ## Set up once
 
@@ -71,8 +72,8 @@ The same wrapper supports maintenance workers, beat and other long-running backe
 commands. Reload sends SIGTERM, waits up to 30 seconds for shutdown, then terminates
 remaining child processes before restarting. Use it only with development jobs.
 Submission commands use the base package and do not need database credentials.
-For joint Contracts or Relay development, install the relevant external checkout editable into
-this virtual environment with `uv pip install --python .venv/bin/python -e PATH`.
+For joint Relay development, install its checkout editable into this prepared
+virtual environment with `uv pip install --python .venv/bin/python --no-deps -e PATH`.
 Add its `src` directory with `--directory PATH` before `--` in the watch command.
 The next normal `uv sync --frozen` restores the selected Git revision. This local
 override does not change the application lockfile or Docker images.
@@ -108,7 +109,7 @@ After editing shared backend sources, restart the affected services explicitly:
 Select only the affected services when the change is isolated. Run worker restarts
 after development jobs have finished. A source-only change to a mounted package
 does not require an image rebuild. Changes to dependencies, versions, entry points,
-the installed external Contracts/Relay revision or Docker image contents require rebuilding
+the installed external Relay revision or Docker image contents require rebuilding
 and recreating services with `up -d --build`. External Git installations are not
 source bind mounts. Add `--legacy` for the older-host definitions.
 
@@ -123,7 +124,7 @@ use Vite hot updates in both development modes.
 
 ## Run tests
 
-Prepare the pinned Contracts and Relay wheels with `./install.sh dependencies` before running
+Prepare the pinned Relay wheel with `./install.sh dependencies` before running
 installed-distribution integration tests. Those tests consume the prepared artifact
 and perform no Git fetches.
 
@@ -145,7 +146,7 @@ isolation, so wheel-isolation and architecture tests also verify the boundaries.
 The package runner changes directories before invoking pytest, so each project uses
 its own configuration, synthetic helpers and coverage output. Source remains editable;
 tests do not require rebuilding wheels. The final command collects all local package and
-application tests through root `pytest.ini`. Contracts and Relay tests run in their own repositories;
+application tests through root `pytest.ini`. Relay tests run in its own repository;
 the application retains installed-artifact checks.
 
 ## Build for deployment
@@ -154,14 +155,14 @@ the application retains installed-artifact checks.
 uv run python scripts/release/build_sdk.py --output-dir .release/sdk
 ```
 
-The build produces six wheels: four local packages (core, server, Atlas and Demo),
-plus Contracts and Relay from their pinned Git revisions. The installer prepares
-the external wheels on the host in `.release/contracts` and `.release/relay`
+The build produces five wheels: four local packages (core, server, Atlas and Demo),
+plus Relay from its pinned Git revision. The installer prepares
+the external wheel on the host in `.release/relay`
 before Compose builds, including `up --build`. Direct Docker
 builds require `./install.sh dependencies` first. Git and pip must be available on
 the host. Modern and legacy images receive the wheels and their source/checksum
 records; they do not need GitHub credentials. Normal application images install
-five packages, excluding Demo; dedicated demo images add it explicitly. The application owns its
+four packages, excluding Demo; dedicated demo images add it explicitly. The application owns its
 administrative HTTP tools, Relay supplies ingestion workers and submission commands,
 and Atlas supplies reference bundles. Production deployment installs wheels without
 editable paths. The release workflow records

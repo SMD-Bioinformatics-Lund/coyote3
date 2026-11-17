@@ -16,7 +16,7 @@ Managed-resource wiring lives in one registry:
 DB contracts are organized in `core/src/coyote/contracts/schemas/`:
 
 - `base.py`: shared permissive base (`extra="allow"`) and version-history entry model.
-- `samples.py`: clinical sample model extending `coyote_contracts.samples.SampleManifest`.
+- `samples.py`: clinical sample model extending `coyote.contracts.sample_manifest.SampleManifest`.
 - `dna.py`: variants, CNVs, translocations, biomarkers, coverage-related models.
 - `rna.py`: fusions, RNA expression/classification/QC models.
 - `assay.py`: ASP/ASPC/ISGL and assay-linked blacklist models.
@@ -57,7 +57,7 @@ Create/update flows validate and normalize payloads against contracts before DB 
 
 Contract ownership for ingestion is explicit:
 
-- structural manifests and file descriptors are defined in the independent `coyote-contracts` package; file-key groups are exposed by `coyote_contracts.manifests`
+- structural manifests and file descriptors are defined in core's `coyote.contracts.sample_manifest` module; file-key groups are exposed by `coyote.contracts.manifests`
 - `SamplesDoc` in core extends the shared manifest with center vocabulary, sequencing policy, clinical filters and persistence fields
 - dependent ingest collection bindings are defined in `core/src/coyote/contracts/schemas/registry.py`
 - ingest service consumes those contract-owned constants and writes normalized documents only

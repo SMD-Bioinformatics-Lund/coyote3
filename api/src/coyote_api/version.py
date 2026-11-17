@@ -5,19 +5,14 @@
 
 import sys
 import tomllib
-from importlib.metadata import requires, version
+from importlib.metadata import version
 from importlib.resources import files
 
 __version__ = version("coyote-server")
 APPLICATION_VERSION = tomllib.loads(
     files("coyote_api").joinpath("config/application_release.toml").read_text(encoding="utf-8")
 )["application_version"]
-_core_requirement = next(
-    requirement
-    for requirement in requires("coyote-server") or []
-    if requirement.startswith("coyote-core==")
-)
-SDK_VERSION = _core_requirement.split("==", 1)[1]
+SDK_VERSION = version("coyote-core")
 
 
 def environment_version(environment: str) -> str:

@@ -26,10 +26,9 @@ from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.domain.common.errors import api_error
 
 if TYPE_CHECKING:
-    from coyote_contracts.resource_fields import SampleField
-    from coyote_contracts.resource_metadata import SampleMetadata
-
     from coyote.contracts.dna import BiomarkerAssessmentRequest
+    from coyote.contracts.resource_fields import SampleField
+    from coyote.contracts.resource_metadata import SampleMetadata
     from coyote.contracts.samples import ConfigurationApplyRequest
 
 

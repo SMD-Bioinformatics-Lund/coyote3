@@ -144,7 +144,13 @@ def test_core_server_and_ingest_have_independent_distributions() -> None:
     assert "api" not in library["project"]["optional-dependencies"]
     server = tomllib.loads(Path("pyproject.toml").read_text())
     assert server["project"]["name"] == "coyote-server"
-    assert f"coyote-core=={library['project']['version']}" in server["project"]["dependencies"]
+    core_requirement = next(
+        item
+        for text in server["project"]["dependencies"]
+        if (item := Requirement(text)).name == "coyote-core"
+    )
+    assert str(core_requirement.specifier) == f"=={library['project']['version']}"
+    assert core_requirement.extras == {"reporting", "alignment"}
     assert server["tool"]["setuptools"]["package-dir"] == {
         "": ".",
         "coyote_api": "api/src/coyote_api",

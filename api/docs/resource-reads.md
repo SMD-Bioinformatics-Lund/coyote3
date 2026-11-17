@@ -24,7 +24,7 @@ distinct values and IDs use the same restrictions as record pages. Gene lists,
 groups and diagnoses remain shared reference catalogs under their existing
 resource permissions.
 
-Only fields declared by the corresponding `coyote_contracts.resource_metadata`
+Only fields declared by the corresponding `coyote.contracts.resource_metadata`
 model are available. These include identifiers, availability, versions, assay
 context and supported analysis types. Patient details, clinical findings, genes,
 credentials and arbitrary document fields are excluded. Reading related records

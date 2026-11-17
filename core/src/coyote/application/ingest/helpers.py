@@ -8,12 +8,6 @@ from __future__ import annotations
 import shlex
 from typing import Any, Callable
 
-from coyote_contracts.database_versions import (
-    canonical_vcf_header_database_version_key,
-    normalize_database_versions,
-)
-from coyote_contracts.manifests import normalize_null_placeholders
-
 from coyote.application.common.assay_context import build_assay_context
 from coyote.application.common.release_resources import assay_resource
 from coyote.config.constants import (
@@ -23,6 +17,11 @@ from coyote.config.constants import (
     normalize_environment,
     primary_analysis_file_key,
 )
+from coyote.contracts.database_versions import (
+    canonical_vcf_header_database_version_key,
+    normalize_database_versions,
+)
+from coyote.contracts.manifests import normalize_null_placeholders
 from coyote.domain.common.sample_filters import sample_filters_from_aspc_filters
 
 _CASE_CONTROL_KEYS = [

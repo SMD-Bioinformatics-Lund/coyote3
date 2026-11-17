@@ -7,8 +7,7 @@ from typing import Any
 
 from bson import ObjectId
 from coyote.application.operations.resource_reads import ResourceReadScope
-from coyote.domain.common.errors import api_error
-from coyote_contracts.retrieval import (
+from coyote.contracts.retrieval import (
     RESOURCE_IDENTIFIERS,
     RESOURCE_MODELS,
     FieldPredicate,
@@ -16,6 +15,7 @@ from coyote_contracts.retrieval import (
     ResourceReadPage,
     ResourceReadQuery,
 )
+from coyote.domain.common.errors import api_error
 
 from coyote_mongo.assay_access import restrict_assay_access
 

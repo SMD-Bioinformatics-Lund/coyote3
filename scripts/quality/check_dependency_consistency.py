@@ -11,6 +11,7 @@ import sys
 import tomllib
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -125,19 +126,57 @@ def _check(label: str, expected: set[str], actual: set[str]) -> list[str]:
     return errors
 
 
+def runtime_requirements(projects: Mapping[str, Mapping[str, Any]]) -> list[str]:
+    """Expand runtime dependencies and requested features of workspace packages.
+
+    Args:
+        projects: Project metadata keyed by normalized distribution name.
+
+    Returns:
+        External requirements, including dependencies of selected local extras.
+        Unselected features and test extras are excluded.
+
+    Raises:
+        ValueError: A dependency requests an undefined local feature.
+    """
+    pending = [
+        dependency for project in projects.values() for dependency in project["dependencies"]
+    ]
+    selected: set[tuple[str, str]] = set()
+    external = []
+    while pending:
+        dependency = pending.pop()
+        match = re.match(r"^([a-z0-9-]+)(?:\[([^]]+)\])?", _normalize(dependency))
+        if match is None:
+            raise ValueError(f"Invalid dependency declaration: {dependency}")
+        name, extras = match.groups()
+        if name not in projects:
+            external.append(dependency)
+            continue
+        optional = projects[name].get("optional-dependencies", {})
+        for extra in (extras or "").split(","):
+            extra = extra.strip()
+            if not extra or (name, extra) in selected:
+                continue
+            if extra not in optional:
+                raise ValueError(f"Unknown feature {name}[{extra}]")
+            selected.add((name, extra))
+            pending.extend(optional[extra])
+    return external
+
+
 def main() -> int:
     """Compare all requirements exports with their pyproject source groups."""
     config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     optional = config["dependency-groups"]
-    runtime = []
     local_names = {
-        "coyote-contracts",
         "coyote-core",
         "coyote-server",
         "coyote-relay",
         "coyote-atlas",
         "coyote-demo",
     }
+    projects = {}
     for relative in (
         ".",
         "core",
@@ -145,15 +184,13 @@ def main() -> int:
         "services/demo",
     ):
         project = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
-        for dependency in project["dependencies"]:
-            name = re.split(r"[\[<>=!~; ]", _normalize(dependency), maxsplit=1)[0]
-            if name not in local_names:
-                runtime.append(dependency)
+        projects[project["name"]] = project
+    runtime = runtime_requirements(projects)
 
     # The independently maintained Relay is resolved by Git in uv.lock. Export
     # its direct runtime requirements without needing a second source checkout.
     packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
-    for distribution in ("coyote-contracts", "coyote-relay"):
+    for distribution in ("coyote-relay",):
         external = next(package for package in packages if package["name"] == distribution)
         for dependency in external["dependencies"]:
             if dependency["name"] in local_names:

@@ -10,11 +10,10 @@ from hashlib import sha256
 from pathlib import Path
 from typing import BinaryIO, Protocol
 
-from coyote_contracts.manifests import ALL_MANIFEST_FILE_KEYS
-
 from coyote.application.ingest.parsers import runtime_file_path
 from coyote.application.ingest.service import InternalIngestService
 from coyote.application.ingest.upload_archive import UploadedFileIndex, extract_uploaded_archive
+from coyote.contracts.manifests import ALL_MANIFEST_FILE_KEYS
 
 
 class BinaryUpload(Protocol):

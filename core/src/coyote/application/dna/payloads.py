@@ -8,8 +8,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from coyote_contracts.database_versions import require_sample_vep_version
-
 from coyote.application.common.alignment_files import alignment_files_payload
 from coyote.application.common.analysis_query import AnalysisQuery
 from coyote.application.common.pagination import paginate_items, query_pagination
@@ -31,6 +29,7 @@ from coyote.application.reporting.dna.selection import load_report_snv_findings
 from coyote.application.reporting.dna.variants import hotspot_variant
 from coyote.contracts.authoring.forms import build_form_spec
 from coyote.contracts.authoring.resources import aspc_spec_for_category
+from coyote.contracts.database_versions import require_sample_vep_version
 from coyote.domain.common.assay_capabilities import normalize_analysis_sections
 from coyote.domain.common.assay_filters import (
     get_case_and_control_sample_ids,

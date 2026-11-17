@@ -7,8 +7,8 @@ import mongomock
 import pytest
 from bson import ObjectId
 from coyote.application.operations.resource_reads import ResourceReadScope
+from coyote.contracts.retrieval import ReadResource, ResourceReadQuery
 from coyote.domain.exceptions import AppError
-from coyote_contracts.retrieval import ReadResource, ResourceReadQuery
 from coyote_mongo.repositories.resource_reads import MongoResourceReadRepository
 
 

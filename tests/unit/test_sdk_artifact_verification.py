@@ -15,13 +15,12 @@ def artifact(tmp_path):
     release = tmp_path / "release.toml"
     release.write_text(
         'application_version="4.0.0"\nsdk_version="4.0.0"\nserver_version="1.0.0"\n'
-        'relay_version="1.0.0"\ncontracts_version="1.0.0"\n'
+        'relay_version="1.0.0"\n'
         'atlas_version="1.0.0"\ndemo_version="1.0.0"\n'
         "http_api_major=1\ncenter_configuration_format=1\n"
     )
     artifacts = {}
     for package, version in (
-        ("coyote-contracts", "1.0.0"),
         ("coyote-core", "4.0.0"),
         ("coyote-server", "1.0.0"),
         ("coyote-relay", "1.0.0"),
@@ -43,7 +42,6 @@ def artifact(tmp_path):
     record = {
         "application_version": "4.0.0",
         "sdk_version": "4.0.0",
-        "contracts_version": "1.0.0",
         "server_version": "1.0.0",
         "relay_version": "1.0.0",
         "atlas_version": "1.0.0",
@@ -74,9 +72,7 @@ def test_image_rejects_modified_wheel(artifact):
 
 
 @pytest.mark.parametrize("failure", ["missing", "modified"])
-@pytest.mark.parametrize(
-    "package", ["coyote-contracts", "coyote-relay", "coyote-atlas", "coyote-demo"]
-)
+@pytest.mark.parametrize("package", ["coyote-relay", "coyote-atlas", "coyote-demo"])
 def test_independent_services_are_part_of_verified_deployment_artifacts(artifact, failure, package):
     directory, release, _, record = artifact
     client = record["artifacts"][package]
@@ -97,7 +93,6 @@ def test_independent_services_are_part_of_verified_deployment_artifacts(artifact
         ("release_mode", "development"),
         ("source_commit", "b" * 40),
         ("sdk_version", "2.0.0"),
-        ("contracts_version", "2.0.0"),
         ("server_version", "2.0.0"),
         ("relay_version", "2.0.0"),
         ("atlas_version", "2.0.0"),

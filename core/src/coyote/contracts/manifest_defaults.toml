@@ -1,0 +1,13 @@
+# Wire-format names shared by pipeline submission and server ingestion.
+
+[files.dna]
+keys = ["vcf_files", "cnv", "cnvprofile", "cov", "transloc", "biomarkers", "pgx"]
+
+[files.rna]
+keys = ["fusion_files", "expression_path", "classification_path", "qc"]
+
+[field_aliases]
+assay = "asp_id"
+diagnosis = "diagnosis_id"
+profile = "environment"
+sequencing_technology = "platform"

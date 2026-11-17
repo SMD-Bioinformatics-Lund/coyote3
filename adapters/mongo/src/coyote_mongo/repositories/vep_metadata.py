@@ -16,7 +16,7 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 
-from coyote_contracts.database_versions import vep_metadata_release
+from coyote.contracts.database_versions import vep_metadata_release
 
 from coyote_mongo.repositories.base import BaseRepository
 

@@ -1,13 +1,27 @@
 # Install and import the core
 
-Python 3.12 or newer is required. Core requires the selected `coyote-contracts`
-version. If it is not available from your package index, install its reviewed
-wheel first. The Coyote application workspace resolves it from an exact Git commit.
-Then, from this package directory, install the project:
+Python 3.12 or newer is required. From this package directory, install core:
 
 ```bash
 python -m pip install .
 ```
+
+The base installation includes all reusable data models and clinical validation,
+with Pydantic, PyYAML and Bleach. It does not install a web host, database driver,
+report renderer or alignment reader.
+
+Select additional capabilities in the same distribution when required:
+
+```bash
+python -m pip install ".[reporting,alignment]"
+```
+
+`reporting` adds report construction and HTML/PDF rendering dependencies.
+`alignment` adds pysam for alignment access and VCF ingestion. These extras
+select dependencies; they do not create separate model implementations or versions.
+A host using reporting or file ingestion must install the corresponding extra
+before importing or executing those feature modules. The main application installs
+both extras.
 
 For an offline deployment, supply the built wheel and its dependencies through
 the installation's artifact directory or package mirror. Public-index publication

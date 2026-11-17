@@ -4,9 +4,11 @@
 
 - Add database-independent resource reads with strict typed filters, fresh permissions,
   paired assay/environment grants and authorization of related metadata queries.
-- Depend on `coyote-contracts` for portable manifest structure, YAML normalization
-  and permitted resource metadata. Extend its sample manifest with center policy,
-  sequencing validation, clinical filters and persistence fields in core.
+- Own reusable manifest, metadata and retrieval models in core alongside clinical
+  contracts. Preserve structural and clinical sample validation without a separate
+  contracts distribution.
+- Keep base model/validation installation lightweight; reporting and alignment/VCF
+  capabilities use optional dependency extras within the same core distribution.
 - Use typed `dna`/`rna` report identities and the shared `coyote3` renderer preset;
   reject old file-like identifiers and require renewed template-profile approval.
   Validate the full assay modality when compiling published template profiles.

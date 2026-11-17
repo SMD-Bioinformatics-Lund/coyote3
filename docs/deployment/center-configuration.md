@@ -338,7 +338,7 @@ application behavior and changing them requires a software change.
 | Authentication implementation | `api/src/coyote_api/config/security.py` and authentication services | `AUTHENTICATION_PROVIDERS` selects supported providers; center vocabulary cannot add a protocol. |
 | Supported analysis types | Typed contracts, parsers, repositories, UI, and reporting services | A new type requires end-to-end ingestion, storage, display, report, and test support. |
 | Reporting-rule operators and rendering behavior | Reporting contracts and rule engine | Clinical content follows its own controlled reporting-rule release process. |
-| Normalized database-version keys | `coyote_contracts.database_versions` (external contracts package) | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
+| Normalized database-version keys | `coyote.contracts.database_versions` (core package) | Keys such as `database_versions.vep` are stable software contracts; source parsing is not a center vocabulary setting. |
 | Product, licence, repository, and issue URLs | `api/src/coyote_api/config/application_metadata.py` | These identify Coyote4 itself rather than the deploying center. |
 
 ## Safe Change Protocol

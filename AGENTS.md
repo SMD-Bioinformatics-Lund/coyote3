@@ -7,10 +7,10 @@ clinical behavior and traceability unless the requested change explicitly alters
 
 - `core/src/coyote/`: domain rules, application workflows, clinical contracts and shared
   software defaults. No HTTP, MongoDB or application-host imports.
-- `coyote-contracts` is an independent repository for structural manifests,
-  resource metadata and bounded retrieval contracts. It depends only on Pydantic
-  and PyYAML. Core extends these models with clinical and center validation;
-  keep environment loading, permissions and workflow decisions out of contracts.
+- Reusable data models have one authoritative home in `core/src/coyote/contracts/`.
+  Core's base installation includes validation and sanitization dependencies;
+  reporting and alignment/VCF dependencies are optional extras. The server selects
+  both extras explicitly. Do not introduce a second models distribution.
 - `api/src/coyote_api/`: FastAPI composition, authentication, authorization,
   environment loading and transport. Routers delegate to core services.
 - `adapters/mongo/src/coyote_mongo/`: persistence implementations of core interfaces.
@@ -18,10 +18,10 @@ clinical behavior and traceability unless the requested change explicitly alters
 - `coyote-pyclient` is an independent repository for external HTTP integrations.
   Do not install it as an application dependency. Client tests belong there.
 - `coyote-relay` is an external public repository, pinned by Git commit in uv.
-  Base submission uses contracts and HTTPX. Clinical validation adds core;
+  Base submission uses core and HTTPX;
   optional routes and workers use server composition. Keep Relay source and tests
   in that repository; shared clinical ingestion logic belongs to core.
-- Pin external Contracts and Relay dependencies to reviewed full Git commits.
+- Pin the external Relay dependency to a reviewed full Git commit.
   Keep their versions, lockfile and release selection consistent. The default
   application dependency group installs Relay; it is not a server-wheel dependency.
 - `services/atlas/`: reference resources and publication. `services/demo/`: synthetic

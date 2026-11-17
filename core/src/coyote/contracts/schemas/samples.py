@@ -8,7 +8,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from coyote_contracts.samples import SampleManifest
 from pydantic import Field, field_validator, model_validator
 
 from coyote.config.constants import (
@@ -19,6 +18,7 @@ from coyote.config.constants import (
     normalize_read_mode,
 )
 from coyote.config.sequencing import resolve_read_technology
+from coyote.contracts.sample_manifest import SampleManifest
 from coyote.contracts.schemas.base import _CollectionDocBase, _StrictDocBase
 from coyote.domain.common.sample_filters import normalize_sample_filters
 from coyote.domain.filter_profiles import (

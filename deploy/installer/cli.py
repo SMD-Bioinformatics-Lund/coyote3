@@ -36,9 +36,7 @@ def _dependencies(argv: list[str]) -> int:
     parser.parse_args(argv)
     for distribution in EXTERNAL_DISTRIBUTIONS:
         ExternalArtifact(ROOT, distribution).prepare()
-    Console().log(
-        "Pinned external artifacts are ready in .release/contracts and .release/relay", "DONE"
-    )
+    Console().log("Pinned Relay artifact is ready in .release/relay", "DONE")
     return 0
 
 

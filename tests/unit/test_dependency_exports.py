@@ -2,7 +2,7 @@
 
 import pytest
 
-from scripts.quality.check_dependency_consistency import group_requirements
+from scripts.quality.check_dependency_consistency import group_requirements, runtime_requirements
 
 
 def test_included_groups_supply_the_shared_version_to_each_consumer():
@@ -28,3 +28,21 @@ def test_included_groups_supply_the_shared_version_to_each_consumer():
 def test_invalid_groups_fail_before_accepting_an_export(groups, message):
     with pytest.raises(ValueError, match=message):
         group_requirements(groups, "dev")
+
+
+def test_runtime_exports_include_only_requested_local_features():
+    projects = {
+        "core": {
+            "dependencies": ["pydantic==2.0"],
+            "optional-dependencies": {
+                "reporting": ["renderer==1.0"],
+                "alignment": ["alignment-reader==1.0"],
+                "test": ["pytest==9.0"],
+            },
+        },
+        "server": {"dependencies": ["core[reporting]==1.0", "fastapi==1.0"]},
+    }
+    assert set(runtime_requirements(projects)) == {"pydantic==2.0", "renderer==1.0", "fastapi==1.0"}
+    projects["server"]["dependencies"] = ["core[missing]==1.0"]
+    with pytest.raises(ValueError, match="Unknown feature core"):
+        runtime_requirements(projects)

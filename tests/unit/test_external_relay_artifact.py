@@ -101,4 +101,4 @@ def test_only_source_image_builds_prepare_external_dependencies(monkeypatch, tar
     operation.profile.arguments.return_value = []
     operation.runner = Mock()
     operation.run(["build"])
-    assert relay.prepare.call_count == (2 if expected else 0)
+    assert relay.prepare.call_count == (1 if expected else 0)

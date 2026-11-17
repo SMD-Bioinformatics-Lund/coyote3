@@ -26,9 +26,7 @@ def installed_distributions(tmp_path_factory):
         wheels,
         build_isolation=False,
         relay_artifact=ROOT / ".release/relay",
-        contracts_artifact=ROOT / ".release/contracts",
     )
-    contracts = next(wheels.glob("coyote_contracts-*.whl"))
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))
     relay = next(wheels.glob("coyote_relay-*.whl"))
@@ -38,7 +36,7 @@ def installed_distributions(tmp_path_factory):
         ("core", [core]),
         ("adapter", [core, server]),
         ("server", [core, server]),
-        ("relay", [relay]),
+        ("relay", [core, relay]),
         ("worker", [core, server, relay]),
         ("atlas", [core, atlas]),
         ("demo", [core, demo]),
@@ -53,7 +51,7 @@ def installed_distributions(tmp_path_factory):
                 "--no-deps",
                 "--target",
                 str(root / name),
-                *(str(wheel) for wheel in [contracts, *selected]),
+                *(str(wheel) for wheel in selected),
             ],
             check=True,
             capture_output=True,
@@ -61,7 +59,6 @@ def installed_distributions(tmp_path_factory):
     return (
         root,
         {
-            "coyote-contracts": contracts,
             "coyote-core": core,
             "coyote-server": server,
             "coyote-relay": relay,
@@ -82,7 +79,7 @@ def run_installed(root, target, code):
         "ambient_distributions = metadata.distributions\n"
         "def installed_distributions(**kwargs):\n"
         "    for package in ambient_distributions(**kwargs):\n"
-        "        if package.metadata['Name'] in {'coyote-contracts','coyote-core','coyote-server','coyote-pyclient','coyote-relay','coyote-atlas','coyote-demo'} and Path(package.locate_file('')).resolve() != target.resolve():\n"
+        "        if package.metadata['Name'] in {'coyote-core','coyote-server','coyote-pyclient','coyote-relay','coyote-atlas','coyote-demo'} and Path(package.locate_file('')).resolve() != target.resolve():\n"
         "            continue\n"
         "        yield package\n"
         "metadata.distributions = installed_distributions\n"
@@ -113,7 +110,6 @@ def test_actual_deployment_wheels_pass_retained_record_verification(installed_di
     root, packages = installed_distributions
     record = release_identity(ROOT)
     selections = {
-        "coyote-contracts": record["contracts_version"],
         "coyote-core": record["sdk_version"],
         "coyote-server": record["server_version"],
         "coyote-relay": record["relay_version"],
@@ -344,7 +340,6 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
 ):
     _, packages = installed_distributions
     expected = {
-        "coyote-contracts": ("coyote_contracts/",),
         "coyote-core": ("coyote/",),
         "coyote-server": ("coyote_api/", "coyote_mongo/"),
         "coyote-relay": ("coyote_relay/",),
@@ -392,10 +387,9 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
                 )
             elif package == "coyote-relay":
                 requirements = metadata.get_all("Requires-Dist")
-                assert not any(
+                assert any(
                     item.startswith("coyote-core") and ";" not in item for item in requirements
                 )
-                assert any(item.startswith("coyote-contracts") for item in requirements)
                 assert not any("coyote-pyclient" in item for item in requirements)
                 assert 'coyote-server==1.0.0; extra == "worker"' in requirements
                 assert 'coyote-server==1.0.0; extra == "api"' in requirements

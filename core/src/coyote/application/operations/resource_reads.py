@@ -8,9 +8,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
-from coyote_contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 from pydantic import BaseModel, ConfigDict
 
+from coyote.contracts.retrieval import ReadResource, ResourceReadPage, ResourceReadQuery
 from coyote.domain.common.errors import api_error
 from coyote.domain.identity.assay_access import grants_for
 
