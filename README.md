@@ -78,9 +78,11 @@ See [configuration ownership](docs/configuration/README.md) and the
 
 ## Development and releases
 
-The uv workspace installs packages in editable mode, so source changes do not
-require rebuilding wheels. Follow [editable development](docs/sdk/uv-development.md)
-for setup and reload commands, and [test selection](docs/testing/test-strategy-and-quality-gates.md)
+For fast iteration, run the editable uv workspace locally with the backend watcher
+and Vite. Source edits need no wheel rebuild. Docker development mounts backend
+sources but requires an explicit service restart after Python changes; dependency
+and image changes require a rebuild. Follow [editable development](docs/sdk/uv-development.md)
+for commands and [test selection](docs/testing/test-strategy-and-quality-gates.md)
 for component checks. GitHub CI runs fast smoke tests; broader validation is performed
 for substantive changes and release candidates.
 

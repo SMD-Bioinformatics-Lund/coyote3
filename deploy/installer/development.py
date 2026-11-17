@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Watch editable backend packages without enabling reload in deployed profiles."""
+"""Watch editable backend packages during local development."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class DevelopmentWatcher:
         """Resolve source roots from package metadata and explicitly added directories.
 
         Args:
-            additional: Extra editable sources, for example a separately checked-out client.
+            additional: Extra editable sources, for example a separately checked-out Relay package.
 
         Returns:
             Existing source directories without duplicates.
@@ -121,7 +121,7 @@ def main(argv: list[str]) -> int:
     """Start a watched service using the existing backend configuration entry point."""
     parser = argparse.ArgumentParser(
         prog="install.sh watch",
-        description="Restart a development service when editable backend sources change.",
+        description="Restart a local development service when editable backend sources change.",
     )
     parser.add_argument("--env-file", type=Path, help="Optional backend environment file")
     parser.add_argument(

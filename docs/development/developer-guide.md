@@ -41,10 +41,12 @@ optional database profiles and storage permissions are covered in
 [MongoDB deployment and recovery](../deployment/mongodb-setup-and-recovery.md).
 Docker Compose 1.29.2 uses the separate definitions under `deploy/legacy`.
 
-The development definitions reload backend services when editable package sources
-change. Vite updates frontend components and CSS. The same behavior is selected
-automatically by `--environment dev` without explicit file options. See
-[editable development](../sdk/uv-development.md) for native commands and reload limits.
+The development definitions mount editable backend sources and run services without
+automatic reload. Restart affected backend services explicitly after Python edits;
+rebuild and recreate them when dependencies or images change. Vite still updates
+frontend components and CSS. `--environment dev` selects these definitions without
+explicit file options. For faster iteration, use native editable processes and the
+local watcher described in [editable development](../sdk/uv-development.md).
 
 Local environment files contain deployment settings and secrets and are not
 version-controlled. Development and test databases must be separate from production.

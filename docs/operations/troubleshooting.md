@@ -184,8 +184,9 @@ Redis's container health check uses a local connection and can pass while traffi
 between containers is blocked.
 
 Source edits and repository quality checks do not deploy services or manage Docker
-networks. Development source reloads run inside existing containers. Deployment
-commands such as `compose up`, `run` and `down` change containers and can cause
+networks. Docker backend services do not automatically reload on source changes;
+restart or rebuild them explicitly. The backend watcher is for native local
+development. Deployment commands such as `compose up`, `run` and `down` change containers and can cause
 Docker to update its own host networking rules, even with an external network.
 Keep those operations separate from code verification on a shared host.
 See Docker's [packet filtering and firewall documentation](https://docs.docker.com/engine/network/packet-filtering-firewalls/)

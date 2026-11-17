@@ -1,6 +1,9 @@
 # Developer environment setup
 
 This document describes the standard local development setup for Coyote4.
+Use native editable processes with the local watcher for the fastest backend
+iteration. Docker development supports source mounts with explicit backend restarts;
+it does not automatically reload Python services.
 
 Choose the development mode before provisioning services:
 
@@ -87,9 +90,10 @@ npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
 
-The API wrapper requires `ENV_NAME=dev` or `development` and reloads every editable
-backend package. Vite refreshes frontend components and CSS. See
-[editable development](../sdk/uv-development.md) for worker reload and Docker behavior.
+The local API wrapper requires `ENV_NAME=dev` or `development` and reloads the
+process when editable backend packages change. Vite refreshes frontend components
+and CSS. Docker backend processes require explicit restarts. See
+[editable development](../sdk/uv-development.md) for local worker reload and Docker commands.
 
 ## Development Loop
 

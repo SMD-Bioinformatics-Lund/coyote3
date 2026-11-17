@@ -249,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
         for name, description in {
             "compose": "Run versioned Compose lifecycle commands",
             "check": "Check environment secrets locally",
-            "watch": "Reload an editable backend service in development",
+            "watch": "Reload an editable backend service during local development",
             "dependencies": "Prepare external Git dependency artifacts for image builds",
             "center": "Stage a reviewed center configuration release",
             "data": "Install or repair selected factory data through an authenticated API",

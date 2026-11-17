@@ -25,6 +25,9 @@ clinical behavior and traceability unless the requested change explicitly alters
   orchestration belongs in `deploy/installer/`; extend its commands rather than
   adding another launcher. Keep production, development, staging and test profile
   selection consistent, and preserve the demo's independent credentials and storage.
+- Automatic backend source reload belongs to local development. Docker backend
+  services run directly; apply changes through an explicit restart or rebuild.
+  Keep frontend Vite hot updates available in development.
 
 Load deployment configuration once in the API and pass typed, scoped settings to
 packages. Keep defaults in their existing authoritative modules; reuse them instead

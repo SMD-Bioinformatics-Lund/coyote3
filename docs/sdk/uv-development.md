@@ -33,6 +33,10 @@ in their documented separate environment.
 
 ## Edit and run
 
+For the fastest development loop, run the API and workers natively in this editable
+workspace and use the local watcher below. Docker backend services use explicit
+restarts or rebuilds; their source mounts do not reload running Python processes.
+
 ```bash
 ./install.sh watch --env-file .coyote4_dev_env -- \
   .venv/bin/python -m uvicorn coyote_api.app.main:app --host 127.0.0.1 --port 8001
@@ -48,7 +52,7 @@ The environment file must select `ENV_NAME=dev` or `development` and use
 host-reachable endpoints. The installer watches all editable backend package
 sources, including core, API, Mongo, Atlas and Demo sources that are
 present. Python and packaged configuration/template changes restart the process.
-It uses polling for WSL/container mounts and debounces consecutive edits.
+It uses polling for WSL-mounted filesystems and debounces consecutive edits.
 Do not combine it with Uvicorn's separate `--reload` supervisor.
 
 Start an ingestion worker with the same reviewed host configuration:
@@ -77,22 +81,40 @@ npm --prefix frontend run dev
 Vite refreshes React components, CSS and imported assets. For Windows editors writing
 through WSL mounts, set `CHOKIDAR_USEPOLLING=true` in that terminal.
 
-The installer selects this behavior automatically for Docker development deployments:
+Docker development uses source bind mounts and explicit backend lifecycle commands:
 
 ```bash
 ./install.sh compose --env-file .coyote4_dev_env --environment dev up -d --build
 ```
 
-Both modern and legacy development definitions mount the backend package sources and
-watch API, ingestion/maintenance workers, beat and monitor processes. The frontend
-runs Vite with polling. Production, staging and test profiles use ordinary processes.
-An explicit `--compose-file` selection replaces profile defaults; include the development
-definition when overriding the file list.
+Both modern and legacy development definitions mount the backend package sources.
+A saved file is visible inside the container immediately, but an already running
+Python process keeps its imported code until restarted. API, ingestion and
+maintenance workers, beat and monitor run without backend watchers. Vite continues
+to update frontend components and CSS automatically.
 
-Run `uv sync` again after changing dependencies, versions or entry points; rebuild
-development images for those changes. Environment files, center configuration and
-Compose definitions require an explicit service restart or recreation. Ordinary
-source and CSS edits need no wheel or image rebuild.
+After editing shared backend sources, restart the affected services explicitly:
+
+```bash
+./install.sh compose --env-file .coyote4_dev_env --environment dev \
+  restart api worker maintenance-worker beat monitor
+```
+
+Select only the affected services when the change is isolated. Run worker restarts
+after development jobs have finished. A source-only change to a mounted package
+does not require an image rebuild. Changes to dependencies, versions, entry points,
+the installed external Relay revision or Docker image contents require rebuilding
+and recreating services with `up -d --build`. The Relay Git installation is not a
+source bind mount. Add `--legacy` for the older-host definitions.
+
+An explicit `--compose-file` selection replaces profile defaults; include the development
+definition when overriding the file list. Production, staging and test profiles
+also run without source reload watchers.
+
+For native development, run `uv sync` again after changing dependencies, versions
+or entry points. Environment files, center configuration and Compose definitions
+require an explicit service restart or recreation. Frontend source and CSS edits
+use Vite hot updates in both development modes.
 
 ## Run tests
 
@@ -133,9 +155,10 @@ pinned Git revision. The installer prepares that wheel on the host in
 builds require `./install.sh dependencies` first. Git and pip must be available on
 the host. Modern and legacy images receive only the wheel and its source/checksum
 record; they do not need GitHub credentials. Normal application images install all
-except Demo; dedicated demo images add it explicitly. The client supplies administrative HTTP tools, Relay supplies
-ingestion workers and submission commands, and Atlas supplies reference bundles.
-Deployment installs wheels without editable paths. The release workflow records
+except Demo; dedicated demo images add it explicitly. The application owns its
+administrative HTTP tools, Relay supplies ingestion workers and submission commands,
+and Atlas supplies reference bundles. Production deployment installs wheels without
+editable paths. The release workflow records
 their versions and SHA-256 digests together and verifies them before installation.
 
 To build one package directly:

@@ -134,7 +134,7 @@ def test_source_and_package_configuration_changes_restart_and_shutdown_service(c
 
 
 @pytest.mark.parametrize("folder", ["compose", "legacy"])
-def test_development_services_watch_mounted_sources_and_production_does_not(folder):
+def test_docker_services_run_directly_with_manual_backend_reload(folder):
     """Check the selected deployment wiring rather than starting containers."""
 
     class Loader(yaml.SafeLoader):
@@ -145,7 +145,8 @@ def test_development_services_watch_mounted_sources_and_production_does_not(fold
     dev = yaml.load((directory / "docker-compose.dev.yml").read_text(), Loader=Loader)["services"]
     production = yaml.safe_load((directory / "docker-compose.yml").read_text())["services"]
     for service in ("api", "worker", "maintenance-worker", "beat", "monitor"):
-        assert "-m deploy.installer watch --" in dev[service]["command"]
+        assert "installer watch" not in dev[service]["command"]
+        assert "--reload" not in dev[service]["command"]
         assert "installer watch" not in production[service]["command"]
         mounts = [entry for entry in dev[service]["volumes"] if isinstance(entry, str)]
         for package in (

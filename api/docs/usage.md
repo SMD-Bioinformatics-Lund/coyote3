@@ -12,8 +12,10 @@ MongoDB adapter.
 Maintenance workers and beat use `coyote_api.celery_app`. Ingestion workers use
 `coyote_relay.celery_app` from the separately installed ingestion service. API and
 workers must use the tested core/server/ingestion combination and compatible
-configuration. The development installer watches each backend process separately;
-direct worker commands require a restart after editing their imported code.
+configuration. Native local development can use `install.sh watch` for automatic
+process reload. Docker backend services run without a watcher; restart affected
+services after editing mounted Python sources, or rebuild and recreate them after
+dependency or image changes.
 
 Report endpoints prepare JSON through core operations and render it with
 `smd-reports`. Previewing and downloading are distinct from finalizing a report.

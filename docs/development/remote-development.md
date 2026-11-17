@@ -16,15 +16,15 @@ bash install.sh compose -p coyote4-dev --env-file .coyote4_dev_env \
   -f deploy/compose/docker-compose.yml up -d --no-deps --no-build frontend
 ```
 
-This targeted command leaves API reload and other running services as they are.
+This targeted command leaves the API and other running services as they are.
 Repeat it after frontend edits. `ENV_NAME=development` in the selected env file
 makes the wrapper select `-dev` application image tags. No additional overlay is
 needed for image naming. Do not include the development overlay in this build:
 it deliberately removes the frontend build and runs the Node/Vite image instead.
 
 For a complete compiled dev stack, use the same files with `up -d --build`
-instead of the service-specific commands. This also removes API reload/source
-mounts; backend changes then require rebuilding their images. All application
+instead of the service-specific commands. This also removes backend source mounts;
+backend changes then require rebuilding their images. All application
 images retain the `-dev` tag. MongoDB remains independently deployed.
 
 To return the frontend to live editing, use the same base plus development overlay:

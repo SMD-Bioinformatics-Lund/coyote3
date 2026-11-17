@@ -8,9 +8,10 @@ scripts/quality/run_package_tests.sh api
 uv build --package coyote-server
 ```
 
-Use editable installs and the application's `install.sh watch` command for API
-and worker development. Development Compose profiles enable that reload behavior
-automatically. See [editable development](../../docs/sdk/uv-development.md).
+For fast API and worker iteration, use native editable installs and the application's
+`install.sh watch` command. Docker development mounts backend sources but requires
+explicit service restarts after Python changes; rebuild and recreate services when
+dependencies or image contents change. See [editable development](../../docs/sdk/uv-development.md).
 A normal wheel build must
 include host assets and run outside the checkout without source-path overrides.
 
@@ -21,8 +22,8 @@ Changes affecting clinical behavior also need the shared application regressions
 The root `pyproject.toml` owns the shared server version, dependencies and console
 entry point. The API's `pyproject.toml` owns only its test and coverage settings.
 Update the component `CHANGELOG.md` for API changes. The application release process
-selects and verifies core, server and ingestion wheels, plus the independent Python client
-used by in-container administration commands.
+selects and verifies core, server, Relay, Atlas and Demo wheels. The independent
+Python client is not installed by the application.
 
 ## Test suites and coverage
 

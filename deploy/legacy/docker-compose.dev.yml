@@ -186,7 +186,7 @@ services:
       - ../../README.md:/app/README.md:ro
       - ../../LICENSE.txt:/app/LICENSE.txt:ro
       - ../../NOTICE.txt:/app/NOTICE.txt:ro
-    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001
+    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001
     healthcheck:
       test:
         - CMD-SHELL
@@ -207,7 +207,7 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: worker
     volumes: *dev-app-volumes
-    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service worker coyote-relay-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker coyote-relay-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     depends_on:
       redis:
         condition: service_healthy
@@ -220,7 +220,7 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: worker
     volumes: *dev-app-volumes
-    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
+    command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
     depends_on:
       redis:
         condition: service_healthy
@@ -234,7 +234,7 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: beat
     volumes: *dev-app-volumes
-    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service beat celery -A coyote_api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
+    command: python3 -m coyote_api.infra.observability.run_service beat celery -A coyote_api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     depends_on:
       redis:
         condition: service_healthy
@@ -247,7 +247,7 @@ services:
       <<: *app-environment
       LOG_SERVICE_NAME: monitor
     volumes: *dev-app-volumes
-    command: python3 -m deploy.installer watch -- python3 -m coyote_api.app.monitor
+    command: python3 -m coyote_api.app.monitor
   redis:
     <<: *runtime-defaults
     image: redis:7.4.3

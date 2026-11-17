@@ -26,8 +26,10 @@ The requirements export combines core and server dependencies.
 The ASGI entry point is `coyote_api.app.main:app`.
 
 Production API images install core and the combined API/Mongo server wheel.
-Development images install those projects editable and mount their source trees;
-the installer reloads API and worker processes when backend package sources change.
+Development images install those projects editable and mount their source trees.
+File edits are visible in the container immediately, but API and worker processes
+load Python changes only after an explicit restart. Use the local development
+watcher for automatic reload when running native editable processes.
 Workers consume the same installed packages through their runtime composition.
 
 Software defaults, RBAC catalogs and VEP interpretation policy are core package data.

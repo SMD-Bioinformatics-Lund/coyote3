@@ -8,8 +8,8 @@
   in one server distribution, editable uv development and verified wheel deployments.
 - Keep the Python client outside the application; consume public Coyote Relay from
   an exact Git commit and stage its verified wheel for Docker builds.
-- Automatic backend service reload and frontend hot updates in development,
-  including polling for WSL and container mounts.
+- Local development backend reload and frontend hot updates; Docker backend
+  services use explicit restarts or rebuilds, with source bind mounts for editing.
 - Unified DNA/RNA review, structural variants, coverage, biomarkers, classification
   and annotation workflows.
 - Versioned assay, diagnosis, gene-list and environment configuration; shared or
