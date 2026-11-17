@@ -134,23 +134,22 @@ coyote-relay-submit validation/rna/sample.coyote4.yaml \
   --archive validation/rna/inputs.zip --increment
 ```
 
-Then run the real-browser suite:
+Run the automated real-browser suite in its own disposable local containers:
 
 ```bash
-export COYOTE4_E2E_RELEASE=1
-export COYOTE4_E2E_BASE_URL='https://validation.example.org/coyote4/'
-export COYOTE4_E2E_USERNAME="$COYOTE4_VALIDATION_USER"
-export COYOTE4_E2E_PASSWORD="$COYOTE4_VALIDATION_PASSWORD"
-export COYOTE4_E2E_DNA_SAMPLE='DNA_VALIDATION_001'
-export COYOTE4_E2E_RNA_SAMPLE='RNA_VALIDATION_001'
-npm --prefix frontend run test:e2e:real
+bash install.sh test-browser --output .cache/browser-acceptance-candidate
 ```
 
-For each sample, compare loaded resources, finding counts, enabled tabs,
-filters, report preview, and audit events with the approved validation record.
-Release mode requires all five deployment inputs and trusted HTTPS. It rejects
-skipped scenarios; run the complete suite without filters or test exclusions.
-A skipped authenticated browser test is incomplete evidence, not a pass.
+The runner creates synthetic users and samples, verifies isolation before launching
+browsers, and removes its own containers and data volumes after execution. It
+accepts no existing target URL or database settings. **Browser tests must never run
+against a production database, including through a local tunnel.** Retain the JSON
+results and cleanup record with the candidate's evidence.
+
+For the separate center validation system, compare loaded resources, finding counts,
+enabled tabs, filters, report previews and audit events with the approved validation
+record. Use isolated synthetic data and trusted HTTPS. The disposable suite does not
+replace center approval or verification of the final deployed artifact.
 
 ### Clinical expected-result checks
 

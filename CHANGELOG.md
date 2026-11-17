@@ -2,6 +2,11 @@
 
 ## v4.0.0
 
+- Disposable local browser acceptance with synthetic accounts, isolated databases
+  and automatic cleanup; cover access boundaries, concurrent editing, immutable
+  reports, worker recovery and WGS analysis tables.
+- Let scoped viewers open sample workspaces without editing grants, and expose
+  the Docker demo frontend through its own loopback bridge while keeping databases private.
 - Authenticated resource metadata queries with selected fields, distinct IDs, counts,
   bounded pagination and permission-scoped sample/assay/configuration relationships.
 - FastAPI backend and React interface with shared admin tables, light/dark themes
@@ -43,6 +48,10 @@
   and explicit deployed-release acceptance checks with streamlined documentation.
 - Focus regression tests on behavior and failure handling; replace documentation
   styling and prose assertions with example, contract and deployed-artifact checks.
+- Keep backup and restore archives accessible to the invoking operator by running
+  containerized MongoDB tools with that user's UID/GID; verify recovery and audit integrity.
+- Correct browser fixtures to use Atlas reference data and explicitly select the
+  API documentation resource under test.
 - Parse the report renderer pin from core's reporting extra for deployed browser
   acceptance; align release tests and commands with external Relay/client ownership
   and the scoped resource-read service.

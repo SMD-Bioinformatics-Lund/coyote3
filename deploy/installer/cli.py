@@ -227,6 +227,10 @@ def main(argv: list[str] | None = None) -> int:
             return watch(argv[1:])
         if argv and argv[0] == "dependencies":
             return _dependencies(argv[1:])
+        if argv and argv[0] == "test-browser":
+            from .browser_tests import main as test_browser
+
+            return test_browser(argv[1:])
         if argv and argv[0] in {"center", "data", "demo"}:
             if argv[0] == "center":
                 from .center import main as command
@@ -255,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
             "center": "Stage a reviewed center configuration release",
             "data": "Install or repair selected factory data through an authenticated API",
             "demo": "Prepare and run an isolated Docker or native demonstration",
+            "test-browser": "Run browsers with fresh disposable local containers and synthetic data",
         }.items():
             commands.add_parser(name, help=description)
         args = parser.parse_args(argv)

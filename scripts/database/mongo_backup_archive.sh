@@ -62,13 +62,13 @@ trap cleanup EXIT
 
 echo "[info] creating backup archive: $archive_path"
 
-docker_args=(--rm -v "${OUT_DIR}:/backup")
+docker_args=(--rm --user "$(id -u):$(id -g)" --entrypoint mongodump -v "${OUT_DIR}:/backup")
 if [[ -n "$DOCKER_NETWORK" ]]; then
   docker_args+=(--network "$DOCKER_NETWORK")
 fi
 
 docker run "${docker_args[@]}" mongo:8.2 \
-  mongodump --uri="$MONGO_URI" --archive="/backup/${partial_file}" --gzip --oplog --readPreference=primary
+  --uri="$MONGO_URI" --archive="/backup/${partial_file}" --gzip --oplog --readPreference=primary
 
 gzip -t "$partial_path"
 sha256="$(sha256sum "$partial_path" | awk '{print $1}')"

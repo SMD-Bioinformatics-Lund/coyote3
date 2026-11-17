@@ -9,80 +9,45 @@ import { describe, expect, it, vi } from "vitest"
 import { deploymentSettings, reportPackageVersion, validateReleaseArguments } from "../e2e-real/support/deployment-settings"
 import RequireCompleteAcceptance from "../e2e-real/support/require-complete-acceptance"
 
-const releaseEnvironment = {
-  COYOTE4_E2E_RELEASE: "1",
-  COYOTE4_E2E_BASE_URL: "https://validation.example.test/coyote4",
-  COYOTE4_E2E_USERNAME: "synthetic-reviewer",
-  COYOTE4_E2E_PASSWORD: "synthetic-test-password",
-  COYOTE4_E2E_DNA_SAMPLE: "SYNTHETIC_DNA",
-  COYOTE4_E2E_RNA_SAMPLE: "SYNTHETIC_RNA",
-}
+import { stackState, validateState, type StackState } from "../e2e-real/support/disposable-stack"
 
-describe("deployment acceptance prerequisites", () => {
-  it("preserves the deployment prefix and verifies TLS by default", () => {
-    expect(deploymentSettings(releaseEnvironment)).toEqual({
-      baseURL: "https://validation.example.test/coyote4/",
-      release: true,
-      ignoreHTTPSErrors: false,
-    })
-  })
+const disposable = (): StackState => ({
+  format: 1, project: "coyote4-demo-1234abcd", pid: process.pid, created: Date.now() / 1000,
+  baseURL: "http://127.0.0.1:41833/",
+  databases: { COYOTE4_DB: "coyote4_demo", IDENTITY_DB: "coyote4_demo_identity",
+    KNOWLEDGEBASE_DB: "coyote4_demo_knowledgebase", BAM_DB: "coyote4_demo_bam" },
+  containers: { frontend: "a".repeat(64), "demo-mongo": "b".repeat(64), worker: "c".repeat(64) },
+  username: "synthetic", password: "synthetic", superuser: "synthetic-admin", superuserPassword: "synthetic",
+  reviewPassword: "synthetic", dnaSample: "DEMO_STARTER_DNA", rnaSample: "DEMO_STARTER_RNA",
+})
 
-  it.each(Object.keys(releaseEnvironment).filter(name => name !== "COYOTE4_E2E_RELEASE"))(
-    "rejects a release run missing %s before starting the browser",
-    name => {
-      expect(() => deploymentSettings({ ...releaseEnvironment, [name]: " " })).toThrow(name)
+describe("disposable browser target safety", () => {
+  it("accepts the generated local synthetic target", () => expect(() => validateState(disposable())).not.toThrow())
+  it.each(["https://production.example.test/", "http://10.1.1.1:8000/", "http://localhost:8000/", "http://127.0.0.1:8000/prod/", "http://user:secret@127.0.0.1:8000/"])(
+    "rejects an arbitrary or production browser target", baseURL => {
+      expect(() => validateState({ ...disposable(), baseURL })).toThrow("local disposable")
     },
   )
-
-  it("allows a public smoke run without credentials or clinical samples", () => {
-    expect(deploymentSettings({ COYOTE4_E2E_BASE_URL: "http://localhost/coyote4_dev" })).toEqual({
-      baseURL: "http://localhost/coyote4_dev/", release: false, ignoreHTTPSErrors: false,
-    })
-  })
-
-  it.each(["https://localhost/", "https://127.0.0.1/", "https://[::1]/"])(
-    "allows an explicit self-signed development certificate only at %s",
-    baseURL => expect(deploymentSettings({
-      COYOTE4_E2E_BASE_URL: baseURL, COYOTE4_E2E_ALLOW_SELF_SIGNED: "1",
-    }).ignoreHTTPSErrors).toBe(true),
-  )
-
-  it.each(["http://localhost/", "https://validation.example.test/"])(
-    "rejects certificate bypass for %s",
-    baseURL => expect(() => deploymentSettings({
-      COYOTE4_E2E_BASE_URL: baseURL, COYOTE4_E2E_ALLOW_SELF_SIGNED: "1",
-    })).toThrow("local HTTPS development"),
-  )
-
-  it("never permits a release to bypass certificate validation", () => {
-    expect(() => deploymentSettings({ ...releaseEnvironment,
-      COYOTE4_E2E_BASE_URL: "https://localhost/", COYOTE4_E2E_ALLOW_SELF_SIGNED: "1",
-    })).toThrow("certificate verification")
-  })
-
-  it("requires HTTPS for release acceptance", () => {
-    expect(() => deploymentSettings({ ...releaseEnvironment,
-      COYOTE4_E2E_BASE_URL: "http://validation.example.test/",
-    })).toThrow("HTTPS")
-  })
-
-  it.each(["not-a-url", "file:///tmp/test", "https://name:password@example.test/", "https://example.test/?token=secret", "https://example.test/#fragment"])(
-    "rejects invalid or credential-bearing base URL without echoing its contents",
-    baseURL => {
-      try {
-        deploymentSettings({ COYOTE4_E2E_BASE_URL: baseURL })
-        throw new Error("Expected invalid URL to be rejected")
-      } catch (error) {
-        expect(String(error)).toContain("COYOTE4_E2E_BASE_URL")
-        expect(String(error)).not.toContain(baseURL)
-      }
+  it.each(["COYOTE4_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"])(
+    "rejects an ordinary %s database even on localhost", key => {
+      const state = disposable()
+      state.databases[key] = "coyote4_production"
+      expect(() => validateState(state)).toThrow("never use production")
     },
   )
-
-  it.each(["COYOTE4_E2E_RELEASE", "COYOTE4_E2E_ALLOW_SELF_SIGNED"])(
-    "rejects an ambiguous %s switch",
-    name => expect(() => deploymentSettings({ ...releaseEnvironment, [name]: "true" })).toThrow("0 or 1"),
-  )
+  it("rejects a stale stack proof", () => {
+    expect(() => validateState({ ...disposable(), created: 1 })).toThrow("expired")
+  })
+  it("rejects malformed container identities before invoking Docker", () => {
+    expect(() => validateState({ ...disposable(), containers: { worker: "existing-worker" } })).toThrow("identities")
+  })
+  it("rejects an existing deployment URL even when a proof is supplied", () => {
+    expect(() => stackState({ COYOTE4_E2E_BASE_URL: "http://127.0.0.1:8000/", COYOTE4_E2E_STATE: "unused" }))
+      .toThrow("Existing deployment targets are forbidden")
+  })
+  it("rejects direct invocation without the disposable runner", () => {
+    expect(() => deploymentSettings({})).toThrow("install.sh test-browser")
+  })
 })
 
 describe("report renderer identity", () => {

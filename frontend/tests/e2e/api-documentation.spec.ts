@@ -93,6 +93,9 @@ for (const theme of ["light", "dark"] as const) {
           await expectReadable(operation.getByText("No links", { exact: true }).first())
           await expect(operation.getByRole("button", { name: "Try it out" })).toBeVisible()
         } else {
+          const selector = page.getByRole("combobox", { name: "API resource", exact: true })
+          await selector.selectOption("Authentication")
+          await expect(page.locator("#docs-loading")).toBeHidden()
           const authentication = page.locator("#api-renderer table").filter({ hasText: "When changing data" })
           await expectReadable(authentication.getByRole("columnheader", { name: "Client", exact: true }))
           await expectReadable(authentication.getByRole("cell", { name: "Your Coyote4 session cookie", exact: true }))
@@ -113,7 +116,6 @@ for (const theme of ["light", "dark"] as const) {
           await copy.focus()
           await expect(copy).toBeFocused()
           await page.screenshot({ path: testInfo.outputPath("response-samples.png") })
-          const selector = page.getByRole("combobox", { name: "API resource", exact: true })
           await selector.selectOption("Clinical Samples")
           await expect(selector).toHaveValue("Clinical Samples")
           await expect(page.locator("#docs-loading")).toBeHidden()

@@ -61,7 +61,8 @@ bash install.sh demo \
 The dedicated `deploy/demo/compose.yml` definition builds the
 `demo_source` API target, a MongoDB replica set and the frontend. The separate
 `demo` Docker target accepts verified release artifacts. Compose creates its own Redis,
-internal network and project-scoped volumes. Only the frontend is published, at
+internal database network, a frontend-only bridge and project-scoped volumes.
+Only the frontend is published, at
 `http://127.0.0.1:8089`; MongoDB, Redis and the API have no published ports.
 There are no production overlays, external networks, runtime bind mounts or
 ordinary environment files. The launcher explicitly selects the local Docker

@@ -4,30 +4,13 @@ import { readFile } from "node:fs/promises"
 import type { ReportPreviewPayload } from "../../src/lib/generated"
 import { reportPackageVersion } from "./support/deployment-settings"
 
-const username = process.env.COYOTE4_E2E_USERNAME
-const password = process.env.COYOTE4_E2E_PASSWORD
-const dnaSample = process.env.COYOTE4_E2E_DNA_SAMPLE
-const rnaSample = process.env.COYOTE4_E2E_RNA_SAMPLE
+import { signIn, state } from "./support/session"
+
+const dnaSample = state.dnaSample
+const rnaSample = state.rnaSample
 const expectedReportVersion = reportPackageVersion(
   readFileSync(new URL("../../../core/pyproject.toml", import.meta.url), "utf-8"),
 )
-
-async function signIn(page: import("@playwright/test").Page) {
-  test.skip(!username || !password, "Set controlled deployment smoke credentials.")
-  const providersLoaded = page.waitForResponse(response =>
-    response.url().endsWith("/api/v1/auth/providers") && response.ok(),
-  )
-  await page.goto("login")
-  await providersLoaded
-  const localAccount = page.getByRole("button", { name: "Local Account" })
-  const usernameInput = page.getByLabel("Username")
-  await expect(localAccount.or(usernameInput).first()).toBeVisible()
-  if (await localAccount.isVisible()) await localAccount.click()
-  await usernameInput.fill(username!)
-  await page.getByLabel("Password").fill(password!)
-  await page.getByRole("button", { name: "Sign in" }).click()
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible()
-}
 
 test("authenticated deployment opens dashboard and sample workspace", async ({ page }) => {
   await signIn(page)
@@ -36,7 +19,6 @@ test("authenticated deployment opens dashboard and sample workspace", async ({ p
 })
 
 test("DNA validation sample exposes its configured analysis and report preview", async ({ page }) => {
-  test.skip(!dnaSample, "COYOTE4_E2E_DNA_SAMPLE must name a controlled DNA validation sample.")
   await signIn(page)
   await page.goto(`samples/${encodeURIComponent(dnaSample!)}`)
   await page.getByRole("tab", { name: "Modern", exact: true }).click()
@@ -49,7 +31,6 @@ test("DNA validation sample exposes its configured analysis and report preview",
 })
 
 test("RNA validation sample exposes fusion and configured RNA result tabs", async ({ page }) => {
-  test.skip(!rnaSample, "COYOTE4_E2E_RNA_SAMPLE must name a controlled RNA validation sample.")
   await signIn(page)
   await page.goto(`samples/${encodeURIComponent(rnaSample!)}`)
   await page.getByRole("tab", { name: "Modern", exact: true }).click()
@@ -67,7 +48,6 @@ test("authorized operator can inspect application controls through the proxy", a
 
 for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as const) {
   test(`${analyte} smd-reports previews download without issuing a report`, async ({ page }) => {
-    test.skip(!sampleId, "A controlled synthetic sample is required.")
     await signIn(page)
     const libraryPath = `api/v1/reports?search=${encodeURIComponent(sampleId!)}`
     const savedBefore = await page.request.get(libraryPath)

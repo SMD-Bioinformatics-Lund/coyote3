@@ -4772,7 +4772,9 @@ Sample.edit_context(self) -> 'dict[str, Any]'
 ```
 
 ```text
-Read the sample editing context with sample:edit:own and current sample scope.
+Read workspace context with sample:view and current assay/environment scope.
+
+Reading the workspace does not grant any of its separate mutation permissions.
 ```
 
 #### `Sample.effective_genes`

@@ -118,10 +118,10 @@ def test_compose_invocation_cannot_use_ambient_env_context_or_overlays(tmp_path,
 
 def test_compose_has_only_project_scoped_resources_and_loopback_exposure():
     compose = yaml.safe_load((demo.ROOT / "deploy/demo/compose.yml").read_text())
-    assert compose["networks"] == {"demo": {"internal": True}}
+    assert compose["networks"] == {"demo": {"internal": True}, "browser": {}}
     assert all(value is None for value in compose["volumes"].values())
     for name, service in compose["services"].items():
-        assert service["networks"] == ["demo"]
+        assert service["networks"] == (["demo", "browser"] if name == "frontend" else ["demo"])
         assert "env_file" not in service
         assert "network_mode" not in service
         assert "extra_hosts" not in service

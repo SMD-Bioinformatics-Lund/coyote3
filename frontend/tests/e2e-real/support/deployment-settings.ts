@@ -5,44 +5,12 @@ import { execFileSync } from "node:child_process"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-type Environment = Record<string, string | undefined>
+import { stackState } from "./disposable-stack"
 
-function enabled(environment: Environment, name: string): boolean {
-  const value = environment[name]
-  if (value !== undefined && value !== "0" && value !== "1") {
-    throw new Error(`${name} must be 0 or 1.`)
-  }
-  return value === "1"
-}
-
-/** Validate deployment inputs before any browser or HTTP request is started. */
-export function deploymentSettings(environment: Environment) {
-  const release = enabled(environment, "COYOTE4_E2E_RELEASE")
-  const allowSelfSigned = enabled(environment, "COYOTE4_E2E_ALLOW_SELF_SIGNED")
-  const required = ["COYOTE4_E2E_BASE_URL", ...(release ? [
-    "COYOTE4_E2E_USERNAME", "COYOTE4_E2E_PASSWORD",
-    "COYOTE4_E2E_DNA_SAMPLE", "COYOTE4_E2E_RNA_SAMPLE",
-  ] : [])]
-  const missing = required.filter(name => !environment[name]?.trim())
-  if (missing.length) throw new Error(`Required deployment test settings: ${missing.join(", ")}.`)
-
-  let url: URL
-  try {
-    url = new URL(environment.COYOTE4_E2E_BASE_URL!)
-  } catch {
-    throw new Error("COYOTE4_E2E_BASE_URL must be an absolute HTTP or HTTPS URL.")
-  }
-  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
-    throw new Error("COYOTE4_E2E_BASE_URL must use HTTP/HTTPS without credentials, query or fragment.")
-  }
-  if (release && (url.protocol !== "https:" || allowSelfSigned)) {
-    throw new Error("Release acceptance requires HTTPS with certificate verification enabled.")
-  }
-  if (allowSelfSigned && (url.protocol !== "https:" || !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) {
-    throw new Error("Self-signed certificate bypass is permitted only for local HTTPS development.")
-  }
-  if (!url.pathname.endsWith("/")) url.pathname += "/"
-  return { baseURL: url.href, release, ignoreHTTPSErrors: allowSelfSigned }
+/** Resolve the newly created local stack before any browser or HTTP request. */
+export function deploymentSettings(environment: NodeJS.ProcessEnv) {
+  const state = stackState(environment)
+  return { baseURL: state.baseURL, release: true, ignoreHTTPSErrors: false }
 }
 
 /** Keep release acceptance complete; selection and reporter overrides cannot be used. */

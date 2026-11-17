@@ -116,6 +116,10 @@ Run affected component suites for substantive changes. The comprehensive local
 release checks are documented in `docs/testing/test-strategy-and-quality-gates.md`.
 GitHub CI runs smoke checks; a green CI result is not clinical release acceptance.
 Keep real-database tests opt-in and restricted to explicitly disposable targets.
+Run real-service browser tests through `bash install.sh test-browser`, which creates
+and removes its own local container stack with synthetic data. Never run browser
+tests against production databases, existing deployments or forwarded database
+ports. Do not bypass the runner's target, storage or container-ownership checks.
 
 ## Repository hygiene and documentation
 

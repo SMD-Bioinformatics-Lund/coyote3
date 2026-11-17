@@ -182,10 +182,10 @@ def sample_bam_files_read(
 @router.get("/api/v1/samples/{sample_id}/edit-context", response_model=HomeEditContextPayload)
 def sample_edit_context_read(
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="sample:edit:own")),
+    user: ApiUser = Depends(require_access(permission="sample:view")),
     service: Sample = Depends(get_sample),
 ):
-    """Return edit context for a sample."""
+    """Return sample workspace context; mutations require their own permissions."""
     return convert_to_serializable(service.edit_context())
 
 

@@ -2,6 +2,7 @@
 
 ## v4.0.0
 
+- Allow scoped viewers to read sample workspace context without granting editing permissions.
 - Add database-independent resource reads with strict typed filters, fresh permissions,
   paired assay/environment grants and authorization of related metadata queries.
 - Own reusable manifest, metadata and retrieval models in core alongside clinical

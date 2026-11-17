@@ -2,6 +2,7 @@
 
 ## v1.0.0
 
+- Authorize sample workspace reads with sample viewing permission; keep mutation guards separate.
 - Expose read-only named-resource queries for metadata, IDs, counts, existence and
   distinct values, including bounded sample relation filters and documented limits.
 - Report only installed application components on the About page; the external

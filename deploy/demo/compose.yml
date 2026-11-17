@@ -150,13 +150,16 @@ services:
       - source: demo-frontend
         target: /etc/nginx/conf.d/default.conf
     ports: ['127.0.0.1:${COYOTE_DEMO_PORT:?}:3000']
-    networks: [demo]
+    networks: [demo, browser]
     depends_on:
       api: {condition: service_healthy}
 
 networks:
   demo:
     internal: true
+  # An internal-only network has no published host ports on current Docker engines.
+  # Only the frontend joins this bridge; all databases remain on the internal network.
+  browser: {}
 
 volumes:
   demo-data:

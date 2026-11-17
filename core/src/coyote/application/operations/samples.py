@@ -323,10 +323,13 @@ class Sample:
         )
 
     def edit_context(self) -> dict[str, Any]:
-        """Read the sample editing context with sample:edit:own and current sample scope."""
+        """Read workspace context with sample:view and current assay/environment scope.
+
+        Reading the workspace does not grant any of its separate mutation permissions.
+        """
         return self._runtime.execute(
             "sample.edit_context",
-            ("sample:edit:own",),
+            ("sample:view",),
             lambda actor, record: dict(
                 self._services.catalog().edit_context_payload(sample=_sample(record))
             ),

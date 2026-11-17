@@ -2,9 +2,9 @@
 
 This procedure verifies the user-visible behavior that unit and API tests cannot
 fully establish: browser rendering, routing, asynchronous state, persisted data,
-and generated clinical artifacts. Run it against a disposable development or
-staging deployment populated only with approved synthetic or de-identified test
-data.
+and generated clinical artifacts. Automated browser tests use synthetic fixtures
+or newly created local containers. They must never target a production database
+or an existing deployment, even when the submitted records are synthetic.
 
 ## Validation Boundary
 
@@ -25,9 +25,8 @@ and the actual request lifecycle.
 > **Caution: Clinical safety**
 >
 >
-> Do not use production patient data for browser or release validation.
-> Validate report text and PDF structure with approved synthetic fixtures or
-> formally de-identified cases only.
+> Do not use production databases or patient data for automated browser validation.
+> Validate report text and PDF structure with approved synthetic fixtures.
 >
 
 ## Automated Release Gate
@@ -58,7 +57,7 @@ Run the additional database checks explicitly when needed:
 This requires a local `mongod` executable and uses newly created temporary
 replicas, including authentication checks. It does not reuse a deployment
 database. See [database quality gates](test-strategy-and-quality-gates.md#unified-quality-gate)
-for the manual CI option. The real-deployment checks below are also on demand.
+for the manual CI option. The disposable-container checks below are also on demand.
 
 ### Browser Route Checks
 
@@ -75,6 +74,9 @@ from competing with too many browser processes on a development workstation.
 It does not change test assertions or timeouts.
 
 The suite uses API fixtures for repeatable rendering and error-state tests. It
+starts its own frontend on a fixed local port, refuses to reuse an existing
+server and overrides the backend proxy with a loopback dead end. Unmatched API
+requests cannot fall through to an ambient deployment configuration. It
 does not replace deployment validation or clinical test data checks. Run it as
 part of local release validation; the GitHub `quality` workflow runs smoke checks
 without installing browsers or running this suite.
@@ -91,61 +93,62 @@ assertion already owned by Vitest. Playwright owns behavior that depends on the
 browser runtime: routing, URL state, navigation between pages, deferred network
 requests, form submission across real React providers, and module guards.
 
-### Running Against A Deployment
+### Running With Disposable Containers
 
-The real-deployment suite does not intercept API requests. It validates the
-deployed reverse proxy, `SCRIPT_NAME` prefix, public routes, and optionally an
-authenticated account against the running services:
+The real-service suite runs only on a fresh local Docker stack with synthetic
+Demo records. **Never point browser tests at production, an existing deployment,
+or a database reached through a tunnel.** The runner accepts no target URL,
+database URI, credentials or existing project name.
 
-```bash
-cd frontend
-COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
-  npm run test:e2e:real
-```
-
-For release promotion, set `COYOTE4_E2E_RELEASE=1` and run
-`cd frontend && npm run test:e2e:real`. All five env vars (`COYOTE4_E2E_BASE_URL`, `COYOTE4_E2E_USERNAME`,
-`COYOTE4_E2E_PASSWORD`, `COYOTE4_E2E_DNA_SAMPLE`, `COYOTE4_E2E_RNA_SAMPLE`) must be
-exported before running. Release mode rejects missing inputs before starting a
-browser and requires trusted HTTPS. It rejects test-name/file filters, project
-selection, shards, listing and reporter overrides, and fails if any scenario is
-skipped, unfinished, marked as an expected failure or passes only after a retry.
-Focused `test.only` declarations also fail. Execution controls such as `--workers`,
-`--timeout`, `--output` and `--trace` remain available. Run the complete suite for
-promotion; use non-release mode for selective diagnosis. Deployment acceptance checks are maintained in
-[Target-center acceptance](../deployment/acceptance-checklist.md).
-
-Certificate verification is enabled for every real-deployment run. For local
-HTTPS development with a self-signed certificate, explicitly set
-`COYOTE4_E2E_ALLOW_SELF_SIGNED=1`; this is accepted only for `localhost`,
-`127.0.0.1` or `::1`, and never in release mode. Install a trusted certificate
-for remote validation targets.
-
-The report checks use the current HTML/PDF preview controls and compare the
-renderer metadata with the dependency selected by `core/pyproject.toml` in the
-release checkout. The reader parses its `reporting` extra with Python's TOML
-parser, using the workspace `.venv/bin/python` by default. Set `PYTHON_BIN` to an
-absolute Python 3.12+ executable path when running from a different environment;
-the reader needs only the standard library. HTML downloads must match the preview
-response exactly, and
-preview/download actions must leave the saved-report library unchanged.
-
-Record the execution date, target environment, test-account scope, and evidence
-with each release candidate. This repository provides the procedure and test
-suite; deployment evidence is intentionally retained outside source control.
+From the repository root, after installing the workspace development dependencies,
+frontend dependencies and Playwright Chromium:
 
 ```bash
-# Include the authenticated dashboard and sample-workspace smoke test.
-COYOTE4_E2E_BASE_URL=https://localhost/coyote4_dev/ \
-COYOTE4_E2E_USERNAME=coyote4.user \
-COYOTE4_E2E_PASSWORD='<controlled-test-password>' \
-  npm run test:e2e:real
+bash install.sh test-browser
+# Optionally retain evidence under a chosen new directory in this checkout:
+bash install.sh test-browser --output .cache/browser-acceptance-candidate
 ```
 
-`COYOTE4_E2E_BASE_URL` must include the deployment prefix. Relative navigation
-is used deliberately so browser requests remain below that prefix. The
-authenticated smoke test is skipped when credentials are absent outside release mode. Credentials
-must come from the shell or CI secret store and must never be committed.
+The command builds the current server and frontend, starts authenticated MongoDB,
+Redis, API, ingestion and maintenance workers, and the synthetic bootstrap. Each
+run receives independent credentials, a random project name and new data volumes.
+MongoDB and Redis have no published ports and stay on an internal network. Only
+the frontend joins a separate bridge and publishes a loopback browser port.
+Ordinary environment files, Docker contexts and Compose overrides are not used.
+The application database credentials are restricted to the four demo databases.
+
+Before starting browsers, configuration and runtime checks verify the database
+names, storage ownership, Docker project labels and frontend port binding. The
+Playwright configuration requires the live runner's private state file and rejects
+arbitrary deployment URLs. `npm run test:e2e:real` is the runner's internal command;
+invoke `install.sh test-browser` to create its required disposable target.
+
+The suite exercises real HTTP requests without API interception:
+
+- Anonymous and scoped access, assay/environment separation, CSRF enforcement and
+  server-side session invalidation.
+- DNA and RNA workspaces, WGS uploads with populated CNV/translocation/SNV tables,
+  persistent sanitized comments and concurrent editing.
+- HTML/PDF previews without report creation, cancellation, stale-preview rejection,
+  reviewed report saving and immutable saved artifacts with finding snapshots.
+- Queued ingestion while its worker is stopped, recovery after restart, and invalid
+  uploads that fail visibly without creating a partial sample.
+- Public catalog, gene matrix, API documentation and application controls.
+
+Every collected scenario must pass. Skipped or unfinished scenarios, expected
+failures, retries masking a failure and focused tests fail acceptance. The runner
+retains `browser-results.json`, `run.json`, redacted service logs and failure traces
+in its evidence directory. These may include synthetic credentials in browser
+traces; keep the directory private and outside Git. Generated credential files are
+removed, and the runner removes only its own containers, networks and data volumes,
+including after test failures. `run.json` records the cleanup result.
+
+Report checks compare renderer metadata with the pin in
+`core/pyproject.toml`. The workspace Python reads that TOML declaration. This suite
+uses the normal application build with the isolated Demo package and local HTTP;
+trusted HTTPS, center configuration, final release-artifact identity and clinical
+expected results remain separate acceptance checks on isolated validation systems.
+They must never use production databases.
 
 ### Composed Stack Acceptance Check
 

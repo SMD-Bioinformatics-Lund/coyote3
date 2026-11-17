@@ -7,13 +7,14 @@ if (settings.release && process.argv[2] === "test") validateReleaseArguments(pro
 
 export default defineConfig({
   testDir: "./tests/e2e-real",
-  timeout: 45_000,
+  timeout: 60_000,
+  globalSetup: "./tests/e2e-real/support/setup.ts",
   expect: { timeout: 10_000 },
   fullyParallel: false,
   forbidOnly: settings.release,
   failOnFlakyTests: settings.release,
   reporter: settings.release
-    ? [["line"], ["./tests/e2e-real/support/require-complete-acceptance.ts"]]
+    ? [["line"], ["json"], ["./tests/e2e-real/support/require-complete-acceptance.ts"]]
     : "line",
   use: {
     baseURL: settings.baseURL,

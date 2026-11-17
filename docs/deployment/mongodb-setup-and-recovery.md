@@ -239,6 +239,11 @@ For the optional Docker MongoDB deployment, pass the dedicated network. For a
 host-installed or externally managed MongoDB, omit `--docker-network`; the
 tools container must be able to resolve and reach the host in `MONGO_BACKUP_URI`.
 
+Backup and restore tools run with the invoking user's UID/GID. That user must have
+write access to the backup directory and read access to an archive being restored.
+Private directories and owner-only archives are supported; no container-specific
+ownership change is needed.
+
 ```bash
 bash scripts/database/mongo_backup_archive.sh \
   --mongo-uri "$MONGO_BACKUP_URI" \

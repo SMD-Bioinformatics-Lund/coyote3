@@ -4,11 +4,11 @@ import { gunzipSync } from "node:zlib"
 import { installApiFixtures } from "./support/api-fixtures"
 import type { VepReference } from "../../src/pages/static/VepReferencePage"
 
-const referenceDirectory = new URL("../../../api/src/coyote_api/bootstrap/catalogs/reference/", import.meta.url)
+const referenceDirectory = new URL("../../../services/atlas/src/coyote_atlas/data/reference/", import.meta.url)
 const references: VepReference[] = gunzipSync(readFileSync(new URL("vep_metadata.seed.ndjson.gz", referenceDirectory))).toString().trim().split("\n").map(line => JSON.parse(line) as VepReference)
 
 for (const width of [1440, 390]) {
-  test(`VEP references and diagrams fit ${width}px`, async ({ page }) => {
+  test(`VEP references and diagrams fit ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     await installApiFixtures(page, path => {
       if (path === "/api/v1/auth/whoami") return { status: 401, json: { detail: "Not authenticated" } }
@@ -30,7 +30,7 @@ for (const width of [1440, 390]) {
     await expect(image).toBeVisible()
     await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
     await expect(page.getByLabel("VEP release")).toHaveValue("116")
-    await page.screenshot({ path: `/tmp/coyote4-vep-${width}.png`, fullPage: true })
+    await page.screenshot({ path: testInfo.outputPath("vep-reference.png"), fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
     await page.getByLabel("Search VEP terms").fill("SO:0001583")
     await expect(page.getByRole("link", { name: "SO:0001583", exact: true })).toBeVisible()

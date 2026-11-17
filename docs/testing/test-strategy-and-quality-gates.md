@@ -94,8 +94,8 @@ npm --prefix frontend run test:e2e
 ```
 
 Vitest covers state, formatting and component behavior. Playwright covers user flows
-with controlled API fixtures. Use the separate real-deployment browser configuration
-only with an explicitly isolated acceptance environment. See
+with controlled API fixtures. Run `bash install.sh test-browser` for real-service
+checks; it creates a new isolated container environment with synthetic data. See
 [browser and release validation](browser-and-release-validation.md).
 
 ## Unified quality gate
@@ -131,6 +131,11 @@ With `mongod` installed, the explicit runner creates disposable loopback-only re
 It supplies test settings and terminates its child processes afterwards. These tests
 cover transaction and authenticated runtime-permission behavior that an in-memory
 store cannot prove. They are not part of GitHub CI. Never point them at production.
+The archive-recovery case also requires a local Unix Docker socket and a cached
+`mongo:8.2` tools image. It uses two additional disposable replicas, a private
+archive directory and host networking on Linux/WSL; it does not pull images. It
+checks restored documents, indexes and audit-chain integrity. Proxy cases use the
+cached `nginx:1.27-alpine` image and loopback ports.
 Check skipped tests in release evidence and explain whether their required environment
 was available. See [deployment acceptance](browser-and-release-validation.md) for
 real service and report checks.

@@ -81,12 +81,12 @@ echo "[warn] archive=${ARCHIVE_PATH}"
 echo "[warn] this restores the complete MongoDB archive, including the oplog. Use a dedicated recovery target."
 echo "[info] starting restore"
 
-docker_args=(--rm -v "${ARCHIVE_DIR}:/backup:ro")
+docker_args=(--rm --user "$(id -u):$(id -g)" --entrypoint mongorestore -v "${ARCHIVE_DIR}:/backup:ro")
 if [[ -n "$DOCKER_NETWORK" ]]; then
   docker_args+=(--network "$DOCKER_NETWORK")
 fi
 
 docker run "${docker_args[@]}" mongo:8.2 \
-  mongorestore --uri="$MONGO_URI" --archive="/backup/${ARCHIVE_FILE}" --gzip --oplogReplay ${drop_opt}
+  --uri="$MONGO_URI" --archive="/backup/${ARCHIVE_FILE}" --gzip --oplogReplay ${drop_opt}
 
 echo "[ok] restore complete"
