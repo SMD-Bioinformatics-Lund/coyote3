@@ -8,6 +8,8 @@
   in one server distribution, editable uv development and verified wheel deployments.
 - Prepare the Python client for a standalone repository with self-contained guides,
   isolated artifact tests, package lint settings and a minimal smoke/build workflow.
+- Automatic backend service reload and frontend hot updates in development,
+  including polling for WSL and container mounts.
 - Unified DNA/RNA review, structural variants, coverage, biomarkers, classification
   and annotation workflows.
 - Versioned assay, diagnosis, gene-list and environment configuration; shared or

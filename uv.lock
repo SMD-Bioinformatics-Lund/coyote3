@@ -847,6 +847,7 @@ dev = [
     { name = "setuptools" },
     { name = "shellcheck-py" },
     { name = "types-python-dateutil" },
+    { name = "watchdog", extra = ["watchmedo"] },
     { name = "wheel" },
 ]
 docs = [
@@ -863,6 +864,9 @@ test = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
+]
+watch = [
+    { name = "watchdog", extra = ["watchmedo"] },
 ]
 
 [package.metadata]
@@ -922,6 +926,7 @@ dev = [
     { name = "setuptools", specifier = "==84.2.1" },
     { name = "shellcheck-py", specifier = "==0.11.0.1" },
     { name = "types-python-dateutil", specifier = "==2.9.0.20260408" },
+    { name = "watchdog", extras = ["watchmedo"], specifier = "==7.1.0" },
     { name = "wheel", specifier = "==0.48.0" },
 ]
 docs = [{ name = "mkdocs", specifier = "==1.6.1" }]
@@ -935,6 +940,7 @@ test = [
     { name = "pytest-cov", specifier = "==7.1.0" },
     { name = "pytest-mock", specifier = "==3.15.1" },
 ]
+watch = [{ name = "watchdog", extras = ["watchmedo"], specifier = "==7.1.0" }]
 
 [[package]]
 name = "cssselect2"
@@ -3037,6 +3043,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/bc/c04fbb2d6366afb0850e39c6d848f2d38066ff6dadccc886b3cb12c39e32/watchdog-7.1.0-py3-none-win_amd64.whl", hash = "sha256:16a5ba8694587cdbeae4ab8e6434cece994f9cce4e5bab03e61e6d1a0a93a643", size = 103260, upload_time = "2026-11-05T09:33:17.687Z" },
     { url = "https://files.pythonhosted.org/packages/92/9c/5a39ec8880c08e50f75d90f4e0e27b95dc91a04deb5e6e04871dd4b7e006/watchdog-7.1.0-py3-none-win_arm64.whl", hash = "sha256:5ed4b94365c53ffd51d88e47ca48d6afae02fb1bd849175a9a10927a2fbfb932", size = 103260, upload_time = "2026-11-05T09:33:18.987Z" },
     { url = "https://files.pythonhosted.org/packages/c0/aa/7a7210433e000f2491ddec7756d312009b0a47847e5c3457ccb03852cfdf/watchdog-7.1.0-py3-none-win_ia64.whl", hash = "sha256:0cfc5a6b3d4e76fc3e18fd371ee79d57945004da4105b589f71bb16966fd3e67", size = 103256, upload_time = "2026-11-05T09:33:20.159Z" },
+]
+
+[package.optional-dependencies]
+watchmedo = [
+    { name = "pyyaml" },
 ]
 
 [[package]]

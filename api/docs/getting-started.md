@@ -10,12 +10,12 @@ For repository development:
 
 ```bash
 uv sync --all-packages --group dev --group test --group docs
-uv run --package coyote-server uvicorn coyote_api.app.main:app \
-  --host 127.0.0.1 --port 8001 --reload \
-  --reload-dir core/src --reload-dir api/src --reload-dir adapters/mongo/src
+./install.sh watch --env-file .coyote4_dev_env -- \
+  .venv/bin/python -m uvicorn coyote_api.app.main:app --host 127.0.0.1 --port 8001
 ```
 
 Configure the [runtime settings](configuration.md) before starting the process.
+The development file must select `ENV_NAME=dev` or `development`.
 Starting the server requires the configured services; installing the package
 does not provision MongoDB, Redis, users or a center profile.
 

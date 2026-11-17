@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import sys
 import tomllib
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -63,6 +64,43 @@ def _declared(values: list[str]) -> set[str]:
         Unique declarations normalized for comparison with requirements exports.
     """
     return {_normalize(value) for value in values}
+
+
+def group_requirements(
+    groups: Mapping[str, Sequence[object]], name: str, ancestors: tuple[str, ...] = ()
+) -> list[str]:
+    """Resolve included development groups before comparing their requirements exports.
+
+    Args:
+        groups: Dependency groups declared in pyproject.toml.
+        name: Group to expand.
+        ancestors: Groups already being expanded, used to reject include cycles.
+
+    Returns:
+        Requirement strings from the group and its included groups.
+
+    Raises:
+        ValueError: A group is missing, contains an unsupported item or includes a cycle.
+    """
+    if name not in groups:
+        raise ValueError(f"Unknown dependency group: {name}")
+    if name in ancestors:
+        raise ValueError(f"Cyclic dependency group: {' -> '.join((*ancestors, name))}")
+    requirements = []
+    for value in groups[name]:
+        if isinstance(value, str):
+            requirements.append(value)
+        elif (
+            isinstance(value, dict)
+            and set(value) == {"include-group"}
+            and isinstance(value["include-group"], str)
+        ):
+            requirements.extend(
+                group_requirements(groups, value["include-group"], (*ancestors, name))
+            )
+        else:
+            raise ValueError(f"Invalid dependency declaration in group {name}")
+    return requirements
 
 
 def _check(label: str, expected: set[str], actual: set[str]) -> list[str]:
@@ -122,21 +160,21 @@ def main() -> int:
     errors.extend(
         _check(
             "requirements-dev.txt",
-            _declared([*optional["dev"], *optional["test"]]),
+            _declared(group_requirements(optional, "dev") + group_requirements(optional, "test")),
             _read_requirements(ROOT / "requirements-dev.txt"),
         )
     )
     errors.extend(
         _check(
             "requirements-docs.txt",
-            _declared(optional["docs"]),
+            _declared(group_requirements(optional, "docs")),
             _read_requirements(ROOT / "requirements-docs.txt"),
         )
     )
     errors.extend(
         _check(
             "requirements-load.txt",
-            _declared(optional["load"]),
+            _declared(group_requirements(optional, "load")),
             _read_requirements(ROOT / "requirements-load.txt"),
         )
     )

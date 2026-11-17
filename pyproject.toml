@@ -77,7 +77,9 @@ coyote_api = ["py.typed", "app/templates/*", "config/*.toml", "config/assets/*",
 coyote_mongo = ["py.typed", "config/*.toml"]
 
 [dependency-groups]
+watch = ["watchdog[watchmedo]==7.1.0"]
 dev = [
+    {include-group = "watch"},
     "pip==26.2.1",
     "setuptools==84.2.1",
     "wheel==0.48.0",

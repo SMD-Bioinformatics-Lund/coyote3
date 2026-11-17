@@ -8,8 +8,10 @@ scripts/quality/run_package_tests.sh api
 uv build --package coyote-server
 ```
 
-Use editable installs for Python work and reload the API after changes. Restart
-workers separately when their imported code changes. A normal wheel build must
+Use editable installs and the application's `install.sh watch` command for API
+and worker development. Development Compose profiles enable that reload behavior
+automatically. See [editable development](../../docs/sdk/uv-development.md).
+A normal wheel build must
 include host assets and run outside the checkout without source-path overrides.
 
 Keep routes focused on transport and delegation. Changes to authentication,

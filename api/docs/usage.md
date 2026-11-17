@@ -12,7 +12,8 @@ MongoDB adapter.
 Maintenance workers and beat use `coyote_api.celery_app`. Ingestion workers use
 `coyote_relay.celery_app` from the separately installed ingestion service. API and
 workers must use the tested core/server/ingestion combination and compatible
-configuration. Uvicorn reload does not restart separate workers.
+configuration. The development installer watches each backend process separately;
+direct worker commands require a restart after editing their imported code.
 
 Report endpoints prepare JSON through core operations and render it with
 `smd-reports`. Previewing and downloading are distinct from finalizing a report.

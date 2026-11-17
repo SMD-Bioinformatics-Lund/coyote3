@@ -21,17 +21,18 @@ dependency combination while loading Python edits from the checkout.
 
 For API development, also install `requirements-dev.txt`, which includes the
 production dependency export. Each project's `pyproject.toml` owns its runtime
-dependencies. The root virtual workspace owns shared development groups.
-The requirements export combines the core, adapter and API dependencies.
+dependencies. The root server project owns shared workspace development groups.
+The requirements export combines core and server dependencies.
 The ASGI entry point is `coyote_api.app.main:app`.
 
-Production API images install the separate core, adapter and API wheels.
+Production API images install core and the combined API/Mongo server wheel.
 Development images install those projects editable and mount their source trees;
-the API reloads when core, API or adapter Python code changes. Workers consume
-the same installed packages through their runtime composition.
+the installer reloads API and worker processes when backend package sources change.
+Workers consume the same installed packages through their runtime composition.
 
-Software defaults are core package data; report templates belong to `smd-reports`. Installation catalogs
-and demo data belong to the API wheel. The API host owns
+Software defaults, RBAC catalogs and VEP interpretation policy are core package data.
+Report templates belong to `smd-reports`. The server packages deployment seeds and
+center examples; Coyote Demo packages synthetic datasets. The API host owns
 environment discovery and selects external center configuration before importing
 contracts. Standalone library hosts explicitly supply `CenterConfiguration`;
 see [getting started](getting-started.md). Library imports do not read deployment

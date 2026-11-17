@@ -35,10 +35,8 @@ in their documented separate environment.
 ## Edit and run
 
 ```bash
-uv run --package coyote-server uvicorn coyote_api.app.main:app \
-  --host 127.0.0.1 --port 8001 --reload \
-  --reload-dir core/src --reload-dir api/src --reload-dir adapters/mongo/src \
-  --reload-dir services/relay/src --reload-dir services/atlas/src
+./install.sh watch --env-file .coyote4_dev_env -- \
+  .venv/bin/python -m uvicorn coyote_api.app.main:app --host 127.0.0.1 --port 8001
 ```
 
 Supply the existing environment configuration before starting the API. This
@@ -47,25 +45,51 @@ Demo remains disabled in this workspace unless explicitly enabled against its
 isolated targets; follow the [demo guide](../deployment/demo-installation.md) to
 run it, including its guarded worker entry point.
 
-Changes to core, adapter and API Python files are loaded when Uvicorn restarts
-the process. Do not rebuild wheels for ordinary Python edits. Restart workers
-after changing imported code; Celery does not inherit Uvicorn's reload behavior.
-Run `uv sync` again after changing dependencies, versions or entry points.
+The environment file must select `ENV_NAME=dev` or `development` and use
+host-reachable endpoints. The installer watches all editable backend package
+sources, including core, API, Mongo, client, Relay, Atlas and Demo sources that are
+present. Python and packaged configuration/template changes restart the process.
+It uses polling for WSL/container mounts and debounces consecutive edits.
+Do not combine it with Uvicorn's separate `--reload` supervisor.
 
 Start an ingestion worker with the same reviewed host configuration:
 
 ```bash
-uv run --package coyote-relay --extra worker coyote-relay-worker --loglevel INFO
+./install.sh watch --env-file .coyote4_dev_env -- \
+  .venv/bin/coyote-relay-worker --loglevel INFO
 ```
 
-Restart this process after editing `services/relay/src` or its core dependencies.
+The same wrapper supports maintenance workers, beat and other long-running backend
+commands. Reload sends SIGTERM, waits up to 30 seconds for shutdown, then terminates
+remaining child processes before restarting. Use it only with development jobs.
 Submission commands use the base package and do not need database credentials.
+For an additional editable checkout, repeat `--directory PATH` before `--`.
 
 Frontend development remains separate:
 
 ```bash
 npm --prefix frontend run dev
 ```
+
+Vite refreshes React components, CSS and imported assets. For Windows editors writing
+through WSL mounts, set `CHOKIDAR_USEPOLLING=true` in that terminal.
+
+The installer selects this behavior automatically for Docker development deployments:
+
+```bash
+./install.sh compose --env-file .coyote4_dev_env --environment dev up -d --build
+```
+
+Both modern and legacy development definitions mount the backend package sources and
+watch API, ingestion/maintenance workers, beat and monitor processes. The frontend
+runs Vite with polling. Production, staging and test profiles use ordinary processes.
+An explicit `--compose-file` selection replaces profile defaults; include the development
+definition when overriding the file list.
+
+Run `uv sync` again after changing dependencies, versions or entry points; rebuild
+development images for those changes. Environment files, center configuration and
+Compose definitions require an explicit service restart or recreation. Ordinary
+source and CSS edits need no wheel or image rebuild.
 
 ## Run tests
 

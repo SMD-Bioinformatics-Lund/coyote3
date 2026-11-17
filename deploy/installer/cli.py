@@ -19,6 +19,7 @@ from .config import (
     read_environment,
     validate_secrets,
 )
+from .development import main as watch
 from .process import Console, Runner
 from .workflow import Installer, Options
 
@@ -206,6 +207,8 @@ def main(argv: list[str] | None = None) -> int:
             return _compose(argv[1:])
         if argv and argv[0] == "check":
             return _check(argv[1:])
+        if argv and argv[0] == "watch":
+            return watch(argv[1:])
         if argv and argv[0] in {"center", "data", "demo"}:
             if argv[0] == "center":
                 from .center import main as command
@@ -229,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         for name, description in {
             "compose": "Run versioned Compose lifecycle commands",
             "check": "Check environment secrets locally",
+            "watch": "Reload an editable backend service in development",
             "center": "Stage a reviewed center configuration release",
             "data": "Install or repair selected factory data through an authenticated API",
             "demo": "Prepare and run an isolated Docker or native demonstration",

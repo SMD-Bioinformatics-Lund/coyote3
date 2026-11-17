@@ -76,6 +76,10 @@ export default defineConfig({
     },
   },
   server: {
+    strictPort: true,
+    watch: {
+      usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
+    },
     allowedHosts: [
       ...(publicHostname ? [publicHostname] : []),
       'frontend',

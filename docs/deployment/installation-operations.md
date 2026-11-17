@@ -7,7 +7,7 @@ and does not build, start or recreate services.
 ## Entry point and profiles
 
 Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `compose`,
-`check`, `center`, `data` and `demo` share this entry point; implementation modules
+`check`, `center`, `data`, `demo` and `watch` share this entry point; implementation modules
 live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
 `PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
 Ordinary Docker installation needs no server packages installed on the host.
@@ -27,6 +27,11 @@ explicit process-environment override. Use `--legacy` for the maintained older-h
 Compose definitions. `--overlay FILE` appends an overlay; repeated
 `--compose-file FILE` options replace the default file selection entirely.
 Keep the same environment file, project name and ordered overlays for every operation.
+
+Development profiles automatically reload mounted backend package sources and use
+Vite hot updates for frontend/CSS edits. Native development uses
+`install.sh watch --env-file FILE -- COMMAND`; it rejects other environments.
+See [editable development](../sdk/uv-development.md) for commands and restart behavior.
 
 These deployment names are independent of the sample's clinical profile.
 Samples use `production`, `development`, `testing` or `validation`; the installer

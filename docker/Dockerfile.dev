@@ -57,6 +57,8 @@ COPY services/atlas/ ./services/atlas/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY release.toml ./
 RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/relay -e services/atlas
+# Read the dedicated group directly so older base-image pip versions also work.
+RUN python -c 'import subprocess, sys, tomllib; group = tomllib.load(open("pyproject.toml", "rb"))["dependency-groups"]["watch"]; subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", *group])'
 
 USER coyote4:coyote4
 

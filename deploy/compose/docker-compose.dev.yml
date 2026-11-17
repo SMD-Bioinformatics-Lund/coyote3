@@ -19,7 +19,6 @@ services:
       IGV_DATA_ROOT: ${IGV_DATA_ROOT:-}
       COYOTE4_API_INTERNAL_URL: http://api:8001
       CHOKIDAR_USEPOLLING: "true"
-      WATCHPACK_POLLING: "true"
     volumes:
       - ../../frontend:/app
       - ../../release.toml:/release.toml:ro
@@ -45,6 +44,8 @@ services:
       - ../../core:/app/core
       - ../../clients/python:/app/clients/python
       - ../../services/relay:/app/services/relay
+      - ../../services/atlas:/app/services/atlas
+      - ../../services/demo:/app/services/demo
       - ../../release.toml:/app/release.toml:ro
       - ${COYOTE4_LOGS_HOST_ROOT:?COYOTE4_LOGS_HOST_ROOT is required}:/app/logs
       - ../../docs:/app/docs
@@ -53,20 +54,24 @@ services:
       - ../../LICENSE.txt:/app/LICENSE.txt:ro
       - ../../NOTICE.txt:/app/NOTICE.txt:ro
       - ${COYOTE4_DATA_HOST_ROOT:?COYOTE4_DATA_HOST_ROOT is required}:/data
-    command: python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/api/src --reload-dir /app/adapters/mongo/src --reload-dir /app/core/src
+    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service api python3 -m uvicorn coyote_api.app.main:app --host 0.0.0.0 --port 8001
 
   worker:
+    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service worker coyote-relay-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
     image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 
   beat:
+    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service beat celery -A coyote_api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
     image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 
   maintenance-worker:
+    command: python3 -m deploy.installer watch -- python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
     volumes: *dev-app-volumes
 
   monitor:
+    command: python3 -m deploy.installer watch -- python3 -m coyote_api.app.monitor
     image: coyote4-api:${COYOTE4_IMAGE_TAG:?Run install.sh compose to select the environment image tag}
     volumes: *dev-app-volumes
 

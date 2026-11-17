@@ -78,7 +78,7 @@ the API terminal:
 
 ```bash
 # API
-PYTHONPATH=. python -m uvicorn coyote_api.app.main:app --reload --reload-dir api/src --reload-dir core/src --reload-dir adapters/mongo/src --port 8001
+./install.sh watch -- python -m uvicorn coyote_api.app.main:app --port 8001
 ```
 
 ```bash
@@ -86,6 +86,10 @@ PYTHONPATH=. python -m uvicorn coyote_api.app.main:app --reload --reload-dir api
 npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
+
+The API wrapper requires `ENV_NAME=dev` or `development` and reloads every editable
+backend package. Vite refreshes frontend components and CSS. See
+[editable development](../sdk/uv-development.md) for worker reload and Docker behavior.
 
 ## Development Loop
 
