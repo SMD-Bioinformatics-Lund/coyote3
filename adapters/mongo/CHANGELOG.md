@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Implement the resource retrieval port with safe field projections, scope before
+  aggregation, stable pagination, bounded related filters and batched related reads.
 - Share structural finding index installation while preserving collection-specific
   indexes, key order and existing index names.
 - Record checked source-bundle provenance with reference publication and inspect

@@ -16,6 +16,7 @@ Choose a guide for your task:
 - [Configure its runtime](configuration.md).
 - [Understand requests, workers and reports](usage.md).
 - [Look up entry points and assets](reference.md).
+- [Retrieve resource metadata for integrations](resource-reads.md).
 - [Develop and test the host](development.md).
 
 [Architecture](architecture.md) explains the host boundary. Full center

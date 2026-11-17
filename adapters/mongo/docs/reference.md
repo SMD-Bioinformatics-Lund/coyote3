@@ -20,3 +20,9 @@ Its version is the shared server version, not an independent adapter release.
 Read method docstrings for selectors, return values and failure behavior.
 The adapter preserves existing document and hash contracts; replacing canonical
 BSON hashing with ordinary JSON hashing would invalidate recorded provenance.
+
+`coyote_mongo.repositories.resource_reads.MongoResourceReadRepository` implements
+the core metadata retrieval port. Its fixed collection mappings compile validated
+filters and paired access grants before aggregation and pagination. It supports
+only the public resource metadata schema, with bounded related-catalog filtering
+and per-query execution limits. It never accepts raw MongoDB expressions.

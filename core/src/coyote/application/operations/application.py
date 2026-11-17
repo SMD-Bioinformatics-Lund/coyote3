@@ -42,6 +42,7 @@ from coyote.application.operations.knowledgebase import Knowledgebase
 from coyote.application.operations.notifications import Notifications
 from coyote.application.operations.public import PublicApplication
 from coyote.application.operations.reporting import ReportingServices, Reports
+from coyote.application.operations.resource_reads import ResourceReadRepository, ResourceReads
 from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.application.operations.samples import Samples
 from coyote.application.operations.system import (
@@ -90,6 +91,7 @@ class ApplicationServices:
         clinical_rules: Callable[[], ClinicalRuleAuthoringService],
         query_rule_testing: Callable[[], QueryRuleTestingService],
         clinical_rule_testing: Callable[[], ClinicalRuleTestingService],
+        resource_reads: Callable[[], ResourceReadRepository],
     ) -> None:
         """Bind operation implementations without opening their repositories.
 
@@ -113,6 +115,7 @@ class ApplicationServices:
             clinical_rules: Clinical reporting-rule authoring and lifecycle implementation.
             query_rule_testing: Read-only policy comparisons and scoped testing samples.
             clinical_rule_testing: Read-only report-rule comparisons and scoped testing samples.
+            resource_reads: Permission-scoped metadata retrieval persistence.
         """
         self.clinical, self.reporting = clinical, reporting
         self.administration = administration
@@ -124,6 +127,7 @@ class ApplicationServices:
         self.ingest, self.query_rules = ingest, query_rules
         self.ingest_submission = ingest_submission
         self.internal_references = internal_references
+        self.resource_reads = resource_reads
         self.clinical_rules = clinical_rules
         self.query_rule_testing, self.clinical_rule_testing = (
             query_rule_testing,
@@ -151,6 +155,7 @@ class CoyoteApplication:
             services: Lazy use-case services and explicit reporting dependencies.
         """
         self.samples = Samples(runtime, services.clinical)
+        self.resources: ResourceReads = ResourceReads(runtime, services.resource_reads)
         self.public = services.public()
         self.account = Account(runtime, services.administration.users, services.change_password)
         self.password_recovery = services.password_recovery()

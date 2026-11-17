@@ -36,6 +36,7 @@ from coyote.application.operations.internal_references import InternalReferences
 from coyote.application.operations.knowledgebase import Knowledgebase
 from coyote.application.operations.notifications import Notifications
 from coyote.application.operations.public import PublicApplication
+from coyote.application.operations.resource_reads import ResourceReads
 from coyote.application.operations.samples import Sample, Samples
 from coyote.application.operations.system import (
     Controls,
@@ -357,3 +358,8 @@ def get_password_recovery() -> PasswordRecovery:
     from coyote_api.app.application_factory import open_password_recovery
 
     return open_password_recovery()
+
+
+def get_resource_reads(application: CoyoteApplication = Depends(get_application)) -> ResourceReads:
+    """Return authorized metadata operations for the current authenticated session."""
+    return application.resources

@@ -5760,6 +5760,34 @@ export type EditLeaseStatus = {
 };
 
 /**
+ * FieldPredicate
+ *
+ * Supported comparisons; supplied operators combine with AND.
+ *
+ * Equality with null matches explicitly null values, not absent fields. Equality
+ * and membership on an array field compare its elements. Ranges accept integer
+ * and timestamp fields only. No arbitrary database operators are accepted.
+ */
+export type FieldPredicate = {
+    /**
+     * Eq
+     */
+    eq?: string | boolean | number | string | null;
+    /**
+     * Gte
+     */
+    gte?: string | boolean | number | string | null;
+    /**
+     * In
+     */
+    in?: Array<string | boolean | number | string | null> | null;
+    /**
+     * Lte
+     */
+    lte?: string | boolean | number | string | null;
+};
+
+/**
  * FusionFiltersDoc
  *
  * RNA fusion caller, annotation, read-support, and gene-scope filters.
@@ -9302,6 +9330,13 @@ export type QueryRuleUpdate = {
 };
 
 /**
+ * ReadResource
+ *
+ * Named public resources, independent of physical collection names.
+ */
+export type ReadResource = 'asp' | 'aspc' | 'samples' | 'isgl' | 'assay-groups' | 'diagnoses';
+
+/**
  * ReferenceApplyRequest
  *
  * Pin the reviewed package identity without accepting client data or filesystem paths.
@@ -9611,6 +9646,100 @@ export type ReportSaveRequest = {
      * Preview Fingerprint
      */
     preview_fingerprint: string;
+};
+
+/**
+ * ResourceReadPage
+ *
+ * Metadata or scalar page, with aggregates populated only when requested.
+ */
+export type ResourceReadPage = {
+    /**
+     * Count
+     */
+    count?: number | null;
+    /**
+     * Exists
+     */
+    exists?: boolean | null;
+    /**
+     * Has Next
+     */
+    has_next?: boolean;
+    /**
+     * Items
+     */
+    items?: Array<unknown>;
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Per Page
+     */
+    per_page?: number;
+    /**
+     * Total
+     */
+    total?: number;
+};
+
+/**
+ * ResourceReadQuery
+ *
+ * Request a bounded page, aggregate, or selected metadata fields.
+ *
+ * Filters, projections and ordering are checked against the named resource's
+ * metadata schema by validate_resource. Related records are available only for
+ * sample list reads, and require their own access permissions.
+ */
+export type ResourceReadQuery = {
+    /**
+     * Descending
+     */
+    descending?: boolean;
+    /**
+     * Field
+     */
+    field?: string | null;
+    /**
+     * Fields
+     */
+    fields?: Array<string> | null;
+    /**
+     * Filters
+     */
+    filters?: {
+        [key: string]: string | boolean | number | string | FieldPredicate | null;
+    };
+    /**
+     * Include
+     */
+    include?: Array<'assay' | 'configuration'>;
+    /**
+     * Operation
+     */
+    operation?: 'list' | 'ids' | 'count' | 'exists' | 'distinct';
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Per Page
+     */
+    per_page?: number;
+    /**
+     * Related Filters
+     */
+    related_filters?: {
+        [key: string]: {
+            [key: string]: string | boolean | number | string | FieldPredicate | null;
+        };
+    };
+    /**
+     * Sort
+     */
+    sort?: string | null;
 };
 
 /**
@@ -22227,6 +22356,59 @@ export type Responses_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdP
 };
 
 export type Response_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdPost = Responses_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdPost[keyof Responses_validateIsglIdChangeApiV1ResourcesGenelistsValidateIsglIdPost];
+
+export type Request_queryResourcesApiV1ResourcesReadResourceQueryPost = {
+    body: ResourceReadQuery;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        resource: ReadResource;
+    };
+    query?: never;
+    url: '/api/v1/resources/read/{resource}/query';
+};
+
+export type QueryResourcesApiV1ResourcesReadResourceQueryPostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type QueryResourcesApiV1ResourcesReadResourceQueryPostError = QueryResourcesApiV1ResourcesReadResourceQueryPostErrors[keyof QueryResourcesApiV1ResourcesReadResourceQueryPostErrors];
+
+export type Responses_queryResourcesApiV1ResourcesReadResourceQueryPost = {
+    /**
+     * Successful Response
+     */
+    200: ResourceReadPage;
+};
+
+export type Response_queryResourcesApiV1ResourcesReadResourceQueryPost = Responses_queryResourcesApiV1ResourcesReadResourceQueryPost[keyof Responses_queryResourcesApiV1ResourcesReadResourceQueryPost];
 
 export type Request_listAdminSamplesReadApiV1ResourcesSamplesGet = {
     body?: never;

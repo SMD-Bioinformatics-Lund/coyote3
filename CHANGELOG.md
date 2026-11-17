@@ -2,6 +2,8 @@
 
 ## v4.0.0
 
+- Authenticated resource metadata queries with selected fields, distinct IDs, counts,
+  bounded pagination and permission-scoped sample/assay/configuration relationships.
 - FastAPI backend and React interface with shared admin tables, light/dark themes
   and Coyote4 branding.
 - Independent clinical core and Python HTTP client, with API and MongoDB components

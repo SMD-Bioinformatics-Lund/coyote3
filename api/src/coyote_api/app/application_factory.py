@@ -126,6 +126,7 @@ def application_services() -> ApplicationServices:
         get_report_library_service,
         get_resource_annotation_service,
         get_resource_field_service,
+        get_resource_read_repository,
         get_rna_service,
         get_rna_workflow_service,
         get_sample_catalog_service,
@@ -139,6 +140,7 @@ def application_services() -> ApplicationServices:
 
     return ApplicationServices(
         public=open_public_application,
+        resource_reads=get_resource_read_repository,
         change_password=change_account_password,
         password_recovery=open_password_recovery,
         operations=OperationsServices(

@@ -61,6 +61,7 @@ from coyote_mongo.config.operational_collections import (
     get_api_sessions_collection_name,
     get_audit_events_collection_name,
 )
+from coyote_mongo.repositories.resource_reads import MongoResourceReadRepository
 from coyote_mongo.sessions import MongoApiSessionRepository
 
 from coyote_api.app.deps.repositories import get_store
@@ -657,3 +658,9 @@ def get_public_variant_annotations() -> PublicVariantAnnotations:
             repository.get_gene_record(symbol) if repository is not None else None
         ),
     )
+
+
+@lru_cache
+def get_resource_read_repository() -> MongoResourceReadRepository:
+    """Bind safe metadata retrieval to the host's configured collections."""
+    return MongoResourceReadRepository(get_store())

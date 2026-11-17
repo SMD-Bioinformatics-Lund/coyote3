@@ -31,8 +31,13 @@ TAG_ADMIN_ACCESS = "Admin: Roles & Permissions"
 TAG_CLINICAL_RULES = "Clinical Reporting Rules"
 TAG_INTERNAL = "Internal Ingest & Maintenance"
 TAG_INGESTION = "Sample ingestion"
+TAG_RESOURCE_READS = "Resource reads"
 
 OPENAPI_TAGS = [
+    {
+        "name": TAG_RESOURCE_READS,
+        "description": "Authorized metadata, identifiers and related-resource queries for integrations.",
+    },
     {
         "name": TAG_SYSTEM,
         "description": "Application process health and service availability.",
@@ -122,7 +127,10 @@ OPENAPI_TAGS.append(
 OPENAPI_TAG_NAMES = tuple(tag["name"] for tag in OPENAPI_TAGS)
 
 OPENAPI_TAG_GROUPS = [
-    {"name": "Access & discovery", "tags": [TAG_SYSTEM, TAG_AUTH, TAG_PUBLIC, TAG_INGESTION]},
+    {
+        "name": "Access & discovery",
+        "tags": [TAG_SYSTEM, TAG_AUTH, TAG_PUBLIC, TAG_INGESTION, TAG_RESOURCE_READS],
+    },
     {
         "name": "Clinical review",
         "tags": [
@@ -172,6 +180,7 @@ __all__ = [
     "TAG_DNA_VARIANTS",
     "TAG_INTERNAL",
     "TAG_INGESTION",
+    "TAG_RESOURCE_READS",
     "TAG_KNOWLEDGEBASE",
     "TAG_NOTIFICATIONS",
     "TAG_PUBLIC",

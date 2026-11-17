@@ -60,6 +60,7 @@ from coyote_api.interfaces.http.v1.operations.notifications import router as not
 from coyote_api.interfaces.http.v1.operations.personal_tokens import (
     router as personal_tokens_router,
 )
+from coyote_api.interfaces.http.v1.operations.resource_reads import router as resource_reads_router
 from coyote_api.interfaces.http.v1.public.routes import router as public_router
 
 
@@ -82,6 +83,7 @@ ROUTERS = (
     RouterRegistration(deployment_data_router),
     RouterRegistration(app_controls_router),
     RouterRegistration(resource_asp_router),
+    RouterRegistration(resource_reads_router),
     RouterRegistration(assay_setup_router),
     RouterRegistration(resource_aspc_router),
     RouterRegistration(configuration_profiles_router),

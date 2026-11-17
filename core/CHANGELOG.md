@@ -2,6 +2,8 @@
 
 ## v4.0.0
 
+- Add database-independent resource reads with strict typed filters, fresh permissions,
+  paired assay/environment grants and authorization of related metadata queries.
 - Depend on `coyote-contracts` for portable manifest structure, YAML normalization
   and permitted resource metadata. Extend its sample manifest with center policy,
   sequencing validation, clinical filters and persistence fields in core.

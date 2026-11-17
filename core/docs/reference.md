@@ -32,3 +32,13 @@ database adapter. `coyote.contracts.schemas.samples.SamplesDoc` extends
 `coyote_contracts.samples.SampleManifest` with center vocabulary, sequencing
 policy, clinical filters and persistence fields. Clinical validation remains
 mandatory in core workflows.
+
+## Resource metadata retrieval
+
+`CoyoteApplication.resources.query(resource, query)` applies current authentication,
+resource permissions and exact assay/environment scope before invoking
+`coyote.application.operations.resource_reads.ResourceReadRepository`. The host
+supplies this database-independent port through
+`ApplicationServices.resource_reads`. Portable request and response models live in
+`coyote_contracts.retrieval`. The repository must apply scope before filtering,
+aggregating or paging and must return only the declared safe metadata.

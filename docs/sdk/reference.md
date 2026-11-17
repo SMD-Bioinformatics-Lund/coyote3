@@ -160,7 +160,7 @@ Raises:
 ### `ApplicationServices`
 
 ```python
-ApplicationServices(*, clinical: 'ClinicalServices', administration: 'AdministrationServices', operations: 'OperationsServices', public: 'Callable[[], PublicApplication]', change_password: 'Callable[..., dict[str, object]]', password_recovery: 'Callable[[], PasswordRecovery]', knowledgebase: 'Callable[[], CommonQueryService]', knowledgebase_search_limit: 'int', notifications: 'Callable[[], NotificationService]', reporting: 'ReportingServices', ingest: 'Callable[[], InternalIngestService]', ingest_submission: 'IngestSubmissionServices', internal_references: 'InternalReferenceServices', query_rules: 'Callable[[], QueryRuleService]', configuration_profiles: 'Callable[[], ConfigurationProfileService]', configuration_promotions: 'Callable[[], ConfigurationPromotionService]', clinical_rules: 'Callable[[], ClinicalRuleAuthoringService]', query_rule_testing: 'Callable[[], QueryRuleTestingService]', clinical_rule_testing: 'Callable[[], ClinicalRuleTestingService]') -> 'None'
+ApplicationServices(*, clinical: 'ClinicalServices', administration: 'AdministrationServices', operations: 'OperationsServices', public: 'Callable[[], PublicApplication]', change_password: 'Callable[..., dict[str, object]]', password_recovery: 'Callable[[], PasswordRecovery]', knowledgebase: 'Callable[[], CommonQueryService]', knowledgebase_search_limit: 'int', notifications: 'Callable[[], NotificationService]', reporting: 'ReportingServices', ingest: 'Callable[[], InternalIngestService]', ingest_submission: 'IngestSubmissionServices', internal_references: 'InternalReferenceServices', query_rules: 'Callable[[], QueryRuleService]', configuration_profiles: 'Callable[[], ConfigurationProfileService]', configuration_promotions: 'Callable[[], ConfigurationPromotionService]', clinical_rules: 'Callable[[], ClinicalRuleAuthoringService]', query_rule_testing: 'Callable[[], QueryRuleTestingService]', clinical_rule_testing: 'Callable[[], ClinicalRuleTestingService]', resource_reads: 'Callable[[], ResourceReadRepository]') -> 'None'
 ```
 
 ```text
@@ -4367,6 +4367,56 @@ ResourceHasher(*args, **kwargs)
 
 ```text
 Compute the persisted digest format without exposing its serialization provider.
+```
+
+### `ResourceReadRepository`
+
+```python
+ResourceReadRepository(*args, **kwargs)
+```
+
+```text
+Persisted metadata reads with scope applied before totals and pagination.
+```
+
+#### `ResourceReadRepository.query`
+
+```python
+ResourceReadRepository.query(self, resource: 'ReadResource', query: 'ResourceReadQuery', scope: 'ResourceReadScope') -> 'ResourceReadPage'
+```
+
+```text
+Return allowed metadata only, using bounded deterministic pagination.
+```
+
+### `ResourceReads`
+
+```python
+ResourceReads(runtime: 'ApplicationRuntime', repository: 'Callable[[], ResourceReadRepository]') -> 'None'
+```
+
+```text
+Read safe named resources under freshly evaluated permissions and scope.
+```
+
+#### `ResourceReads.query`
+
+```python
+ResourceReads.query(self, resource: 'ReadResource', query: 'ResourceReadQuery') -> 'ResourceReadPage'
+```
+
+```text
+Authorize a metadata read, including related resources and aggregates.
+
+Args:
+    resource: One named public metadata resource.
+    query: Typed filters, projection, operation and bounded pagination.
+
+Returns:
+    Only authorized records or values, with corresponding totals.
+
+Raises:
+    AppError: Authentication, permissions or field validation fails.
 ```
 
 ### `Roles`

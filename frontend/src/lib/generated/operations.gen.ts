@@ -206,6 +206,7 @@ export type ApiOperations = {
   "PATCH /resources/genelists/{genelist_id}/status": { request: T.Request_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatusPatch; response: T.Response_toggleGenelistChangeApiV1ResourcesGenelistsGenelistIdStatusPatch }
   "GET /resources/genelists/{genelist_id}/view_context": { request: T.Request_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet; response: T.Response_genelistViewContextReadApiV1ResourcesGenelistsGenelistIdViewContextGet }
   "GET /resources/genelists/{identifier}/versions": { request: T.Request_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet; response: T.Response_resourceVersionsReadApiV1ResourcesGenelistsIdentifierVersionsGet }
+  "POST /resources/read/{resource}/query": { request: T.Request_queryResourcesApiV1ResourcesReadResourceQueryPost; response: T.Response_queryResourcesApiV1ResourcesReadResourceQueryPost }
   "GET /resources/samples": { request: T.Request_listAdminSamplesReadApiV1ResourcesSamplesGet; response: T.Response_listAdminSamplesReadApiV1ResourcesSamplesGet }
   "DELETE /resources/samples/{sample_id}": { request: T.Request_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete; response: T.Response_deleteSampleChangeApiV1ResourcesSamplesSampleIdDelete }
   "PUT /resources/samples/{sample_id}": { request: T.Request_updateSampleChangeApiV1ResourcesSamplesSampleIdPut; response: T.Response_updateSampleChangeApiV1ResourcesSamplesSampleIdPut }

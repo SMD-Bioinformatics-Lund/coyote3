@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Expose read-only named-resource queries for metadata, IDs, counts, existence and
+  distinct values, including bounded sample relation filters and documented limits.
 - Report only installed application components on the About page; the external
   Python client is no longer an application dependency or installed-version field.
 

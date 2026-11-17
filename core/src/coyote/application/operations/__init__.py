@@ -59,6 +59,7 @@ from coyote.application.operations.models import (
 from coyote.application.operations.notifications import Notifications
 from coyote.application.operations.public import PublicApplication
 from coyote.application.operations.reporting import ReportingServices
+from coyote.application.operations.resource_reads import ResourceReadRepository, ResourceReads
 from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.application.operations.samples import Sample, Samples
 from coyote.application.operations.system import (
@@ -78,6 +79,8 @@ from coyote.domain.exceptions import AppError
 
 __all__ = [
     "ResourceHasher",
+    "ResourceReadRepository",
+    "ResourceReads",
     "configure_resource_hasher",
     "using_resource_hasher",
     "Account",

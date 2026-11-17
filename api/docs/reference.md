@@ -20,3 +20,6 @@ The running application's OpenAPI document describes its HTTP operations and
 schemas. Packaged Python modules support the host; they are not an alternative
 public HTTP contract. Existing `/api/v1` paths do not depend on source-directory
 names.
+
+[Resource metadata reads](resource-reads.md) documents the authenticated retrieval
+endpoint, fields, filters, related records and pagination limits.
