@@ -24,7 +24,6 @@ def run_python(code, **environment):
 def test_library_import_ignores_deployment_discovery(tmp_path):
     result = run_python(
         "import sys; from coyote.application.operations import CoyoteApplication; "
-        "from coyote_pyclient import CoyoteClient; "
         "assert not any(n == 'api' or n.startswith('api.') for n in sys.modules); "
         "assert 'dotenv' not in sys.modules; print('ok')",
         COYOTE4_CENTER_CONFIG_DIR=str(tmp_path / "missing"),

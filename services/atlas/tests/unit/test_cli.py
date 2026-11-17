@@ -25,7 +25,7 @@ def test_offline_commands_never_require_connection_settings(plan, command, capsy
 def test_install_requires_reviewed_hash_and_explicit_api_configuration(plan, monkeypatch, capsys):
     monkeypatch.delenv("COYOTE_ATLAS_API_URL", raising=False)
     client = Mock()
-    monkeypatch.setattr(cli, "CoyoteClient", client)
+    monkeypatch.setattr(cli.httpx, "Client", client)
     assert cli.main(["install", "--expected-manifest-sha256", "a" * 64]) == 1
     client.assert_not_called()
     assert "Reference operation failed" in capsys.readouterr().err
@@ -44,7 +44,7 @@ def test_install_requires_reviewed_hash_and_explicit_api_configuration(plan, mon
 )
 def test_invalid_urls_do_not_expose_secrets_or_start_requests(plan, monkeypatch, capsys, url):
     client = Mock()
-    monkeypatch.setattr(cli, "CoyoteClient", client)
+    monkeypatch.setattr(cli.httpx, "Client", client)
     assert cli.main(["install", "--api-url", url, "--expected-manifest-sha256", "a" * 64]) == 1
     client.assert_not_called()
     assert "private" not in capsys.readouterr().err
@@ -58,7 +58,7 @@ def test_invalid_tokens_never_reach_client(plan, monkeypatch, token, capsys):
         lambda name, default=None: token if name == "COYOTE_ATLAS_TOKEN" else default,
     )
     client = Mock()
-    monkeypatch.setattr(cli, "CoyoteClient", client)
+    monkeypatch.setattr(cli.httpx, "Client", client)
     assert (
         cli.main(
             ["install", "--api-url", "https://example.test", "--expected-manifest-sha256", "a" * 64]
@@ -74,11 +74,11 @@ def test_cli_values_override_environment_and_send_only_explicit_plan(plan, monke
     monkeypatch.setenv("COYOTE_ATLAS_TOKEN", "unused-token")
     monkeypatch.setenv("OPERATOR_TOKEN", "synthetic-private-token")
     client = Mock()
-    client.api.admin.references.apply.post.return_value = {"collections": {"hgnc_genes": "skipped"}}
+    client.post.return_value.json.return_value = {"collections": {"hgnc_genes": "skipped"}}
     factory = Mock()
     factory.return_value.__enter__ = Mock(return_value=client)
     factory.return_value.__exit__ = Mock(return_value=False)
-    monkeypatch.setattr(cli, "CoyoteClient", factory)
+    monkeypatch.setattr(cli.httpx, "Client", factory)
     assert (
         cli.main(
             [
@@ -94,10 +94,16 @@ def test_cli_values_override_environment_and_send_only_explicit_plan(plan, monke
         )
         == 0
     )
-    factory.assert_called_once_with("https://example.test/prefix", timeout=600.0, transport=None)
-    client.login_with_token.assert_called_once_with("synthetic-private-token")
-    client.api.admin.references.apply.post.assert_called_once_with(
-        json={"expected_manifest_sha256": "a" * 64, "force": True}
+    factory.assert_called_once_with(
+        base_url="https://example.test/prefix/api/v1/",
+        timeout=600.0,
+        transport=None,
+        headers={"Authorization": "Bearer synthetic-private-token"},
+        follow_redirects=False,
+    )
+    client.get.assert_called_once_with("auth/session")
+    client.post.assert_called_once_with(
+        "admin/references/apply", json={"expected_manifest_sha256": "a" * 64, "force": True}
     )
     assert "synthetic-private-token" not in capsys.readouterr().out
 
@@ -114,7 +120,7 @@ def test_env_connection_uses_verified_custom_ca(plan, monkeypatch):
     client = Mock()
     client.return_value.__enter__ = Mock(side_effect=httpx.ConnectError("private URL or token"))
     client.return_value.__exit__ = Mock(return_value=False)
-    monkeypatch.setattr(cli, "CoyoteClient", client)
+    monkeypatch.setattr(cli.httpx, "Client", client)
     assert cli.main(["install", "--expected-manifest-sha256", "a" * 64]) == 1
     create_context.assert_called_once_with(cafile="trusted.pem")
     transport.assert_called_once_with(verify=context)
@@ -123,7 +129,7 @@ def test_env_connection_uses_verified_custom_ca(plan, monkeypatch):
 def test_local_plan_change_never_submits(plan, monkeypatch):
     monkeypatch.setenv("COYOTE_ATLAS_API_URL", "https://example.test")
     client = Mock()
-    monkeypatch.setattr(cli, "CoyoteClient", client)
+    monkeypatch.setattr(cli.httpx, "Client", client)
     assert cli.main(["install", "--expected-manifest-sha256", "b" * 64]) == 1
     client.assert_not_called()
 

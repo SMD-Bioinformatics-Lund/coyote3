@@ -20,7 +20,7 @@ are valid. Neither command needs a running application.
 ## Install from release wheels
 
 Use your organization's reviewed artifact directory, containing Atlas and its
-core, client and third-party dependencies. Replace `/path/to/wheels` with that
+core and third-party dependencies. Replace `/path/to/wheels` with that
 directory. Public PyPI publication is not required.
 
 ```bash

@@ -19,9 +19,6 @@ COPY api/README.md api/CHANGELOG.md api/LICENSE.txt api/COPYRIGHT.txt api/NOTICE
 COPY api/src/coyote_api/config/assets/coyote-api-logo.svg ./api/src/coyote_api/config/assets/coyote-api-logo.svg
 COPY adapters/mongo/docs/ ./adapters/mongo/docs/
 COPY adapters/mongo/README.md adapters/mongo/CHANGELOG.md adapters/mongo/LICENSE.txt adapters/mongo/COPYRIGHT.txt adapters/mongo/NOTICE.txt adapters/mongo/pyproject.toml ./adapters/mongo/
-COPY services/relay/docs/ ./services/relay/docs/
-COPY services/relay/src/coyote_relay/assets/ ./services/relay/src/coyote_relay/assets/
-COPY services/relay/README.md services/relay/CHANGELOG.md services/relay/LICENSE.txt services/relay/COPYRIGHT.txt services/relay/NOTICE.txt services/relay/pyproject.toml ./services/relay/
 COPY services/atlas/docs/ ./services/atlas/docs/
 COPY services/atlas/src/coyote_atlas/assets/ ./services/atlas/src/coyote_atlas/assets/
 COPY services/atlas/src/coyote_atlas/data/reference/NOTICE.txt services/atlas/src/coyote_atlas/data/reference/LICENSE.txt ./services/atlas/src/coyote_atlas/data/reference/

@@ -55,7 +55,6 @@ class PublicPages:
                     "name": "Coyote4",
                     "version": self._config.get("APP_VERSION"),
                     "sdk_version": _installed_version("coyote-core"),
-                    "client_sdk_version": _installed_version("coyote-pyclient"),
                     "environment": get_runtime_environment(self._config),
                     "script_name": self._config.get("SCRIPT_NAME"),
                     "description": APPLICATION_DESCRIPTION,

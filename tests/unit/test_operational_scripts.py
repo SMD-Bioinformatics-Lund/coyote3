@@ -225,7 +225,6 @@ def test_deployments_start_ingest_and_maintenance_from_their_own_apps(relative_p
 def test_source_images_include_the_ingestion_distribution(dockerfile) -> None:
     """Source and editable image builds have the complete independently packaged service."""
     definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
-    assert "COPY services/relay/ ./services/relay/" in definition
+    assert "COPY .release/relay/ /opt/coyote-relay/" in definition
     if dockerfile in {"Dockerfile.dev", "Dockerfile.legacy"}:
-        assert "-e services/relay" in definition
-        assert "/opt/coyote-client/coyote_pyclient-*.whl" in definition
+        assert "/opt/coyote-relay/coyote_relay-*.whl" in definition

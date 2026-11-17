@@ -1,6 +1,6 @@
 # Core changelog
 
-## 4.0.0
+## v4.0.0
 
 - Use typed `dna`/`rna` report identities and the shared `coyote3` renderer preset;
   reject old file-like identifiers and require renewed template-profile approval.

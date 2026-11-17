@@ -13,8 +13,6 @@ import sys
 from pathlib import Path
 
 import httpx
-from coyote_pyclient import CoyoteClient
-from coyote_pyclient.transport import validate_base_url
 
 from coyote_atlas.bundle import ReferenceBundle
 
@@ -38,7 +36,15 @@ def _install(args: argparse.Namespace, plan: dict) -> dict:
     try:
         if not base_url or any(char.isspace() or ord(char) < 32 for char in base_url):
             raise ValueError
-        validate_base_url(base_url)
+        url = httpx.URL(base_url)
+        if (
+            url.scheme not in {"http", "https"}
+            or not url.host
+            or url.userinfo
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError
     except (ValueError, httpx.InvalidURL):
         raise ValueError("Supply a valid API URL without credentials, query or fragment") from None
     if args.expected_manifest_sha256 != plan["manifest_sha256"]:
@@ -59,11 +65,23 @@ def _install(args: argparse.Namespace, plan: dict) -> dict:
         if ca_bundle
         else None
     )
-    with CoyoteClient(base_url, timeout=600.0, transport=transport) as client:
-        client.login_with_token(token)
-        return client.api.admin.references.apply.post(
-            json={"expected_manifest_sha256": args.expected_manifest_sha256, "force": args.force}
+    with httpx.Client(
+        base_url=base_url.rstrip("/") + "/api/v1/",
+        timeout=600.0,
+        transport=transport,
+        headers={"Authorization": f"Bearer {token}"},
+        follow_redirects=False,
+    ) as client:
+        client.get("auth/session").raise_for_status()
+        response = client.post(
+            "admin/references/apply",
+            json={"expected_manifest_sha256": args.expected_manifest_sha256, "force": args.force},
         )
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict):
+            raise ValueError("The API installation response must be an object")
+        return result
 
 
 def main(argv: list[str] | None = None) -> int:

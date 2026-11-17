@@ -55,12 +55,11 @@ COPY LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md MANIFEST.in package_build.
 COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-COPY services/relay/ ./services/relay/
 COPY services/atlas/ ./services/atlas/
 COPY services/demo/ ./services/demo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
-COPY .release/client/ /opt/coyote-client/
-RUN python scripts/release/build_sdk.py --output-dir /wheels --client-artifact /opt/coyote-client
+COPY .release/relay/ /opt/coyote-relay/
+RUN python scripts/release/build_sdk.py --output-dir /wheels --relay-artifact /opt/coyote-relay
 
 FROM coyote4_runtime_base AS coyote4_server_files
 
@@ -78,7 +77,7 @@ LABEL coyote4.artifact.mode="source"
 COPY --from=coyote4_sdk_builder /wheels/ /opt/coyote4-sdk/
 RUN pip install --no-cache-dir --no-deps \
     /opt/coyote4-sdk/coyote_core-*.whl /opt/coyote4-sdk/coyote_server-*.whl \
-    /opt/coyote4-sdk/coyote_pyclient-*.whl /opt/coyote4-sdk/coyote_relay-*.whl \
+    /opt/coyote4-sdk/coyote_relay-*.whl \
     /opt/coyote4-sdk/coyote_atlas-*.whl
 USER coyote4:coyote4
 CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
@@ -94,7 +93,7 @@ RUN python scripts/release/verify_sdk_artifact.py \
       --mode "${COYOTE4_ARTIFACT_MODE}" --source-commit "${GIT_COMMIT}" && \
     pip install --no-cache-dir --no-deps \
       /opt/coyote4-sdk/coyote_core-*.whl /opt/coyote4-sdk/coyote_server-*.whl \
-      /opt/coyote4-sdk/coyote_pyclient-*.whl /opt/coyote4-sdk/coyote_relay-*.whl \
+      /opt/coyote4-sdk/coyote_relay-*.whl \
       /opt/coyote4-sdk/coyote_atlas-*.whl
 
 USER coyote4:coyote4

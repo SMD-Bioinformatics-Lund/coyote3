@@ -9,7 +9,6 @@ from coyote_api.app import middleware
 from coyote_api.app.main import app
 from coyote_mongo.records import application_record, storage_record
 from coyote_mongo.resource_integrity import resource_content_hash as persisted_hash
-from coyote_pyclient import AsyncCoyoteClient
 
 
 @pytest.mark.asyncio
@@ -25,10 +24,10 @@ async def test_client_reaches_the_host_health_route_without_starting_services(mo
             return httpx.Response(200, json={"user": {"username": "synthetic"}})
         return await host.handle_async_request(request)
 
-    transport = httpx.MockTransport(dispatch)
-    async with AsyncCoyoteClient("http://synthetic.test", transport=transport) as client:
-        await client.login_with_token("synthetic-smoke-token")
-        assert await client.api.health.get() == {"status": "ok"}
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(dispatch), base_url="http://synthetic.test"
+    ) as client:
+        assert (await client.get("/api/v1/health")).json() == {"status": "ok"}
 
 
 def test_adapter_records_retain_core_identity_and_persisted_integrity():

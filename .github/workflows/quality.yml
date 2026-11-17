@@ -47,19 +47,7 @@ jobs:
             fi
           fi
           python -m scripts.release.check_release "${args[@]}"
-      # Private client sources stay on this ephemeral runner, outside public CI caches.
-      - name: Configure private client access
-        env:
-          GH_TOKEN: ${{ secrets.COYOTE_PYCLIENT_READ_TOKEN }}
-        run: |
-          if [[ -z "$GH_TOKEN" ]]; then
-            echo 'Configure COYOTE_PYCLIENT_READ_TOKEN with Contents: read access to coyote-pyclient.' >&2
-            exit 1
-          fi
-          gh auth setup-git
       - name: Install locked workspace
-        env:
-          GH_TOKEN: ${{ secrets.COYOTE_PYCLIENT_READ_TOKEN }}
         run: |
           python -m pip install uv==0.6.16
           uv sync --frozen --all-packages --group test

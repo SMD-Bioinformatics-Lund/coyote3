@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Build core, server, HTTP client and ingestion wheels from isolated source trees."""
+"""Build application wheels and retain the pinned external Relay artifact."""
 
 import argparse
 import hashlib
@@ -21,18 +21,18 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[2]
 
 
-class ClientArtifact:
-    """Stage a pinned external client wheel without passing credentials into images."""
+class RelayArtifact:
+    """Stage a pinned external relay wheel without passing credentials into images."""
 
     def __init__(self, root: Path, directory: Path | None = None) -> None:
         """Read the reviewed Git source and selected version from application metadata."""
         self.root = root
         metadata = tomllib.loads((root / "pyproject.toml").read_text())
-        self.source = metadata["tool"]["uv"]["sources"]["coyote-pyclient"]
+        self.source = metadata["tool"]["uv"]["sources"]["coyote-relay"]
         if not isinstance(self.source, dict) or not all(
             isinstance(value, str) for value in self.source.values()
         ):
-            raise ValueError("The client requires a Git source with a full commit")
+            raise ValueError("The relay requires a Git source with a full commit")
         url = urlsplit(self.source.get("git", ""))
         if (
             set(self.source) != {"git", "rev"}
@@ -44,19 +44,19 @@ class ClientArtifact:
             or url.fragment
             or re.fullmatch(r"[0-9a-f]{40}", self.source.get("rev", "")) is None
         ):
-            raise ValueError("The client requires a credential-free HTTPS Git URL and full commit")
-        self.version = tomllib.loads((root / "release.toml").read_text())["client_version"]
-        self.directory = directory or root / ".release/client"
+            raise ValueError("The relay requires a credential-free HTTPS Git URL and full commit")
+        self.version = tomllib.loads((root / "release.toml").read_text())["relay_version"]
+        self.directory = directory or root / ".release/relay"
 
     def _validate_wheel(self, wheel: Path) -> None:
-        """Reject artifacts that do not identify the selected client distribution."""
+        """Reject artifacts that do not identify the selected relay distribution."""
         with zipfile.ZipFile(wheel) as archive:
             names = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
             if len(names) != 1:
-                raise ValueError("Client wheel must contain exactly one package metadata record")
+                raise ValueError("Relay wheel must contain exactly one package metadata record")
             metadata = Parser().parsestr(archive.read(names[0]).decode())
-            if metadata["Name"] != "coyote-pyclient" or metadata["Version"] != self.version:
-                raise ValueError("Client wheel differs from the selected distribution or version")
+            if metadata["Name"] != "coyote-relay" or metadata["Version"] != self.version:
+                raise ValueError("Relay wheel differs from the selected distribution or version")
 
     def validate(self) -> Path:
         """Require the cached wheel to match the selected source, version and checksum.
@@ -70,21 +70,21 @@ class ClientArtifact:
         """
         record = json.loads((self.directory / "artifact.json").read_text())
         if not isinstance(record, dict):
-            raise ValueError("Prepared client metadata must be an object")
+            raise ValueError("Prepared relay metadata must be an object")
         if record.get("source") != self.source or record.get("version") != self.version:
-            raise ValueError("Prepared client source differs from the application selection")
+            raise ValueError("Prepared relay source differs from the application selection")
         filename = record.get("filename", "")
         if (
             not isinstance(filename, str)
             or Path(filename).name != filename
             or not filename.endswith(".whl")
         ):
-            raise ValueError("Prepared client must identify one wheel filename")
+            raise ValueError("Prepared relay must identify one wheel filename")
         wheel = self.directory / filename
         if wheel.is_symlink():
-            raise ValueError("Prepared client wheel must be a regular file")
+            raise ValueError("Prepared relay wheel must be a regular file")
         if hashlib.sha256(wheel.read_bytes()).hexdigest() != record.get("sha256"):
-            raise ValueError("Prepared client wheel checksum differs")
+            raise ValueError("Prepared relay wheel checksum differs")
         self._validate_wheel(wheel)
         return wheel
 
@@ -120,11 +120,11 @@ class ClientArtifact:
             ]
             if not build_isolation:
                 command.append("--no-build-isolation")
-            command.append(f"coyote-pyclient @ git+{self.source['git']}@{self.source['rev']}")
+            command.append(f"coyote-relay @ git+{self.source['git']}@{self.source['rev']}")
             subprocess.run(command, check=True)
             wheels = list(staging.glob("*.whl"))
             if len(wheels) != 1:
-                raise ValueError("The client build must produce exactly one wheel")
+                raise ValueError("The relay build must produce exactly one wheel")
             wheel = wheels[0]
             self._validate_wheel(wheel)
             record = {
@@ -141,7 +141,7 @@ class ClientArtifact:
 
 
 def build_sdk(
-    output_directory: Path, *, build_isolation: bool = True, client_artifact: Path | None = None
+    output_directory: Path, *, build_isolation: bool = True, relay_artifact: Path | None = None
 ) -> None:
     """Build the selected application distributions without stale generated sources.
 
@@ -149,7 +149,7 @@ def build_sdk(
         output_directory: Destination for the built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
-        client_artifact: Prepared external client directory for builds without Git access.
+        relay_artifact: Prepared external relay directory for builds without Git access.
             None prepares or reuses the host cache from the pinned Git revision.
 
     Raises:
@@ -158,15 +158,12 @@ def build_sdk(
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    client = ClientArtifact(ROOT, client_artifact)
-    wheel = (
-        client.validate() if client_artifact else client.prepare(build_isolation=build_isolation)
-    )
+    relay = RelayArtifact(ROOT, relay_artifact)
+    wheel = relay.validate() if relay_artifact else relay.prepare(build_isolation=build_isolation)
     shutil.copyfile(wheel, output_directory / wheel.name)
     for project in (
         ROOT / "core",
         ROOT,
-        ROOT / "services/relay",
         ROOT / "services/atlas",
         ROOT / "services/demo",
     ):
@@ -180,7 +177,6 @@ def build_sdk(
                 "MANIFEST.in",
                 "build_support.py",
                 "package_build.py",
-                "relay_build.py",
                 "demo_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
@@ -238,16 +234,16 @@ def build_sdk(
 
 
 def main() -> None:
-    """Build the selected core, server, client and ingestion distributions for deployment."""
+    """Build the selected core, server, relay and ingestion distributions for deployment."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--no-build-isolation", action="store_true")
-    parser.add_argument("--client-artifact", type=Path)
+    parser.add_argument("--relay-artifact", type=Path)
     args = parser.parse_args()
     build_sdk(
         args.output_dir,
         build_isolation=not args.no_build_isolation,
-        client_artifact=args.client_artifact,
+        relay_artifact=args.relay_artifact,
     )
 
 

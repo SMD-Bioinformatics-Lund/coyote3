@@ -39,10 +39,6 @@ ROOT = Path(__file__).resolve().parents[2]
             },
         ),
         ("api", {"coyote_relay", "core_test_support", "mongo_test_support", "tests"}),
-        (
-            "services/relay",
-            {"core_test_support", "api_test_support", "mongo_test_support", "tests"},
-        ),
     ],
 )
 def test_package_test_dependencies_follow_the_distribution_boundary(directory, forbidden):

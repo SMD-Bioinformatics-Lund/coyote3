@@ -56,7 +56,7 @@ and PDF reports from the reviewed findings, comment and configuration snapshot.
 | [API](api/README.md) and [Mongo](adapters/mongo/README.md) | HTTP host and persistence, distributed together as `coyote-server` |
 | [Frontend](frontend/README.md) | Clinical review and administration interface |
 | [pyClient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/README.md) | Independent Python HTTP client |
-| [Relay](services/relay/README.md) | Ingestion workers and pipeline submission tools |
+| [Relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/README.md) | Ingestion workers and pipeline submission tools |
 | [Atlas](services/atlas/README.md) | Reference resources and publication |
 | [Demo](services/demo/README.md) | Synthetic data and guarded demonstration installation |
 

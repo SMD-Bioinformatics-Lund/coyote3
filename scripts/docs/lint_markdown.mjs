@@ -15,7 +15,6 @@ const defaultInputs = [
   "core/README.md", "core/docs",
   "api/README.md", "api/docs",
   "adapters/mongo/README.md", "adapters/mongo/docs",
-  "services/relay/README.md", "services/relay/docs",
   "services/atlas/README.md", "services/atlas/docs",
   "services/demo/README.md", "services/demo/docs",
   "frontend/README.md", "frontend/docs",

@@ -10,7 +10,7 @@ plans and clinical workflow validation.
 
 - [x] Move the client, documentation, tests, coverage, changelog and GPL-3.0-only
   notices to [coyote-pyclient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient). Development is on `dev`.
-- [x] Consume a pinned Git commit and retain application client/API contract tests.
+- [x] Keep the client out of application dependencies; own optional server-contract tests in its repository.
 - [ ] Publish `coyote-pyclient` as an independently versioned PyPI package after
   release approval and package-name verification.
 
@@ -20,13 +20,13 @@ TypeScript HTTP client; backend services invoke core operations directly.
 
 ## Independent Coyote Relay repository and release
 
-**Status: package implemented here; repository extraction and publication are pending.**
+**Status: public repository created; release approval and PyPI publication remain pending.**
 
-- [ ] Move `services/relay/` into its own repository after independent installation
-  and release validation, retaining its docs, tests, coverage and GPL-3.0-only notices.
-- [ ] Publish `coyote-relay` with its own version and tested core/client/server
-  compatibility. Public package-name availability must be checked before publication.
-- [ ] Update application builds to consume the reviewed released artifact.
+- [x] Move source, documentation, tests and GPL-3.0-only notices to
+  [coyote-relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay), with implementation on `dev`.
+- [x] Consume an exact Git revision in application builds and retain its wheel and checksum.
+- [ ] Approve the release into `main` after independent installation and compatibility validation.
+- [ ] Publish to PyPI after package-name verification and release approval.
 
 The base package connects to a running API through explicit command-line or
 `COYOTE_RELAY_*` settings. Optional API and worker integrations declare the server

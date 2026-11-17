@@ -22,10 +22,9 @@ def installed_distributions(tmp_path_factory):
     """Build actual wheels and install them into separate targets with no dependency downloads."""
     root = tmp_path_factory.mktemp("installed-distributions")
     wheels = root / "wheels"
-    build_sdk(wheels, build_isolation=False, client_artifact=ROOT / ".release/client")
+    build_sdk(wheels, build_isolation=False, relay_artifact=ROOT / ".release/relay")
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))
-    client = next(wheels.glob("coyote_pyclient-*.whl"))
     relay = next(wheels.glob("coyote_relay-*.whl"))
     atlas = next(wheels.glob("coyote_atlas-*.whl"))
     demo = next(wheels.glob("coyote_demo-*.whl"))
@@ -33,12 +32,11 @@ def installed_distributions(tmp_path_factory):
         ("core", [core]),
         ("adapter", [core, server]),
         ("server", [core, server]),
-        ("client", [client]),
-        ("relay", [core, client, relay]),
-        ("worker", [core, server, client, relay]),
-        ("atlas", [core, client, atlas]),
+        ("relay", [core, relay]),
+        ("worker", [core, server, relay]),
+        ("atlas", [core, atlas]),
         ("demo", [core, demo]),
-        ("extensions", [core, server, client, relay, atlas, demo]),
+        ("extensions", [core, server, relay, atlas, demo]),
     ):
         subprocess.run(
             [
@@ -63,7 +61,6 @@ def installed_distributions(tmp_path_factory):
             "coyote-atlas": atlas,
             "coyote-demo": demo,
         },
-        client,
     )
 
 
@@ -106,12 +103,11 @@ def run_installed(root, target, code):
 
 def test_actual_deployment_wheels_pass_retained_record_verification(installed_distributions):
     """Every deployment wheel must match the retained artifact record."""
-    root, packages, client = installed_distributions
+    root, packages = installed_distributions
     record = release_identity(ROOT)
     selections = {
         "coyote-core": record["sdk_version"],
         "coyote-server": record["server_version"],
-        "coyote-pyclient": record["client_version"],
         "coyote-relay": record["relay_version"],
         "coyote-atlas": record["atlas_version"],
         "coyote-demo": record["demo_version"],
@@ -122,7 +118,7 @@ def test_actual_deployment_wheels_pass_retained_record_verification(installed_di
         release_mode="development",
         artifacts={
             distribution: wheel_record(wheel, selections[distribution], distribution)
-            for distribution, wheel in {**packages, "coyote-pyclient": client}.items()
+            for distribution, wheel in packages.items()
         },
     )
     directory = root / "wheels"
@@ -131,7 +127,7 @@ def test_actual_deployment_wheels_pass_retained_record_verification(installed_di
 
 
 def test_core_wheel_imports_and_renders_without_server_or_client(installed_distributions):
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         "core",
@@ -166,7 +162,7 @@ for analyte,name in [('dna','dna'),('rna','rna')]:
 
 def test_mongo_component_imports_without_api_or_http_frameworks(installed_distributions):
     """Importing the adapter does not load the API or its HTTP framework."""
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         "adapter",
@@ -191,33 +187,8 @@ assert adapter.client is None
     )
 
 
-def test_client_wheel_imports_without_core_or_server(installed_distributions):
-    root, _, _ = installed_distributions
-    run_installed(
-        root,
-        "client",
-        """
-import importlib.abc
-class BlockCore(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'coyote_api','coyote_mongo','coyote','fastapi','starlette','pymongo','bson','coyote_relay'}:
-            raise AssertionError('Client imported server: '+fullname)
-sys.meta_path.insert(0,BlockCore())
-import asyncio, coyote_pyclient
-assert Path(coyote_pyclient.__file__).is_relative_to(target)
-from coyote_pyclient import CoyoteClient, AsyncCoyoteClient
-with CoyoteClient('https://example.test') as client:
-    assert client.user is None
-async def check():
-    async with AsyncCoyoteClient('https://example.test') as client:
-        assert client.user is None
-asyncio.run(check())
-""",
-    )
-
-
 def test_server_asgi_entry_and_assets_exist_outside_checkout(installed_distributions):
-    root, packages, _ = installed_distributions
+    root, packages = installed_distributions
     with zipfile.ZipFile(packages["coyote-server"]) as wheel:
         members = set(wheel.namelist())
         source = ROOT / "api/src/coyote_api"
@@ -260,7 +231,7 @@ except SystemExit as exc: assert exc.code==0
 
 def test_ingestion_submission_entrypoints_work_without_server(installed_distributions):
     """Submission, login and validation commands need only the core and HTTP client."""
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         "relay",
@@ -294,7 +265,7 @@ for entry in package.entry_points:
 
 def test_installed_ingestion_worker_registers_durable_tasks(installed_distributions):
     """The worker extra resolves its own task app without a source checkout or live broker."""
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         "worker",
@@ -320,7 +291,7 @@ assert {'IngestToken': []} in paths['/api/v1/internal/ingest/sample-bundle/uploa
 @pytest.mark.parametrize("service", ["atlas", "demo"])
 def test_reference_and_demo_tools_run_without_server(installed_distributions, service):
     """Offline data validation needs no API, database driver or checkout."""
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         service,
@@ -345,7 +316,7 @@ for entry in package.entry_points:
 
 def test_installed_optional_extensions_keep_demo_disabled(installed_distributions):
     """Installing Demo alone never exposes reset/install routes on the normal host."""
-    root, _, _ = installed_distributions
+    root, _ = installed_distributions
     run_installed(
         root,
         "extensions",
@@ -363,7 +334,7 @@ assert reference_bundle().plan().collections['hgnc_genes'] > 40000
 def test_wheel_metadata_declares_only_its_own_package_and_license(
     installed_distributions,
 ):
-    _, packages, client = installed_distributions
+    _, packages = installed_distributions
     expected = {
         "coyote-core": ("coyote/",),
         "coyote-server": ("coyote_api/", "coyote_mongo/"),
@@ -413,22 +384,6 @@ def test_wheel_metadata_declares_only_its_own_package_and_license(
             elif package == "coyote-relay":
                 requirements = metadata.get_all("Requires-Dist")
                 assert "coyote-core==4.0.0" in requirements
-                assert "coyote-pyclient==1.0.0" in requirements
+                assert not any("coyote-pyclient" in item for item in requirements)
                 assert 'coyote-server==1.0.0; extra == "worker"' in requirements
                 assert 'coyote-server==1.0.0; extra == "api"' in requirements
-    with zipfile.ZipFile(client) as wheel:
-        names = wheel.namelist()
-        assert not any(
-            n.startswith(("coyote/", "coyote4/", "coyote_api/", "coyote_mongo/")) for n in names
-        )
-        metadata = Parser().parsestr(
-            wheel.read(next(n for n in names if n.endswith("/METADATA"))).decode()
-        )
-        assert metadata["License-Expression"] == "GPL-3.0-only"
-        assert {"LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"} <= {
-            Path(name).name for name in names if ".dist-info/licenses/" in name
-        }
-        assert not any(
-            r.lower().startswith(("coyote-core", "coyote-server", "fastapi", "pymongo"))
-            for r in metadata.get_all("Requires-Dist")
-        )

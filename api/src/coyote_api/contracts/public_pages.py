@@ -26,7 +26,6 @@ class PublicApplicationMetadata(BaseModel):
     name: str
     version: str | None
     sdk_version: str | None
-    client_sdk_version: str | None
     environment: str
     script_name: str | None
     description: str

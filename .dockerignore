@@ -15,10 +15,10 @@
 .gemini
 .aws
 .release/*
-!.release/client
-.release/client/*
-!.release/client/*.whl
-!.release/client/artifact.json
+!.release/relay
+.release/relay/*
+!.release/relay/*.whl
+!.release/relay/artifact.json
 build
 skills
 .venv*

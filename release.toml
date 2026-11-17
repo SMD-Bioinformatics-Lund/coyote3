@@ -1,8 +1,7 @@
-# Application releases select core, server, HTTP client and ingestion service wheels.
+# Application releases select core, server, ingestion service wheels.
 application_version = "4.0.0"
 sdk_version = "4.0.0"
 server_version = "1.0.0"
-client_version = "1.0.0"
 relay_version = "1.0.0"
 atlas_version = "1.0.0"
 demo_version = "1.0.0"

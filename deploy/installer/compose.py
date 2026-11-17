@@ -9,7 +9,7 @@ import json
 import shutil
 from collections.abc import Mapping, Sequence
 
-from scripts.release.build_sdk import ClientArtifact
+from scripts.release.build_sdk import RelayArtifact
 
 from .config import ROOT, Profile, read_environment, validate_secrets
 from .process import Runner
@@ -120,7 +120,7 @@ class Compose:
                 and service["build"].get("target") in source_targets
                 for service in self.config()["services"].values()
             ):
-                ClientArtifact(ROOT).prepare()
+                RelayArtifact(ROOT).prepare()
         if operation == "down" and any(
             arg in {"-v", "--volumes"}
             or arg.startswith("--volumes=")

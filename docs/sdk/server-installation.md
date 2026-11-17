@@ -6,8 +6,7 @@ Packages are built locally; public-index publication is not required.
 | --- | --- |
 | `coyote_core` wheel | Clinical core and its own dependencies |
 | `coyote_server` wheel | API, maintenance workers and MongoDB adapter; requires the selected core |
-| `coyote_pyclient` wheel | Independent HTTP client |
-| `coyote_relay` wheel | Submission tools with core/client dependencies; optional API routes and workers use server composition |
+| `coyote_relay` wheel | Submission tools with core and HTTPX dependencies; optional API routes and workers use server composition |
 | `coyote_atlas` wheel | HGNC/VEP reference bundles and validation; optional API integration uses server composition |
 | `coyote_demo` wheel | Synthetic datasets; optional server and worker integrations enforce isolated demo targets |
 
@@ -19,9 +18,9 @@ pip setup, from the repository root in a prepared development environment, is:
 ```bash
 python -m pip install -r requirements-dev.txt
 ./install.sh dependencies
-python -m pip install --no-deps .release/client/coyote_pyclient-*.whl
+python -m pip install --no-deps .release/relay/coyote_relay-*.whl
 python -m pip install --no-deps -e core -e . \
-  -e 'services/relay[api,worker]' -e 'services/atlas[api]'
+  -e 'services/atlas[api]'
 ```
 
 Python edits require process reload, not wheel builds. Metadata and dependency
@@ -79,6 +78,6 @@ the installed wheels. API and worker services use the same image.
 The independent Python client supports the administrative commands shipped with
 the image. API request handling and core operations do not import that client.
 
-The retained-artifact release path verifies all six release wheels against their
+The retained-artifact release path verifies all five release wheels against their
 versions, SHA-256 digests and source provenance before installation.
 See [release compatibility](compatibility.md#build-and-record-an-application-release).

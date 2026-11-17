@@ -35,7 +35,7 @@ bundle and current empty target collections, use
 An authenticated `admin`, `sys_admin` or `superuser` session with no outstanding
 password change is required. Ingestion tokens cannot install reference data.
 The server's normal CSRF protection applies to browser-cookie requests; the CLI
-uses the HTTP client's bearer session support.
+sends the selected bearer token using HTTPX with TLS verification enabled.
 
 Populated collections are normally skipped. `--force` explicitly requests the
 existing controlled repair of bundled records; it is not a database replacement.

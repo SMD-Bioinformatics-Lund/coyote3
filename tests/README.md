@@ -91,4 +91,4 @@ clinical gates use the complete application suite. Smoke runs do not enforce ful
 coverage; they exclude wheel builds, PDF pagination and configured-service tests.
 
 Installed-distribution tests require `./install.sh dependencies` first. They use the
-prepared client wheel from `.release/client` and do not fetch Git dependencies.
+prepared Relay wheel from `.release/relay` and do not fetch Git dependencies.

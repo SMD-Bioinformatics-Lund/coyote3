@@ -133,7 +133,6 @@ def main() -> int:
     local_names = {
         "coyote-core",
         "coyote-server",
-        "coyote-pyclient",
         "coyote-relay",
         "coyote-atlas",
         "coyote-demo",
@@ -141,7 +140,6 @@ def main() -> int:
     for relative in (
         ".",
         "core",
-        "services/relay",
         "services/atlas",
         "services/demo",
     ):
@@ -151,11 +149,13 @@ def main() -> int:
             if name not in local_names:
                 runtime.append(dependency)
 
-    # The independently maintained client is resolved by Git in uv.lock. Export
+    # The independently maintained Relay is resolved by Git in uv.lock. Export
     # its direct runtime requirements without needing a second source checkout.
     packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
-    client = next(package for package in packages if package["name"] == "coyote-pyclient")
-    for dependency in client["dependencies"]:
+    relay = next(package for package in packages if package["name"] == "coyote-relay")
+    for dependency in relay["dependencies"]:
+        if dependency["name"] in local_names:
+            continue
         matches = [
             package
             for package in packages
@@ -164,7 +164,7 @@ def main() -> int:
         ]
         if len(matches) != 1:
             raise ValueError(
-                f"Client runtime dependency is not uniquely locked: {dependency['name']}"
+                f"Relay runtime dependency is not uniquely locked: {dependency['name']}"
             )
         runtime.append(f"{dependency['name']}=={matches[0]['version']}")
 

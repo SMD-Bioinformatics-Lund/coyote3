@@ -1,6 +1,9 @@
 # API changelog
 
-## 1.0.0
+## v1.0.0
+
+- Report only installed application components on the About page; the external
+  Python client is no longer an application dependency or installed-version field.
 
 - Inject notification delivery when composing the refactored clinical-rule authoring
   service, preserving assignment, review and publication notifications.

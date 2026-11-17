@@ -9,8 +9,8 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-core` | `core/src/coyote/` | None |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `src/coyote_pyclient/` in the external client repository | None; communicates over HTTP |
-| `coyote-relay` | `services/relay/src/coyote_relay/` | Core and Python client; optional API and worker integrations use the server |
-| `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and Python client; optional API integration uses the server |
+| `coyote-relay` | `coyote_relay` in the external Relay repository | Core and HTTPX; optional API and worker integrations use the server |
+| `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and HTTPX; optional API integration uses the server |
 | `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
 
 ## Shared core and request flow
@@ -69,7 +69,7 @@ and never imports the core or adapter.
 Relay owns pipeline submission commands, ingestion HTTP routes and Celery tasks.
 Reusable parsing, validation, job execution and manifest-watching workflows belong
 to core. HTTP uploads, process entry points and task-queue integration stay outside
-core. See the [ingestion service guide](../../services/relay/docs/README.md).
+core. See the [ingestion service guide](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
 policy. Atlas owns HGNC/VEP snapshots, provenance, validation and reference

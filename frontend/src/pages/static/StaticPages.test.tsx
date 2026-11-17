@@ -53,7 +53,7 @@ const publicPayload = {
     feature_request_url: "https://github.com/example/coyote4/issues/new?template=feature.md",
     support_request_url: "https://github.com/example/coyote4/issues/new?template=support.md",
   },
-  application: { version: "4.0.0", sdk_version: "4.0.0", client_sdk_version: "1.0.0", environment: "production", description: "Coyote4" },
+  application: { version: "4.0.0", sdk_version: "4.0.0", environment: "production", description: "Coyote4" },
   references: {
     vep_metadata: ["103", "110"],
     sample_database_versions: { assembly: ["GRCh38.p13", "GRCh38"], clinvar: ["202008"] },
@@ -116,8 +116,6 @@ describe("public static pages", () => {
     expect(await screen.findAllByText("4.0.0")).toHaveLength(2)
     expect(screen.getByText("Environment: production")).toBeVisible()
     expect(screen.getByText("Core SDK")).toBeVisible()
-    expect(screen.getByText("Python client SDK")).toBeVisible()
-    expect(screen.getByText("1.0.0")).toBeVisible()
     expect(screen.getByText("coyote4")).toBeVisible()
     expect(screen.getByText("Identity")).toBeVisible()
     expect(screen.getByText("coyote4_identity")).toBeVisible()

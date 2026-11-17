@@ -18,7 +18,7 @@ from email.parser import Parser
 from pathlib import Path
 from typing import Any
 
-from .build_sdk import ClientArtifact
+from .build_sdk import RelayArtifact
 
 ROOT = Path(__file__).resolve().parents[2]
 VERSION_PATTERN = re.compile(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:(a|b|rc|\.dev)([0-9]+))?")
@@ -33,11 +33,7 @@ RELEASE_CHANGE_SCOPES = {
         ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
         ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
     ),
-    "client_version": ((), ()),  # Version notes belong to the external repository.
-    "relay_version": (
-        ("services/relay/CHANGELOG.md",),
-        ("services/relay/src", "services/relay/pyproject.toml"),
-    ),
+    "relay_version": ((), ()),  # External package owns its changelog.
     "atlas_version": (
         ("services/atlas/CHANGELOG.md",),
         ("services/atlas/src", "services/atlas/pyproject.toml"),
@@ -148,7 +144,7 @@ def validate_pull_request(
                 raise ValueError(f"Advance {field} before releasing changes into master")
         for path in changelogs:
             if not re.search(
-                rf"^##\s+\[?v?{re.escape(current)}(?:\]|\s|$)",
+                rf"^##\s+\[?v{re.escape(current)}(?:\]|\s|$)",
                 (root / path).read_text(),
                 re.MULTILINE,
             ):
@@ -229,7 +225,6 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         release["application_version"],
         release["sdk_version"],
         release["server_version"],
-        release["client_version"],
         release["relay_version"],
         release["atlas_version"],
         release["demo_version"],
@@ -244,21 +239,18 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         validate_contract_generations(root, release)
         if release["sdk_version"] != project["version"]:
             raise ValueError("Application SDK pin differs from this checkout's SDK version")
-        client = ClientArtifact(root)
+        relay = RelayArtifact(root)
         lock = tomllib.loads((root / "uv.lock").read_text())
-        selected_client = [
-            package for package in lock["package"] if package["name"] == "coyote-pyclient"
+        selected_relay = [
+            package for package in lock["package"] if package["name"] == "coyote-relay"
         ]
-        expected_source = (
-            f"{client.source['git']}?rev={client.source['rev']}#{client.source['rev']}"
-        )
-        if len(selected_client) != 1 or selected_client[0]["version"] != release["client_version"]:
-            raise ValueError("coyote-pyclient version differs from the application selection")
-        if selected_client[0]["source"] != {"git": expected_source}:
-            raise ValueError("Client lockfile source differs from the selected Git commit")
+        expected_source = f"{relay.source['git']}?rev={relay.source['rev']}#{relay.source['rev']}"
+        if len(selected_relay) != 1 or selected_relay[0]["version"] != release["relay_version"]:
+            raise ValueError("coyote-relay version differs from the application selection")
+        if selected_relay[0]["source"] != {"git": expected_source}:
+            raise ValueError("Relay lockfile source differs from the selected Git commit")
         for relative, distribution, selected in (
             (".", "coyote-server", release["server_version"]),
-            ("services/relay", "coyote-relay", release["relay_version"]),
             ("services/atlas", "coyote-atlas", release["atlas_version"]),
             ("services/demo", "coyote-demo", release["demo_version"]),
         ):
@@ -270,20 +262,6 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                 and f"coyote-core=={release['sdk_version']}" not in package["dependencies"]
             ):
                 raise ValueError("Server core dependency differs from the application selection")
-            if distribution == "coyote-relay":
-                dependencies = package["dependencies"]
-                if not {
-                    f"coyote-core=={release['sdk_version']}",
-                    f"coyote-pyclient=={release['client_version']}",
-                }.issubset(dependencies):
-                    raise ValueError("Relay dependencies differ from the application selection")
-                for extra in ("api", "worker"):
-                    if package.get("optional-dependencies", {}).get(extra) != [
-                        f"coyote-server=={release['server_version']}"
-                    ]:
-                        raise ValueError(
-                            f"Relay {extra} dependency differs from the server selection"
-                        )
             if distribution in {"coyote-atlas", "coyote-demo"}:
                 if f"coyote-core=={release['sdk_version']}" not in package["dependencies"]:
                     raise ValueError(f"{distribution} core dependency differs from selection")
@@ -291,12 +269,6 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                     f"coyote-server=={release['server_version']}"
                 ]:
                     raise ValueError(f"{distribution} API dependency differs from selection")
-                if (
-                    distribution == "coyote-atlas"
-                    and f"coyote-pyclient=={release['client_version']}"
-                    not in package["dependencies"]
-                ):
-                    raise ValueError("Atlas client dependency differs from selection")
                 if distribution == "coyote-demo" and package.get("optional-dependencies", {}).get(
                     "worker"
                 ) != [
@@ -380,7 +352,6 @@ def wheel_record(
         namespaces = {
             "coyote-core": ("coyote/",),
             "coyote-server": ("coyote_api/", "coyote_mongo/"),
-            "coyote-pyclient": ("coyote_pyclient/",),
             "coyote-relay": ("coyote_relay/",),
             "coyote-atlas": ("coyote_atlas/",),
             "coyote-demo": ("coyote_demo/",),
@@ -475,7 +446,6 @@ def main() -> None:
             selected.update(
                 {
                     "coyote-server": record["server_version"],
-                    "coyote-pyclient": record["client_version"],
                     "coyote-relay": record["relay_version"],
                     "coyote-atlas": record["atlas_version"],
                     "coyote-demo": record["demo_version"],

@@ -11,7 +11,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 license-files = ["LICENSE.txt", "COPYRIGHT.txt", "NOTICE.txt"]
 authors = [{ name = "Ram Nanduri" }]
-dependencies = ["coyote-core==4.0.0", "coyote-pyclient==1.0.0"]
+dependencies = ["coyote-core==4.0.0", "httpx==0.28.1"]
 
 [project.optional-dependencies]
 api = ["coyote-server==1.0.0"]

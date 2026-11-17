@@ -9,8 +9,8 @@ rights. Components expressly identified under separate terms retain those terms.
 - Python runtime dependencies: [pyproject.toml](pyproject.toml) and
   [requirements.txt](requirements.txt). Installed distributions provide their
   own license metadata and license files.
-- Independent Python client dependencies:
-  [coyote-pyclient/pyproject.toml](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/pyproject.toml).
+- External Relay dependencies:
+  [coyote-relay/pyproject.toml](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/pyproject.toml).
 - Frontend dependencies: [frontend/package.json](frontend/package.json) and its
   lockfile. Dependencies retain their packaged copyright and license notices.
 - Documentation and repository tooling: [package.json](package.json) and
@@ -30,7 +30,7 @@ rights. Components expressly identified under separate terms retain those terms.
 - [Logo sources and attribution](frontend/public/logos/README.md).
 - [Local icon sources and attribution](frontend/public/icons/README.md)
   (Lucide Icons and Contributors, ISC).
-- [Independent Python client license](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/LICENSE.txt).
+- [Coyote Relay license](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/LICENSE.txt).
 
 Knowledgebase data, institutional insignia and third-party marks are subject to
 their respective terms. Their use in COYOTE4 does not grant ownership, trademark

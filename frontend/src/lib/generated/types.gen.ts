@@ -7414,10 +7414,6 @@ export type PublicAboutPayload = {
  */
 export type PublicApplicationMetadata = {
     /**
-     * Client Sdk Version
-     */
-    client_sdk_version: string | null;
-    /**
      * Description
      */
     description: string;

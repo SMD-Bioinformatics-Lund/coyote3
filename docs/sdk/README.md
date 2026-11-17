@@ -4,8 +4,9 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Coyote combines five local Python distributions with the independently maintained
-`coyote-pyclient` Git dependency.
+Coyote combines four local Python distributions with the independently maintained
+`coyote-relay` Git dependency. The Python client is maintained separately for external integrations;
+it is not installed by the application.
 
 | Package | Purpose |
 | --- | --- |
@@ -37,7 +38,7 @@ Use the individual guides for installation, usage, configuration, interfaces and
 package development: [core](../../core/docs/README.md),
 [API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
 [HTTP client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md), and
-[ingestion service](../../services/relay/docs/README.md),
+[ingestion service](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md),
 [reference service](../../services/atlas/docs/README.md) and
 [demo package](../../services/demo/docs/README.md). This section describes how
 those interfaces participate in the complete application.

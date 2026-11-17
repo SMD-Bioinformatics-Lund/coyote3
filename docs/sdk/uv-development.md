@@ -1,17 +1,16 @@
 # Editable development with uv
 
-The repository is one uv workspace with five editable distributions and one external client dependency:
+The repository is one uv workspace with four editable distributions and the external Relay dependency:
 
 | Project | Distribution | Import | Version owner |
 | --- | --- | --- | --- |
 | `core` | `coyote-core` | `coyote` | `core/pyproject.toml` |
 | Repository root | `coyote-server` | `coyote_api`, `coyote_mongo` | Root `pyproject.toml` |
-| [External client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient) | `coyote-pyclient` | `coyote_pyclient` | Its repository |
-| `services/relay` | `coyote-relay` | `coyote_relay` | Its `pyproject.toml` |
+| External Relay repository | `coyote-relay` | `coyote_relay` | Its `pyproject.toml` |
 | `services/atlas` | `coyote-atlas` | `coyote_atlas` | Its `pyproject.toml` |
 | `services/demo` | `coyote-demo` | `coyote_demo` | Its `pyproject.toml` |
 
-uv installs workspace members editable. The Python HTTP client comes from the
+uv installs workspace members editable. Relay comes from the
 exact Git commit in `[tool.uv.sources]`; it is not a workspace member. One lockfile
 resolves their dependencies together. The root `pyproject.toml` builds the server distribution from the separate
 `api/src/` and `adapters/mongo/src/` trees and owns shared development dependency groups.
@@ -22,9 +21,6 @@ they share the server version and deployment wheel.
 
 Use Python 3.14.7 for the application environment. Install uv using the
 [official installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
-Configure an authenticated Git credential helper with read access to the private
-client repository before the first sync. For GitHub CLI users, run `gh auth login`
-and `gh auth setup-git`. Keep credentials out of dependency URLs.
 From the repository root:
 
 ```bash
@@ -50,7 +46,7 @@ run it, including its guarded worker entry point.
 
 The environment file must select `ENV_NAME=dev` or `development` and use
 host-reachable endpoints. The installer watches all editable backend package
-sources, including core, API, Mongo, Relay, Atlas and Demo sources that are
+sources, including core, API, Mongo, Atlas and Demo sources that are
 present. Python and packaged configuration/template changes restart the process.
 It uses polling for WSL/container mounts and debounces consecutive edits.
 Do not combine it with Uvicorn's separate `--reload` supervisor.
@@ -66,7 +62,7 @@ The same wrapper supports maintenance workers, beat and other long-running backe
 commands. Reload sends SIGTERM, waits up to 30 seconds for shutdown, then terminates
 remaining child processes before restarting. Use it only with development jobs.
 Submission commands use the base package and do not need database credentials.
-For joint client development, install your external client checkout editable into
+For joint Relay development, install your external Relay checkout editable into
 this virtual environment with `uv pip install --python .venv/bin/python -e PATH`.
 Add its `src` directory with `--directory PATH` before `--` in the watch command.
 The next normal `uv sync --frozen` restores the selected Git revision. This local
@@ -100,7 +96,7 @@ source and CSS edits need no wheel or image rebuild.
 
 ## Run tests
 
-Prepare the pinned client wheel with `./install.sh dependencies` before running
+Prepare the pinned Relay wheel with `./install.sh dependencies` before running
 installed-distribution integration tests. Those tests consume the prepared artifact
 and perform no Git fetches.
 
@@ -108,7 +104,6 @@ and perform no Git fetches.
 scripts/quality/run_package_tests.sh core
 scripts/quality/run_package_tests.sh mongo
 scripts/quality/run_package_tests.sh api
-scripts/quality/run_package_tests.sh relay
 scripts/quality/run_package_tests.sh atlas
 scripts/quality/run_package_tests.sh demo
 scripts/quality/run_package_tests.sh all --smoke
@@ -123,8 +118,8 @@ isolation, so wheel-isolation and architecture tests also verify the boundaries.
 The package runner changes directories before invoking pytest, so each project uses
 its own configuration, synthetic helpers and coverage output. Source remains editable;
 tests do not require rebuilding wheels. The final command collects all local package and
-application tests through root `pytest.ini`. Client-owned tests run in its repository;
-the application retains client/API contract and installed-artifact checks.
+application tests through root `pytest.ini`. Relay-owned tests run in its repository;
+the application retains installed-artifact checks.
 
 ## Build for deployment
 
@@ -132,9 +127,9 @@ the application retains client/API contract and installed-artifact checks.
 uv run python scripts/release/build_sdk.py --output-dir .release/sdk
 ```
 
-The build produces five local wheels and includes the client wheel built from its
+The build produces four local wheels and includes the Relay wheel built from its
 pinned Git revision. The installer prepares that wheel on the host in
-`.release/client` before Compose builds, including `up --build`. Direct Docker
+`.release/relay` before Compose builds, including `up --build`. Direct Docker
 builds require `./install.sh dependencies` first. Git and pip must be available on
 the host. Modern and legacy images receive only the wheel and its source/checksum
 record; they do not need GitHub credentials. Normal application images install all
@@ -148,7 +143,6 @@ To build one package directly:
 ```bash
 uv build --package coyote-core
 uv build --package coyote-server
-uv build --package coyote-relay
 uv build --package coyote-atlas
 uv build --package coyote-demo
 ```

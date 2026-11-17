@@ -31,7 +31,7 @@ Export and preparation do not write to the source databases.
 The identity and knowledgebase database migrations share JSON output and exit-code
 handling in `database/migration_report.py`. Each command retains its own validation,
 dry-run and write controls. Submission, manifest validation and pipeline login are
-provided by [Coyote Relay](../services/relay/docs/usage.md), not a scripts directory.
+provided by [Coyote Relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/usage.md), not a scripts directory.
 
 Normal deployment does not install demonstration code or samples. The optional
 `coyote-demo` package supplies `coyote-demo-install` and its authenticated API

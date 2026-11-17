@@ -16,17 +16,17 @@ API and MongoDB adapter are delivered together as the application's server.
 
 ## Decision
 
-Maintain six installable Python distributions in one uv workspace. The root
-project builds the server; core, client, ingestion, reference and demonstration
-packages have their own workspace projects.
+Maintain four local distributions in one uv workspace: core, server, Atlas and
+Demo. Relay is maintained in a separate repository and installed from a pinned
+Git revision. The independent Python client is for external integrations.
 
 | Distribution and source | Responsibility | Local dependencies |
 | --- | --- | --- |
 | `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
 | `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
 | `coyote-pyclient`, in its own repository | Remote HTTP access and client-owned response models | None |
-| `coyote-relay`, in `services/relay/` | Pipeline submission tools, optional HTTP routes and ingestion workers | Core and client; API/worker extras use server composition |
-| `coyote-atlas`, in `services/atlas/` | Reference bundles, provenance, validation and publication | Core and client; optional API integration uses server composition |
+| `coyote-relay`, in external `coyote-relay` repository | Pipeline submission tools, optional HTTP routes and ingestion workers | Core; API/worker extras use server composition |
+| `coyote-atlas`, in `services/atlas/` | Reference bundles, provenance, validation and publication | Core; optional API integration uses server composition |
 | `coyote-demo`, in `services/demo/` | Synthetic datasets and guarded demo installation | Core; optional API integration uses server, and worker integration uses Relay |
 
 The root `pyproject.toml` owns the server version, dependencies and wheel build.
@@ -58,8 +58,8 @@ The ordinary application image excludes Demo. These packages supply commands and
 optional integrations; neither requires an always-running service of its own.
 
 The independent client communicates through HTTP and imports no server or core code.
-The deployment image includes its verified wheel for administration commands such
-as `install.sh data`; the API runtime does not depend on or import the client.
+It is not installed in the application. Administration commands use narrow HTTP
+transports; core operations remain the interface for trusted in-process callers.
 
 ## Benefits
 
@@ -70,7 +70,7 @@ as `install.sh data`; the API runtime does not depend on or import the client.
 - **Testable artifacts:** wheel-isolation tests run outside the checkout and
   detect missing resources or accidental imports from local source directories.
 - **Deployment traceability:** release records retain the selected versions and
-  SHA-256 hashes of all six selected wheels.
+  SHA-256 hashes of all five selected wheels.
 - **Fast local iteration:** editable workspace installs expose Python edits after
   process reload. Ordinary edits do not require wheel rebuilds.
 - **Coordinated changes:** one repository retains shared integration tests,

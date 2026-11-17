@@ -18,35 +18,8 @@ OUTPUT = ROOT / "docs/sdk/reference.md"
 MODULES = (
     "coyote.application.operations",
     "coyote.application.operations.inputs",
-    "coyote_pyclient",
     "coyote.config",
-    "coyote_pyclient.resources",
-    "coyote_pyclient.clinical",
-    "coyote_pyclient.endpoints",
-    "coyote_pyclient.async_client",
 )
-RESOURCE_TYPES = {
-    "coyote_pyclient.resources": ("Resource", "ResourceCollection"),
-    "coyote_pyclient.clinical": (
-        "Finding",
-        "FindingCollection",
-        "VariantCollection",
-        "SampleReports",
-        "SampleResource",
-        "SampleCollection",
-    ),
-    "coyote_pyclient.endpoints": ("ApiEndpoint",),
-    "coyote_pyclient.async_client": (
-        "AsyncApiEndpoint",
-        "AsyncResource",
-        "AsyncCollection",
-        "AsyncSamples",
-        "AsyncSample",
-        "AsyncFindings",
-        "AsyncVariants",
-        "AsyncReports",
-    ),
-}
 
 
 def describe_callable(name: str, value: Any) -> list[str]:
@@ -90,7 +63,7 @@ def render_reference() -> str:
     for module_name in MODULES:
         module = importlib.import_module(module_name)
         lines.extend([f"## `{module_name}`", ""])
-        for name in sorted(getattr(module, "__all__", RESOURCE_TYPES.get(module_name, ()))):
+        for name in sorted(getattr(module, "__all__", ())):
             value = getattr(module, name)
             if not callable(value):
                 continue

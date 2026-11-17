@@ -51,14 +51,13 @@ COPY deploy/installer/ ./deploy/installer/
 COPY tests/ ./tests/
 COPY CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
-COPY services/relay/ ./services/relay/
 COPY services/atlas/ ./services/atlas/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY release.toml ./
-RUN pip install --no-cache-dir --no-deps -e core -e . -e services/relay -e services/atlas
-COPY .release/client/ /opt/coyote-client/
-RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ClientArtifact; ClientArtifact(Path.cwd(), Path("/opt/coyote-client")).validate()' && \
-    pip install --no-cache-dir --no-deps /opt/coyote-client/coyote_pyclient-*.whl && pip check
+RUN pip install --no-cache-dir --no-deps -e core -e . -e services/atlas
+COPY .release/relay/ /opt/coyote-relay/
+RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import RelayArtifact; RelayArtifact(Path.cwd(), Path("/opt/coyote-relay")).validate()' && \
+    pip install --no-cache-dir --no-deps /opt/coyote-relay/coyote_relay-*.whl && pip check
 # Read the dedicated group directly so older base-image pip versions also work.
 RUN python -c 'import subprocess, sys, tomllib; group = tomllib.load(open("pyproject.toml", "rb"))["dependency-groups"]["watch"]; subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", *group])'
 

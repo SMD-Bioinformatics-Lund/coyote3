@@ -76,7 +76,7 @@ export function AboutPage() {
           bodyClassName="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <InfoCard tone="primary" icon={icon.gitBranch} label="Application version" value={application.version || "-"} hint={application.environment ? `Environment: ${application.environment}` : undefined}
-            details={[{ label: "Core SDK", value: application.sdk_version || "Not installed" }, { label: "Python client SDK", value: application.client_sdk_version || "Not installed" }]} />
+            details={[{ label: "Core SDK", value: application.sdk_version || "Not installed" }]} />
           <InfoCard
             tone="info"
             icon={icon.database}

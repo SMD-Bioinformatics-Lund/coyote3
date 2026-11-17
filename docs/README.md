@@ -52,7 +52,7 @@ and [writing documentation](development/writing-documentation.md) for contributi
 - [API and maintenance](../api/docs/README.md): HTTP handling and host composition.
 - [MongoDB adapter](../adapters/mongo/docs/README.md): persistence and transactions.
 - [Python HTTP client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md): remote integration.
-- [Ingestion service](../services/relay/docs/README.md): submission tools and workers.
+- [Ingestion service](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md): submission tools and workers.
 - [Atlas references](../services/atlas/docs/README.md): inspect and install HGNC/VEP reference bundles.
 - [Demo datasets](../services/demo/docs/README.md): synthetic resources and guarded installation.
 - [Frontend](../frontend/docs/README.md): browser application development.

@@ -186,13 +186,13 @@ nav:
     - Contributing: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/CONTRIBUTING.md
     - Releasing: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/releasing.md
   - Ingestion service:
-    - Start here: packages/relay/README.md
-    - Getting started: packages/relay/getting-started.md
-    - Usage: packages/relay/usage.md
-    - Configuration: packages/relay/configuration.md
-    - Reference: packages/relay/reference.md
-    - Development: packages/relay/development.md
-    - Architecture: packages/relay/architecture.md
+    - Start here: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md
+    - Getting started: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/getting-started.md
+    - Usage: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/usage.md
+    - Configuration: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/configuration.md
+    - Reference: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/reference.md
+    - Development: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/development.md
+    - Architecture: https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/architecture.md
   - Atlas reference service:
     - Start here: packages/atlas/README.md
     - Getting started: packages/atlas/getting-started.md

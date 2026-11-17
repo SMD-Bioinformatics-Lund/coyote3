@@ -8,6 +8,8 @@ import tomllib
 from importlib.metadata import distribution
 from pathlib import Path
 
+from packaging.requirements import Requirement
+
 IMPORT_APP_PATTERN = re.compile(r"^\s*(from|import)\s+coyote_api\.app\b")
 HTTP_FRAMEWORK_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(fastapi|starlette)\b")
 PERSISTENCE_NAMES = (
@@ -132,8 +134,8 @@ def test_library_excludes_deployment_content_and_product_pages() -> None:
         assert not any(target.rglob("*.toml")), relative
 
 
-def test_core_server_client_and_ingest_have_independent_distributions() -> None:
-    """The server bundles host layers; core, client and ingestion remain independent wheels."""
+def test_core_server_and_ingest_have_independent_distributions() -> None:
+    """The server bundles host layers; core and ingestion remain independent wheels."""
     library = tomllib.loads(Path("core/pyproject.toml").read_text())
     discovery = library["tool"]["setuptools"]["packages"]["find"]
     assert discovery["where"] == ["src"]
@@ -154,24 +156,22 @@ def test_core_server_client_and_ingest_have_independent_distributions() -> None:
         assert "build-system" not in settings
         assert "pytest" in settings["tool"]
     assert server["project"]["scripts"]["coyote4-api"] == "coyote_api.cli:main"
-    client = distribution("coyote-pyclient")
-    assert not any(
-        dependency.lower().startswith(("coyote-core", "coyote-server"))
-        for dependency in client.requires or []
+    ingest_metadata = distribution("coyote-relay")
+    assert not any("coyote-pyclient" in item for item in ingest_metadata.requires or [])
+    for extra in ("api", "worker"):
+        requirements = [
+            requirement
+            for text in ingest_metadata.requires or []
+            if (requirement := Requirement(text)).marker is not None
+            and requirement.name == "coyote-server"
+            and requirement.marker.evaluate({"extra": extra})
+        ]
+        assert len(requirements) == 1
+        assert str(requirements[0].specifier) == f"=={server['project']['version']}"
+    assert any(
+        entry.group == "coyote.api.routers" and entry.value == "coyote_relay.api:routers"
+        for entry in ingest_metadata.entry_points
     )
-    ingest = tomllib.loads(Path("services/relay/pyproject.toml").read_text())["project"]
-    assert ingest["name"] == "coyote-relay"
-    assert ingest["dependencies"] == [
-        f"coyote-core=={library['project']['version']}",
-        f"coyote-pyclient=={client.version}",
-    ]
-    assert ingest["optional-dependencies"]["worker"] == [
-        f"coyote-server=={server['project']['version']}"
-    ]
-    assert ingest["optional-dependencies"]["api"] == [
-        f"coyote-server=={server['project']['version']}"
-    ]
-    assert ingest["entry-points"]["coyote.api.routers"] == {"relay": "coyote_relay.api:routers"}
     assert not any(
         dependency.startswith("coyote-relay") for dependency in server["project"]["dependencies"]
     )
@@ -252,7 +252,6 @@ def test_http_workflows_use_the_application_sdk() -> None:
     offenders = []
     for path in [
         *_python_files(Path("api/src/coyote_api/interfaces/http")),
-        *_python_files(Path("services/relay/src/coyote_relay/api")),
     ]:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if not isinstance(node, ast.ImportFrom) or not node.module:
@@ -465,7 +464,6 @@ def test_api_boundaries_do_not_expose_pymongo_result_types() -> None:
     offenders: list[str] = []
     for root in (
         Path("api/src/coyote_api/interfaces"),
-        Path("services/relay/src/coyote_relay/api"),
         Path("core/src/coyote/application"),
         Path("core/src/coyote/domain"),
     ):
@@ -484,7 +482,6 @@ def test_domain_and_interface_layers_do_not_reach_into_repository_collections() 
     offenders: list[str] = []
     for root in (
         Path("api/src/coyote_api/interfaces"),
-        Path("services/relay/src/coyote_relay/api"),
         Path("core/src/coyote/application"),
         Path("core/src/coyote/domain"),
     ):
@@ -503,7 +500,6 @@ def test_http_routes_declare_response_contracts() -> None:
     offenders: list[str] = []
     for path in [
         *_python_files(Path("api/src/coyote_api/interfaces/http")),
-        *_python_files(Path("services/relay/src/coyote_relay/api")),
     ]:
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

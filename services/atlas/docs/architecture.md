@@ -6,8 +6,7 @@ The server owns authorization, installation provenance, target selection and
 deployment orchestration. The Mongo adapter owns persistence and reference
 publication records.
 
-The base distribution depends on `coyote-core` and the HTTP-only
-`coyote-pyclient`. Neither offline verification nor HTTP installation imports
+The base distribution depends on `coyote-core` and HTTPX. Neither offline verification nor HTTP installation imports
 the server or Mongo adapter. The `api` extra supplies `coyote-server` for the
 optional route factory, whose host imports occur only when that factory is loaded.
 

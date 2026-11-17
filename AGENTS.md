@@ -11,12 +11,11 @@ clinical behavior and traceability unless the requested change explicitly alters
   environment loading and transport. Routers delegate to core services.
 - `adapters/mongo/src/coyote_mongo/`: persistence implementations of core interfaces.
   Never import the API. API and Mongo ship together as `coyote-server`.
-- `coyote-pyclient` is an external repository, pinned by Git commit in uv sources.
-  Keep its source, unit tests and documentation there; retain client/API contract
-  tests here. Runtime handlers do not import it. Private Git access stays on the
-  build host; never pass credentials into Docker build arguments or layers.
-- `services/relay/`: optional ingestion transport, workers and submission tools.
-  Shared ingestion logic belongs to core.
+- `coyote-pyclient` is an independent repository for external HTTP integrations.
+  Do not install it as an application dependency. Client tests belong there.
+- `coyote-relay` is an external public repository, pinned by Git commit in uv.
+  Its submission tools, optional routes and workers remain independent; shared
+  ingestion logic belongs to core. Keep Relay source and tests in that repository.
 - `services/atlas/`: reference resources and publication. `services/demo/`: synthetic
   data and installation guarded by explicitly isolated targets.
 - `frontend/`: React presentation, UI defaults and API client abstractions.
@@ -110,6 +109,9 @@ instructions, conversational history and unsupported quality claims. Update link
 and commands when removing or moving files.
 
 ## Contributions and releases
+
+Changelog version headings, tags and release titles always use `vMAJOR.MINOR.PATCH`;
+Python and Node package metadata retain unprefixed package versions.
 
 Work one issue at a time on a focused branch from `dev`; target its PR at `dev`.
 Record the affected module, behavior change, relevant validation and upgrade impact.

@@ -1,6 +1,6 @@
 # MongoDB adapter changelog
 
-## 1.0.0
+## v1.0.0
 
 - Share structural finding index installation while preserving collection-specific
   indexes, key order and existing index names.

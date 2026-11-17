@@ -46,7 +46,7 @@ builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
 documentation and tests, but share one server version and wheel. The adapter
 depends on core; API code depends on both. Neither core nor adapter imports the
 API. The separate `coyote-pyclient` repository owns the independent HTTP-only client.
-`services/relay/` builds `coyote-relay`, with submission commands and separately
+external `coyote-relay` repository builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
 worker dependency; API code publishes task messages without importing worker code.
 Relay's optional API integration supplies ingestion routers through installed
@@ -102,7 +102,7 @@ Workers / trusted Python ----------> Application SDK operations
 | `core/src/coyote/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
 | `core/src/coyote/config/catalogs/rbac/` | Canonical permission definitions and built-in role templates. | Server installation consumes these resources; core imports do not install data. |
 | `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the server wheel, outside the core namespace. |
-| `services/relay/src/coyote_relay/` | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
+| `coyote_relay` in the external Relay repository | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
 | `services/atlas/src/coyote_atlas/` | HGNC/VEP reference resources, validation and publication. | Base package uses core; optional host integration supplies persistence and authorized API operations. |
 | `services/demo/src/coyote_demo/` | Synthetic datasets, guarded installation and optional demo API routes. | Base package uses core; host integration requires isolated targets and restricted credentials. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |

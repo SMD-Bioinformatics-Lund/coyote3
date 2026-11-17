@@ -17,7 +17,8 @@ from coyote_api.contracts.deployment_data import (
     DeploymentDataModule,
     DeploymentDataRequest,
 )
-from coyote_pyclient import CoyoteClient
+
+from deploy.installer.transport import api_client, authenticate, logout, response_object
 
 
 def manage_data(
@@ -54,31 +55,40 @@ def manage_data(
     base = api_url.rstrip("/")
     login = username.strip() or input("Administrator username: ").strip()
     password = getpass.getpass("Administrator password: ")
-    with CoyoteClient(base, timeout=600.0) as client:
-        user = client.login(username=login, password=password, provider=provider)
+    with api_client(base, timeout=600.0) as client:
+        user = authenticate(client, username=login, password=password, provider=provider)
         try:
-            if getattr(user, "must_change_password", False):
+            if user.get("must_change_password", False):
                 print("Complete the required password change before installing data.")
                 new_password = getpass.getpass("New password: ")
                 confirmation = getpass.getpass("Confirm new password: ")
                 if new_password != confirmation:
                     raise ValueError("New password and confirmation must match.")
-                client.api.auth.password.change.post(
+                client.post(
+                    "auth/password/change",
                     json={
                         "current_password": password,
                         "new_password": new_password,
                         "confirm_password": confirmation,
                     },
-                )
+                ).raise_for_status()
                 # Password changes invalidate all previous sessions, including this one.
-                client.login(username=login, password=new_password, provider=provider)
-            response = client.api.admin.installation.data.post(
-                json=payload.model_dump(),
+                authenticate(client, username=login, password=new_password, provider=provider)
+            response = response_object(
+                client.post(
+                    "admin/installation/data",
+                    json=payload.model_dump(),
+                )
             )
-            return response["collections"]
+            results = response.get("collections")
+            if not isinstance(results, dict) or not all(
+                isinstance(key, str) and isinstance(value, str) for key, value in results.items()
+            ):
+                raise ValueError("API installation response lacks collection statuses")
+            return results
         finally:
             try:
-                client.logout()
+                logout(client)
             except httpx.HTTPError:
                 pass
 

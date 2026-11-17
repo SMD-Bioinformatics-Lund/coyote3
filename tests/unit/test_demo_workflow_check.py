@@ -2,8 +2,8 @@
 
 import httpx
 import pytest
-from coyote_pyclient import CoyoteClient
 
+from deploy.installer.transport import api_client
 from scripts.quality.check_demo_workflow import check_demo_workflow
 
 
@@ -37,7 +37,7 @@ def test_smoke_reads_current_contract_through_proxy_and_logs_out(ready):
             },
         )
 
-    with CoyoteClient(
+    with api_client(
         "https://synthetic.invalid/proxy", transport=httpx.MockTransport(respond)
     ) as client:
         if ready:
@@ -48,7 +48,7 @@ def test_smoke_reads_current_contract_through_proxy_and_logs_out(ready):
         else:
             with pytest.raises(RuntimeError, match="No ready"):
                 check_demo_workflow(client, username="synthetic", password="synthetic-password")
-        assert client.session_token is None
+        assert "Authorization" not in client.headers
     assert requests[1].url.path == "/proxy/api/v1/samples"
     assert requests[1].headers["authorization"] == "Bearer synthetic-token"
     assert requests[-1].method == "DELETE"

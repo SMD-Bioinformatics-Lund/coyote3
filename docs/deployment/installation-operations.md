@@ -10,9 +10,8 @@ Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `compose`,
 `check`, `center`, `data`, `demo`, `watch` and `dependencies` share this entry point; implementation modules
 live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
 `PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
-Docker installation needs no server packages on the host. It needs Git, pip and a
-credential helper with read access to the private client repository; the installer
-stages its pinned wheel before building images. See [client access](../sdk/python-client.md#application-dependency-and-private-access).
+Docker installation needs no server packages on the host. It needs Git and pip; the installer
+stages its pinned wheel before building images. See [editable development](../sdk/uv-development.md).
 
 | Selection | Default Compose files | Image tag |
 | --- | --- | --- |
@@ -180,7 +179,7 @@ Module selection is mandatory; `--force` never implicitly selects every module.
 Authentication defaults to `--provider local`, matching initial bootstrap accounts.
 Select `--provider ldap` for an LDAP account; an email-shaped login does not select
 the provider automatically.
-Host invocations require the application and independent Python client installed
+Host invocations require the application dependencies installed
 in the selected interpreter; follow [developer environment setup](../getting-started/developer-environment.md).
 Alternatively run the command in the built API image, as shown below; no host
 virtual environment is needed for that path.

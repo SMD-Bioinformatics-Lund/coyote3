@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Verify retained core, server, client and ingestion wheels before image installation."""
+"""Verify retained core, server and ingestion wheels before image installation."""
 
 import argparse
 import hashlib
@@ -22,7 +22,7 @@ def verify_sdk_artifact(
     """Require every deployment package to match its tested release record.
 
     Args:
-        directory: Retained core, server, client and ingestion wheels plus release-record.json.
+        directory: Retained core, server and ingestion wheels plus release-record.json.
         release_path: Application release selection copied into the image.
         production: Require a clean production record and matching source commit.
         source_commit: Image source commit; mandatory for production builds.
@@ -40,7 +40,6 @@ def verify_sdk_artifact(
         "application_version",
         "sdk_version",
         "server_version",
-        "client_version",
         "relay_version",
         "atlas_version",
         "demo_version",
@@ -52,7 +51,6 @@ def verify_sdk_artifact(
     selected = {
         "coyote-core": release["sdk_version"],
         "coyote-server": release["server_version"],
-        "coyote-pyclient": release["client_version"],
         "coyote-relay": release["relay_version"],
         "coyote-atlas": release["atlas_version"],
         "coyote-demo": release["demo_version"],
@@ -60,7 +58,7 @@ def verify_sdk_artifact(
     artifacts = record.get("artifacts") or {}
     if set(artifacts) != set(selected):
         raise ValueError(
-            "Release record must identify exactly the selected core, server, client, Relay, Atlas and Demo wheels"
+            "Release record must identify exactly the selected core, server, Relay, Atlas and Demo wheels"
         )
     filenames = []
     for distribution, expected in selected.items():

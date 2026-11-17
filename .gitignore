@@ -57,7 +57,6 @@ frontend/coverage/
 core/coverage/
 api/coverage/
 adapters/mongo/coverage/
-services/relay/coverage/
 services/atlas/coverage/
 services/demo/coverage/
 *.cover

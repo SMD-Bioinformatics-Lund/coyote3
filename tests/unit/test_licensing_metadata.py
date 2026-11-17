@@ -16,7 +16,7 @@ def test_component_notices_preserve_copyright_affiliation_and_contributor_roles(
     assert copyright.decode().splitlines()[1] == "Copyright © 2026 Ram Nanduri."
     assert "Sektion för molekylär diagnostik (SMD)" in copyright.decode()
     assert "Contributors\n------------\nViktor Henmyr\nSailendra Pradhananga" in copyright.decode()
-    for name in ("core", "api", "adapters/mongo", "services/relay", "frontend"):
+    for name in ("core", "api", "adapters/mongo", "frontend"):
         directory = ROOT / name
         assert (directory / "COPYRIGHT.txt").read_bytes() == copyright
         assert (directory / "NOTICE.txt").read_bytes() == notice
@@ -24,7 +24,7 @@ def test_component_notices_preserve_copyright_affiliation_and_contributor_roles(
 
 
 def test_python_and_node_metadata_identify_gpl_and_keep_contributors_separate():
-    for name in ("core", ".", "services/relay"):
+    for name in ("core", "."):
         project = tomllib.loads((ROOT / name / "pyproject.toml").read_text())["project"]
         assert project["license"] == "GPL-3.0-only"
         assert "COPYRIGHT.txt" in project["license-files"]

@@ -16,7 +16,7 @@ using the [deployment acceptance checklist](acceptance-checklist.md).
 
 ## Coyote4 application identity
 
-Version four uses the `coyote` core Python package, the `coyote-pyclient` HTTP client
+Version four uses the `coyote` core Python package, the independent `coyote-pyclient` HTTP client for external integrations
 and `COYOTE4_*` deployment settings. The GitHub repository and checkout directory
 remain `coyote3`; this does not change the production Coyote3 branch or deployment.
 Both modern and older-server Compose definitions use the Coyote4 settings.

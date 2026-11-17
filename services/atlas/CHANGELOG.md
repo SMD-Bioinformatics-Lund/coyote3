@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.0.0
+## v1.0.0
+
+- Use HTTPX directly for authenticated reference publication without installing
+  the independent Python client.
 
 - Own versioned HGNC/VEP resources, source notices and diagram assets.
 - Validate resource hashes and core collection contracts offline.
