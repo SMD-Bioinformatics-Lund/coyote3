@@ -60,12 +60,12 @@ COPY LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md MANIFEST.in package_build.
 COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-COPY clients/python/ ./clients/python/
 COPY services/relay/ ./services/relay/
 COPY services/atlas/ ./services/atlas/
 COPY services/demo/ ./services/demo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
-RUN python scripts/release/build_sdk.py --output-dir /wheels
+COPY .release/client/ /opt/coyote-client/
+RUN python scripts/release/build_sdk.py --output-dir /wheels --client-artifact /opt/coyote-client
 
 FROM coyote4_runtime_base AS coyote4_server_files
 EXPOSE 8001
@@ -94,13 +94,15 @@ RUN apt-get update -o Acquire::Retries=5 && \
     rm -rf /var/lib/apt/lists/*
 COPY tests/ ./tests/
 COPY core/ ./core/
-COPY clients/python/ ./clients/python/
 COPY services/relay/ ./services/relay/
 COPY services/atlas/ ./services/atlas/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-RUN pip install --no-cache-dir --no-deps -e core -e . -e clients/python -e services/relay -e services/atlas
+RUN pip install --no-cache-dir --no-deps -e core -e . -e services/relay -e services/atlas
+COPY .release/client/ /opt/coyote-client/
+RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ClientArtifact; ClientArtifact(Path.cwd(), Path("/opt/coyote-client")).validate()' && \
+    pip install --no-cache-dir --no-deps /opt/coyote-client/coyote_pyclient-*.whl && pip check
 # Read the dedicated group directly so older base-image pip versions also work.
 RUN python -c 'import subprocess, sys, tomllib; group = tomllib.load(open("pyproject.toml", "rb"))["dependency-groups"]["watch"]; subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", *group])'
 USER coyote4:coyote4

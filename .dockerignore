@@ -14,7 +14,11 @@
 .claude
 .gemini
 .aws
-.release
+.release/*
+!.release/client
+.release/client/*
+!.release/client/*.whl
+!.release/client/artifact.json
 build
 skills
 .venv*

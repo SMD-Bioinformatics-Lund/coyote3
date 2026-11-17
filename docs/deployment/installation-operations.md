@@ -7,10 +7,12 @@ and does not build, start or recreate services.
 ## Entry point and profiles
 
 Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `compose`,
-`check`, `center`, `data`, `demo` and `watch` share this entry point; implementation modules
+`check`, `center`, `data`, `demo`, `watch` and `dependencies` share this entry point; implementation modules
 live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
 `PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
-Ordinary Docker installation needs no server packages installed on the host.
+Docker installation needs no server packages on the host. It needs Git, pip and a
+credential helper with read access to the private client repository; the installer
+stages its pinned wheel before building images. See [client access](../sdk/python-client.md#application-dependency-and-private-access).
 
 | Selection | Default Compose files | Image tag |
 | --- | --- | --- |

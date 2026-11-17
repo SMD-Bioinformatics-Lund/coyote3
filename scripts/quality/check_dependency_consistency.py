@@ -141,7 +141,6 @@ def main() -> int:
     for relative in (
         ".",
         "core",
-        "clients/python",
         "services/relay",
         "services/atlas",
         "services/demo",
@@ -151,6 +150,23 @@ def main() -> int:
             name = re.split(r"[\[<>=!~; ]", _normalize(dependency), maxsplit=1)[0]
             if name not in local_names:
                 runtime.append(dependency)
+
+    # The independently maintained client is resolved by Git in uv.lock. Export
+    # its direct runtime requirements without needing a second source checkout.
+    packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+    client = next(package for package in packages if package["name"] == "coyote-pyclient")
+    for dependency in client["dependencies"]:
+        matches = [
+            package
+            for package in packages
+            if package["name"] == dependency["name"]
+            and ("version" not in dependency or package["version"] == dependency["version"])
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"Client runtime dependency is not uniquely locked: {dependency['name']}"
+            )
+        runtime.append(f"{dependency['name']}=={matches[0]['version']}")
 
     errors = _check(
         "requirements.txt",

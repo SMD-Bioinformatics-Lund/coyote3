@@ -24,7 +24,7 @@ packages have their own workspace projects.
 | --- | --- | --- |
 | `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
 | `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
-| `coyote-pyclient`, in `clients/python/` | Remote HTTP access and client-owned response models | None |
+| `coyote-pyclient`, in its own repository | Remote HTTP access and client-owned response models | None |
 | `coyote-relay`, in `services/relay/` | Pipeline submission tools, optional HTTP routes and ingestion workers | Core and client; API/worker extras use server composition |
 | `coyote-atlas`, in `services/atlas/` | Reference bundles, provenance, validation and publication | Core and client; optional API integration uses server composition |
 | `coyote-demo`, in `services/demo/` | Synthetic datasets and guarded demo installation | Core; optional API integration uses server, and worker integration uses Relay |

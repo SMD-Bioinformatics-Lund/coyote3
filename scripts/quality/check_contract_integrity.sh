@@ -65,7 +65,7 @@ fi
 
 echo "[check] dependency exports match pyproject.toml"
 "$PYTHON_BIN" scripts/quality/check_dependency_consistency.py
-"$PYTHON_BIN" scripts/release/check_release.py
+"$PYTHON_BIN" -m scripts.release.check_release
 "$PYTHON_BIN" scripts/docs/export_sdk_reference.py --check
 "$PYTHON_BIN" scripts/database/manage_mongo_roles.py --check-policy
 

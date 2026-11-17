@@ -18,7 +18,9 @@ pip setup, from the repository root in a prepared development environment, is:
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pip install --no-deps -e core -e . -e clients/python \
+./install.sh dependencies
+python -m pip install --no-deps .release/client/coyote_pyclient-*.whl
+python -m pip install --no-deps -e core -e . \
   -e 'services/relay[api,worker]' -e 'services/atlas[api]'
 ```
 

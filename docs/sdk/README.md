@@ -4,7 +4,8 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Coyote has six independently installable Python distributions in one repository.
+Coyote combines five local Python distributions with the independently maintained
+`coyote-pyclient` Git dependency.
 
 | Package | Purpose |
 | --- | --- |
@@ -35,7 +36,7 @@ Choose a guide for your task:
 Use the individual guides for installation, usage, configuration, interfaces and
 package development: [core](../../core/docs/README.md),
 [API](../../api/docs/README.md), [MongoDB](../../adapters/mongo/docs/README.md) and
-[HTTP client](../../clients/python/docs/README.md), and
+[HTTP client](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md), and
 [ingestion service](../../services/relay/docs/README.md),
 [reference service](../../services/atlas/docs/README.md) and
 [demo package](../../services/demo/docs/README.md). This section describes how

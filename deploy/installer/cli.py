@@ -10,9 +10,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.release.build_sdk import ClientArtifact
+
 from .compose import Compose
 from .config import (
     ENVIRONMENTS,
+    ROOT,
     STEPS,
     Profile,
     environment_name,
@@ -22,6 +25,18 @@ from .config import (
 from .development import main as watch
 from .process import Console, Runner
 from .workflow import Installer, Options
+
+
+def _dependencies(argv: list[str]) -> int:
+    """Prepare private dependency artifacts with host credentials before an image build."""
+    parser = argparse.ArgumentParser(
+        prog="install.sh dependencies",
+        description="Prepare the pinned client wheel using the host Git credential helper.",
+    )
+    parser.parse_args(argv)
+    ClientArtifact(ROOT).prepare()
+    Console().log("Pinned client artifact is ready in .release/client", "DONE")
+    return 0
 
 
 def _profile_arguments(parser: argparse.ArgumentParser) -> None:
@@ -209,6 +224,8 @@ def main(argv: list[str] | None = None) -> int:
             return _check(argv[1:])
         if argv and argv[0] == "watch":
             return watch(argv[1:])
+        if argv and argv[0] == "dependencies":
+            return _dependencies(argv[1:])
         if argv and argv[0] in {"center", "data", "demo"}:
             if argv[0] == "center":
                 from .center import main as command
@@ -233,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
             "compose": "Run versioned Compose lifecycle commands",
             "check": "Check environment secrets locally",
             "watch": "Reload an editable backend service in development",
+            "dependencies": "Prepare private Git dependency artifacts for image builds",
             "center": "Stage a reviewed center configuration release",
             "data": "Install or repair selected factory data through an authenticated API",
             "demo": "Prepare and run an isolated Docker or native demonstration",

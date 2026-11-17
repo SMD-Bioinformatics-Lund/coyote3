@@ -11,7 +11,6 @@ members = [
     "coyote-atlas",
     "coyote-core",
     "coyote-demo",
-    "coyote-pyclient",
     "coyote-relay",
     "coyote-server",
 ]
@@ -643,7 +642,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "coyote-core", editable = "core" },
-    { name = "coyote-pyclient", editable = "clients/python" },
+    { name = "coyote-pyclient", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient.git?rev=3fe660e09c8137befb135c4685139e880aa21783" },
     { name = "coyote-server", marker = "extra == 'api'", editable = "." },
     { name = "pytest", marker = "extra == 'test'", specifier = "==9.0.3" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
@@ -727,28 +726,11 @@ provides-extras = ["api", "worker", "test"]
 [[package]]
 name = "coyote-pyclient"
 version = "1.0.0"
-source = { editable = "clients/python" }
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient.git?rev=3fe660e09c8137befb135c4685139e880aa21783#3fe660e09c8137befb135c4685139e880aa21783" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-
-[package.optional-dependencies]
-test = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "pydantic", specifier = "==2.14.3" },
-    { name = "pytest", marker = "extra == 'test'", specifier = "==9.0.3" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = "==1.3.0" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
-]
-provides-extras = ["test"]
 
 [[package]]
 name = "coyote-relay"
@@ -775,7 +757,7 @@ worker = [
 [package.metadata]
 requires-dist = [
     { name = "coyote-core", editable = "core" },
-    { name = "coyote-pyclient", editable = "clients/python" },
+    { name = "coyote-pyclient", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient.git?rev=3fe660e09c8137befb135c4685139e880aa21783" },
     { name = "coyote-server", marker = "extra == 'api'", editable = "." },
     { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
     { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },

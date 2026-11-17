@@ -42,7 +42,6 @@ services:
       - ../../api:/app/api
       - ../../adapters/mongo:/app/adapters/mongo
       - ../../core:/app/core
-      - ../../clients/python:/app/clients/python
       - ../../services/relay:/app/services/relay
       - ../../services/atlas:/app/services/atlas
       - ../../services/demo:/app/services/demo

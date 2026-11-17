@@ -227,4 +227,5 @@ def test_source_images_include_the_ingestion_distribution(dockerfile) -> None:
     definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
     assert "COPY services/relay/ ./services/relay/" in definition
     if dockerfile in {"Dockerfile.dev", "Dockerfile.legacy"}:
-        assert "-e clients/python -e services/relay" in definition
+        assert "-e services/relay" in definition
+        assert "/opt/coyote-client/coyote_pyclient-*.whl" in definition

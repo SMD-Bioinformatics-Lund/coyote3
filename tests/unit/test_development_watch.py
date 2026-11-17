@@ -18,7 +18,7 @@ def checkout(tmp_path):
     """Create editable package metadata without any application credentials or services."""
     (tmp_path / "pyproject.toml").write_text(
         '[tool.setuptools.package-dir]\ncoyote_api = "api/src/coyote_api"\n'
-        '[tool.uv.workspace]\nmembers = ["core", "services/relay", "services/atlas", "services/demo", "clients/python"]\n'
+        '[tool.uv.workspace]\nmembers = ["core", "services/relay", "services/atlas", "services/demo"]\n'
     )
     for name in (
         "api",
@@ -26,7 +26,6 @@ def checkout(tmp_path):
         "services/relay",
         "services/atlas",
         "services/demo",
-        "clients/python",
     ):
         (tmp_path / name / "src").mkdir(parents=True)
     return tmp_path
@@ -72,7 +71,6 @@ def test_workspace_and_external_editable_packages_are_all_watched(checkout):
         "services/relay/src",
         "services/atlas/src",
         "services/demo/src",
-        "clients/python/src",
         "external client",
     }
     assert directories.count(extra) == 1
@@ -156,7 +154,6 @@ def test_development_services_watch_mounted_sources_and_production_does_not(fold
             "api",
             "adapters/mongo",
             "core",
-            "clients/python",
             "services/relay",
             "services/atlas",
             "services/demo",

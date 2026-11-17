@@ -6,8 +6,8 @@
   and Coyote4 branding.
 - Independent clinical core and Python HTTP client, with API and MongoDB components
   in one server distribution, editable uv development and verified wheel deployments.
-- Prepare the Python client for a standalone repository with self-contained guides,
-  isolated artifact tests, package lint settings and a minimal smoke/build workflow.
+- Extract the Python client to its own repository, consume an exact Git commit,
+  and stage verified client wheels on the host for credential-free Docker builds.
 - Automatic backend service reload and frontend hot updates in development,
   including polling for WSL and container mounts.
 - Unified DNA/RNA review, structural variants, coverage, biomarkers, classification

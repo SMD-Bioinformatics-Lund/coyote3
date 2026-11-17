@@ -9,7 +9,7 @@ frontend, tooling and documentation are licensed under GNU GPL version 3 only
 | Core, `core/src/coyote/` | GNU GPL version 3 only |
 | MongoDB adapter, `adapters/mongo/` | GNU GPL version 3 only |
 | API and workers, `api/` | GNU GPL version 3 only |
-| HTTP client, `clients/python/` | GNU GPL version 3 only |
+| HTTP client, external `coyote-pyclient` repository | GNU GPL version 3 only |
 | Application frontend, deployment tooling and project documentation | GNU GPL version 3 only |
 | Third-party libraries, datasets, fonts and artwork | Their respective licenses and notices |
 

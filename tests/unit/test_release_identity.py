@@ -7,6 +7,7 @@ import subprocess
 import tomllib
 import zipfile
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -46,10 +47,13 @@ def release_root(tmp_path):
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname="coyote-server"\nversion="1.5.0"\ndependencies=["coyote-core==1.3.1"]\n'
     )
-    client = tmp_path / "clients/python"
-    client.mkdir(parents=True)
-    (client / "pyproject.toml").write_text(
-        '[project]\nname="coyote-pyclient"\nversion="1.2.0"\ndependencies=[]\n'
+    source = "https://github.com/example/client.git"
+    commit = "a" * 40
+    with (tmp_path / "pyproject.toml").open("a") as output:
+        output.write(f'\n[tool.uv.sources]\ncoyote-pyclient = {{git="{source}", rev="{commit}"}}\n')
+    (tmp_path / "uv.lock").write_text(
+        f'[[package]]\nname="coyote-pyclient"\nversion="1.2.0"\n'
+        f'source={{git="{source}?rev={commit}#{commit}"}}\n'
     )
     ingest = tmp_path / "services/relay"
     ingest.mkdir(parents=True)
@@ -178,8 +182,8 @@ def test_pull_request_release_rejects_reused_wheel_version(pull_request_release)
 
 def test_pull_request_version_bump_requires_matching_notes(pull_request_release):
     root, release, base = pull_request_release
-    release["client_version"] = "1.2.1"
-    with pytest.raises(ValueError, match="clients/python/CHANGELOG.md needs a heading"):
+    release["server_version"] = "1.5.1"
+    with pytest.raises(ValueError, match="api/CHANGELOG.md needs a heading"):
         validate_pull_request(
             root, release, base_ref=base, target_branch="dev", skip_changelog=True
         )
@@ -221,7 +225,7 @@ def test_application_rejects_a_stale_server_package_selection(release_root):
 
 
 def test_application_rejects_a_stale_administrative_client_selection(release_root):
-    path = release_root / "clients/python/pyproject.toml"
+    path = release_root / "uv.lock"
     path.write_text(path.read_text().replace('version="1.2.0"', 'version="1.1.0"'))
     with pytest.raises(ValueError, match="coyote-pyclient version differs"):
         release_identity(release_root)
@@ -381,7 +385,6 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     for package in (
         "api",
         "adapters/mongo",
-        "clients/python",
         "services/relay",
         "services/atlas",
         "services/demo",
@@ -403,6 +406,11 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     stale.mkdir(parents=True)
     (stale / "old.py").write_text("retired")
     monkeypatch.setattr(build_sdk, "ROOT", source)
+    client_wheel = tmp_path / "coyote_pyclient-1.2.0-py3-none-any.whl"
+    client_wheel.write_bytes(b"synthetic cached dependency")
+    client = Mock()
+    client.prepare.return_value = client_wheel
+    monkeypatch.setattr(build_sdk, "ClientArtifact", Mock(return_value=client))
     inspected = []
 
     def inspect_build(command, *, check):
@@ -422,7 +430,7 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(build_sdk.subprocess, "run", inspect_build)
     build_sdk.build_sdk(tmp_path / "wheels", build_isolation=False)
-    assert len(inspected) == 6
+    assert len(inspected) == 5
     assert all(not path.exists() for path in inspected)
 
 

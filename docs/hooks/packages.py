@@ -15,7 +15,6 @@ PROJECTS = {
     "core": "core",
     "api": "api",
     "mongo": "adapters/mongo",
-    "client": "clients/python",
     "relay": "services/relay",
     "atlas": "services/atlas",
     "demo": "services/demo",

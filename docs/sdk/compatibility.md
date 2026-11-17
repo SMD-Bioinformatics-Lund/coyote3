@@ -9,7 +9,7 @@ combination; package installation and public-index publication are separate task
 | --- | --- |
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
-| HTTP client version | `clients/python/pyproject.toml` |
+| HTTP client version | [`coyote-pyclient/pyproject.toml`](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/pyproject.toml) |
 | Ingestion service version | `services/relay/pyproject.toml` |
 | Reference service version | `services/atlas/pyproject.toml` |
 | Demo package version | `services/demo/pyproject.toml` |
@@ -65,7 +65,7 @@ versions. Clinical changes retain their established review and validation needs.
    .venv/bin/python scripts/release/build_sdk.py --output-dir .release/sdk
    .venv/bin/python -m pip install --no-deps --force-reinstall .release/sdk/*.whl
    PYTHONPATH=. .venv/bin/pytest -q
-   .venv/bin/python scripts/release/check_release.py --production \
+   .venv/bin/python -m scripts.release.check_release --production \
      --wheel-dir .release/sdk --output .release/sdk/release-record.json
    export GIT_COMMIT="$(git rev-parse HEAD)"
    ```

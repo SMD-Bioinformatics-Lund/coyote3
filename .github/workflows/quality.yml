@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14.7"
@@ -45,19 +46,26 @@ jobs:
               args+=(--skip-changelog)
             fi
           fi
-          python scripts/release/check_release.py "${args[@]}"
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-3.14.7-${{ hashFiles('uv.lock') }}
-          restore-keys: uv-${{ runner.os }}-3.14.7-
+          python -m scripts.release.check_release "${args[@]}"
+      # Private client sources stay on this ephemeral runner, outside public CI caches.
+      - name: Configure private client access
+        env:
+          GH_TOKEN: ${{ secrets.COYOTE_PYCLIENT_READ_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo 'Configure COYOTE_PYCLIENT_READ_TOKEN with Contents: read access to coyote-pyclient.' >&2
+            exit 1
+          fi
+          gh auth setup-git
       - name: Install locked workspace
+        env:
+          GH_TOKEN: ${{ secrets.COYOTE_PYCLIENT_READ_TOKEN }}
         run: |
           python -m pip install uv==0.6.16
           uv sync --frozen --all-packages --group test
       - name: Check Python and sensitive files
         run: |
-          .venv/bin/python -m ruff check core api adapters clients services scripts tests
+          .venv/bin/python -m ruff check core api adapters services scripts tests
           .venv/bin/python scripts/quality/check_staged_sensitive_data.py --all-files
       - name: Package and application smoke tests
         run: |

@@ -11,7 +11,10 @@ clinical behavior and traceability unless the requested change explicitly alters
   environment loading and transport. Routers delegate to core services.
 - `adapters/mongo/src/coyote_mongo/`: persistence implementations of core interfaces.
   Never import the API. API and Mongo ship together as `coyote-server`.
-- `clients/python/`: independent HTTP client. Runtime handlers do not import it.
+- `coyote-pyclient` is an external repository, pinned by Git commit in uv sources.
+  Keep its source, unit tests and documentation there; retain client/API contract
+  tests here. Runtime handlers do not import it. Private Git access stays on the
+  build host; never pass credentials into Docker build arguments or layers.
 - `services/relay/`: optional ingestion transport, workers and submission tools.
   Shared ingestion logic belongs to core.
 - `services/atlas/`: reference resources and publication. `services/demo/`: synthetic

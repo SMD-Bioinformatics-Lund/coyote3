@@ -15,7 +15,7 @@ active.
 | Python formatting | `ruff format --check core api adapters clients services tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
-| Independent Python client tests | `.venv/bin/python -m pytest -q clients/python/tests` |
+| Independent Python client tests | Run `python -m pytest -q` in the client repository |
 | Ingestion service tests | `scripts/quality/run_package_tests.sh relay` |
 | Frontend lint | `npm --prefix frontend run lint` |
 | Frontend unit tests | `npm --prefix frontend run test:unit` |

@@ -250,11 +250,11 @@ module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pyte
 follow_imports = "normal"
 
 [tool.uv.workspace]
-members = ["core", "clients/python", "services/relay", "services/atlas", "services/demo"]
+members = ["core", "services/relay", "services/atlas", "services/demo"]
 
 [tool.uv.sources]
 coyote-core = { workspace = true }
-coyote-pyclient = { workspace = true }
+coyote-pyclient = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient.git", rev = "3fe660e09c8137befb135c4685139e880aa21783" }
 coyote-server = { workspace = true }
 coyote-relay = { workspace = true }
 coyote-atlas = { workspace = true }

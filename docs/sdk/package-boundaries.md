@@ -8,7 +8,7 @@ components retain separate source, tests, coverage and guides inside one server 
 | --- | --- | --- |
 | `coyote-core` | `core/src/coyote/` | None |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
-| `coyote-pyclient` | `clients/python/src/coyote_pyclient/` | None; communicates over HTTP |
+| `coyote-pyclient` | `src/coyote_pyclient/` in the external client repository | None; communicates over HTTP |
 | `coyote-relay` | `services/relay/src/coyote_relay/` | Core and Python client; optional API and worker integrations use the server |
 | `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and Python client; optional API integration uses the server |
 | `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
@@ -46,7 +46,7 @@ The Python HTTP client is intended for external integrations. The frontend uses
 its own TypeScript HTTP client, and backend services invoke core directly. Neither
 uses the Python client for application requests. Administrative HTTP commands
 shipped with the server image and application integration tests use it to verify
-and operate the HTTP boundary. Its separate repository and PyPI release are tracked in
+and operate the HTTP boundary. Its repository is independent; PyPI publication remains tracked in
 [future work](../project/future-work.md#independent-python-http-client-repository-and-pypi-release).
 
 ## Package responsibilities

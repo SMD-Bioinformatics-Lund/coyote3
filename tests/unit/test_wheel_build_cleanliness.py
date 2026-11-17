@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[2]
 def stage_project(tmp_path, distribution):
     """Copy maintained build inputs into a checkout-independent source directory."""
     source = {
-        "client": ROOT / "clients/python",
         "core": ROOT / "core",
         "server": ROOT,
         "relay": ROOT / "services/relay",
@@ -32,7 +31,6 @@ def stage_project(tmp_path, distribution):
         "THIRD_PARTY_NOTICES.md",
         "CHANGELOG.md",
         "MANIFEST.in",
-        "client_build.py",
         "relay_build.py",
         "build_support.py",
         "package_build.py",
@@ -85,16 +83,11 @@ def build_wheel(project, output):
         return set(wheel.namelist())
 
 
-@pytest.mark.parametrize("distribution", ["client", "core", "server", "relay"])
+@pytest.mark.parametrize("distribution", ["core", "server", "relay"])
 def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distribution):
     """All distributions discard files removed since a previous wheel build."""
     project = stage_project(tmp_path, distribution)
     deleted = {
-        "client": [
-            "coyote_pyclient/auth.py",
-            "coyote4_client/__init__.py",
-            "coyote3_client/__init__.py",
-        ],
         "core": [
             "coyote3/__init__.py",
             "api/app/deps/auth.py",
@@ -111,10 +104,7 @@ def test_wheel_excludes_deleted_modules_from_stale_build_output(tmp_path, distri
         stale.write_text('"""Removed implementation."""\n')
     names = build_wheel(project, tmp_path / "wheels")
     assert not set(deleted).intersection(names)
-    if distribution == "client":
-        assert "coyote_pyclient/resources.py" in names
-        assert "coyote_pyclient/py.typed" in names
-    elif distribution == "core":
+    if distribution == "core":
         assert not any(name.startswith(("api/", "coyote_api/", "coyote_mongo/")) for name in names)
         assert "coyote/application/reporting/document/builder.py" in names
         assert not any(name.startswith("coyote/templates/reporting/") for name in names)

@@ -18,6 +18,8 @@ from email.parser import Parser
 from pathlib import Path
 from typing import Any
 
+from .build_sdk import ClientArtifact
+
 ROOT = Path(__file__).resolve().parents[2]
 VERSION_PATTERN = re.compile(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:(a|b|rc|\.dev)([0-9]+))?")
 # Version field -> changelogs and inputs that require a new wheel at release time.
@@ -31,10 +33,7 @@ RELEASE_CHANGE_SCOPES = {
         ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
         ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
     ),
-    "client_version": (
-        ("clients/python/CHANGELOG.md",),
-        ("clients/python/src", "clients/python/pyproject.toml"),
-    ),
+    "client_version": ((), ()),  # Version notes belong to the external repository.
     "relay_version": (
         ("services/relay/CHANGELOG.md",),
         ("services/relay/src", "services/relay/pyproject.toml"),
@@ -245,9 +244,20 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
         validate_contract_generations(root, release)
         if release["sdk_version"] != project["version"]:
             raise ValueError("Application SDK pin differs from this checkout's SDK version")
+        client = ClientArtifact(root)
+        lock = tomllib.loads((root / "uv.lock").read_text())
+        selected_client = [
+            package for package in lock["package"] if package["name"] == "coyote-pyclient"
+        ]
+        expected_source = (
+            f"{client.source['git']}?rev={client.source['rev']}#{client.source['rev']}"
+        )
+        if len(selected_client) != 1 or selected_client[0]["version"] != release["client_version"]:
+            raise ValueError("coyote-pyclient version differs from the application selection")
+        if selected_client[0]["source"] != {"git": expected_source}:
+            raise ValueError("Client lockfile source differs from the selected Git commit")
         for relative, distribution, selected in (
             (".", "coyote-server", release["server_version"]),
-            ("clients/python", "coyote-pyclient", release["client_version"]),
             ("services/relay", "coyote-relay", release["relay_version"]),
             ("services/atlas", "coyote-atlas", release["atlas_version"]),
             ("services/demo", "coyote-demo", release["demo_version"]),

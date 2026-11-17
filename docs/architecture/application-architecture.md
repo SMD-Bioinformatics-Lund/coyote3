@@ -45,7 +45,7 @@ builds `coyote-server`, containing the `coyote_api` namespace from `api/` and
 `coyote_mongo` from `adapters/mongo/`. API and MongoDB code keep separate source,
 documentation and tests, but share one server version and wheel. The adapter
 depends on core; API code depends on both. Neither core nor adapter imports the
-API. `clients/python/` builds the independent HTTP-only `coyote-pyclient`.
+API. The separate `coyote-pyclient` repository owns the independent HTTP-only client.
 `services/relay/` builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
 worker dependency; API code publishes task messages without importing worker code.
@@ -84,7 +84,7 @@ The application SDK owns the shared use-case entry points:
 ```text
 React UI -------------------\
                              HTTP API ----\
-Remote SDK (clients/python/src/coyote_pyclient/) ----/              |
+External Python client -----/              |
                                            v
 Workers / trusted Python ----------> Application SDK operations
                                            |
@@ -110,7 +110,7 @@ Workers / trusted Python ----------> Application SDK operations
 | `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |
 | `api/src/coyote_api/app/` | FastAPI composition, service factories, runtime configuration and lifecycle. | Selects concrete repositories, authorization engines, credential delivery, metrics and operational adapters. |
 | `api/src/coyote_api/interfaces/http/` | Routes, access dependencies, request conversion and response contracts. | Delegates workflows to SDK operations; analysis requests become `AnalysisQuery` values. |
-| `clients/python/src/coyote_pyclient/` | Remote sessions, Python resource objects, pagination, workflow calls and client-owned response models. | Uses HTTPX and Pydantic; imports no server package beyond its own `coyote_pyclient` namespace. |
+| `src/coyote_pyclient/` in the external client repository | Remote sessions, Python resource objects, pagination, workflow calls and client-owned response models. | Uses HTTPX and Pydantic; imports no server package beyond its own `coyote_pyclient` namespace. |
 | `frontend/src/` | React interactions, display models and HTTP query hooks. | Uses the API through the frontend client/query abstractions. |
 
 API and worker entry points supply runtime implementations. For example, sample
@@ -173,8 +173,8 @@ tests or deployment validation.
 ## Application SDK
 
 The application SDK is the reusable Python library for Coyote4 use cases and domain
-rules. FastAPI and workers invoke that library. The remote client SDK in
-`clients/python/src/coyote_pyclient/` invokes the HTTP API. These are distinct interfaces with different
+rules. FastAPI and workers invoke that library. The remote client in the external `coyote-pyclient` repository invokes the HTTP API.
+These are distinct interfaces with different
 deployment requirements: direct application calls need configured repositories and
 integrations; remote calls need a server URL and authenticated session.
 

@@ -41,7 +41,7 @@ changelogs with their changes. Synchronize derived metadata from the repository 
 
 ```bash
 npm run sync:version
-.venv/bin/python scripts/release/check_release.py
+.venv/bin/python -m scripts.release.check_release
 ```
 
 Update README version badges to match the selected component versions, preserving
@@ -62,7 +62,7 @@ under an existing version. Run the same comparison locally against an available
 target commit:
 
 ```bash
-.venv/bin/python scripts/release/check_release.py --base-ref master --target-branch master
+.venv/bin/python -m scripts.release.check_release --base-ref master --target-branch master
 ```
 
 ## Prepare the release PR

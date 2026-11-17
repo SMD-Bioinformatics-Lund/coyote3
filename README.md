@@ -55,7 +55,7 @@ and PDF reports from the reviewed findings, comment and configuration snapshot.
 | [Core](core/README.md) | Domain rules, application workflows and portable contracts |
 | [API](api/README.md) and [Mongo](adapters/mongo/README.md) | HTTP host and persistence, distributed together as `coyote-server` |
 | [Frontend](frontend/README.md) | Clinical review and administration interface |
-| [pyClient](clients/python/README.md) | Independent Python HTTP client |
+| [pyClient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/README.md) | Independent Python HTTP client |
 | [Relay](services/relay/README.md) | Ingestion workers and pipeline submission tools |
 | [Atlas](services/atlas/README.md) | Reference resources and publication |
 | [Demo](services/demo/README.md) | Synthetic data and guarded demonstration installation |

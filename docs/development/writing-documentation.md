@@ -244,7 +244,7 @@ not establish when it is applied, which permissions are required or what is save
 | Finding selection | `core/src/coyote/application/query_rules/`, `core/src/coyote/domain/dna/`, `core/src/coyote/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |
 | Reporting | `core/src/coyote/application/reporting/`, `api/src/coyote_api/presentation/reports/` | Suggestion versus saved comment, eligibility, preview/save boundaries, package rendering and resolution receipts. |
 | Ingest formats | `core/src/coyote/application/ingest/`, collection contracts | Parse downloadable examples through the actual adapters and validate the resulting documents. |
-| HTTP and Python interfaces | Route modules, generated OpenAPI, `clients/python/`, supported operations | HTTP methods/paths, authorization, import boundaries and release compatibility. Hidden internal routes must also be checked in route source. |
+| HTTP and Python interfaces | Route modules, generated OpenAPI, the client repository, supported operations | HTTP methods/paths, authorization, import boundaries and release compatibility. Hidden internal routes must also be checked in route source. |
 | Navigation and diagrams | `mkdocs.yml`, reading paths, rendered HTML and SVGs | Direct procedure destinations, anchors, return context, keyboard controls, readable labels and correct dependency direction. |
 
 Structural checks do not prove clinical suitability, deployment readiness or external

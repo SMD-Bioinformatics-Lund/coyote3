@@ -6,25 +6,17 @@ plans and clinical workflow validation.
 
 ## Independent Python HTTP client repository and PyPI release
 
-- [x] Prepare standalone client documentation, package tooling, artifact builds and
-  a minimal smoke/build workflow. Keep application contract tests in this repository.
+**Status: private repository created; PyPI publication remains pending.**
 
-**Status: planned; repository extraction and publication are pending.**
+- [x] Move the client, documentation, tests, coverage, changelog and GPL-3.0-only
+  notices to [coyote-pyclient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient). Development is on `dev`.
+- [x] Consume a pinned Git commit and retain application client/API contract tests.
+- [ ] Publish `coyote-pyclient` as an independently versioned PyPI package after
+  release approval and package-name verification.
 
-- [ ] Move `clients/python/` into a separate `coyote-pyclient` GitHub repository with its own
-  documentation, tests, smoke suite, coverage, changelog and GPL-3.0-only notices.
-- [ ] Publish `coyote-pyclient` as an independently versioned PyPI package, retaining
-  its HTTP-only boundary and independence from core, API and database packages.
-- [ ] Define supported HTTP API compatibility and release validation, then update
-  application integration tests to use the released client package.
-
-The Python import is `coyote_pyclient`. A future JavaScript client can use the
-separate `coyote-jsclient` name and its own release lifecycle.
-
-Complete client readiness and compatibility validation before extracting it from
-this repository. Repository extraction and publication follow that readiness review. The React
-frontend continues to use its TypeScript HTTP client; backend services continue
-to invoke core operations directly.
+The Python import remains `coyote_pyclient`. A future JavaScript client can use
+`coyote-jsclient` with its own release lifecycle. The React frontend uses its
+TypeScript HTTP client; backend services invoke core operations directly.
 
 ## Independent Coyote Relay repository and release
 

@@ -177,14 +177,14 @@ nav:
     - Development: packages/mongo/development.md
     - Architecture: packages/mongo/architecture.md
   - Python HTTP client:
-    - Start here: packages/client/README.md
-    - Getting started: packages/client/getting-started.md
-    - Usage: packages/client/usage.md
-    - Configuration: packages/client/configuration.md
-    - Reference: packages/client/reference.md
-    - Development: packages/client/development.md
-    - Contributing: packages/client/contributing.md
-    - Releasing: packages/client/releasing.md
+    - Start here: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/README.md
+    - Getting started: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/getting-started.md
+    - Usage: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/usage.md
+    - Configuration: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/configuration.md
+    - Reference: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/reference.md
+    - Development: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/development.md
+    - Contributing: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/CONTRIBUTING.md
+    - Releasing: https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/releasing.md
   - Ingestion service:
     - Start here: packages/relay/README.md
     - Getting started: packages/relay/getting-started.md

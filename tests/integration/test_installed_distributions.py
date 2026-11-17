@@ -22,7 +22,7 @@ def installed_distributions(tmp_path_factory):
     """Build actual wheels and install them into separate targets with no dependency downloads."""
     root = tmp_path_factory.mktemp("installed-distributions")
     wheels = root / "wheels"
-    build_sdk(wheels, build_isolation=False)
+    build_sdk(wheels, build_isolation=False, client_artifact=ROOT / ".release/client")
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))
     client = next(wheels.glob("coyote_pyclient-*.whl"))

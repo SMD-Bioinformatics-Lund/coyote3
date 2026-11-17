@@ -9,7 +9,9 @@ import json
 import shutil
 from collections.abc import Mapping, Sequence
 
-from .config import Profile, read_environment, validate_secrets
+from scripts.release.build_sdk import ClientArtifact
+
+from .config import ROOT, Profile, read_environment, validate_secrets
 from .process import Runner
 from .storage import prepare
 
@@ -106,6 +108,19 @@ class Compose:
         if not arguments:
             raise ValueError("A Compose command is required")
         operation = arguments[0]
+        if operation == "build" or (operation == "up" and "--build" in arguments):
+            source_targets = {
+                "coyote4_source_api",
+                "coyote4_dev_api",
+                "coyote4_dev_all",
+                "demo_source",
+            }
+            if any(
+                isinstance(service.get("build"), dict)
+                and service["build"].get("target") in source_targets
+                for service in self.config()["services"].values()
+            ):
+                ClientArtifact(ROOT).prepare()
         if operation == "down" and any(
             arg in {"-v", "--volumes"}
             or arg.startswith("--volumes=")

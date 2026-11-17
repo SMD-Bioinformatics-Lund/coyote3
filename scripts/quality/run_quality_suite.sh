@@ -36,7 +36,6 @@ PYTHON_BIN="$PYTHON_BIN" PYTHONPATH=. \
   bash scripts/quality/run_family_coverage_gates.sh --from-existing
 
 echo "[quality] Strict Python type boundary"
-"$PYTHON_BIN" -m pytest -q clients/python/tests
 PYTHONPATH=. "$PYTHON_BIN" -m mypy
 
 echo "[quality] Independent package coverage gates"

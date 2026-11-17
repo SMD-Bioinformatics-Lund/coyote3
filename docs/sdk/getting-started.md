@@ -5,9 +5,9 @@ environment:
 
 ```bash
 python -m pip install -e core
-# Install the independent HTTP client when developing it or running client tooling.
-python -m pip install -e clients/python
 ```
+
+For HTTP tooling, use the independent [Python client](python-client.md).
 
 This installs the library editable. Python source changes take effect after the
 consuming process reloads. Changes to dependency declarations or package metadata

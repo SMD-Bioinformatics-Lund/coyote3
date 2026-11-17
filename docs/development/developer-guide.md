@@ -68,7 +68,7 @@ Use synthetic samples for local verification and browser fixtures.
 | `api/src/coyote_api/contracts/` | Host-only HTTP, session, diagnostic and installation contracts. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report presentation. |
 | `core/src/coyote/application/reporting/document/` | JSON projection for package-owned `smd-reports` rendering. |
-| `clients/python/` | Independent typed sync/async HTTP client distribution and tests. |
+| External `coyote-pyclient` repository | Independent typed sync/async HTTP client distribution and tests. |
 | `services/relay/` | Installable ingestion submission tools and worker host. |
 | `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |

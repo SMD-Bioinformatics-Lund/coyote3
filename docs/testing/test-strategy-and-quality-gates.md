@@ -15,7 +15,7 @@ Use focused checks during development and comprehensive validation for a release
 | `core/tests` | Clinical rules, filtering, portable contracts and application workflows |
 | `api/tests` | Host configuration, authentication, HTTP contracts and permission scope |
 | `adapters/mongo/tests` | Query compilation, repositories and persistence integration |
-| `clients/python/tests` | HTTP transport, authentication, client resources and failures |
+| `coyote-pyclient` repository tests | HTTP transport, authentication, client resources and failures |
 | `services/relay/tests` | Submission tools, manifests and ingestion worker composition |
 | `services/atlas/tests` | Reference validation, resources and publication |
 | `services/demo/tests` | Synthetic resources and isolated installation safeguards |

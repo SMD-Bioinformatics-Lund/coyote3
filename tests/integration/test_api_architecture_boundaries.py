@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import re
 import tomllib
+from importlib.metadata import distribution
 from pathlib import Path
 
 IMPORT_APP_PATTERN = re.compile(r"^\s*(from|import)\s+coyote_api\.app\b")
@@ -153,17 +154,16 @@ def test_core_server_client_and_ingest_have_independent_distributions() -> None:
         assert "build-system" not in settings
         assert "pytest" in settings["tool"]
     assert server["project"]["scripts"]["coyote4-api"] == "coyote_api.cli:main"
-    client = tomllib.loads(Path("clients/python/pyproject.toml").read_text())
-    assert client["project"]["name"] == "coyote-pyclient"
+    client = distribution("coyote-pyclient")
     assert not any(
         dependency.lower().startswith(("coyote-core", "coyote-server"))
-        for dependency in client["project"]["dependencies"]
+        for dependency in client.requires or []
     )
     ingest = tomllib.loads(Path("services/relay/pyproject.toml").read_text())["project"]
     assert ingest["name"] == "coyote-relay"
     assert ingest["dependencies"] == [
         f"coyote-core=={library['project']['version']}",
-        f"coyote-pyclient=={client['project']['version']}",
+        f"coyote-pyclient=={client.version}",
     ]
     assert ingest["optional-dependencies"]["worker"] == [
         f"coyote-server=={server['project']['version']}"
@@ -214,7 +214,6 @@ def test_independent_packages_do_not_discover_deployment_environment() -> None:
     for directory in (
         "core/src/coyote",
         "adapters/mongo/src/coyote_mongo",
-        "clients/python/src/coyote_pyclient",
     ):
         for path in _python_files(Path(directory)):
             tree = ast.parse(path.read_text())
@@ -362,19 +361,9 @@ def test_core_does_not_construct_executable_database_predicates() -> None:
 def test_sdk_and_server_are_independent_consumers() -> None:
     """The SDK depends on its own HTTP models; the server never calls its remote SDK."""
     offenders = []
-    for path in (
-        _python_files(Path("api/src/coyote_api"))
-        + _python_files(Path("core/src/coyote"))
-        + _python_files(Path("clients/python/src/coyote_pyclient"))
-    ):
-        client = path.is_relative_to("clients/python/src/coyote_pyclient")
+    for path in _python_files(Path("api/src/coyote_api")) + _python_files(Path("core/src/coyote")):
         for line, module in _imported_modules(path):
-            if client:
-                invalid = module.split(".")[0] in {"coyote_api", "coyote", "coyote_mongo"} and not (
-                    module == "coyote_pyclient" or module.startswith("coyote_pyclient.")
-                )
-            else:
-                invalid = module == "coyote_pyclient" or module.startswith("coyote_pyclient.")
+            invalid = module == "coyote_pyclient" or module.startswith("coyote_pyclient.")
             if invalid:
                 offenders.append(f"{path}:{line}: {module}")
     assert not offenders, "SDK/server boundary violations:\n" + "\n".join(offenders)

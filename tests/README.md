@@ -23,7 +23,7 @@ and release requirements are in the
 | `tests/fixtures/` | Application-level synthetic datasets and architecture baselines. Package helpers stay inside their own test trees. |
 | `tests/docs/` | Markdown tooling and rendering checks. |
 | `tests/load/` | Opt-in synthetic HTTP workloads; see the [load-testing guide](../docs/testing/load-and-capacity-testing.md). |
-| `clients/python/tests/` | Independent HTTP client authentication, sync/async operations, timeouts, and errors. |
+| External `coyote-pyclient` test suite | Independent HTTP client authentication, sync/async operations, timeouts, and errors. |
 | `frontend/src/`, `frontend/tests/smoke/` | Colocated TypeScript tests and a separately selectable fast component suite. |
 | `frontend/tests/e2e/` | Browser workflows with deterministic intercepted API responses. |
 | `frontend/tests/e2e-real/` | Explicit checks against a running synthetic deployment. |
@@ -89,3 +89,6 @@ its own `.coverage` database and `coverage/coverage.xml`, and measures its entir
 runtime namespace, including unexecuted modules. The root report and existing
 clinical gates use the complete application suite. Smoke runs do not enforce full
 coverage; they exclude wheel builds, PDF pagination and configured-service tests.
+
+Installed-distribution tests require `./install.sh dependencies` first. They use the
+prepared client wheel from `.release/client` and do not fetch Git dependencies.
