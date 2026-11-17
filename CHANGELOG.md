@@ -12,6 +12,8 @@
   independent SNV filtering and configurable report section order.
 - Consistent CNV gene-list/panel fallback and configurable normal-call query rules;
   DNA translocation transcript selection requires both gene partners for a MANE match.
+- Require high-amplification CNVs to pass size limits, matching the production
+  query's handling of `ratio > 3` while retaining v4's strict cutoff boundaries.
 - Governed query and reporting rules with drafts, review, publication and provenance.
 - Focused administration, clinical-rule lifecycle and report-building services with
   unchanged review transitions and report presentation.

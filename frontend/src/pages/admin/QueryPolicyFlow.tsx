@@ -99,7 +99,7 @@ export function QueryPolicyFlow({ value, analysis }: { value: PolicyResolution; 
   </Branch> : analysis === "cnv" ? <Branch title="Ordinary CNV selection" operator="AND">
     <p>Normal-control eligibility follows the resolved exclusion rules shown below.</p>
     <Branch title="Copy-number evidence" operator="OR">
-      <p>ratio &lt; sample.filters.cnv_loss_cutoff or ratio &gt; sample.filters.cnv_gain_cutoff, AND (sample.filters.min_cnv_size &lt; size &lt; sample.filters.max_cnv_size OR ratio &gt; 3).</p>
+      <p>(ratio &lt; sample.filters.cnv_loss_cutoff or ratio &gt; sample.filters.cnv_gain_cutoff) AND sample.filters.min_cnv_size &lt; size &lt; sample.filters.max_cnv_size.</p>
       <p>Missing/null ratio AND nonempty SR or PR evidence.</p>
     </Branch>
     <p>Match selected CNV lists, otherwise panel genes. Without either, genes are unrestricted. An explicitly selected empty list matches no findings.</p>

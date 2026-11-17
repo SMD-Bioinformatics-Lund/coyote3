@@ -23,10 +23,17 @@ from coyote_mongo.selection import compile_selection
         (0.5, 10000, False),
         (0.5, 1000, True),
         (-0.5, 1000, True),
+        (3.0, 1000, True),
+        (3.1, 50, False),
+        (3.1, 100, False),
+        (3.1, 1000, True),
+        (3.1, 10000, False),
+        (3.1, 20000, False),
+        (3.1, None, False),
     ],
 )
 def test_cnv_ratio_and_size_cutoffs_select_strictly_between_boundaries(ratio, size, selected):
-    """A record on a configured ratio or size boundary does not pass the ordinary query."""
+    """Ratio calls obey strict ratio and size cutoffs, including high amplifications."""
     collection = mongomock.MongoClient().synthetic.cnvs
     collection.insert_one({"SAMPLE_ID": "sample", "ratio": ratio, "size": size})
     query = build_cnv_query(
@@ -183,28 +190,6 @@ def test_build_cnv_query_accepts_ratio_less_structural_read_calls() -> None:
         )
     )
     assert evidence_clause
-
-
-def test_build_cnv_query_preserves_historical_strict_boundaries_and_amplification() -> None:
-    """Ratio CNVs use strict cutoffs while high amplifications bypass the size ceiling."""
-    query = compile_selection(
-        build_cnv_query(
-            "SAMPLE_1",
-            {
-                "cnv_loss_cutoff": -0.3,
-                "cnv_gain_cutoff": 0.3,
-                "min_cnv_size": 100,
-                "max_cnv_size": 10000,
-            },
-        )
-    )
-
-    query_text = str(query)
-    assert "'$lt': -0.3" in query_text
-    assert "'$gt': 0.3" in query_text
-    assert "'$gt': 100" in query_text
-    assert "'$lt': 10000" in query_text
-    assert "'$gt': 3" in query_text
 
 
 def test_build_cnv_query_keeps_normal_calls_for_wgs() -> None:

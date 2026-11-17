@@ -102,9 +102,9 @@ check, and retains population-frequency and consequence checks.
 The ordinary query restricts results to the sample and applies these branches:
 
 - Ratio-based calls require `ratio < cnv_loss_cutoff` or
-  `ratio > cnv_gain_cutoff`, together with either
-  `min_cnv_size < size < max_cnv_size` or **`ratio > 3`**. The latter is an
-  application-defined size-check exception; the configured ratio cutoff still applies.
+  `ratio > cnv_gain_cutoff`, together with
+  `min_cnv_size < size < max_cnv_size`. High amplifications (`ratio > 3`) must
+  also satisfy the size limits; there is no implicit size-check exception.
 - Calls with missing or null ratio instead require a present `SR` or `PR` value
   that is not null, an empty string or an empty array. This branch does not apply
   ratio or size thresholds and does not impose a numeric read-count minimum.

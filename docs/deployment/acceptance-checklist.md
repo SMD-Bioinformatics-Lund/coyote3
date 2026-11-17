@@ -159,7 +159,7 @@ owner approve them. Retain the inputs and comparisons with the release record.
 
 | Case | Evidence to compare |
 | --- | --- |
-| CNV ratio and size | Values below, on and above each configured cutoff; record the intended strict boundaries and any approved amplification exception. |
+| CNV ratio and size | Values below, on and above each configured cutoff; verify strict boundaries and that high amplifications (`ratio > 3`) still obey size limits unless an explicit published admission rule applies. |
 | CNV caller types | Numeric log2-ratio calls and text event/read-evidence calls; missing values remain distinct from zero. |
 | CNV gene scope | Selected CNV list, panel-only fallback, no panel genes, and an explicitly selected empty list; compare analysis, exports, query previews and report eligibility. |
 | CNV normal marker | `NORMAL` absent, zero and one under each published family/assay policy; compare the effective rule receipt and selected records. |

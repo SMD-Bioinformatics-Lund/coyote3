@@ -89,7 +89,6 @@ def build_cnv_query(
                 {"size": {Operator.LESS: filters["max_cnv_size"]}},
             ]
         }
-        high_level_amplification = {"ratio": {Operator.GREATER: 3}}
         missing_ratio = {
             Operator.ANY: [
                 {"ratio": None},
@@ -113,12 +112,7 @@ def build_cnv_query(
                     {
                         Operator.ALL: [
                             ratio_outside_thresholds,
-                            {
-                                Operator.ANY: [
-                                    size_within_thresholds,
-                                    high_level_amplification,
-                                ]
-                            },
+                            size_within_thresholds,
                         ]
                     },
                     {

@@ -2,6 +2,9 @@
 
 ## 4.0.0
 
+- Remove the implicit `ratio > 3` size bypass for ratio-based CNVs. High
+  amplifications must pass the configured size limits, as in the production query;
+  retain strict cutoff boundaries and explicit published admission rules.
 - Resolve CNV genes from selected CNV lists, then panel coverage, then an
   unrestricted scope when neither is present. Preserve explicit empty selections
   across analysis, query previews and report eligibility.
