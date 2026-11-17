@@ -141,6 +141,8 @@ def validate_profile_content(draft: ConfigurationProfileDraft) -> None:
         raise ValueError("Template profiles accept template_name and content_hash")
     name = draft.content.get("template_name")
     try:
+        if not isinstance(name, str):
+            raise ValueError("Template name must be a string")
         name = ReportTemplate(name).value
     except ValueError as exc:
         raise ValueError("Choose a registered report template: dna or rna") from exc

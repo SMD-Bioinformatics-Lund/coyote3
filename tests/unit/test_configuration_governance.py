@@ -176,8 +176,10 @@ def test_template_profile_records_hash_and_compiles_only_for_its_modality(profil
         compile_profiles(configuration, {**panel, "asp_category": other}, repository)
 
 
-@pytest.mark.parametrize("name", ["smd/dna_report.html", "smd/report_fusion.html", "unknown"])
-def test_template_profile_rejects_paths_and_unknown_identifiers(profiles, name):
+@pytest.mark.parametrize(
+    "name", ["smd/dna_report.html", "smd/report_fusion.html", "unknown", None, 42, ["dna"]]
+)
+def test_template_profile_rejects_paths_and_invalid_identifiers(profiles, name):
     service, _, _, _ = profiles
     with pytest.raises(AppError, match="Choose a registered report template"):
         service.create(draft(kind="template", content={"template_name": name}), actor="author")

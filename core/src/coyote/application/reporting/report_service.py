@@ -7,6 +7,7 @@ from enum import StrEnum
 from hashlib import sha256
 from importlib.metadata import version
 from importlib.resources import files
+from importlib.resources.abc import Traversable
 
 REPORT_PRESET = "coyote3"
 
@@ -36,7 +37,7 @@ def template_content_hash(template_name: str) -> str:
         f"smd-reports:{version('smd-reports')}:{REPORT_PRESET}:{template.value}".encode()
     )
 
-    def include(directory, prefix=""):
+    def include(directory: Traversable, prefix: str = "") -> None:
         """Hash renderer resources in stable path order, excluding interpreter caches."""
         for resource in sorted(directory.iterdir(), key=lambda item: item.name):
             path = prefix + resource.name
