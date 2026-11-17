@@ -1,6 +1,7 @@
 """Fast authenticated report-preview transport contract without a server."""
 
 import httpx
+
 from coyote_pyclient import CoyoteClient
 
 

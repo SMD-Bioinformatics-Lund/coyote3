@@ -88,6 +88,7 @@ def on_files(files, config):
         for filename, public_name in (
             ("README.md", "overview.md"),
             ("CHANGELOG.md", "changelog.md"),
+            ("CONTRIBUTING.md", "contributing.md"),
             ("LICENSE.txt", "LICENSE.txt"),
             ("COPYRIGHT.txt", "COPYRIGHT.txt"),
             ("NOTICE.txt", "NOTICE.txt"),

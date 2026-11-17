@@ -20,3 +20,20 @@ under `client.api` construct paths; they do not establish that an endpoint exist
 The distribution is `coyote-pyclient`; its namespace is `coyote_pyclient`.
 Version ownership belongs to this project's metadata. See [usage](usage.md) for
 pagination, asynchronous operations, reports and error handling.
+
+## Metadata
+
+`resource.meta` returns an immutable, permitted metadata snapshot. Its fields
+are defined in `src/coyote_pyclient/metadata.py`:
+
+| Model | Resource |
+| --- | --- |
+| `SampleMetadata` | Sample identity, assay context and ingestion state |
+| `AssayMetadata` | Assay identity, supported analyses and expected files |
+| `ConfigurationMetadata` | Applied configuration and analysis/report sections |
+| `GroupMetadata` | Biological group and parent group |
+| `DiagnosisMetadata` | Diagnosis identity and linked assays |
+| `GeneListMetadata` | Gene-list identity, type and entry count |
+
+Optional fields may be unavailable on a particular server. Refresh the resource
+before relying on current metadata; permissions are checked on every request.

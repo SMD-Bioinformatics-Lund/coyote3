@@ -34,6 +34,18 @@ build_py = "client_build.CleanClientBuildPy"
 [tool.setuptools.package-data]
 coyote_pyclient = ["py.typed"]
 
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]
@@ -47,11 +59,6 @@ markers = [
   "integration: explicitly configured service integration",
   "contract: schema and architecture contracts",
 ]
-filterwarnings = [
-  'ignore:tagMap is deprecated\. Please use TAG_MAP instead\.:DeprecationWarning:ldap3\.utils\.asn1',
-  'ignore:typeMap is deprecated\. Please use TYPE_MAP instead\.:DeprecationWarning:ldap3\.utils\.asn1',
-]
-
 [tool.coverage.run]
 branch = true
 source = ["coyote_pyclient"]

@@ -2,6 +2,8 @@
 
 ## 1.0.0
 
+- Prepare standalone repository development with self-contained documentation,
+  editable installation, package-owned smoke/build CI and artifact release checks.
 - Use the language-specific distribution name `coyote-pyclient` and import namespace
   `coyote_pyclient`, independently of the Coyote application generation.
 - Separate fast preview-transport smoke checks from the broader sync/async unit

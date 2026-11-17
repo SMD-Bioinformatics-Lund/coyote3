@@ -6,6 +6,9 @@ plans and clinical workflow validation.
 
 ## Independent Python HTTP client repository and PyPI release
 
+- [x] Prepare standalone client documentation, package tooling, artifact builds and
+  a minimal smoke/build workflow. Keep application contract tests in this repository.
+
 **Status: planned; repository extraction and publication are pending.**
 
 - [ ] Move `clients/python/` into a separate `coyote-pyclient` GitHub repository with its own

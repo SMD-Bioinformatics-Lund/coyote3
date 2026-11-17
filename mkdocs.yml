@@ -183,6 +183,8 @@ nav:
     - Configuration: packages/client/configuration.md
     - Reference: packages/client/reference.md
     - Development: packages/client/development.md
+    - Contributing: packages/client/contributing.md
+    - Releasing: packages/client/releasing.md
   - Ingestion service:
     - Start here: packages/relay/README.md
     - Getting started: packages/relay/getting-started.md

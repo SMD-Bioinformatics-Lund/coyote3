@@ -14,5 +14,6 @@ Choose a guide for your task:
 - [Configure transport and authentication](configuration.md).
 - [Look up interfaces and errors](reference.md).
 - [Develop and test the client](development.md).
+- [Verify and release a client version](releasing.md).
 
 Permissions and clinical interpretation remain authoritative on the server.

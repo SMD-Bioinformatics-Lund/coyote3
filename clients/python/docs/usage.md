@@ -1,8 +1,7 @@
 # Use the Python HTTP client {#python-sdk}
 
-This guide covers remote access to a running API. For local application use cases,
-use the [application SDK](../../../docs/sdk/application-sdk.md); for help choosing, see
-[the Python interface guide](../../../docs/sdk/README.md#choose-the-python-interface).
+This guide covers HTTP access to a running Coyote API. In-process clinical
+workflows belong to the separate application SDK and are not part of this client.
 
 `CoyoteClient` and `AsyncCoyoteClient` provide typed HTTP access from Python.
 Install the project or a retained wheel using [getting started](getting-started.md).
@@ -108,8 +107,8 @@ current server state or continuing access; every new request checks current acce
 | `client.diagnoses` | `diagnosis_id` |
 | `client.genelists` | Gene-list `isgl_id` |
 
-Supported metadata attributes follow the [individual resource fields](../../../docs/api/resource-fields.md)
-contracts. Unsupported metadata attributes raise `AttributeError` locally. Optional
+Supported metadata attributes are defined by the [client metadata models](reference.md#metadata).
+Unsupported metadata attributes raise `AttributeError` locally. Optional
 null values become `None`; booleans, integers, strings, and lists retain their JSON
 types. ISO timestamps in metadata become Python `datetime` values. Metadata snapshots
 contain only the permitted field allowlist, excluding clinical content and file paths.
@@ -171,7 +170,7 @@ Path(f"{trial.filename}.pdf").write_bytes(base64.b64decode(trial.pdf_base64))
 
 These writes occur on the computer running the script. The server renders HTML
 and PDF in memory and retains normal access auditing, without creating report
-records or server report files. See [Preview and save reports](../../../docs/user-guide/report-preview-and-save.md).
+records or server report files.
 
 Report previews and saves use `smd-reports` exclusively. Review the preview before
 saving with its fingerprint:
@@ -266,8 +265,8 @@ with open("demo-report.pdf", "wb") as output:
 All operations use the current user's bearer session. This interface does not grant
 permissions or replace separate infrastructure credentials for service-only routes.
 Server validation, clinical rules and audit behavior remain authoritative. The
-OpenAPI reference and [route workflows](../../../docs/api/routes-and-workflows.md) describe the paths,
-methods and request contracts.
+running server's OpenAPI specification at `<base_url>/api/v1/openapi.json`
+describes the available paths, methods and request contracts.
 
 ## Lists and existing sessions
 
@@ -337,7 +336,7 @@ Import these errors from `coyote_pyclient`. They expose `.status_code`, `.code`,
 `.response.json()` retains structured server details. Server bodies and session
 credentials are excluded from the default error string. SDK errors apply to
 `CoyoteClient`, `AsyncCoyoteClient`, and their resource/endpoint methods. All login
-operations use these clients; standalone login helpers are not part of version 2.
+operations use these clients; authentication is owned by each client instance.
 
 Invalid successful responses and malformed JSON raise `ResponseValidationError`.
 Transport failures retain HTTPX transport exceptions. The SDK does not automatically
@@ -348,19 +347,19 @@ session. Missing session cookies raise `ValueError`.
 `logout()` revokes the current server session and clears local credentials even
 when revocation fails. `close()` and context exit close the HTTP transport and clear
 local credentials; they do not revoke the server session. Call `logout()` explicitly
-when the session should end. Treat session tokens as secrets and follow the
-[authentication guide](../../../docs/api/authentication.md).
+when the session should end. Treat session tokens as secrets; keep them out of
+source files, logs and shared examples. See [client configuration](configuration.md).
 
 ## SDK verification
 
 Run the focused client checks without a running server:
 
 ```bash
-scripts/quality/run_package_tests.sh client
-PYTHONPATH=. .venv/bin/pytest -q tests/unit/test_python_sdk_contracts.py
-.venv/bin/mypy --follow-imports=silent clients/python/src/coyote_pyclient
+python -m pytest -q
+python -m pytest -q --cov --cov-config=pyproject.toml
 ```
 
-API route tests additionally cover sample scope, permissions and the permitted
-metadata responses. The SDK import test blocks server frameworks, MongoDB and
-application configuration imports to preserve the client/server boundary.
+Run these commands from the client project after installing `.[test]`.
+The application maintains separate integration tests for API routes, permissions
+and the client/server contract. See [development](development.md) for isolated
+installation, coverage and build instructions.

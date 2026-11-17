@@ -42,6 +42,7 @@ def build_sdk(output_directory: Path, *, build_isolation: bool = True) -> None:
                 shutil.copyfile(project / name, staging / name)
             for name in (
                 "README.md",
+                "CONTRIBUTING.md",
                 "MANIFEST.in",
                 "build_support.py",
                 "package_build.py",

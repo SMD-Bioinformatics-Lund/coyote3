@@ -4,6 +4,7 @@ import json
 
 import httpx
 import pytest
+
 from coyote_pyclient import CoyoteClient
 from coyote_pyclient.endpoints import ApiEndpoint
 
