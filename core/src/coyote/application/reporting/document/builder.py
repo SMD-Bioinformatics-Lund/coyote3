@@ -7,6 +7,7 @@ from typing import Any
 
 from coyote.application.reporting.ordering import order_summary_tables
 from coyote.application.reporting.presentation import ReportPresentation
+from coyote.application.reporting.report_service import REPORT_PRESET
 from coyote.version import __version__
 
 from .biomarkers import BiomarkerSections
@@ -141,7 +142,7 @@ class ReportDocumentBuilder:
             if branding.get(key) and not branding[key].startswith("data:image/"):
                 raise ValueError("Report artwork must already be embedded")
         return {
-            "preset": "coyote3",
+            "preset": REPORT_PRESET,
             "analyte": analyte,
             "language": "sv",
             "title": str(

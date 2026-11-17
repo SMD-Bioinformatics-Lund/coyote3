@@ -17,10 +17,10 @@ def test_generation_metadata_does_not_change_reviewed_content():
         "report_date": "first",
         "report_timestamp": "first",
     }
-    fingerprint = preview_fingerprint("smd/dna_report.html", context)
+    fingerprint = preview_fingerprint("dna", context)
     require_current_preview(
         fingerprint,
-        "smd/dna_report.html",
+        "dna",
         dict(context, save=True, report_date="later", report_timestamp="later"),
     )
 
@@ -40,23 +40,21 @@ def test_generation_metadata_does_not_change_reviewed_content():
 )
 def test_changes_require_a_new_preview(key):
     context = {key: {"value": "reviewed"}}
-    expected = preview_fingerprint("smd/dna_report.html", context)
+    expected = preview_fingerprint("dna", context)
     changed = deepcopy(context)
     changed[key] = {"value": "changed"}
     with pytest.raises(AppError, match="Refresh and review") as error:
-        require_current_preview(expected, "smd/dna_report.html", changed)
+        require_current_preview(expected, "dna", changed)
     assert error.value.status_code == 409
 
 
 def test_template_change_requires_a_new_preview():
     with pytest.raises(AppError):
-        require_current_preview(
-            preview_fingerprint("smd/dna_report.html", {}), "smd/report_fusion.html", {}
-        )
+        require_current_preview(preview_fingerprint("dna", {}), "rna", {})
 
 
 def test_sdk_rejects_non_ascii_fingerprint_as_a_precondition_failure():
     """SDK callers bypass HTTP pattern validation but still receive a domain rejection."""
     with pytest.raises(AppError) as failure:
-        require_current_preview("invalid-å", "smd/dna_report.html", {})
+        require_current_preview("invalid-å", "dna", {})
     assert failure.value.status_code == 409

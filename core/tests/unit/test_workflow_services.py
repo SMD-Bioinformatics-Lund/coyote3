@@ -369,7 +369,7 @@ def test_rna_snapshot_rows_and_report_payload(monkeypatch):
         save=1,
         include_snapshot=True,
     )
-    assert template == "smd/report_fusion.html"
+    assert template == "rna"
     assert context["assay_config"]["reporting"]["report_method"] == "RNA fusion analysis"
     assert "analysis_method" not in context
     assert context["class_desc_short"][2] == "Potentiell klinisk signifikans"

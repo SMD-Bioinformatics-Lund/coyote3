@@ -3,49 +3,38 @@
 
 """Select smd-reports documents and verify their published template identities."""
 
+from enum import StrEnum
 from hashlib import sha256
+from importlib.metadata import version
 from importlib.resources import files
 
-REPORT_TEMPLATES = {
-    "smd/dna_report.html": "dna",
-    "smd/report_fusion.html": "rna",
-}
+REPORT_PRESET = "coyote3"
+
+
+class ReportTemplate(StrEnum):
+    """Supported clinical report identities, independent of renderer file names."""
+
+    DNA = "dna"
+    RNA = "rna"
 
 
 def template_content_hash(template_name: str) -> str:
     """Fingerprint smd-reports and the input adapter for a registered template identity.
 
     Args:
-        template_name: Registered DNA or RNA identifier; only canonical smd-reports identities are accepted.
+        template_name: DNA or RNA report identifier from an approved profile or workflow.
 
     Returns:
         SHA-256 covering the installed package resources and input projection.
 
     Raises:
-        KeyError: The template identifier is not registered.
+        ValueError: The report identifier is unsupported.
         OSError: An installed renderer resource cannot be read.
     """
-    return smd_template_content_hash(REPORT_TEMPLATES[template_name])
-
-
-def smd_template_content_hash(analyte: str) -> str:
-    """Fingerprint the installed rendering package and the Coyote4 input projection.
-
-    Args:
-        analyte: DNA or RNA report modality.
-
-    Returns:
-        SHA-256 of package identity, renderer assets and the application adapter.
-
-    Raises:
-        ValueError: The modality is unsupported.
-        OSError: An installed rendering resource cannot be read.
-    """
-    from smd_reports import __version__
-
-    if analyte not in {"dna", "rna"}:
-        raise ValueError("Template identity requires a DNA or RNA analyte")
-    digest = sha256(f"smd-reports:{__version__}:{analyte}".encode())
+    template = ReportTemplate(template_name)
+    digest = sha256(
+        f"smd-reports:{version('smd-reports')}:{REPORT_PRESET}:{template.value}".encode()
+    )
 
     def include(directory, prefix=""):
         """Hash renderer resources in stable path order, excluding interpreter caches."""
@@ -61,7 +50,7 @@ def smd_template_content_hash(analyte: str) -> str:
 
     include(files("smd_reports"))
     include(files("coyote").joinpath("application/reporting/document"), "document/")
-    for name in ("ordering.py", "report_context.py", "report_renderer.py"):
+    for name in ("ordering.py", "report_context.py", "report_renderer.py", "report_service.py"):
         digest.update(files("coyote").joinpath("application/reporting", name).read_bytes())
     return digest.hexdigest()
 
@@ -79,6 +68,10 @@ def select_report_template(template_name: str, analyte: str) -> str:
     Raises:
         ValueError: The identifier is unregistered or incompatible with the analyte.
     """
-    if template_name not in REPORT_TEMPLATES or REPORT_TEMPLATES[template_name] != analyte:
+    try:
+        template = ReportTemplate(template_name)
+    except ValueError as exc:
+        raise ValueError("The report template does not support this assay modality") from exc
+    if template.value != analyte:
         raise ValueError("The report template does not support this assay modality")
-    return template_name
+    return template.value

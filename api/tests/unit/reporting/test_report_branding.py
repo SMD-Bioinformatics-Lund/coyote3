@@ -71,7 +71,7 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
     inputs["assay_config"]["assay_resource_release"] = {"content": {"accredited": accredited}}
     html = branding.render_branded_report_html(
         config={"CONTACT": {"organization": {"accreditation_logo": "accreditation.svg"}}},
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context=inputs,
         snapshot_rows=[],
         analyte=analyte,
@@ -140,8 +140,8 @@ def test_accreditation_is_printed_only_for_true_in_the_applied_assay(
 @pytest.mark.parametrize(
     "template_name,analyte",
     [
-        ("smd/dna_report.html", "dna"),
-        ("smd/report_fusion.html", "rna"),
+        ("dna", "dna"),
+        ("rna", "rna"),
     ],
 )
 def test_modern_header_embeds_both_logos_and_renders_metadata_cards_and_pdf(template_name, analyte):
@@ -215,7 +215,7 @@ def test_default_rendering_validates_branding_without_a_legacy_fallback():
     with pytest.raises((ValueError, FileNotFoundError)):
         branding.render_branded_report_html(
             config={"CONTACT": {"organization": {"report_logo": "missing.svg"}}},
-            template_name="smd/dna_report.html",
+            template_name="dna",
             analyte="dna",
             preview=True,
             snapshot_rows=[],
@@ -235,7 +235,7 @@ def test_center_contact_details_are_optional_and_escaped_in_modern_header():
     }
     html = branding.render_branded_report_html(
         config=config,
-        template_name="smd/dna_report.html",
+        template_name="dna",
         analyte="dna",
         preview=True,
         template_context={
@@ -258,7 +258,7 @@ def test_center_contact_details_are_optional_and_escaped_in_modern_header():
 def test_self_contained_svg_font_is_preserved_and_embedded_in_pdf(tmp_path, monkeypatch):
     """Supplied logo-style WOFF2 text renders offline without rewriting the SVG."""
     fonts_css = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=context(),
         snapshot_rows=[],
         analyte="dna",

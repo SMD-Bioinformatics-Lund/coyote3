@@ -20,7 +20,7 @@ def test_modern_structural_tables_preserve_tiers_copy_numbers_and_zero_reads():
     """New tables render clinical fields and retain zero-valued structural evidence."""
     inputs = structural_context()
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -109,7 +109,7 @@ def test_detail_exon_and_intron_have_separate_cells(exon, intron, expected_exon,
     inputs = structural_context()
     inputs["report_sections_data"]["snvs"][0].update(exon=exon, intron=intron)
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -152,7 +152,7 @@ def test_rna_summary_uses_roman_tiers_and_details_keep_labels(tier, numeral):
         }
     ]
     html = render_report_html(
-        template_name="smd/report_fusion.html",
+        template_name="rna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="rna",
@@ -174,7 +174,7 @@ def test_missing_detail_classification_is_one_plain_hyphen(classification):
     inputs["report_sections_data"]["cnvs"][0]["classification"] = classification
     inputs["report_sections_data"]["translocs"][0]["classification"] = classification
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -219,7 +219,7 @@ def test_snv_summary_keeps_compact_tiers_and_protein_notation_in_clinical_order(
     inputs["report_sections_data"]["snvs"] = []
     inputs["report_sections_data"][section] = sort_by_class_and_af(rows)
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -255,7 +255,7 @@ def test_markdown_conclusion_preserves_formatting_and_renders_bordered_table(ana
         "| Column | Value |\n| --- | --- |\n| item | result |\n"
     )
     html = render_report_html(
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context=inputs,
         snapshot_rows=[],
         analyte=analyte,
@@ -301,7 +301,7 @@ def test_summary_table_fills_printable_width_and_wraps_long_cell_text(analyte):
     )
     html = HTML(
         string=render_report_html(
-            template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+            template_name="dna" if analyte == "dna" else "rna",
             template_context=inputs,
             snapshot_rows=[],
             analyte=analyte,
@@ -344,7 +344,7 @@ def test_empty_enabled_sections_show_configured_text_without_tables(analyte):
     defaults = ReportPresentation().empty_results.model_dump()
     messages = {key: f"Synthetic {key} <empty> & result" for key in defaults}
     output = render_report_html(
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context=inputs,
         snapshot_rows=[],
         analyte=analyte,
@@ -375,7 +375,7 @@ def test_disabled_sections_do_not_emit_empty_messages():
     inputs = empty_context()
     inputs["report_sections"] = []
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -411,7 +411,7 @@ def test_manual_assessments_are_separate_from_scores_and_classifications():
         }
     ]
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -458,7 +458,7 @@ def test_msi_report_uses_pairing_method_without_sample_name_column(paired, metho
         }
     ]
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -504,7 +504,7 @@ def test_populated_dna_sections_retain_every_finding_table():
         pgx=[{"gene": "SYNTHETIC_GENE", "result": "Synthetic phenotype"}],
     )
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -561,7 +561,7 @@ def test_center_wording_is_optional_and_reloaded_without_aspc_edits(monkeypatch,
         config_file.write_text(f'[empty_results]\nSNV = "{message}"\n')
         output = render_branded_report_html(
             config={},
-            template_name="smd/dna_report.html",
+            template_name="dna",
             template_context=inputs,
             snapshot_rows=[],
             analyte="dna",
@@ -572,7 +572,7 @@ def test_center_wording_is_optional_and_reloaded_without_aspc_edits(monkeypatch,
     inputs["report_presentation"] = {"empty_results": {"SNV": "Captured for reviewed render"}}
     output = render_branded_report_html(
         config={},
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -602,7 +602,7 @@ def test_invalid_center_wording_fails_instead_of_silently_using_defaults(
 
 def test_metadata_is_compact_in_a4_output_without_losing_fields():
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=empty_context(),
         snapshot_rows=[],
         analyte="dna",
@@ -658,7 +658,7 @@ def test_short_report_uses_compact_rows_and_starts_conclusion_on_a_new_page():
     }
     inputs["latest_sample_comment_text"] = "SYNTHETIC_CONCLUSION"
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",

@@ -5,9 +5,8 @@
 
 from urllib.parse import quote
 
-from coyote.application.reporting.report_renderer import _format_tier
-
 from .formatting import (
+    _format_tier,
     _table,
 )
 from .sections import ReportSections

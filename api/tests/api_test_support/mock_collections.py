@@ -115,7 +115,7 @@ def assay_config_doc(*, asp_group="dna", asp_category="dna") -> dict:
         "analysis_types": ["FUSION"] if asp_category == "rna" else ["SNV", "CNV", "HRD", "MSI"],
         "analysis_intents": ["somatic"],
         "filters": deepcopy(sample_doc().get("filters", {})),
-        "reporting": {"report_path": "smd/dna_report.html", "plots_path": "reports/plots"},
+        "reporting": {"report_path": "dna", "plots_path": "reports/plots"},
         "verification_samples": {"SAMPLE": ["1:1:A:T"]},
         "assay_resource_release": capture_assay_resource(panel),
         "gene_list_release": capture_gene_lists(

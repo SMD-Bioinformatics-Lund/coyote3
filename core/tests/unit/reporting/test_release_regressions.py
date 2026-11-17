@@ -36,7 +36,7 @@ def test_presentational_hints_remain_disabled(monkeypatch):
             calls.update(kwargs)
             return b"pdf"
 
-    monkeypatch.setattr("weasyprint.HTML", Renderer)
+    monkeypatch.setattr("coyote.application.reporting.report_renderer.HTML", Renderer)
     assert render_pdf_bytes("<body background='untrusted'>") == b"pdf"
     assert calls["presentational_hints"] is False
     assert isinstance(calls["url_fetcher"], ReportResourceFetcher)

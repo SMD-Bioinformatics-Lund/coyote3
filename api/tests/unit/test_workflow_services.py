@@ -290,7 +290,7 @@ def test_dna_report_payload_excludes_false_positive_cnvs_and_applies_selected_cn
         include_snapshot=True,
     ).build()
 
-    assert template_name == "smd/dna_report.html"
+    assert template_name == "dna"
     assert len(snapshot_rows) == 1
     assert snapshot_rows[0]["analysis_type"] == "CNV"
     assert snapshot_rows[0]["var_oid"] == "cnv3"

@@ -47,9 +47,7 @@ def boundary(monkeypatch):
     rows = [{"resource_id": "synthetic-finding", "analysis": "snv"}]
     workflow = Mock()
     workflow.build_report_payload.side_effect = lambda **kwargs: (
-        "smd/dna_report.html"
-        if kwargs["sample"]["asp_category"] == "dna"
-        else "smd/report_fusion.html",
+        "dna" if kwargs["sample"]["asp_category"] == "dna" else "rna",
         deepcopy(context),
         deepcopy(rows),
     )
@@ -174,7 +172,7 @@ def test_saved_report_preserves_author_snapshot_and_resolution_receipt(boundary,
     assert values["created_by"] == boundary.actor.username
     assert values["snapshot_rows"][0]["resource_id"] == "synthetic-finding"
     assert values["resolution_snapshot"]["configuration"] == boundary.config
-    leaf = "smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html"
+    leaf = "dna" if analyte == "dna" else "rna"
     assert values["resolution_snapshot"]["rendering"]["template"] == leaf
     assert values["resolution_snapshot"]["rendering"]["configured_template"] == leaf
     assert response.json()["report"]["snapshot_count"] == 1
@@ -215,8 +213,8 @@ def test_smd_report_is_saved_with_canonical_rendering_provenance(boundary):
     )
     assert saved.status_code == 201
     receipt = boundary.workflow.persist_report.call_args.kwargs["resolution_snapshot"]
-    assert receipt["rendering"]["template"] == "smd/dna_report.html"
-    assert receipt["rendering"]["configured_template"] == "smd/dna_report.html"
+    assert receipt["rendering"]["template"] == "dna"
+    assert receipt["rendering"]["configured_template"] == "dna"
     assert receipt["rendering"]["content_hash"]
 
 
@@ -246,8 +244,8 @@ def test_invalid_report_format_is_rejected_before_rendering(boundary):
 def test_changed_presentation_source_invalidates_a_reviewed_preview(boundary, monkeypatch):
     preview = boundary.sdk.preview("synthetic-sample", "dna")
     monkeypatch.setattr(
-        "coyote.application.reporting.report_service.template_content_hash",
-        lambda template: "changed-synthetic-presentation",
+        "coyote.application.reporting.report_service.version",
+        lambda distribution: "synthetic-renderer-upgrade",
     )
     response = boundary.client.post(
         "/api/v1/samples/synthetic-sample/reports/dna",

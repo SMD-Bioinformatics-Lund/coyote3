@@ -74,7 +74,7 @@ def pagination_context(analyte, image_shape):
 def test_modern_report_content_fits_a4_and_keeps_long_annotation_tail(analyte, image_shape):
     """Long notes fragment across pages without losing text or exceeding print margins."""
     html = render_report_html(
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context=pagination_context(analyte, image_shape),
         snapshot_rows=[],
         analyte=analyte,
@@ -121,7 +121,7 @@ def test_modern_report_content_fits_a4_and_keeps_long_annotation_tail(analyte, i
 def test_screen_and_pdf_share_content_width_and_keep_all_patient_fields(analyte):
     """The compact repeating PDF header keeps all fields within the shared paper width."""
     html = render_report_html(
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context=pagination_context(analyte, None),
         snapshot_rows=[],
         analyte=analyte,
@@ -178,7 +178,7 @@ def test_long_result_table_repeats_column_headings_without_losing_findings():
         {**variant, "symbol": f"SYNTHETIC_{index:03d}"} for index in range(100)
     ]
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -229,7 +229,7 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
         {**variant, "symbol": f"DETAIL_{index:03d}"} for index in range(30)
     ]
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",

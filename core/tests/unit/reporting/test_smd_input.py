@@ -81,7 +81,7 @@ def test_compact_gene_table_preserves_every_gene_in_html_and_paginated_pdf(count
     genes = [f"SYNTHETIC_{index:04d}" for index in range(count)]
     inputs["genes_covered_in_panel"] = {"Synthetic scope": {"covered": genes}}
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -171,7 +171,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     inputs["report_sections_data"]["snvs"][0]["symbol"] = '<script>alert("unsafe")</script>'
     inputs["latest_sample_comment_text"] = '<img src="https://example.invalid/leak">**Reviewed**'
     output = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -197,8 +197,8 @@ def test_new_profile_suggestions_do_not_replace_the_reviewed_conclusion():
 
 def test_smd_identity_is_stable_and_distinct_between_analytes():
     names = [
-        "smd/dna_report.html",
-        "smd/report_fusion.html",
+        "dna",
+        "rna",
     ]
     hashes = [template_content_hash(name) for name in names]
     assert hashes[0] != hashes[1]

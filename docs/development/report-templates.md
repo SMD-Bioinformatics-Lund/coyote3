@@ -25,15 +25,21 @@ Clinical decisions remain in application/domain workflows, outside presentation.
 
 ### Template selection
 
-The only identifiers are `smd/dna_report.html` and `smd/report_fusion.html`.
-Each selects the package-owned document for its analyte. Earlier identifiers,
-wrong-analyte identifiers and arbitrary paths are rejected.
+`ReportTemplate` defines the identifiers `dna` and `rna`. Each selects the
+package-owned document for its analyte; identifiers are not file paths. Both use
+the `coyote3` preset. Wrong-analyte identifiers and arbitrary paths are rejected.
 
 Published configuration profiles capture `template_name` and `content_hash` in
 `template_release`. Rendering verifies both against installed resources. A profile
-approved against a removed bundled template fails validation until its replacement
+approved against an earlier file-like identifier fails validation until its replacement
 is reviewed and published through the existing governance workflow. It is never
 silently upgraded or treated as already approved.
+
+Before upgrading a development installation that used file-like identifiers,
+create and review replacement template profiles with `template_name: dna` or
+`template_name: rna` and the newly captured content hash, then publish the affected
+configuration revisions. Existing issued artifacts remain readable. Old preview
+fingerprints require a fresh preview and review.
 
 Reports have one renderer. HTTP requests do not accept a format selector,
 and SDK calls do not accept a layout argument. Integrations can request matching
@@ -62,6 +68,9 @@ report metadata and the PDF footer, independently of the patient report number.
 Coyote4 has no separate report-template manifest or fallback version.
 
 The content hash covers installed package resources and Coyote4's input adapter.
+Shared cell formatting belongs to `document/formatting.py`; section builders do
+not import the renderer. Renderer imports are declared at module scope, and
+configuration/receipt code imports identity and hashing directly from `report_service.py`.
 Package upgrades and adapter changes require reviewed template configuration
 revisions before clinical rollout. Issued artifacts retain their original versions.
 See [Version identities](../sdk/compatibility.md#version-identities).

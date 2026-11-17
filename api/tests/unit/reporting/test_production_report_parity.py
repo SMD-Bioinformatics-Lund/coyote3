@@ -112,7 +112,7 @@ def test_governed_question_and_existing_summary_words_survive_compact_presentati
     inputs["clinical_rule_evaluation"] = {"sections": {"clinical_question": ["<DIAGNOSIS>"]}}
     inputs["latest_sample_comment_text"] = "## Kopietalsprofil:\n\nReviewed narrative."
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -134,7 +134,7 @@ def test_authored_entities_and_markdown_quotes_survive_summary_formatting(entity
     inputs = empty_context()
     inputs["latest_sample_comment_text"] = f"## Heading\n\nText {entity} preserved.\n\n> Quote"
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=inputs,
         snapshot_rows=[],
         analyte="dna",
@@ -160,7 +160,7 @@ def test_header_and_analysis_metadata_use_the_same_configured_laboratory():
     }
     html = render_branded_report_html(
         config=config,
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=empty_context(),
         snapshot_rows=[],
         analyte="dna",

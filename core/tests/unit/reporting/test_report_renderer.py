@@ -13,11 +13,11 @@ from weasyprint import HTML
 def test_renderer_rejects_a_changed_approved_template():
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(
-            template_name="smd/dna_report.html",
+            template_name="dna",
             template_context={
                 "assay_config": {
                     "template_release": {
-                        "template_name": "smd/dna_report.html",
+                        "template_name": "dna",
                         "content_hash": "0" * 64,
                     }
                 }
@@ -31,7 +31,7 @@ def test_renderer_rejects_a_changed_approved_template():
 @pytest.mark.parametrize("analyte", ["dna", "rna"])
 def test_rule_analysis_description_preserves_formatting_but_rejects_active_html(analyte):
     html = render_report_html(
-        template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        template_name="dna" if analyte == "dna" else "rna",
         template_context={
             "sample": {"name": "synthetic", "case": {}, "control": {}},
             "clinical_rule_evaluation": {
@@ -62,9 +62,7 @@ def test_rule_analysis_description_preserves_formatting_but_rejects_active_html(
         assert unsafe not in html
 
 
-@pytest.mark.parametrize(
-    "analyte,template", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,template", [("dna", "dna"), ("rna", "rna")])
 def test_report_metadata_is_escaped_and_absent_destinations_are_omitted(analyte, template):
     context = {
         "sample": {"name": "synthetic", "case": {}, "control": {}},
@@ -95,9 +93,7 @@ def test_report_metadata_is_escaped_and_absent_destinations_are_omitted(analyte,
     assert "<Question>" not in html
 
 
-@pytest.mark.parametrize(
-    "analyte,template", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,template", [("dna", "dna"), ("rna", "rna")])
 def test_report_identity_comes_from_explicit_runtime_values(analyte, template):
     """Both report formats escape runtime identities instead of assuming a center or user."""
     html = render_report_html(
@@ -125,7 +121,7 @@ def test_report_identity_comes_from_explicit_runtime_values(analyte, template):
 def test_dna_report_renderer_uses_master_style_template():
     """Render DNA reports with the master report layout and clinical section labels."""
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context={
             "assay_config": {
                 "reporting": {
@@ -197,7 +193,7 @@ def test_dna_report_renderer_uses_master_style_template():
 
 def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():
     html = render_report_html(
-        template_name="smd/report_fusion.html",
+        template_name="rna",
         template_context={
             "assay_config": {
                 "reporting": {
@@ -228,7 +224,7 @@ def test_rna_report_renderer_leaves_conclusion_empty_without_sample_comment():
 
 def test_rna_report_renderer_uses_only_latest_sample_comment_for_conclusion():
     html = render_report_html(
-        template_name="smd/report_fusion.html",
+        template_name="rna",
         template_context={
             "assay_config": {"reporting": {}},
             "fusions": [],

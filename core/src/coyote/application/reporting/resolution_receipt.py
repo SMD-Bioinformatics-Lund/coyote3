@@ -7,7 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 from coyote.application.common.release_resources import assay_resource, gene_list_resources
-from coyote.application.reporting.report_renderer import template_content_hash
+from coyote.application.reporting.report_service import template_content_hash
 from coyote.domain.common.assay_filters import get_sample_effective_genes
 from coyote.version import __version__
 

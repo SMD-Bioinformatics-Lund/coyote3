@@ -5,88 +5,21 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from smd_reports import ReportLoader, ReportRenderer
+from weasyprint import HTML
+
+from coyote.application.reporting.document import ReportDocumentBuilder
+from coyote.application.reporting.pdf_resources import ReportResourceFetcher
 from coyote.application.reporting.presentation import ReportPresentation
 from coyote.application.reporting.report_context import prepare_render_context
 from coyote.application.reporting.report_service import (
-    REPORT_TEMPLATES,
     select_report_template,
     template_content_hash,
 )
 from coyote.domain.common.errors import api_error
-from coyote.domain.common.reporting import TIER_NAME
-from coyote.domain.dna.cnv_metrics import copy_number_from_log2
-
-
-def _copy_number(value: Any) -> str:
-    """Format a finite log2-derived diploid copy estimate, or a missing-value marker.
-
-    Args:
-        value: Numeric log2 ratio. Missing, nonnumeric or overflowing values are unknown.
-
-    Returns:
-        Two-decimal copy-number estimate, or a dash for unusable input.
-    """
-    import math
-
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        return "-"
-    try:
-        estimate = copy_number_from_log2(value)
-    except OverflowError:
-        return "-"
-    return f"{estimate:.2f}" if math.isfinite(estimate) else "-"
-
-
-def _perc_no_dec(value: Any) -> str:
-    """Format allele frequency for clinical report display."""
-    if value in (None, "", "N/A"):
-        return "N/A" if value == "N/A" else "-"
-    try:
-        return f"{float(value) * 100:.0f}%"
-    except (TypeError, ValueError):
-        return str(value)
-
-
-def _format_tier(value: Any, include_label: bool = True) -> str:
-    """Format a tier as a Roman numeral, optionally prefixed with its clinical label.
-
-    Args:
-        value: Numeric tier; unsupported numeric values display a dash.
-        include_label: Include ``Tier`` for detailed wording; false gives a compact numeral.
-
-    Returns:
-        Clinical tier label or compact Roman numeral, with a dash for missing values.
-    """
-    try:
-        tier = int(value)
-        if tier not in TIER_NAME:
-            return "-"
-        return f"Tier {TIER_NAME[tier]}" if include_label else TIER_NAME[tier]
-    except (TypeError, ValueError):
-        return str(value or "-")
-
-
-def _format_classification(value: Any, description: Any = None) -> str:
-    """Render a known tier and optional description, or one plain missing-value hyphen.
-
-    Args:
-        value: Numeric classification tier; missing, zero and unclassified values are unknown.
-        description: Optional clinical wording. Empty wording or a hyphen is omitted.
-
-    Returns:
-        A tier with a plain hyphen separator, or exactly ``-`` for an unknown tier.
-    """
-    try:
-        tier = int(value)
-    except (TypeError, ValueError):
-        return "-"
-    if isinstance(value, bool) or tier not in TIER_NAME:
-        return "-"
-    label = f"Tier {TIER_NAME[tier]}"
-    wording = str(description or "").strip()
-    return f"{label} - {wording}" if wording and wording != "-" else label
 
 
 def render_report_html(
@@ -129,24 +62,18 @@ def render_report_html(
     template_release = (template_context.get("assay_config") or {}).get("template_release")
     if template_release:
         selected_template = template_release.get("template_name", "")
-        if selected_template not in REPORT_TEMPLATES or (
-            template_release.get("content_hash") != template_content_hash(selected_template)
-        ):
-            raise api_error(422, "The approved report template revision is not installed")
     try:
         select_report_template(selected_template, analyte)
     except ValueError as exc:
         raise api_error(422, str(exc)) from exc
+    if template_release and template_release.get("content_hash") != template_content_hash(
+        selected_template
+    ):
+        raise api_error(422, "The approved report template revision is not installed")
     context.update(report_analyte=analyte, branding=branding or {})
     context["assay_accredited"] = (
         (context["assay_config"].get("assay_resource_release") or {}).get("content") or {}
     ).get("accredited") is True
-    import json
-
-    from smd_reports import ReportLoader, ReportRenderer
-
-    from coyote.application.reporting.document import ReportDocumentBuilder
-
     settings = presentation or ReportPresentation.model_validate(
         context.get("report_presentation") or {}
     )
@@ -174,10 +101,6 @@ def render_report_html(
 
 def render_pdf_bytes(html: str) -> bytes:
     """Render a PDF byte stream from report HTML."""
-    from weasyprint import HTML
-
-    from coyote.application.reporting.pdf_resources import ReportResourceFetcher
-
     return HTML(string=html, url_fetcher=ReportResourceFetcher()).write_pdf(
         presentational_hints=False
     )

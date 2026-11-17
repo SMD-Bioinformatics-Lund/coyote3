@@ -11,8 +11,11 @@ from typing import Any
 
 from coyote.application.common.protected_records import reject_system_managed_change
 from coyote.application.reporting.clinical_rules.validation import content_hash, validate_rule_set
-from coyote.application.reporting.report_renderer import template_content_hash
-from coyote.application.reporting.report_service import REPORT_TEMPLATES
+from coyote.application.reporting.report_service import (
+    ReportTemplate,
+    select_report_template,
+    template_content_hash,
+)
 from coyote.contracts.configuration_profiles import ConfigurationProfileDraft, ConfigurationScope
 from coyote.contracts.schemas.assay import AspcReportingDoc
 from coyote.contracts.schemas.clinical_rules import (
@@ -137,8 +140,10 @@ def validate_profile_content(draft: ConfigurationProfileDraft) -> None:
     if set(draft.content) - {"template_name", "content_hash"}:
         raise ValueError("Template profiles accept template_name and content_hash")
     name = draft.content.get("template_name")
-    if name not in REPORT_TEMPLATES:
-        raise ValueError("Choose a registered report template")
+    try:
+        name = ReportTemplate(name).value
+    except ValueError as exc:
+        raise ValueError("Choose a registered report template: dna or rna") from exc
     draft.content.setdefault("content_hash", template_content_hash(name))
     if draft.content["content_hash"] != template_content_hash(name):
         raise ValueError("Template hash does not identify the installed layout revision")
@@ -256,9 +261,10 @@ def compile_profiles(
     for key, document in sorted(selected.items()):
         kind = document["kind"]
         if kind == "template":
-            selected = REPORT_TEMPLATES[document["content"]["template_name"]]
-            if selected[0] != panel["asp_category"]:
-                raise api_error(422, "The report template does not support this assay modality")
+            try:
+                select_report_template(document["content"]["template_name"], panel["asp_category"])
+            except ValueError as exc:
+                raise api_error(422, str(exc)) from exc
             configuration["template_release"] = deepcopy(document["content"])
         elif kind != "clinical_rules":
             defaults[kind] = merge_profile_values(defaults[kind], document["content"])

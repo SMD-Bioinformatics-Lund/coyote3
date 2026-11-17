@@ -12,7 +12,7 @@ from weasyprint import HTML
 def test_modern_pdf_embeds_authored_emphasis_without_system_font_fallback():
     """PDF text uses the packaged font for Swedish text, labels and authored emphasis."""
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         analyte="dna",
         preview=True,
         snapshot_rows=[],

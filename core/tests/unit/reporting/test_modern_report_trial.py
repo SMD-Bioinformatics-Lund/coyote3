@@ -66,9 +66,7 @@ class BodyText(HTMLParser):
             self.text.append(data.strip())
 
 
-@pytest.mark.parametrize(
-    "analyte,template", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,template", [("dna", "dna"), ("rna", "rna")])
 def test_package_report_preserves_clinical_text_and_embeds_its_css(analyte, template):
     context = {
         "sample": {"name": "SYNTHETIC_TRIAL", "case": {}, "control": {}},

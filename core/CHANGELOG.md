@@ -2,6 +2,11 @@
 
 ## 4.0.0
 
+- Use typed `dna`/`rna` report identities and the shared `coyote3` renderer preset;
+  reject old file-like identifiers and require renewed template-profile approval.
+  Validate the full assay modality when compiling published template profiles.
+- Move cell formatting into the document layer and renderer imports to module
+  scope, removing the circular dependency without changing report presentation.
 - Remove the implicit `ratio > 3` size bypass for ratio-based CNVs. High
   amplifications must pass the configured size limits, as in the production query;
   retain strict cutoff boundaries and explicit published admission rules.

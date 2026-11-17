@@ -350,7 +350,7 @@ def test_ingest_preserves_transactional_service_and_verified_attribution(sdk):
 
 def test_report_save_rejects_stale_preview_before_any_artifact_or_number(sdk):
     workflow = Mock()
-    workflow.build_report_payload.return_value = ("smd/dna_report.html", {"sample": {}}, [])
+    workflow.build_report_payload.return_value = ("dna", {"sample": {}}, [])
     renderer = Mock(return_value="<p>synthetic</p>")
     reports = Reports(
         sdk.runtime,
@@ -380,7 +380,7 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
     sdk.sample["asp_category"] = analyte
     workflow = Mock()
     workflow.build_report_payload.return_value = (
-        "smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+        "dna" if analyte == "dna" else "rna",
         {"sample": {"name": "SYNTHETIC"}},
         [{"gene": "TP53"}],
     )
@@ -425,7 +425,7 @@ def test_report_trial_generates_matching_outputs_without_persistence(sdk, analyt
 def test_changed_modern_rendering_requires_a_new_preview_before_save(sdk, monkeypatch, change):
     """Reject changed wording or renderer identity before allocating or persisting a report."""
     workflow = Mock()
-    workflow.build_report_payload.return_value = ("smd/dna_report.html", {"sample": {}}, [])
+    workflow.build_report_payload.return_value = ("dna", {"sample": {}}, [])
     wording = {"empty_results": {"SNV": "First reviewed message"}}
     reports = Reports(
         sdk.runtime,
@@ -449,8 +449,8 @@ def test_changed_modern_rendering_requires_a_new_preview_before_save(sdk, monkey
         wording["empty_results"]["SNV"] = "Changed message"
     else:
         monkeypatch.setattr(
-            "coyote.application.reporting.report_service.template_content_hash",
-            lambda template: "f" * 64,
+            "coyote.application.reporting.report_service.version",
+            lambda distribution: "synthetic-renderer-upgrade",
         )
     with pytest.raises(AppError, match="Refresh and review"):
         reports.save("demo", "dna", fingerprint=preview.fingerprint)
@@ -474,7 +474,7 @@ def test_report_save_retains_snapshot_receipt_and_authenticated_author(sdk):
         },
     }
     workflow.build_report_payload.return_value = (
-        "smd/dna_report.html",
+        "dna",
         context,
         [{"synthetic": True}],
     )

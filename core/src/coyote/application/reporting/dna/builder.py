@@ -26,6 +26,7 @@ from coyote.application.reporting.eligibility import (
     structural_report_inclusion,
 )
 from coyote.application.reporting.report_context import report_scope_label
+from coyote.application.reporting.report_service import ReportTemplate
 from coyote.application.reporting.snapshot_rows import (
     build_biomarker_snapshot_rows,
     build_cnv_snapshot_rows,
@@ -570,4 +571,4 @@ class DnaReportBuilder:
             if state.clinical_rule_evaluation
             else None,
         }
-        return ("smd/dna_report.html", template_context, state.snapshot_rows)
+        return (ReportTemplate.DNA.value, template_context, state.snapshot_rows)

@@ -19,6 +19,9 @@
   unchanged review transitions and report presentation.
 - HTML/PDF reports through `smd-reports`, reviewed previews, saved finding snapshots
   and traceable report artifacts.
+- Typed DNA/RNA report identifiers, consistent template-profile modality validation
+  and report formatting independent of the renderer; prior development profiles
+  require reviewed replacement identifiers and hashes.
 - Exact assay/environment access, scoped credentials and durable audit records.
 - Coyote Relay ingestion tools, optional API routes and workers with core-owned
   workflows, recovery support, container deployment and migration tools.

@@ -164,7 +164,7 @@ def test_table_order_is_independent_of_text_and_keeps_detail_cards_and_values():
     ]
     assert context == original
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         template_context=context,
         snapshot_rows=[],
         analyte="dna",
@@ -212,9 +212,9 @@ def test_rna_table_priority_moves_pgx_without_creating_a_dna_translocation_secti
 @pytest.mark.parametrize("field", ["summary_text_order", "summary_table_order"])
 def test_order_change_invalidates_the_reviewed_preview(field):
     context = structural_context()
-    original = preview_fingerprint("smd/dna_report.html", context)
+    original = preview_fingerprint("dna", context)
     context["assay_config"]["reporting"][field] = ["CNV", "SNV"]
-    assert preview_fingerprint("smd/dna_report.html", context) != original
+    assert preview_fingerprint("dna", context) != original
 
 
 @pytest.mark.parametrize("resource", ["aspc_dna", "aspc_rna"])

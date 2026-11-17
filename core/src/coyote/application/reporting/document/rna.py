@@ -3,10 +3,9 @@
 
 """RNA fusion result tables and detail cards."""
 
-from coyote.application.reporting.report_renderer import _format_classification
 from coyote.domain.common.reporting import TIER_DESC
 
-from .formatting import _comment, _detail
+from .formatting import _comment, _detail, _format_classification
 from .sections import ReportSections
 
 

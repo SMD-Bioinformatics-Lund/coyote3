@@ -19,6 +19,7 @@ from coyote.application.reporting.persistence import (
 )
 from coyote.application.reporting.report_context import report_scope_label
 from coyote.application.reporting.report_paths import build_report_file_location
+from coyote.application.reporting.report_service import ReportTemplate
 from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote.domain.common.assay_filters import get_sample_effective_genes
 from coyote.domain.common.reporting import TIER_DESC, TIER_SHORT_DESC, utc_now
@@ -548,10 +549,10 @@ class RNAWorkflowService:
         }
 
         if not include_snapshot:
-            return "smd/report_fusion.html", template_context, []
+            return ReportTemplate.RNA.value, template_context, []
         snapshot_rows = RNAWorkflowService._build_snapshot_rows(reportable_fusions)
         return (
-            "smd/report_fusion.html",
+            ReportTemplate.RNA.value,
             template_context,
             snapshot_rows,
         )

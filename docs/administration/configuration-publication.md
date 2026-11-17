@@ -76,7 +76,8 @@ reviewed replacements for the affected existing test cases. Other tests remain i
 place, and the complete compiled test suite must pass. Unknown test identifiers are
 rejected; profiles cannot silently discard the base test suite.
 
-Template profiles select an installed layout by `template_name` and `content_hash`.
+Template profiles select an installed layout by `template_name` (`dna` or `rna`)
+and `content_hash`. The identifier is a report type, not a template file path.
 The configured layout must match the assay modality. Rendering verifies that the
 installed template still has the captured hash; a different layout cannot silently
 replace the approved template.

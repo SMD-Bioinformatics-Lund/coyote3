@@ -51,9 +51,9 @@ def test_measurements_have_independent_assessments_and_report_snapshots(review, 
         row["result"].get(method, {}).get("clinical_assessment", {}).get("value") == "MODERATE"
         for row in rows
     )
-    assert preview_fingerprint(
-        "smd/dna_report.html", {"biomarkers": before}
-    ) != preview_fingerprint("smd/dna_report.html", {"biomarkers": after})
+    assert preview_fingerprint("dna", {"biomarkers": before}) != preview_fingerprint(
+        "dna", {"biomarkers": after}
+    )
     assert all("assessment_history" not in row["result"].get(method, {}) for row in rows)
     for other in {"HRD", "MSIS", "MSIP", "TMB"} - {method}:
         assert after[0][other] == MEASUREMENTS[other]

@@ -7,15 +7,15 @@ from core_test_support.report_context import context
 from coyote.application.reporting.report_renderer import (
     render_pdf_bytes,
     render_report_html,
+)
+from coyote.application.reporting.report_service import (
+    select_report_template,
     template_content_hash,
 )
-from coyote.application.reporting.report_service import select_report_template
 from coyote.domain.exceptions import AppError
 
 
-@pytest.mark.parametrize(
-    "analyte,name", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,name", [("dna", "dna"), ("rna", "rna")])
 def test_canonical_templates_render_and_retired_aliases_are_rejected(analyte, name):
     """Only the registered package identifiers select report rendering."""
     assert select_report_template(name, analyte) == name
@@ -29,7 +29,12 @@ def test_canonical_templates_render_and_retired_aliases_are_rejected(analyte, na
     )
     assert 'name="smd-reports:package_version" content="0.5.3"' in html
     assert render_pdf_bytes(html).startswith(b"%PDF-")
-    for alias in (name.removeprefix("smd/"), name.replace("smd/", "modern/")):
+    for alias in (
+        "smd/dna_report.html",
+        "smd/report_fusion.html",
+        "dna_report.html",
+        "report_fusion.html",
+    ):
         with pytest.raises(ValueError):
             select_report_template(alias, analyte)
 
@@ -39,7 +44,7 @@ def test_legacy_layout_cannot_be_rendered(analyte):
     """Explicit requests for a removed layout fail instead of silently changing format."""
     with pytest.raises(TypeError, match="layout"):
         render_report_html(
-            template_name="smd/dna_report.html" if analyte == "dna" else "smd/report_fusion.html",
+            template_name="dna" if analyte == "dna" else "rna",
             template_context=context(),
             snapshot_rows=[],
             analyte=analyte,
@@ -48,9 +53,7 @@ def test_legacy_layout_cannot_be_rendered(analyte):
         )
 
 
-@pytest.mark.parametrize(
-    "analyte,name", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,name", [("dna", "dna"), ("rna", "rna")])
 def test_footer_template_version_is_independent_of_patient_report_number(analyte, name):
     """Repeated patient reports use the installed presentation version in the footer."""
     inputs = context()
@@ -67,9 +70,7 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
         assert 'name="smd-reports:template_version" content="0.5.3"' in html
 
 
-@pytest.mark.parametrize(
-    "analyte,name", [("dna", "smd/dna_report.html"), ("rna", "smd/report_fusion.html")]
-)
+@pytest.mark.parametrize("analyte,name", [("dna", "dna"), ("rna", "rna")])
 def test_approved_template_profile_selects_modern_without_changing_clinical_values(analyte, name):
     inputs = context()
     selected = name
@@ -107,7 +108,7 @@ def test_registry_rejects_arbitrary_files_and_wrong_modality():
     with pytest.raises(ValueError, match="does not support"):
         select_report_template("../../private.html", "dna")
     with pytest.raises(ValueError, match="does not support"):
-        select_report_template("smd/report_fusion.html", "dna")
+        select_report_template("rna", "dna")
 
 
 def test_render_context_prepares_selected_calls_without_mutating_clinical_input():

@@ -5,17 +5,14 @@
 
 import math
 
-from coyote.application.reporting.report_renderer import (
-    _copy_number,
-    _format_classification,
-    _perc_no_dec,
-)
-
 from .formatting import (
     _annotation,
     _comment,
+    _copy_number,
     _detail,
+    _format_classification,
     _hgvs,
+    _perc_no_dec,
     _read_support,
     _summary_copy_number,
 )

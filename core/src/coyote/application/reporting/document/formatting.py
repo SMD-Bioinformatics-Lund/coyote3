@@ -11,6 +11,77 @@ from xml.etree import ElementTree
 from markdown import Markdown
 from markdown.treeprocessors import Treeprocessor
 
+from coyote.domain.common.reporting import TIER_NAME
+from coyote.domain.dna.cnv_metrics import copy_number_from_log2
+
+
+def _copy_number(value: Any) -> str:
+    """Format a finite log2-derived diploid copy estimate, or a missing-value marker.
+
+    Args:
+        value: Numeric log2 ratio. Missing, nonnumeric or overflowing values are unknown.
+
+    Returns:
+        Two-decimal copy-number estimate, or a dash for unusable input.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return "-"
+    try:
+        estimate = copy_number_from_log2(value)
+    except OverflowError:
+        return "-"
+    return f"{estimate:.2f}" if math.isfinite(estimate) else "-"
+
+
+def _perc_no_dec(value: Any) -> str:
+    """Format allele frequency for clinical report display."""
+    if value in (None, "", "N/A"):
+        return "N/A" if value == "N/A" else "-"
+    try:
+        return f"{float(value) * 100:.0f}%"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _format_tier(value: Any, include_label: bool = True) -> str:
+    """Format a tier as a Roman numeral, optionally prefixed with its clinical label.
+
+    Args:
+        value: Numeric tier; unsupported numeric values display a dash.
+        include_label: Include ``Tier`` for detailed wording; false gives a compact numeral.
+
+    Returns:
+        Clinical tier label or compact Roman numeral, with a dash for missing values.
+    """
+    try:
+        tier = int(value)
+        if tier not in TIER_NAME:
+            return "-"
+        return f"Tier {TIER_NAME[tier]}" if include_label else TIER_NAME[tier]
+    except (TypeError, ValueError):
+        return str(value or "-")
+
+
+def _format_classification(value: Any, description: Any = None) -> str:
+    """Render a known tier and optional description, or one plain missing-value hyphen.
+
+    Args:
+        value: Numeric classification tier; missing, zero and unclassified values are unknown.
+        description: Optional clinical wording. Empty wording or a hyphen is omitted.
+
+    Returns:
+        A tier with a plain hyphen separator, or exactly ``-`` for an unknown tier.
+    """
+    try:
+        tier = int(value)
+    except (TypeError, ValueError):
+        return "-"
+    if isinstance(value, bool) or tier not in TIER_NAME:
+        return "-"
+    label = f"Tier {TIER_NAME[tier]}"
+    wording = str(description or "").strip()
+    return f"{label} - {wording}" if wording and wording != "-" else label
+
 
 def _value(value: Any) -> Any:
     """Return a JSON cell, preserving missing values, zero and false."""

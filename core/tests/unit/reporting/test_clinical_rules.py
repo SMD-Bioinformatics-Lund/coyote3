@@ -320,7 +320,7 @@ def test_publication_changes_report_resolution_without_aspc_update_and_invalidat
         """Evaluate current rules using unchanged sample and configuration facts."""
         evaluation = service.evaluate(aspc=configuration, context=_context())
         return (
-            "smd/dna_report.html",
+            "dna",
             {
                 "sample": sample,
                 "assay_config": configuration,

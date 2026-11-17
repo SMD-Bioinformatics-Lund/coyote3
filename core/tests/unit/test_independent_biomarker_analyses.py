@@ -172,7 +172,7 @@ def test_api_selection_uses_stored_configuration(monkeypatch):
 def test_report_renders_only_selected_measurement_table():
     """Unselected stored values cannot leak into the rendered report body."""
     html = render_report_html(
-        template_name="smd/dna_report.html",
+        template_name="dna",
         analyte="dna",
         preview=True,
         snapshot_rows=[],

@@ -152,13 +152,35 @@ def test_duplicate_binding_and_changed_source_content_fail_compilation(profiles)
         compile_profiles(config, panel, repository)
 
 
-def test_template_profile_records_the_installed_layout_hash(profiles):
-    service, _, _, _ = profiles
-    row = service.create(
-        draft(kind="template", content={"template_name": "smd/dna_report.html"}), actor="author"
-    )
+@pytest.mark.parametrize("analyte", ["dna", "rna"])
+def test_template_profile_records_hash_and_compiles_only_for_its_modality(profiles, analyte):
+    service, repository, _, _ = profiles
+    row = service.create(draft(kind="template", content={"template_name": analyte}), actor="author")
     assert len(row["content"]["content_hash"]) == 64
     assert row["content_hash"] == profile_hash(row)
+    service.publish(
+        str(row["_id"]), actor="reviewer", content_hash=row["content_hash"], reason="Validated"
+    )
+    panel = {
+        "asp_group": "solid",
+        "asp_id": "synthetic",
+        "asp_category": analyte,
+        "asp_family": f"panel-{analyte}",
+    }
+    configuration = {"diagnosis_id": "base", "environment": "testing"}
+    compile_profiles(configuration, panel, repository)
+    assert configuration["template_release"] == row["content"]
+    assert configuration["profile_sources"][0]["content"] == row["content"]
+    other = "rna" if analyte == "dna" else "dna"
+    with pytest.raises(AppError, match="does not support this assay modality"):
+        compile_profiles(configuration, {**panel, "asp_category": other}, repository)
+
+
+@pytest.mark.parametrize("name", ["smd/dna_report.html", "smd/report_fusion.html", "unknown"])
+def test_template_profile_rejects_paths_and_unknown_identifiers(profiles, name):
+    service, _, _, _ = profiles
+    with pytest.raises(AppError, match="Choose a registered report template"):
+        service.create(draft(kind="template", content={"template_name": name}), actor="author")
 
 
 def test_edit_preserves_authored_overrides_without_freezing_inherited_defaults():

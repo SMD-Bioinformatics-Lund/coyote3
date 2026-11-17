@@ -155,7 +155,7 @@ from coyote.config.vep_reference import VEP_METADATA_POLICY_PATH, load_vep_metad
 assert VEP_METADATA_POLICY_PATH.is_relative_to(target)
 assert load_vep_metadata_policy()['consequence_groups']
 from coyote.application.reporting.report_renderer import render_report_html, render_pdf_bytes
-for analyte,name in [('dna','smd/dna_report.html'),('rna','smd/report_fusion.html')]:
+for analyte,name in [('dna','dna'),('rna','rna')]:
     html=render_report_html(template_name=name,template_context={'sample':{'name':'SYNTHETIC'},'assay_config':{'reporting':{}},'report_sections':[],'report_sections_data':{},'fusions':[],'genes_covered_in_panel':{}},snapshot_rows=[],analyte=analyte,preview=True)
     assert 'SYNTHETIC' in html and '<style' in html
     assert 'name="smd-reports:package_version"' in html

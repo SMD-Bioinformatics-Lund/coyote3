@@ -19,6 +19,10 @@ from coyote.application.operations.models import (
 )
 from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.application.reporting.presentation import ReportPresentation
+from coyote.application.reporting.report_service import (
+    select_report_template,
+    template_content_hash,
+)
 from coyote.domain.common.errors import api_error
 
 if TYPE_CHECKING:
@@ -247,11 +251,6 @@ class Reports:
                 category="validation",
             ) from exc
         release = (context.get("assay_config") or {}).get("template_release") or {}
-        from coyote.application.reporting.report_service import (
-            select_report_template,
-            template_content_hash,
-        )
-
         configured_template = release.get("template_name") or template
         try:
             actual_template = select_report_template(configured_template, analyte)

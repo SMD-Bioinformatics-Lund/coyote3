@@ -84,9 +84,7 @@ def test_report_receipt_freezes_scope_overrides_and_input_lineage():
         "files": {"vcf_files": {"path": "/synthetic/input.vcf"}},
         "filters": {"somatic": {"snv": {"min_depth": 100, "snvlists": ["breast"]}}},
     }
-    receipt = report_resolution_receipt(
-        "smd/dna_report.html", {"sample": sample, "assay_config": configuration}
-    )
+    receipt = report_resolution_receipt("dna", {"sample": sample, "assay_config": configuration})
     assert receipt["gene_scopes"]["somatic:snv"]["genes"] == ["TP53"]
     assert receipt["gene_scopes"]["somatic:snv"]["excluded"] == [
         {"gene": "BRAF", "reason": "outside_assay_eligibility"}

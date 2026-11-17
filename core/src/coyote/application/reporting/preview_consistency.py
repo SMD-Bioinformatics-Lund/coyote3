@@ -7,7 +7,7 @@ import hashlib
 import json
 from hmac import compare_digest
 
-from coyote.application.reporting.report_renderer import template_content_hash
+from coyote.application.reporting.report_service import template_content_hash
 from coyote.domain.common.errors import api_error
 
 
