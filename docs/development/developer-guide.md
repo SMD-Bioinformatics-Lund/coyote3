@@ -551,8 +551,8 @@ scripts/quality/run_package_tests.sh all --smoke
 scripts/quality/run_package_tests.sh all --coverage
 
 # Python lint, formatting and configured type-check scope
-PYTHONPATH=. .venv/bin/python -m ruff check core api adapters clients tests scripts
-PYTHONPATH=. .venv/bin/python -m ruff format --check core api adapters clients tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff check core api adapters services tests scripts
+PYTHONPATH=. .venv/bin/python -m ruff format --check core api adapters services tests scripts
 PYTHONPATH=. .venv/bin/python -m mypy
 
 # Frontend verification

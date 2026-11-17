@@ -41,7 +41,7 @@ Run these commands from the activated environment:
 
 ```bash
 # Linting and static checks
-python -m ruff check core api adapters clients tests scripts
+python -m ruff check core api adapters services tests scripts
 
 # Tests
 python -m pytest -q

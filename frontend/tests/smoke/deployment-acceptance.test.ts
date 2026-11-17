@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import type { FullConfig, FullResult, Suite, TestCase, TestResult } from "@playwright/test/reporter"
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { describe, expect, it, vi } from "vitest"
 import { deploymentSettings, reportPackageVersion, validateReleaseArguments } from "../e2e-real/support/deployment-settings"
 import RequireCompleteAcceptance from "../e2e-real/support/require-complete-acceptance"
@@ -83,14 +86,37 @@ describe("deployment acceptance prerequisites", () => {
 })
 
 describe("report renderer identity", () => {
-  it("takes the exact version from dependency metadata", () => {
-    expect(reportPackageVersion('[project]\ndependencies = [\n  "smd-reports==1.2.3",\n]\n')).toBe("1.2.3")
+  it.each([
+    'reporting = ["Jinja2==3.1.6", "smd-reports==1.2.3"]',
+    "reporting = [\n  'smd-reports==1.2.3', # renderer\n]",
+  ])("reads the reporting extra regardless of TOML layout", reporting => {
+    expect(reportPackageVersion(`[project.optional-dependencies]\n${reporting}`)).toBe("1.2.3")
   })
 
-  it.each(["", '"smd-reports>=1.0"', '"smd-reports==1.0"\n"smd-reports==2.0"'])(
+  it("loads the renderer identity from the release checkout", () => {
+    const manifest = readFileSync(path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)), "../../../core/pyproject.toml",
+    ), "utf8")
+    expect(reportPackageVersion(manifest)).toMatch(/^\d+\.\d+\.\d+/)
+  })
+
+  it("does not treat comments or unrelated extras as the renderer selection", () => {
+    expect(reportPackageVersion(`[project.optional-dependencies]
+# smd-reports==9.0.0
+test = ["smd-reports==8.0.0"]
+reporting = ["smd-reports==1.2.3"]`)).toBe("1.2.3")
+  })
+
+  it.each(['[]', '["smd-reports>=1.0"]', '["smd-reports==1.*"]', '["smd-reports==1.0", "smd-reports==2.0"]'])(
     "rejects missing, unpinned or duplicate renderer identities",
-    manifest => expect(() => reportPackageVersion(manifest)).toThrow("one exact smd-reports dependency"),
+    dependencies => expect(() => reportPackageVersion(
+      `[project.optional-dependencies]\nreporting = ${dependencies}`,
+    )).toThrow("one exact smd-reports dependency"),
   )
+
+  it("rejects malformed TOML", () => {
+    expect(() => reportPackageVersion('[project\n')).toThrow("valid TOML")
+  })
 })
 
 describe("release command completeness", () => {

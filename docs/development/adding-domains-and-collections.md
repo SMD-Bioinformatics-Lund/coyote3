@@ -155,7 +155,7 @@ class SampleCatalogService:
 ## Quality checks
 
 ```bash
-.venv/bin/ruff check core api adapters clients tests
+.venv/bin/ruff check core api adapters services tests
 .venv/bin/python -m pytest -q
 .venv/bin/python -m mkdocs build --strict
 ```

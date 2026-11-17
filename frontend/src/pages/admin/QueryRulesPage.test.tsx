@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, expect, it, vi } from "vitest"
@@ -74,6 +75,7 @@ it.each([
   { binding: "family", importedScope: { ...scope, family: "panel-dna", modality: "dna" },
     resolvedScope: { ...scope, family: "panel-dna", modality: "dna" } },
 ])("imports a $binding policy and preserves its authored binding through preview and save", async ({ importedScope, resolvedScope }) => {
+  const user = userEvent.setup()
   const originalPost = vi.mocked(api.post).getMockImplementation()!
   vi.mocked(api.post).mockImplementation(async (path, body, options) => path === "/admin/query-rule-sets"
     ? { status: 201, data: { ...rule, ...body as object, status: "draft" } }
@@ -93,15 +95,18 @@ it.each([
     scope: importedScope, content: rule.content,
   }, { errorNotice: "inline" })
   expect(api.post).not.toHaveBeenCalledWith("/admin/query-rule-sets", expect.anything())
-  fireEvent.click(screen.getByRole("button", { name: "Preview effective policy" }))
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
-    scope: importedScope, content: rule.content,
-  }))
-  expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
-    scope: importedScope,
+  vi.mocked(api.post).mockClear()
+  await user.click(screen.getByRole("button", { name: "Preview effective policy" }))
+  await waitFor(() => {
+    expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+      scope: importedScope, content: rule.content,
+    })
+    expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets/preview", {
+      scope: importedScope,
+    })
   })
-  fireEvent.change(screen.getByLabelText("Change or review reason"), { target: { value: "Reviewed imported policy" } })
-  fireEvent.click(screen.getByRole("button", { name: "Save draft" }))
+  await user.type(screen.getByLabelText("Change or review reason"), "Reviewed imported policy")
+  await user.click(screen.getByRole("button", { name: "Save draft" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/query-rule-sets", {
     ...document, reason: "Reviewed imported policy",
   }))

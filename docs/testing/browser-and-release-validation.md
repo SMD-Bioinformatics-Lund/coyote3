@@ -123,7 +123,11 @@ for remote validation targets.
 
 The report checks use the current HTML/PDF preview controls and compare the
 renderer metadata with the dependency selected by `core/pyproject.toml` in the
-release checkout. HTML downloads must match the preview response exactly, and
+release checkout. The reader parses its `reporting` extra with Python's TOML
+parser, using the workspace `.venv/bin/python` by default. Set `PYTHON_BIN` to an
+absolute Python 3.12+ executable path when running from a different environment;
+the reader needs only the standard library. HTML downloads must match the preview
+response exactly, and
 preview/download actions must leave the saved-report library unchanged.
 
 Record the execution date, target environment, test-account scope, and evidence

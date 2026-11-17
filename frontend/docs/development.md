@@ -32,6 +32,12 @@ selectable `tests/smoke` suite exercises the shared confirmation dialog, includi
 keyboard handling, focus and pending actions. It runs in jsdom without a backend
 or external services, and is also included in the full Vitest suite.
 
+Smoke tests also check release-acceptance prerequisites and read the renderer pin
+from core's `reporting` extra. TOML parsing uses Python 3.12+ from the repository's
+`.venv/bin/python`, or the executable selected by `PYTHON_BIN`. This parser needs
+only the Python standard library. The same check runs in deployed-browser tests;
+ordinary Vite development and production builds remain Node-only.
+
 `test:coverage` measures all configured frontend source files and writes its own
 reports to `coverage/`. Existing floors remain 75% statements, 60% branches, 65%
 functions and 77% lines. Smoke checks do not enforce the full-suite coverage floor.

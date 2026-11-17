@@ -9,7 +9,7 @@ from coyote.application.common.execution_context import (
     reset_current_user,
     set_current_user,
 )
-from coyote.application.operations import AnalysisQuery, FlagChange
+from coyote.application.operations import AnalysisQuery, ApplicationServices, FlagChange
 from coyote.application.operations.clinical_rules import ClinicalRules
 from coyote.application.operations.governance import ConfigurationProfiles, QueryRules
 from coyote.application.operations.ingest import Ingestion
@@ -47,8 +47,9 @@ def test_deployment_factory_revalidates_session_and_does_not_audit_credentials(s
     monkeypatch.setattr(
         composition,
         "application_services",
-        lambda: SimpleNamespace(
+        lambda: ApplicationServices(
             clinical=sdk.services,
+            resource_reads=Mock(),
             administration=Mock(),
             public=Mock(),
             change_password=Mock(),

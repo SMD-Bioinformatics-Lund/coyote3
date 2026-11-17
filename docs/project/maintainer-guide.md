@@ -66,7 +66,7 @@ Require appropriate clinical, security or operations review when those areas cha
 ## Local verification
 
 ```bash
-PYTHONPATH=. ruff check core api adapters clients tests scripts
+PYTHONPATH=. ruff check core api adapters services tests scripts
 PYTHONPATH=. pytest -q
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/quality/run_family_coverage_gates.sh
 npm --prefix frontend run lint

@@ -66,7 +66,7 @@ persistence boundary. Read [package boundaries](package-boundaries.md) before
 changing clinical field paths or moving host code into the library.
 
 ```bash
-.venv/bin/ruff check core api adapters clients tests scripts
+.venv/bin/ruff check core api adapters services tests scripts
 .venv/bin/mypy
 PYTHONPATH=. .venv/bin/pytest -q api/tests/unit/test_application_sdk.py \
   tests/integration/test_library_configuration_boundary.py \

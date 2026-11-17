@@ -11,12 +11,12 @@ active.
 
 | Check | Command |
 | --- | --- |
-| Python lint | `PYTHONPATH=. ruff check core api adapters clients services tests scripts` |
-| Python formatting | `ruff format --check core api adapters clients services tests scripts` |
+| Python lint | `PYTHONPATH=. ruff check core api adapters services tests scripts` |
+| Python formatting | `ruff format --check core api adapters services tests scripts` |
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
 | Independent Python client tests | Run `python -m pytest -q` in the client repository |
-| Ingestion service tests | `scripts/quality/run_package_tests.sh relay` |
+| Ingestion service tests | Run `python -m pytest -q` in the Relay repository; see [Relay development](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/development.md) |
 | Frontend lint | `npm --prefix frontend run lint` |
 | Frontend unit tests | `npm --prefix frontend run test:unit` |
 | Frontend build | `npm --prefix frontend run build` |

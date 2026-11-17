@@ -37,7 +37,7 @@ bash scripts/quality/run_package_tests.sh all --smoke
 npm --prefix frontend run test:smoke
 ```
 
-These checks cover basic contracts, configuration, API/client composition, package
+These checks cover basic contracts, configuration, API/core composition, package
 resources and shared confirmation behavior. They use synthetic inputs and in-process
 transports. They do not start application services or contact a deployment database.
 Each smoke test also belongs to its component's full suite.
@@ -61,8 +61,14 @@ bash scripts/quality/run_package_tests.sh all --coverage
 ```
 
 The runner changes to each component directory and uses its own pytest and coverage
-configuration. It accepts `core`, `api`, `mongo`, `client`, `relay`, `atlas`, `demo`
-or `all`. Source remains editable; no wheel rebuild is needed for a test change.
+configuration. It accepts `core`, `api`, `mongo`, `atlas`, `demo` or `all`.
+Source remains editable; no wheel rebuild is needed for a test change.
+
+Relay and pyClient own their suites in their separate repositories. Follow
+[Relay development](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/development.md)
+and [pyClient development](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/development.md)
+to validate those packages. The application tests their installed integration
+boundaries without collecting their external suites.
 
 Each component's `pyproject.toml` defines its coverage floor and runtime scope.
 Coverage includes unexecuted modules and branches; root integration observations
@@ -93,7 +99,7 @@ Run the comprehensive local gate for a release candidate or a substantial cross-
 PYTHON_BIN=.venv/bin/python bash scripts/quality/run_quality_suite.sh
 ```
 
-It runs backend and client suites, package and clinical-family coverage, typing and
+It runs the local backend suites, package and clinical-family coverage, typing and
 contract checks, frontend lint/coverage/build/browser tests and documentation checks.
 Install the development dependencies and Playwright browser first, as described in
 [developer setup](../getting-started/developer-environment.md). The gate does not start

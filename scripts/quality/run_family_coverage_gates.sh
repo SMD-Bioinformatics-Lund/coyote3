@@ -72,7 +72,7 @@ fi
 
 if [[ "$reuse_coverage" -eq 0 ]]; then
   "${PYTHON_BIN}" -m pytest -q \
-    --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov=coyote_relay --cov=coyote_atlas --cov=coyote_demo \
+    --cov=coyote_api --cov=coyote --cov=coyote_mongo --cov=coyote_atlas --cov=coyote_demo \
     --cov-config=.coveragerc --cov-report=
   reuse_coverage=1
 fi

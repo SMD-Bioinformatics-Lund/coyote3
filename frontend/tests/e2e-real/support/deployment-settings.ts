@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { execFileSync } from "node:child_process"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
 type Environment = Record<string, string | undefined>
 
 function enabled(environment: Environment, name: string): boolean {
@@ -66,7 +70,29 @@ export function validateReleaseArguments(arguments_: readonly string[]): void {
 
 /** Read the renderer pin from the core's authoritative dependency declaration. */
 export function reportPackageVersion(manifest: string): string {
-  const versions = [...manifest.matchAll(/^\s*"smd-reports==([^"\s]+)",?\s*$/gm)]
-  if (versions.length !== 1) throw new Error("Expected one exact smd-reports dependency in core/pyproject.toml.")
-  return versions[0][1]
+  const python = process.env.PYTHON_BIN || path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)), "../../../../.venv/bin/python",
+  )
+  const readReportingDependencies = [
+    "import json, sys, tomllib",
+    "project = tomllib.loads(sys.stdin.read())['project']",
+    "print(json.dumps(project.get('optional-dependencies', {}).get('reporting', [])))",
+  ].join("\n")
+  let dependencies: unknown
+  try {
+    dependencies = JSON.parse(execFileSync(python, ["-c", readReportingDependencies], {
+      input: manifest, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 10_000,
+    }))
+  } catch {
+    throw new Error("Cannot read core/pyproject.toml. Use valid TOML and Python 3.12+ via the workspace .venv or PYTHON_BIN.")
+  }
+  if (!Array.isArray(dependencies) || dependencies.some(value => typeof value !== "string")) {
+    throw new Error("Expected a reporting dependency array in core/pyproject.toml.")
+  }
+  const declarations = dependencies.filter(value => /^smd-reports\b/.test(value))
+  const version = declarations[0]?.match(/^smd-reports==([^\s,;*]+)$/)?.[1]
+  if (declarations.length !== 1 || !version) {
+    throw new Error("Expected one exact smd-reports dependency in core/pyproject.toml's reporting extra.")
+  }
+  return version
 }

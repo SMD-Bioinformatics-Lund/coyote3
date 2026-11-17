@@ -682,7 +682,8 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
     )
 
     assert result.returncode == 0
-    assert "[ok] ingest spec is valid" in result.stdout
+    assert "manifest structure is valid" in result.stdout
+    assert "clinical validation is performed by the receiving server" in result.stdout
 
     listed = _run_script(
         ["-m", "coyote_relay.validate", "--yaml", str(manifest_path), "--list-files"]
@@ -690,6 +691,13 @@ def test_ingest_spec_file_check_resolves_paths_from_manifest_directory(tmp_path)
 
     assert listed.returncode == 0
     assert listed.stdout.strip() == str((tmp_path / "synthetic.vcf").resolve())
+
+    (tmp_path / "synthetic.vcf").unlink()
+    missing = _run_script(
+        ["-m", "coyote_relay.validate", "--yaml", str(manifest_path), "--check-files"]
+    )
+    assert missing.returncode != 0
+    assert str(tmp_path / "synthetic.vcf") in missing.stderr
 
 
 def test_production_frontend_receives_script_name_at_build_and_runtime():
