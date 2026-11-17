@@ -224,7 +224,16 @@ from coyote.config.governance_catalog import RBAC_CATALOG_DIR
 assert CENTER_CONFIG_DIR.is_relative_to(target)
 assert (CENTER_CONFIG_DIR/'contact.toml').is_file()
 assert (RBAC_CATALOG_DIR/'permissions.seed.ndjson').is_file()
-assert (target/'coyote_api/app/templates/api_reference.html').is_file()
+import asyncio
+from starlette.requests import Request
+async def render_documentation():
+    for path in ('/api/v1/docs', '/api/v1/redoc'):
+        route = next(route for route in app.routes if getattr(route, 'path', None) == path)
+        response = await route.endpoint(Request({'type': 'http', 'root_path': '/center', 'path': path}))
+        assert response.status_code == 200
+        assert response.headers['Cache-Control'] == 'no-store'
+        assert 'const schemaUrl = "/center/api/v1/openapi.json"' in response.body.decode()
+asyncio.run(render_documentation())
 from coyote_api.cli import main
 sys.argv=['coyote4-api','--help']
 try: main()

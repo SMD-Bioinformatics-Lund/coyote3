@@ -4,6 +4,13 @@ Tests protect clinical behavior, permissions, contracts and recovery. Each compo
 owns its tests; root tests verify application composition and cross-component behavior.
 Use focused checks during development and comprehensive validation for a release.
 
+A test earns its place by detecting a concrete failure. Assert an observable result
+against a requirement or independently derived expectation, including relevant
+boundaries, invalid inputs, denied access and recovery. Mock external dependencies,
+not the behavior being verified. Avoid duplicate cases that exercise the same
+failure mode. Test counts and coverage percentages help locate gaps; they do not
+establish correctness or clinical readiness.
+
 ## Test boundaries
 
 ![Test layers and quality gates](../assets/diagrams/test-coverage-map.svg)
@@ -159,6 +166,13 @@ clarity and inspect changed SVG assets in both themes. Do not maintain separate 
 suites for logo generation, documentation phrasing or coding-session scaffolding.
 Google-style docstrings should describe actual behavior; code review checks their
 accuracy and Ruff checks formatting.
+
+Documentation regression tests verify runnable ingestion examples, published filter
+fields/defaults and deployment artifacts. The docs image checks build from the actual
+image inputs and validate local links, anchors and assets; the installed-wheel check
+renders the API viewers outside the checkout. Interactive API documentation retains
+security, keyboard navigation, contrast and resource-selection checks. Do not assert
+exact prose, CSS token values, border widths or source-file layouts.
 
 ## Release evidence
 

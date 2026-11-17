@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from importlib.resources import files
-from pathlib import Path
-
 import pytest
 from coyote_api.app import extensions
 from coyote_api.app.main import create_api_app
@@ -77,13 +74,3 @@ def test_hidden_routers_remain_registered_at_runtime(app):
     assert "/api/v1/internal/roles/levels" in hidden_paths
     assert "/api/v1/internal/tasks/{task_id}" not in runtime_paths
     assert hidden_paths <= runtime_paths
-
-
-def test_http_route_modules_live_in_owned_subpackages():
-    """The HTTP root should contain registry/taxonomy files, not route modules."""
-    allowed_root_files = {"__init__.py", "registry.py", "tags.py", "errors.py"}
-    root_files = {
-        path.name
-        for path in Path(str(files("coyote_api").joinpath("interfaces/http"))).glob("*.py")
-    }
-    assert root_files == allowed_root_files

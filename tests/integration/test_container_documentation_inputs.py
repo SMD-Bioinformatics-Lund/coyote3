@@ -11,12 +11,14 @@ from pathlib import Path
 
 import pytest
 
+from scripts.docs.check_built_site import check_site
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("dockerfile", ["Dockerfile.docs", "Dockerfile.docs.legacy"])
-def test_documentation_image_inputs_publish_component_guides(tmp_path: Path, dockerfile: str):
-    """Both container paths include the package guides and assets required by MkDocs."""
+def test_documentation_image_inputs_build_a_complete_site(tmp_path: Path, dockerfile: str):
+    """Image inputs alone produce a site with working local links, anchors and assets."""
     builder = (ROOT / "docker" / dockerfile).read_text().split("\nFROM nginx:", 1)[0]
     for line in builder.splitlines():
         if not line.startswith("COPY "):
@@ -53,11 +55,5 @@ def test_documentation_image_inputs_publish_component_guides(tmp_path: Path, doc
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    for component in ("core", "api", "mongo", "client", "relay", "atlas", "demo", "frontend"):
-        assert (tmp_path / "site/packages" / component / "index.html").is_file()
-        assert (tmp_path / "site/packages" / component / "overview/index.html").is_file()
-    assert (tmp_path / "site/packages/api/assets/coyote-api-logo.svg").is_file()
-    assert (tmp_path / "site/packages/relay/assets/coyote-relay-logo.svg").is_file()
-    assert (tmp_path / "site/packages/atlas/assets/coyote-atlas-logo.svg").is_file()
-    assert (tmp_path / "site/packages/demo/assets/coyote-demo-logo.svg").is_file()
-    assert (tmp_path / "site/packages/server/pyproject.toml").is_file()
+    _, errors = check_site(tmp_path / "site")
+    assert not errors, "\n".join(errors)

@@ -41,6 +41,8 @@
   emergency-superuser options, and existing-data safeguards.
 - Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
   and explicit deployed-release acceptance checks with streamlined documentation.
+- Focus regression tests on behavior and failure handling; replace documentation
+  styling and prose assertions with example, contract and deployed-artifact checks.
 - Parse the report renderer pin from core's reporting extra for deployed browser
   acceptance; align release tests and commands with external Relay/client ownership
   and the scoped resource-read service.

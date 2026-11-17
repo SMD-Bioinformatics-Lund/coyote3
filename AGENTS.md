@@ -92,6 +92,18 @@ risk. Keep product regression tests for clinical behavior, permissions, persiste
 API contracts and failure handling. Do not add tests that assert source phrasing,
 conversation decisions, artwork layout or implementation details alone.
 
+Each test must identify a concrete failure it detects and assert an observable
+result against an independently justified expectation. Cover relevant boundaries,
+invalid inputs, denied access and failure recovery. Avoid tests that only repeat
+implementation constants, mock away the behavior under test or duplicate coverage
+without exercising a different failure mode. Test counts and coverage percentages
+are diagnostic measures, not quality targets or release approval.
+
+For documentation, keep checks for executable examples, contract/configuration
+accuracy, broken links and deployable artifacts. Review prose and visual consistency
+without freezing wording, CSS values, file organization or artwork in test cases.
+Retain behavioral accessibility and security checks for interactive documentation.
+
 Fast checks from the repository root:
 
 ```bash

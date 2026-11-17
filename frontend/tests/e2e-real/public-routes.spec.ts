@@ -51,17 +51,11 @@ test("API explorer groups endpoints and keeps the overview collapsible", async (
   await expect(navigation.getByRole("link").first()).toBeVisible()
   await expect(page.locator("#endpoint-count")).toHaveText(/\d+ endpoints/)
   const overview = page.locator(".api-overview")
-  await expect(overview.getByRole("heading", { name: "Build against this installation" })).toBeVisible()
-  await expect(overview).toContainText("Endpoint visibility, required fields and security schemes come from the running API.")
   await expect(overview).toHaveAttribute("open")
-  await expect(page.locator("#api-content .api-overview")).toHaveCount(0)
-  expect(await overview.evaluate((element) => Boolean(
-    element.compareDocumentPosition(document.getElementById("api-content")!) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ))).toBe(true)
   await overview.locator(":scope > summary").click()
   await expect(overview).not.toHaveAttribute("open")
   await overview.locator(":scope > summary").click()
-  await expect(overview.getByRole("heading", { name: "Choose the right credentials" })).toBeVisible()
+  await expect(overview).toHaveAttribute("open")
   await page.getByLabel("Find a resource").fill("no-such-resource-123")
   await expect(page.getByText("No matching resources.")).toBeVisible()
   await page.getByLabel("Find a resource").fill("")
@@ -71,12 +65,4 @@ test("API explorer groups endpoints and keeps the overview collapsible", async (
   await expect(page.locator("#docs-error")).toBeHidden()
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-})
-
-test("API reference introduces Coyote4 and its clinical reporting context", async ({ page }) => {
-  await page.goto("api/v1/redoc")
-  const reference = page.locator("#api-renderer")
-  await expect(reference).toContainText("Section for Molecular Diagnostics (SMD), Lund", { timeout: 30_000 })
-  await expect(reference).toContainText("Saved reports retain finding snapshots")
-  await expect(page.locator("#docs-error")).toBeHidden()
 })

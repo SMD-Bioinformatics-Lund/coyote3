@@ -1,144 +1,32 @@
 """Presentation must preserve API contracts, deployment prefixes and data boundaries."""
 
 import re
-import tomllib
-from pathlib import Path
 
 import pytest
-from coyote_api.app.documentation import (
-    API_DESCRIPTION,
-    PRODUCT_OVERVIEW,
-    register_api_documentation,
-)
+from coyote_api.app.documentation import register_api_documentation
 from coyote_api.app.main import create_api_app
 from coyote_api.interfaces.http.tags import OPENAPI_TAG_NAMES
 from fastapi import FastAPI
 from fastapi.routing import iter_route_contexts
-from markupsafe import escape
 from starlette.requests import Request
-
-
-def test_documentation_colors_match_application_light_theme():
-    application = Path("frontend/src/styles/tailwind-theme.css").read_text()
-    documentation = Path("api/src/coyote_api/app/templates/api_reference.css").read_text()
-    names = (
-        "background",
-        "foreground",
-        "card",
-        "primary",
-        "muted-foreground",
-        "border",
-        "brand-start",
-        "brand-end",
-        "brand-gradient",
-        "chrome-top",
-        "chrome-foreground",
-        "chrome-muted-foreground",
-        "chrome-border",
-        "chrome-control-hover",
-        "status-warning-soft",
-        "status-warning-foreground",
-        "status-info-soft",
-        "status-info-foreground",
-        "status-success-soft",
-        "status-success-foreground",
-        "status-danger-soft",
-        "status-danger-foreground",
-        "paper-raised",
-        "paper-inset",
-        "paper-edge",
-        "paper-shadow",
-        "paper-shadow-deep",
-        "paper-highlight",
-        "inner-card-background",
-        "inner-card-shadow",
-        "material-badge-shadow",
-        "panel-shadow",
-        "heading-surface",
-    )
-    for name in names:
-        pattern = rf"--{re.escape(name)}:\s*([^;]+);"
-        expected = re.search(pattern, application)
-        actual = re.search(pattern, documentation)
-        assert expected and actual, f"Missing brand token: {name}"
-        assert " ".join(actual[1].split()) == " ".join(expected[1].split()), name
-
-
-def test_documentation_dark_surfaces_match_application_theme():
-    """The standalone portal retains the application's dark surfaces and elevation colors."""
-    application = (
-        Path("frontend/src/styles/tailwind-theme.css").read_text().split("\n.dark {", 1)[1]
-    )
-    documentation = (
-        Path("api/src/coyote_api/app/templates/api_reference.css")
-        .read_text()
-        .split("\n.dark {", 1)[1]
-    )
-    for name in (
-        "background",
-        "foreground",
-        "card",
-        "primary",
-        "border",
-        "brand-start",
-        "brand-end",
-        "paper-raised",
-        "paper-inset",
-        "paper-edge",
-        "paper-shadow",
-        "paper-shadow-deep",
-        "paper-highlight",
-        "status-info-soft",
-        "status-success-soft",
-        "status-warning-soft",
-    ):
-        pattern = rf"--{re.escape(name)}:\s*([^;]+);"
-        expected = re.search(pattern, application)
-        actual = re.search(pattern, documentation)
-        assert expected and actual, name
-        assert " ".join(actual[1].split()) == " ".join(expected[1].split()), name
-
-
-def test_documentation_assets_are_deployed_with_the_api_source():
-    """The server wheel includes the API's independently owned documentation assets."""
-    config = tomllib.loads(Path("pyproject.toml").read_text())
-    assert "coyote_api.*" in config["tool"]["setuptools"]["packages"]["find"]["include"]
-    assert "app/templates/*" in config["tool"]["setuptools"]["package-data"]["coyote_api"]
-    assert "COPY --chown=coyote4:coyote4 api/ ./api/" not in Path("docker/Dockerfile").read_text()
-    assert Path("api/src/coyote_api/app/templates/api_reference.html").is_file()
-
-
-def test_response_samples_use_application_dark_theme_tokens():
-    application = Path("frontend/src/styles/tailwind-theme.css").read_text()
-    documentation = Path("api/src/coyote_api/app/templates/api_reference.css").read_text()
-    for target, source in {
-        "code-surface": "card",
-        "code-ink": "foreground",
-        "code-string": "primary",
-        "code-success": "status-success-foreground",
-    }.items():
-        expected = re.findall(rf"--{source}:\s*([^;]+);", application)[-1]
-        actual = re.search(rf"--{target}:\s*([^;]+);", documentation)
-        assert actual and actual[1] == expected
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/api/v1/docs", "/api/v1/redoc"])
 @pytest.mark.parametrize("environment", ["production", "staging"])
 @pytest.mark.parametrize("relay_installed", [False, True])
-async def test_documentation_branding_prefix_and_environment(path, environment, relay_installed):
+async def test_documentation_preserves_prefix_and_security(path, environment, relay_installed):
+    """Mounted viewers use local routes and avoid retaining credentials in the browser."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url="/api/v1/openapi.json")
     app.state.api_extensions = ("relay",) if relay_installed else ()
     register_api_documentation(app, environment=environment)
     route = next(route for route in app.routes if route.path == path)
     response = await route.endpoint(Request({"type": "http", "root_path": "/center", "path": path}))
     html = response.body.decode()
-    assert "Coyote4 API" in html
     assert 'href="/center/api/v1/redoc"' in html
     assert 'href="/center/api/v1/docs"' in html
     assert 'href="/center/docs-site/"' in html
     assert 'const schemaUrl = "/center/api/v1/openapi.json"' in html
-    assert "data:image/svg+xml;base64," in html
     assert ('class="environment-warning"' in html) is (environment != "production")
     assert response.headers["Cache-Control"] == "no-store"
     assert "validatorUrl: null" in html
@@ -148,25 +36,10 @@ async def test_documentation_branding_prefix_and_environment(path, environment, 
     assert stored_keys == ["coyote4-docs-theme"]
     assert html.count("localStorage.setItem(") == len(stored_keys)
     assert "sessionStorage" not in html
-    assert '<section class="endpoint-workspace" aria-label="API endpoints">' in html
-    assert ('id="resource-navigation"' in html) is (path == "/api/v1/docs")
-    assert ('id="resource-search"' in html) is (path == "/api/v1/docs")
-    assert 'id="overview-product"' in html
     assert "OpenAPI " + app.openapi_version in html
     assert "https://YOUR_HOST/center/api/v1/auth/whoami" in html
-    for text in (
-        "Your first authenticated request",
-        "X-CSRF-Token",
-        "X-Request-ID",
-        "current revision",
-        "editing lease",
-        "COYOTE4_SESSION_TOKEN",
-    ):
-        assert text in html
     assert ("X-Coyote-Ingest-Token" in html) is relay_installed
     assert 'href="/center/docs-site/administration/document-editing/"' in html
-    for paragraph in PRODUCT_OVERVIEW:
-        assert str(escape(paragraph)) not in html
 
 
 @pytest.mark.asyncio
@@ -192,9 +65,6 @@ def test_documentation_groups_include_every_tag_once(monkeypatch):
     assert "/api/v1/docs" not in schema["paths"]
     assert "/api/v1/redoc" not in schema["paths"]
     assert schema["servers"] == [{"url": app.root_path or "/"}]
-    assert API_DESCRIPTION in schema["info"]["description"]
-    for paragraph in PRODUCT_OVERVIEW:
-        assert paragraph in schema["info"]["description"]
     assert schema["paths"]["/api/v1/samples"]["get"]["security"]
     sync_security = schema["paths"]["/api/v1/internal/ingest/sample-bundle/upload"]["post"][
         "security"

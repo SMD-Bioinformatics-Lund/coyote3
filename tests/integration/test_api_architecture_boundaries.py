@@ -12,42 +12,6 @@ from packaging.requirements import Requirement
 
 IMPORT_APP_PATTERN = re.compile(r"^\s*(from|import)\s+coyote_api\.app\b")
 HTTP_FRAMEWORK_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(fastapi|starlette)\b")
-PERSISTENCE_NAMES = (
-    "annotation",
-    "assay_configuration",
-    "assay_panel",
-    "bam_record",
-    "biomarker",
-    "blacklist",
-    "brca",
-    "civic",
-    "copy_number_variant",
-    "cosmic",
-    "coverage",
-    "expression",
-    "fusion",
-    "grouped_coverage",
-    "hgnc",
-    "iarc_tp53",
-    "gene_list",
-    "oncokb",
-    "permissions",
-    "reported_variant",
-    "rna_classification",
-    "rna_expression",
-    "rna_quality",
-    "roles",
-    "sample",
-    "translocation",
-    "user",
-    "variant",
-    "vep_metadata",
-)
-PERSISTENCE_HANDLER_NAME_PATTERN = re.compile(
-    r"store\.(?:" + "|".join(PERSISTENCE_NAMES) + r")_handler\b|"
-    r"\bget_(?:user|roles|permissions|assay_panel|sample|gene_list)_handler\b|"
-    r"\b(?:" + "|".join(PERSISTENCE_NAMES) + r")_handler\s*="
-)
 PYMONGO_RESULT_PATTERN = re.compile(
     r"\bpymongo\.results\b|"
     r"\b(from\s+pymongo\.results\s+import|"
@@ -453,25 +417,6 @@ def test_domain_and_application_do_not_import_http_frameworks() -> None:
     )
 
 
-def test_persistence_dependency_names_use_repository_terms() -> None:
-    """Persistence dependencies should not use handler naming."""
-    offenders: list[str] = []
-    for root in (Path("api/src/coyote_api"), Path("docs")):
-        files = sorted(
-            path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts
-        )
-        for path in files:
-            if path.suffix not in {".py", ".md"}:
-                continue
-            for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-                if PERSISTENCE_HANDLER_NAME_PATTERN.search(line):
-                    offenders.append(f"{path.as_posix()}:{line_no}: {line.strip()}")
-
-    assert not offenders, "Persistence dependencies must use repository naming:\n" + "\n".join(
-        offenders
-    )
-
-
 def test_api_boundaries_do_not_expose_pymongo_result_types() -> None:
     """API and domain layers should use JSON-safe contracts, not driver result types."""
     offenders: list[str] = []
@@ -536,19 +481,3 @@ def test_http_routes_declare_response_contracts() -> None:
                     offenders.append(f"{path.as_posix()}:{node.lineno}: @{func.attr} {node.name}")
 
     assert not offenders, "HTTP routes must declare response contracts:\n" + "\n".join(offenders)
-
-
-def test_contract_layers_use_pydantic_models_instead_of_dataclasses() -> None:
-    """Keep request/response and domain value contracts on one modelling style."""
-    offenders: list[str] = []
-    for root in (
-        Path("core/src/coyote/contracts"),
-        Path("core/src/coyote/domain"),
-        Path("core/src/coyote/application"),
-    ):
-        for path in _python_files(root):
-            for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-                if "from dataclasses import" in line or "@dataclass" in line:
-                    offenders.append(f"{path.as_posix()}:{line_no}: {line.strip()}")
-
-    assert not offenders, "Use Pydantic models for API/domain contracts:\n" + "\n".join(offenders)

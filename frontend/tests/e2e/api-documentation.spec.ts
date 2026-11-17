@@ -102,15 +102,6 @@ for (const theme of ["light", "dark"] as const) {
           const responseSample = page.locator('#api-renderer div:has(> [data-rttabs="true"])')
             .filter({ has: page.getByRole("heading", { name: "Response samples", exact: true }) }).first()
           await responseSample.scrollIntoViewIfNeeded()
-          const panelEdges = await responseSample.evaluate(element => {
-            const panel = element.querySelector('.react-tabs__tab-panel--selected')!
-            return [element, panel].map(node => {
-              const style = getComputedStyle(node)
-              return { border: style.borderWidth, radius: Number.parseFloat(style.borderRadius),
-                outlined: style.borderStyle === "solid" && style.borderColor !== style.backgroundColor }
-            })
-          })
-          expect(panelEdges.every(edge => edge.border === "1px" && edge.radius > 0 && edge.outlined)).toBe(true)
           const errorTab = responseSample.getByRole("tab", { name: "401", exact: true })
           await errorTab.click()
           await expect(errorTab).toHaveAttribute("aria-selected", "true")
@@ -121,8 +112,6 @@ for (const theme of ["light", "dark"] as const) {
           const copy = responseSample.getByRole("button", { name: "Copy", exact: true })
           await copy.focus()
           await expect(copy).toBeFocused()
-          const successRow = page.getByRole("button", { name: /^200 Successful Response/ }).first()
-          expect(await successRow.evaluate(element => getComputedStyle(element).borderWidth)).toBe("1px")
           await page.screenshot({ path: testInfo.outputPath("response-samples.png") })
           const selector = page.getByRole("combobox", { name: "API resource", exact: true })
           await selector.selectOption("Clinical Samples")
