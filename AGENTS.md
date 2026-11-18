@@ -33,6 +33,9 @@ clinical behavior and traceability unless the requested change explicitly alters
   orchestration belongs in `deploy/installer/`; extend its commands rather than
   adding another launcher. Keep production, development, staging and test profile
   selection consistent, and preserve the demo's independent credentials and storage.
+  MongoDB, Redis and application lifecycles are independent; application deployment
+  validates explicit connection URLs and never starts or stops database servers.
+  Keep native application state private and frontend process settings free of backend secrets.
 - Automatic backend source reload belongs to local development. Docker backend
   services run directly; apply changes through an explicit restart or rebuild.
   Keep frontend Vite hot updates available in development.

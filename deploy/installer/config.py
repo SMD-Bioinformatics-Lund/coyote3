@@ -11,6 +11,7 @@ import shlex
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 ENVIRONMENTS = {"production": "prod", "development": "dev", "staging": "stage", "testing": "test"}
@@ -66,7 +67,6 @@ def validate_secrets(settings: dict[str, str]) -> None:
         "SECRET_KEY",
         "INTERNAL_API_TOKEN",
         "PASSWORD_TOKEN_SALT",
-        "REDIS_PASSWORD",
         "COYOTE4_MONGO_URI",
     )
     errors = []
@@ -78,14 +78,21 @@ def validate_secrets(settings: dict[str, str]) -> None:
             errors.append(f"placeholder or unresolved value for {key}")
         elif key != "COYOTE4_MONGO_URI" and len(value) < 16:
             errors.append(f"{key} must contain at least 16 characters")
-        elif key == "REDIS_PASSWORD" and not re.fullmatch(r"[A-Za-z0-9_-]+", value):
-            errors.append(
-                "REDIS_PASSWORD must use URL-safe letters, digits, underscores or hyphens"
-            )
     for key in ("IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI", "BAM_MONGO_URI", "LDAP_SECRET"):
         value = str(settings.get(key) or "")
         if "CHANGE_ME" in value or "${" in value:
             errors.append(f"placeholder or unresolved value for {key}")
+    for key in ("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"):
+        value = str(settings.get(key) or "")
+        try:
+            endpoint = urlsplit(value)
+            valid = (
+                endpoint.scheme in {"redis", "rediss"} and endpoint.hostname and endpoint.port != 0
+            )
+        except ValueError:
+            valid = False
+        if not valid or "CHANGE_ME" in value or "${" in value:
+            errors.append(f"{key} must contain an explicit Redis URL without placeholders")
     if errors:
         raise ValueError("; ".join(errors))
 
@@ -122,6 +129,8 @@ class Profile:
     files: tuple[Path, ...]
     process_env: dict[str, str]
     service_profiles: tuple[str, ...] = ()
+    mode: str = "docker"
+    directory: Path | None = None
 
     @classmethod
     def load(
@@ -134,6 +143,8 @@ class Profile:
         overlays: list[Path] | None = None,
         legacy: bool = False,
         service_profiles: list[str] | None = None,
+        mode: str = "docker",
+        directory: Path | None = None,
     ) -> Profile:
         """Resolve one target, rejecting profile mismatches before any subprocess runs.
 
@@ -153,9 +164,15 @@ class Profile:
             ValueError: The environment, log level or project name is invalid.
             OSError: An explicitly selected file cannot be read.
         """
+        if mode not in {"docker", "native"}:
+            raise ValueError("Deployment mode must be docker or native")
+        if mode == "native" and (files or overlays or legacy or service_profiles):
+            raise ValueError("Native deployment does not accept Compose files or profiles")
+        if mode == "docker" and directory:
+            raise ValueError("--directory selects native application state only")
         env_file = env_file.expanduser().resolve(strict=True)
         values = read_environment(env_file)
-        process_env = dict(os.environ)
+        process_env = native_environment(env_file) if mode == "native" else dict(os.environ)
         configured = process_env.get("ENV_NAME", values.get("ENV_NAME"))
         selected = environment_name(environment or configured or "production")
         if environment and configured and selected != environment_name(configured):
@@ -179,7 +196,9 @@ class Profile:
             if level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL", "WARN"}:
                 raise ValueError(f"{key} must be a literal logging level name")
             process_env[key] = level
-        if files:
+        if mode == "native":
+            selected_files = []
+        elif files:
             selected_files = files
         else:
             folder = ROOT / "deploy" / ("legacy" if legacy else "compose")
@@ -190,7 +209,16 @@ class Profile:
             path.expanduser().resolve(strict=True) for path in [*selected_files, *(overlays or [])]
         )
         return cls(
-            env_file, selected, project, resolved, process_env, tuple(service_profiles or ())
+            env_file,
+            selected,
+            project,
+            resolved,
+            process_env,
+            tuple(service_profiles or ()),
+            mode,
+            (directory or ROOT / ".runtime" / project).expanduser().absolute()
+            if mode == "native"
+            else None,
         )
 
     def validate(self) -> None:
@@ -205,3 +233,53 @@ class Profile:
         for name in self.service_profiles:
             args.extend(["--profile", name])
         return args
+
+
+def native_environment(path: Path) -> dict[str, str]:
+    """Load an explicit native profile without inheriting another application's settings.
+
+    Only process/tool settings are inherited. References resolve against the selected
+    file and repository PWD, never against ambient database credentials. Shell commands
+    are not evaluated.
+    """
+    inherited = {
+        key: value
+        for key, value in os.environ.items()
+        if key
+        in {
+            "PATH",
+            "HOME",
+            "USER",
+            "LOGNAME",
+            "LANG",
+            "LC_ALL",
+            "XDG_RUNTIME_DIR",
+            "DBUS_SESSION_BUS_ADDRESS",
+            "SSL_CERT_FILE",
+            "SSL_CERT_DIR",
+            "UV_CACHE_DIR",
+        }
+    }
+    values = read_environment(path)
+    pattern = re.compile(r"\$\{([A-Za-z_][A-Za-z_0-9]*)(?::-([^}]*))?\}")
+
+    def resolve(key: str, pending: frozenset[str] = frozenset()) -> str:
+        if key == "PWD":
+            return str(ROOT)
+        if key in pending:
+            raise ValueError(f"Cyclic environment reference involving {key}")
+        if key not in values:
+            raise ValueError(f"Undefined environment reference: {key}")
+
+        def replace(match: re.Match[str]) -> str:
+            name, default = match.groups()
+            if default is not None and not values.get(name) and name != "PWD":
+                return default
+            return resolve(name, pending | {key})
+
+        value = pattern.sub(replace, values[key])
+        if "${" in value or "\n" in value or "\r" in value or "\x00" in value:
+            raise ValueError(f"Unsupported environment value for {key}")
+        return value
+
+    return inherited | {key: resolve(key) for key in values} | {"PWD": str(ROOT)}

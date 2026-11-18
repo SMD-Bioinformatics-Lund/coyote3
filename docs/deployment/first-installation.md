@@ -155,7 +155,7 @@ Set or confirm these values in the selected environment file:
 | `ENV_NAME` | Use `production` for the production image and runtime profile. |
 | Four MongoDB URI settings | Set `COYOTE4_MONGO_URI` to a container-reachable endpoint. Set `IDENTITY_MONGO_URI`, `KNOWLEDGEBASE_MONGO_URI`, and `BAM_MONGO_URI` when a service needs a different connection; empty auxiliary settings inherit `COYOTE4_MONGO_URI`. Unauthenticated database connections produce a warning and do not block installation. Application authentication remains required. |
 | Four database names | Set `COYOTE4_DB`, `IDENTITY_DB`, `KNOWLEDGEBASE_DB`, and `BAM_DB`; the selected namespaces must not overlap on the same endpoint. |
-| Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN`, `PASSWORD_TOKEN_SALT`, and `REDIS_PASSWORD` with separate random values of at least 16 characters. Redis accepts letters, digits, underscores and hyphens. |
+| Secrets | Replace template values for `SECRET_KEY`, `INTERNAL_API_TOKEN` and `PASSWORD_TOKEN_SALT` with separate random values of at least 16 characters. Set explicit authenticated Redis URLs; the Redis server password belongs to its separate server environment file. |
 | `COYOTE4_APP_NETWORK` | Choose the external Docker network name; **step 6** creates it if absent. |
 | `COYOTE4_DATA_HOST_ROOT`, `COYOTE4_LOGS_HOST_ROOT` | Absolute persistent host paths; **step 7** prepares them. |
 | `COYOTE4_UID`, `COYOTE4_GID` | Numeric container identity with access to those paths; defaults are `10001:10001`. |
@@ -350,6 +350,13 @@ the API image.
 
 ## 8. Build images and install the database baseline
 
+Start Redis independently before application installation. Prepare a private server
+file from `deploy/env/example.redis-server.env`, then run
+`./install.sh redis start --mode docker --env-file .redis-prod.env` (or select the
+provisioned native unit with `--mode native --unit redis-server.service`). Configure
+the application's cache, broker and result URLs to reach that server. See
+[independent infrastructure](installation-operations.md#independent-infrastructure-and-application).
+
 Run the application installer after completing the environment, center configuration,
 MongoDB and database-user prerequisites in steps 1–7. Use the same shell session
 and the `COYOTE_ENV_FILE` and `COYOTE_PROJECT` values defined in **step 2**:
@@ -365,7 +372,7 @@ The installer executes the following sequence:
 
 1. Validate secrets and render the selected Compose configuration.
 2. Validate the existing external bridge network and prepare host directories.
-3. Build images, start Redis, and verify authenticated cache, task-broker and result-backend
+3. Build application images and verify the independently running cache, task-broker and result-backend
    connections from a temporary API container. Validate mounted center configuration.
 4. Verify all four MongoDB endpoints and inspect application/identity installation state.
 5. On a fresh target only, prompt for initial accounts and install users, application

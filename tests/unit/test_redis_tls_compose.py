@@ -28,6 +28,10 @@ def test_redis_tls_overlay_uses_verified_transport_without_network_changes():
             "deploy/compose/docker-compose.yml",
             "-f",
             "deploy/compose/docker-compose.redis-tls.yml",
+            "-f",
+            "deploy/compose/docker-compose.redis.yml",
+            "-f",
+            "deploy/compose/docker-compose.redis-tls-server.yml",
             "config",
             "--format",
             "json",
@@ -41,6 +45,14 @@ def test_redis_tls_overlay_uses_verified_transport_without_network_changes():
             "COYOTE4_VERSION": "tls-test",
             "COYOTE4_IMAGE_TAG": "tls-test",
             "COYOTE4_REDIS_TLS_DIR": "/synthetic/redis-certificates",
+            "COYOTE4_REDIS_VOLUME": "synthetic-redis-data",
+            "REDIS_PASSWORD": "synthetic_redis_password",
+            **{
+                key: f"rediss://:synthetic_redis_password@redis:6379/{number}?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true"
+                for number, key in enumerate(
+                    ("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND")
+                )
+            },
         },
     )
     rendered = json.loads(result.stdout)
@@ -74,4 +86,4 @@ def test_redis_tls_overlay_uses_verified_transport_without_network_changes():
     assert "--requirepass" in redis["command"][-1]
     assert "--tls" in redis["healthcheck"]["test"][-1]
     assert any(mount["target"] == "/data" for mount in redis["volumes"])
-    assert not redis.get("ports")
+    assert redis["ports"][0]["host_ip"] == "127.0.0.1"

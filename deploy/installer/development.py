@@ -12,7 +12,7 @@ import tomllib
 from importlib.util import find_spec
 from pathlib import Path
 
-from .config import ROOT, environment_name, read_environment
+from .config import ROOT, environment_name, native_environment
 from .process import Console
 
 
@@ -136,9 +136,7 @@ def main(argv: list[str]) -> int:
     environment = dict(os.environ)
     if args.env_file:
         env_file = args.env_file.expanduser().resolve(strict=True)
-        configured = read_environment(env_file)
-        environment.setdefault("ENV_NAME", configured.get("ENV_NAME", "production"))
-        environment["COYOTE4_ENV_FILE"] = str(env_file)
+        environment = native_environment(env_file)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     DevelopmentWatcher(ROOT, environment).run(command, args.directory)
     return 0

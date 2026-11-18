@@ -21,6 +21,13 @@ and `COYOTE4_*` deployment settings. The GitHub repository and checkout director
 remain `coyote3`; this does not change the production Coyote3 branch or deployment.
 Both modern and older-server Compose definitions use the Coyote4 settings.
 
+MongoDB and Redis now have independent lifecycles. Application files require explicit
+`CACHE_REDIS_URL`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`; the Redis server file
+owns `REDIS_PASSWORD` and the existing `COYOTE4_REDIS_VOLUME` name. Follow the
+[infrastructure separation procedure](installation-operations.md#independent-infrastructure-and-application)
+before moving a previously bundled Redis service. Application redeployment does not
+start, stop, migrate or erase its Redis storage.
+
 Prepare a reviewed private environment file using the current example. Existing
 private files are not rewritten by the source rename. Supply the same reviewed
 settings to API, workers, beat and maintenance commands. Session-cookie and cache

@@ -1,12 +1,13 @@
 # Installation and data maintenance
 
 First installation and later data maintenance are separate operations. The deployment
-installer builds and starts services. The data maintenance command uses a running API
+installer builds and starts application services. MongoDB and Redis have independent
+lifecycle commands. The data maintenance command uses a running API
 and does not build, start or recreate services.
 
 ## Entry point and profiles
 
-Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `compose`,
+Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `app`, `mongo`, `redis`, `compose`,
 `check`, `center`, `data`, `demo`, `watch` and `dependencies` share this entry point; implementation modules
 live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
 `PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
@@ -59,9 +60,148 @@ completed database operations. `NO_COLOR=1` disables terminal colors.
 Use [demo installation](demo-installation.md) for Docker or native demonstrations.
 Demo settings cannot be substituted into an ordinary production profile.
 
+## Independent infrastructure and application
+
+Start MongoDB, then Redis, then deploy the application. Each can run natively or
+in Docker, independently of the other selections. Application installation only
+checks its configured connections; it never starts or stops either server.
+
+Keep server configuration separate from application credentials. The examples are
+`deploy/env/example.mongo-server.env`, `deploy/env/example.redis-server.env` and
+`deploy/env/example.env`. Copy them to private files and review the settings before use.
+For Docker, provision the selected external network and MongoDB storage/keyfile first,
+following [MongoDB setup](mongodb-first-setup.md).
+
+For example, Docker databases with a native staging application:
+
+```bash
+./install.sh mongo start --mode docker --environment stage --env-file .mongo-stage.env
+./install.sh redis start --mode docker --environment stage --env-file .redis-stage.env
+./install.sh deploy --mode native --environment stage --env-file .app-stage.env
+```
+
+Change the application's mode to `docker` to use containers. For a provisioned native
+database service, use its systemd unit instead:
+
+```bash
+./install.sh mongo start --mode native --env-file .mongo-stage.env --unit mongod.service
+./install.sh redis start --mode native --env-file .redis-stage.env --unit redis-server.service
+```
+
+Native infrastructure commands control existing services. They do not install MongoDB
+or Redis, create database users, initialize a native replica set or change system files.
+The caller needs permission to control the selected unit; the installer does not invoke
+`sudo`. Add `--user` for an existing user service. Alternatively set `COYOTE4_MONGO_UNIT`
+or `COYOTE4_REDIS_UNIT` in the corresponding server file. `mongo --knowledgebase` selects
+the separately provisioned knowledgebase instance and `KNOWLEDGEBASE_MONGO_UNIT`.
+
+Both server commands provide `plan`, `start`, `stop`, `restart`, `status` and `logs`.
+Their Docker projects are separate from the application. MongoDB startup waits for
+server health and runs the existing replica-set initializer. Neither command removes data.
+
+The application file must supply all four MongoDB endpoint/database selections and
+`CACHE_REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`. The application no longer
+constructs these URLs from `REDIS_PASSWORD`; that setting belongs to the Redis server.
+
+| Client runtime | Server location | Hostname in the client URL |
+| --- | --- | --- |
+| Native | Native or Docker with a published local port | `127.0.0.1` and the listening/published port |
+| Docker | Docker on the shared application network | Service alias, such as `mongo-app` or `redis` |
+| Docker | Native host service | `host.docker.internal` and a host interface reachable from Docker |
+
+Container `127.0.0.1` refers to that container. A native server bound only to loopback
+may not accept connections through Docker's host bridge. MongoDB replica-set member
+addresses must also be reachable by the client, or a single-member connection must
+explicitly select `directConnection=true`. Database names alone do not isolate users;
+retain the reviewed database grants and credentials.
+
+For existing Docker installations, retain the Redis data volume: set
+`COYOTE4_REDIS_VOLUME` to its existing name in the new Redis server file. Stop the old
+Redis container before starting the independent server against that volume. Do not run
+two Redis processes against the same files, remove volumes or use `--remove-orphans`
+as an upgrade shortcut. Merely changing project names does not move existing data.
+
+## Native application on WSL or Linux
+
+Native deployment requires Python 3.12+, uv, Git, Node.js 22+, npm, curl, Nginx and an
+available systemd user manager. Install the runtime libraries used by the backend,
+including the report-rendering system dependencies, before deployment. The installer
+checks executable availability; it does not install OS packages or enable systemd.
+MongoDB and Redis must already accept the configured application connections.
+
+Edit the application file's existing connection keys for the selected client location.
+For native clients using locally published ports, use the MongoDB selections in
+`deploy/env/example.mongo-local.env` and Redis URLs such as the following, with actual
+percent-encoded credentials. The MongoDB example's `directConnection=true` is intended
+for a single-member local replica set, not multi-node failover.
+
+```dotenv
+CACHE_REDIS_URL=redis://:ENCODED_PASSWORD@127.0.0.1:6379/0
+CELERY_BROKER_URL=redis://:ENCODED_PASSWORD@127.0.0.1:6379/1
+CELERY_RESULT_BACKEND=redis://:ENCODED_PASSWORD@127.0.0.1:6379/2
+```
+
+Keep `COYOTE4_PORT` consistent with the intended local browser port. Set the center
+directory to the reviewed host directory, using `COYOTE4_CENTER_CONFIG_DIR`; native
+deployment does not mount container paths. `${PWD}` references in native environment
+files resolve from the checkout root without shell execution.
+
+```bash
+./install.sh plan --mode native --environment stage --env-file .app-stage.env
+./install.sh deploy --mode native --environment stage --env-file .app-stage.env
+./install.sh app status --mode native --env-file .app-stage.env
+./install.sh app logs --mode native --env-file .app-stage.env
+./install.sh app stop --mode native --env-file .app-stage.env
+./install.sh app start --mode native --env-file .app-stage.env
+```
+
+The default state directory is `.runtime/coyote4-ENV/`, ignored by Git. Use
+`--directory PATH` and `--project NAME` consistently for a different installation.
+It contains a private virtual environment, generated web configuration, compiled
+frontend/documentation, scheduler state and runtime settings. Data and logs default
+there too; explicit `COYOTE4_DATA_ROOT`, `COYOTE4_RUNTIME_ROOT` and `LOG_ROOT` select other
+absolute paths. Native runtime directories must belong to the operator with mode 700;
+existing permissions are never silently changed. Credentials are stored with mode 600.
+An existing runtime `.env` is rejected so it cannot override the explicitly selected file.
+
+The installer synchronizes locked packages without changing the checkout's `.venv`,
+reuses the normal bootstrap/index checks, then starts owned systemd user services.
+It does not install the optional Demo package. Stop the native application before
+redeploying its dependencies. Each running native installation needs distinct ports;
+each concurrently developed checkout should have its own state and project name.
+
+The proxy binds loopback on `COYOTE4_PORT` (default 6801). Internal loopback ports are
+8001 for API, 3000 for frontend, 8080 for documentation and 5514/UDP for monitoring.
+Override them with `COYOTE4_NATIVE_API_PORT`, `COYOTE4_NATIVE_FRONTEND_PORT`,
+`COYOTE4_NATIVE_DOCS_PORT` and `COYOTE4_MONITOR_PORT`. Staging/production serve
+built frontend and documentation through one Nginx process. Development uses Vite
+for frontend/CSS hot updates and the existing polling watcher for backend changes.
+Documentation changes require a rebuild. Staging and production do not reload source.
+
+Native services are transient: WSL shutdown stops them, and `app start` starts them
+again after WSL is available. The installer does not enable boot persistence or
+alter unrelated system services. This separates dependencies, state and lifecycle;
+it is not an OS security sandbox. Native production still needs the installation's
+approved TLS proxy, OS permissions, resource limits and operational acceptance.
+
+## Background application services
+
+| Service | Purpose | Effect of stopping it |
+| --- | --- | --- |
+| Ingestion worker | Relay ingestion jobs on the `ingest` queue | Submitted sample processing waits |
+| Maintenance worker | Report artifact completion, audit retries, notifications and retention tasks | Those jobs remain pending |
+| Beat scheduler | Dispatch recurring jobs, including durable ingestion dispatch | Recurring work is no longer queued |
+| Monitor | Persist service errors and retry operational alert emails independently of Redis/Celery | Central error alerts stop; current web logging expects its receiver |
+
+Keep ingestion and maintenance separate so long sample imports cannot occupy all
+maintenance capacity. Run one Beat scheduler for each deployment schedule. These
+services share backend packages and the same Docker image; native deployment runs
+them as processes. Monitor supports operations rather than sample analysis, but
+disabling it also requires a deliberate replacement for the configured web logging.
+
 ## First installation
 
-MongoDB endpoints and the application network must be configured
+MongoDB and Redis endpoints and, for Docker, the application network must be configured
 before installation. Follow [first installation](first-installation.md) for provisioning.
 
 ```bash
@@ -72,7 +212,8 @@ bash install.sh deploy \
 ```
 
 All eight stages run by default: network, directories, build, validate, bootstrap,
-indexes, start and health. `--skip-build` uses existing images.
+indexes, start and health. Native mode needs no Docker network. `--skip-build` uses
+existing images or the prepared native environment and web builds.
 `--steps` selects individual stages in their canonical order.
 
 Fresh bootstrap creates two distinct local accounts and their RBAC catalog, then
@@ -91,8 +232,9 @@ MongoDB connections without authentication produce a warning and do not block in
 Production Redis TLS is optional. When selected, prepare the
 [certificates](../operations/redis-tls.md) and repeat
 `--compose-file deploy/compose/docker-compose.redis-tls.yml` after the base file on
-every installer invocation. Include the same ordered overlays in subsequent Compose,
-upgrade and recovery commands. Development and staging exclude this overlay.
+every application installer invocation. The independent Redis server uses
+`docker-compose.redis-tls-server.yml`. Include the applicable overlays in subsequent
+upgrade and recovery commands.
 
 | Module | Default contents | Disable flag |
 | --- | --- | --- |

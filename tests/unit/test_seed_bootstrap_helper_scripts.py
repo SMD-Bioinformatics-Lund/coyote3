@@ -573,6 +573,9 @@ def test_env_secret_validation_accepts_local_auth_without_ldap_secret(tmp_path):
                 "INTERNAL_API_TOKEN=synthetic-internal-token",
                 "PASSWORD_TOKEN_SALT=synthetic-password-salt",
                 "REDIS_PASSWORD=" + "a" * 64,
+                "CACHE_REDIS_URL=redis://:synthetic_redis_password@redis:6379/0",
+                "CELERY_BROKER_URL=redis://:synthetic_redis_password@redis:6379/1",
+                "CELERY_RESULT_BACKEND=redis://:synthetic_redis_password@redis:6379/2",
                 "COYOTE4_MONGO_URI=mongodb://mongo:27017/coyote4",
                 "AUTHENTICATION_PROVIDERS=local,ldap",
                 "LDAP_SECRET=",
@@ -708,10 +711,24 @@ def test_production_frontend_receives_script_name_at_build_and_runtime():
     assert "environment:\n      SCRIPT_NAME: ${SCRIPT_NAME:-}" in frontend_service
 
 
-def test_frontend_nginx_handles_prefixed_shell_and_assets_without_directory_fallback():
-    renderer = (ROOT_DIR / "docker/nginx/render-frontend-config.sh").read_text(encoding="utf-8")
-
-    assert "location = ${script_name}/ {" in renderer
-    assert "try_files \\$uri @frontend_shell;" in renderer
-    assert "location @frontend_shell {" in renderer
-    assert "try_files \\$uri \\$uri/ /index.html;" not in renderer
+def test_frontend_nginx_handles_prefixed_shell_and_assets_without_directory_fallback(tmp_path):
+    """Generated prefix routes must serve the SPA shell instead of a directory index."""
+    subprocess.run(
+        ["sh", str(ROOT_DIR / "docker/nginx/render-frontend-config.sh")],
+        env={
+            "PATH": "/usr/bin:/bin",
+            "SCRIPT_NAME": "/synthetic",
+            "COYOTE4_FRONTEND_NGINX_DIRECTORY": str(tmp_path),
+            "COYOTE4_FRONTEND_ROOT": str(tmp_path / "assets"),
+            "COYOTE4_FRONTEND_LISTEN": "127.0.0.1:3000",
+            "COYOTE4_SYSLOG_TARGET": "127.0.0.1:5514",
+        },
+        check=True,
+        capture_output=True,
+    )
+    rendered = (tmp_path / "default.conf").read_text()
+    assert "location = /synthetic/ {" in rendered
+    assert "try_files $uri @frontend_shell;" in rendered
+    assert "location @frontend_shell {" in rendered
+    assert "try_files $uri $uri/ /index.html;" not in rendered
+    assert f'root "{tmp_path / "assets"}";' in rendered

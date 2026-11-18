@@ -49,7 +49,10 @@ def main() -> None:
             if record is not None:
                 handler.handle(record)
 
-    server = socketserver.UDPServer(("0.0.0.0", 5514), SyslogHandler)
+    server = socketserver.UDPServer(
+        (settings.COYOTE4_MONITOR_HOST, settings.COYOTE4_MONITOR_PORT),
+        SyslogHandler,
+    )
     threading.Thread(target=server.serve_forever, daemon=True).start()
     monitor = DiskErrorMonitor(root)
     from coyote_api.config.backend import BackendSettings

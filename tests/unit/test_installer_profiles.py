@@ -19,6 +19,9 @@ def environment_file(tmp_path, monkeypatch):
         "INTERNAL_API_TOKEN": "synthetic-internal-token",
         "PASSWORD_TOKEN_SALT": "synthetic-password-salt",
         "REDIS_PASSWORD": "synthetic_redis_password",
+        "CACHE_REDIS_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/0",
+        "CELERY_BROKER_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://:synthetic_redis_password@127.0.0.1:6379/2",
         "COYOTE4_MONGO_URI": "mongodb://synthetic.invalid",
     }
     for key in (*settings, "ENV_NAME", "LOG_LEVEL", "CELERY_LOG_LEVEL"):

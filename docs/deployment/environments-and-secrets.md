@@ -162,7 +162,8 @@ load runs. Disable or mock other external fetches and integrations as applicable
 do not direct generated traffic at third parties. Store generator credentials and
 configuration JSON in private untracked files mounted read-only. The
 [load-testing guide](../testing/load-and-capacity-testing.md) defines the optional runner setup;
-application secrets, including `REDIS_PASSWORD`, remain deployment requirements.
+application secrets and authenticated Redis connection URLs remain deployment
+requirements. `REDIS_PASSWORD` belongs to the independent Redis server file.
 
 ## Secrets handling
 

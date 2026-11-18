@@ -23,8 +23,10 @@ from .config import (
     validate_secrets,
 )
 from .development import main as watch
+from .infrastructure import main as infrastructure
+from .native import NativeInstaller
 from .process import Console, Runner
-from .workflow import Installer, Options
+from .workflow import Installer, Options, reject_infrastructure
 
 
 def _dependencies(argv: list[str]) -> int:
@@ -42,6 +44,13 @@ def _dependencies(argv: list[str]) -> int:
 
 def _profile_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
+        "--mode",
+        choices=("docker", "native"),
+        default="docker",
+        help="Application runtime (default: docker)",
+    )
+    parser.add_argument("--directory", type=Path, help="Private native application state directory")
+    parser.add_argument(
         "--profile", action="append", help="Enable a Compose service group; may be repeated"
     )
     parser.add_argument("--env-file", type=Path, required=True, help="Reviewed environment file")
@@ -58,7 +67,7 @@ def _profile_arguments(parser: argparse.ArgumentParser) -> None:
         "--project",
         "--project-name",
         "-p",
-        help="Stable Compose project name (default: coyote4-ENV)",
+        help="Stable installation name (default: coyote4-ENV)",
     )
     parser.add_argument(
         "--compose-file",
@@ -89,6 +98,8 @@ def _profile(args: argparse.Namespace) -> Profile:
         overlays=args.overlay,
         legacy=args.legacy,
         service_profiles=args.profile,
+        mode=args.mode,
+        directory=args.directory,
     )
 
 
@@ -100,7 +111,7 @@ def _installation_arguments(parser: argparse.ArgumentParser) -> None:
         help="Comma-separated stages, run in canonical order: " + ",".join(STEPS),
     )
     for name, help_text in {
-        "skip-build": "Use existing images",
+        "skip-build": "Use existing images or prepared native packages/assets",
         "skip-users": "Skip accounts; requires skipping application and knowledgebase data",
         "skip-application": "Skip application factory records on a fresh target",
         "skip-knowledgebase": "Skip bundled knowledgebase records on a fresh target",
@@ -157,6 +168,8 @@ def _compose(argv: list[str]) -> int:
     # REMAINDER prevents flags or words inside `run`/`exec` from becoming installer actions.
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
+    if args.mode != "docker":
+        parser.error("compose requires --mode docker; use app for native lifecycle commands")
     if args.command and args.command[0] == "--":
         args.command = args.command[1:]
     if not args.command:
@@ -193,6 +206,10 @@ def _check(argv: list[str]) -> int:
     if args.prepare_directories and not args.resolved:
         parser.error("--prepare-directories requires --resolved")
     if args.resolved:
+        if args.mode != "docker":
+            parser.error(
+                "--resolved validates Compose mounts; native deployment validates its own paths"
+            )
         from .preflight import validate
         from .storage import prepare
 
@@ -204,6 +221,37 @@ def _check(argv: list[str]) -> int:
             prepare(config)
         validate(config)
     Console().log("Environment secrets passed local validation", "DONE")
+    return 0
+
+
+def _application(argv: list[str]) -> int:
+    """Control application processes without starting or stopping infrastructure."""
+    parser = argparse.ArgumentParser(prog="install.sh app", description=__doc__)
+    parser.add_argument("operation", choices=("start", "stop", "restart", "status", "logs"))
+    _profile_arguments(parser)
+    args = parser.parse_args(argv)
+    profile = _profile(args)
+    if args.operation == "restart":
+        profile.validate()
+    if profile.mode == "native":
+        installer = NativeInstaller(
+            profile, Options(steps=("validate", "start", "health"), skip_build=True)
+        )
+        installer.control(args.operation)
+    elif args.operation in {"start", "restart"}:
+        if args.operation == "restart":
+            compose = Compose(profile, Runner(profile.process_env))
+            reject_infrastructure(compose.config())
+            compose.validate()
+            compose.run(["stop"])
+        Installer(profile, Options(steps=("validate", "start", "health"), skip_build=True)).run()
+    else:
+        command = {"stop": ["stop"], "status": ["ps"], "logs": ["logs", "--tail=100"]}[
+            args.operation
+        ]
+        compose = Compose(profile, Runner(profile.process_env))
+        reject_infrastructure(compose.config())
+        compose.run(command)
     return 0
 
 
@@ -219,6 +267,10 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     console = Console()
     try:
+        if argv and argv[0] in {"mongo", "redis"}:
+            return infrastructure(argv[0], argv[1:])
+        if argv and argv[0] == "app":
+            return _application(argv[1:])
         if argv and argv[0] == "compose":
             return _compose(argv[1:])
         if argv and argv[0] == "check":
@@ -252,6 +304,9 @@ def main(argv: list[str] | None = None) -> int:
                 commands.add_parser(name, help=description, description=description)
             )
         for name, description in {
+            "mongo": "Manage an independently provisioned native or Docker MongoDB service",
+            "redis": "Manage an independently provisioned native or Docker Redis service",
+            "app": "Start, stop or inspect only the application",
             "compose": "Run versioned Compose lifecycle commands",
             "check": "Check environment secrets locally",
             "watch": "Reload an editable backend service during local development",
@@ -266,8 +321,10 @@ def main(argv: list[str] | None = None) -> int:
         options = {
             name: getattr(args, name) for name in Options.__dataclass_fields__ if name != "steps"
         }
-        installer = Installer(
-            _profile(args), Options(steps=tuple(args.steps.split(",")), **options), console=console
+        profile = _profile(args)
+        installer_class = NativeInstaller if profile.mode == "native" else Installer
+        installer = installer_class(
+            profile, Options(steps=tuple(args.steps.split(",")), **options), console=console
         )
         if args.operation == "plan":
             installer.plan()

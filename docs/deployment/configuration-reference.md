@@ -53,7 +53,7 @@ Every center must review and set only this core deployment contract:
 | `COYOTE4_LOGS_HOST_ROOT` | Provides persistent application log storage. |
 | `COYOTE4_APP_NETWORK` | Selects the pre-created Docker network. |
 | `PUBLIC_BASE_URL` | Required by Compose for generated public links. |
-| `REDIS_PASSWORD` | Authenticates the Compose-managed Redis service and its clients. |
+| `CACHE_REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | Explicit Redis client URLs, independent of how the server is deployed. |
 
 Set `ENV_NAME` explicitly even though a runtime default exists. Set
 `SCRIPT_NAME`, organization/time-zone values, LDAP, SMTP, and integration URLs
@@ -331,8 +331,11 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | `CACHE_REQUIRED` | No | `1` or `0` | `1` | Requires Redis at startup when `1` (default). Set `0` only to allow an intentional degraded no-op cache when Redis is unavailable. |
 | `CACHE_REDIS_CONNECT_TIMEOUT` | No | Seconds | `1.0` | Redis connection timeout. |
 | `CACHE_REDIS_SOCKET_TIMEOUT` | No | Seconds | `1.0` | Redis socket timeout. |
-| `REDIS_PASSWORD` | Required by Compose | At least 16 URL-safe characters: letters, digits, underscores or hyphens; `openssl rand -hex 8` meets the minimum | None | Redis authentication and embedded credentials in cache, broker, and result URLs. Not an application account password. |
-| `COYOTE4_REDIS_TLS_DIR` | Only with the production Redis TLS overlay | Absolute directory containing `ca.crt`, `server.crt`, `server.key` | None | Host certificate source for `docker-compose.redis-tls.yml`; see [certificate setup](../operations/redis-tls.md). Exclude from development/staging. |
+| `CACHE_REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | Application deployment | Explicit `redis://` or verified `rediss://` URLs | None | Cache, task broker and task results; usually database numbers 0, 1 and 2. Use addresses reachable from the selected application runtime. |
+| `REDIS_PASSWORD` | Redis server deployment only | At least 16 characters; percent-encode special characters in client URLs | None | Server authentication. Not loaded from the server file into application configuration. |
+| `COYOTE4_REDIS_VOLUME` | Docker Redis server | Persistent Docker volume name | None | Retain the existing name when separating an existing bundled Redis deployment. |
+| `COYOTE4_REDIS_PORT`, `COYOTE4_REDIS_BIND_ADDRESS` | Docker Redis server | Published port/interface | `6379`, `127.0.0.1` | Allows native clients to use the independent Redis container. |
+| `COYOTE4_REDIS_TLS_DIR` | Redis TLS overlays | Absolute certificate directory | None | Client overlay mounts `ca.crt`; server overlay mounts CA, server certificate and key. See [certificate setup](../operations/redis-tls.md). |
 | `DASHBOARD_METRIC_CACHE_TTL_SECONDS` | No | Seconds | `300` | Freshness limit for each independently cached dashboard metric. Celery Beat schedules background refreshes at half this interval, with a minimum interval of 30 seconds. |
 | `DASHBOARD_METRIC_CACHE_RETENTION_SECONDS` | No | Seconds | `3600` | Redis retention for unused dashboard metric entries. This must be at least as long as the freshness limit. |
 | `API_WORKERS` | No | Positive integer | `1` | Uvicorn process count per API container. The built-in Prometheus counters are process-local, so the supported deployment uses one process per container. Scale with additional API containers only when the external monitoring stack aggregates each instance separately. |

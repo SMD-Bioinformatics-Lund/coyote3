@@ -1,0 +1,34 @@
+# Independent Redis deployment. Application clients use explicit URLs in their own env file.
+services:
+  redis:
+    image: redis:7.4.3
+    restart: on-failure:5
+    mem_limit: ${COYOTE4_REDIS_MEM_LIMIT:-1g}
+    cpus: ${COYOTE4_REDIS_CPU_LIMIT:-1.0}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --appendfsync always --maxmemory-policy noeviction"]
+    ports:
+      - "${COYOTE4_REDIS_BIND_ADDRESS:-127.0.0.1}:${COYOTE4_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    stop_grace_period: 120s
+    networks: [app]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+
+volumes:
+  redis-data:
+    name: ${COYOTE4_REDIS_VOLUME:?Set a persistent volume name; retain the existing name when upgrading}
+
+networks:
+  app:
+    name: ${COYOTE4_APP_NETWORK:?COYOTE4_APP_NETWORK is required}
+    external: true

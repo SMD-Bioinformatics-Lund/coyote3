@@ -41,11 +41,11 @@ x-app-environment: &app-environment
   AUDIT_CHECKPOINT_DIRECTORY: ${AUDIT_CHECKPOINT_DIRECTORY:-}
   NOTIFICATION_RETENTION_DAYS: ${NOTIFICATION_RETENTION_DAYS:-180}
   CACHE_REQUIRED: ${CACHE_REQUIRED:-1}
-  CACHE_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+  CACHE_REDIS_URL: ${CACHE_REDIS_URL:?CACHE_REDIS_URL is required}
   CACHE_REDIS_CONNECT_TIMEOUT: ${CACHE_REDIS_CONNECT_TIMEOUT:-1.0}
   CACHE_REDIS_SOCKET_TIMEOUT: ${CACHE_REDIS_SOCKET_TIMEOUT:-1.0}
-  CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/1
-  CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/2
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:?CELERY_BROKER_URL is required}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:?CELERY_RESULT_BACKEND is required}
   CELERY_LOG_LEVEL: ${CELERY_LOG_LEVEL:-INFO}
   CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-2}
   CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-7200}
@@ -186,8 +186,6 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
-    depends_on:
-      redis: {condition: service_healthy}
 
   worker:
     cpus: ${COYOTE4_WORKER_CPU_LIMIT:-2.0}
@@ -199,8 +197,6 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: *app-volumes
     command: python3 -m coyote_api.infra.observability.run_service worker coyote-relay-worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=ingest --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
-    depends_on:
-      redis: {condition: service_healthy}
 
   maintenance-worker:
     cpus: ${COYOTE4_MAINTENANCE_CPU_LIMIT:-1.0}
@@ -212,8 +208,6 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: *app-volumes
     command: python3 -m coyote_api.infra.observability.run_service worker celery -A coyote_api.celery_app:celery_app worker --loglevel=${CELERY_LOG_LEVEL:-INFO} --queues=default --concurrency=${CELERY_MAINTENANCE_CONCURRENCY:-2}
-    depends_on:
-      redis: {condition: service_healthy}
 
   beat:
     cpus: ${COYOTE4_BEAT_CPU_LIMIT:-0.25}
@@ -225,8 +219,6 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: *app-volumes
     command: python3 -m coyote_api.infra.observability.run_service beat celery -A coyote_api.celery_app:celery_app beat --loglevel=${CELERY_LOG_LEVEL:-INFO} --pidfile=/tmp/celerybeat.pid
-    depends_on:
-      redis: {condition: service_healthy}
 
   monitor:
     cpus: ${COYOTE4_MONITOR_CPU_LIMIT:-0.5}
@@ -239,20 +231,6 @@ services:
     volumes: *app-volumes
     command: python3 -m coyote_api.app.monitor
 
-  redis:
-    <<: *runtime-defaults
-    image: redis:7.4.3
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --appendfsync always --maxmemory-policy noeviction"]
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
   proxy:
     <<: *runtime-defaults
@@ -273,9 +251,6 @@ services:
       api: {condition: service_healthy}
       docs: {condition: service_started}
       monitor: {condition: service_started}
-
-volumes:
-  redis-data:
 
 networks:
   app:

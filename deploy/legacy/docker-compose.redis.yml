@@ -1,0 +1,4 @@
+# Older-host Redis runtime exception, layered over the independent Redis server definition.
+services:
+  redis:
+    security_opt: [seccomp=unconfined]

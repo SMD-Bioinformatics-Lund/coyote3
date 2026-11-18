@@ -74,14 +74,7 @@ class Compose:
         if "api" not in config["services"]:
             raise ValueError("Selected Compose files must define the API service")
         settings = dict(config["services"]["api"]["environment"])
-        # The API uses Redis URLs; the Redis service receives the raw password.
-        # Validate the explicit file secret too, even if Compose embeds it in a command.
         self.profile.validate()
-        settings.setdefault(
-            "REDIS_PASSWORD",
-            self.profile.process_env.get("REDIS_PASSWORD")
-            or read_environment(self.profile.env_file).get("REDIS_PASSWORD"),
-        )
         validate_secrets(settings)
 
     def run(
@@ -134,10 +127,14 @@ class Compose:
         if operation in {"up", "start", "create", "run"}:
             if operation in {"up", "start"}:
                 self.validate()
-            prepare(self.config())
+            self.prepare_storage()
         return self.runner.run(
             [*self.executable, *self.profile.arguments(), *arguments],
             label=f"Compose {operation}",
             capture=capture,
             extra_env=extra_env,
         )
+
+    def prepare_storage(self) -> None:
+        """Prepare application bind mounts before a container can write to them."""
+        prepare(self.config())

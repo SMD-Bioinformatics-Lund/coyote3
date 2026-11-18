@@ -133,6 +133,12 @@ class OperationsSettings:
     LOG_ROOT = os.getenv("LOG_ROOT", api_default("runtime.LOG_ROOT"))
     LOG_TIMEZONE = os.getenv("LOCAL_TIME_ZONE", api_default("runtime.LOCAL_TIME_ZONE"))
     ERROR_EMAIL_GROUP = os.getenv("ERROR_EMAIL_GROUP", api_default("runtime.ERROR_EMAIL_GROUP"))
+    COYOTE4_MONITOR_HOST = os.getenv(
+        "COYOTE4_MONITOR_HOST", api_default("runtime.COYOTE4_MONITOR_HOST")
+    )
+    COYOTE4_MONITOR_PORT = int(
+        os.getenv("COYOTE4_MONITOR_PORT", api_default("runtime.COYOTE4_MONITOR_PORT"))
+    )
     LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", api_default("runtime.LOG_FILE_ENABLED")) == "1"
     LOG_RETENTION_DAYS = int(
         os.getenv(

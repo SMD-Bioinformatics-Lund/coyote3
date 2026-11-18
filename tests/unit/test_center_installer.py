@@ -88,7 +88,7 @@ def test_redis_gate_rejects_missing_celery_transport_dependency_before_ping(monk
 
 
 def test_redis_failure_stops_before_bootstrap_or_application_start(fake_installation):
-    """A healthy Redis container alone cannot authorize installation writes or startup."""
+    """Unreachable external Redis blocks application writes without starting a server."""
     command, env, log = fake_installation
     result = subprocess.run(
         command,
@@ -97,7 +97,8 @@ def test_redis_failure_stops_before_bootstrap_or_application_start(fake_installa
     )
     assert result.returncode == 1
     calls = log.read_text() if log.exists() else ""
-    assert calls.index("--wait-timeout 60 redis") < calls.index("deploy.installer.checks redis")
+    assert "deploy.installer.checks redis" in calls
+    assert not any("up " in line and "redis" in line for line in calls.splitlines())
     assert "bootstrap_database.py" not in calls
     assert "manage_mongo_indexes.py apply" not in calls
     assert "up -d --no-build --wait" not in calls
@@ -223,6 +224,9 @@ if [[ "$*" == *"manage_mongo_roles"* && "${INSTALL_TEST_IDENTITY_FAILURE:-0}" ==
         "INTERNAL_API_TOKEN": "synthetic-token-value",
         "PASSWORD_TOKEN_SALT": "synthetic-token-salt",
         "REDIS_PASSWORD": "a" * 32,
+        "CACHE_REDIS_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/0",
+        "CELERY_BROKER_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://:synthetic_redis_password@127.0.0.1:6379/2",
         "COYOTE4_MONGO_URI": "mongodb://synthetic.invalid",
     }
     rendered["services"]["api"]["environment"].update(secrets)

@@ -83,6 +83,25 @@ class Target:
                 "Application network must be external and provisioned before installation"
             )
         env = config["services"]["api"]["environment"]
+        ports = [
+            port
+            for port in config["services"]["proxy"].get("ports", [])
+            if int(port["target"]) == 8088 and port.get("protocol", "tcp") == "tcp"
+        ]
+        if not ports or not ports[0].get("published"):
+            raise ValueError("Proxy HTTP port 8088 must have a published host port")
+        port = ports[0]
+        host = port.get("host_ip") or "127.0.0.1"
+        host = {"0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
+        if ":" in host:
+            host = f"[{host}]"
+        return cls.from_settings(
+            env, network=network["name"], local_origin=f"http://{host}:{int(port['published'])}"
+        )
+
+    @classmethod
+    def from_settings(cls, env: dict, *, network: str = "", local_origin: str) -> Target:
+        """Validate browser URLs and explicit database selections for either runtime."""
         prefix = (env.get("SCRIPT_NAME") or "").rstrip("/")
         if prefix and (not prefix.startswith("/") or any(char in prefix for char in "?#\r\n")):
             raise ValueError("SCRIPT_NAME must be an absolute URL path without a query or fragment")
@@ -99,31 +118,32 @@ class Target:
             raise ValueError(
                 "PUBLIC_BASE_URL must be an http(s) origin; put the application prefix in SCRIPT_NAME"
             )
-        ports = [
-            port
-            for port in config["services"]["proxy"].get("ports", [])
-            if int(port["target"]) == 8088 and port.get("protocol", "tcp") == "tcp"
-        ]
-        if not ports or not ports[0].get("published"):
-            raise ValueError("Proxy HTTP port 8088 must have a published host port")
-        port = ports[0]
-        host = port.get("host_ip") or "127.0.0.1"
-        host = {"0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
-        if ":" in host:
-            host = f"[{host}]"
         values = [
-            network["name"],
-            env["COYOTE4_DB"],
-            env["IDENTITY_DB"],
+            env.get("COYOTE4_DB"),
+            env.get("IDENTITY_DB"),
             env["PUBLIC_BASE_URL"].rstrip("/") + prefix,
-            f"http://{host}:{int(port['published'])}{prefix}",
+            local_origin + prefix,
         ]
         if any(
             not isinstance(value, str) or not value or "\n" in value or "\r" in value
             for value in values
         ):
             raise ValueError("Invalid installation settings")
-        return cls(*values)
+        return cls(network, *values)
+
+
+def reject_infrastructure(config: dict) -> None:
+    """Keep application lifecycle operations independent of database server services."""
+    if set(config.get("services", {})) & {
+        "mongo",
+        "mongo_init",
+        "mongo-kb",
+        "mongo_kb_init",
+        "redis",
+    }:
+        raise ValueError(
+            "Application deployment must not include MongoDB or Redis; use the separate mongo and redis commands"
+        )
 
 
 def private_uri(path: Path) -> str:
@@ -179,19 +199,26 @@ class Installer:
     def _check(
         self, name: str, *arguments: str, capture: bool = False, maintenance: str = ""
     ) -> str:
-        return self._container(
-            ["python3", "-m", "deploy.installer.checks", name, *arguments],
+        return self._execute(
+            ["-m", "deploy.installer.checks", name, *arguments],
             capture=capture,
             maintenance=maintenance,
         )
 
-    def _container(
-        self, arguments: list[str], *, capture: bool = False, maintenance: str = ""
+    def _execute(
+        self,
+        arguments: list[str],
+        *,
+        capture: bool = False,
+        maintenance: str = "",
+        extra_env: dict[str, str] | None = None,
     ) -> str:
-        options = ["-e", "KNOWLEDGEBASE_MONGO_URI"] if maintenance else []
-        extra = {"KNOWLEDGEBASE_MONGO_URI": maintenance} if maintenance else {}
+        extra = dict(extra_env or {})
+        if maintenance:
+            extra["KNOWLEDGEBASE_MONGO_URI"] = maintenance
+        options = [argument for key in extra for argument in ("-e", key)]
         return self.compose.run(
-            ["run", "--rm", "--no-deps", "-T", *options, "api", *arguments],
+            ["run", "--rm", "--no-deps", "-T", *options, "api", "python3", *arguments],
             capture=capture,
             extra_env=extra,
         )
@@ -220,6 +247,7 @@ class Installer:
                 ["git", "rev-parse", "HEAD"], label="Source revision", capture=True
             ).strip()
         config = self.compose.config()
+        reject_infrastructure(config)
         self.compose.validate()
         target = Target.from_config(config)
         if "build" in selected and not options.skip_build:
@@ -247,26 +275,22 @@ class Installer:
             self.compose.run(["build"])
         if "start" in selected:
             self.console.log("Checking Redis connectivity from the API container", "STEP")
-            self.compose.run(
-                ["up", "-d", "--no-deps", "--no-build", "--wait", "--wait-timeout", "60", "redis"]
-            )
             self._check("redis")
+        self._apply(target, identity_uri=identity_uri, knowledge_uri=knowledge_uri)
+        self.console.complete()
+
+    def _apply(self, target: Target, *, identity_uri: str = "", knowledge_uri: str = "") -> None:
+        """Apply the shared configuration, bootstrap and index gates to either runtime."""
+        options = self.options
+        selected = set(options.steps)
         state = "unchecked"
         if selected & {"validate", "bootstrap", "indexes", "start"}:
             self.console.log(
                 "Validating configuration, database access and installation state", "STEP"
             )
             if identity_uri:
-                self.compose.run(
+                self._execute(
                     [
-                        "run",
-                        "--rm",
-                        "--no-deps",
-                        "-T",
-                        "-e",
-                        "COYOTE_INSTALL_IDENTITY_URI",
-                        "api",
-                        "python3",
                         "-m",
                         "scripts.database.manage_mongo_roles",
                         "--maintenance-uri-env",
@@ -281,16 +305,8 @@ class Installer:
             if state not in {"fresh", "existing"}:
                 raise ValueError("Unrecognized target state; stopping before bootstrap")
         if knowledge_uri:
-            self.compose.run(
+            self._execute(
                 [
-                    "run",
-                    "--rm",
-                    "--no-deps",
-                    "-T",
-                    "-e",
-                    "COYOTE_INSTALL_KB_URI",
-                    "api",
-                    "python3",
                     "-m",
                     "deploy.installer.checks",
                     "maintenance",
@@ -303,7 +319,6 @@ class Installer:
                     "Installing factory records into the verified empty target", "STEP"
                 )
                 arguments = [
-                    "python3",
                     "scripts/bootstrap/bootstrap_database.py",
                     "--require-empty-target",
                     "--db",
@@ -322,7 +337,7 @@ class Installer:
                 for name in ("skip_users", "skip_application", "skip_knowledgebase"):
                     if getattr(options, name):
                         arguments.append("--" + name.replace("_", "-"))
-                self._container(arguments, maintenance=knowledge_uri)
+                self._execute(arguments, maintenance=knowledge_uri)
                 if not options.skip_users:
                     state = "existing"
             else:
@@ -340,9 +355,7 @@ class Installer:
                 raise ValueError("Initial accounts are missing; run bootstrap first")
             if "indexes" not in selected:
                 self._check("indexes-ready")
-            self.console.log("Starting services and waiting for container health", "STEP")
-            self.compose.run(["up", "-d", "--no-build", "--wait", "--wait-timeout", "180"])
-            self.compose.run(["ps"])
+            self._start()
         if "health" in selected:
             self.console.log("Checking the API and frontend through the published proxy", "STEP")
             self.runner.run(
@@ -368,6 +381,11 @@ class Installer:
                     "--show-error",
                     "--output",
                     "/dev/null",
+                    "--retry",
+                    "6",
+                    "--retry-connrefused",
+                    "--retry-delay",
+                    "2",
                     "--max-time",
                     "15",
                     target.local_url + "/",
@@ -376,14 +394,17 @@ class Installer:
             )
             self.console.log(f"Local application (published proxy port): {target.local_url}/")
             self.console.log(f"Public application (PUBLIC_BASE_URL): {target.public_url}/")
-        self.console.complete()
+
+    def _start(self) -> None:
+        self.console.log("Starting application services and waiting for health", "STEP")
+        self.compose.run(["up", "-d", "--no-build", "--wait", "--wait-timeout", "180"])
+        self.compose.run(["ps"])
 
     def _indexes(self, maintenance: str = "", scope: str = "") -> None:
         arguments = ["--scope", scope] if scope else []
         self._check("indexes", *arguments, maintenance=maintenance)
-        self._container(
+        self._execute(
             [
-                "python3",
                 "scripts/database/manage_mongo_indexes.py",
                 "apply",
                 *arguments,

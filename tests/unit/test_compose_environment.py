@@ -38,9 +38,21 @@ def test_old_host_build_compatibility_is_confined_to_legacy_compose(definitions,
         text=True,
         check=True,
     )
+    services = json.loads(result.stdout)["services"]
+    assert {
+        "api",
+        "worker",
+        "maintenance-worker",
+        "beat",
+        "monitor",
+        "frontend",
+        "docs",
+        "proxy",
+    } <= services.keys()
+    assert not {"mongo", "redis"} & services.keys()
     builds = {
         name: service["build"]
-        for name, service in json.loads(result.stdout)["services"].items()
+        for name, service in services.items()
         if service.get("build") and name != "frontend"
     }
     assert "api" in builds and "docs" in builds
@@ -140,6 +152,9 @@ def test_center_preflight_resolves_image_tag_without_exported_version(tmp_path):
         "INTERNAL_API_TOKEN": "synthetic-preflight-token",
         "PASSWORD_TOKEN_SALT": "synthetic-preflight-salt",
         "REDIS_PASSWORD": "a" * 64,
+        "CACHE_REDIS_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/0",
+        "CELERY_BROKER_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://:synthetic_redis_password@127.0.0.1:6379/2",
         "COYOTE4_MONGO_URI": "mongodb://127.0.0.1:27017/",
         "COYOTE4_DB": "preflight_app",
         "IDENTITY_DB": "preflight_identity",

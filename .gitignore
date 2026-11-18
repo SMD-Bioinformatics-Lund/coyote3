@@ -196,6 +196,7 @@ MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 .claude
 .agents
 .smd_configs
+.runtime/
 skills/
 
 

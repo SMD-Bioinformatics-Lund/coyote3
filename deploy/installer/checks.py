@@ -123,7 +123,7 @@ def check_endpoints() -> str:
                 uri_key, database_key = MONGO_SERVICES[service]
                 raise ValueError(
                     f"{service} endpoint check failed ({type(error).__name__}). "
-                    f"Review {uri_key} and {database_key}: container reachability, "
+                    f"Review {uri_key} and {database_key}: application reachability, "
                     "replica-set discovery, authSource/credentials, and database read grants."
                 ) from None
         verify_runtime_audit_permissions(
@@ -214,7 +214,7 @@ def check_redis() -> None:
         except Exception as error:
             raise ValueError(
                 f"{key} PING failed ({type(error).__name__}). "
-                "Redis must be reachable from application containers, not only from its own "
+                "Redis must be reachable from the application runtime, not only from its own "
                 "health check. Check credentials for authentication errors; for connection "
                 "timeouts inspect Docker bridge forwarding and host firewall policy. "
                 "See docs/operations/troubleshooting.md."

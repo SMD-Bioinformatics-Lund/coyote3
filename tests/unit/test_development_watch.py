@@ -54,7 +54,7 @@ def test_watch_reads_the_selected_environment_without_logging_secrets(
     assert cli.main(["watch", "--env-file", str(settings), "--", sys.executable, "-c", "pass"]) == 0
     _, arguments, environment = execute.call_args.args
     assert environment["ENV_NAME"] == "development"
-    assert environment["COYOTE4_ENV_FILE"] == str(settings)
+    assert environment["SECRET_KEY"] == "synthetic-private-value"
     assert arguments[-3:] == [sys.executable, "-c", "pass"]
     assert "synthetic-private-value" not in capsys.readouterr().err
 

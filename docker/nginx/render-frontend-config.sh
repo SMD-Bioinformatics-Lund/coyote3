@@ -12,14 +12,18 @@ while [ "$script_name" != "/" ] && [ "${script_name%/}" != "$script_name" ]; do
   script_name="${script_name%/}"
 done
 
-output_path=/etc/nginx/conf.d/default.conf
+config_directory="${COYOTE4_FRONTEND_NGINX_DIRECTORY:-/etc/nginx/conf.d}"
+output_path="$config_directory/default.conf"
+frontend_root="${COYOTE4_FRONTEND_ROOT:-/usr/share/nginx/html}"
+listen_address="${COYOTE4_FRONTEND_LISTEN:-3000}"
+syslog_target="${COYOTE4_SYSLOG_TARGET:-monitor:5514}"
 
-cat >/etc/nginx/conf.d/observability.conf <<'EOF'
-access_log syslog:server=monitor:5514,tag=ui,severity=info combined;
-error_log syslog:server=monitor:5514,tag=ui error;
+cat >"$config_directory/observability.conf" <<EOF
+access_log syslog:server=${syslog_target},tag=ui,severity=info combined;
+error_log syslog:server=${syslog_target},tag=ui error;
 EOF
 
-cat >/etc/nginx/conf.d/frontend-compression.conf <<'EOF'
+cat >"$config_directory/frontend-compression.conf" <<'EOF'
 gzip on;
 gzip_vary on;
 gzip_proxied any;
@@ -31,9 +35,9 @@ EOF
 if [ -n "$script_name" ] && [ "$script_name" != "/" ]; then
   cat >"$output_path" <<EOF
 server {
-    listen 3000;
+    listen ${listen_address};
     server_name _;
-    root /usr/share/nginx/html;
+    root "${frontend_root}";
     index index.html;
     add_header Cache-Control "no-cache";
 
@@ -66,21 +70,21 @@ server {
 }
 EOF
 else
-  cat >"$output_path" <<'EOF'
+  cat >"$output_path" <<EOF
 server {
-    listen 3000;
+    listen ${listen_address};
     server_name _;
-    root /usr/share/nginx/html;
+    root "${frontend_root}";
     index index.html;
     add_header Cache-Control "no-cache";
 
     location ^~ /assets/ {
-        try_files $uri =404;
+        try_files \$uri =404;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 }
 EOF

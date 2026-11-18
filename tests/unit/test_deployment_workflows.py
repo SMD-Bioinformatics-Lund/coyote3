@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize("length,valid", [(15, False), (16, True), (64, True)])
 def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid):
-    """All four independent secrets accept URL-safe 16-character values, including Redis."""
+    """Application signing secrets require at least sixteen characters; Redis uses explicit URLs."""
     environment = tmp_path / "synthetic.env"
     environment.write_text(
         "\n".join(
@@ -26,10 +26,14 @@ def test_deployment_secret_minimum_is_sixteen_characters(tmp_path, length, valid
                     "SECRET_KEY",
                     "INTERNAL_API_TOKEN",
                     "PASSWORD_TOKEN_SALT",
-                    "REDIS_PASSWORD",
                 )
             ]
-            + ["COYOTE4_MONGO_URI='mongodb://127.0.0.1:27017/'"]
+            + [
+                "COYOTE4_MONGO_URI='mongodb://127.0.0.1:27017/'",
+                "CACHE_REDIS_URL='redis://:synthetic_password@redis:6379/0'",
+                "CELERY_BROKER_URL='redis://:synthetic_password@redis:6379/1'",
+                "CELERY_RESULT_BACKEND='redis://:synthetic_password@redis:6379/2'",
+            ]
         )
     )
     result = subprocess.run(
@@ -79,6 +83,9 @@ def deployment(tmp_path):
         "INTERNAL_API_TOKEN": "synthetic-internal-token",
         "PASSWORD_TOKEN_SALT": "synthetic-password-salt",
         "REDIS_PASSWORD": "a" * 64,
+        "CACHE_REDIS_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/0",
+        "CELERY_BROKER_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://:synthetic_redis_password@127.0.0.1:6379/2",
         "COYOTE4_MONGO_URI": "mongodb://synthetic:synthetic@127.0.0.1:27017/?authSource=admin&replicaSet=synthetic",
         "COYOTE4_DB": "synthetic_application",
         "IDENTITY_DB": "synthetic_identity",

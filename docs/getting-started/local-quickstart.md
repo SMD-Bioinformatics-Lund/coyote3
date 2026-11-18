@@ -7,6 +7,9 @@ For synthetic DNA/RNA samples, use the separate
 has its own databases, credentials and storage and supports Docker or native processes.
 For host-run API development,
 use the [developer environment](developer-environment.md).
+For a complete application running natively on WSL, follow
+[native installation](../deployment/installation-operations.md#native-application-on-wsl-or-linux).
+MongoDB, Redis and the application can each use a different runtime.
 
 ## 1. Prepare tools and the checkout
 
@@ -66,12 +69,20 @@ Development excludes the production Redis TLS overlay and needs no Redis certifi
 Run from the checkout after those prerequisites are ready:
 
 ```bash
+# Start the independently provisioned Redis server first.
+bash install.sh redis start --mode docker --environment dev --env-file .redis-dev.env
+
 bash install.sh deploy \
   --env-file .coyote4_dev_env \
   --project coyote4-dev \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.dev.yml
 ```
+
+Prepare `.redis-dev.env` from `deploy/env/example.redis-server.env`. Set the application's
+three Redis URLs in `.coyote4_dev_env` to match that server's credentials and address.
+For native Redis, use `redis start --mode native --unit redis-server.service` with its
+server file instead. See [independent infrastructure](../deployment/installation-operations.md#independent-infrastructure-and-application).
 
 The installer builds images, validates mounted configuration and database/Redis
 connectivity, installs a fresh baseline and starts the stack. It creates a distinct

@@ -58,6 +58,7 @@ class Runner:
         label: str,
         capture: bool = False,
         extra_env: Mapping[str, str] | None = None,
+        process_env: Mapping[str, str] | None = None,
     ) -> str:
         """Run one operation and stop on failure without disclosing command arguments.
 
@@ -66,6 +67,7 @@ class Runner:
             label: Nonsecret description for failures.
             capture: Return stdout for machine-readable operations without displaying it.
             extra_env: Credentials or overrides scoped to this child process only.
+            process_env: Complete replacement environment for a differently scoped child.
 
         Returns:
             Captured standard output, or an empty string for streaming operations.
@@ -74,8 +76,10 @@ class Runner:
             RuntimeError: The process fails; diagnostic output is redacted.
             OSError: The executable is unavailable.
         """
-        environment = self.environment | dict(extra_env or {})
-        sensitive = self.redactions | environment
+        environment = dict(self.environment if process_env is None else process_env) | dict(
+            extra_env or {}
+        )
+        sensitive = self.redactions | self.environment | environment
         if capture:
             result = subprocess.run(
                 command, cwd=ROOT, env=environment, capture_output=True, text=True, check=False

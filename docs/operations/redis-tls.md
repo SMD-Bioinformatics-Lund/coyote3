@@ -4,10 +4,11 @@ Use verified TLS for the production cache, Celery broker and result backend.
 Development and staging use the base Redis configuration without certificates; do not add
 the TLS overlay to their Compose commands or environment files.
 
-For production, add `deploy/compose/docker-compose.redis-tls.yml` after the base Compose
-file and any production overrides. This overlay disables Redis's plaintext listener, retains password
-authentication and mounts only the public CA certificate into application services.
-It does not create or change host networks, firewall rules or published Redis ports.
+The independent Redis server uses `deploy/compose/docker-compose.redis-tls-server.yml`
+to disable the plaintext listener and retain password authentication. The application
+uses `deploy/compose/docker-compose.redis-tls.yml` to mount only the public CA certificate.
+Neither overlay changes host networks or firewall rules. Server port publication
+remains controlled by its independent Redis definition.
 
 ## Create the certificates
 
@@ -74,9 +75,20 @@ Add this setting to your **production** environment file:
 COYOTE4_REDIS_TLS_DIR=/etc/coyote4/redis-tls
 ```
 
-Keep the existing `REDIS_PASSWORD`. The overlay supplies the verified `rediss://` URLs
-automatically, mounts the CA into API/both workers/beat/monitor, and mounts the server certificate
-and key only into Redis. Do not commit certificates, private keys or environment files.
+Keep `REDIS_PASSWORD` in the private Redis server file and set the application URLs
+explicitly. For Docker clients using the `redis` alias:
+
+```dotenv
+CACHE_REDIS_URL=rediss://:ENCODED_PASSWORD@redis:6379/0?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+CELERY_BROKER_URL=rediss://:ENCODED_PASSWORD@redis:6379/1?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+CELERY_RESULT_BACKEND=rediss://:ENCODED_PASSWORD@redis:6379/2?ssl_cert_reqs=required&ssl_ca_certs=/run/redis-tls/ca.crt&ssl_check_hostname=true
+```
+
+Replace the encoded password and hostname with the reviewed values. Native clients
+must use a reachable hostname covered by the certificate and a host CA path instead
+of `/run/redis-tls/ca.crt`. The client overlay mounts the CA into API/workers/beat/monitor;
+the server overlay mounts the server certificate and key only into Redis.
+Do not commit certificates, private keys or environment files.
 Missing source files fail deployment instead of creating empty host directories.
 
 For the production installer, include the overlay in its Compose selection (plus any
@@ -85,8 +97,13 @@ production Compose project name and use that same name for every command; changi
 selects a different stack and different project-scoped volumes.
 
 ```bash
+./install.sh redis start --mode docker \
+  --env-file .redis-production.env \
+  --project coyote4-prod-redis \
+  --overlay deploy/compose/docker-compose.redis-tls-server.yml
+
 ./install.sh deploy \
-  --env-file /path/to/production.env \
+  --env-file .production.env \
   --project coyote4-prod \
   --compose-file deploy/compose/docker-compose.yml \
   --compose-file deploy/compose/docker-compose.redis-tls.yml
@@ -96,7 +113,7 @@ For subsequent production Compose commands:
 
 ```bash
 ./install.sh compose \
-  --env-file /path/to/production.env \
+  --env-file .production.env \
   -p coyote4-prod \
   -f deploy/compose/docker-compose.yml \
   -f deploy/compose/docker-compose.redis-tls.yml \
@@ -104,19 +121,20 @@ For subsequent production Compose commands:
 ```
 
 Use the same overlay for installation containers and every subsequent Compose command.
-Enabling it on an existing production stack recreates Redis and its clients; schedule a
-maintenance window. Development and staging commands remain unchanged.
+Enable the server and client overlays in a coordinated maintenance window. Preserve
+the existing Redis volume name in `COYOTE4_REDIS_VOLUME`. Application lifecycle commands
+do not recreate or restart the independently managed server.
 
 ## Verify and renew
 
 After starting production, check the authenticated TLS connection:
 
 ```bash
-./install.sh compose \
-  --env-file /path/to/production.env \
-  -p coyote4-prod \
-  -f deploy/compose/docker-compose.yml \
-  -f deploy/compose/docker-compose.redis-tls.yml \
+docker compose \
+  --env-file .redis-production.env \
+  -p coyote4-prod-redis \
+  -f deploy/compose/docker-compose.redis.yml \
+  -f deploy/compose/docker-compose.redis-tls-server.yml \
   exec -T redis redis-cli --tls --cacert /run/redis-tls/ca.crt --sni redis -h redis ping
 ```
 
@@ -129,8 +147,9 @@ not required; clients authenticate using the existing `REDIS_PASSWORD`. Rotate t
 certificate before expiry and recreate Redis and its clients during a planned maintenance
 window. Sign a new server CSR using the existing CA and the same extensions, replace the
 server certificate/key with the permissions above, then run the production Compose command
-with `up -d --force-recreate redis api worker maintenance-worker beat monitor`
-so bind mounts use the new files.
+to recreate the Redis service, then recreate the application services with their
+client overlay so bind mounts use the new files. Stop the selected service before
+`start` when only file contents changed and Compose would otherwise reuse it.
 Redis persistence remains on the existing data volume. Check the certificate expiry with:
 
 ```bash

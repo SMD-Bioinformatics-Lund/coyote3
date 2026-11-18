@@ -1,0 +1,39 @@
+# Redis server TLS overlay. Combine with docker-compose.redis.yml.
+# Application clients select rediss:// URLs and the separate client TLS overlay.
+x-redis-ca: &redis-ca
+  type: bind
+  source: ${COYOTE4_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/ca.crt
+  target: /run/redis-tls/ca.crt
+  read_only: true
+  bind:
+    create_host_path: false
+
+services:
+  redis:
+    command:
+      - sh
+      - -ec
+      - >-
+        exec redis-server --requirepass "$$REDIS_PASSWORD"
+        --appendonly yes --appendfsync always --maxmemory-policy noeviction
+        --port 0 --tls-port 6379
+        --tls-cert-file /run/redis-tls/server.crt
+        --tls-key-file /run/redis-tls/server.key
+        --tls-ca-cert-file /run/redis-tls/ca.crt
+        --tls-auth-clients no
+    volumes:
+      - *redis-ca
+      - type: bind
+        source: ${COYOTE4_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/server.crt
+        target: /run/redis-tls/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COYOTE4_REDIS_TLS_DIR:?Set the absolute Redis certificate directory}/server.key
+        target: /run/redis-tls/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD-SHELL, 'redis-cli --tls --cacert /run/redis-tls/ca.crt --sni redis -h redis ping | grep -q PONG']

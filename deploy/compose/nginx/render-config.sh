@@ -6,6 +6,10 @@ frontend_upstream="${COYOTE4_NGINX_FRONTEND_UPSTREAM:?COYOTE4_NGINX_FRONTEND_UPS
 api_upstream="${COYOTE4_NGINX_API_UPSTREAM:?COYOTE4_NGINX_API_UPSTREAM is required}"
 docs_upstream="${COYOTE4_NGINX_DOCS_UPSTREAM:?COYOTE4_NGINX_DOCS_UPSTREAM is required}"
 public_scheme="${COYOTE4_NGINX_PUBLIC_SCHEME:-http}"
+syslog_target="${COYOTE4_SYSLOG_TARGET:-monitor:5514}"
+listen_address="${COYOTE4_NGINX_LISTEN:-8088}"
+resolver_address="${COYOTE4_NGINX_RESOLVER:-127.0.0.11}"
+error_page_path="${COYOTE4_NGINX_ERROR_PAGE:-/etc/nginx/error-pages/unavailable.html}"
 case "$public_scheme" in
   http|https) ;;
   *) printf '%s\n' 'COYOTE4_NGINX_PUBLIC_SCHEME must be http or https' >&2; exit 1 ;;
@@ -27,14 +31,14 @@ while [ "$script_name" != "/" ] && [ "${script_name%/}" != "$script_name" ]; do
 done
 
 cat >"$output_path" <<EOF
-access_log syslog:server=monitor:5514,tag=proxy,severity=info combined;
-error_log syslog:server=monitor:5514,tag=proxy error;
 map \$uri \$coyote4_error_cache_control {
     default "";
     /_coyote4_unavailable.html "no-store";
 }
 server {
-    listen 8088;
+    access_log syslog:server=${syslog_target},tag=proxy,severity=info combined;
+    error_log syslog:server=${syslog_target},tag=proxy error;
+    listen ${listen_address};
     server_name _;
     absolute_redirect off;
     port_in_redirect off;
@@ -42,7 +46,7 @@ server {
 
     # Resolve Docker service names at request time so a deliberate upstream
     # recreate cannot leave Nginx pinned to an obsolete container IP address.
-    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver ${resolver_address} valid=10s ipv6=off;
     resolver_timeout 5s;
     set \$frontend_target "${frontend_upstream}";
     set \$api_target "${api_upstream}";
@@ -77,7 +81,7 @@ server {
     # Error handling is enabled only in browser-facing locations below.
     location = /_coyote4_unavailable.html {
         internal;
-        alias /etc/nginx/error-pages/unavailable.html;
+        alias "${error_page_path}";
         default_type text/html;
         charset utf-8;
         etag off;

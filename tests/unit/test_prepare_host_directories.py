@@ -169,6 +169,9 @@ def test_wrapper_prepares_before_up_but_not_plain_config(tmp_path):
         "INTERNAL_API_TOKEN": "synthetic-token-value",
         "PASSWORD_TOKEN_SALT": "synthetic-token-salt",
         "REDIS_PASSWORD": "a" * 32,
+        "CACHE_REDIS_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/0",
+        "CELERY_BROKER_URL": "redis://:synthetic_redis_password@127.0.0.1:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://:synthetic_redis_password@127.0.0.1:6379/2",
         "COYOTE4_MONGO_URI": "mongodb://synthetic.invalid",
     }
     rendered["services"]["api"]["environment"].update(secrets)

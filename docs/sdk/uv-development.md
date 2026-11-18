@@ -45,6 +45,13 @@ in their documented separate environment.
 
 ## Edit and run
 
+To install and supervise the complete native application, use
+`./install.sh deploy --mode native --environment dev --env-file .coyote4_dev_env`.
+This creates a separate environment under `.runtime/`; it does not change `.venv` or
+start MongoDB/Redis. See [native deployment](../deployment/installation-operations.md#native-application-on-wsl-or-linux)
+for prerequisites and service commands. The individual-process commands below use
+the editable workspace prepared above instead.
+
 For the fastest development loop, run the API and workers natively in this editable
 workspace and use the local watcher below. Docker backend services use explicit
 restarts or rebuilds; their source mounts do not reload running Python processes.
