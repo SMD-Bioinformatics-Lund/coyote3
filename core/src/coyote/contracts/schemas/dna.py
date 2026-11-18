@@ -17,6 +17,7 @@ from coyote.contracts.schemas.base import (
     _StrictCollectionDocBase,
 )
 from coyote.contracts.schemas.normalizers import normalize_ampersand_terms
+from coyote.domain.dna.allele_frequency import allele_fraction
 from coyote.domain.dna.cnv_metrics import normalize_copy_number_ratio
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 
@@ -128,12 +129,21 @@ class VariantInfoDoc(_DocBase):
 class VariantGtDoc(_DocBase):
     """Per-sample genotype with allele frequency, total depth, and alternate-read count."""
 
-    AF: float
+    AF: float = Field(ge=0, le=1, allow_inf_nan=False)
     DP: int
     GT: str
     VD: int
     sample: str
     type: str
+
+    @field_validator("AF", mode="before")
+    @classmethod
+    def _validate_allele_fraction(cls, value: Any) -> float:
+        """Reject unusable measurements before numeric coercion can turn flags into values."""
+        fraction = allele_fraction(value)
+        if fraction is None:
+            raise ValueError("AF must be a finite allele fraction between zero and one")
+        return fraction
 
 
 class VariantsDoc(_FindingDocBase):

@@ -19,6 +19,59 @@ function response(body: string, status = 200, statusText = "OK") {
 }
 
 describe("typed API client", () => {
+  it("keeps a pending sign-in valid when an earlier request reports an expired session", async () => {
+    let finishOldRequest!: (value: Response) => void
+    let finishSignIn!: (value: Response) => void
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => new Promise<Response>(resolve => { finishOldRequest = resolve }))
+      .mockImplementationOnce(() => new Promise<Response>(resolve => { finishSignIn = resolve }))
+      .mockResolvedValueOnce(response("{}"))
+    setCsrfToken("old-session")
+    const rejected = expect(api.get("/records")).rejects.toMatchObject({ status: 401 })
+    const signIn = api.post("/auth/sessions", { username: "synthetic" })
+    finishOldRequest(response("{}", 401))
+    await rejected
+    finishSignIn(response('{"csrf_token":"new-session"}'))
+    await signIn
+    await api.post("/records", {})
+    expect(window.location.href).toBe("/samples")
+    expect(new Headers(vi.mocked(fetch).mock.lastCall?.[1]?.headers).get("X-CSRF-Token"))
+      .toBe("new-session")
+  })
+
+  it("does not let a late response from an old session sign out a new session", async () => {
+    let finishOldRequest!: (value: Response) => void
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => new Promise<Response>(resolve => { finishOldRequest = resolve }))
+      .mockResolvedValueOnce(response('{"csrf_token":"new-session"}'))
+      .mockResolvedValueOnce(response("{}"))
+    setCsrfToken("old-session")
+    const oldRequest = api.get("/records")
+    const rejected = expect(oldRequest).rejects.toMatchObject({ status: 401 })
+    await api.post("/auth/sessions", { username: "synthetic" })
+    finishOldRequest(response("{}", 401))
+    await rejected
+    await api.post("/records", {})
+    expect(window.location.href).toBe("/samples")
+    expect(new Headers(vi.mocked(fetch).mock.lastCall?.[1]?.headers).get("X-CSRF-Token"))
+      .toBe("new-session")
+  })
+
+  it("does not restore a revoked CSRF token from a delayed identity response", async () => {
+    let finishIdentity!: (value: Response) => void
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => new Promise<Response>(resolve => { finishIdentity = resolve }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(response("{}"))
+    setCsrfToken("old-session")
+    const identity = api.get("/auth/whoami")
+    await api.delete("/auth/sessions/current")
+    finishIdentity(response('{"csrf_token":"old-session"}'))
+    await identity
+    await api.post("/records", {})
+    expect(new Headers(vi.mocked(fetch).mock.lastCall?.[1]?.headers).has("X-CSRF-Token")).toBe(false)
+  })
+
   it("sends binary request bodies unchanged and preserves their media type", async () => {
     vi.mocked(fetch).mockImplementation(async () => response("{}"))
     const body = new Uint8Array([0, 128, 255])

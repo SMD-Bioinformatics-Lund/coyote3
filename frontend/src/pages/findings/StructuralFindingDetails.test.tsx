@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -28,6 +29,40 @@ function mount(path: string, route: string, element: React.ReactNode) {
 
 describe("structural finding detail pages", () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it.each(["DNA_001", "DNA #100%"])("refreshes the saved CNV classification for %s", async (name) => {
+    let tier = 3
+    mocks.get.mockImplementation(async (path: string) => ({ data: path.endsWith("/cnvs/CNV1") ? {
+      sample: { name },
+      cnv: { _id: "CNV1", chr: "7", start: 0, end: 100, ratio: 1, genes: [] },
+      latest_classification: { class: tier }, annotations: [],
+    } : {} }))
+    mocks.patch.mockImplementation(async () => { tier = 1; return { data: {} } })
+    const user = userEvent.setup()
+    mount(`/samples/${encodeURIComponent(name)}/cnv/CNV1`, "/samples/:id/cnv/:varId", <CNVDetail />)
+    expect(await screen.findByRole("button", { name: "Tier 3" })).toHaveAttribute("aria-pressed", "true")
+    await user.click(screen.getByRole("button", { name: "Tier 1" }))
+    await user.click(screen.getByRole("button", { name: "Set classification" }))
+    await waitFor(() => expect(screen.getByRole("button", { name: "Tier 1" })).toHaveAttribute("aria-pressed", "true"))
+    expect(mocks.patch).toHaveBeenCalledWith(`/samples/${encodeURIComponent(name)}/classifications/tier`, {
+      resource_type: "cnv", resource_ids: ["CNV1"], tier: 1, apply: true,
+    })
+  })
+
+  it("saves a fusion call selection using the encoded sample name", async () => {
+    const name = "RNA #100%"
+    mocks.get.mockImplementation(async (path: string) => ({ data: path.endsWith("/fusions/F1") ? {
+      sample: { name },
+      fusion: { _id: "F1", gene1: "BCR", gene2: "ABL1", calls: [
+        { selected: true, caller: "ARRIBA", breakpoint1: "22:100", breakpoint2: "9:200" },
+        { selected: false, caller: "STARFUSION", breakpoint1: "22:101", breakpoint2: "9:201" },
+      ] }, annotations: [],
+    } : {} }))
+    mocks.patch.mockResolvedValue({ data: {} })
+    mount(`/samples/${encodeURIComponent(name)}/fusion/F1`, "/samples/:id/fusion/:varId", <FusionDetail />)
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Pick" }))
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith("/samples/RNA%20%23100%25/fusions/F1/selection/2/2"))
+  })
 
   it.each([
     { calls: [], reason: "Missing fusion evidence" },
@@ -112,6 +147,33 @@ describe("structural finding detail pages", () => {
     expect(identity.getByText("0")).toBeVisible()
     expect(screen.queryByRole("heading", { name: "Read Support" })).not.toBeInTheDocument()
     expect(mocks.get).toHaveBeenCalledWith("/samples/RNA_001/fusions/F1")
+  })
+
+  it.each(["", "   ", false, true, 1024])("does not invent a CNV copy number from %j", async (ratio) => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "DNA_001" },
+      cnv: { _id: "CNV1", chr: "7", start: 0, end: 100, ratio, genes: [] },
+      annotations: [],
+    } })
+    mount("/samples/DNA_001/cnv/CNV1", "/samples/:id/cnv/:varId", <CNVDetail />)
+    const label = await screen.findByText("Copy number", { exact: true })
+    expect(within(label.parentElement!).getByText("-", { exact: true })).toBeVisible()
+    expect(screen.queryByText("Infinity")).not.toBeInTheDocument()
+  })
+
+  it("preserves explicit zero read counts instead of replacing them with alternate fields", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      sample: { name: "DNA_001" },
+      cnv: { _id: "CNV1", chr: "7", start: 0, end: 100, ratio: 0, genes: [], PR: 0, SR: 0,
+        INFO: { PR: 17, SR: 19 } },
+      annotations: [],
+    } })
+    mount("/samples/DNA_001/cnv/CNV1", "/samples/:id/cnv/:varId", <CNVDetail />)
+    expect((await screen.findAllByText("2.00")).length).toBeGreaterThan(0)
+    expect(screen.queryByText("17", { exact: true })).not.toBeInTheDocument()
+    expect(screen.queryByText("19", { exact: true })).not.toBeInTheDocument()
+    const evidence = screen.getByText("PR", { exact: true }).closest("tr")!
+    expect(within(evidence).getByText("0", { exact: true })).toBeVisible()
   })
 
   it.each([false, true])("renders translocation annotations and sample read support (string counts: %s)", async (stringCounts) => {

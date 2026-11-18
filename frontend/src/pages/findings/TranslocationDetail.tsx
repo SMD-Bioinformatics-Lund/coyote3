@@ -30,7 +30,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
-import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailPath, sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvAlignmentLinks, pubmedSearchUrl } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
@@ -60,7 +60,7 @@ export function TranslocationDetail() {
   const access = useCurrentUserAccess()
   const transcriptSelection = useMutation({
     mutationFn: (key: string) => api.patch(
-      `/samples/${id}/translocations/${varId}/selected-transcript`, { annotation_key: key },
+      `${sampleDetailPath(null, id)}/translocations/${encodeURIComponent(varId || "")}/selected-transcript`, { annotation_key: key },
     ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['translocation', id, varId] })
@@ -94,7 +94,7 @@ export function TranslocationDetail() {
       <FindingError
         title="Error loading translocation"
         message={error instanceof Error ? error.message : "Unknown error"}
-        backTo={`/samples/${id}`}
+        backTo={sampleDetailPath(null, id)}
       />
     )
   }
@@ -223,7 +223,7 @@ export function TranslocationDetail() {
             <ClassificationsCard
               latest={latest_classification}
               other={data.other_classifications || []}
-              sampleId={id}
+              sampleId={sampleRouteKey}
               resourceType="translocation"
               resourceId={String(translocation?._id || "")}
               onUpdate={() => refetch()}

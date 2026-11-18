@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Scope finding inventory by serialized sample IDs, matching stored `SAMPLE_ID`
+  references. Keep report-snapshot scoping by sample name and exact assay/environment grants.
 - Implement the resource retrieval port with safe field projections, scope before
   aggregation, stable pagination, bounded related filters and batched related reads.
 - Share structural finding index installation while preserving collection-specific

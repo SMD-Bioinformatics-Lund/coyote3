@@ -155,6 +155,7 @@ def fake_installation(tmp_path):
     (tmp_path / "release.toml").write_text('application_version="synthetic"\n')
     release_scripts = tmp_path / "scripts/release"
     release_scripts.mkdir(parents=True)
+    shutil.copy(ROOT / "scripts/release/build_sdk.py", release_scripts)
     (release_scripts / "verify_sdk_artifact.py").write_text(
         "import os\n"
         "def verify_compose_artifacts(*args):\n"

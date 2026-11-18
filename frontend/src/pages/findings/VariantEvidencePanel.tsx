@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { displayValue } from "@/lib/detail-formatters"
 import { notifyActionError } from "@/lib/notifications"
+import { sampleDetailPath } from "@/lib/sample-routing"
 import { useMutation } from "@tanstack/react-query"
 import { brcaExchangeMetrics } from "./variant-detail-presentation"
 
@@ -60,11 +61,11 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
   varId?: string
 }) {
   const oncokbPublic = useMutation({
-    mutationFn: () => api.get(`/samples/${id}/small-variants/${varId}/oncokb-public`).then(res => res.data),
+    mutationFn: () => api.get(`${sampleDetailPath(null, id)}/small-variants/${encodeURIComponent(varId || "")}/oncokb-public`).then(res => res.data),
     onError: (err) => notifyActionError("Unable to load public OncoKB annotation", err, "OncoKB API"),
   })
   const clinpgxPublic = useMutation({
-    mutationFn: () => api.get(`/samples/${id}/small-variants/${varId}/clinpgx-public`).then(res => res.data),
+    mutationFn: () => api.get(`${sampleDetailPath(null, id)}/small-variants/${encodeURIComponent(varId || "")}/clinpgx-public`).then(res => res.data),
     onError: (err) => notifyActionError("Unable to load public ClinPGx gene context", err, "ClinPGx API"),
   })
   return (

@@ -143,6 +143,18 @@ test("DNA sample tabs and requests are limited to its ASPC analysis selection", 
   expect(requests.some((path) => path.endsWith("/fusions"))).toBe(false)
 })
 
+test("sample names with URL characters load the intended workspace and analysis", async ({ page }) => {
+  const name = "DNA #100%"
+  const encodedName = encodeURIComponent(name)
+  await installApiFixtures(page, { ...dnaContext, sample: { ...dnaContext.sample, name } })
+  const requests = sampleAnalysisRequests(page, encodedName)
+
+  await page.goto(`/samples/${encodedName}`)
+  await expect(page.getByRole("tab", { name: "Somatic SNVs" })).toBeVisible()
+  await expect.poll(() => requests.some((path) => path.endsWith("/edit-context"))).toBe(true)
+  await expect.poll(() => requests.some((path) => path.endsWith("/small-variants"))).toBe(true)
+})
+
 test("RNA sample opens the configured fusion analysis by default", async ({ page }) => {
   await installApiFixtures(page, rnaContext)
   const requests = sampleAnalysisRequests(page, "RNA_001")

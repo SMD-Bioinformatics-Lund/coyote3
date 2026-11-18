@@ -29,7 +29,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
-import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailPath, sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, EXTERNAL_LINK_BASES, pubmedSearchUrl } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
@@ -57,10 +57,10 @@ export function FusionDetail() {
   })
   const callsLength = Array.isArray(data?.fusion?.calls) ? data.fusion.calls.length : 0
   const pickCall = useMutation({
-    mutationFn: (index: number) => api.patch(`/samples/${id}/fusions/${varId}/selection/${index + 1}/${callsLength}`),
+    mutationFn: (index: number) => api.patch(`${sampleDetailPath(null, id)}/fusions/${encodeURIComponent(varId || "")}/selection/${index + 1}/${callsLength}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fusion", id, varId] })
-      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", id] })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", sampleUrlKey(data?.sample, id)] })
       notifySuccess("Fusion call selected", "The selected fusion call was updated.", "fusion")
       refetch()
     },
@@ -85,7 +85,7 @@ export function FusionDetail() {
       <FindingError
         title="Error loading fusion"
         message={error instanceof Error ? error.message : "Unknown error"}
-        backTo={`/samples/${id}`}
+        backTo={sampleDetailPath(null, id)}
       />
     )
   }
@@ -200,7 +200,7 @@ export function FusionDetail() {
               latest={latest_classification}
               unavailableReason={fusionTierUnavailableReason(fusion)}
               other={data.other_classifications || []}
-              sampleId={id}
+              sampleId={sampleRouteKey}
               resourceType="fusion"
               resourceId={String(fusion?._id || "")}
               onUpdate={() => refetch()}

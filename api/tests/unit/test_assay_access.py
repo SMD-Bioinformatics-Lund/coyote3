@@ -101,8 +101,8 @@ def test_patient_finding_inventory_does_not_count_a_foreign_assay_environment():
     for assay in ("assay_a", "assay_b"):
         for env in ("production", "development"):
             name = f"{assay}-{env}"
-            db.samples.insert_one({"name": name, "asp_id": assay, "environment": env})
-            db.variants.insert_one({"SAMPLE_ID": [name], "variant_class": "SNV"})
+            sample = db.samples.insert_one({"name": name, "asp_id": assay, "environment": env})
+            db.variants.insert_one({"SAMPLE_ID": str(sample.inserted_id), "variant_class": "SNV"})
     adapter = SimpleNamespace(
         app=mongo_runtime(), samples_collection=db.samples, variants_collection=db.variants
     )

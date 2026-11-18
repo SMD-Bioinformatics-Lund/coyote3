@@ -174,6 +174,21 @@ describe("sample analysis table tabs", () => {
     expect(screen.queryByText("CNV Profile")).not.toBeInTheDocument()
   })
 
+  it.each([true, "   ", 1024])("shows missing CNV estimates instead of numeric evidence for %j", async (ratio) => {
+    mocks.get.mockResolvedValue({ data: {
+      cnvs: [{ _id: "C1", chr: "1", start: 10, end: 20, size: 10, ratio, genes: [] }],
+      meta: { count: 1 }, sample: { name: "S3", purity: 0.5 },
+    } })
+    mount(<CNVTab sampleId="S3" />, "/samples/S3?tab=cnvs")
+    await screen.findByText("Table with 1 rows")
+    const columns = mocks.dataTable.mock.lastCall?.[0].columns
+    for (const id of ["copy_number", "purity"]) {
+      const column = columns.find((item: any) => item.id === id)
+      expect(column.accessorFn({ ratio })).toBeNull()
+    }
+    expect(screen.queryByText("Infinity")).not.toBeInTheDocument()
+  })
+
   it.each([
     { calls: [], reason: "Missing fusion evidence" },
     { calls: [{ selected: false, caller: "ARRIBA" }], reason: "Select a fusion call" },

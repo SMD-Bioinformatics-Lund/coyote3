@@ -12,6 +12,7 @@ from markdown import Markdown
 from markdown.treeprocessors import Treeprocessor
 
 from coyote.domain.common.reporting import TIER_NAME
+from coyote.domain.dna.allele_frequency import allele_fraction
 from coyote.domain.dna.cnv_metrics import copy_number_from_log2
 
 
@@ -34,13 +35,11 @@ def _copy_number(value: Any) -> str:
 
 
 def _perc_no_dec(value: Any) -> str:
-    """Format allele frequency for clinical report display."""
-    if value in (None, "", "N/A"):
-        return "N/A" if value == "N/A" else "-"
-    try:
-        return f"{float(value) * 100:.0f}%"
-    except (TypeError, ValueError):
-        return str(value)
+    """Format valid allele fractions; preserve zero and the explicit N/A marker."""
+    if value == "N/A":
+        return "N/A"
+    fraction = allele_fraction(value)
+    return f"{fraction * 100:.0f}%" if fraction is not None else "-"
 
 
 def _format_tier(value: Any, include_label: bool = True) -> str:

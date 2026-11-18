@@ -14,6 +14,7 @@ import {
   ExternalLinksCard,
 } from "@/components/detail/DetailEvidenceCards"
 import { percentValue } from "@/lib/detail-formatters"
+import { cnvCopyNumber, cnvRatio } from "@/lib/cnv-metrics"
 import { ArtefactFrequencyBadges, CallerBadges, CopyNumberBadge, FilterFlagBadges, StatusBadges } from "@/lib/variant-ui"
 import {
   DetailCard,
@@ -26,7 +27,7 @@ import {
   FindingLoading,
   FindingMainGrid,
 } from "@/components/detail/FindingDetailLayout"
-import { sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailPath, sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
 import { cbioportalOncoprintUrl, igvAlignmentLinks } from "@/lib/external-links"
 import { CosmicKnowledgeBlock, KnowledgebaseExplorer } from "@/components/detail/VariantKnowledgebase"
 
@@ -41,8 +42,7 @@ function cnvSize(cnv: any) {
 }
 
 function copyNumber(cnv: any) {
-  const ratio = cnv?.ratio ?? cnv?.log2
-  return ratio != null && Number.isFinite(Number(ratio)) ? (2 * Math.pow(2, Number(ratio))).toFixed(2) : "-"
+  return cnvCopyNumber(cnv)?.toFixed(2) ?? "-"
 }
 
 function cnvGenes(cnv: any, panelOnly: boolean) {
@@ -52,8 +52,8 @@ function cnvGenes(cnv: any, panelOnly: boolean) {
 
 function structuralEvidenceMetrics(cnv: any) {
   return [
-    { label: "PR", value: cnv?.PR || cnv?.pr || cnv?.INFO?.PR, monospace: true },
-    { label: "SR", value: cnv?.SR || cnv?.sr || cnv?.INFO?.SR, monospace: true },
+    { label: "PR", value: cnv?.PR ?? cnv?.pr ?? cnv?.INFO?.PR, monospace: true },
+    { label: "SR", value: cnv?.SR ?? cnv?.sr ?? cnv?.INFO?.SR, monospace: true },
     { label: "Left region", value: cnv?.left_region || cnv?.INFO?.LEFT_REGION, monospace: true },
     { label: "Right region", value: cnv?.right_region || cnv?.INFO?.RIGHT_REGION, monospace: true },
     { label: "Callers", value: cnv?.callers || cnv?.INFO?.variant_callers },
@@ -93,7 +93,7 @@ export function CNVDetail() {
       <FindingError
         title="Error loading CNV"
         message={error instanceof Error ? error.message : "Unknown error"}
-        backTo={`/samples/${id}`}
+        backTo={sampleDetailPath(null, id)}
       />
     )
   }
@@ -143,7 +143,7 @@ export function CNVDetail() {
                 <DetailField label="Filter flags"><FilterFlagBadges value={cnv?.FILTER} metadata={filterFlagMetadata} analysis="cnv" callers={callers} /></DetailField>
                 <DetailField label="Size" valueClassName="text-primary/80">{cnvSize(cnv)}</DetailField>
                 <DetailField label="Type"><CopyNumberBadge value={type} /></DetailField>
-                <DetailField label="Ratio (log2)">{cnv?.ratio != null && Number.isFinite(Number(cnv.ratio)) ? Number(cnv.ratio).toFixed(4) : "-"}</DetailField>
+                <DetailField label="Ratio (log2)">{cnvRatio(cnv)?.toFixed(4) ?? "-"}</DetailField>
                 <DetailField label="Copy number"><CopyNumberBadge value={type} label={copyNumber(cnv)} /></DetailField>
                 <DetailField label="Status"><StatusBadges finding={cnv} /></DetailField>
                 <DetailField label="Artefact evidence"><ArtefactFrequencyBadges finding={cnv} /></DetailField>
@@ -194,9 +194,10 @@ export function CNVDetail() {
             <ClassificationsCard
               latest={latest_classification}
               other={data.other_classifications || []}
-              sampleId={id}
+              sampleId={sampleRouteKey}
               resourceType="cnv"
               resourceId={varId}
+              onUpdate={() => refetch()}
             />
 
             <DetailCard title="Structural Evidence" tone="success">

@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Require genotype allele frequencies to be finite fractions between zero and one;
+  reject booleans and out-of-range values at validation. Invalid stored fractions
+  remain unavailable to clinical rules and render as missing report evidence;
+  measured zero and valid numeric strings retain their existing behavior.
 - Allow scoped viewers to read sample workspace context without granting editing permissions.
 - Add database-independent resource reads with strict typed filters, fresh permissions,
   paired assay/environment grants and authorization of related metadata queries.

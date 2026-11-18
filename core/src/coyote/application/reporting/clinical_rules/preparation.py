@@ -13,6 +13,7 @@ from coyote.application.common.release_resources import gene_list_resources
 from coyote.application.reporting.clinical_rules.facts import PreparedReportContext
 from coyote.domain.common.biomarkers import biomarker_counts, measurement_facts, project_biomarkers
 from coyote.domain.common.sample_filters import merged_dna_variant_filters, snv_filter_mode
+from coyote.domain.dna.allele_frequency import allele_fraction
 from coyote.domain.dna.cnv_metrics import copy_number_from_log2, supporting_read_percent
 
 
@@ -24,23 +25,15 @@ def _genotype_vaf(variant: dict[str, Any], genotype_type: str) -> float | None:
         genotype_type: Exact GT type to select; only case permits the af fallback.
 
     Returns:
-        Allele fraction as a float, or None for absent or nonnumeric values.
+        Finite allele fraction in zero to one, or None for absent or invalid values.
         A matching GT with unusable AF does not fall back to top-level af.
     """
     for genotype in variant.get("GT", []) or []:
         if genotype.get("type") == genotype_type:
-            value = genotype.get("AF")
-            try:
-                return float(value) if value is not None else None
-            except (TypeError, ValueError):
-                return None
+            return allele_fraction(genotype.get("AF"))
     if genotype_type != "case":
         return None
-    value = variant.get("af")
-    try:
-        return float(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
+    return allele_fraction(variant.get("af"))
 
 
 def _selected_csq(variant: dict[str, Any]) -> dict[str, Any]:

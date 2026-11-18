@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Correct finding inventory totals for scoped accounts, including sample names that
+  coincide with another sample's identifier.
 - Authorize sample workspace reads with sample viewing permission; keep mutation guards separate.
 - Expose read-only named-resource queries for metadata, IDs, counts, existence and
   distinct values, including bounded sample relation filters and documented limits.

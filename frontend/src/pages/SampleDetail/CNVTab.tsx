@@ -39,27 +39,7 @@ import { AnalysisTableCard } from "./AnalysisTableCard";
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control";
 import { createRowSelectionColumn } from "@/components/data-table/row-selection-column";
 import { matchedKnowledgebaseGenes } from "@/lib/knowledgebase-markers";
-
-function cnvRatio(cnv: any): number | null {
-  const raw = cnv?.ratio ?? cnv?.log2;
-  if (raw === null || raw === undefined || raw === "") return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
-}
-
-function cnvCopyNumber(cnv: any): number | null {
-  const ratio = cnvRatio(cnv);
-  return ratio === null ? null : 2 * Math.pow(2, ratio);
-}
-
-function purityAdjustedCopyNumber(cnv: any, purity: unknown): number | null {
-  const ratio = cnvRatio(cnv);
-  const copyNumber = cnvCopyNumber(cnv);
-  const purityValue = Number(purity);
-  if (ratio === null || copyNumber === null || !Number.isFinite(purityValue) || purityValue <= 0)
-    return null;
-  return ratio > 0 ? copyNumber / purityValue : copyNumber * purityValue;
-}
+import { cnvCopyNumber, cnvRatio, purityAdjustedCopyNumber } from "@/lib/cnv-metrics";
 
 function structuralReadEvidence(cnv: any): string {
   const value = cnv?.SR ?? cnv?.sr ?? cnv?.INFO?.SR;

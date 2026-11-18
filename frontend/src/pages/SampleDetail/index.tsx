@@ -14,7 +14,7 @@ import { LayoutDiscoveryBanner } from "@/components/layout/LayoutDiscoveryBanner
 import { PageFrame } from "@/components/layout/PageFrame"
 import { useCurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
-import { sampleUrlKey } from "@/lib/sample-routing"
+import { sampleDetailPath, sampleUrlKey } from "@/lib/sample-routing"
 import { hasSampleFile } from "@/lib/sample-shape"
 import {
   analysisLayoutForUser,
@@ -130,8 +130,8 @@ export function SampleDetail() {
   const currentUserQuery = useCurrentUserAccess()
   const updateUiSettings = useUpdateUiSettings()
   const { data, isLoading, error } = useQuery({
-    queryKey: ['sample', id],
-    queryFn: () => api.get(`/samples/${id}/edit-context`).then(res => res.data),
+    queryKey: ['sample', sampleUrlKey(null, id)],
+    queryFn: () => api.get(`${sampleDetailPath(null, id)}/edit-context`).then(res => res.data),
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,

@@ -88,7 +88,13 @@ for (const [analyte, sampleId] of [["dna", dnaSample], ["rna", rnaSample]] as co
     expect(html.suggestedFilename()).toBe(`${sampleName}_${analyte}_preview.html`)
     const htmlContent = await readFile((await html.path())!, "utf-8")
     expect(htmlContent).toBe(preview.report?.html)
+    const pdfLoaded = page.waitForResponse(response =>
+      new URL(response.url()).pathname.endsWith(`/reports/${analyte}/preview/pdf`) && response.request().method() === "GET",
+    )
     await page.getByRole("tab", { name: "PDF preview", exact: true }).click()
+    const pdfResponse = await pdfLoaded
+    expect(pdfResponse.ok()).toBe(true)
+    expect(pdfResponse.headers()["content-type"]).toContain("application/pdf")
     await expect(page.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", /^blob:/)
     if (await page.evaluate(() => navigator.pdfViewerEnabled !== false)) {
       await expect(page.getByTitle("Report PDF preview", { exact: true })).toHaveAttribute("src", /^blob:/)

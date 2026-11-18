@@ -60,10 +60,10 @@ export function VariantDetail() {
   })
   const transcriptSelection = useMutation({
     mutationFn: (featureId: string) =>
-      api.patch(`/samples/${id}/small-variants/${varId}/selected-transcript`, { feature_id: featureId }).then(res => res.data),
+      api.patch(`${sampleDetailPath(null, id)}/small-variants/${encodeURIComponent(varId || "")}/selected-transcript`, { feature_id: featureId }).then(res => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: variantQueryKey })
-      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", id] })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion", sampleUrlKey(data?.sample, id)] })
       refetch()
     },
     onError: (err) => notifyActionError("Unable to select transcript", err, "Transcript selection"),
@@ -87,7 +87,7 @@ export function VariantDetail() {
       <FindingError
         title="Error loading variant"
         message={error instanceof Error ? error.message : "Unknown error"}
-        backTo={`/samples/${id}`}
+        backTo={sampleDetailPath(null, id)}
       />
     )
   }

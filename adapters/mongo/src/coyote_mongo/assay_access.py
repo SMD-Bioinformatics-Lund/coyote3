@@ -31,12 +31,18 @@ def finding_scope_query(adapter, grants: list[dict] | None, field: str = "SAMPLE
     Args:
         adapter: Host adapter providing the authoritative sample collection.
         grants: Exact assignments or None for a verified unscoped operation.
-        field: Finding field containing sample names.
+        field: SAMPLE_ID for serialized sample identifiers, or sample_name for snapshots.
 
     Returns:
-        Indexed sample-name predicate, or an empty predicate for unscoped operations.
+        Predicate using the finding's stored identity format, or an empty predicate
+        for unscoped operations.
     """
     if grants is None:
         return {}
-    names = adapter.samples_collection.distinct("name", restrict_assay_access({}, grants))
-    return {field: {"$in": names}}
+    sample_field = "_id" if field == "SAMPLE_ID" else "name"
+    identities = adapter.samples_collection.distinct(
+        sample_field, restrict_assay_access({}, grants)
+    )
+    if field == "SAMPLE_ID":
+        identities = [str(identity) for identity in identities]
+    return {field: {"$in": identities}}

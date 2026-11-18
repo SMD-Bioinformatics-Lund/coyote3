@@ -38,9 +38,12 @@ export type ApiRequestOptions = RequestInit & {
 }
 
 let csrfToken: string | null = null
+let sessionRevision = 0
 
 export function setCsrfToken(token: string | null | undefined) {
-  csrfToken = token || null
+  const next = token || null
+  if (next !== csrfToken || next === null) sessionRevision += 1
+  csrfToken = next
 }
 
 let errorReportWindow = 0
@@ -83,6 +86,8 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
   const url = apiPath(endpoint)
   const isFormData = options.body instanceof FormData
   const method = (options.method ?? "GET").toUpperCase()
+  if (method === "POST" && (endpoint === "/auth/sessions" || endpoint === "/auth/session")) sessionRevision += 1
+  const requestSessionRevision = sessionRevision
   const headers = new Headers(options.headers)
   if (!isFormData && !isBinaryBody(options.body) && !(options.body instanceof URLSearchParams) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
   if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method)) {
@@ -105,13 +110,14 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
 
   // Global 401 interceptor
   if (response.status === 401) {
-    setCsrfToken(null)
-    if (redirectOnUnauthorized) {
-      if (window.location.pathname !== appPath("/login")) {
+    // A response issued before sign-in/out must not change the replacement session.
+    if (requestSessionRevision === sessionRevision) {
+      setCsrfToken(null)
+      if (redirectOnUnauthorized && window.location.pathname !== appPath("/login")) {
         window.location.href = appPath("/login")
       }
-      throw new ApiClientError("Unauthorized", 401, endpoint)
     }
+    if (redirectOnUnauthorized) throw new ApiClientError("Unauthorized", 401, endpoint)
   }
 
   let text: string
@@ -150,7 +156,7 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
 
   if (!response.ok) {
     if (response.status === 403 && (data?.category || data?.detail?.category) === "password_change_required") {
-      if (window.location.pathname !== appPath("/change-password")) {
+      if (requestSessionRevision === sessionRevision && window.location.pathname !== appPath("/change-password")) {
         window.location.href = appPath("/change-password")
       }
       throw new ApiClientError("Change your temporary password before continuing.", 403, endpoint)
@@ -180,10 +186,11 @@ async function request<T = any>(endpoint: string, requestOptions: ApiRequestOpti
   if (
     (endpoint === "/auth/sessions" || endpoint === "/auth/session" || endpoint === "/auth/whoami")
     && data?.csrf_token
+    && requestSessionRevision === sessionRevision
   ) {
     setCsrfToken(data.csrf_token)
   }
-  if (endpoint === "/auth/sessions/current" && method === "DELETE") setCsrfToken(null)
+  if (endpoint === "/auth/sessions/current" && method === "DELETE" && requestSessionRevision === sessionRevision) setCsrfToken(null)
   return { data: data as T, status: response.status }
 }
 

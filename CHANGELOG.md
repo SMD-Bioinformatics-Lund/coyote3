@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Correct permission-scoped finding counts using persisted sample IDs; reject invalid
+  genotype allele fractions and keep invalid numeric evidence out of reports and CNV displays.
+- Preserve browser sessions when older requests finish late, refresh saved CNV
+  classifications, and support sample names containing URL characters during review.
 - Disposable local browser acceptance with synthetic accounts, isolated databases
   and automatic cleanup; cover access boundaries, concurrent editing, immutable
   reports, worker recovery and WGS analysis tables.
