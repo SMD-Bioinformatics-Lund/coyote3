@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable";
 import { GeneCohortCharts } from "@/components/gene-cohort/GeneCohortCharts";
 import {
@@ -93,28 +94,28 @@ export function GeneCohortExplorer() {
       }
     >
       {!requestedGene && (
-        <section className="surface-panel p-6 text-center">
+        <Surface as="section" variant="panel" className="p-6 text-center">
           <icon.dna className="mx-auto h-8 w-8 text-primary" />
           <h2 className="mt-3 text-lg font-semibold">Search for a gene</h2>
           <p className="type-body mx-auto mt-1 max-w-2xl text-muted-foreground">
             Enter an exact approved gene symbol or HGNC identifier to build an access-scoped cohort
             summary.
           </p>
-        </section>
+        </Surface>
       )}
 
       {cohortQuery.isLoading && <AppLoader label="Loading gene cohort" />}
       {cohortQuery.error && (
-        <section className="surface-panel border-destructive/40 p-5 text-destructive">
+        <Surface as="section" variant="panel" className="border-destructive/40 p-5 text-destructive">
           {cohortQuery.error instanceof Error
             ? cohortQuery.error.message
             : "The gene cohort could not be loaded."}
-        </section>
+        </Surface>
       )}
 
       {cohortQuery.data && (
         <div className="space-y-4">
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
               <div>
                 <p className="type-page-eyebrow text-primary">Gene cohort</p>
@@ -153,7 +154,7 @@ export function GeneCohortExplorer() {
                 detail="Distinct typed clinical finding identities"
               />
             </div>
-          </section>
+          </Surface>
 
           <GeneKnowledgebaseSummary payload={cohortQuery.data.knowledgebase} />
 
@@ -168,7 +169,7 @@ export function GeneCohortExplorer() {
           />
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(20rem,0.7fr)]">
-            <div className="surface-panel p-4">
+            <Surface variant="panel" className="p-4">
               <div className="surface-panel-heading">
                 <h2 className="text-base font-semibold">Assay prevalence</h2>
                 <p className="type-caption text-muted-foreground">
@@ -184,9 +185,9 @@ export function GeneCohortExplorer() {
                 enablePagination={false}
                 hideExport
               />
-            </div>
+            </Surface>
 
-            <div className="surface-panel p-4">
+            <Surface variant="panel" className="p-4">
               <div className="surface-panel-heading">
                 <h2 className="text-base font-semibold">Tier distribution</h2>
                 <p className="type-caption text-muted-foreground">
@@ -231,10 +232,10 @@ export function GeneCohortExplorer() {
                   )}
                 </div>
               </div>
-            </div>
+            </Surface>
           </section>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <div className="surface-panel-heading flex items-center gap-2">
               <icon.barChart3 className="h-4 w-4 text-primary" />
               <div>
@@ -257,9 +258,9 @@ export function GeneCohortExplorer() {
                 No reported findings were found.
               </p>
             )}
-          </section>
+          </Surface>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <div className="surface-panel-heading flex items-center gap-2">
               <icon.users className="h-4 w-4 text-primary" />
               <div>
@@ -282,7 +283,7 @@ export function GeneCohortExplorer() {
                 No samples have a reported finding for this gene.
               </p>
             )}
-          </section>
+          </Surface>
 
           <section className="content-section p-4">
             <h2 className="text-sm font-semibold">How prevalence is calculated</h2>

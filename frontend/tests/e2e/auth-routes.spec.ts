@@ -11,7 +11,7 @@ test("login renders configured providers and reports failed sign-in", async ({ p
   await page.goto("/login")
   await expect(page.getByRole("button", { name: "Local Account" })).toBeVisible()
   await page.getByLabel("Username").fill("clinical.user")
-  await page.getByLabel("Password").fill("wrong-password")
+  await page.getByLabel("Password", { exact: true }).fill("wrong-password")
   await page.getByRole("button", { name: "Sign in" }).click()
   await expect(page.getByText("Invalid local credentials.")).toBeVisible()
 })
@@ -22,7 +22,7 @@ test("password reset route handles a successful API result", async ({ page }) =>
   })
 
   await page.goto("/forgot-password")
-  await page.getByLabel("Username or email").fill("clinical.user")
+  await page.getByLabel("Username", { exact: true }).fill("clinical.user")
   await page.getByRole("button", { name: "Request reset" }).click()
-  await expect(page.getByText("If this account can reset its password")).toBeVisible()
+  await expect(page.getByText(/If the account is eligible/)).toBeVisible()
 })

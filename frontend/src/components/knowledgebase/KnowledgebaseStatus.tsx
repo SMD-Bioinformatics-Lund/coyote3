@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { icon } from "@/lib/assets"
-
 import { TimeDisplay } from "@/components/ui/time-display"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { shortCount } from "@/lib/detail-formatters"
@@ -45,34 +45,34 @@ export function KnowledgebaseStatus({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[42rem] border-collapse text-left type-table-cell">
-          <thead className="bg-muted/80 type-table-header text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2">Source</th><th className="px-3 py-2">Product</th>
-              <th className="px-3 py-2">Release</th><th className="px-3 py-2 text-right">Records</th>
-              <th className="px-3 py-2 text-right">Collections</th>
-              {!compact && <th className="px-3 py-2">Published</th>}
-              <th className="px-3 py-2 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="min-w-[42rem]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Source</TableHead><TableHead>Product</TableHead>
+              <TableHead>Release</TableHead><TableHead className="text-right">Records</TableHead>
+              <TableHead className="text-right">Collections</TableHead>
+              {!compact && <TableHead>Published</TableHead>}
+              <TableHead className="text-center">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {releases.map((release) => {
               const details = knowledgebaseSourceDetails(release.source)
               return (
-                <tr key={release.source} className="border-t border-border/70 hover:bg-muted/35">
-                  <td className="px-3 py-2"><DatabaseBrand source={release.source} label={details.family}
-                    className="type-body-sm text-foreground" logoClassName="h-5 w-14" /></td>
-                  <td className="px-3 py-2 capitalize text-muted-foreground">{details.product}</td>
-                  <td className="px-3 py-2 font-medium">{release.release}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{shortCount(release.records)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{release.collections?.length || 0}</td>
-                  {!compact && <td className="px-3 py-2 text-muted-foreground">{release.published_at ? <TimeDisplay value={release.published_at} /> : "-"}</td>}
-                  <td className="px-3 py-2 text-center">{release.status === "configured" ? <icon.cloud className="mx-auto size-4 text-info" aria-label="Configured remote service" /> : <icon.checkCircle2 className="mx-auto size-4 text-pass" aria-label="Installed" />}</td>
-                </tr>
+                <TableRow key={release.source}>
+                  <TableCell><DatabaseBrand source={release.source} label={details.family}
+                    className="type-body-sm text-foreground" logoClassName="h-5 w-14" /></TableCell>
+                  <TableCell className="capitalize text-muted-foreground">{details.product}</TableCell>
+                  <TableCell className="font-medium">{release.release}</TableCell>
+                  <TableCell className="text-right tabular-nums">{shortCount(release.records)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{release.collections?.length || 0}</TableCell>
+                  {!compact && <TableCell className="text-muted-foreground">{release.published_at ? <TimeDisplay value={release.published_at} /> : "-"}</TableCell>}
+                  <TableCell className="text-center">{release.status === "configured" ? <icon.cloud className="mx-auto size-4 text-info" aria-label="Configured remote service" /> : <icon.checkCircle2 className="mx-auto size-4 text-pass" aria-label="Installed" />}</TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

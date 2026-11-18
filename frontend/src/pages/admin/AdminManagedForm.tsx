@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { cn } from "@/lib/utils"
 import {
   normalizeList,
@@ -85,7 +87,7 @@ export function AdminManagedForm({
     setValues(updated)
   }
   return (
-    <section className="glass-card min-w-0 p-4">
+    <Surface as="section" variant="card" className="min-w-0 p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="type-section-title">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
@@ -103,7 +105,7 @@ export function AdminManagedForm({
               onClick={onSave}
               disabled={isSaving}
             >
-              {isSaving ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}
+              {isSaving ? <LoadingIndicator className="h-4 w-4" /> : <icon.save className="h-4 w-4" />}
               {saveLabel}
             </Button>
           )}
@@ -148,9 +150,9 @@ export function AdminManagedForm({
       {bottomActions && mode !== "view" && <footer className="mt-5 flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="button" onClick={onSave} disabled={isSaving}>
-          {isSaving ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}{saveLabel}
+          {isSaving ? <LoadingIndicator className="h-4 w-4" /> : <icon.save className="h-4 w-4" />}{saveLabel}
         </Button>
       </footer>}
-    </section>
+    </Surface>
   )
 }

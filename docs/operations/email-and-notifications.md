@@ -5,7 +5,9 @@
 | Event | Email | In-app behavior |
 | --- | --- | --- |
 | Local account invitation | Account setup link | Administrative workflow feedback |
-| Local password reset | Reset link | Security notification to administrators |
+| Local password reset | Reset link to the saved account email | Security notification to administrators |
+| LDAP or local recovery without email | Queued notice to system administrators and superusers | Pending request in **Admin → Users → Password recovery** |
+| Assisted recovery completed | Queued completion notice to the account owner, if an email is saved | Completion notification to the account owner |
 | Password set or changed | Confirmation | Workflow feedback |
 | Profile or account-status change | Account notification | Workflow feedback |
 | Administrative broadcast | Generic notice linking to the inbox, when configured | Durable recipient-scoped message |
@@ -22,6 +24,40 @@ is needed to display the logo. Non-production emails show the environment.
 Supported severity labels are **INFO**, **IMPORTANT**, **WARNING**, **CRITICAL**,
 and **SUCCESS**. Account-security messages use IMPORTANT; broadcast severity is
 selected by the sender.
+
+## Account recovery
+
+Users enter their **username** on **Forgot password**. Automatic selection uses
+local authentication first when an account supports both local and LDAP; users
+can explicitly select LDAP. The public response does not disclose whether an
+account exists, is disabled, or has a saved email address.
+
+For local accounts with a saved email, Coyote sends its existing expiring,
+single-use reset link. No email address supplied by the requester is used.
+LDAP accounts and local accounts without email create a persisted assisted
+request. Repeated submissions reuse the pending request and notification.
+
+System administrators and superusers receive an inbox message and queued email.
+In **Admin → Users → Password recovery**, verify the requester using your center's
+identity verification procedure. For LDAP, perform the reset through the external
+directory service and deliver credentials through its approved channel. Coyote
+never generates, stores or emails LDAP passwords. For local accounts without
+email, associate a verified email in account administration and use the local
+reset flow. Select **Mark completed** only after recovery is actually completed.
+The request records the completing administrator and time, audit records retain
+the event, and the owner receives a completion notice. Retrying completion keeps
+the original administrator and time. Disabled accounts or changed providers must
+be reviewed before a request can be completed. The panel lists up to 200 pending
+requests, oldest first; refreshing after completion loads the next requests.
+
+Recovery notification emails use the same durable delivery queue as broadcasts,
+with the security sender. SMTP, the maintenance worker and scheduler must be
+configured and running. These emails include recovery instructions or completion
+confirmation but no passwords or reset tokens. Missing email prevents email
+delivery; the in-app notification remains available. Delivery failure does not
+change the public recovery acknowledgement. Check logs and the notification
+outbox when investigating delivery, and retry a request or completion if its
+notification could not be persisted.
 
 ## Configuration
 

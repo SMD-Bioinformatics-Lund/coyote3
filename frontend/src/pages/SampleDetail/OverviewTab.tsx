@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { TimeDisplay } from "@/components/ui/time-display"
 import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { api } from "@/lib/api"
@@ -76,7 +78,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
   return (
     <div className="space-y-3">
       {resolution?.used_base_configuration && (
-        <section className="glass-card flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
+        <Surface as="section" variant="card" className="flex items-start gap-2 border-warn/35 bg-card/95 p-3 text-sm">
           <appIcon.alertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <div className="min-w-0">
             <strong className="text-warn">Base configuration in use.</strong>{" "}
@@ -85,11 +87,11 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               Requested diagnosis: <strong className="text-foreground">{resolution.requested_diagnosis_id}</strong>.
             </span>
           </div>
-        </section>
+        </Surface>
       )}
 
       <div className="grid grid-cols-1 items-stretch gap-3 xl:grid-cols-5">
-        <SettingsCard title="Sample Meta" tone="border-t-yellow-400" className="sample-meta-card xl:col-span-1">
+        <SettingsCard title="Sample Meta" className="sample-meta-card xl:col-span-1">
           {metadataGroups.filter((group) => group.fields.some((field) => field.value !== null))
             .map(({ title, icon: Icon, fields }) => <section key={title} className="sample-meta-group" aria-label={title}>
               <h3 className="sample-meta-group-title type-label"><Icon className="size-3.5" aria-hidden="true" />{title}</h3>
@@ -118,17 +120,17 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           )}
         </SettingsCard>
 
-        <SettingsCard title="Case and Control" tone="border-t-orange-400" className="xl:col-span-2">
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="type-table-cell w-full min-w-[38rem] border-separate border-spacing-0">
-              <thead>
-                <tr className="type-table-header bg-muted/65 text-left">
-                  <th className="w-28 px-3 py-2 border-r-2 border-border">Field</th>
-                  <th className="bg-pass/8 px-3 py-2 text-pass border-r-2 border-border">Case</th>
-                  <th className="bg-tier3/8 px-3 py-2 text-tier3">Control</th>
-                </tr>
-              </thead>
-              <tbody>
+        <SettingsCard title="Case and Control" className="xl:col-span-2">
+          <div className="table-frame overflow-x-auto">
+            <Table className="min-w-[38rem]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-28 border-r-2 border-border">Field</TableHead>
+                  <TableHead className="bg-pass/8 text-pass border-r-2 border-border">Case</TableHead>
+                  <TableHead className="bg-tier3/8 text-tier3">Control</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {[
                   ["ID", sample?.case?.id || sample?.case_id, sample?.control?.id || sample?.control_id],
                   ["Clarity ID", sample?.case?.clarity_id, sample?.control?.clarity_id],
@@ -139,18 +141,18 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
                   ["FFPE", sample?.case?.ffpe ? "Yes" : "No", sample?.control?.ffpe ? "Yes" : "No"],
                   ["Purity", formatPurityPercentage(sample?.case?.purity), formatPurityPercentage(sample?.control?.purity)],
                 ].map(([label, caseValue, controlValue]) => (
-                  <tr key={String(label)} className="border-t border-border/40">
-                    <th scope="row" className="border-t border-r border-border text-sm bg-muted/35 px-3 py-1 text-left font-semibold capitalize">{label}</th>
-                    <td className="border-t border-r border-border bg-pass/5 px-3 py-1 text-sm font-normal text-foreground">{displayValue(caseValue)}</td>
-                    <td className="border-t border-border bg-tier3/5 px-3 py-1 text-sm font-normal text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</td>
-                  </tr>
+                  <TableRow key={String(label)}>
+                    <TableHead scope="row" className="border-t border-r border-border text-sm bg-muted/35 text-left font-semibold capitalize">{label}</TableHead>
+                    <TableCell className="border-t border-r border-border bg-pass/5 text-sm font-normal text-foreground">{displayValue(caseValue)}</TableCell>
+                    <TableCell className="border-t border-border bg-tier3/5 text-sm font-normal text-foreground">{sample?.paired ? displayValue(controlValue) : "Not paired"}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </SettingsCard>
 
-        <SettingsCard title={`Files & QC (${sample?.asp_category || "-"})`} tone="border-t-orange-800" className="xl:col-span-2">
+        <SettingsCard title={`Files & QC (${sample?.asp_category || "-"})`} className="xl:col-span-2">
           <div className="space-y-2">
             {files.length ? files.map((file: any, index: number) => (
               <div key={file.key || file.path || index} className="content-item flex items-start justify-between gap-3 px-3 py-2">
@@ -184,7 +186,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       </div>
 
       {reports.length > 0 && (
-        <SettingsCard title="Saved Reports" tone="border-t-tier3">
+        <SettingsCard title="Saved Reports">
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             {reports.map((report: any, index: number) => {
               const reportId = report?._id || report?.id || report?.report_id || report?.report_num || index
@@ -215,7 +217,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       <div className="grid gap-3 xl:grid-cols-4">
         <SampleGeneSettings sampleId={sampleId} sample={sample} />
 
-        <SettingsCard title="Gene Filters" tone="border-t-slate-400" className="xl:col-span-2">
+        <SettingsCard title="Gene Filters" className="xl:col-span-2">
           <div className="divide-y divide-border/60">
             {omics === "dna" && (
               <section className="py-3 first:pt-0">
@@ -264,7 +266,7 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Configured Filters" tone="border-t-blue-400" className="col-span-full">
+        <SettingsCard title="Configured Filters" className="col-span-full">
           <div className="configured-filter-grid">
             {filterGroups.length ? filterGroups.map((group) => {
               const Icon = group.key === "cnv" ? appIcon.layers

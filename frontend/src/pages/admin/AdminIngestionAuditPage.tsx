@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -104,7 +105,7 @@ export function AdminIngestionAuditPage() {
   return <PageShell eyebrow="Admin" title="Ingestion audit"
     description="Trace ingestion attempts, outcomes and recovery details across API uploads and workers."
     actions={<Button variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}><icon.refreshCw className="h-4 w-4" /> Refresh</Button>}>
-    {query.isLoading ? <AppLoader /> : query.error ? <div role="alert" className="glass-card p-4 text-destructive">Unable to load ingestion audit. Use Refresh to retry.</div> : <>
+    {query.isLoading ? <AppLoader /> : query.error ? <Surface variant="card" role="alert" className="p-4 text-destructive">Unable to load ingestion audit. Use Refresh to retry.</Surface> : <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {["All events", "Succeeded", "Failed", "Needs reconciliation"].map((label) => <button
           key={label} type="button" aria-pressed={outcome === (label === "All events" ? "" : label)}
@@ -115,7 +116,7 @@ export function AdminIngestionAuditPage() {
           <span className="type-meta text-muted-foreground">In the loaded event window</span>
         </button>)}
       </div>
-      <section className="glass-card space-y-4 p-4" aria-label="Ingestion events">
+      <Surface as="section" variant="card" className="space-y-4 p-4" aria-label="Ingestion events">
         <div className="flex flex-wrap items-end gap-3">
           <SearchInput aria-label="Search ingestion events" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Sample, manifest, actor, error or attempt ID…" />
           <label className="type-label">Outcome<select aria-label="Outcome" className="form-control mt-1 block h-9 rounded-lg px-3 type-body" value={outcome} onChange={(event) => setOutcome(event.target.value)}>
@@ -129,7 +130,7 @@ export function AdminIngestionAuditPage() {
         <p className="type-meta text-muted-foreground">{events.length} latest events loaded of {query.data?.total ?? events.length}. Filters and counts apply to this window. Updates every 30 seconds.</p>
         <DataTable columns={columns} data={visible} filename="ingestion-audit.csv" hideSearch />
         {!events.length && <p className="text-muted-foreground">No ingestion events have been recorded yet.</p>}
-      </section>
+      </Surface>
       {selected && <section ref={detailsRef} tabIndex={-1} className="glass-card space-y-3 p-4 focus-visible:outline focus-visible:outline-primary" aria-label="Ingestion attempt details">
         <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Attempt details</h2><Button variant="ghost" onClick={() => setSelected(null)}>Close details</Button></div>
         <p className="break-all type-meta text-muted-foreground">Correlation: {correlation(selected)}</p>

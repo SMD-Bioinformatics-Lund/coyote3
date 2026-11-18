@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 
 from coyote.config.constants import AUTH_PROVIDER_LOCAL
 from coyote.contracts.operations import OperationResult
+from pymongo import ReturnDocument
 
 from coyote_mongo.repositories.base import BaseRepository
 from coyote_mongo.results import (
@@ -70,6 +71,10 @@ class UsersRepository(BaseRepository):
         col.create_index([("roles", 1)], name="roles_1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
         col.create_index([("firstname", 1)], name="firstname_1", background=True)
+        col.create_index(
+            [("password_recovery.status", 1), ("password_recovery.requested_at", 1)],
+            name="password_recovery_pending",
+        )
 
     def count_users(self, is_active: bool | None = None) -> int:
         """
@@ -613,3 +618,77 @@ class UsersRepository(BaseRepository):
             },
         )
         return result.modified_count == 1
+
+    def request_recovery(self, username: str, record: dict) -> dict | None:
+        """Open one pending request atomically, without modifying credentials."""
+        col = self._recovery_collection()
+        query = {
+            "username": username,
+            "is_active": {"$ne": False},
+            "auth_type": record["provider"],
+            "password_recovery.status": {"$ne": "pending"},
+        }
+        doc = col.find_one_and_update(
+            query, {"$set": {"password_recovery": record}}, return_document=ReturnDocument.AFTER
+        )
+        if not doc:
+            doc = col.find_one(
+                {
+                    "username": username,
+                    "is_active": {"$ne": False},
+                    "password_recovery.status": "pending",
+                }
+            )
+        return (doc or {}).get("password_recovery")
+
+    def recovery_requests(self) -> list[dict]:
+        """List pending requests, projecting away all credential fields."""
+        return [
+            row["password_recovery"]
+            for row in self._recovery_collection()
+            .find(
+                {"password_recovery.status": "pending", "is_active": {"$ne": False}},
+                {"_id": 0, "password_recovery": 1},
+            )
+            .sort("password_recovery.requested_at", 1)
+            .limit(200)
+        ]
+
+    def complete_recovery(self, request_id: str, actor: str) -> dict | None:
+        """Compare and set completion; retries preserve the first completion actor."""
+        col = self._recovery_collection()
+        query = {"password_recovery.request_id": request_id, "is_active": {"$ne": False}}
+        doc = col.find_one(query, {"password_recovery": 1, "auth_type": 1})
+        if not doc or doc["password_recovery"]["provider"] not in doc.get("auth_type", []):
+            return None
+        result = col.find_one_and_update(
+            {
+                **query,
+                "password_recovery.status": "pending",
+                "auth_type": doc["password_recovery"]["provider"],
+            },
+            {
+                "$set": {
+                    "password_recovery.status": "completed",
+                    "password_recovery.completed_at": datetime.now(timezone.utc),
+                    "password_recovery.completed_by": actor,
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if not result:
+            result = col.find_one(
+                {
+                    **query,
+                    "password_recovery.status": "completed",
+                    "auth_type": doc["password_recovery"]["provider"],
+                }
+            )
+        return (result or {}).get("password_recovery")
+
+    def _recovery_collection(self):
+        """Decode recovery timestamps as UTC without changing other user operations."""
+        collection = self.get_collection()
+        return collection.with_options(
+            codec_options=collection.codec_options.with_options(tz_aware=True)
+        )

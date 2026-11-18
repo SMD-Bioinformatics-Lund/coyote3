@@ -7,10 +7,10 @@ export function AppFooter() {
   return (
     <footer
       aria-label="Application footer"
-      className="relative z-10 flex shrink-0 flex-col gap-2 border-t border-border/60 py-3 text-xs leading-relaxed text-muted-foreground sm:flex-row sm:items-start sm:justify-between"
+      className="app-footer relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-0.5 py-1 text-xs leading-4 text-muted-foreground"
     >
       <span>© {new Date().getFullYear()} Sektion för molekylär diagnostik (SMD), Lund · Coyote4 v{runtimeConfig.appVersion}</span>
-      <span className="sm:text-right">For research use only. Not for clinical or diagnostic use.</span>
+      <span className="sm:ml-auto sm:text-right">For research use only. Not for clinical or diagnostic use.</span>
     </footer>
   )
 }

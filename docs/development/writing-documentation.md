@@ -110,9 +110,10 @@ for each audience, with a first action that does not require scanning the full i
 
 Add each page to its section's README with a short purpose, and to `mkdocs.yml`.
 
-Keep navigation task-based. Put direct procedure links first and supporting
-references in a named group. The home page should open those procedures directly,
-without an intervening index. Group long menus by operation;
+Use familiar subject names for sidebar sections: User guide, Administration,
+Installation, Operations, API and integrations, Packages, Development and Reference.
+Put common procedures first and group detailed references by their subject.
+The home page should link directly to common procedures. Group long menus by operation;
 do not make readers choose between several generic manuals without explaining
 their differences. Keep each page in one primary sidebar location and use links
 from other task guides when it is relevant there too.
@@ -131,19 +132,11 @@ observable result, and recovery when a step fails. Explain a term briefly at fir
 use before linking its reference; do not make readers leave a procedure just to
 discover what its next action means.
 
-`docs/reading-paths.yml` defines the site's explicit task sequences. Add a page there
-only when it is the next required operation in that task; alternative DNA/RNA guides,
-worked examples, failure recovery and field catalogs remain optional references.
-A complete single-page procedure needs no extra reading step. Sidebar group headings
-expand without navigating. Page contents are local and collapsible. The normal
-global Next/Previous sequence is replaced by named task navigation.
-
-In-page reference links retain a session-local return location. The return control
-leads to the source paragraph; it does not replace browser history or change the
-linked resource's URL. Links and task navigation remain usable without JavaScript;
-when session storage is unavailable, readers can use browser Back. Task controls
-stay in normal page flow so they do not cover text while scrolling. **On this page**
-includes the guide's sections and their first level of subsections.
+Use the theme's sidebar for page and section navigation. Begin articles with their
+purpose, prerequisites and instructions; do not add a second contents list or task
+selector above them. Put required follow-up actions in the article with descriptive
+links. Ordinary links and browser history handle movement between guides; do not
+add a separate navigation state or an automatic reading sequence.
 
 The shared documentation stylesheet owns text measure, heading spacing, table
 overflow and print presentation. Check light and dark themes at narrow and wide

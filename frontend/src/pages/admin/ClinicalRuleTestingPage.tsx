@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useMemo, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
-
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { PageShell } from "@/components/layout/PageShell"
 import { Badge } from "@/components/ui/badge"
@@ -145,7 +145,7 @@ export function ClinicalRuleTestingPage() {
       title="Rule Test Workspace"
       description="Evaluate a rule-set version against authorized sample data without changing the sample or saving a report."
     >
-      <section className="surface-panel p-4">
+      <Surface as="section" variant="panel" className="p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(18rem,1.4fr)_auto_minmax(16rem,1fr)_auto] lg:items-end">
           <label className="type-label">Rule set<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={ruleId} onChange={(event) => { setRuleId(event.target.value); setSampleId(""); resetPreview() }}><option value="">Select rule set</option>{(rulesQuery.data?.items || []).filter((rule) => rule.status !== "retired").map((rule) => <option key={rule._id} value={rule._id}>{rule.name} · v{rule.content_version} · {rule.status}</option>)}</select></label>
           <SegmentedControl ariaLabel="Sample matching scope" value={scope} onValueChange={(value) => { setScope(value); setSampleId(""); resetPreview() }} items={[{ value: "diagnosis", label: "Assay + diagnosis" }, { value: "assay", label: "Assay only" }]} />
@@ -154,18 +154,18 @@ export function ClinicalRuleTestingPage() {
         </div>
         {selectedRule && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><ClinicalRuleStatusBadge status={selectedRule.status} /><span>Testing {selectedRule.scope.asp_id} · {selectedRule.scope.diagnosis_id} · {selectedRule.scope.analyte.toUpperCase()}</span></div>}
         {rulesQuery.error && <p role="alert" className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{rulesQuery.error instanceof Error ? rulesQuery.error.message : "Unable to load clinical rule sets."}</p>}
-      </section>
+      </Surface>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(18rem,0.7fr)_minmax(30rem,1.3fr)]">
-        <section className="surface-panel min-h-80 p-3">
+        <Surface as="section" variant="panel" className="min-h-80 p-3">
           <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Compatible samples</h2><span className="text-xs text-muted-foreground">Latest 10</span></div>
           <div className="mt-3 space-y-1">
             {(samplesQuery.data?.items || []).map((sample) => <button key={sample.id} type="button" className={`w-full rounded-lg border p-3 text-left ${sampleId === sample.id ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`} onClick={() => { setSampleId(sample.id); resetPreview() }}><span className="block font-medium">{sample.name}</span><span className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{sample.asp_id}</span><span>{sample.diagnosis_id}</span><span>{sample.environment}</span></span></button>)}
             {ruleId && !samplesQuery.isLoading && !samplesQuery.error && !samplesQuery.data?.items.length && <p className="p-6 text-center text-sm text-muted-foreground">No compatible samples found.</p>}
             {samplesQuery.error && <p role="alert" className="rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{samplesQuery.error instanceof Error ? samplesQuery.error.message : "Unable to search compatible samples."}</p>}
           </div>
-        </section>
-        <section className="surface-panel min-h-80 p-4">
+        </Surface>
+        <Surface as="section" variant="panel" className="min-h-80 p-4">
           <div className="flex items-center justify-between gap-3"><h2 className="type-section-title">Generated report text</h2>{previewMutation.data && <Badge variant="outline" className="badge-read-only-preview">Read-only preview</Badge>}</div>
           {previewMutation.error && <p role="alert" className="mt-4 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{previewMutation.error instanceof Error ? previewMutation.error.message : "Unable to generate the rule-set preview."}</p>}
           {previewMutation.data ? <>
@@ -173,7 +173,7 @@ export function ClinicalRuleTestingPage() {
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{previewMutation.data.evaluation.trace.filter((item) => item.matched).length} rules matched. No data was persisted.</p><Button variant="outline" size="sm" disabled={previewMutation.isPending} onClick={() => { if (traceOpen) setTraceOpen(false); else if (traceLoaded) setTraceOpen(true); else previewMutation.mutate(true) }}>{traceOpen ? <icon.chevronUp /> : <icon.chevronDown />} {previewMutation.isPending ? "Building trace" : traceOpen ? "Hide" : "Show"} execution trace</Button></div>
             {traceOpen && <RuleExecutionTrace preview={previewMutation.data} />}
           </> : !previewMutation.error && <div className="grid min-h-64 place-items-center text-sm text-muted-foreground">Select a sample and test the rule set to generate its report text.</div>}
-        </section>
+        </Surface>
       </div>
     </PageShell>
   )

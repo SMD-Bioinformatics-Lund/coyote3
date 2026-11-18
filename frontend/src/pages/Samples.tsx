@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
@@ -249,7 +250,7 @@ export function Samples() {
 
         {/* Filters Summary */}
         {(category || assay || group || searchStr || showAllProfiles || dateRange !== "all") && (
-          <div className="glass-card flex items-center gap-2 text-sm text-muted-foreground px-5 py-3">
+          <Surface variant="card" className="flex items-center gap-2 text-sm text-muted-foreground px-5 py-3">
             <span className="mr-2 text-xs font-semibold uppercase tracking-wider">Active Filters</span>
             <Badge variant="secondary" className="uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{showAllProfiles ? "all profiles" : DEFAULT_ENVIRONMENT}</Badge>
             {searchStr && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">Search: {searchStr}</Badge>}
@@ -259,10 +260,10 @@ export function Samples() {
             {group && <Badge variant="secondary" className="uppercase bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md shadow-sm">{group}</Badge>}
             {dateRange !== "all" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-md">{dateRangeLabel(dateRange)}</Badge>}
             <Link to="/samples" className="text-xs font-bold text-destructive hover:underline ml-auto bg-destructive/10 px-3 py-1 rounded-md" onClick={() => setSearchInput("")}>Clear All</Link>
-          </div>
+          </Surface>
         )}
 
-        <div className="glass-card border-border/50 p-4">
+        <Surface variant="card" className="p-4">
           <div className="mb-3 flex flex-wrap items-end gap-3 border-b border-border/60 pb-3" aria-label="Sample date and limit filters">
             <DateRangeFilter
               idPrefix="sample-date"
@@ -349,7 +350,7 @@ export function Samples() {
               </section>
             </div>
           )}
-        </div>
+        </Surface>
       </PageShell>
     </div>
   )

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
@@ -33,7 +34,7 @@ export function AssayDiagnosesPage() {
   })
 
   return <PageShell eyebrow="Admin" title="Assay diagnosis associations" actions={<AdminHomeLink />}>
-    <section aria-label="Assay association registry" className="glass-card min-w-0 space-y-3 p-3">
+    <Surface as="section" variant="card" aria-label="Assay association registry" className="min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="associations" />
     {access.isLoading ? <AppLoader label="Loading administration access" /> : !permitted ? (
       <p role="alert">Assay list and view permissions are required.</p>
@@ -57,6 +58,6 @@ export function AssayDiagnosesPage() {
       {selected && <AssayDiagnoses key={selected} aspId={selected} canEdit={hasPermission(access.data, "assay.panel:edit")} />}
       {!selected && !assays.isLoading && !assays.error && <p className="border-t border-border py-6 text-center type-body text-muted-foreground">No assay selected.</p>}
     </>}
-    </section>
+    </Surface>
   </PageShell>
 }

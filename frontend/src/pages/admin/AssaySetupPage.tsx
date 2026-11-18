@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -83,7 +84,7 @@ function ScopeEditor({ content, context, readonly, pending, onSave, onRefresh, o
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
   const toggle = (items: string[], value: string) => items.includes(value) ? items.filter((item) => item !== value) : [...items, value]
-  return <section aria-label="Scope selection" className="surface-panel min-w-0 space-y-6 p-4 sm:p-6">
+  return <Surface as="section" variant="panel" aria-label="Scope selection" className="min-w-0 space-y-6 p-4 sm:p-6">
     {!readonly && <div className="flex flex-wrap items-center justify-end gap-3"><Link to="/admin/diagnoses" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary underline"><icon.layers className="size-4" />Manage diagnosis definitions</Link><Button variant="outline" size="icon" aria-label="Refresh diagnosis definitions" title="Refresh diagnosis definitions" onClick={onRefresh}><icon.refreshCw /></Button></div>}
     <p className="type-body-sm text-muted-foreground">Link the diagnoses this assay supports. A diagnosis can use both panel and whole-genome assays. Assay names and covered genes do not create these links automatically.</p>
     <fieldset disabled={readonly || pending} className="space-y-3"><legend className="type-title mb-3">Supported diagnoses</legend>
@@ -92,7 +93,7 @@ function ScopeEditor({ content, context, readonly, pending, onSave, onRefresh, o
     </fieldset>
     <fieldset disabled={readonly || pending} className="space-y-3 border-t border-border pt-4"><legend className="type-title pr-3">Configuration environments</legend><p className="type-body-sm text-muted-foreground">Only Base / production is required for activation. Other configurations are optional and can be added later from Assay Configurations.</p><div className="flex flex-wrap gap-2">{context.environments.map((env) => <label key={env} className={cn("flex items-center gap-3 rounded-lg border px-4 py-3 type-body", environments.includes(env) ? "border-primary/30 bg-primary/5" : "border-border")}><input type="checkbox" checked={environments.includes(env)} disabled={env === "production"} onChange={() => setEnvironments(toggle(environments, env))} />{env}{env === "production" && <span className="type-meta text-muted-foreground">Required</span>}</label>)}</div></fieldset>
     {!readonly && <Button disabled={pending} onClick={() => onSave({ ...content, scopes, environments })}><icon.save />Save and continue</Button>}
-  </section>
+  </Surface>
 }
 
 export function AssaySetupPage() {
@@ -213,7 +214,7 @@ export function AssaySetupPage() {
 
   return <PageShell className="min-w-0 [&>*]:min-w-0" eyebrow="Admin" title="Assay setup" actions={canWrite ? <Button disabled={busy || isNew} onClick={() => choose("new")}><icon.plus />New assay setup</Button> : undefined}>
     {access.isLoading ? <AppLoader label="Loading access" /> : !canView ? <p role="alert">Assay list and view permissions are required.</p> : <>
-      <section aria-label="Assay setup workspace" className="surface-panel min-w-0">
+      <Surface as="section" variant="panel" aria-label="Assay setup workspace" className="min-w-0">
       <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
       <ConfigurationTransfer label="assay setup" filename={`${setup?.asp_id || "assay"}-setup`}
         document={content} metadataDocument={setup ? { ...setup, ...content } : content}
@@ -227,12 +228,12 @@ export function AssaySetupPage() {
         onImport={panel => { importSetup.reset(); setImported({ panel, scopes: ["base"], environments: ["production"],
           gene_lists: [], existing_gene_list_ids: [], configurations: [] }) }} />}
       </div>
-      {imported && <section className="surface-panel space-y-3 p-4" aria-label="Import assay setup">
+      {imported && <Surface as="section" variant="panel" className="space-y-3 p-4" aria-label="Import assay setup">
         <p className="type-body-sm">Review the imported configuration and choose an unused assay identifier. Saving creates a draft that can be activated after validation, with optional review.</p>
         <JsonDocumentEditor document={imported} label="Assay setup" allowUnchanged
           onCancel={() => setImported(null)} serverError={importSetup.error?.message}
           onSave={document => importSetup.mutate(document)} isSaving={importSetup.isPending} />
-      </section>}
+      </Surface>}
       <div className={cn("grid min-h-[32rem] min-w-0 items-stretch", listCollapsed ? "xl:grid-cols-[3rem_minmax(0,1fr)]" : "xl:grid-cols-[18rem_minmax(0,1fr)]")}>
         <aside aria-label="Assay setup navigation" className="min-w-0 border-b border-border xl:border-r xl:border-b-0">
           {listCollapsed ? <button type="button" className="clinical-rules-rail rounded-[inherit]" aria-label="Expand assay setup list" onClick={() => setListCollapsed(false)}><icon.panelLeftOpen /><span>Saved setups</span></button> : <>
@@ -258,19 +259,19 @@ export function AssaySetupPage() {
       {!selected && !list.isLoading && !list.error && <div className="p-4 sm:p-6"><SetupEmptyState icon={icon.clipboardCheck} title={list.data?.length ? "No setup selected" : "No saved assay setups"} /></div>}
       {context.isLoading && <AppLoader label="Loading setup" />}
       {context.data && !imported && <>
-        {setup?.status === "published" && <section role="status" className="surface-panel space-y-2 p-3">
+        {setup?.status === "published" && <Surface as="section" variant="panel" role="status" className="space-y-2 p-3">
           <p className="type-label">Published setup · read-only</p>
           <p className="type-body-sm">This is the setup snapshot captured at publication. Make subsequent changes in the individual resource editors; this snapshot stays unchanged.</p>
           <div className="flex flex-wrap gap-3">
             {hasPermission(user, "assay.panel:edit") ? <Link className="type-body text-primary underline" to={`/admin/asp/${encodeURIComponent(setup.asp_id)}/edit`}>Edit assay</Link> : hasPermission(user, "assay.panel:view") && <Link className="type-body text-primary underline" to={`/admin/asp/${encodeURIComponent(setup.asp_id)}/view`}>View activated assay</Link>}
             {hasPermission(user, "assay.config:list") && <Link className="type-body text-primary underline" to="/admin/aspc">Manage assay configurations</Link>}
           </div>
-        </section>}
-        {setup?.status === "submitted" && <section role="status" className="surface-panel space-y-2 p-3">
+        </Surface>}
+        {setup?.status === "submitted" && <Surface as="section" variant="panel" role="status" className="space-y-2 p-3">
           <p className="type-label">Submitted for review · read-only</p>
           <p className="type-body-sm">{setup.reviewer ? `Assigned reviewer: ${setup.reviewer}. ` : ""}Return the setup to draft from Review before editing.</p>
           {reviewAllowed ? <Button variant="outline" disabled={busy} onClick={() => requestChange(() => { setStep(5); setEditing(null) })}>Open review actions</Button> : <p className="type-body-sm text-muted-foreground">An administrator with assay editing permission can return it to draft.</p>}
-        </section>}
+        </Surface>}
         {setup?.status === "draft" && !canWrite && <p role="status" className="surface-panel p-3 type-body-sm">This draft is read-only because your account lacks required setup permissions: {writePermissions.filter(permission => !hasPermission(user, permission)).join(", ")}. Ask an administrator to grant the required access.</p>}
         {canWrite && !sharedListAccess && setup?.status !== "published" && <p role="alert" className="surface-panel p-3 type-body-sm text-warning">Saving or activating selected shared gene lists requires gene_list.insilico:edit permission. Ask an administrator for access.</p>}
         <DocumentEditorNotice editor={documentEditor} />
@@ -281,7 +282,7 @@ export function AssaySetupPage() {
         {step === 0 && <ResourceEditor saveLabel="Save and continue" key={`${selected}-${setup?.revision}`} kind="asp" form={{ ...context.data.panel_form, fields: { ...context.data.panel_form.fields, is_active: { ...context.data.panel_form.fields.is_active, hidden_mode: ["create", "view"] }, ...(setup ? { asp_id: { ...context.data.panel_form.fields.asp_id, readonly: true } } : {}) } }} source={content?.panel || {}} readonly={readonly} pending={busy} onDirtyChange={setDirty} onCancel={() => choose("")} onSave={(panel) => save(content ? { ...content, panel: { ...panel, asp_id: content.panel.asp_id } } : emptyContent(panel), 1)} />}
         {step === 1 && content && <ScopeEditor key={`${selected}-${setup?.revision}`} content={content} context={context.data} readonly={readonly} pending={busy} onDirtyChange={setDirty} onSave={(next) => save(next, 2)} onRefresh={() => void context.refetch()} />}
         {step === 2 && content && <AssayGeneLists aspId={String(content.panel.asp_id)} aspGroup={String(content.panel.asp_group)} readonly={!canWrite || !documentEditor.owned || setup?.status !== "draft"} pending={busy} selected={content.existing_gene_list_ids || []} onChange={(ids) => requestChange(() => save({ ...content, existing_gene_list_ids: ids }))} />}
-        {(step === 2 || step === 4) && content && <section aria-label={step === 2 ? "Gene list workspace" : "Configuration workspace"} className="surface-panel min-w-0 space-y-5 p-4 sm:p-6">
+        {(step === 2 || step === 4) && content && <Surface as="section" variant="panel" aria-label={step === 2 ? "Gene list workspace" : "Configuration workspace"} className="min-w-0 space-y-5 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2">{step === 2 ? <icon.listTree className="size-5 text-primary" /> : <icon.settings2 className="size-5 text-primary" />}{step === 2 ? "Staged gene lists" : "Scope configurations"}<span className="type-meta text-muted-foreground">({records.length})</span></h2>{!readonly && <Button variant="outline" disabled={!form || busy || editing === records.length} onClick={() => requestChange(() => { setConfigurationSeed({}); setEditing(records.length) })}><icon.plus />{step === 2 ? "Add gene list" : "Add configuration"}</Button>}</div>
           {!form && !readonly && <p role="status" className="type-body text-muted-foreground">{step === 2 ? "Gene list" : "Configuration"} form unavailable. <Button variant="link" onClick={() => void context.refetch()}>Retry</Button></p>}
           {step === 4 && <SetupConfigurationsTable scopes={content.scopes} environments={content.environments} records={records} readonly={readonly} pending={busy} formAvailable={Boolean(form)} onEdit={index => { if (index !== editing) requestChange(() => setEditing(index)) }} onCreate={(scope, environment) => { if (editing !== records.length || configurationSeed.diagnosis_id !== scope || configurationSeed.environment !== environment) requestChange(() => { setConfigurationSeed({ diagnosis_id: scope, environment }); setEditing(records.length) }) }} onRemove={index => requestChange(() => save({ ...content, configurations: records.filter((_, i) => i !== index) }))} />}
@@ -289,12 +290,12 @@ export function AssaySetupPage() {
           {step === 4 && <p className="type-body-sm text-muted-foreground">Base / production is required. Other configurations are optional and can be added later from <Link className="text-primary underline" to="/admin/aspc">Assay Configurations</Link>.</p>}
           {!records.length && editing == null && <SetupEmptyState icon={step === 2 ? icon.listTree : icon.settings2} title={step === 2 ? "No staged gene lists" : "No configurations saved"} description={step === 2 ? "Gene lists are optional unless required by the selected filters." : "Save a Base / production configuration before activation."} />}
           {editing != null && form && <ResourceEditor key={`${selected}-${setup?.revision}-${step}-${editing}-${configurationSeed.diagnosis_id}-${configurationSeed.environment}`} kind={kind} form={form} source={records[editing] || (step === 2 ? { asp_ids: [setup?.asp_id], asp_groups: [content.panel.asp_group], diagnosis: ["base"] } : { asp_id: setup?.asp_id, asp_group: content.panel.asp_group, asp_category: content.panel.asp_category, display_name: content.panel.display_name, platform: content.panel.platform, diagnosis_id: "base", environment: content.environments[0], ...configurationSeed })} readonly={readonly} pending={busy} onDirtyChange={setDirty} onCancel={() => requestChange(() => setEditing(null))} onSave={(record) => { const next = [...records]; next[editing] = record; save({ ...content, [field]: next }) }} />}
-        </section>}
-        {step === 3 && content && <section aria-label="Reporting rule workspace" className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2"><icon.fileCheck className="size-5 text-primary" />Published reporting rules</h2><div className="flex flex-wrap items-center gap-2"><Link className="inline-flex items-center gap-2 text-primary underline" to="/admin/clinical-rules" target="_blank" rel="noopener noreferrer">Open rule builder</Link><Button variant="outline" size="icon" aria-label="Refresh reporting rules" title="Refresh reporting rules" onClick={() => void context.refetch()}><icon.refreshCw /></Button></div></div>
+        </Surface>}
+        {step === 3 && content && <Surface as="section" variant="panel" aria-label="Reporting rule workspace" className="min-w-0 space-y-5 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><h2 className="type-title flex items-center gap-2"><icon.fileCheck className="size-5 text-primary" />Published reporting rules</h2><div className="flex flex-wrap items-center gap-2"><Link className="inline-flex items-center gap-2 text-primary underline" to="/admin/clinical-rules" target="_blank" rel="noopener noreferrer">Open rule builder</Link><Button variant="outline" size="icon" aria-label="Refresh reporting rules" title="Refresh reporting rules" onClick={() => void context.refetch()}><icon.refreshCw /></Button></div></div>
           <ul className="divide-y divide-border">{(context.data.rules || []).map((rule) => <li key={rule._id} className="flex flex-wrap items-center gap-2 py-3"><icon.check className="size-4 text-pass" /><span className="type-body">{rule.scope.diagnosis_id} · {rule.name} · v{rule.content_version}</span></li>)}</ul>
           {!context.data.rules?.length && <p role="alert" className="rounded-md border border-warning p-3 type-body">Reporting rules are optional. You can complete assay setup now. Reports will be available without an automatically generated summary until compatible rules are published.</p>}
-        </section>}
-        {step === 5 && setup && <section className="surface-panel min-w-0 space-y-5 p-4 sm:p-6"><h2 className="type-title flex items-center gap-2 border-b border-border pb-4"><icon.clipboardCheck className="size-5 text-primary" />Review and activation</h2><dl className="grid gap-5 type-body sm:grid-cols-2 [&_dd]:mt-1 [&_dd]:break-words [&>div]:min-w-0"><div><dt className="type-label text-muted-foreground">Assay</dt><dd>{String(setup.content.panel.display_name)} ({setup.asp_id})</dd></div><div><dt className="type-label text-muted-foreground">Scopes</dt><dd>{setup.content.scopes.join(", ")}</dd></div><div><dt className="type-label text-muted-foreground">Environments</dt><dd>{setup.content.environments.join(", ") || "None selected"}</dd></div><div><dt className="type-label text-muted-foreground">Created by</dt><dd>{setup.created_by}</dd></div></dl>
+        </Surface>}
+        {step === 5 && setup && <Surface as="section" variant="panel" className="min-w-0 space-y-5 p-4 sm:p-6"><h2 className="type-title flex items-center gap-2 border-b border-border pb-4"><icon.clipboardCheck className="size-5 text-primary" />Review and activation</h2><dl className="grid gap-5 type-body sm:grid-cols-2 [&_dd]:mt-1 [&_dd]:break-words [&>div]:min-w-0"><div><dt className="type-label text-muted-foreground">Assay</dt><dd>{String(setup.content.panel.display_name)} ({setup.asp_id})</dd></div><div><dt className="type-label text-muted-foreground">Scopes</dt><dd>{setup.content.scopes.join(", ")}</dd></div><div><dt className="type-label text-muted-foreground">Environments</dt><dd>{setup.content.environments.join(", ") || "None selected"}</dd></div><div><dt className="type-label text-muted-foreground">Created by</dt><dd>{setup.created_by}</dd></div></dl>
           <p className="type-body">Existing gene lists to associate: {setup.content.existing_gene_list_ids?.join(", ") || "None"}</p>
           {setup.reviewer && setup.status !== "submitted" && <p className="type-body">Assigned reviewer: <span className="font-medium">{setup.reviewer}</span></p>}
           {setup.status === "published" && <p className="type-body">Published by: {setup.published_by || "Unknown"} · {setup.reviewed_by ? `Reviewed by ${setup.reviewed_by}` : "Published without review"}</p>}
@@ -313,13 +314,13 @@ export function AssaySetupPage() {
           {reviewAllowed && <><label className="type-label block">Review notes<textarea className="paper-inset mt-1 min-h-24 w-full rounded-md p-3" value={reason} onChange={(event) => setReason(event.target.value)} /></label><div className="flex flex-wrap gap-3">{canWrite && isAssignedReviewer && <Button disabled={!canActivate || !context.data.readiness?.ready || busy} onClick={() => mutation.mutate({ action: "publish" })}><icon.check />Approve and activate</Button>}<Button variant="outline" disabled={!reason.trim() || busy} onClick={() => mutation.mutate({ action: "return" })}><icon.arrowLeft />{isAssignedReviewer ? "Return for changes" : "Return to draft"}</Button></div></>}
           {setup.status === "submitted" && !reviewAllowed && <p role="status">Submitted for optional review.</p>}
           <details><summary className="cursor-pointer type-label">Revision history</summary><ul className="mt-3 divide-y divide-border">{context.data.history?.map((entry) => <li key={entry.revision} className="py-2 type-body">r{entry.revision} · {entry.action} · {entry.actor} · {new Date(entry.at).toLocaleString()}</li>)}</ul></details>
-        </section>}
+        </Surface>}
         {!isNew && <footer className="surface-panel flex min-w-0 flex-wrap items-center justify-between gap-2 p-3"><Button variant="outline" disabled={step === 0 || busy} onClick={() => requestChange(() => { setStep(step - 1); setEditing(null) })}><icon.arrowLeft />Previous</Button><span className="type-meta text-muted-foreground">Step {step + 1} of 6{!readonly && (step < 2 || editing !== null) && " · Save the form to continue"}</span><Button variant="outline" disabled={step === 5 || busy || (!readonly && (step < 2 || editing !== null))} onClick={() => requestChange(() => { setStep(step + 1); setEditing(null) })}>Next<icon.arrowRight /></Button></footer>}
       </>}
         </section>
       </div>
       {setup && !imported && ["draft", "submitted"].includes(setup.status) && hasPermission(user, "assay.panel:delete") && <div className="flex justify-end border-t border-border p-3"><Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}><icon.trash2 />Delete unpublished setup</Button></div>}
-      </section>
+      </Surface>
     </>}
     <ConfirmationDialog open={pendingChange !== null || blocker.state === "blocked"} title="Discard unsaved changes?" description="The changes in this form have not been saved. Your saved draft remains available." confirmLabel="Discard changes" cancelLabel="Keep editing" isPending={busy} onConfirm={() => { const change = pendingChange; setPendingChange(null); setDirty(false); setImported(null); if (blocker.state === "blocked") blocker.proceed(); else change?.() }} onCancel={() => { setPendingChange(null); if (blocker.state === "blocked") blocker.reset() }} />
     <ConfirmationDialog open={confirmDelete} title="Delete unpublished assay setup?" description="The workspace and its private snapshots will be removed. Separately saved resources and published records are preserved. An audit receipt is retained." confirmLabel="Delete setup" isPending={deletion.isPending} onConfirm={() => deletion.mutate()} onCancel={() => setConfirmDelete(false)} />

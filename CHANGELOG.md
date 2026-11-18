@@ -2,74 +2,30 @@
 
 ## v4.0.0
 
-- Shared footer with SMD copyright and research-use notice; superuser-only login
-  activity counts in user administration, excluding expired and invalid sessions.
-- Correct permission-scoped finding counts using persisted sample IDs; reject invalid
-  genotype allele fractions and keep invalid numeric evidence out of reports and CNV displays.
-- Preserve browser sessions when older requests finish late, refresh saved CNV
-  classifications, and support sample names containing URL characters during review.
-- Disposable local browser acceptance with synthetic accounts, isolated databases
-  and automatic cleanup; cover access boundaries, concurrent editing, immutable
-  reports, worker recovery and WGS analysis tables.
-- Let scoped viewers open sample workspaces without editing grants, and expose
-  the Docker demo frontend through its own loopback bridge while keeping databases private.
-- Authenticated resource metadata queries with selected fields, distinct IDs, counts,
-  bounded pagination and permission-scoped sample/assay/configuration relationships.
-- FastAPI backend and React interface with shared admin tables, light/dark themes
-  and Coyote4 branding.
-- Independent clinical core and Python HTTP client, with API and MongoDB components
-  in one server distribution, editable uv development and verified wheel deployments.
-- Keep the Python client outside the application; consume public Coyote Relay from
-  an exact Git commit and stage its verified wheel for Docker builds.
-- Keep reusable models and validators in core; Relay uses base core, while report
-  and alignment/VCF dependencies are selected through optional core extras.
-- Local development backend reload and frontend hot updates; Docker backend
-  services use explicit restarts or rebuilds, with source bind mounts for editing.
-- Unified DNA/RNA review, structural variants, coverage, biomarkers, classification
-  and annotation workflows.
-- Versioned assay, diagnosis, gene-list and environment configuration; shared or
-  independent SNV filtering and configurable report section order.
-- Consistent CNV gene-list/panel fallback and configurable normal-call query rules;
-  DNA translocation transcript selection requires both gene partners for a MANE match.
-- Require high-amplification CNVs to pass size limits, matching the production
-  query's handling of `ratio > 3` while retaining v4's strict cutoff boundaries.
-- Governed query and reporting rules with drafts, review, publication and provenance.
-- Focused administration, clinical-rule lifecycle and report-building services with
-  unchanged review transitions and report presentation.
-- HTML/PDF reports through `smd-reports`, reviewed previews, saved finding snapshots
-  and traceable report artifacts.
-- Typed DNA/RNA report identifiers, consistent template-profile modality validation
-  and report formatting independent of the renderer; prior development profiles
-  require reviewed replacement identifiers and hashes.
-- Exact assay/environment access, scoped credentials and durable audit records.
-- Coyote Relay ingestion tools, optional API routes and workers with core-owned
-  workflows, recovery support, container deployment and migration tools.
-- Coyote Atlas reference bundles with integrity checks and recorded provenance;
-  isolated Coyote Demo installations for local and Docker use.
-- One installation command for deployment profiles, local planning, configuration
-  checks and isolated demos, with short/full deployment names kept separate from
-  clinical sample profiles, staged logging, explicit system-administrator and
-  emergency-superuser options, and existing-data safeguards.
-- Component-owned tests, fast smoke suites, separate coverage, fail-closed startup
-  and explicit deployed-release acceptance checks with streamlined documentation.
-- Focus regression tests on behavior and failure handling; replace documentation
-  styling and prose assertions with example, contract and deployed-artifact checks.
-- Keep backup and restore archives accessible to the invoking operator by running
-  containerized MongoDB tools with that user's UID/GID; verify recovery and audit integrity.
-- Correct browser fixtures to use Atlas reference data and explicitly select the
-  API documentation resource under test.
-- Parse the report renderer pin from core's reporting extra for deployed browser
-  acceptance; align release tests and commands with external Relay/client ownership
-  and the scoped resource-read service.
-- Isolate installer fixtures from the checkout's Python imports and retain the
-  released 3.2–3.4 changelog history.
-- Minimal GitHub smoke checks, version and changelog gates, focused contribution
-  templates and a documented dev-to-master release process with semantic versioning.
-- GNU GPL version 3 only, with separate copyright and contributor notices.
+- Rebuilt application with FastAPI, React and Coyote4 branding, consistent shared UI
+  components and light/dark themes. Reusable core is independent of the API and database adapter.
+- Unified DNA, RNA and WGS review, including SNVs, CNVs, translocations, RNA fusions,
+  coverage and biomarkers, with combined or separate somatic/germline workflows.
+- Versioned assay, gene-list and environment configuration; configurable analysis
+  order and query/reporting rules with drafts, review, publication and provenance.
+- HTML/PDF reporting through `smd-reports`, with reviewed previews, immutable
+  finding snapshots and traceable saved reports.
+- Assay/environment access control, scoped API credentials, session administration
+  local and administrator-assisted LDAP account recovery, and durable audit records.
+- Coyote Relay ingestion and recovery, Atlas reference bundles, isolated Demo
+  installations and an independent Python client for external integrations.
+- One installer for native and Docker deployments, with independent MongoDB, Redis
+  and application lifecycles, explicit connection URLs and editable uv development.
+- GNU GPL v3 only licensing, with separate copyright and contributor notices.
 
-See the [upgrade procedure](docs/deployment/application-upgrades.md) for deployment,
-access assignments, database permissions and migration requirements. Package changelogs
-record package-specific changes.
+**Analysis behavior:** CNVs use gene-list/panel fallback and configurable normal-call
+rules; size limits also apply when `ratio > 3`. DNA translocation MANE selection
+requires both gene partners to match.
+
+**Upgrade requirements:** Review changed configuration, data contracts and report-profile
+identifiers before upgrading. Changing database names does not migrate data. Follow the
+[upgrade procedure](docs/deployment/application-upgrades.md), including preservation of
+existing Redis storage when separating infrastructure. Package changelogs contain component details.
 
 ## v3.4.3
 

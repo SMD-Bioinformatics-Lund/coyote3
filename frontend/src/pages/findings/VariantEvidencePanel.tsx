@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import {
   DetailDataTable,
   DetailMetricTable,
@@ -177,16 +178,16 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
         >
           <DetailMetricTable metrics={oncokbPublicGeneMetrics(data.oncokb_gene)} dense initialRows={10} />
           {data.oncokb_gene?.gene_summary ? (
-            <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
+            <Surface variant="inset" className="mt-2  p-3">
               <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Gene summary</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.gene_summary}</p>
-            </div>
+            </Surface>
           ) : null}
           {data.oncokb_gene?.background ? (
-            <div className="mt-2 rounded-lg border border-border/70 bg-card/60 p-3">
+            <Surface variant="inset" className="mt-2  p-3">
               <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">Background</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground">{data.oncokb_gene.background}</p>
-            </div>
+            </Surface>
           ) : null}
         </VariantKnowledgeBlock>
 
@@ -231,14 +232,14 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
                 <p className="type-meta text-muted-foreground">{oncokbPublic.data.message}</p>
               ) : null}
               {Object.entries(oncokbPublic.data.responses || {}).map(([intent, response]) => (
-                <div key={intent} className="rounded-lg border border-border/70 bg-card/60 p-3">
+                <Surface variant="inset" key={intent} className="p-3">
                   <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">
                     {intent} annotation
                   </p>
                   <div className="mt-2">
                     <DetailMetricTable metrics={oncokbApiSummary(oncokbPublic.data, response)} dense initialRows={10} />
                   </div>
-                </div>
+                </Surface>
               ))}
               {Object.entries(oncokbPublic.data.failures || {}).map(([intent, message]) => (
                 <p key={intent} className="type-meta text-destructive" role="alert">
@@ -284,7 +285,7 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
               Alternate symbols: {data.clinpgx_gene.alternate_symbols.join(", ")}
             </p>
           ) : null}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/60 p-3">
+          <Surface variant="inset" className="mt-3 flex flex-wrap items-center justify-between gap-2  p-3">
             <p className="mt-0.5 type-meta text-muted-foreground">
               Public API lookup for PGx guidelines, labels, variant annotations, drugs, and pathways.
             </p>
@@ -297,16 +298,16 @@ export function VariantEvidencePanel({ data, geneSymbol, id, varId }: {
             >
               {clinpgxPublic.isPending ? "Loading..." : "Fetch ClinPGx"}
             </Button>
-          </div>
+          </Surface>
 
           {clinpgxPublic.data ? (
             <div className="mt-3 space-y-3">
               <DetailMetricTable metrics={clinpgxApiSummary(clinpgxPublic.data)} dense initialRows={10} />
               {clinpgxPublic.data.response?.vip?.summary ? (
-                <div className="rounded-lg border border-border/70 bg-card/60 p-3">
+                <Surface variant="inset" className="p-3">
                   <p className="type-meta font-semibold uppercase tracking-wide text-muted-foreground">VIP summary</p>
                   <p className="mt-1 text-sm leading-relaxed text-foreground">{clinpgxPublic.data.response.vip.summary}</p>
-                </div>
+                </Surface>
               ) : null}
               <div className="grid gap-3 xl:grid-cols-2">
                 <div>

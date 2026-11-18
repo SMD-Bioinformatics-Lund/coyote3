@@ -272,7 +272,7 @@ These are examples; changing the names later does not transfer grants:
 const applicationDb = "coyote4_prod";
 const identityDb = "coyote4_identity_prod";
 const knowledgebaseDb = "coyote4_knowledgebase";
-const bamDb = "bam_prod";
+const bamDb = "coyote4_bam_prod";
 const policy = JSON.parse(require("fs").readFileSync(
   "deploy/compose/mongo-init/identity-role-policy.json", "utf8"
 ));

@@ -370,21 +370,12 @@ def change_password(
 def request_password_reset(
     payload: ApiPasswordResetRequest, service: PasswordRecovery = Depends(get_password_recovery)
 ):
-    """Issue a secure, time-limited password reset link for a local user.
+    """Request username-based recovery without disclosing account eligibility.
 
-    Accepts an incoming reset request for an identifier and generates a corresponding
-    one-time cryptographic reset token. Note that to prevent system account enumeration,
-    this endpoint deliberately returns a positive status regardless of target existence.
-
-    \u000c
-
-    Args:
-        payload (ApiPasswordResetRequest): The identifier payload targeting the intended account.
-
-    Returns:
-        dict: A generic success response to avoid exposing valid user identifiers.
+    Local accounts with a saved email receive a one-time reset link. LDAP and
+    local accounts without email use administrator-assisted recovery.
     """
-    return service.request_reset(payload.username)
+    return service.request_reset(payload.username, payload.provider)
 
 
 @router.post("/api/v1/auth/password/reset/confirm", response_model=ApiStatusResponse)

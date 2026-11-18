@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,7 @@ export function NotificationHistoryPage() {
     <Button variant="outline" onClick={markAllRead} disabled={!unreadCount}><icon.checkCheck className="h-4 w-4" />Mark read</Button>
     <Button variant="outline" onClick={clear} disabled={!notifications.length} title="Remove notifications from your inbox"><icon.trash2 className="h-4 w-4" />Clear</Button>
   </>}>
-    <section className="surface-panel divide-y divide-border px-3">
+    <Surface as="section" variant="panel" className="divide-y divide-border px-3">
       {!notifications.length && <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><icon.bell className="h-6 w-6" /><p>No notifications yet</p></div>}
       {notifications.map((notification) => <article key={notification.id} className={cn("flex items-start gap-2 py-3", !notification.read && "bg-primary/5")}>
         <details className="min-w-0 flex-1" onToggle={(event) => { if (event.currentTarget.open && !notification.read) markRead(notification.id) }}>
@@ -35,6 +36,6 @@ export function NotificationHistoryPage() {
           <Button variant="ghost" size="icon-sm" onClick={() => remove(notification.id)} title="Remove notification" aria-label="Remove notification from your inbox"><icon.x className="h-4 w-4" /></Button>
         </div>
       </article>)}
-    </section>
+    </Surface>
   </PageShell>
 }

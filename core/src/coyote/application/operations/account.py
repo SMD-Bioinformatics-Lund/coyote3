@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -122,16 +123,23 @@ class PasswordRecovery:
         """
         self._request_token, self._consume_token = request_token, consume_token
 
-    def request_reset(self, identifier: str) -> dict[str, Any]:
+    def request_reset(self, identifier: str, provider: str = "auto") -> dict[str, Any]:
         """Request a recovery link without disclosing whether the account exists.
 
         Args:
-            identifier: User-entered local username or login identifier.
+            identifier: User-entered username.
+            provider: Auto, local, or LDAP authentication to recover.
 
         Returns:
             The same success acknowledgement regardless of account existence.
         """
-        self._request_token(login_identifier=identifier, purpose="reset", actor_username=None)
+        try:
+            self._request_token(
+                login_identifier=identifier, purpose="reset", actor_username=None, provider=provider
+            )
+        except Exception:
+            # Delivery/persistence failures must not reveal that a username exists.
+            logging.getLogger(__name__).error("Password recovery request could not be processed")
         return {"status": "ok"}
 
     def confirm_reset(self, payload: ApiPasswordResetConfirmRequest) -> dict[str, Any]:

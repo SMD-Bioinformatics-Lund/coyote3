@@ -322,7 +322,8 @@ def test_password_reset_request_always_ok(monkeypatch):
         return {"status": "ok"}
 
     monkeypatch.setattr(
-        password_flows, "issue_password_token_for_user", _issue_password_token_for_user
+        "coyote_api.app.deps.services.get_account_recovery_service",
+        lambda: SimpleNamespace(request=_issue_password_token_for_user),
     )
     payload = auth_router.request_password_reset(
         auth_router.ApiPasswordResetRequest(username="tester"), service=open_password_recovery()

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { PageShell } from "@/components/layout/PageShell"
 import { FileUpload } from "@/components/ui/file-upload"
 import { api } from "@/lib/api"
@@ -69,7 +72,7 @@ export function AdminIngestPage() {
   return (
     <PageShell eyebrow="Admin" title="Ingest Workspace" description="Validate and enqueue sample-bundle ingestion through the internal API and Celery ingest workers.">
       <div className="grid gap-3 xl:grid-cols-2">
-        <section className="surface-panel p-4">
+        <Surface as="section" variant="panel" className="p-4">
           <div className="mb-3 flex items-center gap-2">
             <icon.fileUp className="h-5 w-5 text-dna" />
             <h2 className="text-lg font-bold">Sample Bundle Upload</h2>
@@ -114,12 +117,12 @@ export function AdminIngestPage() {
               disabled={!yamlFile || uploadMutation.isPending}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
             >
-              {uploadMutation.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.fileUp className="h-4 w-4" />}
+              {uploadMutation.isPending ? <LoadingIndicator className="h-4 w-4" /> : <icon.fileUp className="h-4 w-4" />}
               Queue ingest
             </button>
           </div>
-        </section>
-        <section className="surface-panel p-4">
+        </Surface>
+        <Surface as="section" variant="panel" className="p-4">
           <div className="mb-3 flex items-center gap-2">
             <icon.database className="h-5 w-5 text-rna" />
             <h2 className="text-lg font-bold">Worker Task</h2>
@@ -131,7 +134,7 @@ export function AdminIngestPage() {
                 <p className="break-all text-sm">{taskId}</p>
               </div>
               {taskStatus.isLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground"><icon.activity className="h-4 w-4 animate-spin" /> Checking worker state...</div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><LoadingIndicator className="h-4 w-4" /> Checking worker state...</div>
               ) : taskStatus.error ? (
                 <ModuleNotice>{taskStatus.error instanceof Error ? taskStatus.error.message : "Unable to read task state."}</ModuleNotice>
               ) : (
@@ -142,15 +145,15 @@ export function AdminIngestPage() {
                     <TaskMetric label="Successful" value={taskStatus.data?.successful === null || taskStatus.data?.successful === undefined ? "-" : taskStatus.data?.successful ? "yes" : "no"} />
                   </div>
                   {taskStatus.data?.error && (
-                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    <Notice tone="danger">
                       {String(taskStatus.data.error)}
-                    </div>
+                    </Notice>
                   )}
                   {taskStatus.data?.result && (
-                    <div className="rounded-lg border border-pass/30 bg-pass/10 p-3 text-sm">
+                    <Notice tone="success">
                       <p className="font-bold text-pass">Ingest result</p>
                       <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(taskStatus.data.result, null, 2)}</pre>
-                    </div>
+                    </Notice>
                   )}
                 </div>
               )}
@@ -160,7 +163,7 @@ export function AdminIngestPage() {
               Submit a YAML manifest to enqueue an ingest task. The worker status appears here until the task completes.
             </p>
           )}
-        </section>
+        </Surface>
       </div>
     </PageShell>
   )

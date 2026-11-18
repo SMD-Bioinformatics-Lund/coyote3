@@ -131,7 +131,12 @@
     outline-offset: 2px;
   }
 
-  .rich-text-field > [role="textbox"][contenteditable="true"] {
+  .rich-text-field:has(> [aria-invalid="true"]) {
+    border-color: var(--destructive);
+    outline-color: color-mix(in srgb, var(--destructive) 40%, transparent);
+  }
+
+  .rich-text-field > :is(textarea, [role="textbox"][contenteditable="true"]) {
     border: 0;
     border-radius: 0;
     background: transparent;

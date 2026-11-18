@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -124,9 +125,9 @@ export function PublicCatalogMatrix({ previewDocument, onCatalog }: { previewDoc
       {isLoading ? (
         <AppLoader label="Loading assay matrix" />
       ) : error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <Notice tone="danger">
           {error instanceof Error ? error.message : "Unable to load matrix"}
-        </div>
+        </Notice>
       ) : (
         <AssayMatrixTable
           columns={matrixColumns}

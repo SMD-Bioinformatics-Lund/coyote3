@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import type { ReactNode } from "react"
 import { icon as appIcon } from "@/lib/assets"
-
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import {
@@ -114,7 +114,7 @@ function SettingRow({
   children: ReactNode
 }) {
   return (
-    <div className="preference-item rounded-lg border border-border bg-background/70 p-3">
+    <Surface variant="inset" className="preference-item  p-3">
       <div className="mb-3 flex items-start gap-2">
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div>
@@ -123,6 +123,6 @@ function SettingRow({
         </div>
       </div>
       {children}
-    </div>
+    </Surface>
   )
 }

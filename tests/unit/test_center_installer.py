@@ -54,6 +54,7 @@ def test_redis_gate_checks_all_three_endpoints(monkeypatch):
     """Cache, broker and results must all accept an authenticated PING."""
     factory = Mock()
     client = factory.return_value.__enter__ = Mock(return_value=Mock())
+    client.return_value.info.return_value = {"redis_version": "7.4.3"}
     factory.return_value.__exit__ = Mock(return_value=False)
     monkeypatch.setattr("redis.Redis.from_url", factory)
     for index, key in enumerate(("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND")):
@@ -61,6 +62,53 @@ def test_redis_gate_checks_all_three_endpoints(monkeypatch):
     check_redis()
     assert factory.call_count == 3
     assert client.return_value.ping.call_count == 3
+    client.return_value.info.assert_called_once_with("server")
+
+
+@pytest.mark.parametrize(
+    ("version", "accepted"),
+    [("6.0.16", False), ("6.1.99", False), ("6.2.0", True), ("7.4.3", True)],
+)
+def test_redis_gate_requires_broker_support_for_kombu_binding_commands(
+    monkeypatch, version, accepted
+):
+    """A successful PING on an old broker must not mark Celery ready for installation."""
+    connection = MagicMock()
+    connection.__enter__.return_value.info.return_value = {"redis_version": version}
+    monkeypatch.setattr("redis.Redis.from_url", Mock(return_value=connection))
+    for key in ("CACHE_REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"):
+        monkeypatch.setenv(key, "redis://synthetic.invalid/0")
+    if accepted:
+        check_redis()
+    else:
+        with pytest.raises(ValueError, match=r"CELERY_BROKER_URL uses Redis .*6\.2\.0.*ZADD GT"):
+            check_redis()
+
+
+@pytest.mark.parametrize("server_info", [{}, {"redis_version": "private-response"}, None])
+def test_redis_gate_rejects_unverifiable_broker_version(monkeypatch, server_info):
+    """Unknown server responses cannot pass compatibility checks or leak their contents."""
+    connection = MagicMock()
+    connection.__enter__.return_value.info.return_value = server_info
+    monkeypatch.setattr("redis.Redis.from_url", Mock(return_value=connection))
+    monkeypatch.setenv("CACHE_REDIS_URL", "redis://synthetic.invalid/0")
+    monkeypatch.setenv("CELERY_BROKER_URL", "redis://synthetic.invalid/1")
+    with pytest.raises(ValueError, match="valid redis_version") as error:
+        check_redis()
+    assert "private-response" not in str(error.value)
+
+
+def test_redis_gate_distinguishes_info_denial_from_ping_failure(monkeypatch):
+    """A broker allowing PING but denying INFO must report the missing check safely."""
+    connection = MagicMock()
+    connection.__enter__.return_value.info.side_effect = PermissionError("private-credentials")
+    monkeypatch.setattr("redis.Redis.from_url", Mock(return_value=connection))
+    monkeypatch.setenv("CACHE_REDIS_URL", "redis://synthetic.invalid/0")
+    monkeypatch.setenv("CELERY_BROKER_URL", "redis://synthetic.invalid/1")
+    with pytest.raises(ValueError, match="CELERY_BROKER_URL INFO server failed") as error:
+        check_redis()
+    assert "PING failed" not in str(error.value)
+    assert "private-credentials" not in str(error.value)
 
 
 def test_redis_gate_redacts_driver_details(monkeypatch):

@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { icon } from "@/lib/assets"
-
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { ResizableSplitPane } from "@/components/layout/ResizableSplitPane"
@@ -190,7 +190,7 @@ function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sa
   ]
 
   return (
-    <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
+    <Surface as="section" variant="card" className="flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression of selected genes">
       {header ? (
         <div className="flex min-h-9 shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
           {header}
@@ -218,7 +218,7 @@ function ExpressionPanel({ rows, sampleId, header }: { rows: ExpressionRow[]; sa
           stateKey={`rna-expression-${sampleId}`}
         />
       </div>
-    </section>
+    </Surface>
   )
 }
 
@@ -241,7 +241,7 @@ function ClassificationPanel({ rows, sampleId, header }: { rows: ClassificationR
   ]
 
   return (
-    <section className="glass-card flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression-based classification">
+    <Surface as="section" variant="card" className="flex w-full min-w-0 flex-col overflow-hidden" aria-label="Expression-based classification">
       {header ? (
         <div className="flex min-h-9 shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
           {header}
@@ -263,7 +263,7 @@ function ClassificationPanel({ rows, sampleId, header }: { rows: ClassificationR
           stateKey={`rna-classification-${sampleId}`}
         />
       </div>
-    </section>
+    </Surface>
   )
 }
 

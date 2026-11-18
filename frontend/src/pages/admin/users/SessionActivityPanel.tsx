@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { isSuperuser, useCurrentUserAccess } from "@/lib/access-control"
@@ -31,7 +32,7 @@ export function SessionActivityPanel() {
   if (!allowed) return null
 
   return (
-    <section aria-labelledby="session-activity-title" className="surface-panel p-3">
+    <Surface as="section" variant="panel" aria-labelledby="session-activity-title" className="p-3">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <h2 id="session-activity-title" className="text-base font-semibold">Login activity</h2>
@@ -62,6 +63,6 @@ export function SessionActivityPanel() {
           </p>
         </>
       )}
-    </section>
+    </Surface>
   )
 }

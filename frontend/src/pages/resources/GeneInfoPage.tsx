@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import {
   GeneKnowledgebaseSummary,
@@ -66,16 +68,16 @@ export function GeneInfoPage() {
     >
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_25rem]">
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">{display(hgncId)}</p>
                 <h2 className="mt-1 text-2xl font-semibold">{symbol}</h2>
                 <p className="mt-1 max-w-4xl text-sm font-semibold text-muted-foreground">{display(gene.gene_name)}</p>
               </div>
-              <span className="rounded-full border border-pass/30 bg-pass/10 px-3 py-1 text-xs font-semibold uppercase text-pass">
+              <Badge variant="outline" className="border-pass/30 bg-pass/10 uppercase text-pass">
                 {display(gene.status)}
-              </span>
+              </Badge>
             </div>
             {gene.gene_description && (
               <p className="mt-4 rounded-lg border border-border bg-muted/35 p-3 text-sm leading-relaxed text-foreground">
@@ -89,10 +91,10 @@ export function GeneInfoPage() {
               <InfoTile label="Ensembl gene" value={gene.ensembl_gene_id} mono />
               <InfoTile label="Locus type" value={gene.locus} />
             </dl>
-          </section>
+          </Surface>
 
           <aside className="space-y-3">
-            <section className="surface-panel p-4">
+            <Surface as="section" variant="panel" className="p-4">
               <SectionTitle icon={icon.externalLink}>External Links</SectionTitle>
               <div className="mt-3 flex flex-wrap gap-2">
                 {links.length ? links.map((link) => (
@@ -102,9 +104,9 @@ export function GeneInfoPage() {
                   </a>
                 )) : <p className="text-sm text-muted-foreground">No external identifiers available.</p>}
               </div>
-            </section>
+            </Surface>
 
-            <section className="surface-panel p-4">
+            <Surface as="section" variant="panel" className="p-4">
               <SectionTitle icon={icon.tags}>Aliases</SectionTitle>
               <div className="space-y-3">
                 <div>
@@ -120,14 +122,14 @@ export function GeneInfoPage() {
                   <ChipList values={previousNames} />
                 </div>
               </div>
-            </section>
+            </Surface>
           </aside>
 
           <div className="xl:col-span-2">
             <GeneKnowledgebaseSummary payload={data as GeneKnowledgebasePayload} />
           </div>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <SectionTitle icon={icon.mapPinned}>Genomic Location</SectionTitle>
             <dl className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <InfoTile label="Chromosome" value={gene.chromosome} />
@@ -137,9 +139,9 @@ export function GeneInfoPage() {
               <InfoTile label="Sortable locus" value={gene.locus_sortable} mono />
               <InfoTile label="Other chromosome" value={gene.other_chromosome} />
             </dl>
-          </section>
+          </Surface>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <SectionTitle icon={icon.dna}>Transcripts</SectionTitle>
             <div className="space-y-3">
               <div>
@@ -155,9 +157,9 @@ export function GeneInfoPage() {
                 <ChipList values={refseq} empty="No RefSeq accessions recorded" />
               </div>
             </div>
-          </section>
+          </Surface>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <SectionTitle icon={icon.database}>Clinical And Database References</SectionTitle>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -183,9 +185,9 @@ export function GeneInfoPage() {
                 <ChipList values={[gene.imgt, gene.lncrnadb, gene.lncipedia].filter(Boolean)} empty="No special references recorded" />
               </div>
             </div>
-          </section>
+          </Surface>
 
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <SectionTitle icon={icon.calendarDays}>Record Dates</SectionTitle>
             <dl className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <InfoTile label="Approved/reserved" value={formatDate(gene.date_approved_reserved)} />
@@ -193,22 +195,22 @@ export function GeneInfoPage() {
               <InfoTile label="Name changed" value={formatDate(gene.date_name_changed)} />
               <InfoTile label="Modified" value={formatDate(gene.date_modified)} />
             </dl>
-          </section>
+          </Surface>
 
           {transcriptRows.length > 0 && (
-            <section className="surface-panel p-3 xl:col-span-2">
+            <Surface as="section" variant="panel" className="p-3 xl:col-span-2">
               <div className="mb-2 px-1">
                 <SectionTitle icon={icon.fingerprint}>Additional Transcript Coordinates</SectionTitle>
               </div>
               <DataTable columns={transcriptColumns} data={transcriptRows} filename={`${symbol}_transcripts.csv`} />
-            </section>
+            </Surface>
           )}
 
           {gene.pseudogene_org?.length > 0 && (
-            <section className="surface-panel p-4 xl:col-span-2">
+            <Surface as="section" variant="panel" className="p-4 xl:col-span-2">
               <SectionTitle icon={icon.link2}>Pseudogene Orthologs</SectionTitle>
               <ChipList values={gene.pseudogene_org} />
-            </section>
+            </Surface>
           )}
         </div>
       )}

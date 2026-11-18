@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
 import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
-
 import { DataTable } from "@/components/data-table/DataTable"
 import { useTablePreferences } from "@/components/data-table/table-preferences"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -188,12 +189,12 @@ export function ReportsPage() {
     >
       {query.isLoading && <AppLoader label="Loading saved reports" />}
       {query.error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <Notice tone="danger">
           {query.error instanceof Error ? query.error.message : "Unable to load saved reports"}
-        </div>
+        </Notice>
       )}
       {query.data && (
-        <section className="surface-panel p-3">
+        <Surface as="section" variant="panel" className="p-3">
           <DataTable
             columns={columns}
             data={query.data.reports}
@@ -217,7 +218,7 @@ export function ReportsPage() {
             searchPlaceholder="Search reports, samples, assays, environments, or authors..."
             stateKey="saved-reports"
           />
-        </section>
+        </Surface>
       )}
     </PageShell>
   )

@@ -104,10 +104,11 @@ describe("variant knowledgebase presentation", () => {
       </KnowledgebaseExplorer>,
     )
 
-    expect(screen.getByText("AML")).toHaveClass("border", "border-primary/50", "text-primary")
+    expect(screen.getByText("AML")).toBeVisible()
     expect(screen.getByText("MDS")).toBeInTheDocument()
-    expect(screen.getByText("Drug A")).toHaveClass("border", "border-primary/50", "text-primary")
-    expect(screen.getByText("In trials")).toHaveClass("border", "border-primary/50", "text-primary")
+    expect(screen.getByText("Drug A")).toBeVisible()
+    expect(screen.getByText("Drug B")).toBeVisible()
+    expect(screen.getByText("In trials")).toBeVisible()
     await user.type(screen.getByRole("textbox", { name: "Search all knowledgebase evidence" }), "DNMT3A")
 
     expect(screen.getByText("DNMT3A · p.Arg2Gly")).toBeInTheDocument()

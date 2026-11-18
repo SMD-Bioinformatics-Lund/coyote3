@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
@@ -42,10 +43,10 @@ export function PublicCatalogCompare({ previewDocument, onCatalog }: {
   return <PageShell title="Compare assays" description="Select up to three published assay and diagnosis services to compare their scope and requirements."
     actions={onCatalog ? <Button variant="outline" onClick={onCatalog}>Catalog</Button>
       : <Button variant="outline" nativeButton={false} render={<Link to="/public/catalog" />}>Catalog</Button>}>
-    {isLoading ? <AppLoader label="Loading published assays" /> : error ? <section role="alert" className="surface-panel space-y-3 p-4">
+    {isLoading ? <AppLoader label="Loading published assays" /> : error ? <Surface as="section" variant="panel" role="alert" className="space-y-3 p-4">
       <p>Unable to load published assays.</p><Button variant="outline" onClick={() => void refetch()}>Retry</Button>
-    </section> : <>
-      <section className="surface-panel space-y-3 p-4" aria-label="Choose assays to compare">
+    </Surface> : <>
+      <Surface as="section" variant="panel" className="space-y-3 p-4" aria-label="Choose assays to compare">
         <SearchInput aria-label="Search assays to compare" placeholder="Search assays, groups and diagnoses…" value={search} onChange={event => setSearch(event.target.value)} />
         <p role="status" className="type-body-sm">{selected.length} of 3 services selected</p>
         <div className="max-h-64 space-y-1 overflow-y-auto">
@@ -57,7 +58,7 @@ export function PublicCatalogCompare({ previewDocument, onCatalog }: {
           </label>)}
           {!visible.length && <p className="type-body-sm text-muted-foreground">{offerings.length ? "No assays match the search." : "No published services."}</p>}
         </div>
-      </section>
+      </Surface>
       {selected.length < 2 ? <p role="status" className="type-body-sm text-muted-foreground">Select at least two services for a comparison.</p>
         : <CatalogComparisonTable offerings={selected.map(item =>
           catalogService(item, data?.navigation?.find(node => node.offering_id === item.offering_id)))} />}

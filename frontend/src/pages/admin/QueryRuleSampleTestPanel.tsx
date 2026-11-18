@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -33,7 +34,7 @@ export function QueryRuleSampleTestPanel({ scope, content, readOnly = false }: {
   })
   const page = samples.data?.key === searchKey ? samples.data.data : undefined
   const result = test.data?.key === fingerprint ? test.data.data : undefined
-  return <section className="surface-panel space-y-4 rounded-lg border p-4" aria-label="Test with a sample">
+  return <Surface as="section" variant="panel" className="space-y-4 p-4" aria-label="Test with a sample">
     <h2 className="type-section-title">Test with a sample</h2>
     <p className="text-muted-foreground type-supporting">Compare the live policy with {readOnly ? "this selected version" : "this draft"} using a ready sample’s saved filters and ASPC. More-specific published rules still apply. Testing does not change data.</p>
     <div className="grid gap-4 xl:grid-cols-2">
@@ -67,5 +68,5 @@ export function QueryRuleSampleTestPanel({ scope, content, readOnly = false }: {
       <div className="grid min-w-0 gap-3 lg:grid-cols-2">{[{ title: "Currently published", query: result.published_query }, { title: readOnly ? "Selected version" : "With draft changes", query: result.draft_query }].map(item => <details key={item.title} open className="min-w-0 rounded-lg border bg-background p-3"><summary className="cursor-pointer type-label">{item.title}</summary><pre className="mt-3 max-h-96 overflow-auto rounded bg-muted/30 p-3 type-supporting"><code>{JSON.stringify(item.query, null, 2)}</code></pre></details>)}</div>
       {!!result.post_filters?.length && <div className="rounded-lg border bg-muted/20 p-3"><h4 className="type-label">Additional selection after MongoDB retrieval</h4><ul className="mt-2 list-disc space-y-1 pl-5 type-supporting">{result.post_filters.map(note => <li key={note}>{note}</li>)}</ul></div>}
     </section>}
-  </section>
+  </Surface>
 }

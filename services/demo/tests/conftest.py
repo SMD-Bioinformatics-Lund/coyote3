@@ -10,7 +10,7 @@ for name, value in {
     "COYOTE4_DB": "coyote4_test",
     "IDENTITY_DB": "coyote4_identity_test",
     "KNOWLEDGEBASE_DB": "coyote4_knowledgebase_test",
-    "BAM_DB": "bam_test",
+    "BAM_DB": "coyote4_bam_test",
 }.items():
     os.environ.setdefault(name, value)
 

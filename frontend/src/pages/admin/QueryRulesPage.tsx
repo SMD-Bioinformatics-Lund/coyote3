@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useRef, useState, type CSSProperties } from "react"
 import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
@@ -69,7 +70,7 @@ function InfoEqualityEditor({ value, onChange }: { value: Record<string, string 
 }
 
 function PolicySummary({ title, value, analysis, compact = false }: { title: string; value?: Resolution; analysis: Analysis; compact?: boolean }) {
-  return <section className="surface-panel rounded-lg border p-4 space-y-3">
+  return <Surface as="section" variant="panel" className="p-4 space-y-3">
     <h2 className="type-section-title">{title}</h2>
     {!value ? <p className="text-muted-foreground">Choose a scope and preview its policy.</p> : <>
       {compact ? <>
@@ -80,7 +81,7 @@ function PolicySummary({ title, value, analysis, compact = false }: { title: str
         <p className="type-supporting text-muted-foreground">Use Preview effective policy to inspect the complete flow and source settings.</p>
       </> : <QueryPolicyFlow value={value} analysis={analysis} />}
     </>}
-  </section>
+  </Surface>
 }
 
 export function QueryRulesPage() {

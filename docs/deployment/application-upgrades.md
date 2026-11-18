@@ -21,6 +21,22 @@ and `COYOTE4_*` deployment settings. The GitHub repository and checkout director
 remain `coyote3`; this does not change the production Coyote3 branch or deployment.
 Both modern and older-server Compose definitions use the Coyote4 settings.
 
+Application-owned database defaults, service/project names, cookies and Docker
+networks use `coyote4`. BAM examples use `coyote4_bam_dev`, `coyote4_bam_stage`,
+`coyote4_bam_test` or `coyote4_bam_prod`. Existing explicit database settings still
+select their exact configured namespaces; renaming a setting does not copy data.
+
+Retained exceptions are the GitHub repository/project name and checkout path,
+the external `smd-reports` preset `coyote3`, and historical release/migration source
+references. Provisioned replica-set names, database credentials, external mail
+addresses, persistent storage paths and producer filenames must continue matching
+their external resources until a coordinated transition. Existing shared knowledgebase
+and BAM databases retain the names configured by their owning services; application
+branding does not rename them. Generic OS unit names
+such as `mongod.service` and `redis-server.service` identify their installed software.
+New MongoDB provisioning examples use `coyote4-rs`; changing an existing client's
+`replicaSet` parameter alone cannot rename its server's replica set.
+
 MongoDB and Redis now have independent lifecycles. Application files require explicit
 `CACHE_REDIS_URL`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`; the Redis server file
 owns `REDIS_PASSWORD` and the existing `COYOTE4_REDIS_VOLUME` name. Follow the

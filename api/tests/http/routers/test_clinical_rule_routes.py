@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from api_test_support import mock_collections as fx
@@ -59,6 +60,45 @@ def test_list_rule_sets_passes_filters_and_pagination(monkeypatch) -> None:
         "page": 2,
         "per_page": 25,
     }
+
+
+def test_empty_rule_inventory_still_exposes_the_authoring_fact_catalog() -> None:
+    """A fresh installation serves built-in facts through the strict HTTP response model."""
+    repository = Mock()
+    repository.list_rule_sets.return_value = ([], 0)
+    service = ClinicalRuleAuthoringService(repository)
+    operations = _operations(fx.api_user(), service)
+    app = FastAPI()
+    app.include_router(rules.router)
+    for route in rules.router.routes:
+        if route.path not in {
+            "/api/v1/admin/clinical-rule-sets",
+            "/api/v1/admin/clinical-rule-sets/facts",
+        }:
+            continue
+        for dependency in route.dependant.dependencies:
+            if dependency.name == "_user":
+                app.dependency_overrides[dependency.call] = fx.api_user
+            elif dependency.name == "service":
+                app.dependency_overrides[dependency.call] = lambda: operations
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        inventory = client.get("/api/v1/admin/clinical-rule-sets?status=published")
+        response = client.get("/api/v1/admin/clinical-rule-sets/facts")
+
+    assert inventory.status_code == 200
+    assert inventory.json() == {"items": [], "total": 0, "page": 1, "per_page": 30}
+    assert response.status_code == 200
+    facts = {item["path"]: item for item in response.json()["items"]}
+    assert facts["sample.asp_id"]["kind"] == "string"
+    assert facts["finding.cnv_effect"]["bulk_annotation_finding_kinds"] == ["cnv"]
+    assert facts["finding.fusion_gene_1"]["bulk_annotation_finding_kinds"] == [
+        "fusion",
+        "translocation",
+    ]
+    repository.list_rule_sets.assert_called_once_with(
+        status="published", search=None, skip=0, limit=30
+    )
 
 
 def test_authoring_options_are_loaded_from_the_service() -> None:

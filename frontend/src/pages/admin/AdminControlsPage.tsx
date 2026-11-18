@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -23,7 +26,6 @@ import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
 import { useState } from "react"
-
 import {
   BeatRuntimePanel,
   ControlHelp,
@@ -97,7 +99,14 @@ type AppControlsRuntime = {
     error?: string | null
   }
   modules?: Record<string, { enabled?: boolean; label?: string }>
-  index_setup_conflicts?: { repository?: string; code?: string; message?: string }[]
+  index_setup_conflicts?: {
+    repository?: string
+    collection?: string
+    name?: string
+    state?: string
+    code?: string
+    message?: string
+  }[]
 }
 
 export function AdminControlsPage() {
@@ -183,15 +192,15 @@ export function AdminControlsPage() {
       actions={
         <div className="flex flex-wrap gap-2">
           {canRunMaintenance && <Button type="button" variant="outline" onClick={() => runMaintenance.mutate()} disabled={runMaintenance.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled}>
-            <icon.refreshCw className={`h-4 w-4 ${runMaintenance.isPending ? "animate-spin" : ""}`} />
+            {runMaintenance.isPending ? <LoadingIndicator /> : <icon.refreshCw className="h-4 w-4" />}
             Run maintenance
           </Button>}
           {canRunMaintenance && <Button type="button" variant="outline" onClick={() => refreshPublicOncoKb.mutate()} disabled={refreshPublicOncoKb.isPending || !controls?.celery?.enabled || !controls?.celery?.maintenance_enabled || !controls?.modules?.knowledgebases_enabled}>
-            <icon.database className={`h-4 w-4 ${refreshPublicOncoKb.isPending ? "animate-spin" : ""}`} />
+            {refreshPublicOncoKb.isPending ? <LoadingIndicator /> : <icon.database className="h-4 w-4" />}
             Refresh public OncoKB
           </Button>}
           {canEdit && <Button type="button" onClick={() => controls && saveControls.mutate(controls)} disabled={!controls || saveControls.isPending || imported !== null}>
-            {saveControls.isPending ? <icon.activity className="h-4 w-4 animate-spin" /> : <icon.save className="h-4 w-4" />}
+            {saveControls.isPending ? <LoadingIndicator className="h-4 w-4" /> : <icon.save className="h-4 w-4" />}
             Save controls
           </Button>}
         </div>
@@ -211,9 +220,9 @@ export function AdminControlsPage() {
       {controlsQuery.error ? (
         <ModuleNotice>{controlsQuery.error instanceof Error ? controlsQuery.error.message : "Unable to load application controls."}</ModuleNotice>
       ) : controlsQuery.isLoading || !controls ? (
-        <section className="surface-panel">
+        <Surface as="section" variant="panel">
           <AppLoader label="Loading controls" />
-        </section>
+        </Surface>
       ) : (
         <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
           <ControlSection
@@ -254,7 +263,7 @@ export function AdminControlsPage() {
             ))}
           </ControlSection>
 
-          <section className="surface-panel p-3 xl:col-span-2">
+          <Surface as="section" variant="panel" className="p-3 xl:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Public OncoKB reference refresh</h2>
@@ -263,9 +272,9 @@ export function AdminControlsPage() {
                 </p>
               </div>
             </div>
-          </section>
+          </Surface>
 
-          <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
+          <Surface as="section" variant="panel" className="!overflow-visible p-3 xl:col-span-2">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold">Observed Runtime State</h2>
@@ -279,7 +288,7 @@ export function AdminControlsPage() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => controlsQuery.refetch()} disabled={controlsQuery.isFetching}>
-                  <icon.refreshCw className={`h-3.5 w-3.5 ${controlsQuery.isFetching ? "animate-spin" : ""}`} />
+                  {controlsQuery.isFetching ? <LoadingIndicator className="size-3.5" /> : <icon.refreshCw className="h-3.5 w-3.5" />}
                   Refresh
                 </Button>
                 <RuntimeStatusBadge status={runtime.celery?.status} />
@@ -325,18 +334,28 @@ export function AdminControlsPage() {
               />
             </div>
             {runtime.celery?.error ? (
-              <div className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
+              <Notice tone="warning" className="mt-3">
                 Celery inspection did not complete: {runtime.celery.error}
-              </div>
+              </Notice>
             ) : null}
             {runtime.index_setup_conflicts?.length ? (
-              <div className="mt-3 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
-                {runtime.index_setup_conflicts.length} Mongo index conflict(s) were tolerated at startup. Review the operations troubleshooting guide before changing indexes.
-              </div>
+              <Notice tone="warning" className="mt-3">
+                <p>Mongo indexes require attention ({runtime.index_setup_conflicts.length}).</p>
+                <ul aria-label="Mongo index checks" className="mt-1 list-disc pl-5">
+                  {runtime.index_setup_conflicts.map((finding, index) => (
+                    <li key={`${finding.repository}-${finding.name}-${index}`}>
+                      {finding.state === "missing" ? "Missing index" : finding.state === "conflict" || ["85", "86"].includes(finding.code ?? "") ? "Conflicting index" : "Index requires review"}
+                      {": "}
+                      {[finding.collection, finding.name].filter(Boolean).join(".") || finding.repository || "Unspecified repository"}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1">Review the operations troubleshooting guide before changing indexes.</p>
+              </Notice>
             ) : null}
-          </section>
+          </Surface>
 
-          <section className="surface-panel !overflow-visible p-3 xl:col-span-2">
+          <Surface as="section" variant="panel" className="!overflow-visible p-3 xl:col-span-2">
             <div className="mb-3">
               <h2 className="text-base font-semibold">Retention Policies</h2>
               <p className="text-sm text-muted-foreground">All values are days. Audit retention also updates the expiry horizon used when new audit events are written.</p>
@@ -356,7 +375,7 @@ export function AdminControlsPage() {
               Last updated by <span className="font-semibold text-foreground">{controls.updated_by || "system defaults"}</span>
               {controls.updated_on && <TimeDisplay value={controls.updated_on} mode="full" prefix="on " className="ml-1" />}.
             </div>
-          </section>
+          </Surface>
         </div>
       )}
     </PageShell>

@@ -18,23 +18,26 @@ export function AuthShell({
   children: ReactNode
 }) {
   return (
-    <main className="login-page relative">
-      <header className="login-header relative z-10">
-        <Link to="/login" className="inline-flex min-w-max items-center gap-2.5">
-          <BrandLogo />
-        </Link>
-        <ThemeToggle />
-      </header>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <main className="login-page relative">
+        <header className="login-header relative z-10">
+          <Link to="/login" aria-label="Back to sign in" className="inline-flex min-w-max items-center gap-2.5">
+            <BrandLogo />
+          </Link>
+          <ThemeToggle />
+        </header>
 
-      <section className="login-layout">
-        <div className="login-intro">
-          <h1 className="login-title">{title}</h1>
-          <p className="login-description">{description}</p>
+        <div className="login-scroll-viewport app-scroll-viewport">
+          <section className="login-layout">
+            <div className="login-intro">
+              <h1 className="login-title">{title}</h1>
+              <p className="login-description">{description}</p>
+            </div>
+            <section className="login-card">{children}</section>
+          </section>
         </div>
-        <section className="login-card">{children}</section>
-      </section>
-
+      </main>
       <AppFooter />
-    </main>
+    </div>
   )
 }

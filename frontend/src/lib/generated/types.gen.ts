@@ -756,9 +756,13 @@ export type ApiPasswordResetConfirmRequest = {
 /**
  * ApiPasswordResetRequest
  *
- * Represent a password reset request payload.
+ * Select username and optional authentication provider without exposing accounts.
  */
 export type ApiPasswordResetRequest = {
+    /**
+     * Provider
+     */
+    provider?: 'auto' | 'local' | 'ldap';
     /**
      * Username
      */
@@ -3048,6 +3052,10 @@ export type ClinicalRuleEvaluationScope = {
  * Authoring metadata describing a fact's type, operators, and scopes.
  */
 export type ClinicalRuleFactPayload = {
+    /**
+     * Bulk Annotation Finding Kinds
+     */
+    bulk_annotation_finding_kinds?: Array<'small_variant' | 'cnv' | 'fusion' | 'translocation'>;
     /**
      * Description
      */
@@ -7308,6 +7316,42 @@ export type NotificationResourcePayload = {
      * Uri
      */
     uri?: string | null;
+};
+
+/**
+ * PasswordRecoveryRecord
+ *
+ * Assisted recovery state; contains no passwords or reset tokens.
+ */
+export type PasswordRecoveryRecord = {
+    /**
+     * Completed At
+     */
+    completed_at?: string | null;
+    /**
+     * Completed By
+     */
+    completed_by?: string | null;
+    /**
+     * Provider
+     */
+    provider: 'local' | 'ldap';
+    /**
+     * Request Id
+     */
+    request_id: string;
+    /**
+     * Requested At
+     */
+    requested_at: string;
+    /**
+     * Status
+     */
+    status?: 'pending' | 'completed';
+    /**
+     * Username
+     */
+    username: string;
 };
 
 /**
@@ -29955,6 +29999,115 @@ export type Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch = {
 };
 
 export type Response_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch = Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch[keyof Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch];
+
+export type Request_recoveryRequestsReadApiV1UsersPasswordRecoveryGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/users/password-recovery';
+};
+
+export type RecoveryRequestsReadApiV1UsersPasswordRecoveryGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type RecoveryRequestsReadApiV1UsersPasswordRecoveryGetError = RecoveryRequestsReadApiV1UsersPasswordRecoveryGetErrors[keyof RecoveryRequestsReadApiV1UsersPasswordRecoveryGetErrors];
+
+export type Responses_recoveryRequestsReadApiV1UsersPasswordRecoveryGet = {
+    /**
+     * Response Recovery Requests Read Api V1 Users Password Recovery Get
+     *
+     * Successful Response
+     */
+    200: Array<PasswordRecoveryRecord>;
+};
+
+export type Response_recoveryRequestsReadApiV1UsersPasswordRecoveryGet = Responses_recoveryRequestsReadApiV1UsersPasswordRecoveryGet[keyof Responses_recoveryRequestsReadApiV1UsersPasswordRecoveryGet];
+
+export type Request_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Request Id
+         */
+        request_id: string;
+    };
+    query?: never;
+    url: '/api/v1/users/password-recovery/{request_id}/complete';
+};
+
+export type RecoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePostErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type RecoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePostError = RecoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePostErrors[keyof RecoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePostErrors];
+
+export type Responses_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost = {
+    /**
+     * Successful Response
+     */
+    200: PasswordRecoveryRecord;
+};
+
+export type Response_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost = Responses_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost[keyof Responses_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost];
 
 export type Request_sessionActivityReadApiV1UsersSessionActivityGet = {
     body?: never;

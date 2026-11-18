@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { icon } from "@/lib/assets"
 import { cn } from "@/lib/utils"
@@ -351,9 +352,9 @@ function NotificationToast({
           {resourceChips.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {resourceChips.map((chip) => (
-                <span key={chip} className="rounded-md border border-border bg-background/80 px-1.5 py-0.5 type-label font-semibold text-muted-foreground">
+                <Badge variant="outline" key={chip} className="border-border bg-background/80 text-muted-foreground">
                   {chip}
-                </span>
+                </Badge>
               ))}
             </div>
           )}

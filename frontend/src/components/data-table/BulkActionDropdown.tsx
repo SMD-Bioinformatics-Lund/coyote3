@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { MarkdownText } from "@/components/comments/MarkdownText"
@@ -105,14 +106,13 @@ export function BulkActionDropdown({
           <option key={item.value} value={item.value}>{item.label}</option>
         ))}
       </select>
-      <button
+      <Button type="button" variant="outline" size="sm"
         onClick={() => setConfirming(true)}
         disabled={!selectedAction || busy}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors disabled:opacity-50 disabled:pointer-events-none"
       >
-        {busy ? <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <icon.check className="w-3.5 h-3.5" />}
+        {busy ? <LoadingIndicator className="h-3.5 w-3.5" /> : <icon.check className="w-3.5 h-3.5" />}
         {busy ? "Applying" : "Apply"}
-      </button>
+      </Button>
       <ConfirmationDialog
         open={confirming && Boolean(selectedAction)}
         title="Confirm bulk action"

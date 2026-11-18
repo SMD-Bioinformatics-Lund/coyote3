@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { Link } from "react-router-dom"
 
 export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; canEdit: boolean }) {
@@ -11,7 +12,7 @@ export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; can
     return acc
   }, {} as Record<string, any[]>)
   return (
-    <section className="glass-card p-4">
+    <Surface as="section" variant="card" className="p-4">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">Permission Categories</h2>
@@ -43,6 +44,6 @@ export function PermissionCategoryOverview({ rows, canEdit }: { rows: any[]; can
           </section>
         ))}
       </div>
-    </section>
+    </Surface>
   )
 }

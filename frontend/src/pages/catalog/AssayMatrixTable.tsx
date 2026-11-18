@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { PageSizeSelect } from "@/components/data-table/PageSizeSelect"
 import { KnowledgebaseGeneTags } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { SearchInput } from "@/components/ui/search-input"
@@ -63,19 +66,19 @@ export function AssayMatrixTable({
   const annotations = useAnnotationVisibility("matrix")
 
   return (
-    <div className="surface-panel dashboard-panel catalog-matrix-panel p-3">
+    <Surface variant="panel" className="dashboard-panel catalog-matrix-panel p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
+          <h2 className="type-card-title text-foreground">Assay Catalog - Gene Coverage Matrix</h2>
           <p className="text-xs font-normal text-muted-foreground">
             {columns.length} visible catalog column(s)
             {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <span className="material-badge rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-xs font-semibold text-foreground">
+          <Badge variant="outline" className="border-border bg-muted/60 text-foreground">
             {genes.length} genes
-          </span>
+          </Badge>
           {annotations.toggle}
           <label className="flex items-center gap-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">
             Rows
@@ -164,11 +167,11 @@ export function AssayMatrixTable({
           </label>
         ))}
       </div>
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm [contain:paint]">
+      <div className="table-frame [contain:paint]">
         <div className="overflow-x-auto">
         {/* Explicit column totals avoid Firefox's max-content overflow with spanning headers. */}
-        <table
-          className="catalog-matrix type-table-cell min-w-full table-fixed border-separate border-spacing-0 text-left type-numeric"
+        <Table
+          className="catalog-matrix min-w-full table-fixed type-numeric"
           style={{ width: `calc(${annotations.visible ? 18 : 11}rem + ${columns.reduce((width, col) => width + matrixColumnWidth(col.assay || col.isgl_label || col.isgl_key), 0)}px)` }}
         >
           <colgroup>
@@ -181,68 +184,68 @@ export function AssayMatrixTable({
               />
             ))}
           </colgroup>
-          <thead className="catalog-matrix-header type-table-header sticky top-0 z-20 border-b-2 border-border text-foreground shadow-sm">
-            <tr>
-              <th rowSpan={4} className="sticky left-0 z-30 border-b-2 border-r border-border matrix-head-list px-3 py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
+          <TableHeader className="catalog-matrix-header sticky top-0 z-20 text-foreground shadow-sm">
+            <TableRow>
+              <TableHead rowSpan={4} className="sticky left-0 z-30 border-r border-border matrix-head-list py-1.5 text-center align-middle text-xs font-medium uppercase text-foreground">
                 Gene
-              </th>
+              </TableHead>
               {annotations.visible && (
-                <th rowSpan={4} className="matrix-head-list border-b-2 border-r border-border px-2 py-1.5 text-center align-middle whitespace-normal [overflow-wrap:anywhere]">
+                <TableHead rowSpan={4} className="matrix-head-list border-r border-border py-1.5 text-center align-middle whitespace-normal [overflow-wrap:anywhere]">
                   Annotations
-                </th>
+                </TableHead>
               )}
               {headerSpans.mod.map((span, index) => (
-                <th
+                <TableHead
                   key={span.key}
                   colSpan={span.span}
                   data-tone={["rna", "wts"].includes(span.groupKey.toLowerCase()) ? "warm" : "brand"}
-                  className="matrix-head-mod border-b border-r border-border px-3 py-2.5 text-center align-middle text-xs font-medium uppercase last:border-r-0"
+                  className="matrix-head-mod border-r border-border py-2.5 text-center align-middle text-xs font-medium uppercase last:border-r-0"
                   title={span.label}
                   style={index > 0 ? matrixBoundaryStyle("matrix-section") : undefined}
                 >
                   <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                     {matrixModalityLabel(span.label)}
                   </span>
-                </th>
+                </TableHead>
               ))}
-            </tr>
-            <tr>
+            </TableRow>
+            <TableRow>
               {headerSpans.assayGroup.map((span, index) => (
-                <th
+                <TableHead
                   key={span.key}
                   colSpan={span.span}
-                  className="matrix-head-group border-b border-r border-border px-3 py-2 text-center align-middle text-foreground last:border-r-0"
+                  className="matrix-head-group border-r border-border text-center align-middle text-foreground last:border-r-0"
                   style={index > 0 ? matrixBoundaryStyle("matrix-group") : undefined}
                 >
                   <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                     {labelText(span.label)}
                   </span>
-                </th>
+                </TableHead>
               ))}
-            </tr>
-            <tr aria-label="Assays">
+            </TableRow>
+            <TableRow aria-label="Assays">
               {headerSpans.assay.map((span) => (
-                <th
+                <TableHead
                   key={span.key}
                   colSpan={span.span}
                   scope="colgroup"
                   title={span.label}
-                  className="matrix-head-assay border-b border-r border-border px-3 py-2 text-center font-semibold normal-case last:border-r-0"
+                  className="matrix-head-assay border-r border-border text-center font-semibold normal-case last:border-r-0"
                 >
                   <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                     {span.label}
                   </span>
-                </th>
+                </TableHead>
               ))}
-            </tr>
-            <tr aria-label="Diagnoses / subpanels">
+            </TableRow>
+            <TableRow aria-label="Diagnoses / subpanels">
               {columns.map((col, index) => {
                 const boundary = matrixBoundaryClass(columns, index)
                 return (
-                  <th
+                  <TableHead
                     key={col.key}
                     scope="col"
-                    className="matrix-head-list border-b-2 border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
+                    className="matrix-head-list border-r border-border px-1.5 py-1.5 text-center align-middle type-label font-medium uppercase text-foreground last:border-r-0"
                     title={`${col.assay} · ${col.diagnosis} · ${col.analysis || "Unassigned"} · ${col.isgl_label || col.isgl_key}`}
                     aria-label={`${col.assay} · ${col.diagnosis} · ${col.analysis || "Unassigned"} · ${col.isgl_label || col.isgl_key}`}
                     style={matrixBoundaryStyle(boundary)}
@@ -250,15 +253,15 @@ export function AssayMatrixTable({
                     <span className="block whitespace-normal leading-tight [overflow-wrap:anywhere]">
                       <span className="block normal-case">{labelText(col.diagnosis)}</span>
                     </span>
-                  </th>
+                  </TableHead>
                 )
               })}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {genes.map((gene) => (
-              <tr key={gene} className="bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10 dark:hover:bg-primary/20">
-                <th className="sticky left-0 z-10 border-b border-r border-border/40 bg-card px-3 py-1 text-sm font-semibold">
+              <TableRow key={gene} className="transition-colors duration-75 dark:hover:bg-primary/20">
+                <TableHead className="sticky left-0 z-10 border-r border-border/40 bg-card text-sm font-semibold">
                   <div className="flex max-w-40 flex-wrap items-center gap-1">
                     <Link
                       to={`/public/gene/${encodeURIComponent(gene)}/info`}
@@ -267,19 +270,19 @@ export function AssayMatrixTable({
                       {gene}
                     </Link>
                   </div>
-                </th>
+                </TableHead>
                 {annotations.visible && (
-                  <td className="border-b border-r border-border/40 px-2 py-1">
+                  <TableCell className="border-r border-border/40">
                     <KnowledgebaseGeneTags markers={geneMarkers[gene]} tiny />
-                  </td>
+                  </TableCell>
                 )}
                 {columns.map((col) => {
                   const present = Boolean(matrix?.[gene]?.[col.mod]?.[col.cat]?.[col.isgl_key])
                   return (
-                    <td
+                    <TableCell
                       key={`${gene}:${col.key}`}
                       data-covered={present && !col.no_gene_list ? "true" : undefined}
-                      className="h-7 border-b border-r border-border/40 px-0.5 py-1 text-center last:border-r-0"
+                      className="h-7 border-r border-border/40 px-0.5 text-center last:border-r-0"
                     >
                       {col.no_gene_list ? <span className="type-meta text-muted-foreground" title="No gene list is assigned to this analysis">N/A</span> : present ? (
                         <span className="matrix-coverage-mark" aria-label="Included" title="Included in this gene list">
@@ -288,19 +291,19 @@ export function AssayMatrixTable({
                       ) : (
                         <span className="text-muted-foreground/65">-</span>
                       )}
-                    </td>
+                    </TableCell>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         </div>
       </div>
       <div className="mt-2 text-right text-xs font-normal text-muted-foreground">
         Showing {genes.length} of {total} gene(s) across {columns.length} visible catalog column(s)
         {appliedGeneSearch ? ` for "${appliedGeneSearch}"` : ""}
       </div>
-    </div>
+    </Surface>
   )
 }

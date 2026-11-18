@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
 import { useState } from "react";
 import { normalizePanelEntries } from "./overview-data";
@@ -13,7 +14,7 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
   const emptyText = isFusion ? "No fusion list filters applied" : "No genelist filters applied"
 
   return (
-    <section className="glass-panel overflow-hidden rounded-xl border border-border/80 bg-card/85 shadow-sm">
+    <Surface as="section" variant="panel" className="overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -69,7 +70,7 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
             const uncovered = raw?.uncovered || []
             const name = raw?.name || raw?.id
             return (
-              <div key={`${raw?.target || "GENE"}-${raw?.id || name}`} className="rounded-lg border border-border/80 bg-background/70 p-3 shadow-sm">
+              <Surface variant="inset" key={`${raw?.target || "GENE"}-${raw?.id || name}`} className="p-3">
                 <p className={raw?.is_active === false ? "text-sm font-bold text-warn" : "text-sm font-bold text-foreground"}>
                   <span className="uppercase text-muted-foreground">{raw?.target || "GENE"}</span>: {name} {raw?.adhoc ? <span className="rounded bg-primary/10 px-1.5 py-0.5 type-label uppercase text-primary">Ad hoc</span> : null}
                   <span className="ml-2 text-muted-foreground">
@@ -95,11 +96,11 @@ export function PanelSummary({ sample, context }: { sample: any; context?: any }
                     {uncovered.length ? `, ${uncovered.length} outside assay coverage` : ""}
                   </p>
                 )}
-              </div>
+              </Surface>
             )
           })}
         </div>
       )}
-    </section>
+    </Surface>
   )
 }

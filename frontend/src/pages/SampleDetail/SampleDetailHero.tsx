@@ -3,10 +3,10 @@
 
 import { useState } from "react"
 import type { FocusEvent, MouseEvent, ReactNode } from "react"
-
 import { DetailHero } from "@/components/detail/FindingDetailLayout"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
 import { TimeDisplay } from "@/components/ui/time-display"
+import { Badge } from "@/components/ui/badge"
 import { sampleReported } from "@/lib/sample-shape"
 
 function displayValue(value: unknown) {
@@ -60,15 +60,15 @@ function MetricBadge({
       onFocus={(event) => setPosition(tooltipPosition(event))}
       onBlur={() => setPosition(null)}
     >
-      <span
+      <Badge variant="neutral"
         tabIndex={0}
-        className="inline-flex cursor-help items-center gap-1 rounded-md border border-sand-300/70 bg-sand-100 px-1.5 py-0.5 type-meta font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/40 dark:border-sand-400/25 dark:bg-sand-900/40"
+        className="cursor-help outline-none focus:ring-2 focus:ring-ring/40"
       >
         <span className="text-muted-foreground">{label}:</span>
         {value}
-      </span>
+      </Badge>
       {position && (
-        <TooltipSurface position={position} className="border-sand-300/80 text-sand-950 dark:border-sand-400/30 dark:text-sand-100">
+        <TooltipSurface position={position}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">Sample metric</span>
           <span className="block font-semibold text-foreground">{label}</span>
           <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{metricDescription(label)}</span>
@@ -88,15 +88,7 @@ function StatusBadge({
   tone: "info" | "success" | "warning" | "danger" | "neutral"
   appearanceClassName?: string
 }) {
-  const toneClass = {
-    info: "badge-info",
-    success: "badge-success",
-    warning: "badge-warning",
-    danger: "badge-danger",
-    neutral: "badge-neutral",
-  }[tone]
-
-  return <span className={`type-badge ${appearanceClassName || toneClass}`}>{children}</span>
+  return <Badge variant={appearanceClassName ? "outline" : tone} className={appearanceClassName}>{children}</Badge>
 }
 
 function numberValue(value: unknown) {

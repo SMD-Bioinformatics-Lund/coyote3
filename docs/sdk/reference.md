@@ -80,7 +80,7 @@ Raises:
 ### `AdministrationServices`
 
 ```python
-AdministrationServices(*, users: 'Callable[[], UserManagementService]', sessions: 'Callable[[], SessionActivityRepository]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', assay_setups: 'Callable[[], AssaySetupService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
+AdministrationServices(*, users: 'Callable[[], UserManagementService]', recovery: 'Callable[[], AccountRecoveryService]', sessions: 'Callable[[], SessionActivityRepository]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', assay_setups: 'Callable[[], AssaySetupService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
 ```
 
 ```text
@@ -3568,14 +3568,15 @@ Raises:
 #### `PasswordRecovery.request_reset`
 
 ```python
-PasswordRecovery.request_reset(self, identifier: 'str') -> 'dict[str, Any]'
+PasswordRecovery.request_reset(self, identifier: 'str', provider: 'str' = 'auto') -> 'dict[str, Any]'
 ```
 
 ```text
 Request a recovery link without disclosing whether the account exists.
 
 Args:
-    identifier: User-entered local username or login identifier.
+    identifier: User-entered username.
+    provider: Auto, local, or LDAP authentication to recover.
 
 Returns:
     The same success acknowledgement regardless of account existence.
@@ -5344,11 +5345,21 @@ Returns:
 ### `Users`
 
 ```python
-Users(runtime: 'ApplicationRuntime', service: 'Callable[[], UserManagementService]', sessions: 'Callable[[], SessionActivityRepository]') -> 'None'
+Users(runtime: 'ApplicationRuntime', service: 'Callable[[], UserManagementService]', sessions: 'Callable[[], SessionActivityRepository]', recovery: 'Callable[[], AccountRecoveryService]') -> 'None'
 ```
 
 ```text
 Authorized users operations shared by HTTP and local callers.
+```
+
+#### `Users.complete_recovery`
+
+```python
+Users.complete_recovery(self, request_id: 'str') -> 'PasswordRecoveryRecord'
+```
+
+```text
+Confirm externally completed recovery, preserving the original actor on retry.
 ```
 
 #### `Users.create_user`
@@ -5448,6 +5459,16 @@ Returns:
 Raises:
     AppError: Authentication, required grants (user:list), validation
         or the operation's existing business rules reject the request.
+```
+
+#### `Users.recovery_requests`
+
+```python
+Users.recovery_requests(self) -> 'list[PasswordRecoveryRecord]'
+```
+
+```text
+List assisted recovery requests for system administrators.
 ```
 
 #### `Users.session_activity`

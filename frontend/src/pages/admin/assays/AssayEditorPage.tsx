@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import {
   AdminEditorActions,
   AdminEditorContent,
@@ -67,13 +68,13 @@ export function AssayEditorPage({ mode }: { mode: AdminFormMode }) {
           }}
         />
         {doc && (
-          <div className="glass-card min-w-0 p-3">
+          <Surface variant="card" className="min-w-0 p-3">
             <AssayDiagnoses
               key={String(doc.asp_id)}
               aspId={String(doc.asp_id)}
               canEdit={effectiveMode !== "view" && hasPermission(user, "assay.panel:edit")}
             />
-          </div>
+          </Surface>
         )}
         {doc && <AssayGeneLists aspId={String(doc.asp_id)} aspGroup={String(doc.asp_group)} readonly={effectiveMode === "view"} />}
       </AdminEditorContent>

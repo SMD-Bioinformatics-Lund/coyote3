@@ -1,13 +1,16 @@
-# First installation
+# Install Coyote4 with Docker {#first-installation}
 
-Follow these steps in order from the repository root, in the same Bash shell.
-This procedure builds the production images, prepares storage and networking,
-installs the database baseline, starts the application, and completes the first
-sign-in. The bootstrap command runs inside the API image; a host Python virtual
-environment is not required for this procedure.
+Use this guide for a **new Docker deployment**. It covers prerequisites, environment
+settings, application installation and first sign-in. Run the commands from the
+repository root in the same Bash shell. Bootstrap runs inside the API image;
+you do not need a host Python virtual environment.
 
-For an installation that is already running, do not repeat bootstrap to troubleshoot
-the UI. Start at **step 9** to check service status and the browser URL.
+For native Linux or WSL processes, use the
+[native installation instructions](installation-operations.md#native-application-on-wsl-or-linux).
+For an existing installation, use [upgrade](application-upgrades.md) or
+[restart and redeploy](application-redeployment.md). To investigate an installation
+already running, go to [service checks](#9-start-services-and-verify-the-browser-url);
+do not repeat bootstrap.
 
 ## 1. Check prerequisites
 
@@ -172,7 +175,7 @@ ENV_NAME='production'
 COYOTE4_DB='coyote4_prod'
 IDENTITY_DB='coyote4_identity_prod'
 KNOWLEDGEBASE_DB='coyote4_knowledgebases'
-BAM_DB='bam_prod'
+BAM_DB='coyote4_bam_prod'
 API_SESSION_COOKIE_NAME='coyote4_prod_api_session'
 ```
 
@@ -356,6 +359,9 @@ file from `deploy/env/example.redis-server.env`, then run
 provisioned native unit with `--mode native --unit redis-server.service`). Configure
 the application's cache, broker and result URLs to reach that server. See
 [independent infrastructure](installation-operations.md#independent-infrastructure-and-application).
+The Celery broker requires Redis 6.2 or newer for the installed transport's commands.
+The installer checks authenticated connectivity and broker `INFO server`; the broker
+account must be allowed to read `INFO`.
 
 Run the application installer after completing the environment, center configuration,
 MongoDB and database-user prerequisites in steps 1–7. Use the same shell session

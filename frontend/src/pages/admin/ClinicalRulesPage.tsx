@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AppLoader } from "@/components/layout/AppLoader"
+import { Notice } from "@/components/ui/notice"
 import { MarkdownComposer } from "@/components/comments/MarkdownComposer"
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { RecordProvenance } from "./RecordProvenance"
@@ -275,6 +277,16 @@ export function ClinicalRulesPage() {
   const viewingRetired = retiredOpen && status === "retired" && Boolean(draft)
   const listedVersions = viewingRetired ? retiredVersions.data || [] : listQuery.data?.items || []
   if (listQuery.isLoading || factsQuery.isLoading || optionsQuery.isLoading) return <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets"><AppLoader label="Loading clinical rules" /></PageShell>
+  if ([listQuery, factsQuery, optionsQuery].some(query => query.isError && !query.data)) return (
+    <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets">
+      <Notice tone="danger" role="alert" className="space-y-2">
+        <p>Unable to load the reporting rule configuration.</p>
+        <Button variant="outline" disabled={listQuery.isFetching || factsQuery.isFetching || optionsQuery.isFetching} onClick={() => {
+          void Promise.all([listQuery.refetch(), factsQuery.refetch(), optionsQuery.refetch()])
+        }}>Retry</Button>
+      </Notice>
+    </PageShell>
+  )
   return (
     <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><icon.save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><icon.check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><icon.beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={() => beginCreation()}><icon.plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><icon.copyPlus /> Create revision</Button>}</>}>
       <DocumentEditorNotice editor={documentEditor} />
@@ -283,7 +295,7 @@ export function ClinicalRulesPage() {
       {localProblem && <p role="alert" className="mb-3 rounded-lg border border-warning p-3 type-body">Correct the current edit before saving: {localProblem}</p>}
       {saveMutation.isError && failedSaveGeneration === editGeneration.current && <div role="alert" className="mb-3 rounded-lg border border-destructive p-3 type-body"><p>Autosave paused. {saveMutation.error instanceof Error ? saveMutation.error.message : "The draft could not be saved."} Correct the draft or retry when ready.</p><Button variant="outline" size="sm" disabled={saveBlocked} onClick={() => { saveMutation.reset(); setFailedSaveGeneration(null) }}>Retry save</Button></div>}
       {creating && (
-        <section className="surface-panel mb-3 p-4" aria-label="Create clinical rule set">
+        <Surface as="section" variant="panel" className="mb-3 p-4" aria-label="Create clinical rule set">
           <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Draft creation method">
             {(["blank", "template", "import"] as CreationMode[]).map((mode) => <Button key={mode} type="button" size="sm" variant={creationMode === mode ? "default" : "outline"} onClick={() => setCreationMode(mode)}>{mode === "blank" ? "Build in UI" : mode === "template" ? "Use template" : "Import JSON"}</Button>)}
           </div>
@@ -298,7 +310,7 @@ export function ClinicalRulesPage() {
           {creationMode === "template" && <label className="type-label mt-3 block max-w-xl">Template rule set<select className="paper-inset mt-1 w-full rounded-lg p-2 text-sm" value={templateId} onChange={(event) => { const selected = assayTemplates.find((item) => item._id === event.target.value); setTemplateId(event.target.value); if (selected && !newNameEdited) setNewScope((current) => ({ ...current, name: `${selected.name} - test` })) }}><option value="">Select a published {newScope.asp_id ? "assay-specific" : ""} template</option>{assayTemplates.map((item) => <option key={item._id} value={item._id}>{item.scope.diagnosis_id} · {item.name} (v{item.content_version})</option>)}</select></label>}
           {creationMode === "import" && <div className="mt-3 max-w-xl"><p className="type-label mb-2">Rule configuration JSON</p><FileUpload label="Rule configuration JSON" hint="Upload rule configuration (.json). Author, timestamps and version are assigned automatically." accept="application/json,.json" onChange={(event) => chooseImport(event.target.files?.[0])} />{importDocument && <p className="mt-1 type-meta text-pass">Valid JSON loaded. It will be validated again by the server before a draft is created.</p>}{importError && <p role="alert" className="mt-1 type-meta text-destructive">{importError}</p>}</div>}
           <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" onClick={cancelCreation}>Cancel</Button><Button disabled={!newScope.asp_id.trim() || !newScope.diagnosis_id.trim() || !newScope.name.trim() || actionMutation.isPending || (creationMode === "template" && !templateId) || (creationMode === "import" && !importDocument)} onClick={createRuleSet}><icon.circlePlus /> Create draft</Button></div>
-        </section>
+        </Surface>
       )}
       <div className={cn("clinical-rules-layout clinical-rules-workspace surface-panel overflow-hidden", ruleListCollapsed && "is-rule-list-collapsed")} style={{ "--rule-list-width": `${ruleListWidth}px`, "--preview-width": `${previewWidth}px` } as CSSProperties}>
         <aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0">
@@ -318,7 +330,12 @@ export function ClinicalRulesPage() {
         </aside>
         {!ruleListCollapsed && <ResizeDivider label="Resize rule-set list" width={ruleListWidth} setWidth={setRuleListWidth} min={210} max={440} />}
         <main className="grid min-h-0 min-w-0 grid-rows-[auto_auto_auto_minmax(0,1fr)] border-b border-border xl:border-b-0 xl:border-r">
-          {!draft ? <div className="grid h-full place-items-center p-8 text-sm text-muted-foreground">Select a rule set to inspect or edit.</div> : <>
+          {!draft ? <div className="grid h-full place-items-center p-8 text-sm text-muted-foreground">
+            {listedVersions.length ? "Select a rule set to inspect or edit." : <div role="status" className="space-y-2 text-center">
+              <p>No reporting rule sets match the current filters.</p>
+              <p>{can("clinical_rules:draft") ? "Create a new rule set or choose another workflow state." : "Choose another workflow state to check for available rule sets."}</p>
+            </div>}
+          </div> : <>
             <div className="border-b border-border bg-muted/35 p-3">
               {editableDraft && <details className="mb-3 rounded-lg border border-border bg-background p-3">
                 <summary className="cursor-pointer type-body-sm font-medium">Assay association: {draft.scope.asp_id} · {draft.scope.diagnosis_id}{!optionsQuery.data?.assays.some(item => item.asp_id === draft.scope.asp_id) ? " (not registered yet)" : ""}</summary>

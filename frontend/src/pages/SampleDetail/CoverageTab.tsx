@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
 import { MetricCard, SurfacePanel } from "@/components/cards/Panel"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -145,10 +146,10 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
   if (isLoading) return <div className="space-y-3">{scopeControl}<AppLoader label="Loading coverage" /></div>
   if (error) {
     return (
-      <div className="space-y-3">{scopeControl}<div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <div className="space-y-3">{scopeControl}<Notice tone="danger">
         <icon.alertTriangle className="mr-2 inline h-4 w-4" />
         {error instanceof Error ? error.message : "Error loading coverage"}
-      </div></div>
+      </Notice></div>
     )
   }
 

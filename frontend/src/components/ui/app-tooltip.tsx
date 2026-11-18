@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -13,22 +14,24 @@ import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 import {
   tooltipToneClass,
+  tooltipElementPosition,
+  tooltipEventPosition,
   type TooltipPosition,
   type TooltipTone,
 } from "@/components/ui/app-tooltip-meta"
 
 export function TooltipSurface({
   position,
-  anchor,
   children,
   className,
   id,
+  onDismiss,
 }: {
   position: TooltipPosition
-  anchor?: "pointer"
   children: ReactNode
   className?: string
   id?: string
+  onDismiss?: () => void
 }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [adjustedPosition, setAdjustedPosition] = useState(position)
@@ -39,21 +42,42 @@ export function TooltipSurface({
     const margin = 12
     const gap = 14
     const rect = surface.getBoundingClientRect()
-    const left = anchor === "pointer"
+    const pointer = position.anchor === "pointer"
+    const bounds = position.bounds
+    const left = pointer
       ? position.left + gap + rect.width <= window.innerWidth - margin
         ? position.left + gap
         : position.left - rect.width - gap
-      : position.left
-    const top = anchor === "pointer"
+      : bounds ? (bounds.left + bounds.right - rect.width) / 2 : position.left
+    const top = pointer
       ? position.top + gap + rect.height <= window.innerHeight - margin
         ? position.top + gap
         : position.top - rect.height - gap
-      : position.top
+      : bounds
+        ? bounds.bottom + gap + rect.height <= window.innerHeight - margin
+          ? bounds.bottom + gap
+          : bounds.top - rect.height - gap
+        : position.top
     setAdjustedPosition({
       left: Math.max(margin, Math.min(left, window.innerWidth - rect.width - margin)),
       top: Math.max(margin, Math.min(top, window.innerHeight - rect.height - margin)),
     })
-  }, [position.left, position.top, anchor, children])
+  }, [position, children])
+
+  useEffect(() => {
+    if (!onDismiss) return
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onDismiss() }
+    document.addEventListener("keydown", onKeyDown, true)
+    window.addEventListener("scroll", onDismiss, { capture: true, passive: true })
+    window.addEventListener("resize", onDismiss)
+    window.addEventListener("blur", onDismiss)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true)
+      window.removeEventListener("scroll", onDismiss, true)
+      window.removeEventListener("resize", onDismiss)
+      window.removeEventListener("blur", onDismiss)
+    }
+  }, [onDismiss])
 
   return createPortal(
     <div
@@ -93,19 +117,7 @@ export function AppTooltip({
   const [pinned, setPinned] = useState(false)
 
   const place = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const width = 288
-    const estimatedHeight = 112
-    const gap = 8
-    const margin = 12
-    const left = Math.max(margin, Math.min(
-      rect.left + rect.width / 2 - width / 2,
-      window.innerWidth - width - margin,
-    ))
-    const top = rect.bottom + gap + estimatedHeight <= window.innerHeight - margin
-      ? rect.bottom + gap
-      : Math.max(margin, rect.top - estimatedHeight - gap)
-    setPosition({ left, top })
+    setPosition(tooltipEventPosition(event))
   }
 
   const close = () => {
@@ -122,8 +134,11 @@ export function AppTooltip({
       data-tooltip-context={context}
       data-tooltip-tone={tone}
       onMouseEnter={place}
-      onMouseLeave={() => {
-        if (!pinned) setPosition(null)
+      onMouseMove={(event) => { if (position && !pinned) place(event) }}
+      onMouseLeave={(event) => {
+        if (pinned || event.currentTarget.contains(document.activeElement)) {
+          setPosition(tooltipElementPosition(event.currentTarget))
+        } else setPosition(null)
       }}
       onFocus={place}
       onBlur={(event) => {
@@ -133,7 +148,7 @@ export function AppTooltip({
         if (!persistOnClick) return
         if (pinned) close()
         else {
-          place(event)
+          setPosition(event.detail === 0 ? tooltipElementPosition(event.currentTarget) : tooltipEventPosition(event))
           setPinned(true)
         }
       }}
@@ -143,7 +158,7 @@ export function AppTooltip({
     >
       {children}
       {position && (
-        <TooltipSurface position={position} className={tooltipToneClass(tone)}>
+        <TooltipSurface position={position} onDismiss={close} className={tooltipToneClass(tone)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{context}</span>
           <span className="block font-bold text-foreground">{label || content}</span>
           {label && label !== content ? (

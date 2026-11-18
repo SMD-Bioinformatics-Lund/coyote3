@@ -35,7 +35,7 @@ def test_session_counts_recheck_current_superuser_role_and_authentication(superu
         observed_at=datetime.now(timezone.utc),
     )
     factory = Mock(return_value=repository)
-    users = Users(runtime, Mock(), factory)
+    users = Users(runtime, Mock(), factory, Mock())
     if superuser:
         assert users.session_activity().signed_in_users == 2
         assert events[-1].allowed is True

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableBody, TableRow, TableHead, TableCell, TableHeader } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { icon } from "@/lib/assets"
 import { type ReactNode, useState } from "react"
 import { DetailCard } from "@/components/detail/FindingDetailLayout"
@@ -39,15 +42,14 @@ function TableDisclosure({
       <span className="type-meta text-muted-foreground">
         Showing {shown} of {total}
       </span>
-      <button
+      <Button variant="ghost" size="sm"
         type="button"
-        className="inline-flex items-center gap-1 rounded-md px-2 py-1 type-label font-semibold text-primary interaction-transition hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-expanded={expanded}
         onClick={onToggle}
       >
         {expanded ? <icon.chevronUp className="size-3.5" /> : <icon.chevronDown className="size-3.5" />}
         {expanded ? `Show first ${initialRows}` : `Show all ${total}`}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -71,15 +73,15 @@ export function DetailMetricTable({
   const visibleMetrics = hasMoreRows && !expanded ? visible.slice(0, initialRows) : visible
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border/70">
-      <table className="type-table-cell w-full border-collapse text-left">
-        <tbody className="divide-y divide-border/60">
+    <div className="table-frame">
+      <Table density={dense ? "compact" : "standard"}>
+        <TableBody>
           {visibleMetrics.map((metric) => (
-            <tr key={metric.label} className="bg-background/45 align-top">
-              <th className={cn("w-36 px-3 font-medium uppercase tracking-wide text-muted-foreground", dense ? "py-0.5" : "py-1")}>
+            <TableRow key={metric.label} className="align-top">
+              <TableHead scope="row" className="w-36 font-medium uppercase tracking-wide text-muted-foreground">
                 {metric.label}
-              </th>
-              <td className={cn("px-3 font-semibold text-foreground", dense ? "py-0.5" : "py-1", metric.monospace && "font-mono")}>
+              </TableHead>
+              <TableCell className={cn("font-semibold text-foreground", metric.monospace && "font-mono")}>
                 {metric.href ? (
                   <a
                     className="link-text inline-flex min-w-0 items-center gap-1"
@@ -93,11 +95,11 @@ export function DetailMetricTable({
                 ) : (
                   displayValue(metric.value)
                 )}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       {hasMoreRows ? (
         <TableDisclosure
           shown={visibleMetrics.length}
@@ -134,30 +136,30 @@ export function DetailDataTable<T>({
   const visibleRows = hasMoreRows && !expanded ? rows.slice(0, initialRows) : rows
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border/70">
+    <div className="table-frame">
       <div className="overflow-x-auto">
-        <table className={cn("type-table-cell w-full border-separate border-spacing-0 text-left", tableLayout === "fixed" ? "table-fixed" : "min-w-max")}>
-          <thead className="type-table-header bg-muted text-foreground dark:bg-muted/70">
-            <tr>
+        <Table className={cn(tableLayout === "fixed" ? "table-fixed" : "min-w-max")}>
+          <TableHeader className="text-foreground">
+            <TableRow>
               {columns.map((column) => (
-                <th key={column.key} className={cn("border-b-2 border-border px-2.5 py-1", column.className)}>
+                <TableHead key={column.key} className={cn(column.className)}>
                   {column.header}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody className="bg-background/55">
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {visibleRows.map((row, index) => (
-              <tr key={index} className="align-top odd:bg-background/35 even:bg-card/50 hover:bg-muted/35">
+              <TableRow key={index} className="align-top">
                 {columns.map((column) => (
-                  <td key={column.key} className={cn("border-b border-border/55 px-2.5 py-1", column.className)}>
+                  <TableCell key={column.key} className={cn(column.className)}>
                     {column.render(row, index)}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       {hasMoreRows ? (
         <TableDisclosure
@@ -179,18 +181,10 @@ export function EvidenceBadge({
   children: ReactNode
   tone?: "neutral" | "success" | "warning" | "danger" | "info"
 }) {
-  const toneClass = {
-    neutral: "border-muted-foreground/50 bg-muted text-muted-foreground",
-    success: "border-pass/50 bg-pass/12 text-pass",
-    warning: "border-warn/50 bg-warn/14 text-warn",
-    danger: "border-fail/50 bg-fail/12 text-fail",
-    info: "border-primary/50 bg-primary/10 text-primary",
-  }[tone]
-
   return (
-    <span className={cn("inline-flex min-w-0 max-w-full whitespace-normal rounded-md border px-2 py-0.5 type-meta font-semibold uppercase tracking-wide [overflow-wrap:anywhere]", toneClass)}>
+    <Badge variant={tone} className="min-w-0 whitespace-normal uppercase tracking-wide [overflow-wrap:anywhere]">
       {children}
-    </span>
+    </Badge>
   )
 }
 

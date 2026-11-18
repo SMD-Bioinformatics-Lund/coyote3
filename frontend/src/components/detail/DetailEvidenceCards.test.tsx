@@ -62,7 +62,7 @@ describe("detail evidence components", () => {
 
   it("renders semantic evidence badges and omits empty external-link cards", () => {
     const view = render(<MemoryRouter><><EvidenceBadge tone="warning">Moderate</EvidenceBadge><ExternalLinksCard links={[]} /></></MemoryRouter>)
-    expect(screen.getByText("Moderate")).toHaveClass("text-warn")
+    expect(screen.getByText("Moderate")).toHaveAttribute("data-variant", "warning")
     expect(screen.queryByText("External Evidence")).not.toBeInTheDocument()
     view.rerender(<MemoryRouter><ExternalLinksCard links={[{ label: "ClinVar", value: "record", href: "https://example.test" }]} /></MemoryRouter>)
     expect(screen.getByRole("link", { name: "ClinVar" })).toHaveAttribute("target", "_blank")

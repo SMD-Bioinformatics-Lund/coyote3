@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useSearchParams } from "react-router-dom"
@@ -22,7 +23,7 @@ export function QueryRuleTestingPage() {
   return <PageShell eyebrow="Finding selection" title="Query Rule Testing"
     description="Compare saved query-rule versions against authorized samples without changing findings or publishing rules."
     actions={<Button variant="outline" nativeButton={false} render={<Link to="/admin/query-rules" />}>Query rule sets</Button>}>
-    <section className="surface-panel space-y-3 p-4" aria-label="Query version selection">
+    <Surface as="section" variant="panel" className="space-y-3 p-4" aria-label="Query version selection">
       <label className="block type-label">Rule-set version
         <select className="paper-inset mt-2 w-full rounded-lg p-2 type-body" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
           <option value="">Select a saved version</option>
@@ -33,7 +34,7 @@ export function QueryRuleTestingPage() {
       {versions.isError && <p role="alert">Unable to load query-rule versions. <Button variant="outline" onClick={() => void versions.refetch()}>Retry</Button></p>}
       {selected && <div className="flex flex-wrap items-center gap-2 type-body-sm"><ClinicalRuleStatusBadge status={selected.status} prefix={`v${selected.version} `} /><span>{selected.scope.assay_group ?? "All groups"} · {selected.scope.asp_id ?? "All assays"} · {selected.scope.diagnosis_id ?? "All diagnoses"}</span></div>}
       <p className="type-body-sm text-muted-foreground">Save draft changes in the editor before testing. Only ready samples within your assay and environment access are available.</p>
-    </section>
+    </Surface>
     {selected ? <div className="mt-4"><QueryRuleSampleTestPanel key={`${selected._id}:${selected.revision}`} scope={selected.scope} content={selected.content} readOnly={selected.status !== "draft"} /></div> : <p className="mt-4 type-body-sm text-muted-foreground">Select a version to find and test samples.</p>}
   </PageShell>
 }

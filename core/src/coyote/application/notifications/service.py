@@ -378,7 +378,7 @@ class NotificationService:
         }
 
     def deliver_emails(self, *, limit: int = 10) -> dict[str, Any]:
-        """Deliver a bounded batch of persisted broadcast emails.
+        """Deliver a bounded batch of persisted notification emails.
 
         Args:
             limit: Maximum recipients per worker invocation, bounded to 1 through 50.
@@ -388,7 +388,8 @@ class NotificationService:
 
         Notes:
             Rechecks account activation and address at send time. Email contains an inbox
-            link, not clinical details or the notification body. Failed sends are retained
+            link; account-recovery notices also include their non-clinical instructions.
+            Broadcast bodies are never copied into email. Failed sends are retained
             as failed; only abandoned worker leases can be retried automatically.
         """
         if self.email_sender is None:
@@ -411,15 +412,25 @@ class NotificationService:
             address = str((user or {}).get("email") or "").strip()
             state = "skipped"
             if user and user.get("is_active", True) and address:
+                recovery = (
+                    notification.get("source") == "Account recovery"
+                    and notification.get("category") == "security"
+                    and not notification.get("is_broadcast")
+                )
                 sent = self.email_sender(
                     to_email=address,
-                    subject="Coyote4 administrative notification",
-                    text_body=(
+                    subject=(
+                        f"Coyote4 {notification['title']}"
+                        if recovery
+                        else "Coyote4 administrative notification"
+                    ),
+                    text_body=((notification["message"] + "\n\n") if recovery else "")
+                    + (
                         "A new administrative message is available in your Coyote4 inbox.\n\n"
                         f"Open notifications: {self.inbox_url}\n\n"
                         "Sign in to read the message. This email contains no clinical information."
                     ),
-                    purpose="broadcast",
+                    purpose="security" if recovery else "broadcast",
                     severity=notification.get("severity") or "info",
                     action_url=self.inbox_url,
                     action_label="Open notifications",

@@ -1107,6 +1107,7 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
     "isgl": set(),
     "user": {
         "password_updated_on",
+        "password_recovery",
         "password_action_token_hash",
         "password_action_purpose",
         "password_action_expires_at",

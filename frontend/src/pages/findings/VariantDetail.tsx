@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { FindingCommentComposer, FindingCommentLists } from "@/components/comments/FindingComments"
 import {
   DetailDataTable,
@@ -161,8 +162,8 @@ export function VariantDetail() {
                 <DetailField label="Hotspot"><HotspotIndicator variant={variant} showLabel /></DetailField>
                 <DetailField label="Position">{variantLocation(variant)}</DetailField>
                 <DetailField label="Filter flags"><FilterFlagBadges value={variant?.FILTER} metadata={filterFlagMetadata} analysis="snv" callers={callers} /></DetailField>
-                <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} className="" /></DetailField>
-                <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} className="" /></DetailField>
+                <DetailField label="cDNA"><ExpandableText text={csq.HGVSc || "-"} maxLength={24} /></DetailField>
+                <DetailField label="Protein"><ExpandableText text={csq.HGVSp || "-"} maxLength={24} /></DetailField>
                 <DetailField label="Exon / Intron">{csq.EXON || csq.INTRON || "-"}</DetailField>
                 <DetailField label="Indel size">{variant?.INFO?.SVLEN || variant?.indel_size || "-"}</DetailField>
                 {genotypes.map((gt, index) => <DetailField key={index} label={`${gt.type || gt.sample || "Sample"} frequency (alt / depth)`}>
@@ -254,41 +255,41 @@ export function VariantDetail() {
             <DetailCard title="Prediction and Clinical Signals">
               <div className="space-y-2.5">
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                  <Surface variant="inset" className="min-w-0  p-2.5">
                     <span className="detail-field-label">CADD</span>
                     <span className="type-body font-semibold text-foreground">{displayValue(csq.CADD_PHRED)}</span>
-                  </div>
-                  <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                  </Surface>
+                  <Surface variant="inset" className="min-w-0  p-2.5">
                     <span className="detail-field-label">ClinVar</span>
                     <ExpandableText
                       text={displayValue(clinicalSig(csq, variant))}
                       maxLength={18}
                       className="type-body-sm font-semibold text-foreground"
                     />
-                  </div>
+                  </Surface>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-background/50 p-2.5">
+                  <Surface variant="inset" className="min-w-0 overflow-hidden  p-2.5">
                     <span className="detail-field-label">SIFT</span>
                     <PredictionBadge value={csq.SIFT} />
-                  </div>
-                  <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-background/50 p-2.5">
+                  </Surface>
+                  <Surface variant="inset" className="min-w-0 overflow-hidden  p-2.5">
                     <span className="detail-field-label">PolyPhen</span>
                     <PredictionBadge value={csq.PolyPhen} />
-                  </div>
+                  </Surface>
                 </div>
-                <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                <Surface variant="inset" className="min-w-0  p-2.5">
                   <span className="detail-field-label">Called by</span>
                   <div className="min-w-0 overflow-hidden"><CallerBadges value={callers} /></div>
-                </div>
-                <div className="min-w-0 rounded-lg border border-border/70 bg-background/55 p-2.5">
+                </Surface>
+                <Surface variant="inset" className="min-w-0  p-2.5">
                   <span className="detail-field-label">Transcript selected by</span>
                   <ExpandableText
                     text={displayValue(variant?.INFO?.selected_CSQ_criteria)}
                     maxLength={32}
                     className="type-body-sm text-foreground"
                   />
-                </div>
+                </Surface>
               </div>
             </DetailCard>
 

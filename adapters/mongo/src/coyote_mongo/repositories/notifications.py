@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from typing import Any
 from uuid import uuid4
 
@@ -40,7 +41,7 @@ class NotificationsRepository(BaseRepository):
         collection.create_index([("email_deliveries.state", 1)], name="email_deliveries_state")
 
     def claim_email(self) -> tuple[dict[str, Any], dict[str, Any]] | None:
-        """Lease one pending broadcast email, recovering abandoned attempts.
+        """Lease one pending notification email, recovering abandoned attempts.
 
         Returns:
             Notification and leased recipient entry, or None when no work is ready.
@@ -210,11 +211,20 @@ class NotificationsRepository(BaseRepository):
 
         Args:
             document: Notification fields; an optional _id makes repeated delivery insert-only.
+                Named source-event IDs are hashed to stable BSON IDs for inbox actions.
 
         Returns:
             Serialized inserted document ID.
         """
         if document.get("_id") is not None:
+            document = dict(document)
+            identity = document["_id"]
+            if isinstance(identity, str):
+                document["_id"] = (
+                    ObjectId(identity)
+                    if ObjectId.is_valid(identity)
+                    else ObjectId(sha256(identity.encode()).hexdigest()[:24])
+                )
             self.get_collection().update_one(
                 {"_id": document["_id"]}, {"$setOnInsert": dict(document)}, upsert=True
             )

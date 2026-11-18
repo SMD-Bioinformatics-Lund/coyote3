@@ -8,6 +8,7 @@ import { AppLoader } from "@/components/layout/AppLoader"
 import { PageFrame } from "@/components/layout/PageFrame"
 import { ExpandableText } from "@/components/detail/ExpandableText"
 import { cn } from "@/lib/utils"
+import { Surface } from "@/components/ui/surface"
 
 export function FindingLoading() {
   return <AppLoader label="Loading finding" />
@@ -263,13 +264,13 @@ export function DetailCard({
   }[tone]
 
   return (
-    <section className={cn(Icon ? "glass-card p-4" : toneClass, className)}>
-      <h3 className={Icon ? "mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground" : "detail-section-title"}>
+    <Surface as="section" className={cn("p-3", toneClass, className)}>
+      <h3 className="type-card-title mb-3 flex items-center gap-2 text-foreground">
         {Icon && <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>}
         {title}
       </h3>
       {children}
-    </section>
+    </Surface>
   )
 }
 

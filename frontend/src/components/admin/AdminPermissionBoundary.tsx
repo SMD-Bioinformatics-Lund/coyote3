@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import type { ReactNode } from "react"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -28,9 +29,9 @@ export function AdminPermissionBoundary({
         title="Access not assigned"
         description={`Your roles do not grant access to this ${area === "Admin" ? "administrative" : "clinical"} workflow.`}
       >
-        <section className="surface-panel p-4 text-sm text-muted-foreground">
+        <Surface as="section" variant="panel" className="p-4 text-sm text-muted-foreground">
           Required permission: <code className="font-semibold text-foreground">{permission}</code>
-        </section>
+        </Surface>
       </PageShell>
     )
   }

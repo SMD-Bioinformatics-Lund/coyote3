@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { BadgeList, HtmlText } from "./catalog-presentation"
 import { publishedGeneCount } from "./catalog-information"
 import { offeringPrice, type Offering } from "./offering-types"
@@ -30,27 +32,27 @@ function Value({ item, property }: { item: Offering; property: typeof properties
 
 /** Align each service property across the selected reviewed assay/diagnosis scopes. */
 export function CatalogComparisonTable({ offerings }: { offerings: Offering[] }) {
-  return <section className="surface-panel min-w-0 space-y-3 p-4" aria-label="Assay comparison">
-    <h2 className="type-section-title">Compare published services</h2>
+  return <Surface as="section" variant="panel" className="min-w-0 space-y-3 p-4" aria-label="Assay comparison">
+    <h2 className="type-card-title">Compare published services</h2>
     <div role="region" aria-label="Service comparison, scroll horizontally" tabIndex={0}
-      className="max-w-full overflow-x-auto rounded-lg border border-border focus-visible:outline-2 focus-visible:outline-ring">
-      <table className="w-full table-fixed border-collapse text-left type-body-sm"
+      className="table-frame overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring">
+      <Table className="table-fixed"
         style={{ minWidth: `${12 + offerings.length * 18}rem` }}>
         <caption className="sr-only">Published service comparison</caption>
         <colgroup><col className="w-48" />{offerings.map(item => <col key={item.offering_id} />)}</colgroup>
-        <thead className="bg-[var(--table-header-surface)]">
-          <tr><th scope="col" className="sticky left-0 border-b border-r border-border bg-[var(--table-header-surface)] p-3">Property</th>
-            {offerings.map(item => <th scope="col" key={item.offering_id} className="border-b border-r border-border p-3 align-top last:border-r-0">
+        <TableHeader>
+          <TableRow><TableHead scope="col" className="sticky left-0 border-r border-border bg-[var(--table-header-surface)]">Property</TableHead>
+            {offerings.map(item => <TableHead scope="col" key={item.offering_id} className="border-r border-border align-top last:border-r-0">
               <span className="block">{item.assay_display_name || item.assay_label}</span>
               <span className="mt-1 block type-meta text-muted-foreground">{item.group_label} · {item.diagnosis_label}</span>
-            </th>)}
-          </tr>
-        </thead>
-        <tbody>{properties.map(property => <tr key={property}>
-          <th scope="row" className="sticky left-0 border-b border-r border-border bg-card p-3 align-top font-semibold">{property}</th>
-          {offerings.map(item => <td key={item.offering_id} className="break-words border-b border-r border-border p-3 align-top last:border-r-0"><Value item={item} property={property} /></td>)}
-        </tr>)}</tbody>
-      </table>
+            </TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>{properties.map(property => <TableRow key={property}>
+          <TableHead scope="row" className="sticky left-0 border-r border-border bg-card align-top font-semibold">{property}</TableHead>
+          {offerings.map(item => <TableCell key={item.offering_id} className="break-words border-r border-border align-top last:border-r-0"><Value item={item} property={property} /></TableCell>)}
+        </TableRow>)}</TableBody>
+      </Table>
     </div>
-  </section>
+  </Surface>
 }

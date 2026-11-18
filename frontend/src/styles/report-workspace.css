@@ -261,26 +261,14 @@
 .report-findings-table-scroll { overflow-x: auto; border-top: 1px solid var(--report-edge); }
 .report-findings-table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 .report-findings-table {
-  width: 100%;
   min-width: 36rem;
-  border-collapse: collapse;
   table-layout: fixed;
 }
 .report-findings-table th, .report-findings-table td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--report-edge);
-  text-align: left;
   vertical-align: top;
-}
-.report-findings-table th {
-  background: var(--table-header-surface);
-  color: var(--muted-foreground);
-  font-weight: 600;
 }
 .report-findings-table th[data-column="text"] { width: 34%; }
 .report-findings-table th[data-column="variant"] { width: 26%; }
-.report-findings-table tbody tr:nth-child(even) { background: var(--table-row-alt); }
-.report-findings-table tbody tr:last-child td { border-bottom: 0; }
 .report-biomarker-section { width: 100%; max-width: 24rem; align-self: stretch; }
 
 .report-biomarker-score { display: grid; gap: 0.375rem; }

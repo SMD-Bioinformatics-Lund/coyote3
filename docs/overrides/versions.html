@@ -1,15 +1,8 @@
-<div class="rst-versions" role="note" aria-label="Application version and page navigation">
+<div class="rst-versions" role="note" aria-label="Application version">
   <div class="rst-current-version docs-sidebar-footer">
     <strong class="docs-sidebar-version">Coyote4 {{ config.extra.app_version | e }}</strong>
-    <div class="docs-sidebar-page-links">
-      {% if config.repo_url %}
-        <a href="{{ config.repo_url }}">{{ config.repo_name or 'Repository' }}</a>
-      {% endif %}
-      {% if reading_path and reading_path.next %}
-        <a href="{{ reading_path.next.url | url }}" title="{{ reading_path.next.label | e }}">Continue task &raquo;</a>
-      {% else %}
-        <a href="{{ nav.homepage.url | url }}">Choose a task</a>
-      {% endif %}
-    </div>
+    {% if config.repo_url %}
+      <a href="{{ config.repo_url }}">{{ config.repo_name or 'Repository' }}</a>
+    {% endif %}
   </div>
 </div>

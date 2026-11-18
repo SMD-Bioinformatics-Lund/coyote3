@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useState } from "react"
 import { useReportPreview } from "@/hooks/useReportPreview"
 import { ReportDocumentPreview } from "@/components/reports/ReportDocumentPreview"
@@ -8,7 +9,6 @@ import { ReportReviewSummary } from "@/components/reports/ReportReviewSummary"
 import { Link } from "react-router-dom"
 import { icon } from "@/lib/assets"
 import { downloadText } from "@/lib/browser-download"
-
 import { AppLoader } from "@/components/layout/AppLoader"
 import {
   type ReportSnapshotRow,
@@ -50,7 +50,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
             <h2 className="type-card-title text-foreground">Report preview</h2>
             <p className="type-body-sm text-muted-foreground">Review your document before saving</p>
             <span className="report-ready type-meta" data-state={isLoading ? "loading" : hasRenderedHtml ? "ready" : "unavailable"}>
-              {isLoading ? <icon.activity className="size-3 motion-safe:animate-spin" aria-hidden="true" /> : hasRenderedHtml
+              {isLoading ? <LoadingIndicator className="size-3" /> : hasRenderedHtml
                 ? <icon.checkCircle2 className="size-3" aria-hidden="true" /> : <icon.alertTriangle className="size-3" aria-hidden="true" />}
               {isLoading ? "Preparing preview" : hasRenderedHtml ? "Ready to review" : "Preview unavailable"}
             </span>
@@ -78,7 +78,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
               disabled={!hasRenderedHtml || downloadPreviewPdf.isPending}
               title={hasRenderedHtml ? "Download preview PDF" : templateStatusMessage}
             >
-              {downloadPreviewPdf.isPending ? <icon.activity className="size-4 animate-spin" /> : <icon.download className="size-4" />}
+              {downloadPreviewPdf.isPending ? <LoadingIndicator className="size-4" /> : <icon.download className="size-4" />}
               Download PDF
             </Button>
             <Button
@@ -96,7 +96,7 @@ export function ReportsTab({ sampleId, reportType: fixedReportType }: { sampleId
               disabled={!hasRenderedHtml || !data?.meta?.preview_fingerprint || saveReport.isPending}
               title={hasRenderedHtml ? "Save this rendered report" : templateStatusMessage}
             >
-              {saveReport.isPending ? <icon.activity className="size-4 animate-spin" /> : <icon.save className="size-4" />}
+              {saveReport.isPending ? <LoadingIndicator className="size-4" /> : <icon.save className="size-4" />}
               Save report
             </Button>
         </div>

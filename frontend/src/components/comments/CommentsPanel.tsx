@@ -4,6 +4,7 @@
 import { useRef, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
+import { Badge } from "@/components/ui/badge"
 import { api } from "@/lib/api"
 import { translocationAnnotationIdentity } from "@/lib/variant-helpers"
 import { MarkdownText } from "@/components/comments/MarkdownText"
@@ -268,7 +269,7 @@ export function CommentsPanel({
     <section className={cn("glass-card p-2.5", !resourceType && "sample-comments", fillHeight && "flex h-full min-h-0 flex-col")}>
       <div className="mb-2 flex items-center gap-2">
         <icon.messageSquare className="h-4 w-4 text-tier2" />
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        <h3 className="type-card-title text-foreground">{title}</h3>
         {showList && (
           <div className="ml-auto flex items-center gap-2">
             {canViewHiddenComments && hiddenComments.length > 0 && (
@@ -284,7 +285,7 @@ export function CommentsPanel({
                 {showHiddenComments ? "Hide hidden" : `Show hidden (${hiddenComments.length})`}
               </button>
             )}
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{activeComments.length}</span>
+            <Badge variant="neutral">{activeComments.length}</Badge>
           </div>
         )}
       </div>

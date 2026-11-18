@@ -4,6 +4,7 @@
 @import "./styles/domain-badge-theme.css";
 @import "./styles/form-controls.css";
 @import "./styles/page-materials.css";
+@import "./styles/tables.css";
 @import "./styles/charts.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -675,13 +676,12 @@
   .detail-navigation-button:active {
     transform: translateX(1px) scale(0.96);
   }
-  /* A viewport-aligned base joins the header and sidebar beneath its warm overlay. */
+  /* The same four-stop palette runs across the header and down the sidebar. */
   .app-chrome-surface {
     background: var(--chrome-top);
-    background-attachment: fixed;
   }
   .app-chrome-sidebar {
-    background-image: var(--chrome-side), var(--chrome-top);
+    background: var(--chrome-side);
   }
   .app-tooltip-surface {
     background:
@@ -703,21 +703,8 @@
       backdrop-filter: none;
     }
   }
-  .glass-panel {
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-surface);
-    box-shadow: var(--panel-shadow);
-  }
-  .glass-card {
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: var(--material-card-shadow);
-  }
   .surface-panel {
     @apply relative overflow-hidden;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-surface);
-    box-shadow: var(--panel-shadow);
   }
   .surface-panel-title-marker {
     background: var(--panel-accent, var(--primary));
@@ -725,9 +712,6 @@
   .dashboard-panel {
     --panel-accent: var(--primary);
     padding: 1rem !important;
-    background: var(--paper-surface);
-    border-color: var(--paper-edge);
-    box-shadow: var(--panel-shadow);
   }
   .dashboard-panel--teal {
     --panel-accent: var(--color-wgs);
@@ -740,12 +724,6 @@
   }
   .dashboard-panel--blue {
     --panel-accent: var(--color-tier3);
-  }
-  .dashboard-subcard {
-    border: 1px solid var(--surface-nested-border);
-    border-radius: 0.7rem;
-    background: var(--surface-nested);
-    box-shadow: 0 1px 2px var(--paper-shadow);
   }
   .sample-composition {
     container-type: inline-size;
@@ -764,11 +742,6 @@
   }
   @container (min-width: 80rem) {
     .sample-composition-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  }
-  .chart-panel {
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-sm);
   }
   .surface-panel,
   .dashboard-panel,
@@ -818,17 +791,6 @@
     padding: 0.25rem 0 0.75rem;
     border-bottom: 1px solid var(--paper-edge);
   }
-  .content-section {
-    border: 1px solid var(--paper-edge);
-    border-radius: 0.9rem;
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-md);
-  }
-  .content-item {
-    border: 1px solid var(--surface-nested-border);
-    border-radius: 0.75rem;
-    background: var(--surface-nested);
-  }
   .static-page-section,
   .static-info-card,
   .static-metric {
@@ -850,10 +812,6 @@
   .static-page-section {
     min-width: 0;
     max-width: 100%;
-    border: 1px solid color-mix(in srgb, var(--static-accent) 30%, var(--paper-edge));
-    border-radius: 0.5rem;
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-md);
   }
   .static-page-section-header {
     background: color-mix(in srgb, var(--static-soft) 58%, var(--paper-raised));
@@ -862,11 +820,6 @@
   .static-icon {
     color: var(--static-accent);
     background: color-mix(in srgb, var(--static-soft) 82%, var(--paper-raised));
-  }
-  .admin-category {
-    background: var(--paper-surface);
-    border: 1px solid var(--paper-edge);
-    box-shadow: var(--shadow-sm);
   }
   .admin-destination {
     border: 1px solid var(--content-card-border);
@@ -881,10 +834,6 @@
   }
   .static-info-card {
     min-width: 0;
-    border: 1px solid color-mix(in srgb, var(--static-accent) 24%, var(--paper-edge));
-    border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--static-soft) 20%, var(--card));
-    box-shadow: var(--shadow-sm);
   }
   a.static-info-card:hover {
     border-color: color-mix(in srgb, var(--static-accent) 48%, var(--paper-edge));
@@ -1481,28 +1430,11 @@
   .coverage-swatch-cds { background: var(--coverage-cds); }
   .coverage-swatch-unavailable { background: var(--coverage-unavailable); }
   .login-cloud { color: var(--login-cloud); }
-  .dashboard-panel .metric-card {
-    border-color: color-mix(in srgb, var(--paper-edge) 92%, var(--panel-accent));
-    background: var(--surface-nested);
-  }
   .metric-card {
     @apply p-3;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: 0 1px 2px var(--paper-shadow);
-  }
-  .dark .surface-panel,
-  .dark .content-section {
-    background: var(--paper-surface);
-  }
-  .dark table > thead {
-    background: var(--table-header-surface) !important;
   }
   .detail-hero {
     @apply relative overflow-hidden p-3;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-surface);
-    box-shadow: var(--panel-shadow);
   }
   .detail-hero-subtitle {
     @apply text-lg font-medium leading-snug text-muted-foreground;
@@ -1521,47 +1453,12 @@
   .detail-card,
   .detail-card-accent {
     @apply p-3;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-sm);
   }
   .detail-card-success {
     @apply p-3;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-sm);
   }
   .detail-card-info {
     @apply p-3;
-    border: 1px solid var(--paper-edge);
-    background: var(--paper-raised);
-    box-shadow: var(--shadow-sm);
-  }
-  .glass-panel,
-  .glass-card,
-  .surface-panel,
-  .dashboard-panel,
-  .content-section,
-  .detail-card,
-  .detail-card-accent,
-  .detail-card-success,
-  .detail-card-info {
-    background-image: var(--surface-sheen);
-  }
-  /* Content cards rise above the flat panels that group them. */
-  .glass-card,
-  .chart-panel,
-  .detail-card,
-  .dashboard-subcard,
-  .dashboard-snapshot-card,
-  .content-item,
-  .metric-card,
-  .dashboard-panel .metric-card {
-    --material-accent: var(--knowledgebase-accent, var(--panel-accent, var(--static-accent, var(--primary))));
-    border: 1px solid var(--content-card-border);
-    border-radius: var(--content-card-radius);
-    background: var(--inner-card-background);
-    box-shadow: var(--inner-card-shadow);
   }
   /* Nested sections use the same raised surface, including deeper layout wrappers. */
   :where(.glass-panel, .glass-card, .surface-panel, .content-section, .detail-card, .dashboard-panel)
@@ -1572,14 +1469,8 @@
     box-shadow: var(--inner-card-shadow);
   }
   /* Preserve semantic colors on accented cards and status indicators. */
-  .detail-card-accent,
-  .detail-card-success,
-  .detail-card-info {
-    box-shadow: var(--inner-card-shadow);
-  }
   [data-slot="badge"][data-variant="outline"] {
     background-color: var(--domain-badge-surface, var(--sequencing-badge-surface, var(--paper-raised)));
-    box-shadow: var(--shadow-sm);
   }
   .knowledgebase-block {
     --knowledgebase-accent: var(--status-info);
@@ -1772,41 +1663,7 @@
     color: var(--badge-success-foreground);
     vertical-align: middle;
   }
-  .app-loader-material {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.42rem;
-    padding: 0.65rem 0.82rem;
-  }
-  .app-loader-material span {
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 999px;
-    animation: app-loader-dot 0.9s cubic-bezier(0.2, 0, 0, 1) infinite;
-  }
-  .app-loader-material span:nth-child(1) {
-    background: var(--color-tier3);
-    animation-delay: 0ms;
-  }
-  .app-loader-material span:nth-child(2) {
-    background: var(--color-fail);
-    animation-delay: 110ms;
-  }
-  .app-loader-material span:nth-child(3) {
-    background: var(--color-warn);
-    animation-delay: 220ms;
-  }
-  .app-loader-material span:nth-child(4) {
-    background: var(--color-tier4);
-    animation-delay: 330ms;
-  }
-  .app-loader-label {
-    color: var(--muted-foreground);
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-align: center;
-  }
+  .coyote-spinner { animation: coyote-spin 2s linear infinite; }
   .global-loader {
     pointer-events: none;
     position: fixed;
@@ -1815,23 +1672,6 @@
     display: grid;
     place-items: center;
     background: transparent;
-  }
-  .global-loader-window {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.7rem;
-    max-width: min(28rem, calc(100vw - 2rem));
-    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-    border-radius: 1rem;
-    background: color-mix(in srgb, var(--card) 58%, transparent);
-    backdrop-filter: blur(12px) saturate(1.15);
-    padding: 1rem 1.15rem;
-    box-shadow: 0 18px 50px color-mix(in srgb, var(--foreground) 14%, transparent);
-  }
-  .dark .global-loader-window {
-    background: color-mix(in srgb, var(--card) 60%, transparent);
-    box-shadow: 0 18px 50px rgb(0 0 0 / 34%);
   }
 }
 
@@ -1953,13 +1793,17 @@
   }
 
   .login-page {
-    @apply relative grid min-h-screen grid-rows-[auto_1fr_auto] overflow-hidden px-[clamp(20px,5vw,76px)] py-6;
+    @apply relative grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-[clamp(20px,5vw,76px)] pt-6;
     background: var(--background);
   }
 
   .login-page::before {
     content: "";
     @apply hidden;
+  }
+
+  .login-scroll-viewport {
+    @apply relative z-10 flex min-h-0 flex-col overflow-y-auto;
   }
 
   .login-header {
@@ -2265,7 +2109,7 @@
 
 @media (max-width: 560px) {
   .login-page {
-    @apply p-4;
+    @apply px-4 pt-4;
   }
   .login-layout {
     @apply py-8;
@@ -2462,18 +2306,7 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-@keyframes app-loader-dot {
-  0%,
-  80%,
-  100% {
-    opacity: 0.45;
-    transform: translateY(0) scale(0.78);
-  }
-  40% {
-    opacity: 1;
-    transform: translateY(-0.28rem) scale(1);
-  }
-}
+@keyframes coyote-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   .sample-workspace-tabs .segmented-control-indicator { transition: none; }
@@ -2481,12 +2314,7 @@
     transition-duration: 1ms;
     animation-duration: 1ms;
   }
-  .app-loader-material span {
-    animation: none;
-  }
-  .app-loader-material span {
-    opacity: 0.75;
-  }
+  .coyote-spinner { animation: none; }
   .detail-navigation-button:hover,
   .detail-navigation-button:active {
     transform: none;

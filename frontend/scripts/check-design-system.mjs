@@ -31,6 +31,9 @@ for (const file of filesUnder(root)) {
     if (/\btransition-all\b/.test(line)) report(file, lineNumber, "use a scoped transition utility")
     if (/\bfont-(?:black|extrabold)\b/.test(line)) report(file, lineNumber, "use a semantic typography role or a restrained weight")
     if (/\btext-\[/.test(line)) report(file, lineNumber, "use a semantic typography or color utility")
+    if (extension === ".tsx" && !relativePath.endsWith(".test.tsx") && relativePath !== "components/ui/table.tsx" && /<table\b/.test(line)) {
+      report(file, lineNumber, "use the shared Table primitives for UI tables")
+    }
     if (
       relativePath !== pageFrame
       && relativePath !== "styles/tailwind-theme.css"

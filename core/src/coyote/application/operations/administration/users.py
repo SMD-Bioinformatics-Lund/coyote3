@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING, Any
 
 from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.config.factory_defaults import factory_value
-from coyote.contracts.auth import SessionActivitySummary
+from coyote.contracts.auth import PasswordRecoveryRecord, SessionActivitySummary
+from coyote.domain.common.errors import api_error
 
 if TYPE_CHECKING:
+    from coyote.application.accounts.recovery import AccountRecoveryService
     from coyote.application.accounts.sessions import SessionActivityRepository
     from coyote.application.accounts.users import UserManagementService
 
@@ -25,16 +27,43 @@ class Users:
         runtime: ApplicationRuntime,
         service: Callable[[], UserManagementService],
         sessions: Callable[[], SessionActivityRepository],
+        recovery: Callable[[], AccountRecoveryService],
     ) -> None:
         """Bind current-identity authorization and the host-owned service factory.
 
         Args:
             runtime: Trusted authentication, current grants and audit capabilities.
             service: Lazy operation implementation with injected repositories.
+            recovery: Assisted recovery workflow.
             sessions: Read-only aggregate login-session persistence.
         """
         self._runtime, self._service = runtime, service
         self._sessions = sessions
+        self._recovery = recovery
+
+    def recovery_requests(self) -> list[PasswordRecoveryRecord]:
+        """List assisted recovery requests for system administrators."""
+
+        def read(actor: Any, sample: dict[str, Any] | None) -> list[PasswordRecoveryRecord]:
+            self._require_recovery_admin(actor)
+            return self._recovery().pending()
+
+        return self._runtime.execute("users.recovery_requests", ("user:edit",), read)
+
+    def complete_recovery(self, request_id: str) -> PasswordRecoveryRecord:
+        """Confirm externally completed recovery, preserving the original actor on retry."""
+
+        def complete(actor: Any, sample: dict[str, Any] | None) -> PasswordRecoveryRecord:
+            self._require_recovery_admin(actor)
+            return self._recovery().complete(request_id, actor.username)
+
+        return self._runtime.execute("users.complete_recovery", ("user:edit",), complete)
+
+    @staticmethod
+    def _require_recovery_admin(actor: Any) -> None:
+        """Limit recovery handling to system administrators and superusers."""
+        if not actor.is_superuser and "sys_admin" not in actor.roles:
+            raise api_error(403, "Account recovery requires a system administrator")
 
     def session_activity(self) -> SessionActivitySummary:
         """Return current login counts for a verified superuser.

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from coyote.application.accounts.permissions import PermissionManagementService
+    from coyote.application.accounts.recovery import AccountRecoveryService
     from coyote.application.accounts.roles import RoleManagementService
     from coyote.application.accounts.sessions import SessionActivityRepository
     from coyote.application.accounts.users import UserManagementService
@@ -33,6 +34,7 @@ class AdministrationServices:
         self,
         *,
         users: Callable[[], UserManagementService],
+        recovery: Callable[[], AccountRecoveryService],
         sessions: Callable[[], SessionActivityRepository],
         roles: Callable[[], RoleManagementService],
         permissions: Callable[[], PermissionManagementService],
@@ -50,6 +52,7 @@ class AdministrationServices:
 
         Args:
             users: Account lifecycle, safe forms and assignment validation.
+            recovery: Provider-specific assisted account recovery.
             sessions: Aggregate login-session counts without credentials.
             roles: Registered role and permission-assignment workflows.
             permissions: Permission-policy definitions and lifecycle workflows.
@@ -63,6 +66,7 @@ class AdministrationServices:
             catalog_authoring: Catalog previews, revisions, assignment and publication.
             reference_data: Permitted fields and metadata for managed reference resources.
         """
+        self.recovery = recovery
         self.users = users
         self.sessions = sessions
         self.roles = roles

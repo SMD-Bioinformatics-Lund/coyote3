@@ -197,10 +197,11 @@ networks. Its diagnostics do not change host firewall rules, forwarding settings
 Docker daemon configuration. Host networking repairs require a separate administrator
 operation after identifying the fault; restarting Docker affects other deployments.
 
-The center installer starts Redis and checks all three configured Redis connections
-from a temporary API container whenever the `start` stage is selected. This gate runs
-before database bootstrap and index operations. Authentication and connection errors
-stop installation without printing connection credentials.
+Start Redis independently before deploying the application. The application installer
+checks all three configured Redis connections from the application runtime: the native
+virtual environment or a temporary API container. It also reads broker `INFO server`
+to verify command compatibility. These checks run before database bootstrap and index
+operations. Failures stop installation without printing connection credentials.
 
 To repeat the check independently after Redis is running:
 
@@ -217,6 +218,7 @@ bash install.sh compose \
 | Redis hostname does not resolve | Check that both services share the intended Compose network and Redis has the service alias. |
 | TCP connection is refused | Check Redis's listener and whether it has completed startup. |
 | TCP times out between containers, but succeeds from the host | Inspect bridge forwarding and host firewall rules. A healthy local Redis check does not establish container reachability. |
+| Broker `INFO server` is denied | Permit the broker account to read `INFO`; a successful `PING` alone does not verify compatibility. |
 
 For a Docker host using iptables, an administrator can inspect the relevant rules
 without changing them:
@@ -237,6 +239,24 @@ disable the required cache to work around a network failure.
 After repairing connectivity, verify an authenticated Redis PING from the API
 container, then restart the affected application service and check its health.
 This failure does not require a MongoDB migration or data repair.
+
+## Celery inspection fails with a Redis script syntax error
+
+The installed Kombu transport uses `ZADD ... GT` to manage queue bindings. This
+command requires Redis **6.2 or newer**. Redis 6.0 can authenticate and answer `PING`
+while Celery inspection fails with `@user_script:5: ERR syntax error`.
+
+Check the version of the server selected by `CELERY_BROKER_URL`. The local
+`redis-server --version` command identifies the installed executable; it does not
+identify a separately hosted or containerized broker. The installer checks the
+configured broker directly and rejects unsupported or unverified versions.
+
+Upgrade the broker separately, preserving its authentication and persistence settings,
+then redeploy the application and verify that workers respond in **Observed Runtime
+State**. The repository's Redis Compose definition selects Redis 7.4. Application
+deployment does not upgrade Redis, and rebuilding Python packages alone cannot fix
+an unsupported broker. Zero counters during failed inspection do not prove that no
+workers or queued tasks exist.
 
 ## Dashboard Metrics Do Not Refresh
 
@@ -266,6 +286,14 @@ execution rather than assuming a restart clears the cache.
 
 - API startup continues, but logs include `Mongo index conflict for repository=<name> was tolerated at startup`.
 - MongoDB reports `IndexOptionsConflict` (`85`) or `IndexKeySpecsConflict` (`86`) during repository index creation.
+
+The runtime panel also reports **missing indexes**. This is distinct from a conflicting
+definition: the required index has not been installed. For example,
+`versions.publication_notification_cursor` supports knowledgebase publication
+notifications and indexes `published_at` followed by `_id`. When the selected
+knowledgebase is shared, its administrator should review and apply that index through
+the knowledgebase maintenance procedure. A missing index does not require dropping
+an existing index.
 
 **Cause:**
 

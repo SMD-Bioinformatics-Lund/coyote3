@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
@@ -56,11 +57,11 @@ export function PublicCatalog({ previewDocument, onMatrix, onCompare }: { previe
       : <Button variant="outline" nativeButton={false} render={<Link to="/public/catalog/compare" />}>Compare assays</Button>}
       {onMatrix ? <Button variant="outline" onClick={onMatrix}>Matrix</Button>
       : <Button variant="outline" nativeButton={false} render={<Link to="/public/matrix" />}>Gene coverage matrix</Button>}</>}>
-    {isLoading ? <AppLoader label="Loading published tests" /> : error ? <div role="alert" className="surface-panel space-y-3 p-4">
+    {isLoading ? <AppLoader label="Loading published tests" /> : error ? <Surface variant="panel" role="alert" className="space-y-3 p-4">
       <p>Unable to load published services.</p><Button variant="outline" onClick={() => void refetch()}>Retry</Button>
-    </div> : !nodes.length && !offerings.length ? <section role="status" className="surface-panel space-y-2 p-5">
+    </Surface> : !nodes.length && !offerings.length ? <Surface as="section" variant="panel" role="status" className="space-y-2 p-5">
       <h2 className="type-section-title">No published services</h2><p>Published genomic test information will appear here.</p>
-    </section> : <div className="grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
+    </Surface> : <div className="grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="surface-panel catalog-sidebar min-w-0 p-3">
         <h2 className="type-section-title px-2 py-2">Browse tests</h2>
         <nav aria-label="Test categories" className="space-y-2">
@@ -82,7 +83,7 @@ export function PublicCatalog({ previewDocument, onMatrix, onCompare }: { previe
               aria-current={node === selected ? "page" : undefined} onClick={() => select(node)}>{node.label}</button>
           </span>)}
         </nav>}
-        {unavailable ? <section role="status" className="surface-panel space-y-3 p-5"><p>This selection is not part of the current publication.</p><Button variant="outline" onClick={() => select()}>Browse available tests</Button></section>
+        {unavailable ? <Surface as="section" variant="panel" role="status" className="space-y-3 p-5"><p>This selection is not part of the current publication.</p><Button variant="outline" onClick={() => select()}>Browse available tests</Button></Surface>
           : selectedOfferings?.length ? <>
             {selectedOfferings.length > 1 && selected && <CatalogInformation information={selected} offerings={summaryOfferings} />}
             {selectedOfferings.map(item => {

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,8 +51,8 @@ export function ResetPassword() {
       <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
         Paste the token from the reset link if it was not included in the URL.
       </p>
-      {message && <div className="mb-4 rounded-md border border-pass/30 bg-pass/10 p-3 text-sm text-pass">{message}</div>}
-      {error && <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+      {message && <Notice tone="success" className="mb-4">{message}</Notice>}
+      {error && <Notice tone="danger" className="mb-4">{error}</Notice>}
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="token">Reset token</Label>
@@ -65,7 +67,7 @@ export function ResetPassword() {
           <Input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required disabled={loading} />
         </div>
         <Button type="submit" className="h-11 w-full" disabled={loading || !token || !newPassword || !confirmPassword}>
-          {loading && <icon.loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {loading && <LoadingIndicator className="mr-2 h-4 w-4" />}
           Save password
         </Button>
       </form>

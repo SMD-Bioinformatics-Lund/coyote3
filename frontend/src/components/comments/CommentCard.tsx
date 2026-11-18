@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
-
 import { MarkdownText } from "@/components/comments/MarkdownText"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { TimeDisplay } from "@/components/ui/time-display"
@@ -66,9 +67,9 @@ export function CommentCard({
   ].join(" ")
 
   return (
-    <article
+    <Surface as="article"
       className={[
-        "rounded-lg border bg-card p-3 shadow-sm transition-colors",
+        "p-3 transition-colors",
         hidden ? "border-border/60 opacity-50" : "border-border hover:border-border/90",
       ].join(" ")}
     >
@@ -80,10 +81,10 @@ export function CommentCard({
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-foreground">{author}</span>
             {isGlobalComment(comment) && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
+              <Badge variant="outline" className="inline-flex items-center gap-1 border-info/25 bg-info/10 text-info">
                 <icon.globe2 className="size-3" aria-hidden="true" />
                 Global
-              </span>
+              </Badge>
             )}
             {hasDifferentTranscript && (
               <AppTooltip
@@ -91,22 +92,22 @@ export function CommentCard({
                 label={`Authored for ${commentTranscript}`}
                 content={`This annotation belongs to transcript ${commentTranscript}. The currently selected transcript is ${currentTranscript}.`}
               >
-                <span className="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/10 px-1.5 py-0.5 type-label font-medium text-info">
+                <Badge variant="outline" className="inline-flex items-center gap-1 border-info/25 bg-info/10 text-info">
                   <icon.dna className="size-3" aria-hidden="true" />
                   Transcript {commentTranscript}
-                </span>
+                </Badge>
               </AppTooltip>
             )}
             {hidden && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 type-label font-medium text-muted-foreground">
+              <Badge variant="outline" className="inline-flex items-center gap-1 border-border bg-muted text-muted-foreground">
                 <icon.eyeOff className="size-3" aria-hidden="true" />
                 Hidden
-              </span>
+              </Badge>
             )}
             {comment?.is_active === false && (
-              <span className="inline-flex items-center rounded-full border border-warn/50 bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn">
+              <Badge variant="outline" className="inline-flex items-center border-warn/50 bg-warn/10 text-warn">
                 Inactive annotation
-              </span>
+              </Badge>
             )}
           </div>
           {createdAt && (
@@ -155,6 +156,6 @@ export function CommentCard({
           </button>
         </footer>
       )}
-    </article>
+    </Surface>
   )
 }

@@ -18,19 +18,19 @@ describe("password recovery pages", () => {
     vi.mocked(api.post).mockResolvedValue({ data: {} } as never)
     renderWithRouter(<ForgotPassword />, "/forgot-password")
 
-    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "coyote4.user" } })
+    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "coyote4.user" } })
     fireEvent.click(screen.getByRole("button", { name: "Request reset" }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith(
-      "/auth/password/reset/request", { username: "coyote4.user" },
+      "/auth/password/reset/request", { username: "coyote4.user", provider: "auto" },
     ))
-    expect(await screen.findByText(/reset email has been sent/i)).toBeVisible()
+    expect(await screen.findByText(/If the account is eligible/i)).toBeVisible()
   })
 
   it("shows a service error for a failed reset request", async () => {
     vi.mocked(api.post).mockRejectedValue(new Error("Account is locked"))
     renderWithRouter(<ForgotPassword />, "/forgot-password")
-    fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "locked" } })
+    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "locked" } })
     fireEvent.click(screen.getByRole("button", { name: "Request reset" }))
     expect(await screen.findByText("Account is locked")).toBeVisible()
   })

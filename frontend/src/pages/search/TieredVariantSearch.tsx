@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
@@ -341,7 +344,7 @@ export function TieredVariantSearch() {
       title="Tiered Variant Search"
       description="Search tiered SNVs, CNVs, fusions, translocations, and annotation text across reports and assays."
     >
-      <div className="glass-card p-3">
+      <Surface variant="card" className="p-3">
         <form
           className="mb-3 flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
@@ -385,7 +388,7 @@ export function TieredVariantSearch() {
         </form>
 
         {assayChoices.length > 0 && (
-          <div className="mb-3 rounded-xl border border-border bg-background/70 p-3">
+          <Surface variant="inset" className="mb-3  p-3">
             <div className="mb-2 type-label text-muted-foreground">Assay groups</div>
             <div className="flex flex-wrap gap-2">
               {assayChoices.map((assay: string) => (
@@ -401,11 +404,11 @@ export function TieredVariantSearch() {
                 </label>
               ))}
             </div>
-          </div>
+          </Surface>
         )}
 
         {nomenclatureChoices.length > 0 && (
-          <div className="mb-3 rounded-xl border border-border bg-background/70 p-3">
+          <Surface variant="inset" className="mb-3  p-3">
             <div className="mb-2 type-label text-muted-foreground">Nomenclature</div>
             <div className="flex flex-wrap gap-2">
               {nomenclatureChoices.map((value: string) => (
@@ -421,7 +424,7 @@ export function TieredVariantSearch() {
                 </label>
               ))}
             </div>
-          </div>
+          </Surface>
         )}
 
         {data?.tier_stats?.total && (
@@ -448,26 +451,26 @@ export function TieredVariantSearch() {
               </div>
             </summary>
             <div className="overflow-x-auto border-t border-border">
-              <table className="type-table-cell w-full min-w-[42rem] border-collapse">
-                <thead className="type-table-header bg-muted/45 text-left text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Assay</th>
-                    <th className="w-full min-w-48 px-4 py-2 font-medium">Distribution</th>
+              <Table className="min-w-[42rem]">
+                <TableHeader className="bg-muted/45">
+                  <TableRow>
+                    <TableHead className="px-4 font-medium">Assay</TableHead>
+                    <TableHead className="w-full min-w-48 px-4 font-medium">Distribution</TableHead>
                     {[1, 2, 3, 4].map((tier) => (
-                      <th key={tier} className={`w-16 px-3 py-2 text-right font-medium ${tierTextClasses[tier]}`}>
+                      <TableHead key={tier} className={`w-16 px-3 py-2 text-right font-medium ${tierTextClasses[tier]}`}>
                         Tier {tier}
-                      </th>
+                      </TableHead>
                     ))}
-                    <th className="w-16 px-4 py-2 text-right font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
+                    <TableHead className="w-16 px-4 text-right font-medium">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {assayStats.map(({ assay, stats, total }) => (
-                    <tr key={assay} className="hover:bg-muted/25">
-                      <th scope="row" className="max-w-48 truncate px-4 py-2.5 text-left font-semibold uppercase text-foreground" title={assay}>
+                    <TableRow key={assay} className="hover:bg-muted/25">
+                      <TableHead scope="row" className="max-w-48 truncate px-4 py-2.5 text-left font-semibold uppercase text-foreground" title={assay}>
                         {assay}
-                      </th>
-                      <td className="px-4 py-2.5">
+                      </TableHead>
+                      <TableCell className="px-4 py-2.5">
                         <div
                           className="progress-pipe flex h-3 min-w-48 overflow-hidden rounded-full"
                           aria-label={`${assay}: ${total} tiered findings`}
@@ -483,19 +486,19 @@ export function TieredVariantSearch() {
                             )
                           ))}
                         </div>
-                      </td>
+                      </TableCell>
                       {[1, 2, 3, 4].map((tier) => (
-                        <td key={tier} className={`px-3 py-2.5 text-right font-bold type-numeric ${tierTextClasses[tier]}`}>
+                        <TableCell key={tier} className={`px-3 py-2.5 text-right font-bold type-numeric ${tierTextClasses[tier]}`}>
                           {shortCount(tierCount(stats, tier))}
-                        </td>
+                        </TableCell>
                       ))}
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold type-numeric text-foreground" title={`${total} total findings`}>
+                      <TableCell className="px-4 py-2.5 text-right text-sm font-semibold type-numeric text-foreground" title={`${total} total findings`}>
                         {shortCount(total)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </details>
         )}
@@ -503,17 +506,17 @@ export function TieredVariantSearch() {
         {isLoading ? (
           <AppLoader label="Loading tiered finding search" />
         ) : error ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <Notice tone="danger">
             {error instanceof Error ? error.message : "Unable to search tiered findings"}
-          </div>
+          </Notice>
         ) : (
           <>
             {(data?.docs || []).some((row: { legacy_fallback?: boolean }) => row.legacy_fallback) && (
-              <div role="note" className="mb-3 rounded-lg border border-warn/40 bg-warn/10 p-3 type-body-sm text-foreground">
+              <Notice tone="warning" role="note" className="mb-3 type-body-sm text-foreground">
                 Legacy annotation history: where no saved tier-assignment or report link exists,
                 the latest matching annotation is shown, even if inactive. This does not confirm
                 the tier used on a particular sample. Only recorded links identify historical samples.
-              </div>
+              </Notice>
             )}
             <DataTable
               columns={columns}
@@ -528,7 +531,7 @@ export function TieredVariantSearch() {
             />
           </>
         )}
-      </div>
+      </Surface>
     </PageShell>
   )
 }

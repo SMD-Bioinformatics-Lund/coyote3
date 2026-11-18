@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -130,9 +133,9 @@ export function AdminAuditPage() {
         const level = severityValue(row.original.severity)
         const Icon = severityIcon[level]
         return (
-          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold capitalize ${severityClass[level]}`}>
+          <Badge variant="outline" className={`inline-flex items-center gap-1 capitalize  ${severityClass[level]}`}>
             <Icon className="h-3 w-3" /> {level}
-          </span>
+          </Badge>
         )
       },
       meta: {
@@ -257,7 +260,7 @@ export function AdminAuditPage() {
           disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
         >
-          <icon.refreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? <LoadingIndicator /> : <icon.refreshCw className="h-4 w-4" />}
           Refresh
         </button>
       }
@@ -284,7 +287,7 @@ export function AdminAuditPage() {
         })}
       </div>
 
-      <section className="surface-panel p-3">
+      <Surface as="section" variant="panel" className="p-3">
         <div className="grid gap-2 md:grid-cols-[minmax(13rem,1fr)_10rem_11rem_11rem_auto]">
           <form
             className="relative"
@@ -344,9 +347,9 @@ export function AdminAuditPage() {
             </button>
           </div>
         </div>
-      </section>
+      </Surface>
 
-      <section className="surface-panel p-3">
+      <Surface as="section" variant="panel" className="p-3">
         {error ? (
           <div className="p-4"><ModuleNotice>{error instanceof Error ? error.message : "Unable to load audit events."}</ModuleNotice></div>
         ) : isLoading ? (
@@ -367,7 +370,7 @@ export function AdminAuditPage() {
             )}
           />
         )}
-      </section>
+      </Surface>
     </PageShell>
   )
 }

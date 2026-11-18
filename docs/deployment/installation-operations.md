@@ -123,7 +123,7 @@ as an upgrade shortcut. Merely changing project names does not move existing dat
 
 ## Native application on WSL or Linux
 
-Native deployment requires Python 3.12+, uv, Git, Node.js 22+, npm, curl, Nginx and an
+Native deployment requires Python 3.12+, uv, Git, Node.js 22+, npm, curl, Nginx 1.19.5+ and an
 available systemd user manager. Install the runtime libraries used by the backend,
 including the report-rendering system dependencies, before deployment. The installer
 checks executable availability; it does not install OS packages or enable systemd.
@@ -170,6 +170,18 @@ It does not install the optional Demo package. Stop the native application befor
 redeploying its dependencies. Each running native installation needs distinct ports;
 each concurrently developed checkout should have its own state and project name.
 
+For staging, production and test deployments, the build refreshes the local server,
+core and Atlas wheels even when their version numbers have not changed. Third-party
+dependencies remain locked. `app start` and `app restart` reuse the installed packages;
+they do not build source changes. To update a native staging installation:
+
+```bash
+./install.sh app stop --mode native --env-file .app-stage.env
+./install.sh deploy --mode native --environment stage --env-file .app-stage.env
+```
+
+Do not use `--skip-build` when applying Python or frontend source changes.
+
 The proxy binds loopback on `COYOTE4_PORT` (default 6801). Internal loopback ports are
 8001 for API, 3000 for frontend, 8080 for documentation and 5514/UDP for monitoring.
 Override them with `COYOTE4_NATIVE_API_PORT`, `COYOTE4_NATIVE_FRONTEND_PORT`,
@@ -183,6 +195,51 @@ again after WSL is available. The installer does not enable boot persistence or
 alter unrelated system services. This separates dependencies, state and lifecycle;
 it is not an OS security sandbox. Native production still needs the installation's
 approved TLS proxy, OS permissions, resource limits and operational acceptance.
+
+### Status, logs and restarts
+
+Run from the repository root with the same environment file, project and directory
+used for installation:
+
+```bash
+./install.sh app status --mode native --env-file .app-stage.env
+./install.sh app logs --mode native --env-file .app-stage.env
+./install.sh app restart --mode native --env-file .app-stage.env
+```
+
+`app logs` shows recent journal entries. Follow all staging services live with:
+
+```bash
+journalctl --user -f -u 'coyote4-stage-*.service'
+```
+
+For one service, use its full unit name:
+
+```bash
+journalctl --user -u coyote4-stage-api.service -n 100 -f
+```
+
+The other service suffixes are `worker`, `maintenance-worker`, `beat`, `monitor`
+and `proxy`; development also has `frontend`. Replace `coyote4-stage` with the
+installation's project name when different. Press Ctrl+C to stop following logs;
+this does not stop a service.
+
+Application log files use `LOG_ROOT`, defaulting to `.runtime/coyote4-stage/logs/`.
+Nginx errors are in the selected state directory:
+
+```bash
+tail -n 100 -f .runtime/coyote4-stage/nginx-error.log
+```
+
+Nginx startup diagnostics use stderr, captured by the proxy service's journal.
+Configuration validation uses the same startup log selection. Native deployment
+does not require write access to `/var/log/nginx` or root privileges for Nginx.
+
+Use `app stop` before rebuilding a running native installation and `app start`
+after a WSL restart. `app restart` reloads the selected environment and restarts
+application processes; it does not rebuild installed Python packages or frontend
+assets. Deploy again to apply staging code changes. MongoDB and Redis keep their
+independent lifecycles.
 
 ## Background application services
 

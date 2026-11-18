@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AdminActionDialog, AdminListContent, AdminListToolbar, AdminRowActions } from "@/components/admin/AdminListControls"
 import { useAdminList } from "@/components/admin/useAdminList"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -24,12 +25,12 @@ export function RolesPage() {
       {canCreate && <Link to="/admin/roles/create" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"><icon.plus className="h-4 w-4" />Create</Link>}
       <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Admin home</Link>
     </>}>
-      <div className="glass-card p-3">
+      <Surface variant="card" className="p-3">
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>
           <DataTable columns={tableColumns} data={visibleRows} filename="roles.csv" hideSearch />
         </AdminListContent>
-      </div>
+      </Surface>
 
       <AdminActionDialog state={state} spec={spec} />
     </PageShell>

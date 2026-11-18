@@ -253,3 +253,7 @@ Some infrastructure-only routes use `X-Coyote-Internal-Token`. That token is
 configured with `INTERNAL_API_TOKEN` and is not the same as an API user session.
 Do not use the internal token for normal clinical UI, Swagger, or user-scoped
 automation.
+
+To submit samples after arranging authentication, prepare the
+[sample manifest](../reference/sample-manifest.md) and follow
+[sample submission](submit-sample.md).

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { installApiFixtures } from "./support/api-fixtures"
 
-test("empty catalog panel fills the viewport without stretching preview cards", async ({ page }) => {
+test("empty catalog fills the available space above the footer without stretching preview cards", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   const catalog = { header: "Assay Catalog", description: "Synthetic catalog.",
     version: 1, layout: { order: [] }, modalities: {} }
@@ -19,19 +19,25 @@ test("empty catalog panel fills the viewport without stretching preview cards", 
   const preview = page.getByRole("region", { name: "Catalog preview" })
   const panel = preview.locator("../..")
   const main = page.getByRole("main")
+  const footer = page.getByLabel("Application footer", { exact: true })
   const panelBounds = await panel.boundingBox()
   const mainBounds = await main.boundingBox()
   const previewBounds = await preview.boundingBox()
+  const footerBounds = await footer.boundingBox()
   expect(panelBounds).not.toBeNull()
   expect(mainBounds).not.toBeNull()
   expect(previewBounds).not.toBeNull()
-  expect(Math.abs(panelBounds!.y + panelBounds!.height - mainBounds!.y - mainBounds!.height))
-    .toBeLessThanOrEqual(16)
+  expect(footerBounds).not.toBeNull()
+  const panelBottom = panelBounds!.y + panelBounds!.height
+  expect(panelBottom).toBeLessThanOrEqual(footerBounds!.y)
+  expect(footerBounds!.y - panelBottom).toBeLessThanOrEqual(mainBounds!.height * 0.05)
+  expect(mainBounds!.y + mainBounds!.height).toBeLessThanOrEqual(footerBounds!.y + 1)
+  expect(Math.abs(footerBounds!.y + footerBounds!.height - 1000)).toBeLessThanOrEqual(1)
   expect(previewBounds!.height).toBeLessThan(panelBounds!.height / 2)
   await page.evaluate(() => document.documentElement.classList.remove("dark"))
-  await page.screenshot({ path: "/tmp/catalog-empty-light.png" })
+  await page.screenshot({ path: testInfo.outputPath("catalog-empty-light.png") })
   await page.evaluate(() => document.documentElement.classList.add("dark"))
-  await page.screenshot({ path: "/tmp/catalog-empty-dark.png" })
+  await page.screenshot({ path: testInfo.outputPath("catalog-empty-dark.png") })
 })
 
 for (const theme of ["light", "dark"]) {
@@ -245,4 +251,60 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(preview.getByRole("navigation", { name: "Test categories" })).toBeVisible()
   })
 }
+}
+
+
+for (const width of [1440, 390]) {
+  test(`footer stays docked while long page content scrolls (${width}px)`, async ({ page }) => {
+    const height = 844
+    await page.setViewportSize({ width, height })
+    await installApiFixtures(page)
+    await page.goto("/public/catalog")
+    const footer = page.getByLabel("Application footer", { exact: true })
+    const main = page.getByRole("main")
+    await expect(footer).toBeVisible()
+    const before = await footer.boundingBox()
+    expect(Math.abs(before!.y + before!.height - height)).toBeLessThanOrEqual(1)
+    const mainBounds = await main.boundingBox()
+    expect(before!.x).toBe(mainBounds!.x)
+    expect(before!.width).toBe(mainBounds!.width)
+    expect(before!.x + before!.width).toBe(width)
+    expect(mainBounds!.y + mainBounds!.height).toBeLessThanOrEqual(before!.y + 1)
+    if (width >= 768) {
+      const sidebar = page.getByRole("complementary")
+      const sidebarBounds = await sidebar.boundingBox()
+      expect(Math.abs(sidebarBounds!.y + sidebarBounds!.height - height)).toBeLessThanOrEqual(1)
+      expect(before!.x).toBe(sidebarBounds!.x + sidebarBounds!.width)
+      await page.getByRole("button", { name: /^(Expand|Collapse) sidebar$/ }).click()
+      await expect.poll(async () => (await sidebar.boundingBox())!.width).not.toBe(sidebarBounds!.width)
+      await sidebar.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
+      const resizedSidebar = await sidebar.boundingBox()
+      const resizedFooter = await footer.boundingBox()
+      expect(resizedFooter!.x).toBe(resizedSidebar!.x + resizedSidebar!.width)
+      expect(resizedFooter!.x + resizedFooter!.width).toBe(width)
+      expect(Math.abs(resizedFooter!.y + resizedFooter!.height - height)).toBeLessThanOrEqual(1)
+    }
+    const docked = await footer.boundingBox()
+
+    // Synthetic long content exercises the shared viewport without a database.
+    await main.evaluate(element => {
+      const content = document.createElement("section")
+      content.style.minHeight = "1800px"
+      content.style.display = "flex"
+      content.style.alignItems = "flex-end"
+      const last = document.createElement("button")
+      last.textContent = "Last page action"
+      content.append(last)
+      element.firstElementChild!.append(content)
+      element.scrollTop = element.scrollHeight
+    })
+    await expect.poll(() => main.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+    await expect.poll(() => footer.boundingBox()).toEqual(docked)
+    const last = page.getByRole("button", { name: "Last page action", exact: true })
+    const lastBounds = await last.boundingBox()
+    expect(lastBounds!.y + lastBounds!.height).toBeLessThanOrEqual(docked!.y)
+    await last.click()
+    expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+  })
 }

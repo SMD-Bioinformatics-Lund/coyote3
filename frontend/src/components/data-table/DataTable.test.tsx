@@ -258,21 +258,17 @@ describe("DataTable", () => {
     expect(screen.getByText("TP53").closest("tr")).toHaveClass("flagged")
   })
 
-  it("uses a shared wrapping table viewport with a density-based scroll threshold", () => {
+  it("keeps table and pagination in the same container and exposes column semantics", () => {
     const { container } = render(<DataTable columns={columns} data={data} hideExport />)
     const frame = container.querySelector(".data-table-frame")
     const viewport = container.querySelector(".data-table-viewport")
     const footer = container.querySelector(".data-table-footer")
     const table = container.querySelector(".data-table-grid")
 
-    expect(frame).toHaveClass("overflow-hidden", "rounded-lg")
-    expect(viewport).toHaveClass("overflow-x-auto")
     expect(frame).toContainElement(viewport as HTMLElement)
     expect(frame).toContainElement(footer as HTMLElement)
-    expect(table).toHaveStyle({ minWidth: "42rem" })
-    expect(table).toHaveAttribute("data-density", "relaxed")
-    expect(table).toHaveAttribute("data-column-count", "3")
-    expect(screen.getByText("Gene").closest("th")).toHaveAttribute("data-column-id", "gene")
-    expect(screen.getByText("TP53").closest("td")).toHaveClass("min-w-0", "overflow-hidden")
+    expect(viewport).toContainElement(table as HTMLElement)
+    expect(screen.getByRole("columnheader", { name: "Gene" })).toHaveAttribute("scope", "col")
+    expect(within(table as HTMLElement).getByRole("cell", { name: "TP53" })).toBeVisible()
   })
 })

@@ -9,6 +9,7 @@ import json
 import re
 import shutil
 import socket
+import subprocess
 import sys
 from pathlib import Path
 
@@ -175,16 +176,41 @@ class NativeInstaller(Installer):
                 "--port",
                 str(self.ports["frontend"]),
             ]
-        commands["proxy"] = [
+        commands["proxy"] = [*self._nginx_command(), "-g", "daemon off;"]
+        return commands
+
+    def _nginx_command(self) -> list[str]:
+        """Select private configuration and a startup log accessible to the current user."""
+        return [
             "nginx",
+            "-e",
+            "stderr",
             "-p",
             str(self.directory) + "/",
             "-c",
             str(self.directory / "nginx.conf"),
-            "-g",
-            "daemon off;",
         ]
-        return commands
+
+    def _validate_nginx_version(self) -> None:
+        """Reject Nginx releases without unprivileged startup-log selection."""
+        result = subprocess.run(
+            ["nginx", "-v"],
+            env=self.environment,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        match = re.search(r"nginx/(\d+)\.(\d+)\.(\d+)", result.stdout + result.stderr)
+        if result.returncode or not match:
+            raise ValueError(
+                "Cannot determine the installed Nginx version; native deployment requires 1.19.5+"
+            )
+        if tuple(map(int, match.groups())) < (1, 19, 5):
+            raise ValueError(
+                f"Native deployment requires Nginx 1.19.5+; found {'.'.join(match.groups())}. "
+                "Upgrade Nginx for startup logging without system log permissions."
+            )
 
     def public_environment(self) -> dict[str, str]:
         """Limit frontend builds and web processes to public UI settings and tool paths."""
@@ -264,9 +290,14 @@ class NativeInstaller(Installer):
             "--python",
             sys.executable,
         ]
-        command.extend(
-            ["--group", "watch"] if self.profile.environment == "dev" else ["--no-editable"]
-        )
+        if self.profile.environment == "dev":
+            command.extend(["--group", "watch"])
+        else:
+            command.append("--no-editable")
+            # Local source can change without a package-version change. Refresh
+            # these wheels while retaining locked third-party dependencies.
+            for package in ("coyote-server", "coyote-core", "coyote-atlas"):
+                command.extend(["--reinstall-package", package])
         self.runner.run(
             command,
             label="Native Python installation",
@@ -377,14 +408,7 @@ http {{
 ''',
         )
         self.runner.run(
-            [
-                "nginx",
-                "-t",
-                "-p",
-                str(self.directory) + "/",
-                "-c",
-                str(self.directory / "nginx.conf"),
-            ],
+            [*self._nginx_command(), "-t"],
             label="Native Nginx validation",
         )
 
@@ -421,6 +445,7 @@ http {{
         ]
         if missing:
             raise ValueError("Install native prerequisites first: " + ", ".join(missing))
+        self._validate_nginx_version()
         selected = set(self.options.steps)
         if selected & {"directories", "build", "bootstrap", "indexes", "start"}:
             self.services.assert_stopped(list(self.commands()))
@@ -451,6 +476,10 @@ http {{
             kind = socket.SOCK_DGRAM if name == "monitor" else socket.SOCK_STREAM
             try:
                 with socket.socket(socket.AF_INET, kind) as listener:
+                    if kind == socket.SOCK_STREAM:
+                        # Match the server's restart behavior: closing TCP connections
+                        # must not block a new listener after the owned service stops.
+                        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     listener.bind(("127.0.0.1", port))
             except OSError:
                 raise ValueError(

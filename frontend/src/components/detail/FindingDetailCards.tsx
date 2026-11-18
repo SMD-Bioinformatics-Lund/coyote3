@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { icon } from "@/lib/assets"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -125,7 +127,7 @@ export function ClassificationsCard({
     <DetailCard title="Classifications" icon={icon.tags}>
       <div className="space-y-3">
         {canMutate && (
-          <div className="rounded-lg border border-border bg-background/70 p-2">
+          <Surface variant="inset" className="p-2">
             <div className="mb-2 type-label font-semibold uppercase tracking-wide text-muted-foreground">Set tier</div>
             <div className="flex flex-wrap gap-1.5">
               {[1, 2, 3, 4].map((tier) => (
@@ -166,10 +168,10 @@ export function ClassificationsCard({
                 >Deactivate group annotations</button>
               )}
             </div>
-          </div>
+          </Surface>
         )}
         {latest && Number(latest.class ?? latest.tier) !== 999 ? (
-          <div className="rounded-lg border border-border bg-background/70 p-3">
+          <Surface variant="inset" className="p-3">
             <div className="mb-2 flex items-center gap-2">
               <TierBadge tier={latest.class || latest.tier} />
               <span className="text-sm font-semibold">Latest classification</span>
@@ -186,7 +188,7 @@ export function ClassificationsCard({
             {latest.legacy_fallback && (
               <p className="mt-2 type-caption text-warn">Legacy fallback: this is the latest matching annotation, including inactive records. No saved sample link confirms which tier was used. Re-tier before reporting.</p>
             )}
-          </div>
+          </Surface>
         ) : (
           <p className="text-sm text-muted-foreground">{unavailableReason || "Not currently classified."}</p>
         )}
@@ -215,11 +217,11 @@ export function ClassificationsCard({
                   <div className="type-meta text-muted-foreground">{[item.asp_group, item.asp_id, item.diagnosis_id, item.namespace].filter(Boolean).join(" · ")}</div>
                   {item.match_level === "parent_group" && <div className="type-meta text-muted-foreground">Inherited from parent group · confirmation required</div>}
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-muted-foreground">
+                <Badge variant="outline" className="inline-flex items-center gap-1 border-border bg-muted text-muted-foreground">
                   {item.match_level === "same_assay" ? <TierBadge tier={item.class || item.tier} /> : <>Tier {item.class || item.tier}</>}
                   <icon.circleHelp className="h-3.5 w-3.5" aria-hidden="true" />
                   Re-tier required
-                </span>
+                </Badge>
               </div>
             ))}
           </div>

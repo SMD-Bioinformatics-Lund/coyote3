@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
@@ -55,7 +56,7 @@ export default function VepReferencePage() {
     ? <SourceLink href={`http://www.sequenceontology.org/miso/${kind}/term/${term}`}>{term}</SourceLink> : <span>{term || "-"}</span>
 
   return <PageShell title="VEP Reference" eyebrow="Reference library" actions={<Link to="/about" className="paper-raised-control inline-flex items-center gap-2 rounded-lg px-3 py-2"><icon.arrowLeft className="size-4" />About Coyote4</Link>}>
-    <section className="surface-panel space-y-4 p-4">
+    <Surface as="section" variant="panel" className="space-y-4 p-4">
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 type-label">VEP release
           <select aria-label="VEP release" value={release} className="paper-inset block rounded-md p-2" onChange={event => { setParams({ version: event.target.value }); setGroup(""); setImpact("") }}>
@@ -110,6 +111,6 @@ export default function VepReferencePage() {
           <SourceLink href={data.source}>Cache documentation source</SourceLink>
         </>}
       </>}
-    </section>
+    </Surface>
   </PageShell>
 }

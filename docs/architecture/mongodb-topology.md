@@ -80,7 +80,7 @@ BAM_MONGO_URI=mongodb://coyote4_app:URI_ENCODED_PASSWORD@127.0.0.1:27017/?authSo
 COYOTE4_DB=coyote4_dev
 IDENTITY_DB=coyote4_identity_dev
 KNOWLEDGEBASE_DB=coyote4_knowledgebases
-BAM_DB=bam_dev
+BAM_DB=coyote4_bam_dev
 ```
 
 Provision the account with the restricted identity role and service grants, and

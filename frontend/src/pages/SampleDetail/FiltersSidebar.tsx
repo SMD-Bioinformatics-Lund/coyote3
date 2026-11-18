@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { icon } from "@/lib/assets"
@@ -169,13 +171,13 @@ function FilterInput({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-background/55 p-2.5">
+    <Surface as="section" variant="inset" className="p-2.5">
       <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-foreground">
         <icon.filter className="h-3.5 w-3.5 text-primary" />
         {title}
       </h4>
       <div className="space-y-2">{children}</div>
-    </section>
+    </Surface>
   )
 }
 
@@ -561,14 +563,14 @@ export function FiltersSidebar({
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted disabled:opacity-50"
           title="Reset filters"
         >
-          {resetFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <icon.rotateCcw className="h-4 w-4" />}
+          {resetFilters.isPending ? <LoadingIndicator className="h-4 w-4" /> : <icon.rotateCcw className="h-4 w-4" />}
         </button>
         <button
           onClick={() => updateFilters.mutate(filters)}
           disabled={!canEdit || updateFilters.isPending || resetFilters.isPending}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
         >
-          {updateFilters.isPending ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <icon.save className="h-4 w-4" />}
+          {updateFilters.isPending ? <LoadingIndicator className="h-4 w-4" /> : <icon.save className="h-4 w-4" />}
           Apply
         </button>
       </div>

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { ReactNode } from "react"
 import { PageFrame } from "@/components/layout/PageFrame"
 
@@ -21,7 +22,7 @@ export function PageShell({
 }) {
   return (
     <PageFrame className={className}>
-      <div className="page-heading responsive-card-padding surface-panel text-left">
+      <Surface variant="panel" className="page-heading responsive-card-padding text-left">
         <div className="responsive-section-gap flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 text-left">
             {eyebrow && (
@@ -47,7 +48,7 @@ export function PageShell({
             </div>
           )}
         </div>
-      </div>
+      </Surface>
 
       {children}
     </PageFrame>

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import {
   ColumnDef,
   flexRender,
@@ -12,7 +13,7 @@ import {
   getPaginationRowModel,
   type PaginationState,
   type OnChangeFn,
-  type Table,
+  type Table as ReactTable,
   type FilterFn,
   type ColumnFiltersState,
   type Row,
@@ -59,8 +60,8 @@ interface DataTableProps<TData, TValue> {
   hasPrevious?: boolean;
   onPageChange?: (page: number) => void;
   onPerPageChange?: (perPage: number) => void;
-  renderToolbar?: (table: Table<TData>) => ReactNode;
-  renderExportButton?: (table: Table<TData>) => ReactNode;
+  renderToolbar?: (table: ReactTable<TData>) => ReactNode;
+  renderExportButton?: (table: ReactTable<TData>) => ReactNode;
   hideExport?: boolean;
   hideSearch?: boolean;
   showColumnFilters?: boolean;
@@ -349,30 +350,30 @@ export function DataTable<TData, TValue>({
             {renderExportButton ? (
               renderExportButton(table)
             ) : (
-              <button
+              <Button
+                type="button" size="sm" variant="outline"
                 onClick={exportToCSV}
-                className="inline-flex items-center gap-2 rounded-lg border border-primary/75 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[0_2px_6px_color-mix(in_srgb,var(--primary)_24%,transparent)] transition-colors hover:bg-primary/90"
               >
                 <icon.arrowDownToLine className="h-4 w-4" />
                 Export to CSV
-              </button>
+              </Button>
             )}
           </div>
         )}
       </div>
 
       {/* Table Area */}
-      <div className="data-table-frame paper-surface min-w-0 max-w-full overflow-hidden rounded-lg [contain:paint]">
+      <div className="data-table-frame table-frame [contain:paint]">
         <div className="data-table-viewport max-w-full overflow-x-auto overscroll-x-contain">
-          <table
-            className="data-table-grid type-table-cell w-full table-auto border-separate border-spacing-0 text-left type-numeric"
-            data-density={tableDensity}
+          <Table
+            className="data-table-grid table-auto type-numeric"
+            density={tableDensity}
             data-column-count={visibleColumnCount}
             style={{ minWidth: tableMinimumWidth }}
           >
-            <thead className="type-table-header border-b-2 border-border bg-[var(--table-header-surface)] text-foreground align-middle text-center">
+            <TableHeader className="text-foreground align-middle text-center">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
+                <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     const align = columnAlign(header.column.id);
                     const meta = header.column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
@@ -387,13 +388,12 @@ export function DataTable<TData, TValue>({
                     const sortIndex = sorting.findIndex((item) => item.id === header.column.id);
                     const HeaderControl = header.column.getCanSort() ? "button" : "div";
                     return (
-                      <th
+                      <TableHead
                         key={header.id}
                         data-column-id={header.column.id}
                         aria-sort={header.column.getIsSorted() === "asc" ? "ascending" : header.column.getIsSorted() === "desc" ? "descending" : header.column.getCanSort() ? "none" : undefined}
                         className={cn(
-                          "whitespace-normal border-b-2 border-border py-1 align-middle text-center leading-tight",
-                          tableDensity === "compact" ? "px-1.5" : "responsive-table-cell-x",
+                          "whitespace-normal py-1 align-middle leading-tight",
                           align === "center" ? "text-center" : "text-left",
                           defaultColumnClass(header.column.id),
                           meta?.headerClassName,
@@ -432,61 +432,56 @@ export function DataTable<TData, TValue>({
                             )}
                           </HeaderControl>
                         )}
-                      </th>
+                      </TableHead>
                     );
                   })}
-                </tr>
+                </TableRow>
               ))}
-              {showColumnFilters && !serverPaginated && <tr>
+              {showColumnFilters && !serverPaginated && <TableRow>
                 {table.getVisibleLeafColumns().map(column => {
                   const meta = column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
                   const label = typeof column.columnDef.header === "string" ? column.columnDef.header : column.id;
-                  return <th key={column.id} className="p-2">
+                  return <TableHead key={column.id}>
                     {column.getCanFilter() && !["actions", "select"].includes(column.id) && (meta?.filterOptions
                       ? <select aria-label={`Filter ${label}`} className="paper-inset w-full rounded-md p-2 type-body-sm" value={String(column.getFilterValue() ?? "")} onChange={event => column.setFilterValue(event.target.value)}>
                         <option value="">All</option>{meta.filterOptions.map(value => <option key={value} value={value}>{value}</option>)}
                       </select>
                       : <SearchInput aria-label={`Filter ${label}`} placeholder={`Filter ${label}`} value={String(column.getFilterValue() ?? "")} onChange={event => column.setFilterValue(event.target.value)} />)}
-                  </th>;
+                  </TableHead>;
                 })}
-              </tr>}
-            </thead>
-            <tbody>
+              </TableRow>}
+            </TableHeader>
+            <TableBody>
               {visibleRows.length ? (
                 visibleRows.map((row) => (
-                  <tr
+                  <TableRow
                     key={row.id}
-                    className={cn(
-                      "bg-[var(--paper-raised)] transition-colors duration-75 hover:bg-primary/10",
-                      getRowClassName?.(row.original) ?? "",
-                    )}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                    className={getRowClassName?.(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const align = columnAlign(cell.column.id);
                       const meta = cell.column.columnDef.meta as DataTableColumnMeta<TData> | undefined;
                       return (
-                        <td
+                        <TableCell
                           key={cell.id}
                           data-column-id={cell.column.id}
                           className={cn(
-                            "min-w-0 overflow-hidden border-b border-border/55 align-middle",
-                            tableDensity === "compact"
-                              ? "px-1.5 py-1"
-                              : "responsive-table-cell-x responsive-table-cell-y",
+                            "min-w-0 overflow-hidden align-middle",
                             align === "center" ? "text-center" : "text-left",
                             defaultColumnClass(cell.column.id),
                             meta?.cellClassName,
                           )}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
+                        </TableCell>
                       );
                     })}
-                  </tr>
+                  </TableRow>
                 ))
               ) : (
-                <tr>
-                  <td
+                <TableRow>
+                  <TableCell
                     colSpan={columns.length}
                     className="h-36 text-center text-muted-foreground font-medium"
                   >
@@ -495,11 +490,11 @@ export function DataTable<TData, TValue>({
                       <p className="type-body-sm text-foreground">{emptyMessage}</p>
                       {displayedSearchValue.trim() && <p className="type-supporting">Try another search or clear the search field.</p>}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         <div className="data-table-footer flex min-h-11 flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-card px-2 py-2 text-xs font-medium text-muted-foreground">
           <span>
@@ -521,23 +516,21 @@ export function DataTable<TData, TValue>({
           )}
           {serverPaginated && (
             <div className="flex items-center gap-1">
-              <button
-                type="button"
+              <Button
+                type="button" size="sm" variant="outline"
                 disabled={!hasPrevious}
                 onClick={() => onPageChange?.(Math.max(1, page - 1))}
-                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Previous
-              </button>
+              </Button>
               <span className="px-1 font-semibold text-foreground">Page {page}</span>
-              <button
-                type="button"
+              <Button
+                type="button" size="sm" variant="outline"
                 disabled={!hasNext}
                 onClick={() => onPageChange?.(page + 1)}
-                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
           {!serverPaginated && paginated && (
@@ -550,8 +543,8 @@ export function DataTable<TData, TValue>({
                 }}
                 showPageSuffix
               />
-              <button
-                type="button"
+              <Button
+                type="button" size="sm" variant="outline"
                 disabled={clientPage <= 1}
                 onClick={() =>
                   setClientPagination((current) => ({
@@ -559,13 +552,12 @@ export function DataTable<TData, TValue>({
                     pageIndex: Math.max(0, current.pageIndex - 1),
                   }))
                 }
-                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Previous
-              </button>
+              </Button>
               <span className="px-1 font-semibold text-foreground">Page {clientPage}</span>
-              <button
-                type="button"
+              <Button
+                type="button" size="sm" variant="outline"
                 disabled={clientPage >= clientPageCount}
                 onClick={() =>
                   setClientPagination((current) => ({
@@ -573,10 +565,9 @@ export function DataTable<TData, TValue>({
                     pageIndex: Math.min(clientPageCount - 1, current.pageIndex + 1),
                   }))
                 }
-                className="paper-inset rounded-lg px-2.5 py-1 font-semibold text-foreground hover:border-primary/30 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Next
-              </button>
+              </Button>
             </>
           )}
         </div>

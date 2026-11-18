@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), getBlob: vi.fn(), table: vi.fn() }))
 vi.mock("@/lib/api", () => ({ api: { get: mocks.get, getBlob: mocks.getBlob } }))
-vi.mock("@/lib/runtime-paths", () => ({
+vi.mock("@/lib/runtime-paths", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/runtime-paths")>(),
   apiPath: (path: string) => `/coyote4/api/v1${path}`,
 }))
 vi.mock("@/components/data-table/DataTable", () => ({

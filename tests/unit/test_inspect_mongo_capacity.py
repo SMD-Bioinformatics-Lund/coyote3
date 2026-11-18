@@ -52,7 +52,7 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
                 "COYOTE4_DB": "coyote4_test",
                 "IDENTITY_DB": "identity_test",
                 "KNOWLEDGEBASE_DB": "knowledgebase_test",
-                "BAM_DB": "bam_test",
+                "BAM_DB": "coyote4_bam_test",
                 "DB_COLLECTIONS_CONFIG": {
                     "primary": {
                         "variants_collection": "variants",
@@ -67,7 +67,7 @@ def fake_adapter(*, repositories: list[tuple[str, object]]) -> SimpleNamespace:
         coyote_db=FakeMongoDatabase("coyote4_test"),
         identity_db=FakeMongoDatabase("identity_test"),
         knowledgebase_db=FakeMongoDatabase("knowledgebase_test"),
-        bam_db=FakeMongoDatabase("bam_test"),
+        bam_db=FakeMongoDatabase("coyote4_bam_test"),
         iter_repositories=lambda: iter(repositories),
     )
 

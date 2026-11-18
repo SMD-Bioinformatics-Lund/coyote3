@@ -1,4 +1,60 @@
-/* Shared content elevation; the page heading and layout backdrop remain quiet. */
+/* Shared surface roles. Layout and semantic accents belong to the caller. */
+@layer components {
+  .app-footer {
+    border-top: 1px solid transparent;
+    background:
+      linear-gradient(var(--paper-highlight), var(--paper-highlight)) top / 100% 1px no-repeat,
+      linear-gradient(90deg,
+        color-mix(in srgb, var(--brand-start) 14%, var(--paper-raised)),
+        color-mix(in srgb, var(--brand-end) 12%, var(--paper-raised)));
+    box-shadow:
+      inset 0 -1px 0 var(--paper-shadow),
+      0 -1px 4px var(--paper-shadow-deep),
+      0 -5px 12px var(--paper-shadow);
+    padding-inline: 0.75rem;
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+  }
+  @media (forced-colors: active) {
+    .app-footer { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; backdrop-filter: none; }
+  }
+
+  :is(.glass-panel, .surface-panel, .dashboard-panel, .content-section, .detail-hero, .static-page-section, .admin-category) {
+    min-width: 0;
+    border: 1px solid var(--paper-edge);
+    border-radius: var(--content-card-radius);
+    background: var(--surface-sheen) var(--paper-surface);
+    box-shadow: var(--panel-shadow);
+  }
+  :is(
+    .glass-card, .chart-panel, .detail-card, .detail-card-accent, .detail-card-success,
+    .detail-card-info, .dashboard-subcard, .dashboard-snapshot-card, .content-item,
+    .metric-card, .static-info-card, .static-metric, .knowledgebase-block
+  ) {
+    --material-accent: var(--knowledgebase-accent, var(--panel-accent, var(--static-accent, var(--primary))));
+    --content-card-border: color-mix(in srgb, var(--material-accent) 16%, var(--paper-edge));
+    --inner-card-background: linear-gradient(145deg,
+      color-mix(in srgb, var(--material-accent) 5%, var(--paper-raised)),
+      color-mix(in srgb, var(--material-accent) 2%, var(--paper-raised))) var(--paper-raised);
+    min-width: 0;
+    border: 1px solid var(--content-card-border);
+    border-radius: var(--content-card-radius);
+    background: var(--inner-card-background);
+    box-shadow: var(--material-card-shadow);
+  }
+  @media (forced-colors: active) {
+    :is(.glass-panel, .surface-panel, .dashboard-panel, .content-section, .detail-hero,
+      .static-page-section, .admin-category, .glass-card, .chart-panel, .detail-card,
+      .detail-card-accent, .detail-card-success, .detail-card-info, .dashboard-subcard,
+      .dashboard-snapshot-card, .content-item, .metric-card, .static-info-card,
+      .static-metric, .knowledgebase-block) {
+      background: Canvas;
+      color: CanvasText;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+  }
+}
+
 @layer utilities {
   .page-heading.surface-panel {
     background: var(--heading-surface);
@@ -44,22 +100,6 @@
     background: color-mix(in srgb, var(--static-accent, var(--primary)) 3%, var(--paper-raised));
     box-shadow: var(--material-badge-shadow);
   }
-  :is(
-    .glass-card, .chart-panel, .detail-card, .dashboard-subcard,
-    .dashboard-snapshot-card, .content-item, .metric-card, .static-info-card,
-    .static-metric, .knowledgebase-block
-  ):not(.text-destructive) {
-    --material-accent: var(--knowledgebase-accent, var(--panel-accent, var(--static-accent, var(--primary))));
-    --content-card-border: color-mix(in srgb, var(--material-accent) 16%, var(--paper-edge));
-    --inner-card-background: linear-gradient(145deg,
-      color-mix(in srgb, var(--material-accent) 5%, var(--paper-raised)),
-      color-mix(in srgb, var(--material-accent) 2%, var(--paper-raised))) var(--paper-raised);
-    border: 1px solid var(--content-card-border);
-    border-radius: var(--content-card-radius);
-    background: var(--inner-card-background);
-    box-shadow: var(--material-card-shadow);
-  }
-
   .material-page :is(
     .type-badge,
     .catalog-value-badge, .material-badge, .matrix-coverage-mark, .catalog-annotation-tag
@@ -68,14 +108,6 @@
   }
 
   @media (forced-colors: active) {
-    :is(
-      .glass-card, .chart-panel, .detail-card, .dashboard-subcard,
-      .dashboard-snapshot-card, .content-item, .metric-card, .static-info-card,
-      .static-metric, .knowledgebase-block
-    ):not(.text-destructive) {
-      background: Canvas;
-      box-shadow: none;
-    }
     :is([data-slot="badge"], [data-slot="table-badge"]):not([aria-hidden="true"]),
     .material-page :is(
       [data-slot="badge"], [data-slot="table-badge"], .type-badge,

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { SurfacePanel } from "@/components/cards/Panel"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { Button } from "@/components/ui/button"
@@ -99,11 +100,11 @@ export function BiomarkersTab({ sampleId, production }: { sampleId: string; prod
       {query.data?.biomarkers.flatMap(record => methods.map(method => {
         const measurement = record[method]
         if (!measurement) return null
-        return <section key={`${record._id}-${method}`} className="surface-panel space-y-3 p-4">
+        return <Surface as="section" variant="panel" key={`${record._id}-${method}`} className="space-y-3 p-4">
           <h3 className="type-card-title">{method} · {record.name}</h3>
           <p className="type-body"><span className="text-muted-foreground">Measured result: </span>{measuredValue(method, measurement)}</p>
           <AssessmentEditor recordId={record._id} method={method} measurement={measurement} sampleId={sampleId} canEdit={canEdit} />
-        </section>
+        </Surface>
       }))}
     </div>
   </SurfacePanel>

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -89,7 +90,7 @@ export function ConfigurationProfilesPage() {
   return <PageShell eyebrow="Admin" title="Configuration governance"
     description="Reusable profiles and reviewed environment promotions. Existing samples retain their applied releases."
     actions={<Link to="/admin/aspc" className="text-primary underline">Assay configurations</Link>}>
-    <div className="glass-card space-y-4 p-4">
+    <Surface variant="card" className="space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-2">
         {canCreate && section === "profiles" && <ConfigurationTransfer label="configuration profile"
           filename="configuration-profile" fields={profileFields}
@@ -129,6 +130,6 @@ export function ConfigurationProfilesPage() {
         {review.created_by === access.data?.username && ["draft", "pending"].includes(review.status) &&
           <p className="type-body text-muted-foreground">Another authorized user must approve this draft.</p>}
       </section>}
-    </div>
+    </Surface>
   </PageShell>
 }

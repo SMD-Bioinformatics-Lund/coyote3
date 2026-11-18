@@ -132,3 +132,7 @@ Run engineering commands inside the project's `.venv`. If you use IDE integratio
 ```bash
 export PYTHON_BIN="$(command -v python)"
 ```
+
+With the environment running, use the [developer guide](../development/developer-guide.md)
+to locate the component you need to change, then run the relevant
+[validation checks](../testing/test-strategy-and-quality-gates.md).

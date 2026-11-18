@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -23,7 +24,7 @@ export function ResourceVersionHistory({ spec, identifier, onClose }: {
       `${spec.endpoint}/${encodeURIComponent(selected)}/versions`,
     ).then(response => response.data),
   })
-  return <section className="surface-panel my-4 space-y-3 p-4" aria-label={`${spec.title} version history`}>
+  return <Surface as="section" variant="panel" className="my-4 space-y-3 p-4" aria-label={`${spec.title} version history`}>
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="type-section-title">Version history</h2>
       <Button variant="outline" size="sm" onClick={onClose}>Close history</Button>
@@ -45,5 +46,5 @@ export function ResourceVersionHistory({ spec, identifier, onClose }: {
         <summary className="cursor-pointer type-body-sm">Version {String(version.version ?? "—")} · {version.is_active ? "Current" : "Retired"}{version.updated_by ? ` · ${String(version.updated_by)}` : ""}</summary>
         <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-all type-supporting">{JSON.stringify(version, null, 2)}</pre>
       </details>)}
-  </section>
+  </Surface>
 }

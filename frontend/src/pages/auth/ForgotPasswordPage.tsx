@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +14,7 @@ import { AuthShell } from "./PasswordAuthShell"
 
 export function ForgotPassword() {
   const [username, setUsername] = useState("")
+  const [provider, setProvider] = useState("auto")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -22,8 +25,8 @@ export function ForgotPassword() {
     setError("")
     setLoading(true)
     try {
-      await api.post("/auth/password/reset/request", { username })
-      setMessage("If this account can reset its password, a reset email has been sent.")
+      await api.post("/auth/password/reset/request", { username, provider })
+      setMessage("If the account is eligible, recovery instructions will be sent to its saved email or a request will be sent to administrators.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to request password reset.")
     } finally {
@@ -33,22 +36,32 @@ export function ForgotPassword() {
 
   return (
     <AuthShell
-      title="Reset local access"
-      description="Request a password reset token for a local Coyote4 account."
+      title="Recover account access"
+      description="Request help with your local or LDAP account."
     >
       <h2 className="text-2xl font-bold">Forgot password</h2>
       <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
-        Enter the username or email registered for your local account.
+        Enter your username. Local accounts receive a reset link at their saved email address. LDAP resets are handled by administrators through the external directory service.
       </p>
-      {message && <div className="mb-4 rounded-md border border-pass/30 bg-pass/10 p-3 text-sm text-pass">{message}</div>}
-      {error && <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+      {message && <Notice tone="success" className="mb-4">{message}</Notice>}
+      {error && <Notice tone="danger" className="mb-4">{error}</Notice>}
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username or email</Label>
+          <Label htmlFor="username">Username</Label>
           <Input id="username" value={username} onChange={(event) => setUsername(event.target.value)} required disabled={loading} />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="recovery-provider">Account type</Label>
+          <select id="recovery-provider" value={provider} onChange={event => setProvider(event.target.value)} disabled={loading}
+            className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40">
+            <option value="auto">Automatic (local first)</option>
+            <option value="local">Local</option>
+            <option value="ldap">LDAP</option>
+          </select>
+          <p className="text-xs text-muted-foreground">If you use both sign-in methods, select the one you need to recover. Without a saved email, local recovery also requires administrator assistance.</p>
+        </div>
         <Button type="submit" className="h-11 w-full" disabled={loading || !username}>
-          {loading && <icon.loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {loading && <LoadingIndicator className="mr-2 h-4 w-4" />}
           Request reset
         </Button>
       </form>

@@ -4,6 +4,7 @@
 import { icon } from "@/lib/assets"
 import { useState, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
+import { tooltipEventPosition, type TooltipPosition } from "@/components/ui/app-tooltip-meta"
 import {
   clinicalBadgeClassName,
   consequenceBadgeClassName,
@@ -12,10 +13,8 @@ import {
 } from "@/components/ui/table-badge"
 import {
   badgeSeverityClass,
-  inlineTooltipPosition,
   tooltipSeverityClass,
   VariantTooltipBadge,
-  verticalTooltipPosition,
 } from "@/lib/variant-badge-primitives"
 import { cn } from "@/lib/utils"
 import { clinpgxGeneUrl, cosmicSearchUrl, oncokbGeneUrl } from "@/lib/external-links"
@@ -57,7 +56,7 @@ export function FallbackTierBadge({ candidates = [] }: { candidates?: Array<{ cl
 }
 
 export function TierBadge({ tier, className }: { tier: unknown; className?: string }) {
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<TooltipPosition | null>(null)
   const value = Number(tier)
   if (!Number.isFinite(value) || value === 999) {
     return <span className="text-muted-foreground">-</span>
@@ -84,9 +83,10 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
     <span
       className="inline-flex"
       data-tooltip-managed="true"
-      onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
+      onMouseEnter={(event) => setPosition(tooltipEventPosition(event))}
+      onMouseMove={(event) => { if (position) setPosition(tooltipEventPosition(event)) }}
       onMouseLeave={() => setPosition(null)}
-      onFocus={(event) => setPosition(verticalTooltipPosition(event))}
+      onFocus={(event) => setPosition(tooltipEventPosition(event))}
       onBlur={() => setPosition(null)}
     >
       <TableBadge
@@ -101,7 +101,7 @@ export function TierBadge({ tier, className }: { tier: unknown; className?: stri
         {value}
       </TableBadge>
       {position && (
-        <TooltipSurface position={position} className={tooltipSeverityClass(meta.severity)}>
+        <TooltipSurface position={position} onDismiss={() => setPosition(null)} className={tooltipSeverityClass(meta.severity)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">
             Tier {meta.roman}
           </span>
@@ -570,16 +570,17 @@ function FilterFlagBadge({
   severity: string
   label: string
 }) {
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<TooltipPosition | null>(null)
   const description = meta.description || "No center-specific description is configured for this filter flag."
 
   return (
     <span
       className="relative inline-flex"
       data-tooltip-managed="true"
-      onMouseEnter={(event) => setPosition(inlineTooltipPosition(event))}
+      onMouseEnter={(event) => setPosition(tooltipEventPosition(event))}
+      onMouseMove={(event) => { if (position) setPosition(tooltipEventPosition(event)) }}
       onMouseLeave={() => setPosition(null)}
-      onFocus={(event) => setPosition(inlineTooltipPosition(event))}
+      onFocus={(event) => setPosition(tooltipEventPosition(event))}
       onBlur={() => setPosition(null)}
     >
       <TableBadge
@@ -593,7 +594,7 @@ function FilterFlagBadge({
         {label}
       </TableBadge>
       {position && (
-        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
+        <TooltipSurface position={position} onDismiss={() => setPosition(null)} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">
             {severityLabel(severity)} filter
           </span>
@@ -662,7 +663,7 @@ function impactDescription(value: unknown) {
 }
 
 export function ImpactBadge({ value }: { value: unknown }) {
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<TooltipPosition | null>(null)
   if (!value) return <span className="text-muted-foreground">-</span>
   const severity = impactSeverity(value)
   const impact = String(value).toUpperCase()
@@ -671,9 +672,10 @@ export function ImpactBadge({ value }: { value: unknown }) {
     <span
       className="inline-flex"
       data-tooltip-managed="true"
-      onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
+      onMouseEnter={(event) => setPosition(tooltipEventPosition(event))}
+      onMouseMove={(event) => { if (position) setPosition(tooltipEventPosition(event)) }}
       onMouseLeave={() => setPosition(null)}
-      onFocus={(event) => setPosition(verticalTooltipPosition(event))}
+      onFocus={(event) => setPosition(tooltipEventPosition(event))}
       onBlur={() => setPosition(null)}
     >
       <TableBadge
@@ -686,7 +688,7 @@ export function ImpactBadge({ value }: { value: unknown }) {
         {impact}
       </TableBadge>
       {position && (
-        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
+        <TooltipSurface position={position} onDismiss={() => setPosition(null)} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">VEP impact</span>
           <span className="block font-bold text-foreground">{impact}</span>
           <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{impactDescription(value)}</span>
@@ -758,16 +760,17 @@ function predictionDescription(value: unknown) {
 }
 
 export function PredictionBadge({ value }: { value: unknown }) {
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<TooltipPosition | null>(null)
   if (!value) return <span className="text-muted-foreground">-</span>
   const severity = predictionSeverity(value)
   return (
     <span
       className="inline-flex min-w-0 max-w-full"
       data-tooltip-managed="true"
-      onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
+      onMouseEnter={(event) => setPosition(tooltipEventPosition(event))}
+      onMouseMove={(event) => { if (position) setPosition(tooltipEventPosition(event)) }}
       onMouseLeave={() => setPosition(null)}
-      onFocus={(event) => setPosition(verticalTooltipPosition(event))}
+      onFocus={(event) => setPosition(tooltipEventPosition(event))}
       onBlur={() => setPosition(null)}
     >
       <TableBadge
@@ -780,7 +783,7 @@ export function PredictionBadge({ value }: { value: unknown }) {
         {String(value)}
       </TableBadge>
       {position && (
-        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
+        <TooltipSurface position={position} onDismiss={() => setPosition(null)} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">Protein prediction</span>
           <span className="block font-bold text-foreground">{predictionLabel(value)}</span>
           <span className="mt-1 block break-words type-meta font-semibold text-foreground/85">{String(value)}</span>
@@ -823,7 +826,7 @@ function ConsequenceBadge({
   compact: boolean
   wide: boolean
 }) {
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<TooltipPosition | null>(null)
   const meta = consequenceMeta(term, translations)
   const label = meta.short || meta.display || meta.label || meta.display_name || term.replace(/_variant$/i, "").replaceAll("_", " ")
   const description = meta.desc || meta.description || meta.definition || meta.tooltip || "No VEP metadata description is available for this consequence."
@@ -834,9 +837,10 @@ function ConsequenceBadge({
     <span
       className="inline-flex"
       data-tooltip-managed="true"
-      onMouseEnter={(event) => setPosition(verticalTooltipPosition(event))}
+      onMouseEnter={(event) => setPosition(tooltipEventPosition(event))}
+      onMouseMove={(event) => { if (position) setPosition(tooltipEventPosition(event)) }}
       onMouseLeave={() => setPosition(null)}
-      onFocus={(event) => setPosition(verticalTooltipPosition(event))}
+      onFocus={(event) => setPosition(tooltipEventPosition(event))}
       onBlur={() => setPosition(null)}
     >
       <TableBadge
@@ -853,6 +857,7 @@ function ConsequenceBadge({
       {position && (
         <TooltipSurface
           position={position}
+          onDismiss={() => setPosition(null)}
           className={impact ? tooltipSeverityClass(severity) : "border-border text-popover-foreground"}
         >
           <span className="mb-1 flex items-center justify-between gap-2 type-label font-semibold uppercase tracking-wide opacity-80">

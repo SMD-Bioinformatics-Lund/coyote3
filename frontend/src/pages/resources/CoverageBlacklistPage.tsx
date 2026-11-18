@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
@@ -73,9 +74,9 @@ export function CoverageBlacklistPage() {
       actions={<Link to="/samples" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted"><icon.arrowLeft className="h-4 w-4" /> Samples</Link>}
     >
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
-        <section className="surface-panel p-3">
+        <Surface as="section" variant="panel" className="p-3">
           <DataTable columns={columns} data={rows} filename={`coverage_blacklist_${group}.csv`} />
-        </section>
+        </Surface>
       )}
     </PageShell>
   )

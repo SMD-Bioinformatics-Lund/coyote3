@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
@@ -243,7 +244,7 @@ export function PublicAssayCatalogPage() {
             <span className="type-meta text-muted-foreground">Updated by {version.updated_by || "Unknown"}</span></>}
           {dirty && <span className="type-body-sm text-warn">Unsaved changes</span>}
         </div>
-        {version && <section className="surface-panel space-y-3 p-4" aria-label="Review and publication">
+        {version && <Surface as="section" variant="panel" className="space-y-3 p-4" aria-label="Review and publication">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="type-section-title">Review and publication</h2>
             {!snapshot && !version.system_installed && ["draft", "submitted", "approved", "rejected"].includes(version.status) && allowed("catalog:draft") &&
@@ -303,7 +304,7 @@ export function PublicAssayCatalogPage() {
 
             </div>
           </details>
-        </section>}
+        </Surface>}
         {editing && editable ? <fieldset disabled={busy} className="min-w-0">
           {selectedEditorNode && !selectedEditorNode.target ? <CatalogParentDefaults key={selectedEditorNode.node_id} node={selectedEditorNode} catalog={draft}
             onSelect={selectEditorTarget} onAdd={() => {

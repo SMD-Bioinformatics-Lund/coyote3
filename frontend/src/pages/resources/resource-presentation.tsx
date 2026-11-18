@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Badge } from "@/components/ui/badge"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { sanitizeRichText } from "@/lib/safe-html"
 import { asList, display } from "./resource-values"
@@ -11,9 +13,9 @@ export function Loading() {
 
 export function ErrorBox({ error }: { error: unknown }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+    <Notice tone="danger">
       {error instanceof Error ? error.message : "Unable to load data"}
-    </div>
+    </Notice>
   )
 }
 
@@ -32,9 +34,9 @@ export function ChipList({ values, empty = "None recorded" }: { values: unknown;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item) => (
-        <span key={item} className="rounded-md border border-border bg-muted px-2 py-1 text-xs font-semibold">
+        <Badge variant="outline" key={item} className="border-border bg-muted">
           {item}
-        </span>
+        </Badge>
       ))}
     </div>
   )
@@ -42,7 +44,7 @@ export function ChipList({ values, empty = "None recorded" }: { values: unknown;
 
 export function SectionTitle({ icon: Icon, children }: { icon: any; children: string }) {
   return (
-    <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+    <h2 className="type-card-title mb-3 flex items-center gap-2 text-foreground">
       <Icon className="h-4 w-4 text-primary" />
       {children}
     </h2>
@@ -80,9 +82,9 @@ export function BadgeList({
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item) => (
-        <span key={item} className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
+        <Badge variant="outline" key={item} className={`${toneClass}`}>
           {item}
-        </span>
+        </Badge>
       ))}
     </div>
   )

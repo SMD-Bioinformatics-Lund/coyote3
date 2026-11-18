@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
+
 export type AssayGrant = { asp_id: string; environments: string[] }
 
 export function AssayAccessEditor({ value, onChange, options = [], environments, disabled }: {
@@ -25,20 +27,20 @@ export function AssayAccessEditor({ value, onChange, options = [], environments,
     if (selected.size) next.push({ asp_id: assay, environments: environments.filter(env => selected.has(env)) })
     onChange(next.sort((a, b) => a.asp_id.localeCompare(b.asp_id)))
   }
-  return <div className="overflow-x-auto rounded-lg border border-border">
-    <table className="w-full border-collapse text-sm">
-      <thead className="bg-muted"><tr><th className="p-2 text-left">Assay</th>
-        {environments.map(environment => <th key={environment} className="p-2 text-center capitalize">{environment}</th>)}
-      </tr></thead>
-      <tbody>{choices.map(assay => <tr key={assay.value} className="border-t border-border">
-        <th scope="row" className="p-2 text-left font-medium">{assay.label || assay.value}<span className="block type-meta text-muted-foreground">{assay.value}</span></th>
-        {environments.map(environment => <td key={environment} className="p-2 text-center">
+  return <div className="table-frame overflow-x-auto">
+    <Table>
+      <TableHeader><TableRow><TableHead className="text-left">Assay</TableHead>
+        {environments.map(environment => <TableHead key={environment} className="text-center capitalize">{environment}</TableHead>)}
+      </TableRow></TableHeader>
+      <TableBody>{choices.map(assay => <TableRow key={assay.value}>
+        <TableHead scope="row" className="text-left font-medium">{assay.label || assay.value}<span className="block type-meta text-muted-foreground">{assay.value}</span></TableHead>
+        {environments.map(environment => <TableCell key={environment} className="text-center">
           <input type="checkbox" disabled={disabled} aria-label={`${assay.value} ${environment}`}
             checked={grants.some(row => row.asp_id === assay.value && row.environments.includes(environment))}
             onChange={event => toggle(assay.value, environment, event.target.checked)} />
-        </td>)}
-      </tr>)}</tbody>
-    </table>
+        </TableCell>)}
+      </TableRow>)}</TableBody>
+    </Table>
     {!choices.length && <p className="p-3 type-body-sm text-muted-foreground">No registered assays available.</p>}
   </div>
 }

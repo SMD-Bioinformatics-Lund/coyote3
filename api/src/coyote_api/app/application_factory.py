@@ -93,6 +93,7 @@ def application_services() -> ApplicationServices:
     from coyote.contracts.schemas.registry import COLLECTION_MODEL_ADAPTERS
 
     from coyote_api.app.deps.services import (
+        get_account_recovery_service,
         get_admin_aspc_service,
         get_admin_assay_group_service,
         get_admin_diagnosis_service,
@@ -163,6 +164,7 @@ def application_services() -> ApplicationServices:
         notifications=get_notification_service,
         administration=AdministrationServices(
             users=get_admin_user_service,
+            recovery=get_account_recovery_service,
             sessions=get_api_session_repository,
             roles=get_admin_role_service,
             permissions=get_permission_management_service,
@@ -594,16 +596,16 @@ def change_account_password(
 
 
 def open_password_recovery() -> "PasswordRecovery":
-    """Bind only one-time recovery delivery and atomic credential consumption."""
+    """Bind provider-aware recovery and atomic local credential consumption."""
     from coyote.application.operations.account import PasswordRecovery
 
+    from coyote_api.app.deps.services import get_account_recovery_service
     from coyote_api.security.password_flows import (
         consume_password_token_and_set_password,
-        issue_password_token_for_user,
     )
 
     return PasswordRecovery(
-        request_token=issue_password_token_for_user,
+        request_token=lambda **kwargs: get_account_recovery_service().request(**kwargs),
         consume_token=consume_password_token_and_set_password,
     )
 

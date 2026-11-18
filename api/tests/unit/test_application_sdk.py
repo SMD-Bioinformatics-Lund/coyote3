@@ -619,7 +619,7 @@ def test_account_assignments_require_dedicated_grants_for_local_callers(
     sdk.grants.add(base_grant)
     service = Mock()
     getattr(service, operation).return_value = {"status": "ok"}
-    operations = Users(sdk.runtime, lambda: service, Mock())
+    operations = Users(sdk.runtime, lambda: service, Mock(), Mock())
     arguments = {"payload": {"form_data": form}}
     if operation == "update_user":
         arguments["user_id"] = "synthetic-account"

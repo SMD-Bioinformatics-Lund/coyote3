@@ -322,6 +322,8 @@ export type ApiOperations = {
   "POST /users": { request: T.Request_createUserApiV1UsersPost; response: T.Response_createUserApiV1UsersPost }
   "GET /users/create_context": { request: T.Request_createUserContextReadApiV1UsersCreateContextGet; response: T.Response_createUserContextReadApiV1UsersCreateContextGet }
   "PATCH /users/me/ui-settings": { request: T.Request_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch; response: T.Response_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch }
+  "GET /users/password-recovery": { request: T.Request_recoveryRequestsReadApiV1UsersPasswordRecoveryGet; response: T.Response_recoveryRequestsReadApiV1UsersPasswordRecoveryGet }
+  "POST /users/password-recovery/{request_id}/complete": { request: T.Request_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost; response: T.Response_recoveryRequestCompleteApiV1UsersPasswordRecoveryRequestIdCompletePost }
   "GET /users/session-activity": { request: T.Request_sessionActivityReadApiV1UsersSessionActivityGet; response: T.Response_sessionActivityReadApiV1UsersSessionActivityGet }
   "POST /users/validate_email": { request: T.Request_validateEmailChangeApiV1UsersValidateEmailPost; response: T.Response_validateEmailChangeApiV1UsersValidateEmailPost }
   "POST /users/validate_username": { request: T.Request_validateUsernameChangeApiV1UsersValidateUsernamePost; response: T.Response_validateUsernameChangeApiV1UsersValidateUsernamePost }

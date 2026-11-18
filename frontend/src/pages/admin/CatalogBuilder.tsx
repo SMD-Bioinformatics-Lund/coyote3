@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { Choices, TextField, PresentationFields } from "./CatalogFields"
@@ -41,15 +42,15 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
     const result = addCatalogChild(catalog, { section, entry: entryKey }, kind)
     onChange(result.catalog); onSelectEntry(result.target.entry)
   }
-  const structureActions = <section className="surface-panel flex flex-wrap items-center gap-3 p-3" aria-label="Add catalog content">
+  const structureActions = <Surface as="section" variant="panel" className="flex flex-wrap items-center gap-3 p-3" aria-label="Add catalog content">
     <h2 className="type-section-title mr-auto">{entry ? "Add beneath this entry" : "Add to this section"}</h2>
     <Button variant="outline" disabled={editingAnalysis} onClick={() => addChild("folder")}><icon.plus /> Add subsection</Button>
     <Button variant="outline" disabled={editingAnalysis} onClick={() => addChild("entry")}><icon.plus /> {entry ? "Add child entry" : "Add entry"}</Button>
-  </section>
-  const previewStatus = (preview.issue || preview.pending) && <div className="surface-panel space-y-2 p-3">
+  </Surface>
+  const previewStatus = (preview.issue || preview.pending) && <Surface variant="panel" className="space-y-2 p-3">
     <p role="status" className="type-body-sm text-muted-foreground">{preview.issue || "Updating draft coverage…"}</p>
     {preview.canRetry && <Button variant="outline" size="sm" onClick={preview.retry}>Retry preview</Button>}
-  </div>
+  </Surface>
   if (!modality) return <div className="min-w-0 space-y-4 p-3">
     {previewStatus}
     <CatalogEditableInformation key="introduction" overview="home" value={{
@@ -67,7 +68,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
   if (!entry) return <div className="min-w-0 space-y-4 p-3">
     {structureActions}
     {previewStatus}
-    <section className="surface-panel space-y-3 p-4 sm:p-5" aria-label="Section setup">
+    <Surface as="section" variant="panel" className="space-y-3 p-4 sm:p-5" aria-label="Section setup">
       <h2 className="type-section-title">Section setup</h2>
       <div className="grid gap-3 md:grid-cols-2">
         <TextField label="Section name" value={modality.label || ""} onChange={label => onChange({ ...catalog,
@@ -81,7 +82,7 @@ export function CatalogBuilder({ catalog, section, entryKey, workspace, onChange
           </select>
         </label>
       </div>
-    </section>
+    </Surface>
     <CatalogEditableInformation key={section} value={modality} effective={modality}
       overview={modality.label?.toLowerCase() === "dna" || modality.label?.toLowerCase() === "rna" ? modality.omics || undefined : undefined}
       presets={{ ...workspace.presets,

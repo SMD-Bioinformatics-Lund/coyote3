@@ -1,34 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
-/* Keep optional references reversible; navigation remains ordinary same-tab links. */
+/* Accessible mobile navigation and expandable documentation diagrams. */
 (() => {
-  const root = new URL("../", document.currentScript.src);
-  const key = "coyote4.docs.reference-trail";
-  const read = () => {
-    try { return JSON.parse(sessionStorage.getItem(key) || "[]").filter(item =>
-      new URL(item.from).origin === location.origin && new URL(item.from).pathname.startsWith(root.pathname)); }
-    catch { return []; }
-  };
-  const write = trail => {
-    try { sessionStorage.setItem(key, JSON.stringify(trail.slice(-12))); } catch { /* Storage is optional. */ }
-  };
-  const restoreContext = () => {
-    const container = document.getElementById("docs-return-context");
-    if (!container) return;
-    let trail = read();
-    while (trail.length && new URL(trail.at(-1).from).pathname === location.pathname) trail.pop();
-    write(trail);
-    const current = trail.at(-1);
-    container.replaceChildren();
-    container.hidden = !current || current.to !== location.pathname;
-    if (container.hidden) return;
-    const back = document.createElement("a");
-    back.href = current.from;
-    back.textContent = `Return to ${current.label}`;
-    back.addEventListener("click", () => { trail.pop(); write(trail); });
-    container.append(back);
-  };
   document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.querySelector(".wy-nav-side");
     const menu = document.querySelector(".docs-mobile-menu");
@@ -40,28 +14,6 @@
     }
     const content = document.querySelector(".rst-content");
     if (!content) return;
-    content.querySelectorAll("a[href]").forEach((link, index) => {
-      if (link.closest(".docs-task-start")) {
-        link.addEventListener("click", event => {
-          if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target === "_blank") return;
-          write([]);
-        });
-        return;
-      }
-      if (link.closest("nav, footer, .wy-breadcrumbs, .docs-page-contents") || link.classList.contains("headerlink")) return;
-      const destination = new URL(link.href);
-      if (destination.origin !== location.origin || !destination.pathname.startsWith(root.pathname)
-        || destination.pathname === location.pathname || destination.pathname === root.pathname
-        || /\.(svg|png|jpg|pdf|zip)$/.test(destination.pathname)) return;
-      link.id ||= `docs-reference-${index}`;
-      link.addEventListener("click", event => {
-        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.target === "_blank") return;
-        const from = new URL(location.href);
-        from.hash = link.id;
-        const title = content.querySelector("h1")?.textContent.replace(/¶\s*$/, "").trim() || document.title;
-        write([...read(), { from: from.href, to: destination.pathname, label: title }]);
-      });
-    });
     content.querySelectorAll('img[src*="assets/diagrams/"]').forEach(image => {
       const figure = document.createElement("figure");
       figure.className = "docs-figure";
@@ -102,7 +54,6 @@
         close.focus();
       });
     });
-    restoreContext();
     if (location.hash) {
       requestAnimationFrame(() => {
         try { document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView(); }
@@ -110,5 +61,4 @@
       });
     }
   });
-  window.addEventListener("pageshow", restoreContext);
 })();

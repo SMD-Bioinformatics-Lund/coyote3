@@ -18,7 +18,7 @@
 {{ super() }}
 <script src="{{ 'javascripts/reading-theme.js' | url }}"></script>
 <script src="{{ 'javascripts/table-layout.js' | url }}" defer></script>
-<script src="{{ 'javascripts/reading-flow.js' | url }}" defer></script>
+<script src="{{ 'javascripts/page-tools.js' | url }}" defer></script>
 {% endblock %}
 {% block search_button %}
 {{ super() }}
@@ -40,51 +40,10 @@
   <span><img src="{{ 'assets/coyote4-logo.svg' | url }}" alt="Coyote4" width="167" height="60"><span class="docs-brand-caption">Documentation</span></span>
 </a>
 {% endblock %}
-{% block site_nav %}
-{% set navlevel = 1 %}
-{% for nav_item in nav %}
-  {% if nav_item.is_section %}
-    <details class="docs-nav-section"{% if nav_item.active %} open{% endif %}>
-      <summary>
-        <span class="docs-nav-section-label">{{ nav_item.title }}</span>
-        <svg class="docs-nav-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </summary>
-      <ul{% if nav_item.active %} class="current"{% endif %}>
-        {% for nav_item in nav_item.children %}
-          <li class="toctree-l{{ navlevel }}{% if nav_item.active %} current{% endif %}">
-            {% include 'nav.html' %}
-          </li>
-        {% endfor %}
-      </ul>
-    </details>
-  {% else %}
-    <ul{% if nav_item.active %} class="current"{% endif %}>
-      <li class="toctree-l{{ navlevel }}{% if nav_item.active %} current{% endif %}">
-        {% include 'nav.html' %}
-      </li>
-    </ul>
-  {% endif %}
-{% endfor %}
-{% endblock %}
 {% block content %}
 {% set article_parts = page.content.split('</h1>', 1) if page else [] %}
 {% if article_parts | length == 2 %}{{ article_parts[0] | safe }}</h1>{% endif %}
 {% if page and article_parts | length != 2 %}<h1 class="visuallyhidden">{{ page.title | e }}</h1>{% endif %}
-{% if page and page.file.src_uri != 'README.md' %}
-<div class="docs-reading-tools">
-<div id="docs-return-context" class="docs-return-context" hidden></div>
-{% if reading_path and reading_path.entries | length > 1 %}
-<nav class="docs-reading-path" aria-label="Reading path">
-  <details><summary>{{ reading_path.title }} · {{ reading_path.position }} of {{ reading_path.entries | length }}</summary><ol>{% for entry in reading_path.entries %}<li><a href="{{ entry.url | url }}"{% if loop.index == reading_path.position %} aria-current="step"{% endif %}>{{ entry.label }}</a></li>{% endfor %}</ol></details>
-</nav>
-{% endif %}
-{% if page and page.file.src_uri != 'README.md' and page.toc and page.toc.items[0] and page.toc.items[0].children %}
-<details class="docs-page-contents"><summary>On this page</summary><ul>{% for heading in page.toc.items[0].children %}<li><a href="{{ heading.url }}">{{ heading.title }}</a>{% if heading.children %}<ul>{% for section in heading.children %}<li><a href="{{ section.url }}">{{ section.title }}</a></li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ul></details>
-{% endif %}
-</div>
-{% endif %}
 {% set environment = config.extra.environment | trim | lower %}
 {% if environment and environment not in ["production", "prod"] %}
 <div class="admonition warning" role="status">
@@ -93,10 +52,4 @@
 </div>
 {% endif %}
 {% if article_parts | length == 2 %}{{ article_parts[1] | safe }}{% else %}{{ super() }}{% endif %}
-{% if reading_path %}
-<nav class="docs-reading-next" aria-label="Continue this task">
-{% if reading_path.previous %}<a href="{{ reading_path.previous.url | url }}"><span>Previous in this task</span><strong>{{ reading_path.previous.label }}</strong></a>{% endif %}
-{% if reading_path.next %}<a href="{{ reading_path.next.url | url }}"><span>Continue this task</span><strong>{{ reading_path.next.label }} →</strong></a>{% else %}<p>End of this guide. <a href="{{ nav.homepage.url | url }}">Choose another task</a>, or use the references above when needed.</p>{% endif %}
-</nav>
-{% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import type { ReactNode } from "react"
 import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
@@ -18,14 +19,14 @@ export function ApplicationModuleBoundary({
   const definition = modules.data?.modules?.[moduleKey]
   if (definition?.enabled === false) {
     return (
-      <section className="surface-panel mx-auto mt-6 max-w-2xl p-6 text-center">
+      <Surface as="section" variant="panel" className="mx-auto mt-6 max-w-2xl p-6 text-center">
         <icon.circleOff className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
         <h1 className="text-xl font-bold">{definition.label} is unavailable</h1>
         <p className="mt-2 text-sm text-muted-foreground">{definition.description}</p>
         <p className="mt-3 text-xs text-muted-foreground">
           An application administrator has disabled this module. API requests for it return HTTP 503.
         </p>
-      </section>
+      </Surface>
     )
   }
   return <>{children}</>

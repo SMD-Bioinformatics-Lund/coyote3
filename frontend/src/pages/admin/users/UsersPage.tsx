@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AdminActionDialog, AdminListContent, AdminListToolbar, AdminRowActions } from "@/components/admin/AdminListControls"
 import { useAdminList } from "@/components/admin/useAdminList"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -10,6 +11,7 @@ import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { adminTableColumns, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
+import { PasswordRecoveryPanel } from "./PasswordRecoveryPanel"
 import { SessionActivityPanel } from "./SessionActivityPanel"
 
 export function UsersPage() {
@@ -26,12 +28,13 @@ export function UsersPage() {
       <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Admin home</Link>
     </>}>
       <SessionActivityPanel />
-      <div className="glass-card p-3">
+      <PasswordRecoveryPanel />
+      <Surface variant="card" className="p-3">
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>
           <DataTable columns={tableColumns} data={visibleRows} filename="users.csv" hideSearch />
         </AdminListContent>
-      </div>
+      </Surface>
 
       <AdminActionDialog state={state} spec={spec} />
     </PageShell>

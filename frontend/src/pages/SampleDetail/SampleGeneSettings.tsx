@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
+import { Surface } from "@/components/ui/surface"
 import { api } from "@/lib/api"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { sampleFilterSection } from "@/lib/sample-shape"
@@ -16,12 +18,12 @@ function geneInputCount(value: string) {
   return value.split(/[,\\s]+/).map((item) => item.trim()).filter(Boolean).length
 }
 
-export function SettingsCard({ title, tone: _tone, children, className = "" }: { title: string; tone: string; children: ReactNode; className?: string }) {
+export function SettingsCard({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`glass-card p-3 ${className}`}>
-      <h2 className="type-section-title mb-2.5 text-foreground">{title}</h2>
+    <Surface as="section" className={`p-3 ${className}`}>
+      <h2 className="type-card-title mb-2.5 text-foreground">{title}</h2>
       {children}
-    </section>
+    </Surface>
   )
 }
 
@@ -172,7 +174,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
   const applySelectedLists = () => saveLists.mutate(undefined, { onSuccess: () => setListPickerOpen(false) })
 
   return (
-    <SettingsCard title="Sample Gene Settings" tone="border-t-genelist" className="xl:col-span-2">
+    <SettingsCard title="Sample Gene Settings" className="xl:col-span-2">
       <div className="space-y-4">
         <div className="gene-settings-targets" role="group" aria-label="Gene list analysis">
           {options.map((option) => {
@@ -308,7 +310,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                     disabled={isPending}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm disabled:opacity-50"
                   >
-                    {saveLists.isPending ? <icon.activity className="h-3.5 w-3.5 animate-spin" /> : <icon.save className="h-3.5 w-3.5" />}
+                    {saveLists.isPending ? <LoadingIndicator className="h-3.5 w-3.5" /> : <icon.save className="h-3.5 w-3.5" />}
                     Apply lists
                   </button>
                 </div>
@@ -337,7 +339,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
                 disabled={isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-pass px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-50"
               >
-                {saveAdhoc.isPending ? <icon.activity className="h-3.5 w-3.5 animate-spin" /> : <icon.save className="h-3.5 w-3.5" />}
+                {saveAdhoc.isPending ? <LoadingIndicator className="h-3.5 w-3.5" /> : <icon.save className="h-3.5 w-3.5" />}
                 Save
               </button>
             </div>

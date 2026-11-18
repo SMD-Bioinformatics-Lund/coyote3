@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AdminEditorActions, AdminEditorContent, SystemRecordNotice } from "@/components/admin/AdminEditorControls"
 import { useAdminEditor } from "@/components/admin/useAdminEditor"
 import { PageShell } from "@/components/layout/PageShell"
@@ -35,7 +36,7 @@ export function AssayConfigurationEditorPage({ mode }: { mode: AdminFormMode }) 
           analyses and report previews run. Publishing rules does not require a configuration update.
         </p>
         {mode === "create" && (
-          <div className="surface-panel flex items-center justify-between gap-3 p-3">
+          <Surface variant="panel" className="flex items-center justify-between gap-3 p-3">
             <div>
               <h2 className="text-sm font-semibold uppercase">Assay Configuration Type</h2>
               <p className="text-xs text-muted-foreground">Choose the schema before filling the create form.</p>
@@ -52,7 +53,7 @@ export function AssayConfigurationEditorPage({ mode }: { mode: AdminFormMode }) 
                 </button>
               ))}
             </div>
-          </div>
+          </Surface>
         )}
         <AdminManagedForm
           mode={effectiveMode}

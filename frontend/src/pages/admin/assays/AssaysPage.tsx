@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import {
   AdminActionDialog,
   AdminListContent,
@@ -86,12 +87,12 @@ export function AssaysPage() {
         </>
       }
     >
-      <div className="glass-card p-3">
+      <Surface variant="card" className="p-3">
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>
           <DataTable columns={tableColumns} data={visibleRows} filename="asp.csv" hideSearch />
         </AdminListContent>
-      </div>
+      </Surface>
 
       <AdminActionDialog state={state} spec={spec} />
     </PageShell>

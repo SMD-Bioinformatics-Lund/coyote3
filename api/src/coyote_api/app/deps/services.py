@@ -8,6 +8,7 @@ from typing import TypeVar
 from urllib.parse import urlsplit
 
 from coyote.application.accounts.permissions import PermissionManagementService
+from coyote.application.accounts.recovery import AccountRecoveryService
 from coyote.application.accounts.roles import RoleManagementService
 from coyote.application.accounts.service_tokens import ServiceTokens
 from coyote.application.accounts.users import UserManagementService
@@ -664,3 +665,16 @@ def get_public_variant_annotations() -> PublicVariantAnnotations:
 def get_resource_read_repository() -> MongoResourceReadRepository:
     """Bind safe metadata retrieval to the host's configured collections."""
     return MongoResourceReadRepository(get_store())
+
+
+def get_account_recovery_service() -> AccountRecoveryService:
+    """Compose username recovery with scoped identity storage and durable notifications."""
+
+    from coyote_api.security.password_flows import issue_password_token_for_user
+
+    return AccountRecoveryService(
+        get_store().user_repository,
+        get_notification_service(),
+        issue_password_token_for_user,
+        get_audit_service(),
+    )

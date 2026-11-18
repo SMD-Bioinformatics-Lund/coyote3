@@ -72,7 +72,7 @@ LOGS = "logs/dev"
 ENV_NAME = "Development"
 COYOTE4_DB = "coyote4_dev"
 IDENTITY_DB = "coyote4_identity"
-BAM_DB = "bam_dev"
+BAM_DB = "coyote4_bam_dev"
 
 [profiles.TestConfig]
 LOGS = "logs/test"
@@ -84,7 +84,7 @@ API_CSRF_ENABLED = false
 ENV_NAME = "Testing"
 COYOTE4_DB = "coyote4_test"
 IDENTITY_DB = "coyote4_identity_test"
-BAM_DB = "bam_test"
+BAM_DB = "coyote4_bam_test"
 
 [profiles.StageConfig]
 LOGS = "logs/stage"
@@ -92,7 +92,7 @@ STAGING = true
 ENV_NAME = "Staging"
 COYOTE4_DB = "coyote4_stage"
 IDENTITY_DB = "coyote4_identity_stage"
-BAM_DB = "bam_stage"
+BAM_DB = "coyote4_bam_stage"
 
 [product]
 name = "Coyote4"

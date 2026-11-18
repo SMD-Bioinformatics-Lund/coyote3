@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AdminEditorActions, AdminEditorContent } from "@/components/admin/AdminEditorControls"
 import { JsonDocumentEditor } from "@/components/admin/JsonDocumentEditor"
 import { useAdminEditor } from "@/components/admin/useAdminEditor"
@@ -22,12 +23,12 @@ export function AdminSampleEditorPage({ mode }: { mode: AdminFormMode }) {
         description={spec.description}
         actions={<AdminEditorActions state={state} spec={spec} mode={mode} />}
       >
-        <section className="surface-panel p-4">
+        <Surface as="section" variant="panel" className="p-4">
           <h2 className="text-lg font-semibold">Samples are created through ingestion</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Submit a validated DNA or RNA manifest through the ingest workspace to create a sample.
           </p>
-        </section>
+        </Surface>
       </PageShell>
     )
   }

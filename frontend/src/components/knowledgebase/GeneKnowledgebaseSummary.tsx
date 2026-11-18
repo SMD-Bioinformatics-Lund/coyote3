@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
-
 import { TableBadge } from "@/components/ui/table-badge"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { AnalysisIntentBadges } from "@/lib/variant-ui"
@@ -98,7 +98,7 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
   })))
 
   return (
-    <section className="surface-panel p-4" aria-labelledby="gene-knowledgebase-heading">
+    <Surface as="section" variant="panel" className="p-4" aria-labelledby="gene-knowledgebase-heading">
       <div className="surface-panel-heading flex items-center gap-2">
         <icon.database className="size-4 text-primary" />
         <div>
@@ -153,13 +153,13 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
             </div>
             <div className="space-y-2">
               {census.map((record, index) => (
-                <div key={record.cosmic_gene_id || index} className="rounded-md border border-border bg-background/60 p-2.5">
+                <Surface variant="inset" key={record.cosmic_gene_id || index} className="p-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {record.role_in_cancer ? <span className="type-body-sm text-foreground">{record.role_in_cancer}</span> : null}
                     {record.tier ? <CosmicCensusTierBadge tier={record.tier} /> : null}
                     <AnalysisIntentBadges somatic={record.somatic} germline={record.germline} showEmpty={false} />
                   </div>
-                </div>
+                </Surface>
               ))}
               {mutationTypes.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -201,6 +201,6 @@ export function GeneKnowledgebaseSummary({ payload }: { payload?: GeneKnowledgeb
           </div>
         </div>
       )}
-    </section>
+    </Surface>
   )
 }

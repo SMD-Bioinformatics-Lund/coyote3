@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
+import { Badge } from "@/components/ui/badge"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { Suspense, lazy, useEffect, useState } from "react"
@@ -163,7 +167,7 @@ export function Dashboard() {
       onClick={() => refreshMutation.mutate()}
       title="Queue a background refresh of dashboard metrics"
     >
-      <icon.refreshCw className={cn("h-4 w-4", refreshPending && "animate-spin")} />
+      {refreshPending ? <LoadingIndicator /> : <icon.refreshCw className="h-4 w-4" />}
       {refreshPending ? "Refreshing" : "Refresh metrics"}
     </Button>
   )
@@ -232,7 +236,7 @@ export function Dashboard() {
               className="inline-flex items-center gap-2 self-center rounded-full bg-warn/10 px-3 py-1.5 type-meta font-medium text-warn"
             >
               {refreshPending
-                ? <icon.refreshCw className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                ? <LoadingIndicator className="size-3.5" />
                 : <icon.clock3 className="size-3.5" aria-hidden="true" />}
               {refreshPending ? "Updating metrics" : "Cached metrics"}
             </span>
@@ -246,13 +250,13 @@ export function Dashboard() {
     >
 
       {failedMetrics.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <Notice tone="danger" className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span>
             <icon.alertTriangle className="mr-2 inline h-4 w-4" />
             Some dashboard sections could not be updated: {failedMetrics.join(", ").replaceAll("_", " ")}.
           </span>
           {refreshButton}
-        </div>
+        </Notice>
       )}
 
       <SurfacePanel className="dashboard-panel" title="Operational Snapshot" description="Current clinical workload, analysis progress, and finding volume.">
@@ -309,7 +313,7 @@ export function Dashboard() {
                 <div key={assay} className="dashboard-subcard p-2.5">
                   <div className="mb-2 flex justify-between">
                     <h3 className="type-label">{assay}</h3>
-                    <span className="type-badge rounded-full bg-primary/10 px-2 py-0.5 text-primary">{stats.analysed}/{stats.total}</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary">{stats.analysed}/{stats.total}</Badge>
                   </div>
                   <div className="progress-pipe h-3 overflow-hidden rounded-full"
                     role="progressbar" aria-label={`${assay} review progress`}
@@ -355,8 +359,8 @@ export function Dashboard() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-semibold text-primary">{sample.name || sample.id}</p>
-                    <span className={`type-badge rounded-md border px-1.5 py-0.5 uppercase ${valueBadgeClass(sample.asp_category || "dna")}`}>{sample.asp_category || "dna"}</span>
-                    <span className="type-badge rounded-md bg-muted px-1.5 py-0.5 uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</span>
+                    <Badge variant="outline" className={`uppercase  ${valueBadgeClass(sample.asp_category || "dna")}`}>{sample.asp_category || "dna"}</Badge>
+                    <Badge variant="outline" className="bg-muted uppercase text-muted-foreground">{sample.ingest_status || "unknown"}</Badge>
                   </div>
                   <p className="type-meta mt-0.5 flex min-w-0 items-center gap-1 truncate text-muted-foreground">
                     <span className="truncate">
@@ -413,7 +417,12 @@ export function Dashboard() {
                       <TierDistributionChart data={tierChartData} colors={chartColors} />
                     </Suspense>
                   </div>
-                ) : <p className="text-xs text-muted-foreground">No tier data available.</p>}
+                ) : (
+                  <Surface className="dashboard-subcard h-full p-2">
+                    <h3 className="mb-2 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Tier distribution</h3>
+                    <p className="text-xs text-muted-foreground">No tier data available.</p>
+                  </Surface>
+                )}
               </div>
               <div className="dashboard-subcard min-h-48 p-2">
                 <h3 className="mb-2 type-meta font-semibold uppercase tracking-wide text-muted-foreground">Small Variant Classes</h3>
@@ -550,12 +559,12 @@ export function Dashboard() {
                       <p className="truncate text-xs font-semibold text-foreground">{row.display_name || row.assay_id}</p>
                       <p className="mt-0.5 truncate type-label font-medium uppercase text-muted-foreground">{row.asp_group || "unassigned"}</p>
                     </div>
-                    <span className="material-badge rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 type-meta font-semibold text-primary shadow-[var(--material-badge-shadow)]">{fmt(row.isgl_total)}</span>
+                    <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">{fmt(row.isgl_total)}</Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="material-badge rounded-md border border-pass/25 bg-pass/10 px-1.5 py-0.5 type-label font-medium text-pass shadow-[var(--material-badge-shadow)]">{fmt(row.public_count)} public</span>
-                    <span className="material-badge rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 type-label font-medium text-primary shadow-[var(--material-badge-shadow)]">{fmt(row.private_count)} private</span>
-                    <span className="material-badge rounded-md border border-warn/25 bg-warn/10 px-1.5 py-0.5 type-label font-medium text-warn shadow-[var(--material-badge-shadow)]">{fmt(row.adhoc_count)} ad-hoc</span>
+                    <Badge variant="outline" className="border-pass/25 bg-pass/10 text-pass">{fmt(row.public_count)} public</Badge>
+                    <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">{fmt(row.private_count)} private</Badge>
+                    <Badge variant="outline" className="border-warn/25 bg-warn/10 text-warn">{fmt(row.adhoc_count)} ad-hoc</Badge>
                   </div>
                 </div>
               )) : <p className="text-xs text-muted-foreground">No assay-to-gene-list associations configured.</p>}

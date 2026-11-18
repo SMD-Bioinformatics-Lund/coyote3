@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+
 /* eslint-disable react/only-export-components -- this module intentionally colocates knowledgebase renderers with their pure presentation helpers. */
 
 import { Children, createContext, type ReactNode, useContext, useState } from "react"
@@ -354,7 +356,7 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
           </span>
         ) : null}
         {records.length ? (
-          <div className="flex items-start gap-2 rounded-md border border-pass/35 bg-pass/10 px-3 py-2">
+          <Notice tone="success" className="flex items-start gap-2">
             <icon.target className="mt-0.5 size-4 shrink-0 text-pass" aria-hidden="true" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -363,15 +365,15 @@ export function CosmicKnowledgeBlock({ evidence }: { evidence: any }) {
               </div>
               <p className="mt-0.5 type-meta text-muted-foreground">{matchPresentation.description}</p>
             </div>
-          </div>
+          </Notice>
         ) : null}
         {unavailable.length ? (
-          <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 type-body-sm text-foreground">
+          <Notice tone="warning" className="flex items-start gap-2 type-body-sm text-foreground">
             <icon.alertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
             <span>
               Not configured: {unavailable.map(({ label }) => label).join(", ")}.
             </span>
-          </div>
+          </Notice>
         ) : null}
         <KnowledgebaseGrid>
           <div className="min-w-0">

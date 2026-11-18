@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useId, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
@@ -97,7 +98,7 @@ export function AssayGroupsPage() {
         {reasonError && <p role="alert" className="text-destructive">Enter a reason for this change.</p>}
         {status.error && <p role="alert" className="text-destructive">{status.error.message}</p>}
       </div>} />
-    <section aria-label="Assay group registry" className="glass-card min-w-0 space-y-3 p-3">
+    <Surface as="section" variant="card" aria-label="Assay group registry" className="min-w-0 space-y-3 p-3">
     {allowed && canCreate && <BulkInstall kind="assay-groups" />}
     {allowed && groups.data && <ConfigurationTransfer label="assay groups" filename="assay-groups"
       metadataDocument={groups.data.toSorted((a, b) => groupDepth(a, groups.data!) - groupDepth(b, groups.data!))}
@@ -148,6 +149,6 @@ export function AssayGroupsPage() {
         ]}
       />}
     </>}
-    </section>
+    </Surface>
   </PageShell>
 }

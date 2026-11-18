@@ -13,7 +13,7 @@ from coyote.contracts.admin import (
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
 )
-from coyote.contracts.auth import SessionActivitySummary
+from coyote.contracts.auth import PasswordRecoveryRecord, SessionActivitySummary
 from fastapi import APIRouter, Body, Depends, Query, Response
 
 from coyote_api.app.deps.application import get_users
@@ -22,6 +22,31 @@ from coyote_api.interfaces.http.tags import TAG_ADMIN_USERS
 from coyote_api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_USERS])
+
+
+@router.get("/api/v1/users/password-recovery", response_model=list[PasswordRecoveryRecord])
+def recovery_requests_read(
+    response: Response,
+    user: ApiUser = Depends(require_access(permission="user:edit")),
+    service: Users = Depends(get_users),
+):
+    """List pending assisted recovery requests for system administrators."""
+    response.headers["Cache-Control"] = "no-store"
+    return service.recovery_requests()
+
+
+@router.post(
+    "/api/v1/users/password-recovery/{request_id}/complete", response_model=PasswordRecoveryRecord
+)
+def recovery_request_complete(
+    request_id: str,
+    response: Response,
+    user: ApiUser = Depends(require_access(permission="user:edit")),
+    service: Users = Depends(get_users),
+):
+    """Confirm recovery performed externally; never accept a password."""
+    response.headers["Cache-Control"] = "no-store"
+    return service.complete_recovery(request_id)
 
 
 @router.get("/api/v1/users/session-activity", response_model=SessionActivitySummary)

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { GeneWithOncoKbBadge, type KnowledgebaseGeneMarkers } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { Badge } from "@/components/ui/badge"
@@ -82,7 +83,7 @@ export function CatalogOfferingDetails({ offering: item, information, showInform
   return <article className="min-w-0 space-y-5">
     {showInformation && <CatalogInformation information={offeringInformation(item, information)} offerings={[item]} />}
 
-    <section className="surface-panel catalog-service-card catalog-information min-w-0 space-y-4 p-5"
+    <Surface as="section" variant="panel" className="catalog-service-card catalog-information min-w-0 space-y-4 p-5"
       data-modality={item.modality} data-family={item.family} aria-labelledby={`${id}-scope`}>
       <div className="space-y-2">
         {!showInformation && <p className="type-section-title">{item.assay_display_name || item.assay_label} · {item.diagnosis_label}</p>}
@@ -122,7 +123,7 @@ export function CatalogOfferingDetails({ offering: item, information, showInform
           : <p className="paper-inset rounded-lg p-4 type-body-sm text-muted-foreground">No public gene list is published for {analysis || "this offering"}.</p>}
         <p className="type-meta text-muted-foreground">HGNC annotations reflect the current reference database. Published genes and gene-list revisions remain fixed to this catalog publication. A dash indicates unavailable metadata.</p>
       </div>
-    </section>
+    </Surface>
 
   </article>
 }

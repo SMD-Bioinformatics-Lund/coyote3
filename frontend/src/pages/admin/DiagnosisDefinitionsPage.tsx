@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -112,7 +113,7 @@ export function DiagnosisDefinitionsPage() {
       description={<><p>{statusTarget?.is_active ? "This diagnosis will be unavailable for new assignments across all associated assays. Existing samples, annotations and saved reports are preserved." : "This diagnosis will become globally available. Each assay association must also be active for new assignments."}</p>{statusMutation.error && <p role="alert" className="mt-2 text-destructive">{statusMutation.error.message}</p>}</>}
       onCancel={() => setStatusTarget(null)} onConfirm={() => statusMutation.mutate()} />
     <DocumentEditorNotice editor={documentEditor} />
-    <section aria-label="Diagnosis registry" className="glass-card min-w-0 space-y-3 p-3">
+    <Surface as="section" variant="card" aria-label="Diagnosis registry" className="min-w-0 space-y-3 p-3">
     <DiagnosisNavigation active="definitions" />
     {allowed && canEdit && <BulkInstall kind="diagnoses" />}
     {allowed && definitions.data && <ConfigurationTransfer label="diagnoses" filename="diagnoses"
@@ -201,6 +202,6 @@ export function DiagnosisDefinitionsPage() {
         <div className="flex gap-2 md:col-span-2"><Button type="submit" disabled={mutation.isPending || !validId || !values.display_name.trim() || editing === "new" && (assays.isLoading || Boolean(assays.error))}><icon.save className="h-4 w-4" />Save diagnosis</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setEditing(null)}><icon.x className="h-4 w-4" />Cancel</Button></div>
       </fieldset></form>}
     </>}
-    </section>
+    </Surface>
   </PageShell>
 }

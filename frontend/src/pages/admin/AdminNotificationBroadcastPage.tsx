@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
@@ -92,7 +93,7 @@ export function AdminNotificationBroadcastPage() {
       actions={<Button onClick={() => setConfirming(true)} disabled={!valid || mutation.isPending}><icon.send className="h-4 w-4" />Send</Button>}
     >
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <section className="surface-panel space-y-4 p-4">
+        <Surface as="section" variant="panel" className="space-y-4 p-4">
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-primary/10 p-2 text-primary"><icon.megaphone className="h-4 w-4" /></span>
             <div><h2 className="font-semibold">Message</h2><p className="text-sm text-muted-foreground">The title and message are retained in each recipient's notification inbox.</p></div>
@@ -104,9 +105,9 @@ export function AdminNotificationBroadcastPage() {
           <div className="space-y-1.5"><Label htmlFor="notification-title">Title</Label><Input id="notification-title" maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Scheduled maintenance" /></div>
           <div className="space-y-1.5"><Label htmlFor="notification-message">Message</Label><MarkdownComposer id="notification-message" value={message} onChange={setMessage} /></div>
           <div className="space-y-1.5"><Label htmlFor="notification-expiry">Expires at (local time, optional)</Label><Input id="notification-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} aria-invalid={!!expiresAt && !(new Date(expiresAt).getTime() > Date.now())} />{expiresAt && !(new Date(expiresAt).getTime() > Date.now()) && <p className="text-sm text-destructive" role="alert">Choose a future date and time.</p>}</div>
-        </section>
+        </Surface>
 
-        <section className="surface-panel p-4">
+        <Surface as="section" variant="panel" className="p-4">
           <h2 className="font-semibold">Recipients</h2>
           <p className="mt-1 text-sm text-muted-foreground">Only active accounts can receive a selected-user broadcast.</p>
           <div className="mt-3 grid grid-cols-3 rounded-lg border border-border bg-muted p-1">
@@ -124,9 +125,9 @@ export function AdminNotificationBroadcastPage() {
             </div>
             <p className="mt-2 text-xs font-semibold text-muted-foreground">{recipients.length} selected</p>
           </div>}
-        </section>
+        </Surface>
       </div>
-      <section className="surface-panel mt-4 p-4">
+      <Surface as="section" variant="panel" className="mt-4 p-4">
         <h2 className="mb-3 font-semibold">Sent broadcasts</h2>
         {sentQuery.isError && <p role="alert">Unable to load sent broadcasts.</p>}
         {sentQuery.data?.notifications.map((item) => <details key={item.id} className="border-b border-border py-3">
@@ -135,7 +136,7 @@ export function AdminNotificationBroadcastPage() {
           {item.expires_at && <p className="mt-2 type-meta">Expires: {new Date(item.expires_at).toLocaleString()}</p>}
           {!item.withdrawn_at && <Button className="mt-2" variant="outline" onClick={() => setWithdrawId(item.id)}>Withdraw for everyone</Button>}
         </details>)}
-      </section>
+      </Surface>
       <ConfirmationDialog open={!!withdrawId} title="Withdraw broadcast?" description="This removes the message from every recipient's tray. Its database record is retained." confirmLabel="Withdraw" isPending={withdraw.isPending} onConfirm={() => { if (withdrawId) withdraw.mutate(withdrawId) }} onCancel={() => setWithdrawId(null)} />
       <ConfirmationDialog open={confirming} title="Send notification?" description={audience === "all" ? "This message will be visible to every active user." : audience === "roles" ? `This message will be sent to active users in ${roleIds.length} selected role(s).` : `This message will be visible to ${recipients.length} selected user(s).`} confirmLabel="Send notification" isPending={mutation.isPending} onConfirm={() => mutation.mutate()} onCancel={() => setConfirming(false)} />
     </PageShell>

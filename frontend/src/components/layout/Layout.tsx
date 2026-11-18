@@ -18,7 +18,6 @@ import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 import { BrandLogo } from "@/components/layout/BrandLogo"
 import { AppFooter } from "@/components/layout/AppFooter"
-import { PageFrame } from "@/components/layout/PageFrame"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, hasPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { DEFAULT_ENVIRONMENT } from "@/lib/defaults"
@@ -309,7 +308,10 @@ export function Layout() {
   if (user?.must_change_password) return null
 
   return (
-    <div className="relative isolate flex h-screen flex-col overflow-hidden bg-transparent font-sans antialiased">
+    <div className={cn(
+      "relative isolate flex h-dvh flex-col overflow-hidden bg-transparent font-sans antialiased [--app-sidebar-width:0px]",
+      isCollapsed ? "md:[--app-sidebar-width:52px]" : "md:[--app-sidebar-width:180px]",
+    )}>
       <EnvironmentBanner />
       {backgroundFetches > 0 && <GlobalLoadingIndicator />}
       <div aria-hidden="true" className="app-chrome-bg pointer-events-none absolute inset-0 z-0">
@@ -330,7 +332,7 @@ export function Layout() {
           >
             {isCollapsed ? <icon.panelRightClose className="h-8 w-8" /> : <icon.panelLeftClose className="h-8 w-8" />}
           </Button>
-          <Link to="/" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
+          <Link to="/" aria-label="Coyote4 home" className="flex shrink-0 items-center gap-y-3 gap-x-1.5">
             <BrandLogo className="h-10" />
           </Link>
 
@@ -506,12 +508,9 @@ export function Layout() {
 
       <div className="z-10 flex min-h-0 flex-1 overflow-hidden">
         <aside
-          className={cn(
-            "app-chrome-surface app-chrome-sidebar hidden md:flex flex-col flex-shrink-0 rounded-none border-0 text-chrome-foreground transition-[width] duration-150 ease-out",
-            isCollapsed ? "w-[52px]" : "w-[180px]"
-          )}
+          className="app-chrome-surface app-chrome-sidebar hidden w-[var(--app-sidebar-width)] md:flex flex-col flex-shrink-0 rounded-none border-0 text-chrome-foreground transition-[width] duration-150 ease-out"
         >
-          <nav className="app-scroll-viewport flex-1 overflow-y-auto px-1.5 py-3 overflow-x-hidden scrollbar-none">
+          <nav className="app-scroll-viewport min-h-0 flex-1 overflow-y-auto px-1.5 py-3 overflow-x-hidden scrollbar-none">
             <div className="space-y-3">
               {navigationSections.map((section, sectionIndex) => (
                 <div key={section.label} className="space-y-1">
@@ -550,7 +549,7 @@ export function Layout() {
             </div>
           </nav>
 
-          <div className="border-t border-[var(--chrome-border)] p-2">
+          <div className="shrink-0 border-t border-[var(--chrome-border)] p-2">
             <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col justify-center" : "flex-col items-stretch")}>
               {user && (
                 <div
@@ -584,29 +583,33 @@ export function Layout() {
           </div>
         </aside>
 
-        <main ref={mainScrollRef} className="app-scroll-viewport flex-1 overflow-y-auto">
-          <div className="flex min-h-full w-full flex-col py-3">
-            <Outlet />
-            <PageFrame className="mt-auto"><AppFooter /></PageFrame>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+            <main ref={mainScrollRef} className="app-scroll-viewport min-h-0 min-w-0 flex-1 overflow-y-auto">
+              <div className="flex min-h-full w-full flex-col py-3">
+                <Outlet />
+              </div>
+            </main>
+            {showBackToTop && (
+              <Button
+                type="button"
+                size="icon"
+                className="absolute bottom-3 right-5 z-40 rounded-full shadow-lg"
+                aria-label="Back to top"
+                title="Back to top"
+                onClick={() => {
+                  mainScrollRef.current?.scrollTo({
+                    top: 0,
+                    behavior: "auto",
+                  })
+                }}
+              >
+                <icon.arrowUp className="h-5 w-5" />
+              </Button>
+            )}
           </div>
-        </main>
-        {showBackToTop && (
-          <Button
-            type="button"
-            size="icon"
-            className="fixed bottom-5 right-5 z-40 rounded-full shadow-lg"
-            aria-label="Back to top"
-            title="Back to top"
-            onClick={() => {
-              mainScrollRef.current?.scrollTo({
-                top: 0,
-                behavior: "auto",
-              })
-            }}
-          >
-            <icon.arrowUp className="h-5 w-5" />
-          </Button>
-        )}
+          <AppFooter />
+        </div>
       </div>
     </div>
   )

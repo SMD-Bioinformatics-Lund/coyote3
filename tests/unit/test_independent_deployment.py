@@ -1,7 +1,10 @@
 """Exercise mixed native/container deployment boundaries without contacting services."""
 
 import json
+import shutil
+import socket
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -78,6 +81,83 @@ def test_native_plan_is_read_only_and_never_contacts_systemd_or_databases(profil
     process.assert_not_called()
 
 
+def test_native_port_check_accepts_closed_server_with_connection_still_closing(profile):
+    """A stopped proxy can restart while its former client finishes closing TCP."""
+    installer = NativeInstaller(profile, Options())
+    with socket.socket() as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        address = server.getsockname()
+        installer.ports = {"proxy": address[1]}
+        with socket.create_connection(address, timeout=2) as client:
+            connection, _ = server.accept()
+            with connection:
+                connection.shutdown(socket.SHUT_WR)
+            server.close()
+            assert client.recv(1) == b""
+            installer._check_ports()
+
+
+def test_native_port_check_still_rejects_an_active_listener(profile):
+    """Address reuse must not allow deployment over another running server."""
+    installer = NativeInstaller(profile, Options())
+    with socket.socket() as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        installer.ports = {"proxy": server.getsockname()[1]}
+        with pytest.raises(ValueError, match="Native proxy port .* is unavailable"):
+            installer._check_ports()
+
+
+def test_native_nginx_validation_needs_no_system_log_access(profile):
+    """Validate private configuration without opening the system error log or starting a server."""
+    if not shutil.which("nginx"):
+        pytest.skip("Native Nginx is unavailable")
+    installer = NativeInstaller(profile, Options())
+    try:
+        installer._validate_nginx_version()
+    except ValueError as error:
+        pytest.skip(str(error))
+    profile.directory.mkdir(mode=0o700)
+    (profile.directory / "nginx.conf").write_text(
+        f'error_log "{profile.directory / "nginx-error.log"}";\n'
+        f'pid "{profile.directory / "nginx.pid"}";\nevents {{}}\n'
+    )
+    result = subprocess.run(
+        [*installer.commands()["proxy"], "-t"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "could not open error log file" not in result.stderr
+    assert "[alert]" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "version,supported", [("1.18.0", False), ("1.19.4", False), ("1.19.5", True), ("1.26.3", True)]
+)
+def test_native_nginx_checks_startup_logging_support(profile, monkeypatch, version, supported):
+    monkeypatch.setattr(
+        native.subprocess,
+        "run",
+        Mock(
+            return_value=subprocess.CompletedProcess(
+                ["nginx", "-v"], 0, "", f"nginx version: nginx/{version}"
+            )
+        ),
+    )
+    installer = NativeInstaller(profile, Options())
+    if supported:
+        installer._validate_nginx_version()
+    else:
+        with pytest.raises(ValueError, match="Native deployment requires Nginx 1.19.5"):
+            installer._validate_nginx_version()
+
+
 @pytest.mark.parametrize(
     "service,mode",
     [("mongo", "docker"), ("redis", "docker"), ("mongo", "native"), ("redis", "native")],
@@ -147,6 +227,38 @@ def test_native_application_retains_external_urls_and_independent_worker_queues(
     assert str(profile.directory / "beat-schedule") in commands["beat"]
 
 
+@pytest.mark.parametrize("environment", ["prod", "stage", "test", "dev"])
+def test_native_build_refreshes_local_wheels_or_keeps_editable_development(profile, environment):
+    """Rebuilding must pick up local source even when its package version is unchanged."""
+    runner = Mock()
+    installer = NativeInstaller(replace(profile, environment=environment), Options(), runner=runner)
+    installer._build()
+    installation = next(
+        call
+        for call in runner.run.call_args_list
+        if call.kwargs.get("label") == "Native Python installation"
+    )
+    command = installation.args[0]
+    refreshed = [
+        command[index + 1]
+        for index, argument in enumerate(command)
+        if argument == "--reinstall-package"
+    ]
+    assert installation.kwargs["extra_env"] == {
+        "UV_PROJECT_ENVIRONMENT": str(profile.directory / "venv")
+    }
+    assert "--frozen" in command
+    assert "--reinstall" not in command
+    if environment == "dev":
+        assert "--no-editable" not in command
+        assert refreshed == []
+        assert "watch" in command
+    else:
+        assert "--no-editable" in command
+        assert set(refreshed) == {"coyote-server", "coyote-core", "coyote-atlas"}
+        assert "watch" not in command
+
+
 def test_native_frontend_receives_no_backend_credentials(profile):
     installer = NativeInstaller(profile, Options())
     environment = installer.public_environment()
@@ -175,6 +287,7 @@ def test_redis_failure_prevents_native_bootstrap_and_start(profile, monkeypatch)
     runner = Mock(redactions={}, run=Mock(return_value=""))
     installer = NativeInstaller(profile, Options(steps=("validate", "start")), runner=runner)
     monkeypatch.setattr(native.shutil, "which", lambda name: f"/synthetic/{name}")
+    monkeypatch.setattr(installer, "_validate_nginx_version", Mock())
     installer.services = Mock(spec=UserServices)
     monkeypatch.setattr(installer, "_check", Mock(side_effect=ValueError("Redis unavailable")))
     monkeypatch.setattr(installer, "_check_ports", Mock())

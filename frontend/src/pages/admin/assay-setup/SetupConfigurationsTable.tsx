@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { icon } from "@/lib/assets"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -30,24 +31,24 @@ export function SetupConfigurationsTable({ scopes, environments, records, readon
   const pages = Math.max(1, Math.ceil(rows.length / 10))
   const page = Math.min(requestedPage, pages)
   return <section aria-label="Saved configuration coverage" className="space-y-3">
-    <div role="region" aria-label="Configuration coverage table" tabIndex={0} className="overflow-x-auto rounded-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <table className="w-full min-w-[36rem] text-left type-body">
+    <div role="region" aria-label="Configuration coverage table" tabIndex={0} className="table-frame overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Table className="min-w-[36rem]">
         <caption className="sr-only">Configuration coverage by scope and environment</caption>
-        <thead className="bg-muted/60 type-label"><tr>{["Scope", "Environment", "Status", "Saved configuration", "Actions"].map(label => <th key={label} scope="col" className="p-3">{label}</th>)}</tr></thead>
-        <tbody className="divide-y divide-border">{rows.slice((page - 1) * 10, page * 10).map(({ scope, environment }) => {
+        <TableHeader className="type-label"><TableRow>{["Scope", "Environment", "Status", "Saved configuration", "Actions"].map(label => <TableHead key={label} scope="col">{label}</TableHead>)}</TableRow></TableHeader>
+        <TableBody>{rows.slice((page - 1) * 10, page * 10).map(({ scope, environment }) => {
           const matches = records.map((record, index) => ({ record, index })).filter(({ record }) => (record.diagnosis_id || "base") === scope && record.environment === environment)
           const required = scope === "base" && environment === "production"
-          return <tr key={`${scope}::${environment}`}>
-            <th scope="row" className="p-3 font-medium">{scope}</th><td className="p-3">{environment}</td>
-            <td className="p-3"><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : required ? "border-warning/30 bg-warning/10" : "text-muted-foreground"}>{matches.length ? <icon.check /> : required ? <icon.circleAlert /> : null}{matches.length ? "Configured" : required ? "Missing required" : "Optional"}</Badge></td>
-            <td className="p-3">{matches.length ? matches.map(({ record, index }) => <div key={index} className="break-words font-medium">{String(record.display_name || record.name || record.aspc_id || `${scope} / ${environment}`)}</div>) : <span className="type-body-sm text-muted-foreground">Not saved yet</span>}</td>
-            <td className="p-3"><div className="flex flex-wrap gap-2">{matches.length ? matches.map(({ index }) => <div key={index} className="flex gap-1">
+          return <TableRow key={`${scope}::${environment}`}>
+            <TableHead scope="row" className="font-medium">{scope}</TableHead><TableCell>{environment}</TableCell>
+            <TableCell><Badge variant="outline" className={matches.length ? "border-pass/30 bg-pass/10 text-pass" : required ? "border-warning/30 bg-warning/10" : "text-muted-foreground"}>{matches.length ? <icon.check /> : required ? <icon.circleAlert /> : null}{matches.length ? "Configured" : required ? "Missing required" : "Optional"}</Badge></TableCell>
+            <TableCell>{matches.length ? matches.map(({ record, index }) => <div key={index} className="break-words font-medium">{String(record.display_name || record.name || record.aspc_id || `${scope} / ${environment}`)}</div>) : <span className="type-body-sm text-muted-foreground">Not saved yet</span>}</TableCell>
+            <TableCell><div className="flex flex-wrap gap-2">{matches.length ? matches.map(({ index }) => <div key={index} className="flex gap-1">
               <Button variant="outline" size="sm" disabled={!formAvailable || pending} onClick={() => onEdit(index)} aria-label={`${readonly ? "View" : "Edit"} ${scope} ${environment}`}><icon.edit />{readonly ? "View" : "Edit"}</Button>
               {!readonly && <Button variant="ghost" size="icon" disabled={pending} aria-label={`Remove configuration ${scope} ${environment}`} onClick={() => onRemove(index)}><icon.trash2 /></Button>}
-            </div>) : !readonly && <Button variant="outline" size="sm" disabled={!formAvailable || pending} aria-label={`Add configuration ${scope} ${environment}`} onClick={() => onCreate(scope, environment)}><icon.plus />Add</Button>}</div></td>
-          </tr>
-        })}</tbody>
-      </table>
+            </div>) : !readonly && <Button variant="outline" size="sm" disabled={!formAvailable || pending} aria-label={`Add configuration ${scope} ${environment}`} onClick={() => onCreate(scope, environment)}><icon.plus />Add</Button>}</div></TableCell>
+          </TableRow>
+        })}</TableBody>
+      </Table>
     </div>
     {rows.length > 0 && <nav aria-label="Configuration pages" className="flex flex-wrap items-center justify-between gap-2">
       <p role="status" className="type-body-sm text-muted-foreground">Showing {(page - 1) * 10 + 1}–{Math.min(page * 10, rows.length)} of {rows.length} scopes · 10 per page</p>

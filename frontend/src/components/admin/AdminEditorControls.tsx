@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { DocumentEditorNotice } from "@/components/admin/DocumentEditorNotice"
 import { Button } from "@/components/ui/button"
@@ -92,7 +93,7 @@ export function SystemRecordNotice({ state }: { state: AdminEditorState }) {
   const { systemPermission } = state
   return <>
     {systemPermission && (
-      <section className="surface-panel flex items-start gap-3 p-3">
+      <Surface as="section" variant="panel" className="flex items-start gap-3 p-3">
         <icon.lockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
           <h2 className="text-sm font-semibold">System-installed record</h2>
@@ -100,7 +101,7 @@ export function SystemRecordNotice({ state }: { state: AdminEditorState }) {
             This record is maintained by Coyote4 installation tools. Administrative edits, deactivation, and deletion are disabled. Account passwords use the dedicated password workflow.
           </p>
         </div>
-      </section>
+      </Surface>
     )}
 
   </>
@@ -110,24 +111,24 @@ export function AdminEditorContent({ state, usesSchema = true, children }: { sta
   const { accessQuery, allowed, requiredPermission, contextQuery, form, doc } = state
   if (accessQuery.isLoading || (allowed && contextQuery.isLoading)) {
     return (
-      <section className="surface-panel flex justify-center p-10">
+      <Surface as="section" variant="panel" className="flex justify-center p-10">
         <AppLoader label={accessQuery.isLoading ? "Checking administration access" : "Loading admin form"} />
-      </section>
+      </Surface>
     )
   }
   if (!allowed) {
     return (
-      <section className="surface-panel p-4">
+      <Surface as="section" variant="panel" className="p-4">
         <h2 className="text-lg font-bold">Access not assigned</h2>
         <p className="mt-2 rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
           Your roles do not include <code>{requiredPermission}</code>.
         </p>
-      </section>
+      </Surface>
     )
   }
   if (contextQuery.error || (usesSchema ? !form : !doc)) {
     return (
-      <section className="surface-panel p-4">
+      <Surface as="section" variant="panel" className="p-4">
         <h2 className="text-lg font-bold">Unable to load form</h2>
         <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {contextQuery.error instanceof Error ? contextQuery.error.message : "The form schema was not returned by the backend."}
@@ -135,7 +136,7 @@ export function AdminEditorContent({ state, usesSchema = true, children }: { sta
         <p className="mt-2 text-sm text-muted-foreground">
           A 403 means the backend denied access to this workflow. A 404 means the requested record was not found; for users, reopen edit from the Users table so the username business key is used.
         </p>
-      </section>
+      </Surface>
     )
   }
   return <><DocumentEditorNotice editor={state.documentEditor} />{children}</>

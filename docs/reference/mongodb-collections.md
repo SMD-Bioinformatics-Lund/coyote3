@@ -1583,6 +1583,7 @@ Optional keys:
 - `last_login` (datetime.datetime | None)
 - `must_change_password` (bool)
 - `password_updated_on` (datetime.datetime | None)
+- `password_recovery` (coyote.contracts.auth.PasswordRecoveryRecord | None)
 - `password_action_token_hash` (str | None)
 - `password_action_purpose` (str | None)
 - `password_action_expires_at` (datetime.datetime | None)

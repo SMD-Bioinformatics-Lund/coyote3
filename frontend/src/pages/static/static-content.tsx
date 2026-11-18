@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { DatabaseBrand } from "@/components/knowledgebase/DatabaseBrand"
 import { icon as appIcon, type LucideIcon } from "@/lib/assets"
-
 import type { ReactNode } from "react"
 import { humanLabel, isExternalHref, publicHref, type ContactChannel, type LinkLike, type StaticTone } from "./static-values"
 
@@ -18,7 +19,7 @@ export function ContactCard({ contact, tone }: { contact: ContactChannel; tone: 
         {people.map((person) => (
           <a key={person.email} className="static-contact-method link-text flex items-start gap-2 p-2 font-semibold" href={`mailto:${person.email}`}>
             <appIcon.mail className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="min-w-0 break-words">{person.name ? `${person.name} (${person.email})` : person.email}</span>
+            <span className="min-w-0 break-words">{person.name?.trim() || contact.label?.trim() || "Email contact"}</span>
           </a>
         ))}
         {contact.phone ? (
@@ -41,7 +42,7 @@ export function SupportCard({ support }: { support: Record<string, string> }) {
         {support.primary_email ? (
           <a className="static-contact-method link-text flex items-center gap-2 p-2 font-semibold" href={`mailto:${support.primary_email}`}>
             <appIcon.mail className="h-4 w-4" />
-            <span className="min-w-0 break-words">{support.primary_email}</span>
+            <span className="min-w-0 break-words">Central support</span>
           </a>
         ) : null}
         {support.urgent_phone ? (
@@ -168,7 +169,7 @@ export function VersionBlock({ icon: Icon, title, values, empty, tone, showDatab
                   : humanLabel(key)}</dt>
                 <dd className="flex min-w-0 flex-wrap gap-1">
                   {Array.isArray(value) ? value.map((item) => (
-                    <span key={`${key}-${item}`} className="material-badge rounded-full border border-border bg-background px-2 py-0.5 type-label text-foreground">{String(item)}</span>
+                    <Badge variant="outline" key={`${key}-${item}`} className="border-border bg-background text-foreground">{String(item)}</Badge>
                   )) : <span className="break-all type-meta text-foreground">{String(value)}</span>}
                 </dd>
               </div>
@@ -200,7 +201,7 @@ export function ContentSection({
   children: ReactNode
 }) {
   return (
-    <section aria-label={title} className="static-page-section glass-card min-w-0 overflow-hidden" data-static-tone={tone}>
+    <Surface as="section" variant="card" aria-label={title} className="static-page-section min-w-0 overflow-hidden" data-static-tone={tone}>
       <header className="static-page-section-header flex flex-col gap-3 border-b border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="static-icon mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md">
@@ -214,7 +215,7 @@ export function ContentSection({
         {aside}
       </header>
       <div className={bodyClassName}>{children}</div>
-    </section>
+    </Surface>
   )
 }
 

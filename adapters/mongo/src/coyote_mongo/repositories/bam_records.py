@@ -22,7 +22,7 @@ from coyote_mongo.repositories.base import BaseRepository
 # -------------------------------------------------------------------------
 class BamServiceRepository(BaseRepository):
     """
-    Handler for managing BAM service data from the `BAM_Service["samples"]` collection.
+    Handler for managing BAM service data from the configured BAM database’s `samples` collection.
 
     This class provides methods to interact with BAM sample data stored in MongoDB,
     including retrieving BAM file paths for specific sample IDs.
@@ -47,7 +47,7 @@ class BamServiceRepository(BaseRepository):
         """
         Retrieve BAM file paths for a list of sample IDs.
 
-        This method queries the `BAM_Service["samples"]` collection to find
+        This method queries the configured BAM database’s `samples` collection to find
         BAM file paths associated with the provided sample IDs.
 
         Args:

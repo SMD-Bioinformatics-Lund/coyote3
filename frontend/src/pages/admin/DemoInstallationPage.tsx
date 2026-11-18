@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { PageShell } from "@/components/layout/PageShell"
@@ -56,21 +57,21 @@ export default function DemoInstallationPage() {
   if (!available) {
     return (
       <PageShell eyebrow="Administration" title="Demo installation" description="Install the packaged synthetic workflow bundle in this deployment." actions={<AdminHomeLink />}>
-        <section className="surface-panel space-y-4 p-4">
+        <Surface as="section" variant="panel" className="space-y-4 p-4">
           {modules.isLoading ? <p role="status" className="type-body-sm">Checking demo availability…</p>
             : modules.isError ? <p role="alert" className="type-body-sm">Unable to check demo availability. <Button variant="outline" onClick={() => void modules.refetch()}>Retry</Button></p>
               : <p role="status" className="type-body-sm">Demo installation is not enabled in this deployment.</p>}
-        </section>
+        </Surface>
       </PageShell>
     )
   }
   return (
     <PageShell eyebrow="Administration" title="Demo installation" description="Install the packaged synthetic workflow bundle in this deployment." actions={<AdminHomeLink />}>
-      <section className="surface-panel space-y-4 p-4">
+      <Surface as="section" variant="panel" className="space-y-4 p-4">
         <p className="type-body-sm">Install the connected hematology and solid-tumor resource catalog, including shared diagnoses, sequencing assays, reusable gene lists, configurations and reporting rules. The default installation ingests two training samples. Additional scenarios demonstrate the same MPN, CLL or lung diagnosis on panel and whole-genome assays.</p>
         <div className="grid gap-3 md:grid-cols-2">
-          <section className="surface-panel space-y-2 p-4"><h2 className="type-title">Hematology</h2><p className="type-body-sm">MPN and CLL → DNA → panel or WGS</p><p className="type-meta text-muted-foreground">demo-hematology_gmsv1 · demo-tumwgs-hema · shared diagnosis gene lists</p></section>
-          <section className="surface-panel space-y-2 p-4"><h2 className="type-title">Solid tumors</h2><p className="type-body-sm">Lung and breast → DNA → panel or WGS</p><p className="type-meta text-muted-foreground">demo-solid_gmsv3 · demo-tumwgs-solid · RNA WTS for lung</p></section>
+          <Surface as="section" variant="panel" className="space-y-2 p-4"><h2 className="type-title">Hematology</h2><p className="type-body-sm">MPN and CLL → DNA → panel or WGS</p><p className="type-meta text-muted-foreground">demo-hematology_gmsv1 · demo-tumwgs-hema · shared diagnosis gene lists</p></Surface>
+          <Surface as="section" variant="panel" className="space-y-2 p-4"><h2 className="type-title">Solid tumors</h2><p className="type-body-sm">Lung and breast → DNA → panel or WGS</p><p className="type-meta text-muted-foreground">demo-solid_gmsv3 · demo-tumwgs-solid · RNA WTS for lung</p></Surface>
         </div>
         <p className="type-body-sm text-muted-foreground">The demo catalog is published when no public catalog exists; otherwise it remains a draft. Myeloid and lymphoid groups remain available for legacy samples. New example assays belong to hematology or solid.</p>
         <p className="type-body-sm text-muted-foreground">These artificial findings are for training and validation. They are not clinical evidence. No accounts, external knowledgebases, BAM files or saved clinical reports are installed. Sample visibility requires access to the testing environment and the relevant assays.</p>
@@ -98,7 +99,7 @@ export default function DemoInstallationPage() {
         </>}
         {progress && <p role="status" className="type-body-sm">{progress}</p>}
         {install.error && <p role="alert" className="type-body-sm text-destructive">{install.error instanceof Error ? install.error.message : "Unable to install demonstration data."}</p>}
-      </section>
+      </Surface>
     </PageShell>
   )
 }

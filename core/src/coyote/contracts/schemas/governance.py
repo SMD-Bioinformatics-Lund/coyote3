@@ -19,6 +19,7 @@ from coyote.config.constants import (
     normalize_permission_category,
 )
 from coyote.config.factory_defaults import factory_value
+from coyote.contracts.auth import PasswordRecoveryRecord
 from coyote.contracts.schemas.assay_access import AssayAccessGrant
 from coyote.contracts.schemas.base import _StrictCollectionDocBase
 
@@ -103,6 +104,7 @@ class UsersDoc(_StrictCollectionDocBase):
     last_login: datetime | None = None
     must_change_password: bool = factory_value("governance_defaults.must_change_password")
     password_updated_on: datetime | None = None
+    password_recovery: PasswordRecoveryRecord | None = None
     password_action_token_hash: str | None = None
     password_action_purpose: str | None = None
     password_action_expires_at: datetime | None = None

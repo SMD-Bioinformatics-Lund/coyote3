@@ -2,6 +2,8 @@
 
 ## v4.0.0
 
+- Include supported finding kinds in the reporting-fact response contract, allowing
+  the authoring catalog to load before any reporting rules are installed.
 - Add session activity contracts and a superuser-only user-administration operation
   over a persistence-independent session repository interface.
 - Require genotype allele frequencies to be finite fractions between zero and one;

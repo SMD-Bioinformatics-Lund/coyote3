@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import type { ReactNode } from "react"
-
 import { cn } from "@/lib/utils"
+import { Surface } from "@/components/ui/surface"
 
 export function AnalysisTableCard({
   header,
@@ -17,8 +17,8 @@ export function AnalysisTableCard({
   className?: string
 }) {
   return (
-    <div
-      className={cn("glass-card flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden p-3", className)}
+    <Surface
+      className={cn("flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden p-3", className)}
       data-testid="analysis-table-card"
     >
       {header ? (
@@ -28,6 +28,6 @@ export function AnalysisTableCard({
       ) : null}
       {filterPanel ? <div className="mb-3 shrink-0">{filterPanel}</div> : null}
       {children}
-    </div>
+    </Surface>
   )
 }

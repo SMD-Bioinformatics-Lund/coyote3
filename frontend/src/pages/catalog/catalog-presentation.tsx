@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { sanitizeRichText } from "@/lib/safe-html"
+import { Badge } from "@/components/ui/badge"
 import { configuredValueClasses } from "@/lib/badge-colors"
 import { cn } from "@/lib/utils"
 import { type ReactNode } from "react"
@@ -64,10 +65,10 @@ export function AdditionalCatalogDetails({ value }: { value: Record<string, unkn
 
 export function CatalogBadge({ label, value }: { label?: string; value: unknown }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-xs font-semibold text-primary">
+    <Badge variant="outline" className="border-primary/20 bg-primary/8 text-primary">
       {label && <span className="text-primary/70">{label}</span>}
       <span className="truncate">{formatScalar(value)}</span>
-    </span>
+    </Badge>
   )
 }
 
@@ -97,13 +98,13 @@ export function BadgeList({
   return (
     <div className="flex flex-wrap gap-1.5">
       {list.map((item) => (
-        <span
+        <Badge variant="outline"
           key={item}
           data-material={kind === "material" ? materialTones[item.trim().toLowerCase()] : undefined}
-          className={`catalog-value-badge ${configuredValueClasses[item] || configuredValueClasses[item.toLowerCase()] || configuredValueClasses[item.toUpperCase()] || toneClass} rounded-full border px-2 ${compact ? "py-0 type-label" : "py-0.5 type-body-sm"} font-semibold shadow-[var(--material-badge-shadow)] forced-colors:shadow-none`}
+          className={cn("catalog-value-badge whitespace-normal", configuredValueClasses[item] || configuredValueClasses[item.toLowerCase()] || configuredValueClasses[item.toUpperCase()] || toneClass, compact && "min-h-5 py-0")}
         >
           {item}
-        </span>
+        </Badge>
       ))}
     </div>
   )

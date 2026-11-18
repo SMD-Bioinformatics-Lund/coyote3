@@ -10,10 +10,10 @@ Choose the operation you want to perform on the
 - To evaluate Coyote4 with synthetic samples, follow the [isolated demo installation](../deployment/demo-installation.md).
 - To run the ordinary development containers, use the [local development stack](local-quickstart.md).
 - To work on source code, use the [developer environment](developer-environment.md).
-- To deploy at a center, use [first installation](../deployment/first-installation.md).
+- To install Coyote4, choose [Docker](../deployment/first-installation.md) or [native Linux/WSL](../deployment/installation-operations.md#native-application-on-wsl-or-linux).
 - To review a sample, use the [clinical review workflow](../user-guide/clinical-review-workflow.md).
 
-## Choose a reading path
+## Procedures and references {#choose-a-reading-path}
 
 A procedure gives ordered actions and the result to check. A reference explains
 individual fields, defaults and constraints. Follow the procedure; open a linked
@@ -29,15 +29,18 @@ reference only when you need that detail. Use browser Back to return.
 
 ## Using the documentation navigation
 
-Start with a direct task link in the sidebar. Its reference group contains extra
-detail, not another required reading sequence. **On this page** lists headings
-inside the current guide. Text such as `<RELEASE_TAG>` is a placeholder to replace;
-values in examples are not an approved center configuration.
+The sidebar groups guides by subject: User guide, Administration, Installation,
+Operations, API and integrations, Packages, Development and Reference. Expand the
+current page's sidebar entry to jump to a section. Links in the text open related
+instructions; use browser Back to return.
+
+Text such as `<RELEASE_TAG>` is a placeholder to replace. Values in examples are
+not an approved center configuration.
 
 ## Installation and updates
 
-Use [first installation](../deployment/first-installation.md) for a new application
-database, [upgrade](../deployment/application-upgrades.md) for a changed release,
+Use the [installation guide](../deployment/README.md) to select a new deployment,
+[upgrade](../deployment/application-upgrades.md) for a changed release,
 or [redeploy](../deployment/application-redeployment.md) to restart the same release.
 
 ## Read a procedure and its references

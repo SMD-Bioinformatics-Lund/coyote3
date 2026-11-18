@@ -5,17 +5,16 @@ site_dir: site
 exclude_docs: |
   /overrides/
   /hooks/
-  /reading-paths.yml
 repo_name: coyote3
 hooks:
   - docs/hooks/packages.py
   - docs/hooks/version.py
   - docs/hooks/callouts.py
-  - docs/hooks/reading.py
 
 theme:
   name: readthedocs
   custom_dir: docs/overrides
+  titles_only: false
 
 extra:
   environment: !ENV [ENV_NAME, ""]
@@ -37,12 +36,12 @@ validation:
     anchors: warn
 
 nav:
-- Start here: README.md
-- Review samples:
+- Home: README.md
+- User guide:
   - Review a sample and save its report: user-guide/clinical-review-workflow.md
   - Find a sample: user-guide/sample-management.md
   - Missing samples or results: user-guide/sample-readiness-and-missing-results.md
-  - Review reference:
+  - Analysis and reporting:
     - Browse clinical topics: user-guide/README.md
     - Sign in, navigate and use the application: user-guide/application-guide.md
     - DNA findings: user-guide/dna-review.md
@@ -54,11 +53,11 @@ nav:
     - Dashboard: user-guide/dashboard.md
     - What each action changes: user-guide/actions-and-record-changes.md
     - Pages, table columns and badges: user-guide/pages-and-table-columns.md
-- Configure assays:
+- Administration:
   - Set up a new assay: administration/assay-setup.md
   - Change an existing configuration: administration/planning-configuration-changes.md
   - Manage accounts and access: administration/permissions-and-access.md
-  - Administration reference:
+  - Configuration and permissions:
     - Browse administration tasks: administration/README.md
     - Register assay groups: administration/assay-groups.md
     - Register diagnoses (subpanel scopes): administration/assay-diagnoses.md
@@ -81,18 +80,17 @@ nav:
     - Role catalog: administration/system-role-catalog.md
     - Permission catalog: administration/permission-catalog.md
     - Application control settings: administration/application-controls.md
-- Install and operate:
-  - Install at a new center: deployment/first-installation.md
-  - Run an isolated demonstration: deployment/demo-installation.md
+- Installation:
+  - Choose an installation method: deployment/README.md
+  - Docker installation: deployment/first-installation.md
+  - Local Docker development: getting-started/local-quickstart.md
+  - Demo installation: deployment/demo-installation.md
   - Upgrade an installation: deployment/application-upgrades.md
   - Restart or redeploy: deployment/application-redeployment.md
-  - Investigate a service failure: operations/troubleshooting.md
-  - Deployment reference:
-    - Run the local development stack: getting-started/local-quickstart.md
-    - Browse deployment topics: deployment/README.md
+  - Installer commands and native deployment: deployment/installation-operations.md
+  - Deployment options:
     - Choose a procedure: deployment/production-deployment.md
     - Production requirements: deployment/production-requirements.md
-    - Installation operations: deployment/installation-operations.md
     - Deployment acceptance: deployment/acceptance-checklist.md
     - MongoDB setup and recovery: deployment/mongodb-setup-and-recovery.md
     - First-time MongoDB provisioning: deployment/mongodb-first-setup.md
@@ -110,8 +108,10 @@ nav:
     - Installed query seed criteria (maintainers): configuration/clinical-query-policy-file.md
     - Filter flag metadata file: configuration/filter-flag-metadata-file.md
     - Collection mapping file: configuration/collection-mapping-file.md
-  - Operations reference:
-    - Browse operations tasks: operations/README.md
+- Operations:
+  - Overview: operations/README.md
+  - Troubleshooting: operations/troubleshooting.md
+  - Service maintenance and recovery:
     - Maintenance checks: operations/maintenance-and-verification.md
     - Monitoring and alerts: operations/monitoring-and-alerts.md
     - Audit events and logs: operations/audit-and-logging.md
@@ -127,7 +127,7 @@ nav:
     - 'Clinical data: order and commands': operations/migrations/clinical-data.md
     - Variant blacklist: operations/migrations/variant-blacklist.md
     - Reference database placement: operations/migrations/knowledgebase-database-migration.md
-- Integrate pipelines:
+- API and integrations:
   - Arrange authentication: api/authentication.md
   - Prepare and submit samples: api/submit-sample.md
   - Use the Python HTTP client: sdk/python-client.md
@@ -151,7 +151,7 @@ nav:
     - SDK development: sdk/extending.md
     - Python reference: sdk/reference.md
     - Versions and compatibility: sdk/compatibility.md
-- Package guides:
+- Packages:
   - Core:
     - Start here: packages/core/README.md
     - Getting started: packages/core/getting-started.md
@@ -216,11 +216,11 @@ nav:
     - Configuration: packages/frontend/configuration.md
     - Architecture: packages/frontend/architecture.md
     - Development: packages/frontend/development.md
-- Develop and validate:
+- Development:
   - Prepare the development environment: getting-started/developer-environment.md
   - Change application code: development/developer-guide.md
   - Validate a change: testing/test-strategy-and-quality-gates.md
-  - Engineering reference:
+  - Engineering:
     - Browse engineering topics: development/README.md
     - Remote development: development/remote-development.md
     - Commands and checks: development/engineering-commands.md
@@ -235,7 +235,7 @@ nav:
     - Write and organize documentation: development/writing-documentation.md
     - Dependency security: development/dependency-security.md
     - Script reference: development/script-reference.md
-  - Testing reference:
+  - Testing:
     - Choose validation checks: testing/README.md
     - Validation datasets and test fixtures: testing/test-data-and-fixtures.md
     - Synthetic clinical workflow exercises: testing/clinical-workflow-demo.md

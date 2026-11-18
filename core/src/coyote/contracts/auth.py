@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import AwareDatetime, BaseModel, Field
 
 from coyote.config.factory_defaults import factory_value
@@ -55,3 +57,15 @@ class ApiPasswordResetConfirmRequest(BaseModel):
 
     token: str
     new_password: str
+
+
+class PasswordRecoveryRecord(BaseModel):
+    """Assisted recovery state; contains no passwords or reset tokens."""
+
+    request_id: str
+    username: str
+    provider: Literal["local", "ldap"]
+    status: Literal["pending", "completed"] = "pending"
+    requested_at: AwareDatetime
+    completed_at: AwareDatetime | None = None
+    completed_by: str | None = None

@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom"
 import { icon } from "@/lib/assets"
 import { BrandLogo } from "@/components/layout/BrandLogo"
 import { AppFooter } from "@/components/layout/AppFooter"
-import { PageFrame } from "@/components/layout/PageFrame"
 import { api } from "@/lib/api"
 import { clearSessionState } from "@/lib/session-state"
 import { Button } from "@/components/ui/button"
@@ -70,44 +69,46 @@ export function ChangePassword() {
       setError("Unable to sign out. Please try again.")
     }
   }
-  return <div className="flex min-h-screen flex-col bg-background">
+  return <div className="flex h-dvh flex-col overflow-hidden bg-background">
     <EnvironmentBanner />
-    <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <BrandLogo />
-        </div>
-        <Button variant="ghost" onClick={signOut} disabled={pending}>
-          <icon.logOut className="h-4 w-4" />Sign out
-        </Button>
-      </header>
-      <h1 className="type-page-title">Change your password</h1>
-      <p className="text-sm text-muted-foreground">Set a personal password before continuing. You will sign in again with your new password.</p>
-      <p className="text-sm text-muted-foreground">Use at least 10 characters with uppercase and lowercase letters, a number, and a symbol.</p>
-      <form onSubmit={submit} className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="temporary-password">Current password</Label>
-          <Input id="temporary-password" type="password" autoComplete="current-password"
-            required value={current} onChange={(event) => setCurrent(event.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="new-password">New password</Label>
-          <Input id="new-password" type="password" autoComplete="new-password" minLength={10}
-            required value={password} onChange={(event) => setPassword(event.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="confirm-password">Confirm new password</Label>
-          <Input id="confirm-password" type="password" autoComplete="new-password"
-            required value={confirmation} aria-invalid={!!confirmation && password !== confirmation}
-            onChange={(event) => setConfirmation(event.target.value)} />
-        </div>
-        {confirmation && password !== confirmation && <p className="text-sm text-destructive">Passwords do not match.</p>}
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" disabled={!identity.data || pending || !current || !password || password !== confirmation || password === current}>
-          <icon.keyRound className="h-4 w-4" />{pending ? "Changing password..." : "Change password"}
-        </Button>
-      </form>
+    <main className="app-scroll-viewport min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <BrandLogo />
+          </div>
+          <Button variant="ghost" onClick={signOut} disabled={pending}>
+            <icon.logOut className="h-4 w-4" />Sign out
+          </Button>
+        </header>
+        <h1 className="type-page-title">Change your password</h1>
+        <p className="text-sm text-muted-foreground">Set a personal password before continuing. You will sign in again with your new password.</p>
+        <p className="text-sm text-muted-foreground">Use at least 10 characters with uppercase and lowercase letters, a number, and a symbol.</p>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="temporary-password">Current password</Label>
+            <Input id="temporary-password" type="password" autoComplete="current-password"
+              required value={current} onChange={(event) => setCurrent(event.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-password">New password</Label>
+            <Input id="new-password" type="password" autoComplete="new-password" minLength={10}
+              required value={password} onChange={(event) => setPassword(event.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <Input id="confirm-password" type="password" autoComplete="new-password"
+              required value={confirmation} aria-invalid={!!confirmation && password !== confirmation}
+              onChange={(event) => setConfirmation(event.target.value)} />
+          </div>
+          {confirmation && password !== confirmation && <p className="text-sm text-destructive">Passwords do not match.</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={!identity.data || pending || !current || !password || password !== confirmation || password === current}>
+            <icon.keyRound className="h-4 w-4" />{pending ? "Changing password..." : "Change password"}
+          </Button>
+        </form>
+      </div>
     </main>
-    <PageFrame className="mt-auto"><AppFooter /></PageFrame>
+    <AppFooter />
   </div>
 }

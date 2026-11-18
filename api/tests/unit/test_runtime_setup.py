@@ -170,7 +170,7 @@ def test_create_runtime_context_initializes_dependencies(monkeypatch: pytest.Mon
         COYOTE4_DB="coyote4_test",
         IDENTITY_DB="identity_test",
         KNOWLEDGEBASE_DB="knowledgebase_test",
-        BAM_DB="bam_test",
+        BAM_DB="coyote4_bam_test",
     )
     monkeypatch.setattr(runtime_setup, "_select_config", lambda **_kwargs: config)
     monkeypatch.setattr(runtime_setup, "configure_json_logging", lambda **_kwargs: None)
@@ -200,7 +200,7 @@ def test_create_runtime_context_requires_explicit_database_names(
         "COYOTE4_DB": "coyote4_test",
         "IDENTITY_DB": "identity_test",
         "KNOWLEDGEBASE_DB": "knowledgebase_test",
-        "BAM_DB": "bam_test",
+        "BAM_DB": "coyote4_bam_test",
     }
     config_values[missing_key] = ""
     monkeypatch.setattr(
@@ -225,7 +225,7 @@ def test_create_runtime_context_requires_separate_knowledgebase_database(
             COYOTE4_DB="same_database",
             IDENTITY_DB="identity_test",
             KNOWLEDGEBASE_DB="same_database",
-            BAM_DB="bam_test",
+            BAM_DB="coyote4_bam_test",
         ),
     )
 

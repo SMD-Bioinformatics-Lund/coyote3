@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -81,7 +82,7 @@ export function ServiceTokensPage({ personal = false }: { personal?: boolean }) 
   ]
 
   return <PageShell eyebrow={personal ? "My account" : "Administration"} title={personal ? "Access tokens" : "Service tokens"} description={personal ? "Manage personal ingestion credentials bounded by your current account access." : "Create scoped credentials for unattended sample ingestion."} actions={personal ? <Link to="/profile" className="paper-raised-control rounded-lg px-3 py-2 type-body">My account</Link> : <AdminHomeLink />}>
-    {issued && <section role="status" className="glass-card space-y-4 border-primary/40 p-5 sm:p-6">
+    {issued && <Surface as="section" variant="card" role="status" className="space-y-4 border-primary/40 p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><icon.keyRound className="size-5" aria-hidden="true" /></div>
         <div><h2 className="type-card-title">Save this token now</h2><p className="mt-1 type-body-sm text-muted-foreground">This secret is shown once. Store it in your pipeline’s secret store.</p></div>
@@ -92,7 +93,7 @@ export function ServiceTokensPage({ personal = false }: { personal?: boolean }) 
         <Button variant="outline" onClick={() => { void navigator.clipboard.writeText(issued.token).then(() => notifySuccess("Token copied"), error => notifyActionError("Unable to copy token", error)) }}><icon.copy className="size-4" aria-hidden="true" />Copy token</Button>
         <Button variant="outline" onClick={() => { setIssued(null); create.reset() }}>Dismiss secret</Button>
       </div>
-    </section>}
+    </Surface>}
     <form className="glass-card min-w-0" onSubmit={event => {
       event.preventDefault()
       create.mutate({ name: name.trim(), ...(personal ? {} : { owner }), expires_hours: hours, operations, asp_ids: assays, environments })
@@ -124,10 +125,10 @@ export function ServiceTokensPage({ personal = false }: { personal?: boolean }) 
         <Button type="submit" disabled={create.isPending || !!issued || !options.data || !name.trim() || (!personal && !owner) || !operations.length || operations.some(operation => !options.data?.operations.includes(operation)) || !assays.length || !environments.length}><icon.plus className="size-4" aria-hidden="true" />{create.isPending ? "Creating token…" : "Create token"}</Button>
       </div>
     </form>
-    <section className="glass-card min-w-0 p-5 sm:p-6">
+    <Surface as="section" variant="card" className="min-w-0 p-5 sm:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="type-card-title">{personal ? "Your tokens" : "Managed tokens"}</h2><p className="mt-1 type-body-sm text-muted-foreground">Review access, expiry and recent use. Revoke credentials you no longer need.</p></div>{tokens.data && <Badge variant="secondary">{tokens.data.items.length} total</Badge>}</div>
       {tokens.isPending ? <p role="status">Loading tokens…</p> : tokens.isError ? <p role="alert">Unable to load tokens. <Button variant="outline" onClick={() => void tokens.refetch()}>Retry</Button></p> : <DataTable columns={columns} data={tokens.data?.items || []} emptyMessage="No tokens yet. Create one above to connect a script or pipeline." filename={personal ? "personal-token-metadata.csv" : "service-token-metadata.csv"} />}
-    </section>
+    </Surface>
     <ConfirmationDialog open={!!revoking} title={personal ? "Revoke personal token?" : "Revoke service token?"} description={`Future requests using ${revoking?.name || "this token"} will be rejected. Work already in progress may complete.`} confirmLabel="Revoke token" variant="destructive" isPending={revoke.isPending} onCancel={() => setRevoking(null)} onConfirm={() => { if (revoking) revoke.mutate(revoking.token_id) }} />
   </PageShell>
 }

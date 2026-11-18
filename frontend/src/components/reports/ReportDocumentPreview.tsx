@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
 import { icon } from "@/lib/assets"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { Button } from "@/components/ui/button"
@@ -40,10 +41,10 @@ export function ReportDocumentPreview({ reportType, sampleName, hasRenderedHtml,
           ]} />
       </div>}
       {!hasRenderedHtml && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/35 bg-warn/10 px-3 py-2 text-warn">
+        <Notice tone="warning" className="mb-4 flex items-start gap-2">
           <icon.alertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <p className="type-body-sm">{templateStatusMessage}</p>
-        </div>
+        </Notice>
       )}
       <div className="report-paper-scroll" role="region" aria-label="Report document" tabIndex={0}>
         {format === "html" ? <ReportHtmlFrame

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { PublicCatalogMatrix } from "../catalog/PublicCatalogMatrixPage"
 import { PublicCatalog } from "../catalog/PublicCatalogPage"
@@ -11,10 +12,10 @@ import { catalogPreviewIssue } from "./useCatalogDraftPreview"
 export function CatalogPreview({ catalog }: { catalog: Catalog }) {
   const [view, setView] = useState<"catalog" | "matrix" | "compare">("catalog")
   const issue = catalogPreviewIssue(catalog)
-  if (issue) return <section aria-label="Catalog preview" className="surface-panel space-y-2 p-4">
+  if (issue) return <Surface as="section" variant="panel" aria-label="Catalog preview" className="space-y-2 p-4">
     <h2 className="type-section-title">{Object.keys(catalog.modalities).length ? "Complete the draft to preview" : "No published services"}</h2>
     <p role="status" className="type-body-sm text-muted-foreground">{issue}</p>
-  </section>
+  </Surface>
   return <section aria-label="Catalog preview" className="min-w-0 bg-card text-card-foreground">
     {view === "matrix" ? <PublicCatalogMatrix previewDocument={catalog} onCatalog={() => setView("catalog")} />
       : view === "compare" ? <PublicCatalogCompare previewDocument={catalog} onCatalog={() => setView("catalog")} />

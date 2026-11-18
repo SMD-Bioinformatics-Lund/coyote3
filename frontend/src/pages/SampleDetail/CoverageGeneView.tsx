@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { MetricCard } from "@/components/cards/Panel"
 import { AppTooltip } from "@/components/ui/app-tooltip"
 import { api } from "@/lib/api"
@@ -81,25 +84,25 @@ export function CoverageGeneView({
   })
 
   const renderRows = (rows: any[], region: "CDS" | "probe") => (
-    <div className="max-h-72 overflow-auto rounded-lg border border-border bg-background/70">
-      <table className="type-table-cell w-full text-left">
-        <thead className="type-table-header sticky top-0 bg-muted text-muted-foreground">
-          <tr>
-            {region === "CDS" && <th className="px-2 py-1">Exon</th>}
-            <th className="px-2 py-1">Coordinates</th>
-            <th className="px-2 py-1">Coverage</th>
-            <th className="px-2 py-1">Size</th>
-            <th className="px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="table-frame max-h-72 overflow-auto">
+      <Table>
+        <TableHeader className="sticky top-0">
+          <TableRow>
+            {region === "CDS" && <TableHead>Exon</TableHead>}
+            <TableHead>Coordinates</TableHead>
+            <TableHead>Coverage</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row, index) => (
-            <tr key={`${coord(row)}-${index}`} className="border-t border-border/40">
-              {region === "CDS" && <td className="px-2 py-1 ">{row.nbr || row.exon || "-"}</td>}
-              <td className="px-2 py-1 ">{coord(row)}</td>
-              <td className="px-2 py-1 font-bold text-fail">{coverageNumber(row).toFixed(2)}X</td>
-              <td className="px-2 py-1 ">{metric(regionLength(row))}</td>
-              <td className="px-2 py-1">
+            <TableRow key={`${coord(row)}-${index}`}>
+              {region === "CDS" && <TableCell>{row.nbr || row.exon || "-"}</TableCell>}
+              <TableCell>{coord(row)}</TableCell>
+              <TableCell className="font-bold text-fail">{coverageNumber(row).toFixed(2)}X</TableCell>
+              <TableCell>{metric(regionLength(row))}</TableCell>
+              <TableCell>
                 {canManage && <button
                   onClick={() => blacklist.mutate({ row, region })}
                   disabled={blacklist.isPending}
@@ -107,18 +110,18 @@ export function CoverageGeneView({
                 >
                   Blacklist
                 </button>}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
           {!rows.length && (
-            <tr>
-              <td colSpan={region === "CDS" ? 5 : 4} className="px-3 py-6 text-center text-muted-foreground">
+            <TableRow>
+              <TableCell colSpan={region === "CDS" ? 5 : 4} className="py-6 text-center text-muted-foreground">
                 No low-coverage {region === "CDS" ? "exons" : "probes"} below {cutoff}X.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 
@@ -133,20 +136,20 @@ export function CoverageGeneView({
   const transcriptRows = Object.entries(transcript || {}).filter(([, value]) => value !== undefined && value !== null && value !== "")
 
   const renderAllFeatureRows = (rows: any[], region: "exon" | "CDS" | "probe") => (
-    <div className="max-h-96 overflow-auto rounded-lg border border-border bg-background/70">
-      <table className="type-table-cell w-full text-left">
-        <thead className="type-table-header sticky top-0 bg-muted text-muted-foreground">
-          <tr>
-            <th className="px-2 py-1">Feature</th>
-            <th className="px-2 py-1">Coordinates</th>
-            <th className="px-2 py-1">Size</th>
-            <th className="px-2 py-1">Coverage</th>
-            <th className="px-2 py-1">Status</th>
-            {region === "probe" && <th className="px-2 py-1">Overlapping exons</th>}
-            <th className="px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="table-frame max-h-96 overflow-auto">
+      <Table>
+        <TableHeader className="sticky top-0">
+          <TableRow>
+            <TableHead>Feature</TableHead>
+            <TableHead>Coordinates</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Coverage</TableHead>
+            <TableHead>Status</TableHead>
+            {region === "probe" && <TableHead>Overlapping exons</TableHead>}
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row: any, index: number) => {
             const cov = coverageNumber(row)
             const isLow = Number.isFinite(cov) && cov < cutoff
@@ -155,20 +158,20 @@ export function CoverageGeneView({
               ? row.exon_nr.map((item: any) => item.nbr || item.exon || item).join(", ")
               : row.exon_nr || "-"
             return (
-              <tr key={`${region}-${coord(row)}-${index}`} className="border-t border-border/40">
-                <td className="px-2 py-1 ">{featureLabel}</td>
-                <td className="px-2 py-1 ">{coord(row)}</td>
-                <td className="px-2 py-1 ">{metric(regionLength(row))}</td>
-                <td className={`px-2 py-1 font-bold ${isLow ? "text-fail" : "text-pass"}`}>
+              <TableRow key={`${region}-${coord(row)}-${index}`}>
+                <TableCell>{featureLabel}</TableCell>
+                <TableCell>{coord(row)}</TableCell>
+                <TableCell>{metric(regionLength(row))}</TableCell>
+                <TableCell className={`px-2 py-1 font-bold ${isLow ? "text-fail" : "text-pass"}`}>
                   {Number.isFinite(cov) ? `${cov.toFixed(2)}X` : "N/A"}
-                </td>
-                <td className="px-2 py-1">
+                </TableCell>
+                <TableCell>
                   <span className={`rounded-md px-2 py-1 type-label font-bold uppercase ${isLow ? "bg-fail/10 text-fail" : "bg-pass/10 text-pass"}`}>
                     {row.blacklisted ? "Blacklisted" : Number.isFinite(cov) ? (isLow ? "Low" : "Pass") : "No design"}
                   </span>
-                </td>
-                {region === "probe" && <td className="px-2 py-1 ">{overlapping}</td>}
-                <td className="px-2 py-1">
+                </TableCell>
+                {region === "probe" && <TableCell>{overlapping}</TableCell>}
+                <TableCell>
                   {canManage && !row.blacklisted && (region === "CDS" || region === "probe") && (
                     <button
                       onClick={() => blacklist.mutate({ row, region })}
@@ -178,24 +181,24 @@ export function CoverageGeneView({
                       Blacklist
                     </button>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )
           })}
           {!rows.length && (
-            <tr>
-              <td colSpan={region === "probe" ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">
+            <TableRow>
+              <TableCell colSpan={region === "probe" ? 7 : 6} className="py-6 text-center text-muted-foreground">
                 No {region} data available for this gene.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 
   return (
-    <section className="glass-card min-w-0 p-3">
+    <Surface as="section" variant="card" className="min-w-0 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
         <div className="min-w-0">
           <h3 className="type-section-title">{gene} coverage</h3>
@@ -213,7 +216,7 @@ export function CoverageGeneView({
           <AppTooltip content="Return the genomic track to its original scale.">
             <button aria-label="Reset zoom" className="soft-icon-button" onClick={() => setZoom(1)}><icon.rotateCcw className="h-4 w-4" /></button>
           </AppTooltip>
-          <span className="type-badge rounded-md border border-border bg-background px-2 py-1">{Math.round(zoom * 100)}%</span>
+          <Badge variant="outline" className="border-border bg-background">{Math.round(zoom * 100)}%</Badge>
           {canManage && <button
             onClick={() => blacklist.mutate({ region: "" })}
             disabled={blacklist.isPending}
@@ -234,8 +237,8 @@ export function CoverageGeneView({
         />
       </div>
 
-      <div
-        className="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-background p-2"
+      <Surface variant="inset"
+        className="max-w-full overflow-x-auto overscroll-x-contain  p-2"
         role="region"
         aria-label={`${gene} coverage plot viewport`}
         tabIndex={0}
@@ -334,7 +337,7 @@ export function CoverageGeneView({
             )
           })}
         </svg>
-      </div>
+      </Surface>
 
       <div className="mt-2 min-h-14 rounded-lg border border-border bg-muted/40 px-3 py-2" aria-live="polite">
         {inspectedFeature ? (
@@ -354,14 +357,14 @@ export function CoverageGeneView({
         )}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-3 rounded-lg border border-border bg-background/70 px-3 py-2 text-xs">
+      <Surface variant="inset" className="mt-2 flex flex-wrap gap-3  px-3 py-2 text-xs">
         <span className="inline-flex items-center gap-2"><span className="coverage-swatch-low h-3 w-3 rounded-sm" /> Any coverage &lt; {cutoff}</span>
         <span className="inline-flex items-center gap-2"><span className="coverage-swatch-probe h-3 w-3 rounded-sm" /> Probe coverage &gt;= {cutoff}</span>
         <span className="inline-flex items-center gap-2"><span className="coverage-swatch-cds h-3 w-3 rounded-sm" /> CDS coverage &gt;= {cutoff}</span>
         <span className="inline-flex items-center gap-2"><span className="coverage-swatch-unavailable h-3 w-3 rounded-sm" /> Not covered by design</span>
-      </div>
+      </Surface>
 
-      <div className="glass-card mt-3 p-3">
+      <Surface variant="card" className="mt-3 p-3">
         <div className="mb-3 flex gap-2 border-b border-border pb-2">
           <button
             onClick={() => setActiveTab("exons")}
@@ -377,9 +380,9 @@ export function CoverageGeneView({
           </button>
         </div>
         {activeTab === "exons" ? renderRows(lowExons, "CDS") : renderRows(lowProbes, "probe")}
-      </div>
+      </Surface>
 
-      <div className="glass-card mt-3 border-panel/20 p-3">
+      <Surface variant="card" className="mt-3 border-panel/20 p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wide">Complete Gene Information</h4>
@@ -388,24 +391,24 @@ export function CoverageGeneView({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            <Surface variant="inset" className="px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Exons</p>
               <p className="text-lg font-semibold">{exons.length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            </Surface>
+            <Surface variant="inset" className="px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">CDS</p>
               <p className="text-lg font-semibold">{cds.length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            </Surface>
+            <Surface variant="inset" className="px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Probes</p>
               <p className="text-lg font-semibold">{probes.length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            </Surface>
+            <Surface variant="inset" className="px-3 py-2">
               <p className="font-bold uppercase text-muted-foreground">Min / Avg</p>
               <p className="text-sm font-semibold">
                 {Number.isFinite(minCoverage) ? minCoverage.toFixed(1) : "-"} / {Number.isFinite(avgCoverage) ? avgCoverage.toFixed(1) : "-"}X
               </p>
-            </div>
+            </Surface>
           </div>
         </div>
 
@@ -424,19 +427,19 @@ export function CoverageGeneView({
 
         {infoTab === "transcript" && (
           <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            <Surface variant="inset" className="px-3 py-2">
               <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">Coordinates</p>
               <p className="font-semibold">{transcript.chr || transcript.chrom || "-"}:{metric(transcript.start)}-{metric(transcript.end)}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background/70 px-3 py-2">
+            </Surface>
+            <Surface variant="inset" className="px-3 py-2">
               <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">Length</p>
               <p className="font-semibold">{metric(regionLength(transcript))} bp</p>
-            </div>
+            </Surface>
             {transcriptRows.map(([key, value]) => (
-              <div key={key} className="rounded-lg border border-border bg-background/70 px-3 py-2">
+              <Surface variant="inset" key={key} className="px-3 py-2">
                 <p className="type-label font-semibold uppercase tracking-wider text-muted-foreground">{key.replaceAll("_", " ")}</p>
                 <p className="break-words text-xs font-semibold">{String(value)}</p>
-              </div>
+              </Surface>
             ))}
             {!transcriptRows.length && <p className="text-sm text-muted-foreground">No transcript metadata available.</p>}
           </div>
@@ -444,7 +447,7 @@ export function CoverageGeneView({
         {infoTab === "exons" && renderAllFeatureRows(exons, "exon")}
         {infoTab === "cds" && renderAllFeatureRows(cds, "CDS")}
         {infoTab === "probes" && renderAllFeatureRows(probes, "probe")}
-      </div>
-    </section>
+      </Surface>
+    </Surface>
   )
 }

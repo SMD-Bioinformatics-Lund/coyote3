@@ -722,16 +722,16 @@
   --brand-start: oklch(0.5 0.115 302);
   --brand-end: oklch(0.66 0.13 58);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
-  --chrome-top:
-    linear-gradient(105deg, transparent 95%, rgb(255 255 255 / 5%) 100%),
-    linear-gradient(105deg, oklch(0.19 0.018 302), oklch(0.32 0.085 302) 48%, oklch(0.15 0.014 302) 95%);
-  --chrome-side: linear-gradient(
-    180deg,
-    transparent max(6rem, 12%),
-    oklch(0.34 0.1 48) 52%,
-    oklch(0.15 0.014 302) 95%,
-    color-mix(in srgb, oklch(0.15 0.014 302) 95%, white) 100%
-  );
+  --chrome-charcoal: oklch(0.19 0.006 285);
+  --chrome-purple: oklch(0.32 0.085 302);
+  --chrome-orange: oklch(0.34 0.1 48);
+  --chrome-gradient-stops:
+    var(--chrome-charcoal) 0%,
+    var(--chrome-purple) 34%,
+    var(--chrome-orange) 68%,
+    var(--chrome-charcoal) 100%;
+  --chrome-top: linear-gradient(90deg, var(--chrome-gradient-stops));
+  --chrome-side: linear-gradient(180deg, var(--chrome-gradient-stops));
   --chrome-foreground: oklch(0.97 0.006 75);
   --chrome-brand-foreground: #ffffff;
   --chrome-muted-foreground: oklch(0.84 0.018 75);
@@ -934,16 +934,9 @@
   --brand-start: oklch(0.63 0.105 302);
   --brand-end: oklch(0.69 0.12 62);
   --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
-  --chrome-top:
-    linear-gradient(105deg, transparent 95%, rgb(255 255 255 / 5%) 100%),
-    linear-gradient(105deg, oklch(0.16 0.018 302), oklch(0.28 0.075 302) 48%, oklch(0.12 0.014 302) 95%);
-  --chrome-side: linear-gradient(
-    180deg,
-    transparent max(6rem, 12%),
-    oklch(0.29 0.085 48) 52%,
-    oklch(0.12 0.014 302) 95%,
-    color-mix(in srgb, oklch(0.12 0.014 302) 95%, white) 100%
-  );
+  --chrome-charcoal: oklch(0.16 0.006 285);
+  --chrome-purple: oklch(0.28 0.075 302);
+  --chrome-orange: oklch(0.29 0.085 48);
   --chrome-foreground: oklch(0.97 0.008 75);
   --chrome-muted-foreground: oklch(0.87 0.016 75);
   --chrome-border: rgb(255 255 255 / 22%);

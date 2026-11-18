@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
+
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import type { ColumnDef } from "@tanstack/react-table"
 import { REPORT_SNAPSHOT_SECTIONS, isCompactReportBiomarker, type ReportSnapshotRow } from "./report-snapshot"
@@ -132,25 +134,25 @@ export function ReportFindings({ rows, columns, analysisType }: {
   const label = REPORT_SNAPSHOT_SECTIONS.find((section) => section.type === analysisType)?.label
     ?? "Included findings"
   return <div className="report-findings-table-scroll" role="region" aria-label={`${label} table`} tabIndex={0}>
-    <table className="report-findings-table type-body-sm" aria-label={label}>
-      <thead>
-        {table.getHeaderGroups().map((group) => <tr key={group.id}>
-          {group.headers.map((header) => <th key={header.id} scope="col" data-column={header.column.id} className="type-meta">
+    <Table className="report-findings-table" aria-label={label}>
+      <TableHeader>
+        {table.getHeaderGroups().map((group) => <TableRow key={group.id}>
+          {group.headers.map((header) => <TableHead key={header.id} scope="col" data-column={header.column.id}>
             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-          </th>)}
-        </tr>)}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map((row) => <tr key={row.id}>
+          </TableHead>)}
+        </TableRow>)}
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows.map((row) => <TableRow key={row.id}>
           {row.original.result && typeof row.original.result === "object"
-            ? <td colSpan={row.getVisibleCells().length}>
+            ? <TableCell colSpan={row.getVisibleCells().length}>
               <dl className="report-measurements type-body-sm"><MeasurementValues value={row.original.result} /></dl>
-            </td>
-            : row.getVisibleCells().map((cell) => <td key={cell.id} className="report-finding-value">
+            </TableCell>
+            : row.getVisibleCells().map((cell) => <TableCell key={cell.id} className="report-finding-value">
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </td>)}
-        </tr>)}
-      </tbody>
-    </table>
+            </TableCell>)}
+        </TableRow>)}
+      </TableBody>
+    </Table>
   </div>
 }

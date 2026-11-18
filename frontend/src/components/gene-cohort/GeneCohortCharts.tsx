@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import {
   Bar,
   BarChart,
@@ -159,7 +160,7 @@ export function GeneCohortCharts({
   ];
 
   return (
-    <section aria-labelledby="cohort-visual-summary-heading" className="surface-panel p-4">
+    <Surface as="section" variant="panel" aria-labelledby="cohort-visual-summary-heading" className="p-4">
       <div className="surface-panel-heading">
         <h2 id="cohort-visual-summary-heading" className="text-base font-semibold">
           Cohort visual summary
@@ -400,6 +401,6 @@ export function GeneCohortCharts({
           </ChartPanel>
         </div>
       </div>
-    </section>
+    </Surface>
   );
 }

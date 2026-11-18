@@ -1,18 +1,20 @@
-# Install or update Coyote4
+# Install Coyote4
 
 <!-- badges:start -->
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Choose one procedure. These are alternatives, not a sequence of manuals to read.
+Choose how the application will run. MongoDB and Redis are configured separately
+and can each run natively or in Docker.
 
-| Installation state | Procedure |
+| What you need | Procedure |
 | --- | --- |
-| New application database and initial account | [First installation](first-installation.md) |
+| New application running in Docker | [Docker installation](first-installation.md) |
+| Application running directly on Linux or WSL | [Native installation](installation-operations.md#native-application-on-wsl-or-linux) |
 | Existing installation, new application release | [Upgrade](application-upgrades.md) |
 | Existing installation, same release | [Restart or redeploy](application-redeployment.md) |
 | Local evaluation with synthetic samples | [Isolated demo installation](demo-installation.md) |
-| Ordinary development containers | [Local development stack](../getting-started/local-quickstart.md) |
+| Development containers | [Local Docker development](../getting-started/local-quickstart.md) |
 | Data from Coyote version 2 or 3 | [Clinical data conversion](../operations/migrations/clinical-data.md#select-the-source-version) |
 
 Before a center deployment, review the [production requirements](production-requirements.md).

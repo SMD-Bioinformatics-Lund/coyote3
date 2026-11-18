@@ -5,7 +5,7 @@
 
 import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { tooltipToneClass } from "@/components/ui/app-tooltip-meta"
+import { tooltipToneClass, tooltipEventPosition, type TooltipPosition } from "@/components/ui/app-tooltip-meta"
 import {
   clinicalBadgeClassName,
   InfoBadge,
@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/table-badge"
 import { cn } from "@/lib/utils"
 
-type TooltipPosition = { left: number; top: number }
 
 export function VariantTooltipBadge({
   children,
@@ -48,9 +47,10 @@ export function VariantTooltipBadge({
     className,
   )
   const handlers = {
-    onMouseEnter: (event: MouseEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
+    onMouseEnter: (event: MouseEvent<HTMLElement>) => setPosition(tooltipEventPosition(event)),
+    onMouseMove: (event: MouseEvent<HTMLElement>) => { if (position) setPosition(tooltipEventPosition(event)) },
     onMouseLeave: () => setPosition(null),
-    onFocus: (event: FocusEvent<HTMLElement>) => setPosition(verticalTooltipPosition(event)),
+    onFocus: (event: FocusEvent<HTMLElement>) => setPosition(tooltipEventPosition(event)),
     onBlur: () => setPosition(null),
   }
   const TextBadge = textBadgeSize === "clinical" ? TableBadge : InfoBadge
@@ -77,7 +77,7 @@ export function VariantTooltipBadge({
     <span className="inline-flex" data-tooltip-managed="true">
       {content}
       {position && (
-        <TooltipSurface position={position} className={tooltipSeverityClass(severity)}>
+        <TooltipSurface position={position} onDismiss={() => setPosition(null)} className={tooltipSeverityClass(severity)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{contextLabel}</span>
           <span className="block font-bold text-foreground">{label}</span>
           <span className="mt-1 block type-meta leading-relaxed text-foreground/75">{description}</span>
@@ -103,42 +103,4 @@ export function tooltipSeverityClass(severity: string) {
     return `bg-popover ${tooltipToneClass(severity)}`
   }
   return "border-primary/40 bg-popover text-primary"
-}
-
-export function inlineTooltipPosition(event: MouseEvent | FocusEvent): TooltipPosition {
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  const rect = event.currentTarget.getBoundingClientRect()
-  const width = 288
-  const height = 124
-  const gap = 8
-  const edge = 8
-  let left = rect.right + gap
-  if (left + width > viewportWidth - edge) left = rect.left - width - gap
-  if (left < edge) left = rect.left
-  left = Math.min(Math.max(left, edge), Math.max(edge, viewportWidth - width - edge))
-
-  let top = rect.top + rect.height / 2 - height / 2
-  if (top + height > viewportHeight - edge) top = rect.bottom - height
-  if (top < edge) top = rect.bottom + gap
-  top = Math.min(Math.max(top, edge), Math.max(edge, viewportHeight - height - edge))
-  return { left, top }
-}
-
-export function verticalTooltipPosition(event: MouseEvent | FocusEvent): TooltipPosition {
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  const rect = event.currentTarget.getBoundingClientRect()
-  const width = 288
-  const height = 132
-  const gap = 8
-  const edge = 8
-  let left = rect.left + rect.width / 2 - width / 2
-  left = Math.min(Math.max(left, edge), Math.max(edge, viewportWidth - width - edge))
-
-  const hasRoomBelow = rect.bottom + gap + height <= viewportHeight - edge
-  const hasRoomAbove = rect.top - gap - height >= edge
-  let top = hasRoomBelow || !hasRoomAbove ? rect.bottom + gap : rect.top - height - gap
-  top = Math.min(Math.max(top, edge), Math.max(edge, viewportHeight - height - edge))
-  return { left, top }
 }

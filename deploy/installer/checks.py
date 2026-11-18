@@ -6,6 +6,7 @@
 import argparse
 import logging
 import os
+import re
 from contextlib import ExitStack
 
 from coyote_mongo.config.collections import load_collection_section
@@ -13,6 +14,8 @@ from coyote_mongo.config.endpoints import MONGO_SERVICES, MongoEndpoint, mongo_e
 from coyote_mongo.runtime_roles import verify_runtime_audit_permissions
 from pydantic import ValidationError
 from pymongo import MongoClient
+
+_MIN_REDIS_BROKER_VERSION = (6, 2, 0)  # Kombu binding expiry uses ZADD GT.
 
 
 def has_documents(database) -> bool:
@@ -186,11 +189,12 @@ def check_indexes(*, require_present: bool = False, scope: str = "application") 
 
 
 def check_redis() -> None:
-    """Verify the Celery Redis transport and authenticated application Redis access.
+    """Verify Redis connectivity and the broker's command compatibility.
 
     Raises:
         ValueError: The Redis transport cannot load, a required URL is missing or
-            PING fails. Messages identify dependencies or settings without credentials.
+            PING fails; broker INFO is unavailable or reports an unsupported version.
+            Messages identify dependencies or settings without credentials.
     """
     import redis
 
@@ -208,10 +212,21 @@ def check_redis() -> None:
         url = os.environ.get(key)
         if not url:
             raise ValueError(f"{key} is required for the Redis connectivity check")
+        operation = "PING"
+        server_info = None
         try:
             with redis.Redis.from_url(url, socket_connect_timeout=3, socket_timeout=3) as client:
                 client.ping()
+                if key == "CELERY_BROKER_URL":
+                    operation = "INFO server"
+                    server_info = client.info("server")
         except Exception as error:
+            if operation == "INFO server":
+                raise ValueError(
+                    f"{key} INFO server failed ({type(error).__name__}). "
+                    "Allow the broker account to read INFO so the installer can verify "
+                    "Redis command compatibility. See docs/operations/troubleshooting.md."
+                ) from None
             raise ValueError(
                 f"{key} PING failed ({type(error).__name__}). "
                 "Redis must be reachable from the application runtime, not only from its own "
@@ -219,7 +234,31 @@ def check_redis() -> None:
                 "timeouts inspect Docker bridge forwarding and host firewall policy. "
                 "See docs/operations/troubleshooting.md."
             ) from None
-    print("[ok] Redis cache, broker and result backend are reachable")
+        if key == "CELERY_BROKER_URL":
+            version_text = (
+                server_info.get("redis_version") if isinstance(server_info, dict) else None
+            )
+            version_match = (
+                re.fullmatch(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:[-+][\w.-]+)?", version_text)
+                if isinstance(version_text, str)
+                else None
+            )
+            if version_match is None:
+                raise ValueError(
+                    "CELERY_BROKER_URL INFO server did not report a valid redis_version; "
+                    "broker command compatibility could not be verified."
+                )
+            version = tuple(int(part) for part in version_match.groups())
+            if version < _MIN_REDIS_BROKER_VERSION:
+                found = ".".join(map(str, version))
+                minimum = ".".join(map(str, _MIN_REDIS_BROKER_VERSION))
+                raise ValueError(
+                    f"CELERY_BROKER_URL uses Redis {found}; Redis {minimum}+ is required "
+                    "by the installed Celery transport (ZADD GT). Upgrade the broker "
+                    "separately before deploying the application. "
+                    "See docs/operations/troubleshooting.md."
+                )
+    print("[ok] Redis endpoints are reachable and the broker version is compatible")
 
 
 def main() -> int:

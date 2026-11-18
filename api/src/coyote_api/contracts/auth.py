@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -69,6 +71,7 @@ class ApiUiSettingsUpdateResponse(ApiStatusResponse):
 
 
 class ApiPasswordResetRequest(BaseModel):
-    """Represent a password reset request payload."""
+    """Select username and optional authentication provider without exposing accounts."""
 
-    username: str
+    username: str = Field(min_length=1, max_length=254)
+    provider: Literal["auto", "local", "ldap"] = "auto"

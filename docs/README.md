@@ -8,24 +8,19 @@ These guides describe the complete application: clinical workflows, administrati
 deployment, operations and integration between components. Library and frontend
 interfaces are documented in their own package guides below.
 
-## Start with a task
-
-<div class="docs-task-start" markdown="1">
+## Find a guide {#start-with-a-task}
 
 - **[Review and report a sample](user-guide/clinical-review-workflow.md):** check findings, save your interpretation and issue a report.
 - **[Configure an assay](administration/assay-setup.md#step-by-step-add-a-new-assay):** prepare its settings, activate them and check a validation sample.
 - **[Try Coyote4 with synthetic samples](deployment/demo-installation.md):** choose Docker or native processes with dedicated demo storage.
-- **[Install at a center](deployment/first-installation.md):** prepare services, baseline data and the initial account.
+- **Install Coyote4:** choose [Docker](deployment/first-installation.md) or [native Linux/WSL](deployment/installation-operations.md#native-application-on-wsl-or-linux).
 - **Update an existing installation:** [upgrade the release](deployment/application-upgrades.md) or [restart the same release](deployment/application-redeployment.md).
 - **Connect a pipeline:** [arrange authentication](api/authentication.md), then [submit and track samples](api/submit-sample.md).
 - **[Change the code](getting-started/developer-environment.md):** prepare a local development environment.
 - **Investigate a problem:** use [service troubleshooting](operations/troubleshooting.md) or [missing sample results](user-guide/sample-readiness-and-missing-results.md).
 
-</div>
-
-Follow the numbered steps in the selected guide. You do not need to read the
-whole manual. The sidebar puts those procedures first; supporting references
-are one group below them. Search is useful when you already know a field or screen name.
+The sidebar groups guides by subject. Sections within the current page appear
+beneath its sidebar entry. Search finds pages by screen name, command or setting.
 
 ## Terms used in the guides
 

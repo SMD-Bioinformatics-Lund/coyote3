@@ -6,7 +6,6 @@ import { icon } from "@/lib/assets"
 
 import { Button } from "@/components/ui/button"
 import { AppFooter } from "@/components/layout/AppFooter"
-import { PageFrame } from "@/components/layout/PageFrame"
 import { reportUiError } from "@/lib/api"
 
 type Props = { children: ReactNode }
@@ -27,9 +26,9 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <main className="flex flex-1 items-center justify-center p-6">
-          <section className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-dvh flex-col overflow-hidden bg-background">
+        <main className="app-scroll-viewport flex min-h-0 flex-1 overflow-y-auto p-6">
+          <section className="m-auto w-full max-w-lg shrink-0 rounded-lg border border-border bg-card p-6 shadow-sm">
             <icon.alertTriangle className="mb-4 h-8 w-8 text-destructive" aria-hidden="true" />
             <h1 className="text-xl font-bold text-foreground">This view could not be displayed</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -42,7 +41,7 @@ export class AppErrorBoundary extends Component<Props, State> {
             </Button>
           </section>
         </main>
-        <PageFrame><AppFooter /></PageFrame>
+        <AppFooter />
       </div>
     )
   }

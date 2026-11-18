@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
@@ -32,27 +34,27 @@ export function PublicAspGenesPage() {
     <PageShell eyebrow="Public" title={title} description={stripHtml(description) || "Assay-panel gene table."}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="space-y-3">
-          <section className="surface-panel p-4">
+          <Surface as="section" variant="panel" className="p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap gap-1.5">
-                  <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase text-primary">
+                  <Badge variant="outline" className="border-primary/25 bg-primary/10 uppercase text-primary">
                     {catalog.modality_label || catalog.modality || asp.asp_category || "Assay"}
-                  </span>
+                  </Badge>
                   {catalog.family && (
-                    <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase text-muted-foreground">
+                    <Badge variant="outline" className="border-border bg-muted uppercase text-muted-foreground">
                       {catalog.family}
-                    </span>
+                    </Badge>
                   )}
                   {catalog.assay_group && (
-                    <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase text-muted-foreground">
+                    <Badge variant="outline" className="border-border bg-muted uppercase text-muted-foreground">
                       {catalog.assay_group}
-                    </span>
+                    </Badge>
                   )}
                   {diagnosis && (
-                    <span className="rounded-full border border-tier3/30 bg-tier3/10 px-2.5 py-1 text-xs font-semibold uppercase text-tier3">
+                    <Badge variant="outline" className="border-tier3/30 bg-tier3/10 uppercase text-tier3">
                       {diagnosis}
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <h2 className="text-xl font-semibold">{title}</h2>
@@ -109,10 +111,10 @@ export function PublicAspGenesPage() {
                 )}
               </div>
             )}
-          </section>
+          </Surface>
 
           {geneLists.length > 0 && (
-            <section className="surface-panel p-4">
+            <Surface as="section" variant="panel" className="p-4">
               <SectionTitle icon={icon.tags}>Catalog Gene Lists</SectionTitle>
               <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {geneLists.map((list: any) => (
@@ -123,9 +125,9 @@ export function PublicAspGenesPage() {
                         {list.key && <p className="type-meta font-semibold text-muted-foreground">{list.key}</p>}
                       </div>
                       {list.tat && (
-                        <span className="rounded-full border border-border bg-muted px-2 py-1 type-label font-semibold uppercase text-muted-foreground">
+                        <Badge variant="outline" className="border-border bg-muted uppercase text-muted-foreground">
                           {list.tat}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <HtmlText value={list.description} className="mt-2" />
@@ -136,12 +138,12 @@ export function PublicAspGenesPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </Surface>
           )}
 
-          <section className="surface-panel p-3">
+          <Surface as="section" variant="panel" className="p-3">
             <DataTable columns={columns} data={rows} filename={`${aspId}_genes.csv`} />
-          </section>
+          </Surface>
         </div>
       )}
     </PageShell>

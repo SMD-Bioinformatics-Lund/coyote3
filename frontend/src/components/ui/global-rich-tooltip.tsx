@@ -3,197 +3,171 @@
 
 import { useEffect, useRef, useState } from "react"
 import { TooltipSurface } from "@/components/ui/app-tooltip"
-import { tooltipToneClass } from "@/components/ui/app-tooltip-meta"
+import { tooltipElementPosition, tooltipToneClass, type TooltipPosition } from "@/components/ui/app-tooltip-meta"
+import { GLOBAL_TOOLTIP_ID, tooltipContent, tooltipTarget } from "./tooltip-target"
 
-type TooltipState = {
-  target: HTMLElement
-  title: string
-  label: string
-  context: string
-  left: number
-  top: number
-  tone: string
+type TooltipState = NonNullable<ReturnType<typeof tooltipContent>> & {
+  position: TooltipPosition
 }
 
-const TOOLTIP_ID = "global-rich-tooltip"
-
-function isTooltipTarget(value: EventTarget | null): value is Element {
-  return value instanceof Element
-}
-
-function eligibleTarget(value: EventTarget | null) {
-  if (!isTooltipTarget(value)) return null
-  // A domain component inside this subtree owns the complete tooltip lifecycle.
-  // Do not climb past it and activate a title on an ancestor as a second tooltip.
-  if (value.closest<HTMLElement>('[data-tooltip-managed="true"]')) return null
-  const target = value.closest<HTMLElement>("[data-tooltip-content], [title]:not(iframe)")
-  if (!target || target.dataset.nativeTitle === "true" || target.dataset.tooltipManaged === "true") return null
-  return target
-}
-
-function focusPosition(target: HTMLElement) {
-  const rect = target.getBoundingClientRect()
-  return { left: rect.left + Math.min(rect.width / 2, 24), top: rect.bottom }
-}
-
-function tooltipLabel(target: HTMLElement, title: string) {
-  return target.dataset.tooltipLabel || target.getAttribute("aria-label") || title
-}
-
-function tooltipContext(target: HTMLElement) {
-  return target.dataset.tooltipContext || "More information"
-}
-
-/**
- * Upgrades concise native title hints to the shared application tooltip surface.
- * Rich clinical badges continue to render their domain-specific descriptions.
- */
+/** Shared extra help and icon/clipped-label hints; rich badges retain their descriptions. */
 export function GlobalRichTooltip() {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const activeTarget = useRef<HTMLElement | null>(null)
-  const previousDescribedBy = useRef<string | null>(null)
 
   useEffect(() => {
-    const enhancedTitles = new Map<HTMLElement, string>()
+    const enhancedTitles = new Map<HTMLElement, { title: string; originalContent?: string }>()
+    let hoveredTarget: HTMLElement | null = null
+    let dismissedTarget: HTMLElement | null = null
+    let pointerActive = false
+    let touchInteraction = false
+
+    const restoreTarget = () => {
+      const target = activeTarget.current
+      if (!target) return
+      const descriptions = (target.getAttribute("aria-describedby") || "").split(/\s+/)
+        .filter(id => id && id !== GLOBAL_TOOLTIP_ID)
+      if (descriptions.length) target.setAttribute("aria-describedby", descriptions.join(" "))
+      else target.removeAttribute("aria-describedby")
+      activeTarget.current = null
+    }
+    const close = () => {
+      pointerActive = false
+      setTooltip(null)
+      restoreTarget()
+    }
+    const refreshContent = () => {
+      const target = activeTarget.current
+      if (!target) return
+      const content = target.isConnected && tooltipContent(target)
+      if (!content) { close(); return }
+      setTooltip(current => current && Object.entries(content).some(([key, value]) => current[key as keyof typeof content] !== value)
+        ? { ...current, ...content } : current)
+    }
     const enhanceTitle = (target: HTMLElement) => {
-      if (target instanceof HTMLIFrameElement || target.dataset.nativeTitle === "true") return
+      if (target instanceof HTMLIFrameElement || target.closest('[data-native-title="true"], [data-tooltip-disabled="true"]')) return
       const title = target.getAttribute("title")
       if (!title) return
-      enhancedTitles.set(target, title)
-      target.dataset.tooltipContent = title
+      const previous = enhancedTitles.get(target)
+      const originalContent = previous ? previous.originalContent : target.dataset.tooltipContent
+      enhancedTitles.set(target, { title, originalContent })
+      if (originalContent === undefined) target.dataset.tooltipContent = title
       target.removeAttribute("title")
-      if (activeTarget.current === target) {
-        setTooltip((current) => current ? {
-          ...current, title, label: tooltipLabel(target, title),
-        } : current)
-      }
     }
     const enhanceTree = (root: ParentNode) => {
       if (root instanceof HTMLElement && root.hasAttribute("title")) enhanceTitle(root)
       root.querySelectorAll<HTMLElement>("[title]:not(iframe)").forEach(enhanceTitle)
     }
     enhanceTree(document)
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === "attributes" && mutation.target instanceof HTMLElement) {
-          enhanceTitle(mutation.target)
-        }
-        mutation.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) enhanceTree(node)
-        })
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.type === "attributes" && mutation.attributeName === "title" && mutation.target instanceof HTMLElement) enhanceTitle(mutation.target)
+        mutation.addedNodes.forEach(node => { if (node instanceof HTMLElement) enhanceTree(node) })
       })
-      if (activeTarget.current && !activeTarget.current.isConnected) close()
+      refreshContent()
     })
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] })
+    observer.observe(document.body, {
+      subtree: true, childList: true, characterData: true, attributes: true,
+      attributeFilter: ["title", "aria-label", "aria-labelledby", "aria-describedby", "placeholder", "data-tooltip-content", "data-tooltip-label", "data-tooltip-context", "data-tooltip-tone"],
+    })
 
-    const restoreTarget = () => {
-      const target = activeTarget.current
-      if (!target) return
-      if (previousDescribedBy.current) target.setAttribute("aria-describedby", previousDescribedBy.current)
-      else target.removeAttribute("aria-describedby")
-      activeTarget.current = null
-      previousDescribedBy.current = null
-    }
-
-    const activate = (target: HTMLElement, left: number, top: number) => {
+    const activate = (target: HTMLElement, position: TooltipPosition) => {
+      enhanceTitle(target)
+      const content = tooltipContent(target)
+      if (!content) { close(); return }
       if (activeTarget.current !== target) {
         restoreTarget()
-        enhanceTitle(target)
-        const title = target.dataset.tooltipContent
-        if (!title) return
         activeTarget.current = target
-        previousDescribedBy.current = target.getAttribute("aria-describedby")
-        target.setAttribute("aria-describedby", [previousDescribedBy.current, TOOLTIP_ID].filter(Boolean).join(" "))
+        const describedBy = target.getAttribute("aria-describedby")
+        target.setAttribute("aria-describedby", [describedBy, GLOBAL_TOOLTIP_ID].filter(Boolean).join(" "))
       }
-      const title = target.dataset.tooltipContent
-      if (!title) return
-      setTooltip({
-        target,
-        title,
-        label: tooltipLabel(target, title),
-        context: tooltipContext(target),
-        left,
-        top,
-        tone: target.dataset.tooltipTone || "info",
-      })
+      pointerActive = position.anchor === "pointer"
+      setTooltip({ ...content, position })
     }
-
-    const close = () => {
-      setTooltip(null)
-      restoreTarget()
+    const retainFocusedOrClose = () => {
+      const target = activeTarget.current
+      if (target && target.contains(document.activeElement)) activate(target, tooltipElementPosition(target))
+      else close()
     }
-    const onScroll = () => {
-      if (activeTarget.current) close()
-    }
-
     const onPointerOver = (event: PointerEvent) => {
-      const target = eligibleTarget(event.target)
-      if (!target) return
-      activate(target, event.clientX, event.clientY)
+      touchInteraction = event.pointerType === "touch"
+      if (touchInteraction) { close(); return }
+      const target = tooltipTarget(event.target)
+      hoveredTarget = target
+      if (target && target !== dismissedTarget) activate(target, { left: event.clientX, top: event.clientY, anchor: "pointer" })
+      else if (!target) close()
     }
     const onPointerMove = (event: PointerEvent) => {
-      if (!activeTarget.current) return
-      setTooltip((current) => current
-        ? { ...current, left: event.clientX, top: event.clientY } : current)
+      // Only a hint actually hovered by this pointer follows it. Focus is element-anchored.
+      if (!pointerActive || !activeTarget.current || event.pointerType === "touch") return
+      if (tooltipTarget(event.target) !== activeTarget.current) { retainFocusedOrClose(); return }
+      setTooltip(current => current ? {
+        ...current, position: { left: event.clientX, top: event.clientY, anchor: "pointer" },
+      } : current)
     }
     const onPointerOut = (event: PointerEvent) => {
-      const target = activeTarget.current
-      if (!target) return
-      if (isTooltipTarget(event.relatedTarget) && target.contains(event.relatedTarget)) return
-      if (document.activeElement instanceof HTMLElement && target.contains(document.activeElement)) return
-      close()
+      if (hoveredTarget && event.relatedTarget instanceof Node && hoveredTarget.contains(event.relatedTarget)) return
+      hoveredTarget = null
+      dismissedTarget = null
+      retainFocusedOrClose()
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      touchInteraction = event.pointerType === "touch"
+      if (touchInteraction) close()
     }
     const onFocusIn = (event: FocusEvent) => {
-      const target = eligibleTarget(event.target)
-      if (!target) return
-      const position = focusPosition(target)
-      activate(target, position.left, position.top)
+      if (touchInteraction) return
+      const target = tooltipTarget(event.target)
+      if (!target) { close(); return }
+      if (pointerActive && activeTarget.current === target && hoveredTarget === target) return
+      activate(target, tooltipElementPosition(target))
     }
     const onFocusOut = (event: FocusEvent) => {
       const target = activeTarget.current
-      if (!target) return
-      if (isTooltipTarget(event.relatedTarget) && target.contains(event.relatedTarget)) return
-      close()
+      if (!target || (event.relatedTarget instanceof Node && target.contains(event.relatedTarget))) return
+      if (!(pointerActive && hoveredTarget === target)) close()
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close()
+      touchInteraction = false
+      if (event.key === "Escape") {
+        dismissedTarget = hoveredTarget
+        close()
+      }
     }
 
     document.addEventListener("pointerover", onPointerOver, true)
     document.addEventListener("pointermove", onPointerMove, true)
     document.addEventListener("pointerout", onPointerOut, true)
+    document.addEventListener("pointerdown", onPointerDown, true)
     document.addEventListener("focusin", onFocusIn, true)
     document.addEventListener("focusout", onFocusOut, true)
     document.addEventListener("keydown", onKeyDown, true)
-    window.addEventListener("scroll", onScroll, { capture: true, passive: true })
+    window.addEventListener("scroll", close, { capture: true, passive: true })
     window.addEventListener("resize", close)
+    window.addEventListener("blur", close)
     return () => {
       observer.disconnect()
       document.removeEventListener("pointerover", onPointerOver, true)
       document.removeEventListener("pointermove", onPointerMove, true)
       document.removeEventListener("pointerout", onPointerOut, true)
+      document.removeEventListener("pointerdown", onPointerDown, true)
       document.removeEventListener("focusin", onFocusIn, true)
       document.removeEventListener("focusout", onFocusOut, true)
       document.removeEventListener("keydown", onKeyDown, true)
-      window.removeEventListener("scroll", onScroll, true)
+      window.removeEventListener("scroll", close, true)
       window.removeEventListener("resize", close)
+      window.removeEventListener("blur", close)
       restoreTarget()
-      enhancedTitles.forEach((title, target) => {
+      enhancedTitles.forEach(({ title, originalContent }, target) => {
         if (!target.hasAttribute("title")) target.setAttribute("title", title)
-        if (target.dataset.tooltipContent === title) delete target.dataset.tooltipContent
+        if (originalContent === undefined && target.dataset.tooltipContent === title) delete target.dataset.tooltipContent
       })
     }
   }, [])
 
   if (!tooltip) return null
-
   return (
-    <TooltipSurface
-      id={TOOLTIP_ID}
-      anchor="pointer"
-      position={{ left: tooltip.left, top: tooltip.top }}
-      className={tooltipToneClass(tooltip.tone)}
-    >
+    <TooltipSurface id={GLOBAL_TOOLTIP_ID} position={tooltip.position} className={tooltipToneClass(tooltip.tone)}>
       <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{tooltip.context}</span>
       <span className="block font-bold text-foreground">{tooltip.label}</span>
       {tooltip.label !== tooltip.title && (

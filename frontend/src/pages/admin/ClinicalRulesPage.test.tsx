@@ -79,6 +79,38 @@ function renderPage() {
 }
 
 describe("ClinicalRulesPage", () => {
+  it("opens an empty rule inventory and lets an author create the first rule set", async () => {
+    mocks.get.mockImplementation((path: string) => {
+      if (path.endsWith("/authoring-options")) return Promise.resolve({ data: { assays: [] } })
+      return Promise.resolve({ data: { items: [] } })
+    })
+    renderPage()
+
+    expect(await screen.findByText("No reporting rule sets match the current filters.")).toBeVisible()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "New rule set" }))
+    expect(screen.getByLabelText("Rule-set name")).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Create draft" })).toBeDisabled()
+  })
+
+  it.each(["list", "facts", "authoring-options"])("distinguishes a failed %s request from an empty inventory and supports retry", async (failedResource) => {
+    let failing = true
+    mocks.get.mockImplementation((path: string) => {
+      const resource = path.endsWith("/facts") ? "facts" : path.endsWith("/authoring-options") ? "authoring-options" : "list"
+      if (failing && resource === failedResource) return Promise.reject(new Error("Synthetic request failure"))
+      return Promise.resolve({ data: resource === "authoring-options" ? { assays: [] } : { items: [] } })
+    })
+    renderPage()
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load the reporting rule configuration.")
+    expect(screen.queryByText("No reporting rule sets match the current filters.")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "New rule set" })).not.toBeInTheDocument()
+    failing = false
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }))
+    expect(await screen.findByText("No reporting rule sets match the current filters.")).toBeVisible()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
   it("preserves unsaved edits when the version query refreshes", async () => {
     mocks.get.mockImplementation((path: string) => {
       if (path.endsWith("/facts")) return Promise.resolve({ data: { items: [] } })

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
@@ -324,7 +325,7 @@ export function CNVTab({
   );
 
   const profilePane = hasCnvImage ? (
-    <div className="glass-card flex h-full w-full min-w-0 flex-col overflow-hidden">
+    <Surface variant="card" className="flex h-full w-full min-w-0 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/50 bg-muted/50 p-3">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <icon.image className="size-4" /> CNV Profile
@@ -372,7 +373,7 @@ export function CNVTab({
           </div>
         ) : null}
       </div>
-    </div>
+    </Surface>
   ) : null;
 
   return (

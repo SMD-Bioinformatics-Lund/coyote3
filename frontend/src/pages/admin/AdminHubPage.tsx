@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState, type ComponentType } from "react"
 import { Link } from "react-router-dom"
 import { icon } from "@/lib/assets"
-
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
 import { SearchInput } from "@/components/ui/search-input"
@@ -198,27 +198,27 @@ export function AdminHubPage() {
       {accessQuery.isLoading ? (
         <AppLoader label="Loading administration access" />
       ) : accessQuery.isError ? (
-        <div role="alert" className="surface-panel flex flex-wrap items-center justify-between gap-3 p-4">
+        <Surface variant="panel" role="alert" className="flex flex-wrap items-center justify-between gap-3 p-4">
           <p>Unable to load administration access.</p>
           <Button variant="outline" onClick={() => void accessQuery.refetch()}><icon.refreshCw className="size-4" />Retry</Button>
-        </div>
+        </Surface>
       ) : visibleResources.length === 0 && authorizedUtilities.length === 0 ? (
-        <section className="surface-panel p-5">
+        <Surface as="section" variant="panel" className="p-5">
           <h2 className="text-base font-semibold">Administration access is not assigned</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Your roles do not include permission to view an administrative resource.
           </p>
-        </section>
+        </Surface>
       ) : (
         <div className="min-w-0">
-          <div className="glass-card space-y-3 bg-card p-4">
+          <Surface variant="card" className="space-y-3 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <SearchInput aria-label="Search administration" placeholder="Search administration" value={search} onChange={event => setSearch(event.target.value)}
                 endAdornment={search && <Button variant="ghost" size="icon" title="Clear search" aria-label="Clear search" onClick={() => setSearch("")}><icon.x className="size-4" /></Button>}
               />
               <span role="status" className="type-meta text-muted-foreground">{matching.reduce((total, section) => total + section.items.length, 0)} destinations</span>
             </div>
-          </div>
+          </Surface>
           {modulesQuery.isError && hasPermission(user, ADMIN_UTILITY_PERMISSIONS.ingestManage) && <div role="alert" className="flex flex-wrap items-center gap-3 type-body-sm"><p>Ingest availability could not be checked.</p><Button variant="outline" onClick={() => void modulesQuery.refetch()}><icon.refreshCw className="size-4" />Retry module status</Button></div>}
           {!matching.length && <div className="py-6 text-center"><p className="type-body text-muted-foreground">No administrative pages match this search.</p><Button className="mt-3" variant="outline" onClick={() => setSearch("")}><icon.x className="size-4" />Clear search</Button></div>}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
@@ -30,7 +33,7 @@ export default function AdminSchemasPage() {
 
   return (
     <PageShell eyebrow="Diagnostics" title="Contract Diagnostics" description="Read-only backend Pydantic contracts and managed form sources used by the API, ingest, and resource editors.">
-      <section className="surface-panel p-3">
+      <Surface as="section" variant="panel" className="p-3">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3 px-1">
           <div className="flex items-start gap-2">
             <icon.bookOpenCheck className="mt-0.5 h-5 w-5 text-panel" />
@@ -39,10 +42,10 @@ export default function AdminSchemasPage() {
               <p className="text-sm text-muted-foreground">These contracts support QA and diagnostics. Managed resources are edited through their dedicated admin forms.</p>
             </div>
           </div>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground">{rows.length} contracts</span>
+          <Badge variant="outline" className="border-border bg-background text-muted-foreground">{rows.length} contracts</Badge>
         </div>
         {isLoading ? <AppLoader label="Loading schema contracts" /> : error ? (
-          <div className="rounded-lg border border-warn/30 bg-warn/10 p-3 text-sm text-warn">{error instanceof Error ? error.message : "Unable to load schema contracts."}</div>
+          <Notice tone="warning">{error instanceof Error ? error.message : "Unable to load schema contracts."}</Notice>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {Object.entries(groupedRows).map(([group, contracts]) => (
@@ -50,21 +53,21 @@ export default function AdminSchemasPage() {
                 <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide">{group}</h3>
                 <div className="space-y-2">
                   {contracts.map((contract) => (
-                    <article key={contract.collection} className="glass-card rounded-lg p-3">
+                    <Surface as="article" variant="card" key={contract.collection} className="p-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div><h4 className="text-sm font-semibold">{contract.title || contract.collection}</h4><p className="text-xs text-muted-foreground">{contract.collection}</p></div>
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{(contract.properties || []).length} fields</span>
                       </div>
                       {(contract.required || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1">{(contract.required || []).map((field) => <span key={field} className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs font-semibold text-destructive">{field}</span>)}</div>}
                       <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold text-primary">Show field names</summary><div className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-auto rounded-lg bg-muted/40 p-2">{(contract.properties || []).map((field) => <span key={field} className="rounded bg-background px-1.5 py-0.5 text-xs text-muted-foreground">{field}</span>)}</div></details>
-                    </article>
+                    </Surface>
                   ))}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </Surface>
     </PageShell>
   )
 }

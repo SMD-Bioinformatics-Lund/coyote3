@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Link, useParams } from "react-router-dom"
 import { icon } from "@/lib/assets"
-
 import { DataTable } from "@/components/data-table/DataTable"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { PageShell } from "@/components/layout/PageShell"
@@ -119,11 +120,11 @@ export function SavedReportPage() {
       {loading ? (
         <AppLoader label="Loading saved report" />
       ) : error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
+        <Notice tone="danger">{error}</Notice>
       ) : (
         <div className="space-y-3">
           {context && (
-            <section className="surface-panel p-3">
+            <Surface as="section" variant="panel" className="p-3">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
                 <div>
                   <h2 className="text-base font-semibold">Reported findings</h2>
@@ -143,12 +144,12 @@ export function SavedReportPage() {
                 rowLabel="reported findings"
                 stateKey={`saved-report-${reportId}`}
               />
-            </section>
+            </Surface>
           )}
-          <section className="surface-panel p-3">
+          <Surface as="section" variant="panel" className="p-3">
             <h2 className="mb-3 border-b border-border pb-3 text-base font-semibold">Rendered report</h2>
             <ReportHtmlFrame title={`${id} saved report`} html={htmlQuery.data ?? ""} className="rounded-xl shadow-sm" />
-          </section>
+          </Surface>
         </div>
       )}
     </PageShell>

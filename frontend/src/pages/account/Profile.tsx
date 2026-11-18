@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Badge } from "@/components/ui/badge"
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -82,9 +85,9 @@ export function Profile() {
       {isLoading ? (
         <AppLoader label="Loading profile" />
       ) : error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <Notice tone="danger">
           {error instanceof Error ? error.message : "Unable to load profile"}
-        </div>
+        </Notice>
       ) : (
         <div className="account-profile grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section className="min-w-0">
@@ -170,9 +173,9 @@ export function Profile() {
               {permissions.length ? (
                 <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto pr-1">
                   {permissions.map((permission: string) => (
-                    <span key={permission} className="rounded-md border border-border bg-muted/40 px-2 py-1 type-meta font-semibold text-muted-foreground" title={permission}>
+                    <Badge variant="outline" key={permission} className="border-border bg-muted/40 text-muted-foreground" title={permission}>
                       {permission.split(":").slice(0, 2).join(":")}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               ) : (
@@ -191,9 +194,9 @@ export function Profile() {
                 <p role="status" className="text-sm font-semibold text-warn">Change your temporary password before accessing clinical data.</p>
               )}
               {!canChangePassword && (
-                <div className="rounded-lg border border-warn/35 bg-warn/10 p-3 text-xs font-semibold text-warn">
+                <Notice tone="warning" className="text-xs font-semibold">
                   This account is not configured for local password changes. LDAP-only accounts are managed by the center identity provider.
-                </div>
+                </Notice>
               )}
               <label className="block text-sm font-semibold">
                 Current password
@@ -220,7 +223,7 @@ export function Profile() {
                 disabled={!canChangePassword || !currentPassword || !newPassword || changePassword.isPending}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
               >
-                {changePassword.isPending && <appIcon.activity className="h-4 w-4 animate-spin" />}
+                {changePassword.isPending && <LoadingIndicator className="h-4 w-4" />}
                 Update password
               </button>
               {message && <p className="text-sm text-muted-foreground">{message}</p>}
@@ -233,15 +236,15 @@ export function Profile() {
 }
 
 function RoleChip({ role }: { role: string }) {
-  return <span className="inline-flex items-center rounded-md border border-primary/25 bg-primary/10 px-2 py-1 type-meta font-medium text-primary">{role}</span>
+  return <Badge variant="outline" className="inline-flex items-center border-primary/25 bg-primary/10 text-primary">{role}</Badge>
 }
 
 function AuthChip({ value }: { value: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 type-meta font-medium text-foreground">
+    <Badge variant="outline" className="inline-flex items-center gap-1.5 border-border bg-background text-foreground">
       <appIcon.keyRound className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       {value === "local" ? "Local account" : value.toUpperCase()}
-    </span>
+    </Badge>
   )
 }
 
@@ -254,9 +257,9 @@ function ScopeCard({ title, icon: Icon, values, empty }: { title: string; icon: 
       </div>
       <div className="flex flex-wrap gap-1.5">
         {values.length ? values.map((value) => (
-          <span key={value} className="rounded-md border border-border bg-muted/40 px-2 py-0.5 type-meta font-bold uppercase text-muted-foreground">
+          <Badge variant="outline" key={value} className="border-border bg-muted/40 uppercase text-muted-foreground">
             {value}
-          </span>
+          </Badge>
         )) : <span className="text-xs text-muted-foreground">{empty}</span>}
       </div>
     </div>

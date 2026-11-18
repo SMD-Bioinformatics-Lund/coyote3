@@ -3,6 +3,7 @@
 
 import { type ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { Surface } from "@/components/ui/surface"
 
 export function SurfacePanel({
   title,
@@ -18,7 +19,7 @@ export function SurfacePanel({
   children: ReactNode
 }) {
   return (
-    <section className={cn("surface-panel p-4 sm:p-5", className)}>
+    <Surface as="section" variant="panel" className={cn("responsive-card-padding", className)}>
       {(title || description || actions) && (
         <div className="surface-panel-heading flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -31,7 +32,7 @@ export function SurfacePanel({
         </div>
       )}
       {children}
-    </section>
+    </Surface>
   )
 }
 
@@ -47,10 +48,10 @@ export function MetricCard({
   className?: string
 }) {
   return (
-    <div className={cn("metric-card p-4", className)}>
+    <Surface className={cn("metric-card p-3", className)}>
       <p className="type-label text-muted-foreground">{title}</p>
       <p className="mt-1 type-metric-value text-foreground">{value}</p>
       {sub && <p className="type-meta mt-1 text-muted-foreground">{sub}</p>}
-    </div>
+    </Surface>
   )
 }

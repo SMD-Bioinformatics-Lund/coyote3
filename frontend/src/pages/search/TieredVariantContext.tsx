@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
 import { Link, useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { icon } from "@/lib/assets"
@@ -46,10 +48,10 @@ export function TieredVariantContext() {
   if (error || !data) {
     return (
       <PageShell eyebrow="Reported Variant" title="Unable to load tiered variant">
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <Notice tone="danger">
           <icon.alertTriangle className="mr-2 inline h-4 w-4" />
           {error instanceof Error ? error.message : "The reported variant context could not be loaded."}
-        </div>
+        </Notice>
       </PageShell>
     )
   }
@@ -160,30 +162,30 @@ export function TieredVariantContext() {
       }
     >
       {data.error && (
-        <div className="rounded-xl border border-warn/30 bg-warn/10 p-4 text-sm font-semibold text-warn">
+        <Notice tone="warning" className="font-semibold">
           {data.error}
-        </div>
+        </Notice>
       )}
 
       <div className="grid gap-3 lg:grid-cols-5">
-        <section className="surface-panel p-3 lg:col-span-3">
+        <Surface as="section" variant="panel" className="p-3 lg:col-span-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Match Summary</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-background/70 p-3">
+            <Surface variant="inset" className="p-3">
               <div className="text-xs text-muted-foreground">Matches</div>
               <div className="text-2xl font-semibold">{docs.length}</div>
-            </div>
-            <div className="rounded-xl border border-border bg-background/70 p-3">
+            </Surface>
+            <Surface variant="inset" className="p-3">
               <div className="text-xs text-muted-foreground">Gene</div>
               <div className="text-lg font-semibold">{displayValue(csq.SYMBOL)}</div>
-            </div>
+            </Surface>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Matching uses the gene and one available identity key: simple ID hash, simple ID, HGVSc, or HGVSp.
           </p>
-        </section>
+        </Surface>
 
-        <section className="surface-panel p-3 lg:col-span-2">
+        <Surface as="section" variant="panel" className="p-3 lg:col-span-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variant Identity</h2>
           <dl className="mt-3 grid gap-2 text-xs">
             <div className="rounded-lg bg-background/70 p-2">
@@ -207,12 +209,12 @@ export function TieredVariantContext() {
               <dd className="break-all ">{displayValue(csq.HGVSp)}</dd>
             </div>
           </dl>
-        </section>
+        </Surface>
       </div>
 
-      <section className="surface-panel p-3">
+      <Surface as="section" variant="panel" className="p-3">
         <DataTable columns={columns} data={docs} rowLabel="reported matches" totalCount={docs.length} filename="reported_variant_matches.csv" />
-      </section>
+      </Surface>
     </PageShell>
   )
 }

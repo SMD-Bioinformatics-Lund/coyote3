@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { configuredValueClasses } from "@/lib/badge-colors";
+import { TableBadge } from "@/components/ui/table-badge";
 
 
 export function StatusPill({ children, tone = "muted" }: { children: ReactNode; tone?: "blue" | "green" | "yellow" | "red" | "muted" }) {
@@ -16,5 +17,5 @@ export function StatusPill({ children, tone = "muted" }: { children: ReactNode; 
   const valueClass = typeof children === "string"
     ? configuredValueClasses[children.toLowerCase()]
     : undefined
-  return <span className={`type-badge inline-flex min-h-5 items-center rounded-md border px-2 py-0.5 ${valueClass || tones[tone]}`}>{children}</span>
+  return <TableBadge className={valueClass || tones[tone]}>{children}</TableBadge>
 }

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
 import { api } from "@/lib/api"
@@ -28,9 +29,9 @@ export function PublicGenelistPage() {
   return (
     <PageShell eyebrow="Public" title={data?.genelist?.displayname || data?.genelist?.name || genelistId}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
-        <section className="surface-panel p-3">
+        <Surface as="section" variant="panel" className="p-3">
           <DataTable columns={columns} data={rows} filename={`${genelistId}_genes.csv`} />
-        </section>
+        </Surface>
       )}
     </PageShell>
   )

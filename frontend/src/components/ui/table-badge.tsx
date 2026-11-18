@@ -2,11 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import type { HTMLAttributes, ReactNode } from "react"
-
 import { cn } from "@/lib/utils"
-
-export const tableBadgeClassName =
-  "type-badge inline-flex min-h-6 min-w-6 max-w-full shrink-0 items-center justify-center rounded-md border px-2 py-0.5 shadow-[var(--material-badge-shadow)]"
+import { badgeVariants } from "./badge-variants"
 
 export type TableBadgeProps = HTMLAttributes<HTMLElement> & {
   as?: "span" | "a"
@@ -40,7 +37,7 @@ export function TableBadge({
   return (
     <Component
       data-slot="table-badge"
-      className={cn(tableBadgeClassName, className)}
+      className={cn(badgeVariants({ variant: "outline" }), className)}
       {...props}
     >
       {children}

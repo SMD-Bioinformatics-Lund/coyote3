@@ -766,6 +766,7 @@ class ClinicalRuleFactPayload(_StrictModel):
     description: str = ""
     value_options: list[str] = Field(default_factory=list)
     value_format: Literal["gene", "integer", "number", "text"] = "text"
+    bulk_annotation_finding_kinds: list[FindingKind] = Field(default_factory=list)
 
 
 class ClinicalRuleFactsPayload(_StrictModel):

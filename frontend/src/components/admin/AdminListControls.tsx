@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { BulkInstall } from "./BulkInstall"
 import { ResourceVersionHistory } from "./ResourceVersionHistory"
@@ -64,15 +65,15 @@ export function AdminListContent({ state, spec, children }: { state: AdminListSt
     {accessQuery.isLoading ? (
       <AppLoader label="Checking administration access" />
     ) : !canList ? (
-      <div className="rounded-lg border border-warn/30 bg-warn/10 p-4 text-sm text-warn">
+      <Notice tone="warning">
         You do not have permission to list {spec.title.toLowerCase()}.
-      </div>
+      </Notice>
     ) : isLoading ? (
       <AppLoader label={`Loading ${spec.title.toLowerCase()}`} />
     ) : error ? (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <Notice tone="danger">
         {error instanceof Error ? error.message : "Unable to load resource"}
-      </div>
+      </Notice>
     ) : (
       <>
         {state.canCreate && (spec.key === "asp" || spec.key === "aspc" || spec.key === "genelists") && <div className="mb-3"><BulkInstall kind={spec.key} /></div>}

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { AdminActionDialog, AdminListContent, AdminListToolbar, AdminRowActions } from "@/components/admin/AdminListControls"
 import { useAdminList } from "@/components/admin/useAdminList"
 import { DataTable } from "@/components/data-table/DataTable"
@@ -42,13 +43,13 @@ export function AssayConfigurationsPage() {
       <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Admin home</Link>
     </>}>
       {canReadDrafts && showDrafts && <CopySetupConfiguration />}
-      <div className="glass-card p-3">
+      <Surface variant="card" className="p-3">
         {canReadDrafts && <p className="mb-3 type-body-sm text-muted-foreground">This page creates configurations for registered assays. For an unpublished assay, add or import its configuration in <Link to="/admin/assay-setups" className="text-primary underline">Assay setup</Link> before publishing.</p>}
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>
           <DataTable columns={tableColumns} data={visibleRows} filename="aspc.csv" hideSearch />
         </AdminListContent>
-      </div>
+      </Surface>
 
       <AdminActionDialog state={state} spec={spec} />
     </PageShell>

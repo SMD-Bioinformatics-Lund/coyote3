@@ -133,6 +133,26 @@ describe("AdminControlsPage", () => {
     expect(screen.getByText("celery")).toBeVisible()
   })
 
+  it("distinguishes missing Mongo indexes from conflicting definitions", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      ...controlsPayload,
+      runtime: {
+        ...controlsPayload.runtime,
+        index_setup_conflicts: [
+          { repository: "knowledgebase_versions", collection: "versions", name: "publication_notification_cursor", state: "missing" },
+          { repository: "samples", collection: "samples", name: "sample_id", state: "conflict" },
+          { repository: "users", code: "85", message: "Internal database details" },
+        ],
+      },
+    } })
+    renderPage(<AdminControlsPage />)
+    const checks = await screen.findByRole("list", { name: "Mongo index checks" })
+    expect(within(checks).getByText("Missing index: versions.publication_notification_cursor")).toBeVisible()
+    expect(within(checks).getByText("Conflicting index: samples.sample_id")).toBeVisible()
+    expect(within(checks).getByText("Conflicting index: users")).toBeVisible()
+    expect(screen.queryByText("Internal database details")).not.toBeInTheDocument()
+  })
+
   it("explains, changes, and persists a control without losing other settings", async () => {
     const user = userEvent.setup()
     renderPage(<AdminControlsPage />)

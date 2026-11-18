@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { icon } from "@/lib/assets"
 import { DataTable } from "@/components/data-table/DataTable"
 import { PageShell } from "@/components/layout/PageShell"
@@ -37,9 +38,9 @@ const columns: ColumnDef<UiRouteAudit, any>[] = [
     accessorKey: "area",
     header: "Area",
     cell: ({ row }) => (
-      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${areaTone[row.original.area]}`}>
+      <Badge variant="outline" className={`capitalize  ${areaTone[row.original.area]}`}>
         {row.original.area}
-      </span>
+      </Badge>
     ),
   },
   {
@@ -97,13 +98,13 @@ export function UiRouteAuditPage() {
         </div>
       }
     >
-      <section className="surface-panel p-3">
+      <Surface as="section" variant="panel" className="p-3">
         <DataTable
           columns={columns}
           data={uiRouteRegistry}
           filename="coyote4-ui-route-audit.csv"
         />
-      </section>
+      </Surface>
     </PageShell>
   )
 }

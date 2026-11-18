@@ -57,7 +57,7 @@ def boundary(monkeypatch):
         assay_loader=Mock(),
         audit_access=Mock(),
     )
-    users = Users(runtime, Mock(), lambda: repository)
+    users = Users(runtime, Mock(), lambda: repository, Mock())
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_users] = lambda: users

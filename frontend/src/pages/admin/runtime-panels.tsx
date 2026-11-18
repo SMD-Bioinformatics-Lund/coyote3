@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Badge } from "@/components/ui/badge"
+import { Surface } from "@/components/ui/surface"
 import type { ReactNode } from "react"
 import { icon as appIcon } from "@/lib/assets"
 import { AppTooltip } from "@/components/ui/app-tooltip"
@@ -74,7 +76,7 @@ export function RuntimeStatusBadge({ status }: { status?: string }) {
     : normalized === "offline"
       ? "border-warn/40 bg-warn/10 text-warn"
       : "border-border bg-muted text-muted-foreground"
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-bold uppercase ${cls}`}>{normalized}</span>
+  return <Badge variant="outline" className={`uppercase  ${cls}`}>{normalized}</Badge>
 }
 
 export function RuntimeMetric({ label, value, description }: { label: string; value: number; description: string }) {
@@ -152,7 +154,7 @@ export function WorkerRuntimePanel({ workers }: { workers: NonNullable<AppContro
             <div key={worker.name} className="rounded-lg border border-border bg-card p-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-foreground">{worker.name}</span>
-                <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 type-meta font-bold uppercase text-success">{worker.status || "online"}</span>
+                <Badge variant="outline" className="border-success/30 bg-success/10 uppercase text-success">{worker.status || "online"}</Badge>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground sm:grid-cols-4">
                 <span>Concurrency <strong className="text-foreground">{worker.concurrency ?? "-"}</strong></span>
@@ -232,7 +234,7 @@ export function TaskRuntimePanel({
             <div key={`${task.state}-${task.task_id || task.task_name || index}`} className="rounded-lg border border-border bg-card p-2.5 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold text-foreground">{task.task_name || "Unnamed task"}</span>
-                <span className="rounded-full border border-border bg-muted px-2 py-0.5 font-bold uppercase text-muted-foreground">{task.state}</span>
+                <Badge variant="outline" className="border-border bg-muted uppercase text-muted-foreground">{task.state}</Badge>
               </div>
               <p className="mt-1 text-muted-foreground">Worker {task.worker || "-"} · Queue {task.queue || "-"} · ID {task.task_id || "-"}</p>
             </div>
@@ -242,7 +244,7 @@ export function TaskRuntimePanel({
       <details>
         <summary className="cursor-pointer text-xs font-semibold text-link">Show {registeredTasks.length} registered task names</summary>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {registeredTasks.map((task) => <span key={task} className="rounded-md border border-border bg-card px-2 py-1 type-meta text-muted-foreground">{task}</span>)}
+          {registeredTasks.map((task) => <Badge variant="outline" key={task} className="border-border bg-card text-muted-foreground">{task}</Badge>)}
         </div>
       </details>
     </div>
@@ -262,7 +264,7 @@ function formatDuration(seconds?: number | null) {
 
 export function ControlSection({ title, description, icon, children }: { title: string; description: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="surface-panel !overflow-visible p-3">
+    <Surface as="section" variant="panel" className="!overflow-visible p-3">
       <div className="mb-3 flex items-start gap-2">
         <div className="rounded-lg bg-primary/10 p-2 text-primary">{icon}</div>
         <div>
@@ -271,7 +273,7 @@ export function ControlSection({ title, description, icon, children }: { title: 
         </div>
       </div>
       <div className="grid gap-2">{children}</div>
-    </section>
+    </Surface>
   )
 }
 

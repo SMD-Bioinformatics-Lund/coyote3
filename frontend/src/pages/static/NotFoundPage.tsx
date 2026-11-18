@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { PageShell } from "@/components/layout/PageShell"
 import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
@@ -9,13 +10,13 @@ import { Link } from "react-router-dom"
 export function NotFoundPage() {
   return (
     <PageShell eyebrow="404" title="Page not found" description="The requested Coyote4 view does not exist in this UI.">
-      <section className="surface-panel p-5">
+      <Surface as="section" variant="panel" className="p-5">
         <p className="text-sm text-muted-foreground">Check the URL or return to the sample dashboard.</p>
         <Link to="/" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground">
           <icon.home className="h-4 w-4" />
           Home
         </Link>
-      </section>
+      </Surface>
     </PageShell>
   )
 }

@@ -44,3 +44,57 @@ for (const width of [1440, 390]) {
     await expect(tooltip).toHaveCount(0)
   })
 }
+
+for (const width of [1440, 390]) {
+  test(`a clicked or keyboard-focused hint cannot follow the pointer across the page (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await installApiFixtures(page)
+    await page.goto("/public/catalog")
+    const toggle = page.getByRole("button", { name: /^Theme:/ })
+    await toggle.click()
+    await page.mouse.move(width / 2, 300)
+    const tooltip = page.getByRole("tooltip")
+    // It may dismiss on pointer exit or remain by the focused control, never at the distant cursor.
+    await expect.poll(async () => {
+      if (await tooltip.count() === 0) return true
+      const hint = await tooltip.boundingBox()
+      const control = await toggle.boundingBox()
+      return Boolean(hint && control && hint.y >= control.y && hint.y - control.y - control.height < 40
+        && hint.x + hint.width >= control.x && hint.x <= control.x + control.width)
+    }).toBe(true)
+
+    await toggle.evaluate(button => (button as HTMLElement).blur())
+    await toggle.focus()
+    await expect(tooltip).toBeVisible()
+    const anchored = await tooltip.boundingBox()
+    await page.mouse.move(width / 2 + 40, 350)
+    await expect.poll(() => tooltip.boundingBox()).toEqual(anchored)
+    await page.keyboard.press("Escape")
+    await expect(tooltip).toHaveCount(0)
+  })
+}
+
+test("login shows icon hints without repeating labels or exposing typed values", async ({ page }) => {
+  await installApiFixtures(page, path => path === "/api/v1/auth/providers"
+    ? { json: { providers: ["local"] } } : undefined)
+  await page.goto("/login")
+  const tooltip = page.getByRole("tooltip")
+  const signIn = page.getByRole("button", { name: "Sign in", exact: true })
+  await expect(signIn).toBeDisabled()
+  await signIn.hover()
+  await expect(tooltip).toHaveCount(0)
+  await expect(signIn).toBeDisabled()
+
+  const password = page.getByLabel("Password", { exact: true })
+  await password.fill("synthetic-secret")
+  await password.hover()
+  await expect(tooltip).toHaveCount(0)
+  const reveal = page.getByRole("button", { name: "Show password", exact: true })
+  await reveal.hover()
+  await expect(tooltip).toContainText("Show password")
+  await expect(tooltip).not.toContainText("synthetic-secret")
+  await reveal.click()
+  await expect(tooltip).toContainText("Hide password")
+  await page.getByRole("link", { name: "Forgot password?", exact: true }).hover()
+  await expect(tooltip).toHaveCount(0)
+})

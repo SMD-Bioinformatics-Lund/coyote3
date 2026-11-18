@@ -29,7 +29,7 @@ export function MarkdownComposer({ id, value, onChange, maxLength = 5000, label,
     onChange(next)
     requestAnimationFrame(() => { input.current?.focus(); input.current?.setSelectionRange(start, start + text.length) })
   }
-  return <div className="overflow-hidden rounded-lg border border-border bg-card">
+  return <div className="rich-text-field form-control flex flex-col overflow-hidden rounded-lg">
     <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted p-1.5">
       {[
         { label: "Bold", icon: appIcon.bold, before: "**", after: "**" },
@@ -45,6 +45,6 @@ export function MarkdownComposer({ id, value, onChange, maxLength = 5000, label,
         <Button type="button" size="sm" variant={preview || readOnly ? "secondary" : "ghost"} aria-pressed={preview || readOnly} onClick={() => setPreview(true)}>Preview</Button>
       </div>
     </div>
-    {preview || readOnly ? <div aria-label={label ? `${label} preview` : undefined} className={`${compact ? "min-h-16" : "min-h-36"} overflow-auto p-3`}><MarkdownText text={value} className="break-words [overflow-wrap:anywhere]" /></div> : <textarea ref={input} id={id ?? generatedId} aria-label={label} aria-invalid={invalid} className={`${compact ? "min-h-16" : "min-h-36"} w-full resize-y bg-card p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring`} value={value} maxLength={maxLength ?? undefined} onChange={(event) => onChange(event.target.value)} />}
+    {preview || readOnly ? <div aria-label={label ? `${label} preview` : undefined} className={`${compact ? "min-h-16" : "min-h-36"} overflow-auto p-3`}><MarkdownText text={value} className="break-words [overflow-wrap:anywhere]" /></div> : <textarea ref={input} id={id ?? generatedId} aria-label={label} aria-invalid={invalid} className={`${compact ? "min-h-16" : "min-h-36"} block w-full resize-y p-3 text-sm`} value={value} maxLength={maxLength ?? undefined} onChange={(event) => onChange(event.target.value)} />}
   </div>
 }

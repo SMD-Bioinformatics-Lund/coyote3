@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useEffectEvent, useId, useRef } from "react"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { icon } from "@/lib/assets"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Surface } from "@/components/ui/surface"
 
 type ConfirmationDialogProps = {
   open: boolean
@@ -82,7 +84,7 @@ export function ConfirmationDialog({
         if (event.target === event.currentTarget && !isPending) onCancel()
       }}
     >
-      <div
+      <Surface
         ref={dialogRef}
         tabIndex={-1}
         role="alertdialog"
@@ -103,31 +105,29 @@ export function ConfirmationDialog({
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="outline" size="sm"
             ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <icon.x className="size-3.5" aria-hidden="true" />
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant={variant} size="sm"
             type="button"
             onClick={onConfirm}
             disabled={isPending || confirmDisabled}
-            className={cn("inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-bold text-primary-foreground shadow-sm transition-colors disabled:opacity-50", variant === "destructive" ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}
           >
             {isPending ? (
-              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <LoadingIndicator className="size-3.5" />
             ) : (
               <icon.check className="size-3.5" aria-hidden="true" />
             )}
             {isPending ? "Applying" : confirmLabel}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Surface>
     </div>,
     document.body,
   )

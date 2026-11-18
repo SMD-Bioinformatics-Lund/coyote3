@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
-export type TableDensity = "compact" | "standard" | "relaxed"
+import type { TableDensity } from "@/components/ui/table"
 
 export function resolveTableDensity(columnCount: number, containerWidth: number): TableDensity {
   if (containerWidth <= 0) {

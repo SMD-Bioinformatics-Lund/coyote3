@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Notice } from "@/components/ui/notice"
+import { Surface } from "@/components/ui/surface"
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type UIEvent } from "react"
 import { icon } from "@/lib/assets"
-
 import { validateJsonDocument } from "./json-document-validation"
 import { Button } from "@/components/ui/button"
 
@@ -91,7 +92,7 @@ export function JsonDocumentEditor({
   }
 
   return (
-    <section className="surface-panel overflow-hidden">
+    <Surface as="section" variant="panel" className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="rounded-lg bg-primary/10 p-2 text-primary">
@@ -179,11 +180,11 @@ export function JsonDocumentEditor({
         </div>
 
         {serverError && (
-          <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <Notice tone="danger" className="mt-3" role="alert">
             {serverError}
-          </div>
+          </Notice>
         )}
       </div>
-    </section>
+    </Surface>
   )
 }

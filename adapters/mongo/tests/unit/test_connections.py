@@ -20,7 +20,7 @@ def config(**overrides):
         "COYOTE4_DB": "app_dev",
         "IDENTITY_DB": "identity_dev",
         "KNOWLEDGEBASE_DB": "knowledgebases",
-        "BAM_DB": "bam_dev",
+        "BAM_DB": "coyote4_bam_dev",
         "DB_COLLECTIONS_CONFIG": load_collection_mapping(),
         **overrides,
     }
@@ -50,7 +50,7 @@ def test_one_instance_reuses_client_for_distinct_logical_databases(connections):
         "app_dev",
         "identity_dev",
         "knowledgebases",
-        "bam_dev",
+        "coyote4_bam_dev",
     }
     assert pool.databases["primary"].client.options.replica_set_name == "coyote4-rs"
 

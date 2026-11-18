@@ -18,7 +18,7 @@ os.environ.setdefault("COYOTE4_MONGO_URI", "mongodb://localhost:27017")
 os.environ.setdefault("COYOTE4_DB", "coyote4_test")
 os.environ.setdefault("IDENTITY_DB", "coyote4_identity_test")
 os.environ.setdefault("KNOWLEDGEBASE_DB", "coyote4_knowledgebase_test")
-os.environ.setdefault("BAM_DB", "bam_test")
+os.environ.setdefault("BAM_DB", "coyote4_bam_test")
 
 # Tests are a trusted host for direct application helpers as well as SDK operations.
 from coyote.contracts.resource_integrity import using_resource_hasher  # noqa: E402

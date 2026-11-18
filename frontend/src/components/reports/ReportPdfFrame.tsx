@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useState } from "react"
 import { icon } from "@/lib/assets"
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,7 @@ export function ReportPdfFrame({ blob, title, filename }: {
     </p>}
     {supported && <>
       {loading && <p role="status" aria-live="polite" className="flex items-center gap-2 type-body-sm text-muted-foreground">
-        <icon.loaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />Loading PDF viewer
+        <LoadingIndicator className="size-4" />Loading PDF viewer
       </p>}
       {url && <iframe key={url} title={title} src={url}
         onLoad={() => { setLoading(false); setFailed(false) }} onError={() => { setLoading(false); setFailed(true) }}

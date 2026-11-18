@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { Surface } from "@/components/ui/surface"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -51,7 +52,7 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
       void client.invalidateQueries({ queryKey: ["assay-gene-lists"] })
     },
   })
-  return <section aria-label="Existing gene lists" className="glass-card space-y-3 p-3">
+  return <Surface as="section" variant="card" aria-label="Existing gene lists" className="space-y-3 p-3">
     <h3 className="type-card-title">Existing gene lists</h3>
     <p className="type-body-sm text-muted-foreground">Search all registered lists, including unassigned lists.
       {onChange ? " Selections are saved in this draft and applied on activation." : " Links update the gene list’s associated assays."}
@@ -81,5 +82,5 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
       {onChange && <Button size="sm" variant="outline" disabled={readonly || pending || mutation.isPending} onClick={() => onChange([])}>Clear selected lists</Button>}
       {onChange && <div className="flex flex-wrap gap-2">{selected.map(id => <Button key={id} size="sm" variant="outline" className="h-auto min-h-7 min-w-0 max-w-full whitespace-normal" disabled={!canEdit || pending || mutation.isPending} aria-label={`Remove selected gene list ${id}`} onClick={() => onChange(selected.filter(value => value !== id))}><span className="min-w-0 break-all">{id}</span> ×</Button>)}</div>}
     </div>}
-  </section>
+  </Surface>
 }

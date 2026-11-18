@@ -91,7 +91,8 @@ describe("public static pages", () => {
     mount(<ContactPage />)
 
     expect(await screen.findByRole("heading", { name: "Molecular Diagnostics" })).toBeVisible()
-    expect(screen.getByRole("link", { name: /Clinical Team \(clinical@example.org\)/ })).toHaveAttribute("href", "mailto:clinical@example.org")
+    expect(screen.getByRole("link", { name: "Clinical Team" })).toHaveAttribute("href", "mailto:clinical@example.org")
+    expect(screen.getByRole("link", { name: "Central support" })).toHaveAttribute("href", "mailto:support@example.org")
     expect(screen.getByRole("link", { name: /\+465678/ })).toHaveAttribute("href", "tel:+465678")
     expect(screen.getByText("Weekdays 08:00-16:30")).toBeVisible()
     expect(screen.getByText(/Hospital Road 1/)).toBeVisible()
