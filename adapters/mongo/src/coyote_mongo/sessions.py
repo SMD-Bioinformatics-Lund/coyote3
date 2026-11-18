@@ -11,6 +11,7 @@ from typing import Any
 
 from coyote.application.accounts.tokens import issue_opaque_token, token_hash
 from coyote.config.constants import DEFAULT_AUTH_PROVIDER
+from coyote.contracts.auth import SessionActivitySummary
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,3 +108,65 @@ class MongoApiSessionRepository:
             token: Raw client session token; a missing session is a no-op.
         """
         self.collection.delete_one({"_id": token_hash(token)})
+
+    def activity_summary(self, *, recent_activity_seconds: int) -> SessionActivitySummary:
+        """Count valid logins without retrieving tokens or refreshing activity.
+
+        Args:
+            recent_activity_seconds: Positive lookback window for authenticated requests.
+
+        Returns:
+            Session and unique-user counts across this repository's identity store.
+            Expiration is checked explicitly, independently of MongoDB TTL cleanup.
+
+        Raises:
+            ValueError: The requested activity window is not positive.
+        """
+        if recent_activity_seconds <= 0:
+            raise ValueError("The activity window must be positive")
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(seconds=recent_activity_seconds)
+        groups = self.collection.aggregate(
+            [
+                {"$match": {"expires_at": {"$gt": now}}},
+                {
+                    "$group": {
+                        "_id": {"user_id": "$user_id", "credential_version": "$credential_version"},
+                        "sessions": {"$sum": 1},
+                        "last_seen_at": {"$max": "$last_seen_at"},
+                    }
+                },
+            ]
+        )
+        users: dict[str, Any] = {}
+        signed_in: set[str] = set()
+        recently_active: set[str] = set()
+        session_count = 0
+        for group in groups:
+            identity = group["_id"]
+            username = identity.get("user_id")
+            if not isinstance(username, str) or not username:
+                continue
+            if username not in users:
+                users[username] = self.user_loader(username)
+            user = users[username]
+            if user is None or identity.get("credential_version") != getattr(
+                user, "credential_version", None
+            ):
+                continue
+            signed_in.add(username)
+            session_count += group["sessions"]
+            last_seen = group.get("last_seen_at")
+            if isinstance(last_seen, datetime):
+                # PyMongo can decode UTC timestamps without tzinfo.
+                if last_seen.tzinfo is None:
+                    last_seen = last_seen.replace(tzinfo=timezone.utc)
+                if cutoff <= last_seen <= now:
+                    recently_active.add(username)
+        return SessionActivitySummary(
+            signed_in_users=len(signed_in),
+            active_sessions=session_count,
+            recently_active_users=len(recently_active),
+            recent_activity_seconds=recent_activity_seconds,
+            observed_at=now,
+        )

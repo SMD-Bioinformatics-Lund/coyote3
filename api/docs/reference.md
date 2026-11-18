@@ -23,3 +23,9 @@ names.
 
 [Resource metadata reads](resource-reads.md) documents the authenticated retrieval
 endpoint, fields, filters, related records and pagination limits.
+
+`GET /api/v1/users/session-activity` returns aggregate login counts to superusers
+only. It reports distinct signed-in users, valid sessions, recently active users,
+the activity window in seconds and the observation time in UTC. The response is
+not cacheable. Counts cover the configured identity store, including other
+deployments that share it; service tokens are not browser login sessions.

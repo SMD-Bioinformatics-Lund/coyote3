@@ -102,6 +102,7 @@ def application_services() -> ApplicationServices:
         get_admin_role_service,
         get_admin_sample_service,
         get_admin_user_service,
+        get_api_session_repository,
         get_app_controls_service,
         get_assay_setup_service,
         get_audit_service,
@@ -162,6 +163,7 @@ def application_services() -> ApplicationServices:
         notifications=get_notification_service,
         administration=AdministrationServices(
             users=get_admin_user_service,
+            sessions=get_api_session_repository,
             roles=get_admin_role_service,
             permissions=get_permission_management_service,
             assays=get_admin_panel_service,

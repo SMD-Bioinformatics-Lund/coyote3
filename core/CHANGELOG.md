@@ -2,6 +2,8 @@
 
 ## v4.0.0
 
+- Add session activity contracts and a superuser-only user-administration operation
+  over a persistence-independent session repository interface.
 - Require genotype allele frequencies to be finite fractions between zero and one;
   reject booleans and out-of-range values at validation. Invalid stored fractions
   remain unavailable to clinical rules and render as missing report evidence;

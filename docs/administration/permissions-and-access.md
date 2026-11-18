@@ -8,6 +8,22 @@ an assay group does not by itself grant a user permission to read or change data
 
 Coyote4 permissions are exact, data-backed authorization identifiers. Core owns the shipped definitions; the server installs them into MongoDB, roles grant permissions, and users receive one or more roles. API requests and supported core operations enforce current grants. The frontend uses the same identifiers to hide unavailable actions.
 
+## Login activity
+
+Superusers can open **Administration → Users** to see signed-in users, valid sessions
+and recently active users. Regular administrators cannot view these counts.
+The page refreshes every 30 seconds while visible and includes a manual refresh.
+
+Each enabled account with a valid, unexpired session counts once, regardless of
+how many sessions it has. Expired sessions, deleted or disabled accounts and sessions
+invalidated by credential changes are excluded. Recent activity means an
+authenticated request within the last five minutes, including background requests;
+it does not prove that a person is at the screen. Closing a browser does not
+necessarily end its session.
+
+Counts cover the configured identity store. Deployments sharing that store also
+share the counts. No usernames, session identifiers or credentials are returned.
+
 ## Access by assay and environment
 
 In user administration, **Assay and environment access** shows one assay per row

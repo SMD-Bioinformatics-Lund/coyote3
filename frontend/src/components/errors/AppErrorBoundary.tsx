@@ -5,6 +5,8 @@ import { Component, type ErrorInfo, type ReactNode } from "react"
 import { icon } from "@/lib/assets"
 
 import { Button } from "@/components/ui/button"
+import { AppFooter } from "@/components/layout/AppFooter"
+import { PageFrame } from "@/components/layout/PageFrame"
 import { reportUiError } from "@/lib/api"
 
 type Props = { children: ReactNode }
@@ -25,20 +27,23 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background p-6">
-        <section className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-sm">
-          <icon.alertTriangle className="mb-4 h-8 w-8 text-destructive" aria-hidden="true" />
-          <h1 className="text-xl font-bold text-foreground">This view could not be displayed</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            The application encountered an unexpected interface error. Reload the page to restore
-            the current view.
-          </p>
-          <Button className="mt-5" onClick={() => window.location.reload()}>
-            <icon.refreshCw className="h-4 w-4" />
-            Reload page
-          </Button>
-        </section>
-      </main>
+      <div className="flex min-h-screen flex-col bg-background">
+        <main className="flex flex-1 items-center justify-center p-6">
+          <section className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-sm">
+            <icon.alertTriangle className="mb-4 h-8 w-8 text-destructive" aria-hidden="true" />
+            <h1 className="text-xl font-bold text-foreground">This view could not be displayed</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              The application encountered an unexpected interface error. Reload the page to restore
+              the current view.
+            </p>
+            <Button className="mt-5" onClick={() => window.location.reload()}>
+              <icon.refreshCw className="h-4 w-4" />
+              Reload page
+            </Button>
+          </section>
+        </main>
+        <PageFrame><AppFooter /></PageFrame>
+      </div>
     )
   }
 }

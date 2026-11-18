@@ -168,7 +168,7 @@ class CoyoteApplication:
         self.controls = Controls(runtime, services.operations)
         self.traceability = Traceability(runtime, services.operations)
         self.credentials = Credentials(runtime, services.operations)
-        self.users = Users(runtime, services.administration.users)
+        self.users = Users(runtime, services.administration.users, services.administration.sessions)
         self.roles = Roles(runtime, services.administration.roles)
         self.permissions = Permissions(runtime, services.administration.permissions)
         self.assays = Assays(runtime, services.administration.assays)

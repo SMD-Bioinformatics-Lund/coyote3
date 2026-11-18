@@ -9,8 +9,11 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from coyote.application.operations.runtime import ApplicationRuntime
+from coyote.config.factory_defaults import factory_value
+from coyote.contracts.auth import SessionActivitySummary
 
 if TYPE_CHECKING:
+    from coyote.application.accounts.sessions import SessionActivityRepository
     from coyote.application.accounts.users import UserManagementService
 
 
@@ -18,15 +21,39 @@ class Users:
     """Authorized users operations shared by HTTP and local callers."""
 
     def __init__(
-        self, runtime: ApplicationRuntime, service: Callable[[], UserManagementService]
+        self,
+        runtime: ApplicationRuntime,
+        service: Callable[[], UserManagementService],
+        sessions: Callable[[], SessionActivityRepository],
     ) -> None:
         """Bind current-identity authorization and the host-owned service factory.
 
         Args:
             runtime: Trusted authentication, current grants and audit capabilities.
             service: Lazy operation implementation with injected repositories.
+            sessions: Read-only aggregate login-session persistence.
         """
         self._runtime, self._service = runtime, service
+        self._sessions = sessions
+
+    def session_activity(self) -> SessionActivitySummary:
+        """Return current login counts for a verified superuser.
+
+        Returns:
+            Distinct signed-in users, valid sessions and recent request activity.
+
+        Raises:
+            AppError: The session is invalid or the current actor is not a superuser.
+        """
+
+        return self._runtime.execute(
+            "users.session_activity",
+            ("user:list",),
+            lambda actor, sample: self._sessions().activity_summary(
+                recent_activity_seconds=factory_value("accounts.sessions.recent_activity_seconds")
+            ),
+            superuser_only=True,
+        )
 
     def list_users(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """Return the user list.

@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Superuser-only aggregate login activity endpoint with uncached counts and no
+  session credentials or personal account details in the response.
 - Correct finding inventory totals for scoped accounts, including sample names that
   coincide with another sample's identifier.
 - Authorize sample workspace reads with sample viewing permission; keep mutation guards separate.

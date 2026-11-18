@@ -10598,6 +10598,34 @@ export type ServiceTokenOptions = {
 };
 
 /**
+ * SessionActivitySummary
+ *
+ * Aggregate valid login sessions without exposing identities or credentials.
+ */
+export type SessionActivitySummary = {
+    /**
+     * Active Sessions
+     */
+    active_sessions: number;
+    /**
+     * Observed At
+     */
+    observed_at: string;
+    /**
+     * Recent Activity Seconds
+     */
+    recent_activity_seconds: number;
+    /**
+     * Recently Active Users
+     */
+    recently_active_users: number;
+    /**
+     * Signed In Users
+     */
+    signed_in_users: number;
+};
+
+/**
  * SharedDiagnosisCreate
  *
  * Create one shared definition and selected assay associations together.
@@ -29927,6 +29955,57 @@ export type Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch = {
 };
 
 export type Response_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch = Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch[keyof Responses_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch];
+
+export type Request_sessionActivityReadApiV1UsersSessionActivityGet = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/users/session-activity';
+};
+
+export type SessionActivityReadApiV1UsersSessionActivityGetErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type SessionActivityReadApiV1UsersSessionActivityGetError = SessionActivityReadApiV1UsersSessionActivityGetErrors[keyof SessionActivityReadApiV1UsersSessionActivityGetErrors];
+
+export type Responses_sessionActivityReadApiV1UsersSessionActivityGet = {
+    /**
+     * Successful Response
+     */
+    200: SessionActivitySummary;
+};
+
+export type Response_sessionActivityReadApiV1UsersSessionActivityGet = Responses_sessionActivityReadApiV1UsersSessionActivityGet[keyof Responses_sessionActivityReadApiV1UsersSessionActivityGet];
 
 export type Request_validateEmailChangeApiV1UsersValidateEmailPost = {
     /**

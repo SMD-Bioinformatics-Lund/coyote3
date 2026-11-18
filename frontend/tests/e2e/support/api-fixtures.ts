@@ -56,6 +56,13 @@ export async function installApiFixtures(page: Page, resolver?: ApiResolver) {
       await route.fulfill({ json: { modules: enabledModules } })
       return
     }
+    if (path === "/api/v1/users/session-activity") {
+      await route.fulfill({ json: {
+        signed_in_users: 1, active_sessions: 1, recently_active_users: 1,
+        recent_activity_seconds: 300, observed_at: new Date().toISOString(),
+      } })
+      return
+    }
     if (path === "/api/v1/public/assay-catalog/context") {
       await route.fulfill({ json: { nav_groups: [] } })
       return

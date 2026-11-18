@@ -8,6 +8,7 @@ const MODERN_VIEW_TRIED = false
 export const DEFAULT_ENVIRONMENT = "production" as const
 export const DEFAULT_TABLE_PAGE_SIZE = 200
 export const TABLE_PAGE_SIZE_OPTIONS = [25, 50, 100, DEFAULT_TABLE_PAGE_SIZE] as const
+export const SESSION_ACTIVITY_REFRESH_INTERVAL_MS = 30_000
 
 export const USER_UI_DEFAULTS = {
   theme: "auto",

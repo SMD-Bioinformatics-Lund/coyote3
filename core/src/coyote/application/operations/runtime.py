@@ -95,6 +95,7 @@ class ApplicationRuntime:
         permissions: tuple[str, ...] | None,
         action: Callable[[Any, dict[str, Any] | None], Result],
         *,
+        superuser_only: bool = False,
         sample_id: str | None = None,
         sample_permissions: Callable[[dict[str, Any]], tuple[str, ...]] | None = None,
         edit_resource: tuple[str, str] | None = None,
@@ -108,6 +109,7 @@ class ApplicationRuntime:
                 authenticated recipient-scoped operation with no catalog grant; an empty
                 tuple is invalid so omitted permission declarations fail closed.
             action: Trusted service invocation supplied by the SDK implementation.
+            superuser_only: Require current superuser membership in addition to grants.
             sample_id: Sample to reload and authorize, or None for a global operation.
             sample_permissions: Trusted resolver for additional grants on the loaded sample,
                 such as production publication; None adds no conditional grants.
@@ -143,6 +145,8 @@ class ApplicationRuntime:
                 and operation != "account.change_password"
             ):
                 raise api_error(403, "Password change required", category="auth")
+            if superuser_only and not actor.is_superuser:
+                raise api_error(403, "Superuser access required", category="auth")
             for permission in permissions:
                 enforce_access(actor, permission=permission, policy_factory=self.policy_factory)
             if sample_id is not None:

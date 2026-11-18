@@ -13,7 +13,8 @@ from coyote.contracts.admin import (
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
 )
-from fastapi import APIRouter, Body, Depends, Query
+from coyote.contracts.auth import SessionActivitySummary
+from fastapi import APIRouter, Body, Depends, Query, Response
 
 from coyote_api.app.deps.application import get_users
 from coyote_api.app.utilities.serialization import convert_to_serializable
@@ -21,6 +22,22 @@ from coyote_api.interfaces.http.tags import TAG_ADMIN_USERS
 from coyote_api.security.access import ApiUser, require_access
 
 router = APIRouter(tags=[TAG_ADMIN_USERS])
+
+
+@router.get("/api/v1/users/session-activity", response_model=SessionActivitySummary)
+def session_activity_read(
+    response: Response,
+    user: ApiUser = Depends(require_access(permission="user:list")),
+    service: Users = Depends(get_users),
+):
+    """Return aggregate login counts for superusers only.
+
+    Counts distinct accounts with valid, unexpired sessions in this identity store.
+    Recent activity measures authenticated requests, not live browser presence.
+    No usernames, session identifiers, CSRF tokens or other credentials are returned.
+    """
+    response.headers["Cache-Control"] = "no-store"
+    return service.session_activity()
 
 
 @router.get("/api/v1/users", response_model=AdminUsersListPayload)

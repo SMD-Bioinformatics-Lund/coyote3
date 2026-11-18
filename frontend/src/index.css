@@ -2236,64 +2236,6 @@
   .login-card::after {
     content: none;
   }
-
-  .login-footer {
-    @apply z-10 flex items-center gap-4 text-muted-foreground;
-    font-size: 0.82rem;
-  }
-
-  .login-footer span:last-child {
-    @apply ml-auto;
-  }
-
-  .login-organization-name {
-    @apply relative isolate inline-flex items-center px-6 py-3 font-semibold text-foreground;
-  }
-
-  .login-organization-name::before {
-    content: "";
-    @apply pointer-events-none absolute -z-10;
-    left: -0.25rem;
-    right: -0.25rem;
-    top: 50%;
-    height: 3.05rem;
-    transform: translateY(-50%) rotate(-1.1deg);
-    border-radius: 61% 39% 53% 47% / 38% 62% 41% 59%;
-    background:
-      radial-gradient(ellipse at 4% 48%, transparent 0 8%, color-mix(in srgb, var(--primary) 20%, transparent) 9% 58%, transparent 76%),
-      radial-gradient(ellipse at 96% 52%, color-mix(in srgb, var(--primary) 16%, transparent) 0 48%, transparent 74%),
-      repeating-linear-gradient(
-        176deg,
-        color-mix(in srgb, var(--primary) 7%, transparent) 0 0.16rem,
-        color-mix(in srgb, var(--primary) 22%, transparent) 0.18rem 0.3rem,
-        color-mix(in srgb, var(--primary) 10%, transparent) 0.32rem 0.46rem
-      ),
-      linear-gradient(91deg,
-        transparent 0%,
-        color-mix(in srgb, var(--primary) 18%, transparent) 6%,
-        color-mix(in srgb, var(--primary) 34%, transparent) 24%,
-        color-mix(in srgb, var(--primary) 20%, transparent) 45%,
-        color-mix(in srgb, var(--primary) 36%, transparent) 68%,
-        color-mix(in srgb, var(--primary) 16%, transparent) 93%,
-        transparent 100%);
-    clip-path: polygon(0 42%, 4% 26%, 10% 32%, 17% 18%, 24% 27%, 32% 16%, 42% 25%, 52% 18%, 61% 29%, 70% 17%, 81% 28%, 91% 18%, 100% 39%, 98% 68%, 92% 62%, 84% 76%, 76% 66%, 66% 83%, 57% 72%, 47% 88%, 37% 73%, 28% 86%, 18% 70%, 10% 82%, 3% 66%);
-    filter: blur(0.25px);
-  }
-
-  .login-organization-name::after {
-    content: "";
-    @apply pointer-events-none absolute -z-10;
-    left: 0.35rem;
-    right: 0.35rem;
-    top: 50%;
-    height: 2.55rem;
-    transform: translateY(-50%) rotate(0.35deg);
-    background:
-      linear-gradient(100deg, transparent 0 7%, color-mix(in srgb, var(--primary) 16%, transparent) 8% 19%, transparent 20% 24%, color-mix(in srgb, var(--primary) 14%, transparent) 25% 39%, transparent 40% 47%, color-mix(in srgb, var(--primary) 18%, transparent) 48% 62%, transparent 63% 69%, color-mix(in srgb, var(--primary) 13%, transparent) 70% 88%, transparent 89% 100%),
-      repeating-linear-gradient(4deg, transparent 0 0.18rem, color-mix(in srgb, white 10%, transparent) 0.2rem 0.25rem, transparent 0.27rem 0.52rem);
-    clip-path: polygon(1% 36%, 9% 28%, 20% 38%, 30% 30%, 43% 36%, 56% 27%, 66% 35%, 80% 29%, 98% 39%, 92% 58%, 80% 52%, 68% 66%, 55% 57%, 42% 69%, 28% 56%, 14% 66%, 3% 54%);
-    opacity: 0.74;
-  }
 }
 
 @media (min-width: 1600px) {
@@ -2330,12 +2272,6 @@
   }
   .login-description {
     @apply hidden;
-  }
-  .login-footer {
-    @apply flex-wrap;
-  }
-  .login-footer span:last-child {
-    @apply ml-0 w-full;
   }
 }
 

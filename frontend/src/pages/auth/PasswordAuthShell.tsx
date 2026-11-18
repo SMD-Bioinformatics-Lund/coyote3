@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { BrandLogo } from "@/components/layout/BrandLogo"
+import { AppFooter } from "@/components/layout/AppFooter"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { ReactNode } from "react"
 import { Link } from "react-router-dom"
@@ -33,11 +34,7 @@ export function AuthShell({
         <section className="login-card">{children}</section>
       </section>
 
-      <footer className="login-footer">
-        <span>Coyote4 v4.0.0</span>
-        <span className="font-semibold tracking-[0.08em] text-primary uppercase">DEVELOPMENT</span>
-        <span>Section for Molecular Diagnostics</span>
-      </footer>
+      <AppFooter />
     </main>
   )
 }

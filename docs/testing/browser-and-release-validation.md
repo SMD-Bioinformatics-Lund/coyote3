@@ -127,6 +127,8 @@ The suite exercises real HTTP requests without API interception:
 
 - Anonymous and scoped access, assay/environment separation, CSRF enforcement and
   server-side session invalidation.
+- Superuser login counts, multiple sessions for one account, logout and denial for
+  regular user administrators.
 - DNA and RNA workspaces, WGS uploads with populated CNV/translocation/SNV tables,
   persistent sanitized comments and concurrent editing.
 - HTML/PDF previews without report creation, cancellation, stale-preview rejection,

@@ -5,9 +5,19 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 from coyote.config.factory_defaults import factory_value
+
+
+class SessionActivitySummary(BaseModel):
+    """Aggregate valid login sessions without exposing identities or credentials."""
+
+    signed_in_users: int = Field(ge=0)
+    active_sessions: int = Field(ge=0)
+    recently_active_users: int = Field(ge=0)
+    recent_activity_seconds: int = Field(gt=0)
+    observed_at: AwareDatetime
 
 
 class ApiPasswordChangeRequest(BaseModel):

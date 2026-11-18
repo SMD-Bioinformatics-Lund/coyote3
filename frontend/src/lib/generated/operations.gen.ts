@@ -322,6 +322,7 @@ export type ApiOperations = {
   "POST /users": { request: T.Request_createUserApiV1UsersPost; response: T.Response_createUserApiV1UsersPost }
   "GET /users/create_context": { request: T.Request_createUserContextReadApiV1UsersCreateContextGet; response: T.Response_createUserContextReadApiV1UsersCreateContextGet }
   "PATCH /users/me/ui-settings": { request: T.Request_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch; response: T.Response_updateCurrentUiSettingsApiV1UsersMeUiSettingsPatch }
+  "GET /users/session-activity": { request: T.Request_sessionActivityReadApiV1UsersSessionActivityGet; response: T.Response_sessionActivityReadApiV1UsersSessionActivityGet }
   "POST /users/validate_email": { request: T.Request_validateEmailChangeApiV1UsersValidateEmailPost; response: T.Response_validateEmailChangeApiV1UsersValidateEmailPost }
   "POST /users/validate_username": { request: T.Request_validateUsernameChangeApiV1UsersValidateUsernamePost; response: T.Response_validateUsernameChangeApiV1UsersValidateUsernamePost }
   "DELETE /users/{user_id}": { request: T.Request_deleteUserApiV1UsersUserIdDelete; response: T.Response_deleteUserApiV1UsersUserIdDelete }

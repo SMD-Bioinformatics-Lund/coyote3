@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Count distinct valid sign-ins and recent activity independently of TTL cleanup,
+  excluding missing accounts and sessions invalidated by credential changes.
 - Scope finding inventory by serialized sample IDs, matching stored `SAMPLE_ID`
   references. Keep report-snapshot scoping by sample name and exact assay/environment grants.
 - Implement the resource retrieval port with safe field projections, scope before

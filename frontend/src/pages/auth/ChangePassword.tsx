@@ -6,6 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { icon } from "@/lib/assets"
 import { BrandLogo } from "@/components/layout/BrandLogo"
+import { AppFooter } from "@/components/layout/AppFooter"
+import { PageFrame } from "@/components/layout/PageFrame"
 import { api } from "@/lib/api"
 import { clearSessionState } from "@/lib/session-state"
 import { Button } from "@/components/ui/button"
@@ -68,7 +70,7 @@ export function ChangePassword() {
       setError("Unable to sign out. Please try again.")
     }
   }
-  return <div className="min-h-screen bg-background">
+  return <div className="flex min-h-screen flex-col bg-background">
     <EnvironmentBanner />
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-10">
       <header className="flex items-center justify-between gap-3">
@@ -106,5 +108,6 @@ export function ChangePassword() {
         </Button>
       </form>
     </main>
+    <PageFrame className="mt-auto"><AppFooter /></PageFrame>
   </div>
 }

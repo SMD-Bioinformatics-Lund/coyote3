@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from coyote.application.accounts.permissions import PermissionManagementService
     from coyote.application.accounts.roles import RoleManagementService
+    from coyote.application.accounts.sessions import SessionActivityRepository
     from coyote.application.accounts.users import UserManagementService
     from coyote.application.resources.asp import AspService
     from coyote.application.resources.aspc import AspcService
@@ -32,6 +33,7 @@ class AdministrationServices:
         self,
         *,
         users: Callable[[], UserManagementService],
+        sessions: Callable[[], SessionActivityRepository],
         roles: Callable[[], RoleManagementService],
         permissions: Callable[[], PermissionManagementService],
         assays: Callable[[], AspService],
@@ -48,6 +50,7 @@ class AdministrationServices:
 
         Args:
             users: Account lifecycle, safe forms and assignment validation.
+            sessions: Aggregate login-session counts without credentials.
             roles: Registered role and permission-assignment workflows.
             permissions: Permission-policy definitions and lifecycle workflows.
             assays: Assay-panel configuration and lifecycle workflows.
@@ -61,6 +64,7 @@ class AdministrationServices:
             reference_data: Permitted fields and metadata for managed reference resources.
         """
         self.users = users
+        self.sessions = sessions
         self.roles = roles
         self.permissions = permissions
         self.assays = assays

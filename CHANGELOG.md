@@ -2,6 +2,8 @@
 
 ## v4.0.0
 
+- Shared footer with SMD copyright and research-use notice; superuser-only login
+  activity counts in user administration, excluding expired and invalid sessions.
 - Correct permission-scoped finding counts using persisted sample IDs; reject invalid
   genotype allele fractions and keep invalid numeric evidence out of reports and CNV displays.
 - Preserve browser sessions when older requests finish late, refresh saved CNV

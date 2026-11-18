@@ -10,6 +10,7 @@ import { icon } from "@/lib/assets"
 import { Link } from "react-router-dom"
 import { adminTableColumns, adminFields } from "../resource-list"
 import { filters, columns as preferredColumns, resource as spec } from "./resource"
+import { SessionActivityPanel } from "./SessionActivityPanel"
 
 export function UsersPage() {
   const state = useAdminList({ spec, filters, preferredColumns })
@@ -24,6 +25,7 @@ export function UsersPage() {
       {canCreate && <Link to="/admin/users/create" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"><icon.plus className="h-4 w-4" />Create</Link>}
       <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted">Admin home</Link>
     </>}>
+      <SessionActivityPanel />
       <div className="glass-card p-3">
         <AdminListToolbar state={state} spec={spec} />
         <AdminListContent state={state} spec={spec}>

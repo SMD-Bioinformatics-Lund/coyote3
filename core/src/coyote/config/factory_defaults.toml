@@ -26,6 +26,9 @@ default = "production"
 [capabilities.authentication]
 providers = ["local", "ldap"]
 
+[accounts.sessions]
+recent_activity_seconds = 300
+
 [capabilities.genelist]
 standard_types = ["snv", "cnv", "fusion", "expression", "pgx"]
 adhoc_types = ["adhoc_snv", "adhoc_cnv", "adhoc_fusion", "adhoc_expression", "adhoc_pgx"]

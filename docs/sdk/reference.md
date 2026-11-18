@@ -80,7 +80,7 @@ Raises:
 ### `AdministrationServices`
 
 ```python
-AdministrationServices(*, users: 'Callable[[], UserManagementService]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', assay_setups: 'Callable[[], AssaySetupService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
+AdministrationServices(*, users: 'Callable[[], UserManagementService]', sessions: 'Callable[[], SessionActivityRepository]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', assay_setups: 'Callable[[], AssaySetupService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
 ```
 
 ```text
@@ -128,7 +128,7 @@ not values accepted from an HTTP request or an untrusted Python script.
 #### `ApplicationRuntime.execute`
 
 ```python
-ApplicationRuntime.execute(self, operation: str, permissions: tuple[str, ...] | None, action: collections.abc.Callable[[typing.Any, dict[str, typing.Any] | None], ~Result], *, sample_id: str | None = None, sample_permissions: collections.abc.Callable[[dict[str, Any]], tuple[str, ...]] | None = None, edit_resource: tuple[str, str] | None = None, editing_session_required: bool = True) -> ~Result
+ApplicationRuntime.execute(self, operation: str, permissions: tuple[str, ...] | None, action: collections.abc.Callable[[typing.Any, dict[str, typing.Any] | None], ~Result], *, superuser_only: bool = False, sample_id: str | None = None, sample_permissions: collections.abc.Callable[[dict[str, Any]], tuple[str, ...]] | None = None, edit_resource: tuple[str, str] | None = None, editing_session_required: bool = True) -> ~Result
 ```
 
 ```text
@@ -140,6 +140,7 @@ Args:
         authenticated recipient-scoped operation with no catalog grant; an empty
         tuple is invalid so omitted permission declarations fail closed.
     action: Trusted service invocation supplied by the SDK implementation.
+    superuser_only: Require current superuser membership in addition to grants.
     sample_id: Sample to reload and authorize, or None for a global operation.
     sample_permissions: Trusted resolver for additional grants on the loaded sample,
         such as production publication; None adds no conditional grants.
@@ -5343,7 +5344,7 @@ Returns:
 ### `Users`
 
 ```python
-Users(runtime: 'ApplicationRuntime', service: 'Callable[[], UserManagementService]') -> 'None'
+Users(runtime: 'ApplicationRuntime', service: 'Callable[[], UserManagementService]', sessions: 'Callable[[], SessionActivityRepository]') -> 'None'
 ```
 
 ```text
@@ -5447,6 +5448,22 @@ Returns:
 Raises:
     AppError: Authentication, required grants (user:list), validation
         or the operation's existing business rules reject the request.
+```
+
+#### `Users.session_activity`
+
+```python
+Users.session_activity(self) -> 'SessionActivitySummary'
+```
+
+```text
+Return current login counts for a verified superuser.
+
+Returns:
+    Distinct signed-in users, valid sessions and recent request activity.
+
+Raises:
+    AppError: The session is invalid or the current actor is not a superuser.
 ```
 
 #### `Users.toggle_user_status`

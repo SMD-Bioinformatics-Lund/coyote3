@@ -17,6 +17,8 @@ import { runtimeConfig } from "@/lib/runtime-config"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 import { BrandLogo } from "@/components/layout/BrandLogo"
+import { AppFooter } from "@/components/layout/AppFooter"
+import { PageFrame } from "@/components/layout/PageFrame"
 import { ADMIN_ENTRY_PERMISSIONS, hasAnyPermission, hasPermission, type CurrentUserAccess } from "@/lib/access-control"
 import { moduleIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { DEFAULT_ENVIRONMENT } from "@/lib/defaults"
@@ -585,6 +587,7 @@ export function Layout() {
         <main ref={mainScrollRef} className="app-scroll-viewport flex-1 overflow-y-auto">
           <div className="flex min-h-full w-full flex-col py-3">
             <Outlet />
+            <PageFrame className="mt-auto"><AppFooter /></PageFrame>
           </div>
         </main>
         {showBackToTop && (

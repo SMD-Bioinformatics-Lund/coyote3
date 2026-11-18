@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { EnvironmentBanner } from "@/components/layout/EnvironmentBanner"
 import { BrandLogo } from "@/components/layout/BrandLogo"
+import { AppFooter } from "@/components/layout/AppFooter"
 import { icon, illustration } from "@/lib/assets"
 import { useTheme } from "next-themes"
 import { apiPath, appPath } from "@/lib/runtime-paths"
-import { runtimeConfig } from "@/lib/runtime-config"
 import { setCsrfToken } from "@/lib/api"
 
 export function Login() {
@@ -30,7 +30,6 @@ export function Login() {
   const [error, setError] = useState("")
   const { resolvedTheme, forcedTheme } = useTheme()
   const isDark = (forcedTheme || resolvedTheme) === "dark"
-  const { appVersion, organizationName } = runtimeConfig
 
   useEffect(() => {
     let active = true
@@ -270,10 +269,7 @@ export function Login() {
           </section>
         </section>
 
-        <footer className="login-footer">
-          <span>Coyote4 {appVersion}</span>
-          <span className="login-organization-name">{organizationName}</span>
-        </footer>
+        <AppFooter />
       </main>
     </div>
   )
