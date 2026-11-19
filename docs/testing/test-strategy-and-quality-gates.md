@@ -55,6 +55,13 @@ and the sensitive-file guard. It runs for PRs into `dev` and `master`,
 pushes to `master`, and manual dispatch. One job uses cached dependencies and cancels
 superseded runs. It has no full coverage, browser, container, load or database jobs.
 
+Release PRs into `master` additionally run `release-candidate`. That workflow uses
+the same disposable database and browser runners described below, tests installed
+wheels outside the source checkout, and retains evidence for the exact candidate
+commit. The final job rejects missing jobs, failed checks and mandatory test skips.
+See [release acceptance](../project/releasing.md#prepare-the-release-pr) for artifacts
+and branch-protection requirements. It does not run on ordinary PRs into `dev`.
+
 Smoke success is early feedback, not release approval or complete clinical validation.
 The [release workflow](../project/releasing.md#choose-the-version) defines the
 version and changelog requirements, including the limited changelog-label waiver.
@@ -127,6 +134,11 @@ With `mongod` installed, the explicit runner creates disposable loopback-only re
 ```bash
 .venv/bin/python scripts/quality/run_transaction_tests.py -- -q tests/integration
 ```
+
+The runner enables MongoDB test commands only on the replicas it creates. Ingestion
+regressions use those replicas to exercise competing expired claims, stale-worker
+fencing, repeated delivery, lost commit confirmation and worker process loss before
+and after commit. Fault-injection tests refuse ordinary database targets.
 
 It supplies test settings and terminates its child processes afterwards. These tests
 cover transaction and authenticated runtime-permission behavior that an in-memory

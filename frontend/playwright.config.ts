@@ -5,8 +5,12 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: true,
+  forbidOnly: Boolean(process.env.CI),
+  failOnFlakyTests: Boolean(process.env.CI),
   workers: 2,
-  reporter: "line",
+  reporter: process.env.CI
+    ? [["line"], ["./tests/e2e-real/support/require-complete-acceptance.ts"]]
+    : "line",
   use: {
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",

@@ -1,5 +1,6 @@
 [
   {
+    "password_recovery": null,
     "email": "demo@example.org",
     "username": "demo.user",
     "firstname": "Demo",

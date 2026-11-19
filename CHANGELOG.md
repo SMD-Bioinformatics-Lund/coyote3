@@ -16,7 +16,8 @@
   maintained Atlas reference bundles, isolated Demo installations and a Python
   client for external integrations.
 - One installer for native and Docker deployments, with independent MongoDB, Redis
-  and application lifecycles, explicit connection URLs and editable uv development.
+  and application lifecycles, explicit connection URLs and editable uv development;
+  release-candidate validation covers recovery, installed artifacts and browser workflows.
 - GNU GPL v3 only licensing, with separate copyright and contributor notices.
 
 **Analysis behavior:** CNVs use gene-list/panel fallback and configurable normal-call

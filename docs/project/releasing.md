@@ -86,10 +86,24 @@ release candidate. Build the selected wheels and images using the
 [artifact procedure](../deployment/application-upgrades.md). Validate the artifacts
 that will be promoted; retain their identifiers and the test results.
 
-The GitHub workflow runs inexpensive smoke checks only. It does not replace
-clinical validation, database transaction tests, backup/restore rehearsal or
-center approval. A failed required check blocks release; document optional checks
-that were not applicable rather than recording them as passed.
+Ordinary PRs into `dev` run inexpensive smoke checks. PRs into `master` also run
+the `release-candidate` workflow; it can be dispatched manually on a candidate branch.
+It tests clinical regressions and installed wheels, exercises transactions and
+recovery against disposable MongoDB replicas, and runs browser acceptance against
+its own synthetic container stack. Mandatory tests cannot be skipped or marked as
+expected failures. Both jobs must succeed for `Release candidate acceptance` to pass.
+
+Retain the candidate artifacts: the tested wheels, their hashes, test reports,
+browser image identifiers and `acceptance.json`. Evidence is bound to the exact Git
+commit tested (the proposed merge commit for a release PR). Any changed candidate
+must be tested again. Download accepted artifacts into release storage before their
+30-day CI retention expires; do not substitute rebuilt wheels without revalidation.
+
+These automated checks do not approve clinical use or establish production storage
+controls. Record center approval, applicable clinical fixture review, backup/restore
+acceptance and the [audit checkpoint acceptance](../operations/audit-and-logging.md#scheduled-checkpoint-exports)
+result. A failed required check blocks release; record genuinely optional operational
+checks as not applicable with a reason, never as passed.
 
 ## Tag and publish
 
@@ -100,15 +114,21 @@ changes, upgrade requirements and known limitations; link the reviewed changelog
 and approved artifacts. Do not tag the development branch or include internal
 review discussions in release notes.
 
+If the merged commit SHA differs from the tested candidate, dispatch
+`release-candidate` on `master` and retain that successful evidence before tagging.
+
 Publication is a maintainer action; this repository does not automatically deploy
 or publish Python packages when a tag is created. Deploy through the center's
 [upgrade procedure](../deployment/application-upgrades.md), with a verified backup,
 rollback plan and recorded acceptance. Merge any release-only corrections back
 into `dev` so subsequent work starts from the released behavior.
 
-When configuring branch protection, require the `Smoke checks` job from the
-`quality` workflow. Remove requirements for retired job names; CI cannot update
-repository protection settings itself.
+Require `Smoke checks` on `dev` and `master`, and `Release candidate acceptance` on
+`master`. Keep `master` up to date with its target before merging so the approved
+merge candidate matches the tested tree. Do not require the release-only job on
+`dev`. A maintainer must configure these protections in GitHub after the workflow
+is published; adding its YAML does not enable branch protection. Remove requirements
+for retired job names and retain review requirements for workflow changes.
 
 ## Urgent corrections
 

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import ast
 import json
-import re
 from collections import Counter
 from pathlib import Path
 
@@ -13,15 +13,9 @@ STORE_TARGET_DIRS = (Path("api/src/coyote_api/interfaces/http"), Path("core/src/
 MONGO_LEAK_TARGET_DIRS = (
     Path("api/src/coyote_api/interfaces/http"),
     Path("core/src/coyote/domain"),
-    Path("core/src/coyote/domain"),
 )
 
-STORE_PATTERN = re.compile(r"\bstore\.")
-RETIRED_WEB_MONGO_PACKAGE = "f" + "lask_" + "pymongo"
-MONGO_IMPORT_PATTERN = re.compile(
-    r"^\s*(from|import)\s+(pymongo|bson|motor|" + RETIRED_WEB_MONGO_PACKAGE + r")\b"
-)
-OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
+MONGO_MODULES = {"pymongo", "bson", "motor", "flask_pymongo"}
 
 
 def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
@@ -36,8 +30,17 @@ def _count_store_usage_by_file() -> dict[str, int]:
     """Count store usage by file."""
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(STORE_TARGET_DIRS):
-        text = py_file.read_text(encoding="utf-8")
-        hits = len(STORE_PATTERN.findall(text))
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        hits = sum(
+            isinstance(node, ast.Attribute)
+            and (
+                isinstance(node.value, ast.Name)
+                and node.value.id == "store"
+                or isinstance(node.value, ast.Attribute)
+                and node.value.attr == "store"
+            )
+            for node in ast.walk(tree)
+        )
         if hits:
             counts[py_file.as_posix()] = hits
     return dict(sorted(counts.items()))
@@ -48,11 +51,13 @@ def _count_mongo_leaks_by_file() -> dict[str, int]:
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(MONGO_LEAK_TARGET_DIRS):
         hits = 0
-        for line in py_file.read_text(encoding="utf-8").splitlines():
-            if MONGO_IMPORT_PATTERN.search(line):
-                hits += 1
-            if OBJECT_ID_PATTERN.search(line):
-                hits += 1
+        for node in ast.walk(ast.parse(py_file.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                hits += sum(alias.name.split(".")[0] in MONGO_MODULES for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                hits += (node.module or "").split(".")[0] in MONGO_MODULES
+            elif isinstance(node, ast.Call):
+                hits += isinstance(node.func, ast.Name) and node.func.id == "ObjectId"
         if hits:
             counts[py_file.as_posix()] = hits
     return dict(sorted(counts.items()))

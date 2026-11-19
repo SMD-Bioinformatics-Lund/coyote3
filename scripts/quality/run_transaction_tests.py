@@ -64,6 +64,8 @@ def start_replica(directory: Path, name: str, processes: list[subprocess.Popen])
             "127.0.0.1",
             "--replSet",
             name,
+            "--setParameter",
+            "enableTestCommands=1",
             "--logpath",
             str(directory / "mongod.log"),
         ],

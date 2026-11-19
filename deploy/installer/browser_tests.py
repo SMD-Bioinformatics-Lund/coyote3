@@ -236,6 +236,13 @@ def _run(directory: Path) -> int:
     source_commit = runner.run(
         ["git", "rev-parse", "HEAD"], label="Record candidate source", capture=True
     ).strip()
+    source_dirty = bool(
+        runner.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            label="Check candidate source changes",
+            capture=True,
+        ).strip()
+    )
     try:
         console.log("Building and starting fresh synthetic browser services", "STEP")
         runner.run([*compose, "build"], label="Build disposable browser images")
@@ -341,6 +348,14 @@ def _run(directory: Path) -> int:
                     "databases": DEMO_DATABASES,
                     "synthetic_only": True,
                     "source_commit": source_commit,
+                    "source_dirty": source_dirty
+                    or bool(
+                        runner.run(
+                            ["git", "status", "--porcelain", "--untracked-files=no"],
+                            label="Check source after browser acceptance",
+                            capture=True,
+                        ).strip()
+                    ),
                     "images": images,
                 },
             )

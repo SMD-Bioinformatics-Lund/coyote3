@@ -118,7 +118,10 @@ npm --prefix frontend run test:smoke
 
 Run affected component suites for substantive changes. The comprehensive local
 release checks are documented in `docs/testing/test-strategy-and-quality-gates.md`.
-GitHub CI runs smoke checks; a green CI result is not clinical release acceptance.
+Ordinary GitHub PR checks run smoke tests. Release PRs into `master` also require
+the release-candidate workflow, with exact-commit evidence, installed distributions,
+disposable database tests and browser acceptance. Missing or skipped mandatory tests
+cannot pass that gate. Automated success is not clinical release acceptance.
 Keep real-database tests opt-in and restricted to explicitly disposable targets.
 Run real-service browser tests through `bash install.sh test-browser`, which creates
 and removes its own local container stack with synthetic data. Never run browser

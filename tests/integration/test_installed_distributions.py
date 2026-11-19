@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -21,12 +22,18 @@ ROOT = Path(__file__).resolve().parents[2]
 def installed_distributions(tmp_path_factory):
     """Build actual wheels and install them into separate targets with no dependency downloads."""
     root = tmp_path_factory.mktemp("installed-distributions")
+    prepared = os.environ.get("COYOTE4_TEST_WHEELS")
     wheels = root / "wheels"
-    build_sdk(
-        wheels,
-        build_isolation=False,
-        atlas_artifact=ROOT / ".release/atlas",
-    )
+    if prepared:
+        wheels.mkdir()
+        for wheel in Path(prepared).resolve().glob("*.whl"):
+            shutil.copyfile(wheel, wheels / wheel.name)
+    else:
+        build_sdk(
+            wheels,
+            build_isolation=False,
+            atlas_artifact=ROOT / ".release/atlas",
+        )
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))
     relay = next(wheels.glob("coyote_relay-*.whl"))

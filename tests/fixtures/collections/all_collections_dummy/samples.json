@@ -1,6 +1,8 @@
 [
   {
     "name": "seed_sample",
+    "legacy": false,
+    "legacy_source": null,
     "asp_id": "assay_1",
     "diagnosis_id": "base",
     "environment": "testing",
