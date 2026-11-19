@@ -154,6 +154,14 @@ class SamplesDoc(SampleManifest, _CollectionDocBase):
     """Sample ingest contract linking clinical scope, files, filters, and case/control metadata."""
 
     version: int = Field(default=1, ge=1)
+    legacy: bool = Field(
+        default=False,
+        description="Whether this sample originated in a legacy Coyote installation.",
+    )
+    legacy_source: Literal["v2", "v3"] | None = Field(
+        default=None,
+        description="Original Coyote version for a migrated sample; null for new v4 ingestion.",
+    )
     current_aspc_id: Any | None = None
     current_aspc_name: str | None = None
     aspc_resolution: SampleAspcResolutionDoc | None = None

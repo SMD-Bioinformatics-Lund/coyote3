@@ -1524,6 +1524,8 @@ Optional keys:
 - `case` (SampleCaseControlDoc)
 - `control` (coyote.contracts.sample_manifest.SampleCaseControlDoc | None)
 - `version` (int)
+- `legacy` (bool)
+- `legacy_source` (Literal['v2', 'v3'] | None)
 - `current_aspc_id` (Any | None)
 - `current_aspc_name` (str | None)
 - `aspc_resolution` (coyote.contracts.schemas.samples.SampleAspcResolutionDoc | None)
