@@ -14,7 +14,7 @@
 
 **Documentation:** [Read the guides](docs/README.md)
 
-**Source Code:** [Coyote application workspace](../../README.md)
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
 
 ---
 
