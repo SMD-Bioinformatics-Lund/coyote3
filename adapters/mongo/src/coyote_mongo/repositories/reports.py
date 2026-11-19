@@ -6,10 +6,11 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bson.objectid import ObjectId
 from coyote.application.common.execution_context import current_username
+from coyote.application.reporting.report_library import ReportLibraryRepository
 from coyote.contracts.operations import OperationResult
 from coyote.domain.exceptions import AppError
 from coyote.domain.reporting.errors import ReportCommitUncertain
@@ -23,9 +24,14 @@ from coyote_mongo.results import operation_from_delete
 from coyote_mongo.samples_cache import invalidate_samples_cache
 from coyote_mongo.transactions import run_transaction
 
+if TYPE_CHECKING:
+    from coyote_mongo.runtime_adapter import MongoAdapter
 
-class ReportRepository(BaseRepository):
+
+class ReportRepository(BaseRepository, ReportLibraryRepository):
     """Persist report metadata outside the sample document."""
+
+    adapter: MongoAdapter
 
     def __init__(self, adapter):
         """Bind report metadata and retain the adapter for related sample writes.

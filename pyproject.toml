@@ -193,9 +193,16 @@ follow_imports = "skip"
 ignore_missing_imports = true
 files = [
     "core/src/coyote/application/operations",
+    "core/src/coyote/application/ingest/worker.py",
+    "core/src/coyote/application/accounts/recovery.py",
+    "adapters/mongo/src/coyote_mongo/repositories/ingest_jobs.py",
+    "adapters/mongo/src/coyote_mongo/repositories/users.py",
+    "adapters/mongo/src/coyote_mongo/repositories/reports.py",
+    "adapters/mongo/src/coyote_mongo/repositories/reported_variants.py",
     "core/src/coyote/application/editing.py",
     "core/src/coyote/application/common/access.py",
     "api/src/coyote_api/app/application_factory.py",
+    "api/src/coyote_api/app/container.py",
     "api/src/coyote_api/app/deps/application.py",
     "api/src/coyote_api/infra/security/worker_policy.py",
     "core/src/coyote/application/accounts/common.py",
@@ -251,6 +258,23 @@ follow_imports = "normal"
 [[tool.mypy.overrides]]
 module = ["pymongo", "pymongo.*", "bson", "bson.*", "pytest", "pytest.*", "_pytest", "_pytest.*"]
 follow_imports = "normal"
+
+# Legacy repository internals are checked while their public port signatures remain
+# enforced through explicit protocol inheritance. Tighten bodies incrementally.
+[[tool.mypy.overrides]]
+module = [
+    "coyote_mongo.repositories.ingest_jobs",
+    "coyote_mongo.repositories.users",
+    "coyote_mongo.repositories.reports",
+    "coyote_mongo.repositories.reported_variants",
+    "coyote.application.accounts.recovery",
+]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+disallow_any_generics = false
+warn_return_any = false
+
 
 [tool.uv]
 # Integrated development uses the local core selected by the workspace.

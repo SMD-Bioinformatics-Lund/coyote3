@@ -5,6 +5,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -15,6 +16,10 @@ from coyote_api.app import lifecycle
 def uninitialized_runtime(monkeypatch):
     """Isolate completion state without replacing the initializer under test."""
     monkeypatch.setattr(lifecycle, "_runtime_initialized", False)
+    monkeypatch.setattr(lifecycle, "_runtime_context", None)
+    monkeypatch.setattr(lifecycle, "_runtime_mode", None)
+    monkeypatch.setattr(lifecycle, "_lifespan_owners", 0)
+    monkeypatch.setattr(lifecycle, "_process_owner", False)
 
 
 @pytest.mark.parametrize("testing", [False, True])
@@ -48,7 +53,8 @@ def test_failed_bootstrap_propagates_and_can_retry(monkeypatch, testing, pytest_
 
 def test_failed_binding_does_not_mark_runtime_ready(monkeypatch):
     """A host-context binding failure must also propagate and permit another attempt."""
-    create = Mock(side_effect=[object(), object()])
+    runtimes = [Mock(), Mock()]
+    create = Mock(side_effect=runtimes)
     bind = Mock(side_effect=[ValueError("Invalid synthetic runtime context"), None])
     monkeypatch.setattr(lifecycle, "create_runtime_context", create)
     monkeypatch.setattr(lifecycle, "bind_runtime_context", bind)
@@ -56,10 +62,85 @@ def test_failed_binding_does_not_mark_runtime_ready(monkeypatch):
     with pytest.raises(ValueError, match="Invalid synthetic runtime context"):
         lifecycle.ensure_runtime_initialized(testing=False, development=False)
     assert not lifecycle._runtime_initialized
+    runtimes[0].close.assert_called_once()
 
     lifecycle.ensure_runtime_initialized(testing=False, development=False)
     assert lifecycle._runtime_initialized
     assert create.call_count == bind.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_overlapping_applications_release_only_the_last_owner(monkeypatch):
+    """Stopping one app must not close a runtime still serving another app."""
+    runtime = Mock()
+    monkeypatch.setattr(lifecycle, "create_runtime_context", Mock(return_value=runtime))
+    monkeypatch.setattr(lifecycle, "bind_runtime_context", Mock())
+    monkeypatch.setattr(lifecycle, "initialize_storage_directories", Mock())
+    lifespan = lifecycle.create_lifespan(testing=True, development=False)
+    first, second = [SimpleNamespace(state=SimpleNamespace()) for _ in range(2)]
+    async with lifespan(first):
+        async with lifespan(second):
+            assert first.state.runtime is second.state.runtime is runtime
+            lifecycle.ensure_runtime_initialized(testing=True, development=False)
+        runtime.close.assert_not_called()
+        assert second.state.runtime is None
+    runtime.close.assert_called_once()
+    assert first.state.runtime is None
+    assert not lifecycle._runtime_initialized
+
+
+@pytest.mark.asyncio
+async def test_failed_directory_setup_releases_resources_and_allows_recreation(monkeypatch):
+    """Post-bootstrap failure must neither serve requests nor poison the next startup."""
+    runtimes = [Mock(), Mock()]
+    monkeypatch.setattr(lifecycle, "create_runtime_context", Mock(side_effect=runtimes))
+    monkeypatch.setattr(lifecycle, "bind_runtime_context", Mock())
+    monkeypatch.setattr(
+        lifecycle, "initialize_storage_directories", Mock(side_effect=[OSError("storage"), None])
+    )
+    lifespan = lifecycle.create_lifespan(testing=True, development=False)
+    application = SimpleNamespace(state=SimpleNamespace())
+    with pytest.raises(OSError, match="storage"):
+        async with lifespan(application):
+            pytest.fail("Started despite unavailable storage")
+    runtimes[0].close.assert_called_once()
+    async with lifespan(application):
+        assert application.state.runtime is runtimes[1]
+    runtimes[1].close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_incompatible_application_cannot_replace_active_runtime(monkeypatch):
+    runtime = Mock()
+    monkeypatch.setattr(lifecycle, "create_runtime_context", Mock(return_value=runtime))
+    monkeypatch.setattr(lifecycle, "bind_runtime_context", Mock())
+    monkeypatch.setattr(lifecycle, "initialize_storage_directories", Mock())
+    application = SimpleNamespace(state=SimpleNamespace())
+    async with lifecycle.create_lifespan(testing=True, development=False)(application):
+        with pytest.raises(RuntimeError, match="same mode"):
+            async with lifecycle.create_lifespan(testing=False, development=False)(
+                SimpleNamespace(state=SimpleNamespace())
+            ):
+                pytest.fail("Mixed configurations must not share process globals")
+        runtime.close.assert_not_called()
+    runtime.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_worker_owned_runtime_survives_asgi_shutdown(monkeypatch):
+    runtime = Mock()
+    monkeypatch.setattr(lifecycle, "create_runtime_context", Mock(return_value=runtime))
+    monkeypatch.setattr(lifecycle, "bind_runtime_context", Mock())
+    monkeypatch.setattr(lifecycle, "initialize_storage_directories", Mock())
+    lifecycle.ensure_runtime_initialized(testing=True, development=False)
+    async with lifecycle.create_lifespan(testing=True, development=False)(
+        SimpleNamespace(state=SimpleNamespace())
+    ):
+        pass
+    runtime.close.assert_not_called()
+    lifecycle.shutdown_runtime()
+    lifecycle.shutdown_runtime()
+    runtime.close.assert_called_once()
 
 
 def test_concurrent_startup_creates_and_binds_one_runtime(monkeypatch):

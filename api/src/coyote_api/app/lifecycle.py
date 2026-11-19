@@ -5,21 +5,26 @@
 
 from __future__ import annotations
 
+import atexit
 import threading
 from contextlib import asynccontextmanager
 from importlib import import_module
 
-from coyote_api.app.runtime_setup import create_runtime_context
-from coyote_api.app.runtime_state import bind_runtime_context
+from coyote_api.app.runtime_setup import ApiRuntimeContext, create_runtime_context
+from coyote_api.app.runtime_state import bind_runtime_context, clear_runtime_context
 from coyote_api.config.paths import initialize_storage_directories
 
-_runtime_bootstrap_lock = threading.Lock()
+_runtime_bootstrap_lock = threading.RLock()
 _runtime_initialized = False
+_runtime_context: ApiRuntimeContext | None = None
+_runtime_mode: tuple[bool, bool] | None = None
+_lifespan_owners = 0
+_process_owner = False
 
 ROUTE_MODULE_PATHS: tuple[str, ...] = ()
 
 
-def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
+def ensure_runtime_initialized(*, testing: bool, development: bool) -> ApiRuntimeContext:
     """Initialize runtime dependencies once for the process.
 
     Args:
@@ -35,15 +40,57 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
         have been created and bound successfully. Test hosts must supply their
         dependencies explicitly; the presence of a test runner changes no behavior.
     """
-    global _runtime_initialized
-    if _runtime_initialized:
-        return
+    global _runtime_initialized, _runtime_context, _runtime_mode, _process_owner
     with _runtime_bootstrap_lock:
         if _runtime_initialized:
-            return
+            if _runtime_mode != (testing, development):
+                raise RuntimeError("Active runtimes in one process must use the same mode")
+            assert _runtime_context is not None
+            return _runtime_context
         runtime_context = create_runtime_context(testing=testing, development=development)
-        bind_runtime_context(runtime_context)
+        try:
+            bind_runtime_context(runtime_context)
+        except BaseException:
+            try:
+                runtime_context.close()
+            except Exception:
+                runtime_context.logger.exception("Runtime cleanup failed after binding error")
+            finally:
+                clear_runtime_context()
+            raise
+        _runtime_context = runtime_context
+        _runtime_mode = (testing, development)
+        _process_owner = _lifespan_owners == 0
         _runtime_initialized = True
+        return runtime_context
+
+
+def shutdown_runtime() -> None:
+    """Release a worker's process ownership without closing active ASGI lifespans."""
+    global _process_owner
+    with _runtime_bootstrap_lock:
+        _process_owner = False
+        if _lifespan_owners == 0:
+            _close_runtime()
+
+
+def _close_runtime() -> None:
+    """Clear shared composition and close connections while holding the runtime lock."""
+    global _runtime_initialized, _runtime_context, _runtime_mode
+    if _runtime_context is None:
+        return
+    from coyote_api.app.deps.services import clear_service_caches
+
+    runtime, _runtime_context = _runtime_context, None
+    _runtime_initialized = False
+    _runtime_mode = None
+    clear_service_caches()
+    clear_runtime_context()
+    if runtime is not None:
+        runtime.close()
+
+
+atexit.register(shutdown_runtime)
 
 
 def register_route_modules() -> None:
@@ -70,19 +117,28 @@ def create_lifespan(*, testing: bool, development: bool):
 
     @asynccontextmanager
     async def _lifespan(_app):
-        """Initialize runtime dependencies before serving requests.
+        """Share the process runtime until its final owner finishes serving requests.
 
-        Args:
-            _app: FastAPI application supplied by the lifespan protocol, unused.
-
-        Yields:
-            None after bootstrap, allowing the application to serve requests.
-
-        Notes:
-            Uses the factory's testing/development flags and performs no teardown.
+        Existing providers remain process-scoped. App state exposes the owned
+        context explicitly; concurrent applications must use identical settings.
         """
-        ensure_runtime_initialized(testing=testing, development=development)
-        initialize_storage_directories()
-        yield
+        global _lifespan_owners
+        acquired = False
+        try:
+            with _runtime_bootstrap_lock:
+                _lifespan_owners += 1
+                acquired = True
+                runtime = ensure_runtime_initialized(testing=testing, development=development)
+                _app.state.runtime = runtime
+            initialize_storage_directories()
+            yield
+        finally:
+            if acquired:
+                if _app is not None:
+                    _app.state.runtime = None
+                with _runtime_bootstrap_lock:
+                    _lifespan_owners -= 1
+                    if _lifespan_owners == 0 and not _process_owner:
+                        _close_runtime()
 
     return _lifespan

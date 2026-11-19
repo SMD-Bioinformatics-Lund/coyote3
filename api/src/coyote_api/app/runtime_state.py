@@ -44,6 +44,12 @@ def bind_runtime_context(runtime_context) -> None:
     app.cache = getattr(runtime_context, "cache", None)
 
 
+def clear_runtime_context() -> None:
+    """Remove settings and resources after the final runtime owner exits."""
+    app.config = {}
+    app.cache = None
+
+
 def set_current_user(user: Any) -> Token:
     """Bind the user to the current execution context.
 

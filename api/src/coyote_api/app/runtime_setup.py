@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any
 
@@ -16,7 +16,7 @@ from coyote.config.constants import AUTH_PROVIDER_LDAP, AUTH_TYPE_OPTIONS
 from coyote.config.factory_defaults import factory_value
 from pymongo.errors import AutoReconnect, ConnectionFailure, NetworkTimeout
 
-from coyote_api.app.container import ldap_manager, store
+from coyote_api.app.container import MongoStore, ldap_manager, store
 from coyote_api.config import runtime_settings
 from coyote_api.config.backend import BackendSettings
 from coyote_api.config.factory_defaults import api_default
@@ -32,6 +32,19 @@ class ApiRuntimeContext:
     config: dict[str, Any]
     logger: logging.Logger
     cache: Any | None = None
+    store: MongoStore = field(default_factory=lambda: store)
+    _adapter: Any | None = field(default=None, init=False, repr=False)
+
+    def close(self) -> None:
+        """Release only this context's connections, including partial startup."""
+        cache, self.cache = self.cache, None
+        adapter, self._adapter = self._adapter, None
+        try:
+            if adapter is not None and self.store._adapter is adapter:
+                self.store.reset()
+        finally:
+            if cache is not None:
+                cache.close()
 
     @cached_property
     def backend_settings(self) -> BackendSettings:
@@ -63,7 +76,7 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     Notes:
         Configures process logging, initializes cache and MongoDB, optionally
         initializes LDAP, and initializes shared utilities. Records startup timings.
-        Dependency setup errors propagate; partial initialization is not rolled back.
+        Dependency setup errors propagate after releasing resources already acquired.
     """
     startup_started = time.perf_counter()
     config_obj = _select_config(testing=testing, development=development)
@@ -97,26 +110,34 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
         conf.get("BUILD_TIME", "unknown"),
     )
 
-    phase_started = time.perf_counter()
-    _init_cache(runtime)
-    set_startup_phase_duration(
-        phase="cache", duration_ms=(time.perf_counter() - phase_started) * 1000.0
-    )
-    phase_started = time.perf_counter()
-    _init_store(runtime)
-    set_startup_phase_duration(
-        phase="database_and_indexes",
-        duration_ms=(time.perf_counter() - phase_started) * 1000.0,
-    )
-    if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS:
+    try:
         phase_started = time.perf_counter()
-        ldap_manager.init_from_config(runtime.config)
+        _init_cache(runtime)
         set_startup_phase_duration(
-            phase="ldap", duration_ms=(time.perf_counter() - phase_started) * 1000.0
+            phase="cache", duration_ms=(time.perf_counter() - phase_started) * 1000.0
         )
-    total_ms = (time.perf_counter() - startup_started) * 1000.0
-    set_startup_phase_duration(phase="total", duration_ms=total_ms)
-    logger.info("runtime_initialized duration_ms=%.2f", total_ms)
+        phase_started = time.perf_counter()
+        _init_store(runtime)
+        runtime._adapter = runtime.store._adapter
+        set_startup_phase_duration(
+            phase="database_and_indexes",
+            duration_ms=(time.perf_counter() - phase_started) * 1000.0,
+        )
+        if AUTH_PROVIDER_LDAP in AUTH_TYPE_OPTIONS:
+            phase_started = time.perf_counter()
+            ldap_manager.init_from_config(runtime.config)
+            set_startup_phase_duration(
+                phase="ldap", duration_ms=(time.perf_counter() - phase_started) * 1000.0
+            )
+        total_ms = (time.perf_counter() - startup_started) * 1000.0
+        set_startup_phase_duration(phase="total", duration_ms=total_ms)
+        logger.info("runtime_initialized duration_ms=%.2f", total_ms)
+    except BaseException:
+        try:
+            runtime.close()
+        except Exception:
+            logger.exception("Runtime cleanup failed after startup error")
+        raise
 
     return runtime
 

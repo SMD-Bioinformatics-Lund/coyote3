@@ -51,7 +51,7 @@ with center vocabulary, sequencing policy, clinical filters and persistence
 requirements. Base installation uses Pydantic, PyYAML and bleach; reporting and
 alignment/VCF libraries are optional dependency extras.
 The separate `coyote-pyclient` repository owns the independent HTTP-only client.
-The external `coyote-relay` repository builds `coyote-relay`, with submission commands and separately
+The workspace's `services/relay/` package builds `coyote-relay`, with submission commands and separately
 installable ingestion workers. Workers use server composition through the optional
 worker dependency; API code publishes task messages without importing worker code.
 Relay's optional API integration supplies ingestion routers through installed
@@ -67,6 +67,14 @@ policy remains in core. `services/demo/` owns synthetic datasets and demonstrati
 installation. Its optional routes activate only after explicit isolated-target
 configuration, and its runtime guard checks credential scope before connecting the
 application. Installing a package does not start a separate network service.
+
+API dependencies remain process-scoped. Each FastAPI lifespan holds a runtime reference
+in `app.state.runtime`; overlapping instances share it and must use the same configuration.
+The final owner closes MongoDB and Redis connections and clears cached services. Partial
+startup is cleaned up before errors propagate. Worker processes retain their own runtime
+until shutdown. Separate configurations require separate processes; application state does
+not yet provide independent stores within one process.
+
 See [installation boundaries](../core/server-installation.md) and
 [editable uv development](../core/uv-development.md).
 

@@ -4,8 +4,10 @@
 """MongoDB-backed delivery ledger and fenced completion receipts for sample ingestion."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import uuid4
 
+from coyote.application.ingest.worker import IngestJobRepository
 from coyote.contracts.schemas.ingest_jobs import IngestJobDoc
 from pymongo import ReturnDocument
 from pymongo.write_concern import WriteConcern
@@ -13,7 +15,7 @@ from pymongo.write_concern import WriteConcern
 from coyote_mongo.repositories.base import BaseRepository
 
 
-class IngestJobsRepository(BaseRepository):
+class IngestJobsRepository(BaseRepository, IngestJobRepository):
     """Persist ingest deliveries and claim pending or expired work with lease tokens."""
 
     def __init__(self, adapter):
@@ -93,7 +95,7 @@ class IngestJobsRepository(BaseRepository):
         ).update_one({"_id": identity}, {"$setOnInsert": document}, upsert=True)
         return identity
 
-    def get(self, job_id):
+    def get(self, job_id: str) -> dict[str, Any] | None:
         """Look up a delivery ledger entry by exact job ID.
 
         Args:
@@ -104,7 +106,7 @@ class IngestJobsRepository(BaseRepository):
         """
         return self.get_collection().find_one({"_id": job_id})
 
-    def claim(self, job_id, *, lease_seconds):
+    def claim(self, job_id: str, *, lease_seconds: int) -> dict[str, Any] | None:
         """Atomically claim pending work or replace an expired running lease.
 
         Args:
@@ -136,7 +138,7 @@ class IngestJobsRepository(BaseRepository):
             return_document=ReturnDocument.AFTER,
         )
 
-    def complete(self, job_id, lease_token, result, session):
+    def complete(self, job_id: str, lease_token: str, result: dict[str, Any], session: Any) -> None:
         """Fence stale workers and commit the receipt with the clinical writes."""
         updated = self.get_collection().update_one(
             {"_id": job_id, "state": "running", "lease_token": lease_token},
@@ -199,7 +201,7 @@ class IngestJobsRepository(BaseRepository):
             ID and kind projections for pending jobs and running jobs with expired leases.
         """
         now = datetime.now(timezone.utc)
-        selector = {
+        selector: dict[str, Any] = {
             "$or": [{"state": "pending"}, {"state": "running", "lease_until": {"$lte": now}}]
         }
         if kinds is not None:

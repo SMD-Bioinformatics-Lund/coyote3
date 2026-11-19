@@ -140,6 +140,11 @@ class MongoRuntime:
 class MongoAdapter:
     """Own persistence connections and repositories for an explicitly configured host."""
 
+    ingest_jobs_repository: IngestJobsRepository
+    user_repository: UsersRepository
+    report_repository: ReportRepository
+    reported_variant_repository: ReportedVariantsRepository
+
     def __init__(self, *, operation_observer: Callable[..., None] | None = None) -> None:
         """Initialize without opening database connections.
 

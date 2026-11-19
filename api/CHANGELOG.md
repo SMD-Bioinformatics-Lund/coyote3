@@ -2,6 +2,9 @@
 
 ## v1.0.0
 
+- Release runtime connections and cached services after shutdown or failed startup;
+  share ownership across overlapping ASGI lifespans and close worker resources on exit.
+- Type-check ingestion, account recovery and saved-report repository contracts.
 - Superuser-only aggregate login activity endpoint with uncached counts and no
   session credentials or personal account details in the response.
 - Correct finding inventory totals for scoped accounts, including sample names that

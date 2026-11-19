@@ -5,9 +5,18 @@
 
 from typing import Any
 
-from coyote_api.app.lifecycle import ensure_runtime_initialized
+from celery.signals import worker_process_shutdown, worker_shutdown
+
+from coyote_api.app.lifecycle import ensure_runtime_initialized, shutdown_runtime
 from coyote_api.app.utilities.serialization import convert_to_serializable
 from coyote_api.config.security import get_runtime_mode_flags
+
+
+@worker_process_shutdown.connect
+@worker_shutdown.connect
+def close_worker_runtime(**_kwargs: Any) -> None:
+    """Close dependencies owned by an exiting Celery child or solo worker."""
+    shutdown_runtime()
 
 
 def ensure_worker_runtime() -> None:

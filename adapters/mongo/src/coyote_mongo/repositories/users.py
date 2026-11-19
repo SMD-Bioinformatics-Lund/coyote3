@@ -16,7 +16,9 @@ It is part of the MongoDB infrastructure layer.
 # -------------------------------------------------------------------------
 import re
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
+from coyote.application.accounts.recovery import RecoveryRepository
 from coyote.config.constants import AUTH_PROVIDER_LOCAL
 from coyote.contracts.operations import OperationResult
 from pymongo import ReturnDocument
@@ -28,17 +30,22 @@ from coyote_mongo.results import (
     operation_from_update,
 )
 
-
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class UsersRepository(BaseRepository):
+if TYPE_CHECKING:
+    from coyote_mongo.runtime_adapter import MongoAdapter
+
+
+class UsersRepository(BaseRepository, RecoveryRepository):
     """
     The UsersRepository class provides methods to manage user data in the database.
 
     This class includes functionality for retrieving, creating, updating, and deleting user records,
     as well as managing user-specific attributes such as passwords, active status, and last login timestamps.
     """
+
+    adapter: MongoAdapter
 
     def __init__(self, adapter):
         """
@@ -123,7 +130,7 @@ class UsersRepository(BaseRepository):
         doc = self.get_collection().find_one({"username": normalized})
         return dict(doc) if doc else None
 
-    def user(self, user_mail: str) -> dict:
+    def user(self, user_mail: str) -> dict | None:
         """
         Retrieves a user document from the database by email.
         Args:

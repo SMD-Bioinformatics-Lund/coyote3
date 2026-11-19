@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from coyote.application.common.observability import timed_operation
 from coyote.application.ingest.failures import ingest_failure_message
@@ -144,7 +144,7 @@ class IngestJobRunner:
         if existing["state"] == "succeeded":
             if existing.get("staging_dir"):
                 self.cleanup_staging(existing["staging_dir"])
-            return existing["result"]
+            return cast(dict[str, Any], existing["result"])
         if existing["state"] == "failed":
             raise ValueError(existing.get("error") or "Ingest job failed")
         job = repository.claim(job_id, lease_seconds=self.lease_seconds)

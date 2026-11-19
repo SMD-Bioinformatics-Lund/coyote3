@@ -115,6 +115,7 @@ def authorized_operations(resource, service, user=None):
     exercise real grants, scope changes and session revocation independently.
     """
     from coyote.application.operations.account import Account
+    from coyote.application.operations.administration.users import Users
     from coyote.application.operations.knowledgebase import Knowledgebase
     from coyote.application.operations.system import (
         Controls,
@@ -133,6 +134,8 @@ def authorized_operations(resource, service, user=None):
         return resource(runtime, lambda: service, change_account_password)
     if resource is Knowledgebase:
         return resource(runtime, lambda: service, search_limit=1000)
+    if resource is Users:
+        return resource(runtime, lambda: service, sessions=Mock(), recovery=Mock())
     if resource in {Controls, Credentials, Dashboard, Installation, Traceability}:
         ports = SimpleNamespace(
             dashboard=lambda: service,

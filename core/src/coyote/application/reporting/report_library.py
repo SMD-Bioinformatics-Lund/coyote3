@@ -5,15 +5,51 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from coyote.domain.identity.assay_access import grants_for
+
+
+class ReportLibraryRepository(Protocol):
+    """Read saved reports under explicit assay and environment scopes."""
+
+    def list_reports_page(
+        self,
+        *,
+        asp_ids: list[str] | None,
+        environments: list[str] | None,
+        search: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        assay_access: list[dict[str, Any]] | None = None,
+    ) -> tuple[list[dict[str, Any]], int]: ...
+
+
+class ReportSummaryRepository(Protocol):
+    """Summarize immutable findings for explicitly selected saved reports."""
+
+    def summarize_reports(self, report_oids: list[Any]) -> dict[str, dict[str, Any]]: ...
+
+
+class ReportLibraryStore(Protocol):
+    """The repository subset required to compose the report library."""
+
+    @property
+    def report_repository(self) -> ReportLibraryRepository: ...
+
+    @property
+    def reported_variant_repository(self) -> ReportSummaryRepository: ...
 
 
 class ReportLibraryService:
     """List saved reports and their immutable finding snapshot summaries."""
 
-    def __init__(self, *, report_repository: Any, reported_variant_repository: Any) -> None:
+    def __init__(
+        self,
+        *,
+        report_repository: ReportLibraryRepository,
+        reported_variant_repository: ReportSummaryRepository,
+    ) -> None:
         """Bind saved-report listing to report and finding-snapshot repositories.
 
         Args:
@@ -24,7 +60,7 @@ class ReportLibraryService:
         self.reported_variant_repository = reported_variant_repository
 
     @classmethod
-    def from_store(cls, store: Any) -> "ReportLibraryService":
+    def from_store(cls, store: ReportLibraryStore) -> "ReportLibraryService":
         """Build the service from the runtime repository store."""
         return cls(
             report_repository=store.report_repository,

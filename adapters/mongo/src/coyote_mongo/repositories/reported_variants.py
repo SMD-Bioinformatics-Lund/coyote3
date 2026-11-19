@@ -24,8 +24,9 @@ Collection purpose
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
+from coyote.application.reporting.report_library import ReportSummaryRepository
 from coyote.contracts.operations import OperationResult
 from coyote.contracts.schemas.dna import ReportedVariantsDoc
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
@@ -137,7 +138,11 @@ def _reported_variant_search_query(
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class ReportedVariantsRepository(BaseRepository):
+if TYPE_CHECKING:
+    from coyote_mongo.runtime_adapter import MongoAdapter
+
+
+class ReportedVariantsRepository(BaseRepository, ReportSummaryRepository):
     """
     MongoDB handler for typed report finding snapshots.
 
@@ -153,6 +158,8 @@ class ReportedVariantsRepository(BaseRepository):
     - Sample metadata remains in `samples` and full variant payload remains in `variants`.
       This collection stores identifiers + snapshot tier + small query helper fields.
     """
+
+    adapter: MongoAdapter
 
     def __init__(self, adapter: Any):
         """
@@ -291,7 +298,7 @@ class ReportedVariantsRepository(BaseRepository):
         """Return finding totals and analysis-type counts for report object ids."""
         if not report_oids:
             return {}
-        pipeline = [
+        pipeline: list[dict[str, Any]] = [
             {"$match": {"report_oid": {"$in": report_oids}}},
             {
                 "$group": {
@@ -598,7 +605,7 @@ class ReportedVariantsRepository(BaseRepository):
         }
         """
         col = self.get_collection()
-        pipeline = [
+        pipeline: list[dict[str, Any]] = [
             {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
             {
                 "$facet": {
@@ -631,9 +638,9 @@ class ReportedVariantsRepository(BaseRepository):
 
         by_assay: dict[str, dict[str, int]] = {}
         for row in doc.get("by_assay", []) or []:
-            key = row.get("_id") or {}
-            assay = str(key.get("assay") or "Unknown")
-            tier = key.get("tier")
+            grouping = row.get("_id") or {}
+            assay = str(grouping.get("assay") or "Unknown")
+            tier = grouping.get("tier")
             tier_key = f"tier{tier}"
             if assay not in by_assay:
                 by_assay[assay] = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}

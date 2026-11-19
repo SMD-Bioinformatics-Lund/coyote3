@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from coyote.domain.repository_protocols import (
     AssayConfigurationRepositoryProtocol,
@@ -14,6 +14,15 @@ from coyote.domain.repository_protocols import (
 )
 
 from coyote_api.infra.integrations.ldap import LdapManager
+
+if TYPE_CHECKING:
+    from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
+    from coyote_mongo.repositories.reported_variants import ReportedVariantsRepository
+    from coyote_mongo.repositories.reports import ReportRepository
+    from coyote_mongo.repositories.users import UsersRepository
+    from coyote_mongo.runtime_adapter import MongoAdapter
+
+    from coyote_api.app.runtime_setup import ApiRuntimeContext
 
 
 class _LazyRepositoryProxy:
@@ -29,7 +38,7 @@ class _LazyRepositoryProxy:
             A callable that raises RuntimeError when invoked, not on lookup.
         """
 
-        def _missing(*_args, **_kwargs):
+        def _missing(*_args: object, **_kwargs: object) -> None:
             """Reject calls to an uninitialized repository.
 
             Args:
@@ -65,7 +74,7 @@ class MongoStore:
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
-    ingest_jobs_repository: Any
+    ingest_jobs_repository: IngestJobsRepository
     public_assay_catalog_repository: Any
     public_assay_catalog_version_repository: Any
     public_assay_catalog_revision_repository: Any
@@ -89,8 +98,8 @@ class MongoStore:
     oncokb_repository: Any
     permissions_repository: Any
     notification_repository: Any
-    reported_variant_repository: Any
-    report_repository: Any
+    reported_variant_repository: ReportedVariantsRepository
+    report_repository: ReportRepository
     rna_classification_repository: Any
     rna_expression_repository: Any
     rna_quality_repository: Any
@@ -99,7 +108,7 @@ class MongoStore:
     sample_comment_repository: Any
     finding_comment_repository: Any
     translocation_repository: Any
-    user_repository: Any
+    user_repository: UsersRepository
     variant_repository: VariantsRepositoryProtocol
     vep_metadata_repository: Any
 
@@ -155,6 +164,8 @@ class MongoStore:
         "vep_metadata_repository",
     )
 
+    _adapter: MongoAdapter | None
+
     def __init__(self) -> None:
         """Initialize empty database handles and deferred-failure repository proxies."""
         self.reset()
@@ -162,9 +173,10 @@ class MongoStore:
     def reset(self) -> None:
         """Close any bound adapter and replace database handles and repository proxies."""
         previous = getattr(self, "_adapter", None)
-        if previous is not None:
-            previous.close()
-        self._adapter: Any | None = None
+        self._adapter = None
+        for name in getattr(self, "_bound_names", ()):
+            self.__dict__.pop(name, None)
+        self._bound_names: set[str] = set()
         self.client = None
         self.coyote_db = None
         self.identity_db = None
@@ -172,8 +184,10 @@ class MongoStore:
         self.bam_db = None
         for name in self._repository_names:
             setattr(self, name, _LazyRepositoryProxy())
+        if previous is not None:
+            previous.close()
 
-    def init_from_app(self, runtime: Any) -> None:
+    def init_from_app(self, runtime: ApiRuntimeContext) -> None:
         """Initialize and ping a Mongo adapter before exposing its public attributes.
 
         Args:
@@ -184,8 +198,8 @@ class MongoStore:
                 adapter is closed and the failure is logged before raising.
 
         Notes:
-            Adapter setup failures propagate. Successful setup replaces public
-            store attributes but does not close an adapter previously bound here.
+            Failed setup preserves the previous binding. Successful replacement
+            closes the old adapter and removes its public attributes.
         """
         from coyote_mongo.runtime_adapter import MongoAdapter
         from pymongo.errors import ConnectionFailure
@@ -193,21 +207,30 @@ class MongoStore:
         from coyote_api.infra.observability.prometheus_metrics import observe_operation
 
         adapter = MongoAdapter(operation_observer=observe_operation)
-        adapter.initialize(
-            runtime.backend_settings.mongo,
-            logger=runtime.logger,
-            cache=runtime.cache,
-        )
         try:
+            adapter.initialize(
+                runtime.backend_settings.mongo,
+                logger=runtime.logger,
+                cache=runtime.cache,
+            )
             adapter.ping()
         except ConnectionFailure as exc:
             adapter.close()
             runtime.logger.error("MongoDB connection failed: %s", exc)
             raise RuntimeError("Could not connect to MongoDB.") from exc
+        except BaseException:
+            adapter.close()
+            raise
+        try:
+            self.reset()
+        except BaseException:
+            adapter.close()
+            raise
         self._adapter = adapter
         for name, value in adapter.__dict__.items():
             if not name.startswith("_"):
                 setattr(self, name, value)
+                self._bound_names.add(name)
 
 
 store = MongoStore()

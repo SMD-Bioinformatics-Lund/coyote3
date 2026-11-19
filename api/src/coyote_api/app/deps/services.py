@@ -3,6 +3,7 @@
 
 """Service dependency factories."""
 
+from collections.abc import Callable
 from functools import lru_cache, partial
 from typing import TypeVar
 from urllib.parse import urlsplit
@@ -78,6 +79,20 @@ from coyote_api.security.passwords import hash_password
 from coyote_api.services.provisioning.deployment_data import DeploymentDataService
 
 ServiceT = TypeVar("ServiceT")
+_service_cache_clearers: list[Callable[[], None]] = []
+
+
+def _runtime_cached(factory: Callable[[], ServiceT]):
+    """Cache a service until its owning runtime shuts down."""
+    cached = lru_cache()(factory)
+    _service_cache_clearers.append(cached.cache_clear)
+    return cached
+
+
+def clear_service_caches() -> None:
+    """Discard services holding repositories from a closed runtime."""
+    for clear in _service_cache_clearers:
+        clear()
 
 
 def _observed(service: ServiceT) -> ServiceT:
@@ -93,7 +108,7 @@ def _observed(service: ServiceT) -> ServiceT:
     return service
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_user_service() -> UserManagementService:
     """Return the admin user-management service."""
     from coyote_api.security.password_flows import issue_password_token_for_user, notify_user_change
@@ -106,19 +121,19 @@ def get_admin_user_service() -> UserManagementService:
     )
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_role_service() -> RoleManagementService:
     """Return the admin role-management service."""
     return RoleManagementService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_permission_management_service() -> PermissionManagementService:
     """Return the permission-management service."""
     return PermissionManagementService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_panel_service() -> AspService:
     """Return the assay-panel management service."""
     return AspService.from_store(get_store())
@@ -139,25 +154,25 @@ def get_assay_setup_service() -> AssaySetupService:
     return AssaySetupService(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_genelist_service() -> IsglService:
     """Return the genelist management service."""
     return IsglService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_aspc_service() -> AspcService:
     """Return the assay-configuration management service."""
     return AspcService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_configuration_profile_service() -> ConfigurationProfileService:
     """Return reusable source-profile authoring and publication workflows."""
     return ConfigurationProfileService(get_store().configuration_profile_repository)
 
 
-@lru_cache
+@_runtime_cached
 def get_configuration_promotion_service() -> ConfigurationPromotionService:
     """Return exact-source environment promotion and independent approval workflows."""
     store = get_store()
@@ -166,7 +181,7 @@ def get_configuration_promotion_service() -> ConfigurationPromotionService:
     )
 
 
-@lru_cache
+@_runtime_cached
 def get_admin_sample_service() -> ResourceSampleService:
     """Return the admin sample-management service."""
     from coyote_mongo.repositories.sample_deletion import SampleDeletionRepository
@@ -178,7 +193,7 @@ def get_admin_sample_service() -> ResourceSampleService:
     return _observed(ResourceSampleService.from_store(store, sample_deleter=deletion.delete))
 
 
-@lru_cache
+@_runtime_cached
 def get_resource_field_service() -> ResourceFieldService:
     """Return individual read-only metadata fields for service-facing resource lookups."""
     return ResourceFieldService.from_store(get_store())
@@ -191,13 +206,13 @@ def get_admin_public_assay_catalog_service() -> PublicAssayCatalogManagementServ
     return service
 
 
-@lru_cache
+@_runtime_cached
 def get_coverage_service() -> CoverageService:
     """Return the coverage service."""
     return CoverageService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_dashboard_service() -> DashboardService:
     """Return the dashboard service."""
     return _observed(
@@ -228,7 +243,7 @@ def get_resource_annotation_service() -> ResourceAnnotationService:
     return ResourceAnnotationService.from_store(get_store())
 
 
-@lru_cache
+@_runtime_cached
 def get_sample_catalog_service() -> SampleCatalogService:
     """Return the sample-catalog service."""
     return _observed(
@@ -281,7 +296,7 @@ def get_common_query_service() -> CommonQueryService:
     return _observed(CommonQueryService.from_store(get_store()))
 
 
-@lru_cache
+@_runtime_cached
 def get_public_catalog_service() -> PublicCatalogService:
     """Return the public catalog service."""
     return PublicCatalogService.from_store(get_store())
@@ -661,7 +676,7 @@ def get_public_variant_annotations() -> PublicVariantAnnotations:
     )
 
 
-@lru_cache
+@_runtime_cached
 def get_resource_read_repository() -> MongoResourceReadRepository:
     """Bind safe metadata retrieval to the host's configured collections."""
     return MongoResourceReadRepository(get_store())

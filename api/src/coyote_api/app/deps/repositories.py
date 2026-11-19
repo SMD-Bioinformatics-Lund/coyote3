@@ -3,10 +3,10 @@
 
 """Low-level repository dependency getters."""
 
-from coyote_api.app.container import store
+from coyote_api.app.container import MongoStore, store
 
 
-def get_store():
+def get_store() -> MongoStore:
     """Return the shared application store."""
     return store
 

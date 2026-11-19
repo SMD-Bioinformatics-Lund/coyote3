@@ -26,6 +26,9 @@ class DisabledCacheBackend:
         """
         self.reason = reason
 
+    def close(self) -> None:
+        """No connections are owned by the disabled backend."""
+
     def get(self, _key: str) -> Any | None:
         """Return a cache miss without contacting a backend.
 
@@ -103,6 +106,10 @@ class RedisCacheBackend:
         self._key_prefix = key_prefix.rstrip(":")
         self._default_timeout = int(default_timeout)
         self._logger = logger
+
+    def close(self) -> None:
+        """Release this backend's client and connection pool."""
+        self._client.close()
 
     def _key(self, key: str) -> str:
         """Prefix an entry name with the backend namespace.
@@ -255,6 +262,7 @@ def create_cache_backend(
     )
     full_prefix = f"{key_prefix}:{namespace}"
 
+    client = None
     try:
         client = redis.Redis.from_url(
             redis_url,
@@ -265,6 +273,8 @@ def create_cache_backend(
         )
         client.ping()
     except Exception as exc:
+        if client is not None:
+            client.close()
         if cache_required:
             raise RuntimeError(
                 f"cache_backend_unavailable namespace={namespace} reason=connection_failed"
