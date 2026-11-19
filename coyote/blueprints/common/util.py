@@ -216,27 +216,42 @@ class BPCommonUtility:
                     text += "\n\n"
                 else:
                     text += "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.\n\n"
-            elif section == "cnvs" and len(summary_sections_data["cnvs"]) > 0:
-                heading = (
-                    "Kopietalsprofil:"
-                    if tumwgs_summary
-                    else "Kliniskt relevanta genspecifika kopietalsförändringar:"
-                )
-                text += f"**{heading}**\n"
-                text += BPCommonUtility.summarize_cnv(summary_sections_data["cnvs"])
-                text += "\n"
-            elif section == "translocs" and len(summary_sections_data["translocs"]) > 0:
-                heading = (
-                    "Fusionsgener:"
-                    if tumwgs_summary
-                    else "Kliniskt relevanta genspecifika DNA-fusioner:"
-                )
-                text += f"**{heading}**\n"
-                transloc_text = BPCommonUtility.summarize_transloc(
-                    summary_sections_data["translocs"]
-                )
-                text += transloc_text.lstrip("\n") if tumwgs_summary else transloc_text
-                text += "\n"
+            elif section == "cnvs":
+                cnvs = summary_sections_data["cnvs"]
+                if tumwgs_summary:
+                    # WGS: always show the heading, with a default sentence when
+                    # no clinically relevant CNVs have been reported.
+                    cnv_text = BPCommonUtility.summarize_cnv(cnvs) if cnvs else ""
+                    text += "**Kopietalsprofil:**\n"
+                    text += (
+                        cnv_text
+                        or "Vid analysen påvisas inga kopietalsförändringar av klinisk signifikans.\n"
+                    )
+                    text += "\n"
+                elif len(cnvs) > 0:
+                    text += "**Kliniskt relevanta genspecifika kopietalsförändringar:**\n"
+                    text += BPCommonUtility.summarize_cnv(cnvs)
+                    text += "\n"
+            elif section == "translocs":
+                translocs = summary_sections_data["translocs"]
+                if tumwgs_summary:
+                    # WGS: always show the heading, with a default sentence when
+                    # no clinically relevant fusion genes have been reported.
+                    transloc_text = (
+                        BPCommonUtility.summarize_transloc(translocs).lstrip("\n")
+                        if translocs
+                        else ""
+                    )
+                    text += "**Fusionsgener:**\n"
+                    text += (
+                        transloc_text
+                        or "Vid analysen finner man inga kliniskt relevanta fusionsgener.\n"
+                    )
+                    text += "\n"
+                elif len(translocs) > 0:
+                    text += "**Kliniskt relevanta genspecifika DNA-fusioner:**\n"
+                    text += BPCommonUtility.summarize_transloc(translocs)
+                    text += "\n"
             elif section == "biomarkers":
                 text += "**Andra kliniskt relevanta biomarkörer:**\n"
                 text += BPCommonUtility.summarize_bio(summary_sections_data["biomarkers"])

@@ -95,3 +95,7 @@ exclude = ".git,__pycache__,build,dist"
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
