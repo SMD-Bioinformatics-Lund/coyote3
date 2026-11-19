@@ -1,0 +1,5 @@
+# Offline lettering uses the bundled Lato font; no system font lookup.
+fonttools>=4.58,<5
+# Optional PNG/ICO export (--raster).
+CairoSVG>=2.7,<3
+Pillow>=11,<14

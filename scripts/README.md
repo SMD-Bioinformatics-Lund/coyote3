@@ -51,9 +51,13 @@ Relay and pyClient suites run in their own repositories; see the
 [test ownership guide](../docs/testing/test-strategy-and-quality-gates.md#independent-package-coverage).
 
 `branding/generate_logos.py` is the sole logo blueprint. It derives package logos
-from the approved application SVG and stored lettering outlines, without installed
-fonts. Export for review with `--output-dir`; use `--write` only after review.
-Optional `--raster` output requires CairoSVG and Pillow. See
+from the approved application SVG. Use `--version 4` (the default), `--name hop`,
+or any new package name. `--mono` creates a separate print edition.
+New lettering uses bundled Lato outlines through fontTools; existing labels retain
+their approved outlines. Export for review with `--output-dir`; `--all` selects the
+registered asset set and `--write` replaces registered files after review.
+Tool dependencies are in `branding/requirements.txt`; optional `--raster` output
+requires CairoSVG and Pillow. See
 [brand asset maintenance](../docs/project/maintainer-guide.md#documentation-diagrams).
 
 ## Retention criteria

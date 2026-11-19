@@ -21,16 +21,53 @@ typography, accessible titles, relationship labels and the existing light/dark
 palette. Inspect affected diagrams at their displayed size in both themes.
 
 The sole logo blueprint is `scripts/branding/generate_logos.py`. Its source is
-`frontend/public/logos/coyote4-logo.svg`; package labels use approved vector outlines.
-Export SVGs to a review directory before replacing maintained files:
+`frontend/public/logos/coyote4-logo.svg`. It preserves the animal, ring, Coyote
+lettering and DNA. Version 4 retains its approved joined numeral. New version
+numbers and package labels are outlined automatically using the bundled Lato Bold
+Italic font; installed system fonts do not affect the result. Existing package
+labels retain their approved outlines. New names require no code changes.
+
+Install the generator's tooling dependencies if needed:
 
 ```bash
-brand_output="$(mktemp -d)"
-.venv/bin/python scripts/branding/generate_logos.py --output-dir "$brand_output"
+uv pip install --python .venv/bin/python -r scripts/branding/requirements.txt
 ```
 
-To regenerate transparent PNG/ICO assets, install CairoSVG and Pillow in a separate
-tooling environment and add `--raster`. Use `--write` only after reviewing the output.
+Export SVGs to an ignored review directory before replacing maintained files:
+
+```bash
+# Application logo; omitting --version also selects 4.
+.venv/bin/python scripts/branding/generate_logos.py --version 4 --output-dir .cache/brand-review
+.venv/bin/python scripts/branding/generate_logos.py --version 5 --output-dir .cache/brand-review
+
+# Existing or new package names use the same blueprint.
+.venv/bin/python scripts/branding/generate_logos.py --name hop --output-dir .cache/brand-review
+.venv/bin/python scripts/branding/generate_logos.py --name Orion --output-dir .cache/brand-review
+
+# Separate print edition; the color asset is preserved.
+.venv/bin/python scripts/branding/generate_logos.py --name hop --mono --output-dir .cache/brand-review
+.venv/bin/python scripts/branding/generate_logos.py --mono --output-dir .cache/brand-review
+```
+
+Single-logo exports use filenames such as `coyote4-logo.svg`, `coyote5-logo.svg`,
+`coyote-hop-logo.svg` and `coyote-hop-logo-bw.svg`. New labels preserve supplied
+capitalization; registered names such as `hop` use the approved HOP lettering.
+Major versions must be positive integers. Unsupported font characters produce an
+error rather than substituted glyphs. Output SVGs contain paths, with no external
+font dependency. Monochrome assets use black ink and white DNA on a transparent
+background and are intended for printing on white.
+
+`--all` exports the registered application, package and emblem assets into their
+repository-relative locations under the output directory. The color export also
+refreshes the bundled unavailable-page logo. This option replaces the previous
+implicit bulk export. Add `--raster` for PNG output; with `--all`, it also produces
+the current email PNG and browser ICOs. Raster export needs CairoSVG and Pillow.
+
+After visual review, `--write --all` refreshes the registered assets, or
+`--write --name hop` updates only the registered HOP logo. Use `--output-dir` for
+new names and future application versions; integrating those into an application
+is a separate deliberate change. Black-and-white files always have a `-bw` suffix.
+The bundled font retains its SIL Open Font License in `scripts/branding/fonts/OFL.txt`.
 Do not introduce additional artwork generators or logo-specific test suites.
 
 ## Pull request sequence
