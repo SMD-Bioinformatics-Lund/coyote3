@@ -56,7 +56,9 @@ class MongoEditLeaseRepository(BaseRepository):
             Acquired lease, or None when another editor holds the key.
         """
         try:
-            return self.get_collection().find_one_and_update(
+            return self.write(
+                self.get_collection(),
+                "find_one_and_update",
                 {
                     "_id": key,
                     "$or": [
@@ -86,7 +88,9 @@ class MongoEditLeaseRepository(BaseRepository):
         Returns:
             Renewed lease, or None when it expired, was released or belongs to another editor.
         """
-        return self.get_collection().find_one_and_update(
+        return self.write(
+            self.get_collection(),
+            "find_one_and_update",
             {"_id": key, "owner": owner, "editor_id": editor_id, "expires_at": {"$gt": now}},
             {"$set": {"expires_at": expires_at}},
             return_document=ReturnDocument.AFTER,
@@ -115,7 +119,9 @@ class MongoEditLeaseRepository(BaseRepository):
         Returns:
             Whether this call removed the matching lease.
         """
-        result = self.get_collection().delete_one(
-            {"_id": key, "owner": owner, "editor_id": editor_id}
+        result = self.write(
+            self.get_collection(),
+            "delete_one",
+            {"_id": key, "owner": owner, "editor_id": editor_id},
         )
         return result.deleted_count == 1

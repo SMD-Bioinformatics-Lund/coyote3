@@ -1,6 +1,5 @@
 """Maintenance endpoint selection must not accidentally write to the app server."""
 
-import argparse
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -10,7 +9,6 @@ from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH
 
 from scripts.identity import migrate_identity_database
 from scripts.knowledgebase import migrate_knowledgebase_database
-from scripts.knowledgebase.knowledgebase_update_common import add_common_arguments
 from scripts.knowledgebase.migrate_knowledgebase_database import assert_distinct_databases
 
 
@@ -80,18 +78,4 @@ def test_migration_targets_independent_endpoints_or_explicit_shared_uri(
         ["mongodb://shared:27017"]
         if shared
         else ["mongodb://source:27017", "mongodb://target:27017"]
-    )
-
-
-def test_importer_prefers_knowledgebase_uri_over_primary(monkeypatch):
-    monkeypatch.setenv("COYOTE4_MONGO_URI", "mongodb://app:27017")
-    monkeypatch.setenv("KNOWLEDGEBASE_MONGO_URI", "mongodb://kb:27017")
-    parser = argparse.ArgumentParser()
-    add_common_arguments(parser)
-    assert parser.parse_args(["--release", "synthetic"]).mongo_uri == "mongodb://kb:27017"
-    assert (
-        parser.parse_args(
-            ["--release", "synthetic", "--mongo-uri", "mongodb://maintenance:27017"]
-        ).mongo_uri
-        == "mongodb://maintenance:27017"
     )

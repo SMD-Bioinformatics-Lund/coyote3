@@ -11,11 +11,14 @@ from coyote.domain.exceptions import AppError
 from coyote_mongo.index_management import build_index_plan
 from coyote_mongo.repositories.assay_groups import AssayGroupRepository
 from coyote_mongo.repositories.assay_panels import ASPRepository
+from mongo_test_support.writes import repository_writes  # noqa: F401
 from pydantic import ValidationError
 
 from scripts.bootstrap.install_assay_groups import install
 from tests.fixtures.mongo_settings import mongo_runtime
 from tests.support.mongo_indexes import adapter_for
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture
@@ -30,6 +33,9 @@ def registry(monkeypatch):
     )
     monkeypatch.setattr(
         "scripts.bootstrap.install_assay_groups.run_transaction", lambda _, callback: callback(None)
+    )
+    monkeypatch.setattr(
+        "coyote_mongo.repositories.audit_outbox.enqueue_audit", lambda *_a, **_k: None
     )
     db = mongomock.MongoClient().test
     adapter = SimpleNamespace(

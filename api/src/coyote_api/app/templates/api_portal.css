@@ -79,7 +79,7 @@
 body { margin: 0; }
 a:not(:where(#api-renderer *)) { color: var(--accent); text-underline-offset: 3px; }
 :focus-visible:not(:where(#api-renderer *)) { outline: 2px solid var(--accent); outline-offset: 3px; }
-[hidden] { display: none !important; }
+[hidden]:not(:where(#api-renderer *)) { display: none !important; }
 button:not(:where(#api-renderer *)), input:not(:where(#api-renderer *)), select:not(:where(#api-renderer *)) { font: inherit; }
 input:not(:where(#api-renderer *)), select:not(:where(#api-renderer *)) { min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper-raised); color: var(--ink); }
 code:not(:where(#api-renderer *)) { font-size: .9em; overflow-wrap: anywhere; }
@@ -112,4 +112,52 @@ h2:not(:where(#api-renderer *)) { font-size: 16px; margin: 0 0 8px; }
   .portal-header { padding: 12px 16px; }
   .product-label { display: none; }
   .portal-links { gap: 8px; }
+}
+
+.portal-heading, .api-overview, .api-workspace { margin: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--panel-shadow); }
+.portal-heading { background: var(--heading-surface); }
+.portal-heading .eyebrow, .guide-card .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.api-overview { padding: 18px; }
+.integration-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.integration-heading h2 { color: var(--accent); }
+.integration-heading p { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.connection-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.connection-facts > div { min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper-raised); box-shadow: var(--panel-shadow); }
+.connection-facts dt { font-size: 11px; color: var(--ink-muted); }
+.connection-facts dd { margin: 4px 0 0; font-size: 12px; font-weight: 600; }
+.overview-content { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.guide-card { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--heading-surface); box-shadow: var(--panel-shadow); font-size: 13px; }
+.guide-card h2 { font-size: 15px; }
+.guide-card h3 { margin: 16px 0 6px; font-size: 13px; }
+.guide-card p, .guide-card li { color: var(--ink-muted); }
+.guide-card p { margin: 0 0 12px; }
+.guide-card ol { margin: 10px 0 14px; padding-left: 20px; }
+.guide-card li + li { margin-top: 8px; }
+.guide-card strong { color: var(--ink); }
+.request-example { padding: 12px; margin: 0 0 12px; border-radius: 6px; background: var(--code-surface); color: var(--code-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.response-guide { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+.response-guide th, .response-guide td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.response-guide thead { background: var(--accent-soft); }
+.response-guide tbody th { color: var(--accent); }
+.response-guide td { color: var(--ink-muted); }
+.integration-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; font-size: 12px; color: var(--ink-muted); }
+.integration-notes p { margin: 0; }
+.integration-notes strong { color: var(--ink); }
+.session-settings { margin-top: 16px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper-inset); font-size: 12px; }
+.session-settings summary { color: var(--accent); font-weight: 600; cursor: pointer; }
+.session-settings label { display: block; margin: 12px 0 4px; }
+.session-settings input { width: min(100%, 420px); }
+.session-settings p, .request-notice { margin: 8px 0 0; font-size: 12px; color: var(--ink-muted); }
+/* Isolate the native viewers from the portal's inherited dark theme. No rules
+   target renderer controls, endpoint cards, code samples or response tables. */
+.native-documentation { color-scheme: light; color: initial; background: white; font: 16px/normal sans-serif; }
+@media (forced-colors: active) {
+  .badge, .portal-heading, .api-overview, .api-workspace, .guide-card, .connection-facts > div, .session-settings, .view-tabs a[aria-current] { box-shadow: none; background: Canvas; color: CanvasText; border-color: CanvasText; }
+}
+@media (max-width: 1000px) { .overview-content { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) {
+  .portal-heading, .api-overview, .api-workspace { margin-left: 8px; margin-right: 8px; }
+  .portal-heading { padding: 14px 16px; }
+  .api-overview { padding: 14px; }
+  .integration-notes { grid-template-columns: minmax(0, 1fr); }
 }

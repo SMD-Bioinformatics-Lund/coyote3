@@ -230,7 +230,7 @@ class PermissionsRepository(BaseRepository):
         Returns:
             Any: The result of the insert operation.
         """
-        self.get_collection().insert_one(self.ensure_permission_id(dict(policy)))
+        self.write(self.get_collection(), "insert_one", self.ensure_permission_id(dict(policy)))
 
     def update_policy(self, permission_id: str, data: dict) -> Any:
         """
@@ -247,8 +247,11 @@ class PermissionsRepository(BaseRepository):
         """
         payload = self.ensure_permission_id(dict(data))
         payload.pop("_id", None)
-        return self.get_collection().update_one(
-            self._permission_lookup_query(permission_id), {"$set": payload}
+        return self.write(
+            self.get_collection(),
+            "update_one",
+            self._permission_lookup_query(permission_id),
+            {"$set": payload},
         )
 
     def toggle_policy_active(self, permission_id: str, active_status: bool) -> Any:
@@ -264,7 +267,9 @@ class PermissionsRepository(BaseRepository):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
+        return self.write(
+            self.get_collection(),
+            "update_one",
             self._permission_lookup_query(permission_id),
             {"$set": {"is_active": active_status}},
         )
@@ -281,7 +286,9 @@ class PermissionsRepository(BaseRepository):
         Returns:
             Any: The result of the delete operation.
         """
-        return self.get_collection().update_one(
+        return self.write(
+            self.get_collection(),
+            "update_one",
             {**self._permission_lookup_query(permission_id), "is_active": True},
             {"$set": {"is_active": False}},
         )

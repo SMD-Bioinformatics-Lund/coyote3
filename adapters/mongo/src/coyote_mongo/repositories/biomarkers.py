@@ -143,7 +143,9 @@ class BiomarkerRepository(BaseRepository):
             method: {"$type": "object"},
             f"{field}.revision": expected_revision if expected_revision else {"$exists": False},
         }
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             query,
             {
                 "$set": {field: assessment},

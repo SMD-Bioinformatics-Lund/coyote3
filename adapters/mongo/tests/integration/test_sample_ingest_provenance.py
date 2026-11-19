@@ -7,6 +7,9 @@ import pytest
 from coyote.application.ingest.collection_writes import upsert_collection_document
 from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
 from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.mark.parametrize("existing", [None, {}, {"ingested_by": "first", "ingest_source": "api"}])
@@ -32,7 +35,7 @@ def test_sample_replacement_preserves_initial_attribution(monkeypatch, existing)
         ingested_by="operator",
         upsert=True,
     )
-    written = collection.replace_one.call_args.kwargs["replacement"]
+    written = collection.replace_one.call_args.args[1]
     assert written["ingested_by"] == (
         "operator" if existing is None else existing.get("ingested_by")
     )

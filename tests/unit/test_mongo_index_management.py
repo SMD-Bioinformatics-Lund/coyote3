@@ -1,6 +1,7 @@
 """Tests for explicit MongoDB index planning and retirement."""
 
 import logging
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import mongomock
@@ -181,6 +182,11 @@ def test_index_apply_summary_reports_incomplete_indexes(monkeypatch, capsys, sta
 
     from scripts.database import manage_mongo_indexes
 
+    # This test checks index selection/results; journal durability has real-database coverage.
+    monkeypatch.setattr(
+        manage_mongo_indexes, "audit_maintenance", lambda *args, **kwargs: nullcontext()
+    )
+
     adapter = Mock()
     monkeypatch.setattr(manage_mongo_indexes, "_adapter", lambda scope: adapter)
     monkeypatch.setattr(
@@ -198,6 +204,11 @@ def test_index_apply_summary_reports_incomplete_indexes(monkeypatch, capsys, sta
 def test_standalone_index_scope_isolates_database_writes(monkeypatch, scope):
     """Exercise the real CLI and repository registry against isolated synthetic databases."""
     from scripts.database import manage_mongo_indexes
+
+    # This test checks index selection/results; journal durability has real-database coverage.
+    monkeypatch.setattr(
+        manage_mongo_indexes, "audit_maintenance", lambda *args, **kwargs: nullcontext()
+    )
 
     client = mongomock.MongoClient()
 

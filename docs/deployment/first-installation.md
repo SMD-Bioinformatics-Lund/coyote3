@@ -478,7 +478,7 @@ password change and signs in again before adding data. The service checks the
 | `--with-knowledgebase-indexes` | Opt in to knowledgebase index planning, creation and verification. Large collections can take considerable time. |
 
 For separately prepared HGNC and Ensembl BioMart files, use the
-[standalone gene installer](../operations/hgnc-gene-installation.md), including its
+[standalone gene installer](../operations/knowledgebase-updates.md), including its
 input-column and parameter reference. External knowledgebase importers have their
 own parameters in the [knowledgebase guides](../reference/knowledgebases/README.md);
 they are not part of a default deployment.

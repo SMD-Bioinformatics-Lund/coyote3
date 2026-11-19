@@ -14,6 +14,7 @@ from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.persistence import insert_many_transaction, new_object_id_str, to_provider_id
 from coyote_mongo.records import application_record, storage_record
 from coyote_mongo.repositories.audit_outbox import enqueue_audit
+from coyote_mongo.repositories.mutations import write_with_audit
 from coyote_mongo.selection import compile_selection
 from coyote_mongo.transactions import run_transaction
 
@@ -151,7 +152,13 @@ class IngestCollectionGateway:
             session: Owning bundle session; None is reserved for direct test/import callers.
         """
         kwargs = {"session": session} if session is not None else {}
-        self.collection(name).insert_one(dict(document), **kwargs)
+        write_with_audit(
+            self.collection(name),
+            "insert_one",
+            dict(document),
+            **kwargs,
+            context=self.audit_context,
+        )
 
     def insert_dependents(
         self, name: str, documents: list[dict[str, Any]], *, session: Any
@@ -165,7 +172,9 @@ class IngestCollectionGateway:
         """
         from coyote_mongo.persistence import insert_many_documents
 
-        insert_many_documents(self.collection(name), documents, session=session)
+        insert_many_documents(
+            self.collection(name), documents, context=self.audit_context, session=session
+        )
 
     def delete_dependents(self, name: str, sample_id: str, *, session: Any) -> None:
         """Remove evidence owned by one sample before transactional replacement.
@@ -175,7 +184,13 @@ class IngestCollectionGateway:
             sample_id: Canonical serialized sample identifier matched against SAMPLE_ID.
             session: Active bundle session containing replacement writes.
         """
-        self.collection(name).delete_many({"SAMPLE_ID": sample_id}, session=session)
+        write_with_audit(
+            self.collection(name),
+            "delete_many",
+            {"SAMPLE_ID": sample_id},
+            session=session,
+            context=self.audit_context,
+        )
 
     def document_count(self, name: str) -> int:
         """Return estimated occupancy without scanning all ingest records.
@@ -197,7 +212,13 @@ class IngestCollectionGateway:
         """
         stored = storage_record(document)
         stored["_id"] = to_provider_id(stored["_id"])
-        self.sample_collection().insert_one(stored, session=session)
+        write_with_audit(
+            self.sample_collection(),
+            "insert_one",
+            stored,
+            session=session,
+            context=self.audit_context,
+        )
 
     def set_sample_fields(
         self, selector: dict[str, Any], fields: dict[str, Any], *, session: Any
@@ -212,8 +233,13 @@ class IngestCollectionGateway:
         stored_selector = storage_record(selector)
         if "_id" in stored_selector:
             stored_selector["_id"] = to_provider_id(stored_selector["_id"])
-        self.sample_collection().update_one(
-            stored_selector, {"$set": storage_record(fields)}, session=session
+        write_with_audit(
+            self.sample_collection(),
+            "update_one",
+            stored_selector,
+            {"$set": storage_record(fields)},
+            session=session,
+            context=self.audit_context,
         )
 
     def replace_document(
@@ -241,8 +267,14 @@ class IngestCollectionGateway:
         for stored in (stored_selector, stored_document):
             if "_id" in stored:
                 stored["_id"] = to_provider_id(stored["_id"])
-        result = self.collection(name).replace_one(
-            filter=stored_selector, replacement=stored_document, upsert=upsert, session=session
+        result = write_with_audit(
+            self.collection(name),
+            "replace_one",
+            stored_selector,
+            stored_document,
+            upsert=upsert,
+            session=session,
+            context=self.audit_context,
         )
         return ReplaceDocumentResult(
             matched_count=int(result.matched_count or 0),
@@ -368,6 +400,7 @@ class IngestCollectionGateway:
             self.collection(name),
             documents,
             ignore_duplicates=ignore_duplicates,
+            context=self.audit_context,
             on_insert=(lambda ids, session: record_completion(payload(ids), session))
             if record_completion is not None
             else None,

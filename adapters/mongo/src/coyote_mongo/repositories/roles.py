@@ -181,7 +181,7 @@ class RolesRepository(BaseRepository):
             Structured write result for the insert.
         """
         payload = self.ensure_role_id(dict(role_data))
-        result = self.get_collection().insert_one(payload)
+        result = self.write(self.get_collection(), "insert_one", payload)
         self.invalidate_dashboard_metrics()
         return operation_from_insert_one(result)
 
@@ -200,7 +200,9 @@ class RolesRepository(BaseRepository):
         """
         payload = self.ensure_role_id(dict(role_data))
         payload.pop("_id", None)
-        self.get_collection().update_one(
+        self.write(
+            self.get_collection(),
+            "update_one",
             self._role_lookup_query(role_id),
             {"$set": payload},
         )
@@ -236,7 +238,9 @@ class RolesRepository(BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {**self._role_lookup_query(role_id), "is_active": True},
             {"$set": {"is_active": False}},
         )
@@ -256,7 +260,9 @@ class RolesRepository(BaseRepository):
         Returns:
             Structured write result for the update.
         """
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {**self._role_lookup_query(role_id), "is_active": True},
             {"$set": {"is_active": active_status}},
         )

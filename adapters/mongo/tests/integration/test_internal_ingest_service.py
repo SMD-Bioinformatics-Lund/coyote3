@@ -10,6 +10,9 @@ from coyote.application.common.release_resources import capture_assay_resource
 from coyote.application.ingest.analysis_parsers import DnaIngestParser, RnaIngestParser
 from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
 from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _Col:

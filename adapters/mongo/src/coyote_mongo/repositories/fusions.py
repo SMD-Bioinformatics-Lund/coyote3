@@ -253,7 +253,9 @@ class FusionsRepository(FindingCommentOwnerMixin, BaseRepository):
         for i in range(int(num_calls)):
             updates[f"calls.{i}.selected"] = 0
         updates[f"calls.{int(callidx) - 1}.selected"] = 1
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": ObjectId(id), "SAMPLE_ID": sample_id},
             {"$set": updates},
         )

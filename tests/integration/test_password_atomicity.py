@@ -1,18 +1,22 @@
-"""Password reset atomicity and session revocation regressions using synthetic accounts."""
+"""Password reset atomicity and session revocation regressions using synthetic accounts on a disposable replica set."""
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
-import mongomock
 import pytest
 from coyote_mongo.repositories.users import UsersRepository
 from coyote_mongo.sessions import MongoApiSessionRepository
-from mongo_test_support.settings import mongo_runtime
+
+from tests.fixtures.mongo_settings import audit_context, mongo_runtime
+from tests.integration.test_ingest_job_recovery import database as _database
+
+database = _database
 
 
-def test_reset_token_can_replace_password_only_once():
-    collection = mongomock.MongoClient().test.users
+def test_reset_token_can_replace_password_only_once(database):
+    db, _, _ = database
+    collection = db.users
     collection.insert_one(
         {
             "username": "synthetic",
@@ -41,10 +45,13 @@ def test_reset_token_can_replace_password_only_once():
 
 
 @pytest.mark.parametrize("previous", [None, "old-credential-fingerprint"])
-def test_password_change_revokes_sessions_and_allows_fresh_login(previous):
-    collection = mongomock.MongoClient().test.sessions
+def test_password_change_revokes_sessions_and_allows_fresh_login(database, previous):
+    db, _, _ = database
+    collection = db.sessions
     user = SimpleNamespace(username="synthetic", credential_version=previous)
-    repository = MongoApiSessionRepository(collection, user_loader=lambda _: user, ttl_seconds=60)
+    repository = MongoApiSessionRepository(
+        collection, user_loader=lambda _: user, ttl_seconds=60, context=audit_context()
+    )
     session = repository.create(user)
     assert repository.get(session.token) is not None
     user.credential_version = "new-credential-fingerprint"

@@ -12,7 +12,10 @@ from coyote_mongo.knowledgebase.oncokb_public_cache import (
     _merge_public_gene_records,
 )
 from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
 from pymongo.errors import BulkWriteError
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture

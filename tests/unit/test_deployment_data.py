@@ -11,12 +11,15 @@ from coyote.domain.exceptions import AppError
 from coyote_api.bootstrap.paths import REFERENCE_CATALOG_DIR
 from coyote_api.services.provisioning.deployment_data import DeploymentDataService
 from coyote_mongo.repositories import deployment_data
+from mongo_test_support.writes import repository_writes  # noqa: F401
 
 from scripts.bootstrap import bootstrap_database
 from scripts.bootstrap.bootstrap_database import (
     build_seed_documents,
 )
 from tests.fixtures.mongo_settings import audit_context, mongo_runtime
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.mark.parametrize("roles", [[], ["viewer"], ["demo_installer"], ["SUPERUSER"]])
@@ -214,6 +217,9 @@ def fresh_installation(monkeypatch):
     )
     monkeypatch.setattr(deployment_data, "run_transaction", lambda client, write: write(None))
     monkeypatch.setattr(deployment_data, "enqueue_audit", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "coyote_mongo.repositories.audit_outbox.enqueue_audit", lambda *args, **kwargs: None
+    )
     return databases, args, loader
 
 
@@ -474,7 +480,7 @@ def test_force_reference_preserves_external_releases_and_unrelated_genes():
         client.knowledgebase.hgnc_genes.find_one({"hgnc_id": "center_only"})["gene_name"] == "Keep"
     )
     record_reference_publication(
-        client.knowledgebase, source="hgnc_genes", release="center_release"
+        client.knowledgebase, source="hgnc_genes", release="center_release", context=audit_context()
     )
     before = list(client.knowledgebase.hgnc_genes.find())
     result = repository.install(documents, scope="knowledgebase", actor="admin", force=True)

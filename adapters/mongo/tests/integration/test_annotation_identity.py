@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from coyote_mongo.repositories.annotations import AnnotationsRepository
+from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _InsertResult:
@@ -22,6 +27,7 @@ class _AnnotationCollection:
 def test_single_classification_insert_uses_the_stable_flat_identity_shape():
     collection = _AnnotationCollection()
     repository = AnnotationsRepository.__new__(AnnotationsRepository)
+    repository.app = mongo_runtime()
     repository.get_collection = lambda: collection
 
     repository.insert_classified_variant(

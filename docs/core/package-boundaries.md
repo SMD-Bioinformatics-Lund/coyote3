@@ -10,7 +10,7 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `src/coyote_pyclient/` in the external client repository | None; Pydantic and HTTPX for its independent HTTP interface |
 | `coyote-relay` | `services/relay/src/coyote_relay/` | Base core and HTTPX; API/worker integrations add server |
-| `coyote-atlas` | `coyote_atlas` in the external Atlas repository | Core and HTTPX; optional API integration uses the server |
+| `coyote-atlas` | `coyote_atlas` in the external Atlas repository | Core and HTTPX; optional API integration and source importers use the server |
 | `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
 
 ## Shared core and request flow

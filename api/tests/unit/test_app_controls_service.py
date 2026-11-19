@@ -5,11 +5,16 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+from api_test_support.mongo_settings import audit_context
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.application.admin.app_controls import AppControlsService, _task_summary
 from coyote.config.contracts.application import APP_CONTROLS_ID
 from coyote.contracts.public import PublicModulesPayload
 from coyote_api.infra.operational_runtime import cleanup_disk_logs, inspect_celery_runtime
 from coyote_mongo.repositories.app_controls import MongoAppControlsRepository
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _AppControlsCollection:
@@ -58,7 +63,9 @@ def build_service(db, *, identity_db, config, **kwargs):
     from coyote_api.celery_app import celery_app
 
     return AppControlsService(
-        MongoAppControlsRepository(db, identity_db=identity_db, config=config),
+        MongoAppControlsRepository(
+            db, identity_db=identity_db, config=config, context=audit_context()
+        ),
         config=config,
         runtime_inspector=lambda **options: inspect_celery_runtime(celery_app, **options),
         log_cleanup=cleanup_disk_logs,

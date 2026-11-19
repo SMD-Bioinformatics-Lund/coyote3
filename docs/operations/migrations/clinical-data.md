@@ -38,8 +38,8 @@ values. Check the source-version mappings before accepting prepared output:
 
 Install `hgnc_genes` and `vep_metadata`, including VEP **103**, through
 [center installation](../../deployment/first-installation.md). For separately
-reviewed references use the [HGNC procedure](../hgnc-gene-installation.md) and
-[VEP procedure](../vep-metadata-updates.md). Do not reannotate historical findings
+reviewed references use the [HGNC procedure](../knowledgebase-updates.md) and
+[VEP procedure](../knowledgebase-updates.md). Do not reannotate historical findings
 with a different release.
 
 Create assay groups, diagnosis definitions, assays, assay–diagnosis associations,

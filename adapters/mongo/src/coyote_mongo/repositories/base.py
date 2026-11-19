@@ -19,9 +19,9 @@ from pymongo.results import BulkWriteResult, DeleteResult, InsertManyResult, Upd
 
 from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.records import application_record
+from coyote_mongo.repositories.mutations import WriteOperation, write_with_audit
 from coyote_mongo.results import operation_from_insert_one, operation_from_update
 from coyote_mongo.selection import compile_selection
-from coyote_mongo.transactions import run_transaction
 
 
 class BaseRepository:
@@ -55,6 +55,10 @@ class BaseRepository:
             collection: Driver collection whose documents this repository owns.
         """
         self.repository_collection = collection
+
+    def write(self, collection: Any, operation: WriteOperation, *args: Any, **options: Any) -> Any:
+        """Persist data and its audit receipt using this repository's deployment identity."""
+        return write_with_audit(collection, operation, *args, context=self.audit_context, **options)
 
     def preview_sample_findings(
         self, sample_id: str, query: Selection, limit: int = 10001
@@ -128,9 +132,8 @@ class BaseRepository:
         Returns:
             The driver's acknowledged result after the transaction commits.
         """
-        return run_transaction(
-            self.get_collection().database.client,
-            lambda session: self.get_collection().update_many(selector, update, session=session),
+        return cast(
+            UpdateResult, self.write(self.get_collection(), "update_many", selector, update)
         )
 
     def delete_many_atomic(self, selector: Mapping[str, Any]) -> DeleteResult:
@@ -142,10 +145,7 @@ class BaseRepository:
         Returns:
             The driver's deletion result after the transaction commits.
         """
-        return run_transaction(
-            self.get_collection().database.client,
-            lambda session: self.get_collection().delete_many(selector, session=session),
-        )
+        return cast(DeleteResult, self.write(self.get_collection(), "delete_many", selector))
 
     def insert_many_atomic(self, documents: Iterable[Mapping[str, Any]]) -> InsertManyResult:
         """Insert copies of all documents together or abort the entire batch.
@@ -156,11 +156,9 @@ class BaseRepository:
         Returns:
             The driver's inserted identities after the transaction commits.
         """
-        return run_transaction(
-            self.get_collection().database.client,
-            lambda session: self.get_collection().insert_many(
-                [dict(doc) for doc in documents], session=session
-            ),
+        return cast(
+            InsertManyResult,
+            self.write(self.get_collection(), "insert_many", [dict(doc) for doc in documents]),
         )
 
     def bulk_write_atomic(
@@ -186,22 +184,16 @@ class BaseRepository:
             The driver's bulk-write result from the supplied or new transaction.
         """
 
-        def write(active_session: ClientSession) -> BulkWriteResult:
-            """Execute the captured unordered bulk operations in the supplied session.
-
-            Args:
-                active_session: Session owning this batch's transaction.
-
-            Returns:
-                PyMongo bulk-write result for the bound collection.
-            """
-            return self.get_collection().bulk_write(
-                operations, ordered=False, session=active_session
-            )
-
-        if session is not None:
-            return write(session)
-        return run_transaction(self.get_collection().database.client, write)
+        return cast(
+            BulkWriteResult,
+            self.write(
+                self.get_collection(),
+                "bulk_write",
+                operations,
+                ordered=False,
+                session=session,
+            ),
+        )
 
     def invalidate_dashboard_metrics(self) -> None:
         """Invalidate dashboard metrics that depend on this collection."""
@@ -291,7 +283,9 @@ class BaseRepository:
         """
         return self._invalidate_dashboard_on_change(
             operation_from_update(
-                self.get_collection().update_one(
+                self.write(
+                    self.get_collection(),
+                    "update_one",
                     {"_id": ObjectId(var_id)},
                     {"$set": {"fp": fp}},
                 )
@@ -351,7 +345,9 @@ class BaseRepository:
         """
         return self._invalidate_dashboard_on_change(
             operation_from_update(
-                self.get_collection().update_one(
+                self.write(
+                    self.get_collection(),
+                    "update_one",
                     {"_id": ObjectId(var_id)},
                     {"$set": {"interesting": interesting}},
                 )
@@ -374,7 +370,9 @@ class BaseRepository:
         """
         return self._invalidate_dashboard_on_change(
             operation_from_update(
-                self.get_collection().update_one(
+                self.write(
+                    self.get_collection(),
+                    "update_one",
                     {"_id": ObjectId(var_id)},
                     {"$set": {"irrelevant": irrelevant}},
                 )
@@ -422,7 +420,9 @@ class BaseRepository:
         """Set the sample-specific blacklist state for a structural finding."""
         return self._invalidate_dashboard_on_change(
             operation_from_update(
-                self.get_collection().update_one(
+                self.write(
+                    self.get_collection(),
+                    "update_one",
                     {"_id": ObjectId(var_id)},
                     {"$set": {"blacklisted": blacklisted}},
                 )
@@ -474,7 +474,9 @@ class BaseRepository:
         """
         return self._invalidate_dashboard_on_change(
             operation_from_update(
-                self.get_collection().update_one(
+                self.write(
+                    self.get_collection(),
+                    "update_one",
                     {"_id": ObjectId(var_id)},
                     {"$set": {"noteworthy": noteworthy}},
                 )
@@ -496,7 +498,9 @@ class BaseRepository:
         Returns:
             Any: The result of the insert operation.
         """
-        return operation_from_insert_one(self.get_collection().insert_one(comment_doc))
+        return operation_from_insert_one(
+            self.write(self.get_collection(), "insert_one", comment_doc)
+        )
 
     def toggle_active(self, doc_id: str, active: bool) -> Any:
         """
@@ -513,5 +517,7 @@ class BaseRepository:
             Any: The result of the update operation.
         """
         return operation_from_update(
-            self.get_collection().update_one({"_id": doc_id}, {"$set": {"active": active}})
+            self.write(
+                self.get_collection(), "update_one", {"_id": doc_id}, {"$set": {"active": active}}
+            )
         )

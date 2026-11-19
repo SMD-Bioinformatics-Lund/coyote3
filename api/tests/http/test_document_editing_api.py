@@ -5,6 +5,9 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import mongomock
+import pytest
+from api_test_support.mongo_settings import mongo_runtime
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.application.editing import DocumentEditing
 from coyote.application.operations.editing import DocumentEditors, EditableResource
 from coyote.application.operations.runtime import ApplicationRuntime
@@ -16,10 +19,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
+pytestmark = pytest.mark.usefixtures("repository_writes")
+
 
 def test_http_lease_checks_current_user_permissions_and_uuid():
     service = DocumentEditing(
-        MongoEditLeaseRepository(SimpleNamespace(coyote_db=mongomock.MongoClient().test))
+        MongoEditLeaseRepository(
+            SimpleNamespace(app=mongo_runtime(), coyote_db=mongomock.MongoClient().test)
+        )
     )
     users = {
         name: SimpleNamespace(username=name, permissions={"edit"}, is_superuser=False)

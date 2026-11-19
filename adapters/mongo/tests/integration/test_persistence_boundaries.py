@@ -15,6 +15,9 @@ from coyote_mongo.repositories.samples import SampleRepository
 from coyote_mongo.repositories.translocations import TranslocsRepository
 from coyote_mongo.repositories.variants import VariantsRepository
 from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.mark.parametrize(

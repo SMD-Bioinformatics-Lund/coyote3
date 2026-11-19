@@ -121,6 +121,23 @@ MongoDB transaction as their data changes:
 - Assay-group creation and availability changes; diagnosis definitions and associations.
 - Report saves, sample-bundle ingestion, collection-ingest transaction callbacks,
   and sample deletion.
+- Account, role, permission, session and service-token changes; recovery requests,
+  editing leases, finding reviews/comments, notifications and application settings.
+- Reference-cache writes and reference publication, bootstrap and RBAC installation.
+
+Repositories without a more specific business receipt use `database.*` events in
+the `database_mutation` category. These retain counts, field names and up to 50
+matching document IDs, with a truncation indicator for larger or bulk operations.
+Counts distinguish matched records from modified records. Document values and query
+values are excluded; session and credential keys are also excluded. Existing
+business receipts retain their domain-specific meaning. Ordinary query reads do
+not create mutation receipts; existing security and access events remain in place.
+
+Every endpoint that accepts writes, including the identity and knowledgebase
+endpoints, must support MongoDB transactions. There is no standalone-server fallback.
+Application writes require permission to insert into their database's `audit_outbox`.
+Session activity updates are writes too; include their volume when monitoring queue
+capacity and delivery lag.
 
 If receipt insertion fails, the transaction aborts. A committed receipt survives a
 process crash before the API responds or before the central audit service is reachable.
@@ -150,6 +167,22 @@ event or overwrite the first one. Delivery is at least once with idempotent stor
 not a distributed transaction or an exactly-once execution guarantee.
 The central audit browser shows these events after worker delivery, not necessarily
 immediately after saving. Their occurrence timestamps remain the original transaction times.
+
+MongoDB namespace operations are a separate boundary. Controlled index and
+knowledgebase publication tools journal `maintenance.started` before an operation
+and `maintenance.completed` or `maintenance.failed` afterwards, using the same
+operation ID. A missing outcome requires operator inspection: collection renames,
+index changes and drops cannot roll back with a data transaction. Knowledgebase
+imports commit bounded batches and publication state separately; they are not one
+transaction covering the complete reference database. Applied maintenance commands
+need the deployment's `IDENTITY_DB`, identity MongoDB endpoint and `ENV_NAME` to
+route their receipts; dry-run commands do not write receipts.
+
+MongoDB's automatic TTL deletions, database administration/backup tools and changes
+made outside Coyote repositories are not per-document application audit events.
+Audit transport acknowledgements and chain-head updates do not recursively create
+new audit events. Monitor these infrastructure operations separately; this application
+trail does not claim to capture arbitrary database-administrator activity.
 
 `coyote_api.tasks.maintenance.replay_audit_events` runs every 30 seconds and attempts at
 most 100 events per configured queue, then the filesystem retry queue. Failed MongoDB

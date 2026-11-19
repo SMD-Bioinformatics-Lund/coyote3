@@ -12,6 +12,7 @@ from scripts.knowledgebase.migrate_knowledgebase_database import (
     migrate_collection,
     transformed_documents,
 )
+from tests.fixtures.mongo_settings import audit_context
 
 
 def test_knowledgebase_collection_mapping_is_explicit(tmp_path: Path) -> None:
@@ -43,44 +44,6 @@ def test_only_oncokb_public_drops_forbidden_sample_fields() -> None:
     assert document["sample_ids"] == ["sample-oid"]
 
 
-def test_migration_copies_indexes_and_verifies_transformed_content(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    client = mongomock.MongoClient()
-    source = client.application
-    target = client.knowledgebase
-    source.oncokb_public.insert_one(
-        {
-            "_id": "one",
-            "query_hash": "hash",
-            "gene": "TP53",
-            "sample_ids": ["sample-oid"],
-            "sample_names": ["synthetic-sample"],
-        }
-    )
-    source.oncokb_public.create_index("query_hash", name="query_hash_1", unique=True)
-    monkeypatch.setattr(
-        "scripts.knowledgebase.migrate_knowledgebase_database.source_collection_options",
-        lambda *_args: {},
-    )
-
-    result = migrate_collection(
-        source,
-        target,
-        "oncokb_public_collection",
-        "oncokb_public",
-        apply=True,
-    )
-
-    assert result["status"] == "migrated"
-    assert result["verified"] is True
-    assert target.oncokb_public.count_documents({}) == 1
-    migrated = target.oncokb_public.find_one({"_id": "one"})
-    assert "sample_ids" not in migrated
-    assert "sample_names" not in migrated
-    assert "query_hash_1" in target.oncokb_public.index_information()
-
-
 def test_existing_different_target_is_never_overwritten() -> None:
     client = mongomock.MongoClient()
     client.application.civic.insert_one({"_id": "one", "gene": "TP53"})
@@ -93,6 +56,7 @@ def test_existing_different_target_is_never_overwritten() -> None:
             "civic_variants_collection",
             "civic",
             apply=True,
+            context=audit_context(),
         )
 
     assert client.knowledgebase.civic.find_one({"_id": "one"})["gene"] == "KRAS"

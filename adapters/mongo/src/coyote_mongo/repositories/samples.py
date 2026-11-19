@@ -697,8 +697,11 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 previous=previous,
             )
         )
-        result = self.get_collection().replace_one(
-            {"_id": sample_id, "version": expected_version}, replacement
+        result = self.write(
+            self.get_collection(),
+            "replace_one",
+            {"_id": sample_id, "version": expected_version},
+            replacement,
         )
         if not result.matched_count:
             raise api_error(409, "Sample changed. Reload the sample before saving metadata.")
@@ -892,7 +895,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         Returns:
             Structured write result for the delete.
         """
-        result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        result = self.write(self.get_collection(), "delete_one", {"_id": ObjectId(sample_oid)})
         invalidate_samples_cache(self.adapter)
         operation = operation_from_delete(result)
         self.invalidate_dashboard_metrics()

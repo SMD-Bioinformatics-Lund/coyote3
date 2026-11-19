@@ -93,6 +93,15 @@ def test_api_session_repository_loads_only_active_users(
         lambda user: {"loaded": user["username"]},
     )
 
+    monkeypatch.setattr(
+        services.runtime_app,
+        "config",
+        {
+            "COYOTE4_MONGO_URI": "mongodb://localhost:27017",
+            "IDENTITY_DB": "synthetic_identity",
+            "ENV_NAME": "testing",
+        },
+    )
     assert services.get_api_session_repository() is captured
     loader = captured["user_loader"]
     assert callable(loader)

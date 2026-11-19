@@ -181,7 +181,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             None
         """
         normalized = self._normalize_user_id(username)
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             self._identity_query(normalized),
             {"$set": {"password": password_hash}},
         )
@@ -218,7 +220,7 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             Structured write result for the insert.
         """
         payload = self.ensure_username(dict(user_data))
-        result = self.get_collection().insert_one(payload)
+        result = self.write(self.get_collection(), "insert_one", payload)
         operation = operation_from_insert_one(result)
         self.invalidate_dashboard_metrics()
         return operation
@@ -428,11 +430,13 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             Delete counts; zero means the account changed or was already removed.
         """
         normalized = self._normalize_user_id(user_id)
-        result = self.get_collection().delete_one(
+        result = self.write(
+            self.get_collection(),
+            "delete_one",
             {
                 **self._identity_query(normalized),
                 "version": expected_version if expected_version is not None else {"$exists": False},
-            }
+            },
         )
         operation = operation_from_delete(result)
         self.invalidate_dashboard_metrics()
@@ -481,7 +485,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
         normalized = self._normalize_user_id(user_id)
         payload = {key: user_data[key] for key in fields}
         payload["version"] = (expected_version or 1) + 1
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {
                 **self._identity_query(normalized),
                 "version": expected_version if expected_version is not None else {"$exists": False},
@@ -500,7 +506,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             user_id (str): The unique identifier of the user.
         """
         normalized = self._normalize_user_id(user_id)
-        self.get_collection().update_one(
+        self.write(
+            self.get_collection(),
+            "update_one",
             self._identity_query(normalized),
             {"$set": {"last_login": datetime.now(timezone.utc)}},
         )
@@ -515,7 +523,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             bool: True if the update was successful, False otherwise.
         """
         normalized = self._normalize_user_id(user_id)
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             self._identity_query(normalized),
             {"$set": {"is_active": active_status}, "$inc": {"version": 1}},
         )
@@ -541,7 +551,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
         }
         if issued_by:
             payload["password_action_issued_by"] = str(issued_by)
-        self.get_collection().update_one(
+        self.write(
+            self.get_collection(),
+            "update_one",
             self._identity_query(normalized),
             {"$set": payload},
         )
@@ -552,7 +564,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
         """Consume a valid token and replace the password in one atomic update."""
         normalized = self._normalize_user_id(user_id)
         now = datetime.now(timezone.utc)
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {
                 **self._identity_query(normalized),
                 "password_action_token_hash": str(token_hash),
@@ -602,7 +616,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             Clears outstanding reset tokens atomically without enabling any provider.
         """
         normalized = self._normalize_user_id(user_id)
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {
                 **self._identity_query(normalized),
                 "password": expected_password_hash,
@@ -635,8 +651,12 @@ class UsersRepository(BaseRepository, RecoveryRepository):
             "auth_type": record["provider"],
             "password_recovery.status": {"$ne": "pending"},
         }
-        doc = col.find_one_and_update(
-            query, {"$set": {"password_recovery": record}}, return_document=ReturnDocument.AFTER
+        doc = self.write(
+            col,
+            "find_one_and_update",
+            query,
+            {"$set": {"password_recovery": record}},
+            return_document=ReturnDocument.AFTER,
         )
         if not doc:
             doc = col.find_one(
@@ -668,7 +688,9 @@ class UsersRepository(BaseRepository, RecoveryRepository):
         doc = col.find_one(query, {"password_recovery": 1, "auth_type": 1})
         if not doc or doc["password_recovery"]["provider"] not in doc.get("auth_type", []):
             return None
-        result = col.find_one_and_update(
+        result = self.write(
+            col,
+            "find_one_and_update",
             {
                 **query,
                 "password_recovery.status": "pending",

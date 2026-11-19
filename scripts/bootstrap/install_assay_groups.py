@@ -77,6 +77,10 @@ def install(db, *, actor: str, apply: bool = False) -> int:
     existing = set(collection.distinct("group_id"))
     missing = [d for d in documents if d["group_id"] not in existing]
     if apply:
+        from coyote_api.config.backend import audit_context_from_runtime
+        from coyote_mongo.repositories.audit_outbox import enqueue_audit
+
+        context = audit_context_from_runtime(os.environ)
         collection.create_index([("group_id", 1)], unique=True, name="assay_group_id_unique")
 
         def write(session):
@@ -94,6 +98,17 @@ def install(db, *, actor: str, apply: bool = False) -> int:
                     upsert=True,
                     session=session,
                 )
+
+            enqueue_audit(
+                db,
+                session,
+                context=context,
+                event_type="assay_groups.installed",
+                resource_type="assay_group",
+                resource_id="installation",
+                actor=actor,
+                metadata={"planned_groups": len(missing)},
+            )
 
         run_transaction(db.client, write)
     return len(missing)

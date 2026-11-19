@@ -675,7 +675,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
 
         document = enrich_annotation_identity(document, source=variant_data)
         document = normalize_collection_document("annotation", document)
-        result = operation_from_insert_one(self.get_collection().insert_one(document))
+        result = operation_from_insert_one(
+            self.write(self.get_collection(), "insert_one", document)
+        )
         if _annotation_class_value(document.get("class")) is not None:
             self.invalidate_dashboard_metrics()
         return result

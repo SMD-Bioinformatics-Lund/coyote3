@@ -1,9 +1,7 @@
 """Public VEP reference isolation and diagram validation."""
 
-import base64
 import copy
 import gzip
-import io
 import json
 from types import SimpleNamespace
 
@@ -17,11 +15,13 @@ from coyote_api.app.deps import services
 from coyote_api.interfaces.http.v1.public import routes
 from coyote_atlas.bundle import ReferenceBundle
 from coyote_mongo.repositories.vep_metadata import VEPMetaRepository
-from PIL import Image
+from mongo_test_support.writes import repository_writes  # noqa: F401
 
-from scripts.knowledgebase import update_vep_diagrams
-from scripts.knowledgebase.update_vep_metadata import SEED, diagram_document
 from tests.fixtures.mongo_settings import mongo_runtime
+
+SEED = ReferenceBundle.packaged().directory / "vep_metadata.seed.ndjson.gz"
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_public_reference_projects_only_reference_fields(monkeypatch):
@@ -50,69 +50,6 @@ def test_numeric_public_order():
     service = object.__new__(PublicCatalogService)
     service.vep_metadata_repository = SimpleNamespace(list_versions=lambda: ["98", "116", "103"])
     assert service.vep_reference_versions()["versions"] == ["116", "103", "98"]
-
-
-def test_png_diagram_preserves_bytes():
-    buffer = io.BytesIO()
-    Image.new("RGB", (12, 8)).save(buffer, format="PNG")
-    result = diagram_document(buffer.getvalue(), "https://example.org/image.png", 103)
-    assert result["width"] == 12 and result["height"] == 8
-    assert base64.b64decode(result["data_base64"]) == buffer.getvalue()
-
-
-@pytest.mark.parametrize(
-    "content",
-    [
-        b'<svg viewBox="0 0 10 10"><script>alert(1)</script></svg>',
-        b'<svg viewBox="0 0 10 10" onload="alert(1)"/>',
-        b'<svg viewBox="0 0 10 10"><image href="https://example.org/image"/></svg>',
-        b'<svg viewBox="0 0 10 10"><rect style="fill:url(https://example.org)"/></svg>',
-        b'<!DOCTYPE svg><svg viewBox="0 0 10 10"/>',
-    ],
-)
-def test_unsafe_svg_rejected(content):
-    with pytest.raises(ValueError):
-        diagram_document(content, "https://example.org/image.svg", 116)
-
-
-def test_diagram_install_does_not_change_103_definitions(tmp_path, monkeypatch):
-    collection = mongomock.MongoClient().kb.vep_metadata
-    original = {"vep_id": "103", "consequence_groups": {"test": ["term"]}, "created_by": "original"}
-    collection.insert_one(original)
-    original = copy.deepcopy(collection.find_one())
-    diagram = diagram_document(
-        b'<svg viewBox="0 0 20 10"><rect width="20" height="10"/></svg>',
-        "https://example.org/image.svg",
-        103,
-    )
-    monkeypatch.setattr(
-        update_vep_diagrams, "run_transaction", lambda client, callback: callback(None)
-    )
-    update_vep_diagrams.install(collection, {"103": diagram}, tmp_path / "backup.bson")
-    actual = collection.find_one()
-    descriptor = actual.pop("consequence_diagram")
-    assert "data_base64" not in descriptor
-    assert descriptor == {key: value for key, value in diagram.items() if key != "data_base64"}
-    asset = collection.database.vep_diagrams.find_one({"_id": descriptor["sha256"]})
-    assert isinstance(asset["data"], bytes)
-    assert asset["data"] == base64.b64decode(diagram["data_base64"])
-    assert actual == original
-
-
-def test_all_seed_diagrams_match_their_releases_and_hashes():
-    import hashlib
-
-    with gzip.open(SEED, "rt") as stream:
-        for row in map(json.loads, stream):
-            diagram = row["consequence_diagram"]
-            assert diagram["release"] == row["vep_id"]
-            assert (
-                hashlib.sha256(
-                    (SEED.parent / "vep_diagrams" / diagram["sha256"]).read_bytes()
-                ).hexdigest()
-                == diagram["sha256"]
-            )
-            assert "data_base64" not in diagram
 
 
 def test_binary_endpoint_is_release_scoped_and_metadata_has_no_image_bytes(monkeypatch):

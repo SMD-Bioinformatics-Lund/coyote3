@@ -10,7 +10,11 @@ from coyote_mongo.audit_spool import AuditSpool
 from coyote_mongo.repositories.app_controls import MongoAppControlsRepository
 from coyote_mongo.repositories.audit import AuditRepository
 from coyote_mongo.repositories.audit_outbox import audit_route
+from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
 from pymongo.errors import AutoReconnect
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_audit_outage_spools_sanitized_event_then_replays(tmp_path):
@@ -99,6 +103,7 @@ def test_audit_retention_lookup_does_not_block_outage_spooling():
                 {OPERATIONAL_COLLECTIONS.app_controls: collection},
                 identity_db={"operational_audit_events": collection},
                 config={},
+                context=audit_context(),
             ),
             {"AUDIT_RETENTION_DAYS": 120},
         )

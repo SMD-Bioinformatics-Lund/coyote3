@@ -2,7 +2,7 @@
 
 import os
 from concurrent.futures import ThreadPoolExecutor
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -21,7 +21,7 @@ from tests.fixtures.mongo_settings import audit_context, mongo_runtime
 
 
 def test_bulk_update_failure_aborts_all_documents(database, monkeypatch):
-    repository = BaseRepository(SimpleNamespace())
+    repository = BaseRepository(SimpleNamespace(app=mongo_runtime()))
     collection = database.values
     repository.set_collection(collection)
     collection.insert_many([{"value": 0}, {"value": 0}])
@@ -35,6 +35,20 @@ def test_bulk_update_failure_aborts_all_documents(database, monkeypatch):
     with pytest.raises(RuntimeError, match="post-write failure"):
         repository.update_many_atomic({}, {"$set": {"value": 1}})
     assert collection.count_documents({"value": 0}) == 2
+    assert database.audit_outbox.count_documents({}) == 0
+
+
+def test_bulk_insert_copies_input_mappings_and_audits_stored_ids(database):
+    repository = BaseRepository(SimpleNamespace(app=mongo_runtime()))
+    repository.set_collection(database.values)
+    document = MappingProxyType({"value": "synthetic"})
+
+    result = repository.insert_many_atomic(iter([document]))
+
+    assert "_id" not in document
+    assert database.values.find_one()["_id"] == result.inserted_ids[0]
+    receipt = database.audit_outbox.find_one()["event"]
+    assert receipt["metadata"]["document_ids"] == [str(result.inserted_ids[0])]
 
 
 def test_public_catalogue_refresh_failure_restores_both_products(database, monkeypatch):

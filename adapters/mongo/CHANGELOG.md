@@ -2,6 +2,11 @@
 
 ## v1.0.0
 
+- Require transaction-owned audit receipts for remaining repository data writes,
+  including identity, sessions, review state and background processing. Reject writes
+  when audit staging fails; journal nontransactional maintenance intent and outcomes.
+  Import repositories from their defining modules; unused package-level class exports
+  were removed to prevent circular imports in standalone persistence tools.
 - Check scheduled audit-export freshness and verify history against a separately
   retained checkpoint for operational acceptance and monitoring.
 - Count distinct valid sign-ins and recent activity independently of TTL cleanup,

@@ -25,6 +25,7 @@ from scripts.bootstrap.bootstrap_database import (
     build_seed_documents,
 )
 from scripts.identity.sync_rbac_catalog import synchronize_rbac_catalog
+from tests.fixtures.mongo_settings import audit_context
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -362,6 +363,9 @@ def test_initial_rbac_uses_system_creation_provenance():
 
 def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
     monkeypatch.setattr(
+        "coyote_mongo.repositories.audit_outbox.enqueue_audit", lambda *_a, **_k: None
+    )
+    monkeypatch.setattr(
         "coyote_mongo.transactions.run_transaction", lambda client, operation: operation(None)
     )
     database = mongomock.MongoClient()["coyote4_test"]
@@ -384,6 +388,7 @@ def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
             users_collection="users",
             roles_collection="roles",
             permissions_collection="permissions",
+            context=audit_context(),
         )
         == "loaded"
     )
@@ -396,6 +401,7 @@ def test_database_bootstrap_writes_only_empty_baseline_collections(monkeypatch):
             users_collection="users",
             roles_collection="roles",
             permissions_collection="permissions",
+            context=audit_context(),
         )
         == "skipped"
     )

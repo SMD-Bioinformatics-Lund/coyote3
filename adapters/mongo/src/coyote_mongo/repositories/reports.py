@@ -71,7 +71,9 @@ class ReportRepository(BaseRepository, ReportLibraryRepository):
 
     def complete_artifacts(self, report_oid: Any) -> bool:
         """Mark verified artifacts ready without changing the saved clinical receipt."""
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": self._object_id(report_oid)},
             {"$set": {"artifacts.$[].status": "ready"}},
         )

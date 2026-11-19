@@ -188,7 +188,9 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
     ) -> OperationResult:
         """Replace the UI-selected transcript fields for one variant."""
         operation = operation_from_update(
-            self.get_collection().update_one(
+            self.write(
+                self.get_collection(),
+                "update_one",
                 {"_id": ObjectId(var_id)},
                 {
                     "$set": {
@@ -406,7 +408,9 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
             Any: The result of the update operation.
         """
         operation = operation_from_update(
-            self.get_collection().update_one(
+            self.write(
+                self.get_collection(),
+                "update_one",
                 {"_id": ObjectId(variant_id)},
                 {"$set": {"fp": fp}},
             )
@@ -546,7 +550,9 @@ class VariantsRepository(FindingCommentOwnerMixin, BaseRepository):
 
     def set_override_blacklist(self, variant_id: str, override: bool = True) -> Any:
         """Apply or remove the override-blacklist flag on a variant."""
-        return self.get_collection().update_one(
+        return self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": ObjectId(variant_id)},
             {"$set": {"override_blacklist": override}},
         )

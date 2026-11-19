@@ -3,8 +3,13 @@
 from unittest.mock import Mock
 
 import mongomock
+import pytest
 from bson import ObjectId
 from coyote_mongo.repositories.translocations import TranslocsRepository
+from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_embedded_selection_preserves_rows_and_checks_concurrent_updates():
@@ -22,6 +27,7 @@ def test_embedded_selection_preserves_rows_and_checks_concurrent_updates():
         }
     )
     repo = TranslocsRepository.__new__(TranslocsRepository)
+    repo.app = mongo_runtime()
     repo.get_collection = lambda: collection
     repo.invalidate_dashboard_metrics = Mock()
     assert repo.select_annotation(str(oid), "other", original, second).matched_count == 0

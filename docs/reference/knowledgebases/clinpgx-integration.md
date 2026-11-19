@@ -87,10 +87,11 @@ The identifier route is preferred when the local cache has a
 
 ## Seeding
 
-Run the seed command from the repository root:
+With Atlas's optional `importers` dependencies installed, select the knowledgebase
+and audit destination through the deployment environment, then run:
 
 ```bash
-python scripts/knowledgebase/seed_clinpgx_genes_public.py \
+coyote-atlas update clinpgx \
   --zip /srv/coyote4/reference/clinpgx_genes.zip \
   --mongo-uri "$KNOWLEDGEBASE_MONGO_URI" \
   --db "$KNOWLEDGEBASE_DB"

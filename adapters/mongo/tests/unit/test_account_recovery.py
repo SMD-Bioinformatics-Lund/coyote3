@@ -7,9 +7,13 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import mongomock
+import pytest
 from coyote.contracts.auth import PasswordRecoveryRecord
 from coyote_mongo.repositories.users import UsersRepository
-from mongo_test_support.settings import audit_context
+from mongo_test_support.settings import audit_context, mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_pending_deduplication_completion_retry_and_provider_change():
@@ -54,7 +58,9 @@ def test_recovery_notification_retries_preserve_read_state_and_are_dismissible()
     from coyote_mongo.repositories.notifications import NotificationsRepository
 
     collection = mongomock.MongoClient().synthetic.notifications
-    repository = NotificationsRepository(SimpleNamespace(notifications_collection=collection))
+    repository = NotificationsRepository(
+        SimpleNamespace(app=mongo_runtime(), notifications_collection=collection)
+    )
     service = NotificationService(
         notification_repository=repository, user_repository=SimpleNamespace(), retention_days=30
     )

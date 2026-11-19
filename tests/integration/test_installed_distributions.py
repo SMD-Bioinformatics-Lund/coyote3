@@ -188,6 +188,8 @@ import coyote_mongo
 assert Path(coyote_mongo.__file__).is_relative_to(target)
 from importlib.metadata import version
 assert coyote_mongo.__version__ == version('coyote-server')
+from coyote_mongo.persistence import to_provider_id
+assert str(to_provider_id('0123456789abcdef01234567')) == '0123456789abcdef01234567'
 from coyote_mongo.runtime_adapter import MongoAdapter
 from coyote_mongo.sessions import MongoApiSessionRepository
 from coyote_mongo.config.collections import load_collection_mapping

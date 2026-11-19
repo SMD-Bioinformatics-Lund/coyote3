@@ -122,8 +122,6 @@ nav:
   - Backup and recovery: operations/backup-and-recovery.md
   - Reference updates:
     - Knowledgebase snapshots: operations/knowledgebase-updates.md
-    - VEP metadata: operations/vep-metadata-updates.md
-    - HGNC genes: operations/hgnc-gene-installation.md
   - Migration:
     - Choose a migration: operations/migrations/README.md
     - 'Clinical data: order and commands': operations/migrations/clinical-data.md

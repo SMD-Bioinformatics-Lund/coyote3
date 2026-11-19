@@ -47,7 +47,7 @@ as unavailable, rather than replaced with a definition from the latest release.
 
 Ensembl impact describes a predicted molecular effect, not clinical pathogenicity.
 Coyote4 groups are filtering categories. Historical website tables can differ
-from the executable VEP engine; see the [source and import policy](../../operations/vep-metadata-updates.md).
+from the executable VEP engine; see the [source and import policy](../../operations/knowledgebase-updates.md).
 
 ## Public API
 

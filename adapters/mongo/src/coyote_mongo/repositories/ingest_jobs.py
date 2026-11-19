@@ -90,9 +90,13 @@ class IngestJobsRepository(BaseRepository, IngestJobRepository):
             credential_operation=credential_operation,
             credential_scope=credential_scope,
         ).model_dump(by_alias=True)
-        self.get_collection().with_options(
-            write_concern=WriteConcern("majority", j=True)
-        ).update_one({"_id": identity}, {"$setOnInsert": document}, upsert=True)
+        self.write(
+            self.get_collection().with_options(write_concern=WriteConcern("majority", j=True)),
+            "update_one",
+            {"_id": identity},
+            {"$setOnInsert": document},
+            upsert=True,
+        )
         return identity
 
     def get(self, job_id: str) -> dict[str, Any] | None:
@@ -118,7 +122,9 @@ class IngestJobsRepository(BaseRepository, IngestJobRepository):
             or ``None`` if the job is missing or not eligible.
         """
         now = datetime.now(timezone.utc)
-        return self.get_collection().find_one_and_update(
+        return self.write(
+            self.get_collection(),
+            "find_one_and_update",
             {
                 "_id": job_id,
                 "$or": [
@@ -140,7 +146,9 @@ class IngestJobsRepository(BaseRepository, IngestJobRepository):
 
     def complete(self, job_id: str, lease_token: str, result: dict[str, Any], session: Any) -> None:
         """Fence stale workers and commit the receipt with the clinical writes."""
-        updated = self.get_collection().update_one(
+        updated = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": job_id, "state": "running", "lease_token": lease_token},
             {
                 "$set": {
@@ -170,7 +178,9 @@ class IngestJobsRepository(BaseRepository, IngestJobRepository):
             True if this attempt recorded the failure; False if its lease was
             replaced or the job already reached a terminal state.
         """
-        updated = self.get_collection().update_one(
+        updated = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": job_id, "state": "running", "lease_token": lease_token},
             {
                 "$set": {

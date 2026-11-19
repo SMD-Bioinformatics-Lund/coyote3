@@ -12,10 +12,14 @@ from bson.errors import InvalidId
 from bson.objectid import ObjectId
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.mutations import write_with_audit
 from coyote_mongo.transactions import run_transaction
 
 
-def insert_many_transaction(collection, documents, *, ignore_duplicates=False, on_insert=None):
+def insert_many_transaction(
+    collection, documents, *, context: AuditContext, ignore_duplicates=False, on_insert=None
+):
     """Commit an insertion batch, filtering explicitly ignored duplicates only after abort."""
     pending = [dict(document) for document in documents]
     for document in pending:
@@ -36,8 +40,13 @@ def insert_many_transaction(collection, documents, *, ignore_duplicates=False, o
             failures propagate to the transaction runner.
         """
         if pending:
-            collection.insert_many(
-                [dict(document) for document in pending], ordered=True, session=session
+            write_with_audit(
+                collection,
+                "insert_many",
+                [dict(document) for document in pending],
+                ordered=True,
+                session=session,
+                context=context,
             )
         ids = [str(document["_id"]) for document in pending]
         if on_insert is not None:
@@ -125,15 +134,18 @@ def insert_one_document(
     collection,
     document: dict[str, Any],
     *,
+    context: AuditContext,
     ignore_duplicate: bool = False,
     session: Any | None = None,
 ) -> str | None:
     """Insert one document and optionally suppress duplicate-key errors."""
     try:
         kwargs = {"session": session} if session is not None else {}
-        result = collection.insert_one(dict(document), **kwargs)
+        result = write_with_audit(
+            collection, "insert_one", dict(document), context=context, **kwargs
+        )
     except DuplicateKeyError:
-        if not ignore_duplicate:
+        if not ignore_duplicate or session is not None:
             raise
         return None
     return str(result.inserted_id)
@@ -143,21 +155,23 @@ def insert_many_documents(
     collection,
     documents: list[dict[str, Any]],
     *,
+    context: AuditContext,
     ignore_duplicates: bool = False,
     session: Any | None = None,
 ) -> int:
     """Insert many documents and optionally suppress duplicate-key-only errors."""
-    try:
-        kwargs = {"session": session} if session is not None else {}
-        result = collection.insert_many([dict(doc) for doc in documents], ordered=False, **kwargs)
-        return len(result.inserted_ids)
-    except BulkWriteError as exc:
-        if not ignore_duplicates:
-            raise
-        details = exc.details or {}
-        inserted_count = int(details.get("nInserted", 0))
-        write_errors = details.get("writeErrors", []) or []
-        non_duplicate_errors = [err for err in write_errors if err.get("code") != 11000]
-        if non_duplicate_errors:
-            raise
-        return inserted_count
+    if ignore_duplicates:
+        if session is not None:
+            raise ValueError("Duplicate filtering must own the complete insertion transaction")
+        return len(
+            insert_many_transaction(collection, documents, context=context, ignore_duplicates=True)
+        )
+    result = write_with_audit(
+        collection,
+        "insert_many",
+        [dict(doc) for doc in documents],
+        context=context,
+        ordered=False,
+        session=session,
+    )
+    return len(result.inserted_ids)

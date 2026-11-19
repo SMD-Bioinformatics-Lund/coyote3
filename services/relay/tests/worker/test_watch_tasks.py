@@ -7,8 +7,11 @@ import pytest
 from coyote.application.ingest.watcher import resolve_relative_sample_paths
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
 from relay_test_support.mongo_settings import mongo_runtime
+from relay_test_support.writes import repository_writes  # noqa: F401
 
 from coyote_relay import tasks as ingest
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_resolve_sample_paths_uses_container_visible_manifest_paths(tmp_path):

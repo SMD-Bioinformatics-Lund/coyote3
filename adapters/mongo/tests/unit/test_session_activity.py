@@ -1,8 +1,7 @@
-# SPDX-FileCopyrightText: 2026 Ram Nanduri
-# SPDX-License-Identifier: GPL-3.0-only
-
 """Session counts follow login validity rather than MongoDB TTL cleanup."""
 
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -10,6 +9,10 @@ import mongomock
 import pytest
 from coyote.application.accounts.tokens import token_hash
 from coyote_mongo.sessions import MongoApiSessionRepository
+from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture
@@ -19,7 +22,9 @@ def sessions():
         for name in ("active", "idle", "disabled", "deleted", "changed")
     }
     collection = mongomock.MongoClient().synthetic.session_activity
-    repository = MongoApiSessionRepository(collection, user_loader=accounts.get, ttl_seconds=3600)
+    repository = MongoApiSessionRepository(
+        collection, user_loader=accounts.get, ttl_seconds=3600, context=audit_context()
+    )
     return repository, accounts, collection
 
 

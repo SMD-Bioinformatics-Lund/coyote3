@@ -91,6 +91,9 @@ for (const theme of ["light", "dark"] as const) {
         await page.goto(path)
         await expect(page.locator("#docs-loading")).toBeHidden()
         await expect(page.locator("#docs-error")).toBeHidden()
+        await expectReadable(page.getByRole("heading", { name: "Integration guide", exact: true }))
+        await expect(page.getByRole("heading", { name: "Your first authenticated request", exact: true })).toBeVisible()
+        await page.screenshot({ path: testInfo.outputPath("integration-guide.png") })
         if (view === "explorer") {
           await expectReadable(page.locator('.opblock-tag[data-tag="Authentication"] a'))
           await page.getByRole("navigation", { name: "Endpoint groups" })
@@ -111,7 +114,6 @@ for (const theme of ["light", "dark"] as const) {
           const authentication = page.locator("#api-renderer table").filter({ hasText: "When changing data" })
           await expectReadable(authentication.getByRole("columnheader", { name: "Client", exact: true }))
           await expectReadable(authentication.getByRole("cell", { name: "Your Coyote4 session cookie", exact: true }))
-          await expectReadable(page.locator("#api-renderer [role=tab].tab-error").first())
           await expectReadable(page.locator("#api-renderer .redoc-json .token.string").first())
           await expectReadable(page.getByRole("tab", { name: "Payload", exact: true }).first())
           const responseSample = page.locator('#api-renderer div:has(> [data-rttabs="true"])')

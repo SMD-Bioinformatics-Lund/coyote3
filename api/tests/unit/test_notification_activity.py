@@ -6,8 +6,9 @@ from unittest.mock import Mock
 
 import mongomock
 import pytest
-from api_test_support.mongo_settings import mongo_runtime
+from api_test_support.mongo_settings import audit_context, mongo_runtime
 from api_test_support.permission_catalog import PermissionCatalog
+from api_test_support.writes import repository_writes  # noqa: F401
 from bson import ObjectId
 from coyote.application.notifications.access import SampleNotificationAccess
 from coyote.application.notifications.activity import ActivityNotificationService
@@ -18,6 +19,8 @@ from coyote_mongo.repositories.notification_activity import NotificationActivity
 from coyote_mongo.repositories.notifications import NotificationsRepository
 from coyote_mongo.repositories.samples import SampleRepository
 from pymongo.errors import AutoReconnect
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def principal(username, **overrides):
@@ -97,6 +100,7 @@ def fixture():
         operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
+        context=audit_context(),
     )
     service = ActivityNotificationService(
         activity_repository=activity,
@@ -197,6 +201,7 @@ def test_dismissed_activity_stays_hidden_after_worker_restart_and_cursor_replay(
         operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
+        context=audit_context(),
     )
     delivery.activity.progress.delete_many({})
     assert delivery.deliver() == 0
@@ -387,6 +392,7 @@ def test_activity_pages_survive_restart_and_reconcile_late_events():
         operational_collection=client.identity.operational_audit_events,
         versions_collection=client.kb.versions,
         notifications=client.app.notifications,
+        context=audit_context(),
     )
     assert service.deliver() == 16
     assert service.deliver() == 16

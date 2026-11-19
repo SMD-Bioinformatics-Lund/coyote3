@@ -15,6 +15,7 @@ from coyote.domain.exceptions import AppError
 from coyote_mongo.config.operational_collections import OPERATIONAL_COLLECTIONS
 from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.repositories.audit_outbox import enqueue_audit
+from coyote_mongo.repositories.mutations import write_with_audit
 from coyote_mongo.transactions import run_transaction
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,7 @@ def enqueue_report_erasure(
             session=session,
         ):
             raise AppError(409, "Report artifact is referenced by another sample.")
+        # The owning deletion records these jobs in its sample.deleted receipt.
         queue.insert_one(
             {
                 "sample_id": sample_id,
@@ -198,7 +200,9 @@ def erase_pending_reports(
                 reason = "permission_denied"
             elif isinstance(exc, ValueError) and reason == "io_error":
                 reason = "invalid_path"
-            queue.update_one(
+            write_with_audit(
+                queue,
+                "update_one",
                 {"_id": job["_id"]},
                 {
                     "$set": {
@@ -208,6 +212,7 @@ def erase_pending_reports(
                     },
                     "$inc": {"attempts": 1},
                 },
+                context=context,
             )
             logger.warning("Report artifact erasure deferred: reason=%s job=%s", reason, job["_id"])
             failed += 1

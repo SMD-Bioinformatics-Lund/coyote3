@@ -10,6 +10,10 @@ from coyote.application.accounts.service_tokens import ServiceTokens
 from coyote.contracts.service_tokens import ServiceTokenCreate
 from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories.service_tokens import MongoServiceTokenRepository
+from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture
@@ -17,7 +21,7 @@ def service():
     collection = mongomock.MongoClient().identity.service_tokens
     users = {"owner": {"username": "owner", "is_active": True}}
     return ServiceTokens(
-        MongoServiceTokenRepository(collection),
+        MongoServiceTokenRepository(collection, context=audit_context()),
         users=SimpleNamespace(
             user_with_id=users.get, list_active_users_for_notifications=lambda: list(users.values())
         ),

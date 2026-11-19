@@ -14,6 +14,8 @@ from coyote_mongo.config.operational_collections import (
     OPERATIONAL_COLLECTIONS,
     get_audit_events_collection_name,
 )
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.mutations import write_with_audit
 
 
 class NotificationActivityRepository:
@@ -39,6 +41,7 @@ class NotificationActivityRepository:
                 load_collection_section("knowledgebase")["knowledgebase_versions_collection"]
             ],
             notifications=store.notification_repository.get_collection(),
+            context=store.app.audit,
         )
 
     def __init__(
@@ -48,6 +51,7 @@ class NotificationActivityRepository:
         operational_collection: Any,
         versions_collection: Any,
         notifications: Any,
+        context: AuditContext,
     ):
         """Bind explicitly selected source collections and the destination collection.
 
@@ -56,11 +60,13 @@ class NotificationActivityRepository:
             operational_collection: New operational events, separate from retained history.
             versions_collection: Knowledgebase release registry.
             notifications: Application database notification collection.
+            context: Owning deployment's transactional audit identity.
         """
         self.audit = audit_collection
         self.operational = operational_collection
         self.versions = versions_collection
         self.notifications = notifications
+        self.audit_context = context
         self.progress = notifications.database[
             OPERATIONAL_COLLECTIONS.notification_activity_progress
         ]
@@ -82,7 +88,11 @@ class NotificationActivityRepository:
             Separate reads support independent MongoDB servers. No cross-client session
             or cross-database lookup is used. Insert-only destination writes handle races.
         """
-        query = {"occurred_at": {"$gte": since}, "source.environment": environment}
+        query = {
+            "occurred_at": {"$gte": since},
+            "source.environment": environment,
+            "category": {"$ne": "database_mutation"},
+        }
         state = self.progress.find_one({"_id": environment}) or {"_id": environment}
         result = []
         budget = max(1, limit // 6)
@@ -228,5 +238,12 @@ class NotificationActivityRepository:
         """
         if self._pending_progress is not None:
             state = self._pending_progress
-            self.progress.replace_one({"_id": state["_id"]}, state, upsert=True)
+            write_with_audit(
+                self.progress,
+                "replace_one",
+                {"_id": state["_id"]},
+                state,
+                upsert=True,
+                context=self.audit_context,
+            )
             self._pending_progress = None

@@ -192,6 +192,8 @@ strict = true
 follow_imports = "skip"
 ignore_missing_imports = true
 files = [
+    "adapters/mongo/src/coyote_mongo/repositories/mutations.py",
+    "adapters/mongo/src/coyote_mongo/repositories/maintenance_audit.py",
     "core/src/coyote/application/operations",
     "core/src/coyote/application/ingest/worker.py",
     "core/src/coyote/application/accounts/recovery.py",
@@ -288,5 +290,5 @@ members = ["core", "services/relay", "services/demo"]
 coyote-core = { workspace = true }
 coyote-server = { workspace = true }
 coyote-relay = { workspace = true }
-coyote-atlas = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git", rev = "06dd19da58969b80e04cd9dfda5080dbf5902bc4" }
+coyote-atlas = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git", rev = "a195bd048d226dd15c3bff0d309074435b3e6855" }
 coyote-demo = { workspace = true }

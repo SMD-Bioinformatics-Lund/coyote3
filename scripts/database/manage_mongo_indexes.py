@@ -24,6 +24,7 @@ from coyote_mongo.index_management import (  # noqa: E402
     known_retired_indexes,
     retire_index,
 )
+from coyote_mongo.repositories.maintenance_audit import audit_maintenance  # noqa: E402
 from coyote_mongo.runtime_adapter import MongoAdapter  # noqa: E402
 from coyote_mongo.security_indexes import ensure_security_indexes  # noqa: E402
 
@@ -143,23 +144,35 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     adapter = _adapter(args.scope)
     if args.command == "apply":
-        adapter.ensure_repository_indexes()
-        if args.scope != "knowledgebase":
-            ensure_security_indexes(
-                primary_db=adapter.coyote_db,
-                identity_db=adapter.identity_db,
-                config=adapter.app.config,
-                logger=adapter.app.logger,
-            )
+        with audit_maintenance(
+            adapter.identity_db,
+            context=adapter.app.audit,
+            operation="apply_indexes",
+            resource=args.scope,
+        ):
+            adapter.ensure_repository_indexes()
+            if args.scope != "knowledgebase":
+                ensure_security_indexes(
+                    primary_db=adapter.coyote_db,
+                    identity_db=adapter.identity_db,
+                    config=adapter.app.config,
+                    logger=adapter.app.logger,
+                )
     elif args.command == "retire":
         if args.confirm_index_name != args.index:
             raise SystemExit("--confirm-index-name must exactly match --index")
-        retire_index(
-            adapter,
-            collection_name=args.collection,
-            index_name=args.index,
-            repository_name=args.repository,
-        )
+        with audit_maintenance(
+            adapter.identity_db,
+            context=adapter.app.audit,
+            operation="retire_index",
+            resource=args.collection,
+        ):
+            retire_index(
+                adapter,
+                collection_name=args.collection,
+                index_name=args.index,
+                repository_name=args.repository,
+            )
     plan = build_index_plan(adapter, include_security=args.scope != "knowledgebase")
     if args.command == "apply" and args.summary:
         for state in ("present", "missing", "conflict"):

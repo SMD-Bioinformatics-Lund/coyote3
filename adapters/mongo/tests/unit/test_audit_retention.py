@@ -3,10 +3,15 @@
 from datetime import datetime, timedelta, timezone
 
 import mongomock
+import pytest
 from bson import ObjectId
 from coyote_mongo.repositories import audit_integrity
 from coyote_mongo.repositories.app_controls import MongoAppControlsRepository
 from coyote_mongo.repositories.audit import AuditRepository
+from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_operational_replay_uses_insert_without_changing_existing_content():
@@ -60,7 +65,9 @@ def test_recent_events_include_both_collections_and_cleanup_never_touches_retain
         }
     )
     assert repository.recent_events(limit=10)["total"] == 3
-    controls = MongoAppControlsRepository(client.app, identity_db=client.identity, config={})
+    controls = MongoAppControlsRepository(
+        client.app, identity_db=client.identity, config={}, context=audit_context()
+    )
     assert controls.delete_operational_audit_before(datetime.now(timezone.utc)) == 1
     assert retained.count_documents({}) == 2
     assert repository.recent_events(limit=10)["total"] == 2

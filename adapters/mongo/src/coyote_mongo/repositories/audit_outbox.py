@@ -118,6 +118,7 @@ def enqueue_audit(
     metadata: dict | None = None,
     category: str = "business_transaction",
     resource_name: str | None = None,
+    outcome: str = "success",
 ) -> str:
     """Stage a traceability event in the transaction that owns the business write.
 
@@ -132,6 +133,7 @@ def enqueue_audit(
         metadata: Bounded diagnostic facts, not clinical document contents or credentials.
         category: Administrative audit filter category; defaults to business_transaction.
         resource_name: Optional display identity, without copying clinical narrative.
+        outcome: Recorded operation result; maintenance intents use ``pending``.
 
     Returns:
         Stable event ID shared by the outbox row and eventual central audit record.
@@ -157,11 +159,11 @@ def enqueue_audit(
             "occurred_at": datetime.now(timezone.utc),
             "retention_class": "traceability",
             "immutable": True,
-            "severity": "info",
+            "severity": "error" if outcome == "failure" else "info",
             "category": category,
             "event_type": event_type,
             "message": f"Committed {event_type}",
-            "outcome": "success",
+            "outcome": outcome,
             "actor": {
                 "username": username,
                 "fullname": getattr(user, "fullname", None),

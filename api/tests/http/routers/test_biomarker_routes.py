@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import api_test_support.sdk_runtime as test_application_sdk
 import pytest
 from api_test_support import biomarker_assessments as test_biomarker_assessments
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.domain.exceptions import AppError
 from coyote_api.app.deps import services as service_dependencies
 from coyote_api.app.deps.application import get_sample
@@ -13,6 +14,8 @@ from coyote_api.app.main import app_error_handler
 from coyote_api.interfaces.http.v1.clinical.dna import biomarkers
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 sdk = test_application_sdk.sdk
 review = test_biomarker_assessments.review

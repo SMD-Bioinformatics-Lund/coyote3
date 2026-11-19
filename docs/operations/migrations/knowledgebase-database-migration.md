@@ -17,8 +17,8 @@ the application. Existing nonempty reference collections are not reseeded.
 
 Coyote Atlas owns the bundled HGNC/VEP resources. Fresh installation loads that
 bundle into the selected knowledgebase database; existing reference collections
-are preserved. Use the [HGNC](../hgnc-gene-installation.md) and
-[VEP](../vep-metadata-updates.md) import procedures for reviewed updates.
+are preserved. Use the [HGNC](../knowledgebase-updates.md) and
+[VEP](../knowledgebase-updates.md) import procedures for reviewed updates.
 
 The application does not relocate collections during startup or redeployment.
 Review separately scoped database moves before using the maintained

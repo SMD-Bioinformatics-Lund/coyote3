@@ -8,6 +8,7 @@ import pytest
 from api_test_support.biomarker_assessments import assign
 from api_test_support.biomarker_assessments import review as review
 from api_test_support.measurements import MEASUREMENTS
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.application.ingest.dependent_writes import _preserve_biomarker_assessments
 from coyote.application.operations.samples import Sample
 from coyote.application.reporting.preview_consistency import preview_fingerprint
@@ -15,6 +16,8 @@ from coyote.application.reporting.snapshot_rows import build_biomarker_snapshot_
 from coyote.contracts.dna import BiomarkerAssessmentRequest
 from coyote.contracts.schemas.dna import BiomarkersDoc
 from coyote.domain.exceptions import AppError
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 sdk = test_application_sdk.sdk
 

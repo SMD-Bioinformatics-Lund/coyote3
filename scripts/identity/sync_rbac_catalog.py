@@ -28,7 +28,9 @@ configure_center_from_environment()
 from coyote.config.governance_catalog import RBAC_CATALOG_DIR  # noqa: E402
 from coyote.contracts.schemas.registry import normalize_collection_document  # noqa: E402
 from coyote_mongo.config.collections import load_collection_section  # noqa: E402
-from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.endpoints import MongoEndpoint, configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.settings import AuditContext  # noqa: E402
+from coyote_mongo.repositories.audit_outbox import enqueue_audit  # noqa: E402
 from coyote_mongo.transactions import run_transaction  # noqa: E402
 
 
@@ -225,9 +227,13 @@ def main() -> int:
 
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
 
+    context = AuditContext.for_endpoint(
+        os.environ.get("ENV_NAME", "production"), MongoEndpoint(args.mongo_uri, args.identity_db)
+    )
+
     def synchronize(session):
         """Apply the catalog within the supplied identity transaction."""
-        return synchronize_rbac_catalog(
+        result = synchronize_rbac_catalog(
             client[args.identity_db],
             permissions_collection=identity_mapping["permissions_collection"],
             roles_collection=identity_mapping["roles_collection"],
@@ -236,6 +242,18 @@ def main() -> int:
             session=session,
             dry_run=args.dry_run,
         )
+        if not args.dry_run:
+            enqueue_audit(
+                client[args.identity_db],
+                session,
+                context=context,
+                event_type="rbac.synchronized",
+                resource_type="identity",
+                resource_id="rbac",
+                actor="sync_rbac_catalog",
+                metadata=result,
+            )
+        return result
 
     try:
         client.admin.command("ping")

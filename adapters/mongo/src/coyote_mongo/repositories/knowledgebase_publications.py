@@ -7,11 +7,14 @@ from datetime import datetime, timezone
 from typing import Any
 
 from coyote_mongo.config.collections import load_collection_section
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.mutations import write_with_audit
 
 
 def record_reference_publication(
     database: Any,
     *,
+    context: AuditContext,
     source: str,
     release: str,
     session: Any = None,
@@ -21,6 +24,7 @@ def record_reference_publication(
 
     Args:
         database: Knowledgebase database owning both reference records and versions.
+        context: Owning deployment's transactional audit identity.
         source: Stable reference collection or maintenance operation name.
         release: Producer release identifier, or bundled for the packaged baseline.
         session: Owning reference-write transaction when available; never another client's session.
@@ -33,7 +37,9 @@ def record_reference_publication(
     collection = database[
         load_collection_section("knowledgebase")["knowledgebase_versions_collection"]
     ]
-    collection.update_one(
+    write_with_audit(
+        collection,
+        "update_one",
         {"source": source, "release": release},
         {
             "$set": {
@@ -46,4 +52,5 @@ def record_reference_publication(
         },
         upsert=True,
         session=session,
+        context=context,
     )

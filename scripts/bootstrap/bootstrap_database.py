@@ -259,6 +259,7 @@ def _initialize_governance(
     users_collection: str,
     roles_collection: str,
     permissions_collection: str,
+    context,
 ) -> str:
     """Populate empty governance collections with RBAC and two distinct initial accounts.
 
@@ -270,6 +271,7 @@ def _initialize_governance(
         users_collection: Physical user collection name.
         roles_collection: Physical role collection name.
         permissions_collection: Physical permission collection name.
+        context: Explicit deployment audit destination.
 
     Returns:
         ``skipped`` when governance data and a superuser already exist, or ``loaded``
@@ -307,6 +309,7 @@ def _initialize_governance(
             f"Bootstrap role '{assigned_role}' is not present in the bundled RBAC catalog."
         )
 
+    from coyote_mongo.repositories.audit_outbox import enqueue_audit
     from coyote_mongo.transactions import run_transaction
 
     def initialize(session):
@@ -316,6 +319,20 @@ def _initialize_governance(
         db[permissions_collection].insert_many(seed["permissions"], ordered=True, session=session)
         db[roles_collection].insert_many(seed["roles"], ordered=True, session=session)
         db[users_collection].insert_many([user_document, system_admin_document], session=session)
+        enqueue_audit(
+            db,
+            session,
+            context=context,
+            event_type="identity.bootstrapped",
+            resource_type="identity",
+            resource_id="bootstrap",
+            actor="system",
+            metadata={
+                "accounts": 2,
+                "permissions": len(seed["permissions"]),
+                "roles": len(seed["roles"]),
+            },
+        )
 
     from coyote_mongo.repositories.permissions import PermissionsRepository
     from coyote_mongo.repositories.roles import RolesRepository
@@ -434,8 +451,11 @@ def main() -> int:
                 "Target changed during installation; no bootstrap writes were performed"
             )
         mapping = load_collection_section("identity")
+        from coyote_api.config.backend import audit_context_from_runtime
+
         governance = _initialize_governance(
             identity,
+            context=audit_context_from_runtime(config),
             seed=seed,
             user_document=_make_bootstrap_user(
                 argparse.Namespace(

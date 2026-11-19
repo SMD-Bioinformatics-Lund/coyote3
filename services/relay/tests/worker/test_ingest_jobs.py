@@ -10,8 +10,11 @@ from coyote.application.ingest.jobs import job_status_payload, submit_ingest_job
 from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
 from pymongo.errors import AutoReconnect
 from relay_test_support.mongo_settings import mongo_runtime
+from relay_test_support.writes import repository_writes  # noqa: F401
 
 from coyote_relay import tasks as ingest
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture

@@ -69,7 +69,9 @@ class NotificationsRepository(BaseRepository):
         if candidate is None:
             return None
         previous = candidate["email_deliveries"][0]
-        row = self.get_collection().find_one_and_update(
+        row = self.write(
+            self.get_collection(),
+            "find_one_and_update",
             {
                 "_id": candidate["_id"],
                 "$or": [{"expires_on": None}, {"expires_on": {"$gt": now}}],
@@ -109,7 +111,9 @@ class NotificationsRepository(BaseRepository):
         """
         if state not in {"sent", "failed", "skipped", "unknown"}:
             raise ValueError("Invalid email delivery outcome")
-        self.get_collection().update_one(
+        self.write(
+            self.get_collection(),
+            "update_one",
             {
                 "_id": notification_id,
                 "email_deliveries": {
@@ -195,7 +199,9 @@ class NotificationsRepository(BaseRepository):
             True for the first successful withdrawal; False for an already withdrawn
             record, a missing record, or an ownership mismatch.
         """
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {
                 "_id": ObjectId(notification_id),
                 "is_broadcast": True,
@@ -225,11 +231,15 @@ class NotificationsRepository(BaseRepository):
                     if ObjectId.is_valid(identity)
                     else ObjectId(sha256(identity.encode()).hexdigest()[:24])
                 )
-            self.get_collection().update_one(
-                {"_id": document["_id"]}, {"$setOnInsert": dict(document)}, upsert=True
+            self.write(
+                self.get_collection(),
+                "update_one",
+                {"_id": document["_id"]},
+                {"$setOnInsert": dict(document)},
+                upsert=True,
             )
             return str(document["_id"])
-        result = self.get_collection().insert_one(dict(document))
+        result = self.write(self.get_collection(), "insert_one", dict(document))
         return str(result.inserted_id)
 
     def list_for_user(
@@ -270,7 +280,9 @@ class NotificationsRepository(BaseRepository):
         except Exception:
             return False
         query = {"_id": object_id, **self._visible_query(username)}
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             query,
             {
                 "$addToSet": {"read_by": str(username).strip().lower()},
@@ -293,7 +305,9 @@ class NotificationsRepository(BaseRepository):
             identity = ObjectId(notification_id)
         except Exception:
             return False
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": identity, **self._visible_query(username)},
             {
                 "$pull": {"read_by": str(username).strip().lower()},
@@ -337,7 +351,9 @@ class NotificationsRepository(BaseRepository):
         except Exception:
             return False
         normalized = str(username or "").strip().lower()
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": object_id, **self._visible_query(normalized)},
             {
                 "$addToSet": {"dismissed_by": normalized},

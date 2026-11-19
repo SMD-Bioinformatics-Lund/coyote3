@@ -15,9 +15,12 @@ from coyote.domain.dna.varqueries import build_query
 from coyote.domain.rna.fusion_query_builder import build_fusion_query
 from coyote_mongo.repositories.query_rules import QueryRuleRepository
 from coyote_mongo.selection import compile_selection
+from mongo_test_support.writes import repository_writes  # noqa: F401
 
 from tests.fixtures.clinical_workflows.support import FIXTURES, ROOT, replay, review_examples
 from tests.fixtures.mongo_settings import audit_context, mongo_runtime
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture(scope="module")

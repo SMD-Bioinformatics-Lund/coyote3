@@ -22,9 +22,12 @@ from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
 from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories.assay_configurations import ASPConfigRepository
 from coyote_mongo.repositories.configuration_profiles import ConfigurationProfileRepository
+from mongo_test_support.writes import repository_writes  # noqa: F401
 
 from tests.fixtures.clinical_workflows.support import replay
 from tests.fixtures.mongo_settings import mongo_runtime
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture

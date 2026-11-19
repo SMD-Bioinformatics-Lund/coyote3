@@ -5,10 +5,16 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import mongomock
+import pytest
 from bson import ObjectId
 from coyote_mongo.repositories.finding_comments import FindingCommentsRepository
 from coyote_mongo.repositories.samples import SampleRepository
 from coyote_mongo.repositories.variants import VariantsRepository
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+from tests.fixtures.mongo_settings import audit_context
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _Cache:
@@ -26,6 +32,7 @@ class _Cache:
 def _adapter():
     db = mongomock.MongoClient()["coyote4_test"]
     app = SimpleNamespace(
+        audit=audit_context(),
         config={"CACHE_DEFAULT_TIMEOUT": 60},
         cache=_Cache(),
         logger=logging.getLogger("repository-test"),

@@ -11,7 +11,14 @@ from coyote.contracts.schemas.registry import INGEST_DEPENDENT_COLLECTIONS
 from coyote.domain.exceptions import AppError
 from coyote_demo.installation import BUNDLE, DemoInstallationService
 from coyote_mongo.repositories import demo_installation
-from demo_test_support.persistence import MemoryGateway, MemoryVault, audit_context
+from demo_test_support.persistence import (  # noqa: F401
+    MemoryGateway,
+    MemoryVault,
+    audit_context,
+    ingest_writes,
+)
+
+pytestmark = pytest.mark.usefixtures("ingest_writes")
 
 
 def test_bootstrap_factory_builds_configurations_without_rule_publications(monkeypatch):

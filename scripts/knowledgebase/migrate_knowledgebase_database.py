@@ -26,6 +26,9 @@ if str(REPO_ROOT) not in sys.path:
 
 from coyote_mongo.config.collections import COLLECTIONS_CONFIG_PATH  # noqa: E402
 from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.settings import AuditContext  # noqa: E402
+from coyote_mongo.repositories.maintenance_audit import audit_maintenance  # noqa: E402
+from coyote_mongo.repositories.mutations import write_with_audit  # noqa: E402
 
 from scripts.database.migration_report import run_migration_command  # noqa: E402
 
@@ -159,18 +162,36 @@ def copy_indexes(source: Collection, target: Collection) -> int:
     return copied
 
 
-def copy_documents(source: Collection, target: Collection, collection_key: str) -> int:
+def copy_documents(
+    source: Collection, target: Collection, collection_key: str, *, context: AuditContext
+) -> int:
     """Stream transformed documents into the staging collection in bounded batches."""
     copied = 0
     batch: list[dict[str, Any]] = []
     for document in transformed_documents(collection_key, source.find({}).sort("_id", ASCENDING)):
         batch.append(document)
         if len(batch) == COPY_BATCH_SIZE:
-            target.insert_many(batch, ordered=True)
+            write_with_audit(
+                target,
+                "insert_many",
+                batch,
+                ordered=True,
+                context=context,
+                record_ids=collection_key
+                not in {"api_sessions_collection", "service_tokens_collection"},
+            )
             copied += len(batch)
             batch = []
     if batch:
-        target.insert_many(batch, ordered=True)
+        write_with_audit(
+            target,
+            "insert_many",
+            batch,
+            ordered=True,
+            context=context,
+            record_ids=collection_key
+            not in {"api_sessions_collection", "service_tokens_collection"},
+        )
         copied += len(batch)
     return copied
 
@@ -205,6 +226,7 @@ def migrate_collection(
     collection_name: str,
     *,
     apply: bool,
+    context: AuditContext | None = None,
     staging_prefix: str = STAGING_PREFIX,
 ) -> dict[str, Any]:
     """Inspect, copy, and verify one configured knowledgebase collection."""
@@ -234,6 +256,9 @@ def migrate_collection(
         result["status"] = "ready"
         return result
 
+    if context is None:
+        raise ValueError("Applying a migration requires an explicit audit destination")
+
     staging_name = f"{staging_prefix}{collection_name}"
     if staging_name in target_names:
         raise RuntimeError(
@@ -242,16 +267,25 @@ def migrate_collection(
         )
 
     options = source_collection_options(source_db, collection_name)
-    target_db.create_collection(staging_name, **options)
+    with audit_maintenance(
+        target_db, context=context, operation="create_staging", resource=staging_name
+    ):
+        target_db.create_collection(staging_name, **options)
     staging = target_db[staging_name]
     try:
-        result["copied_count"] = copy_documents(source, staging, collection_key)
-        result["copied_indexes"] = copy_indexes(source, staging)
+        result["copied_count"] = copy_documents(source, staging, collection_key, context=context)
+        with audit_maintenance(
+            target_db, context=context, operation="copy_indexes", resource=staging_name
+        ):
+            result["copied_indexes"] = copy_indexes(source, staging)
         verification = verify_pair(source, staging, collection_key)
         result.update(verification)
         if not verification["verified"]:
             raise RuntimeError(f"Staging verification failed for {collection_name}")
-        staging.rename(collection_name, dropTarget=False)
+        with audit_maintenance(
+            target_db, context=context, operation="publish_collection", resource=collection_name
+        ):
+            staging.rename(collection_name, dropTarget=False)
     except Exception:
         result["status"] = "failed_staging_retained"
         raise
@@ -299,6 +333,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.drop_source and args.confirm_drop_source != args.source_db:
         raise ValueError("--confirm-drop-source must exactly match --source-db")
 
+    from coyote_api.config.backend import audit_context_from_runtime
+
+    context = audit_context_from_runtime(os.environ) if args.apply else None
     mapping = knowledgebase_collections(args.collections_config)
     client = MongoClient(source_uri, serverSelectionTimeoutMS=10_000)
     target_client = client
@@ -311,7 +348,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         target_db = target_client[args.target_db]
         assert_distinct_databases(source_db, target_db)
         results = [
-            migrate_collection(source_db, target_db, key, name, apply=args.apply)
+            migrate_collection(source_db, target_db, key, name, apply=args.apply, context=context)
             for key, name in mapping.items()
         ]
 
@@ -327,7 +364,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 )
             for result in present_results:
                 collection_name = str(result["collection"])
-                source_db.drop_collection(collection_name)
+                with audit_maintenance(
+                    target_db, context=context, operation="drop_source", resource=collection_name
+                ):
+                    source_db.drop_collection(collection_name)
                 dropped.append(collection_name)
 
         return {

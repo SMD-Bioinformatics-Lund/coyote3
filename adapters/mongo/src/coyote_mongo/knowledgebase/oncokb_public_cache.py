@@ -222,7 +222,11 @@ class OncoKbPublicCacheRepository(BaseRepository):
             record.setdefault("created_on", now)
             record.setdefault("queried_at", now)
             prepared.append(record)
-        return len(insert_many_transaction(self.get_collection(), prepared, ignore_duplicates=True))
+        return len(
+            insert_many_transaction(
+                self.get_collection(), prepared, context=self.audit_context, ignore_duplicates=True
+            )
+        )
 
     def upsert_gene_markers(self, docs: list[dict[str, Any]]) -> int:
         """Refresh curated gene markers in one transaction on their owning client.
@@ -288,7 +292,9 @@ class OncoKbPublicCacheRepository(BaseRepository):
                 for field, value in update_fields.items()
                 if field != "last_seen_at"
             )
-            result = self.gene_collection.update_one(
+            result = self.write(
+                self.gene_collection,
+                "update_one",
                 {"gene": gene},
                 {
                     "$set": {**update_fields, "updated_by": "system"},
@@ -308,8 +314,11 @@ class OncoKbPublicCacheRepository(BaseRepository):
         """Remove stale curated-gene records after a successful full refresh."""
         result = run_transaction(
             self.gene_collection.database.client,
-            lambda session: self.gene_collection.delete_many(
-                {"gene": {"$nin": sorted(genes)}}, session=session
+            lambda session: self.write(
+                self.gene_collection,
+                "delete_many",
+                {"gene": {"$nin": sorted(genes)}},
+                session=session,
             ),
         )
         return int(result.deleted_count or 0)
@@ -380,7 +389,9 @@ class OncoKbPublicCacheRepository(BaseRepository):
                 for field, value in update_fields.items()
                 if field != "last_seen_at"
             )
-            result = self.cancer_gene_collection.update_one(
+            result = self.write(
+                self.cancer_gene_collection,
+                "update_one",
                 {"gene": gene},
                 {
                     "$set": {**update_fields, "updated_by": "system"},
@@ -400,8 +411,11 @@ class OncoKbPublicCacheRepository(BaseRepository):
         """Remove stale cancer-gene records after a successful full refresh."""
         result = run_transaction(
             self.cancer_gene_collection.database.client,
-            lambda session: self.cancer_gene_collection.delete_many(
-                {"gene": {"$nin": sorted(genes)}}, session=session
+            lambda session: self.write(
+                self.cancer_gene_collection,
+                "delete_many",
+                {"gene": {"$nin": sorted(genes)}},
+                session=session,
             ),
         )
         return int(result.deleted_count or 0)
@@ -423,11 +437,17 @@ class OncoKbPublicCacheRepository(BaseRepository):
             """
             cancer_count = self._upsert_cancer_gene_markers(cancer_docs, session)
             curated_count = self._upsert_gene_markers(curated_docs, session)
-            cancer_deleted = self.cancer_gene_collection.delete_many(
-                {"gene": {"$nin": [doc["gene"] for doc in cancer_docs]}}, session=session
+            cancer_deleted = self.write(
+                self.cancer_gene_collection,
+                "delete_many",
+                {"gene": {"$nin": [doc["gene"] for doc in cancer_docs]}},
+                session=session,
             )
-            curated_deleted = self.gene_collection.delete_many(
-                {"gene": {"$nin": [doc["gene"] for doc in curated_docs]}}, session=session
+            curated_deleted = self.write(
+                self.gene_collection,
+                "delete_many",
+                {"gene": {"$nin": [doc["gene"] for doc in curated_docs]}},
+                session=session,
             )
             return {
                 "cancer_genes_upserted": cancer_count,

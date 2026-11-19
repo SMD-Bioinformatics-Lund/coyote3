@@ -440,7 +440,7 @@ External releases use their source-specific
 [knowledgebase import procedures](../reference/knowledgebases/README.md).
 The maintenance command does not drop databases or bulk-reset collections.
 For separately prepared HGNC/BioMart files, use the
-[gene installation reference](../operations/hgnc-gene-installation.md).
+[gene installation reference](../operations/knowledgebase-updates.md).
 
 ## Standalone index maintenance
 

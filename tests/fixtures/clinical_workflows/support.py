@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import mongomock
 from coyote.application.common.release_resources import (
@@ -41,6 +42,7 @@ from coyote_atlas.bundle import ReferenceBundle
 from coyote_demo.resources import WORKFLOW_BUNDLE
 from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
+from mongo_test_support.writes import fake_write
 
 ROOT = WORKFLOW_BUNDLE
 FIXTURES = Path(__file__).resolve().parent
@@ -68,6 +70,8 @@ class MemoryVault:
             self.collection.update_one(key, {"$setOnInsert": doc}, upsert=True)
 
 
+@patch("coyote_mongo.repositories.ingest_gateway.write_with_audit", new=fake_write)
+@patch("coyote_mongo.persistence.write_with_audit", new=fake_write)
 def replay():
     """Validate setup records and ingest every positive manifest into isolated memory.
 

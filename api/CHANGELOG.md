@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Share the branded integration guide across API reference and explorer pages;
+  retain native Swagger UI and ReDoc endpoint styling and browser credential handling.
 - Release runtime connections and cached services after shutdown or failed startup;
   share ownership across overlapping ASGI lifespans and close worker resources on exit.
 - Type-check ingestion, account recovery and saved-report repository contracts.

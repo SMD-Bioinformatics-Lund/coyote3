@@ -9,7 +9,10 @@ from coyote.contracts.schemas.assay import BlacklistDoc
 from coyote.domain.dna.variant_identity import build_simple_id_hash_from_simple_id
 from coyote_mongo.repositories.blacklist import BlacklistRepository
 from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
 from pydantic import ValidationError
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def entry(**overrides):

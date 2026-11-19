@@ -82,13 +82,15 @@ class D4CoverageBlacklistRepository(BaseRepository):
         if data:
             return False
         else:
-            self.get_collection().insert_one(
+            self.write(
+                self.get_collection(),
+                "insert_one",
                 {
                     "gene": gene,
                     "group": group,
                     "coord": coord,
                     "region": region,
-                }
+                },
             )
         return gene
 
@@ -112,7 +114,11 @@ class D4CoverageBlacklistRepository(BaseRepository):
         if data:
             return False
         else:
-            self.get_collection().insert_one({"gene": gene, "group": group, "region": "gene"})
+            self.write(
+                self.get_collection(),
+                "insert_one",
+                {"gene": gene, "group": group, "region": "gene"},
+            )
         return gene
 
     def get_regions_per_group(self, group: str) -> dict:
@@ -190,5 +196,5 @@ class D4CoverageBlacklistRepository(BaseRepository):
         Returns:
             int: Number of deleted entries.
         """
-        result = self.get_collection().delete_one({"_id": require_object_id(obj_id)})
+        result = self.write(self.get_collection(), "delete_one", {"_id": require_object_id(obj_id)})
         return int(getattr(result, "deleted_count", 0) or 0)

@@ -6,6 +6,7 @@ import mongomock
 import pytest
 from api_test_support.mongo_settings import audit_context
 from api_test_support.permission_catalog import PermissionCatalog
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.domain.exceptions import AppError
 from coyote_api.interfaces.http.v1.admin.resources import samples
 from coyote_api.security import access
@@ -13,6 +14,8 @@ from coyote_mongo.repositories import report_artifact_erasure as erasure
 from fastapi import HTTPException
 from pymongo.errors import AutoReconnect
 from starlette.requests import Request
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture

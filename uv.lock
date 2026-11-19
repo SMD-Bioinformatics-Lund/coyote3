@@ -624,7 +624,7 @@ wheels = [
 [[package]]
 name = "coyote-atlas"
 version = "1.0.0"
-source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=06dd19da58969b80e04cd9dfda5080dbf5902bc4#06dd19da58969b80e04cd9dfda5080dbf5902bc4" }
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=a195bd048d226dd15c3bff0d309074435b3e6855#a195bd048d226dd15c3bff0d309074435b3e6855" }
 dependencies = [
     { name = "coyote-core", extra = ["alignment", "reporting"] },
     { name = "httpx" },
@@ -883,7 +883,7 @@ provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 application = [
-    { name = "coyote-atlas", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=06dd19da58969b80e04cd9dfda5080dbf5902bc4" },
+    { name = "coyote-atlas", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=a195bd048d226dd15c3bff0d309074435b3e6855" },
     { name = "coyote-relay", editable = "services/relay" },
 ]
 dev = [

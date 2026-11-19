@@ -78,7 +78,7 @@ Application upgrades use dedicated synchronization or release procedures:
   `scripts/bootstrap/install_query_rules.py` plans and installs missing scopes in
   existing deployments without overwriting any existing scope or lifecycle history.
 - HGNC and VEP releases are loaded as an intentional reference-data operation.
-- `scripts/knowledgebase/update_vep_metadata.py` downloads release-specific Ensembl website
+- `coyote-atlas update vep-metadata` downloads release-specific Ensembl website
   tables. The bundled VEP seed covers releases 98 through 116, with release 103
   preserved from the existing snapshot. Atlas `data/reference/vep_metadata.sources.json`
   records source commits and hashes; its `NOTICE.txt` records attribution.

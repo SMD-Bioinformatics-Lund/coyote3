@@ -8,19 +8,25 @@ from typing import Any
 
 from pymongo import ReturnDocument
 
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.mutations import write_with_audit
+
 
 class MongoServiceTokenRepository:
     """Keep credential hashes private and revocation checks independent of TTL cleanup."""
 
-    def __init__(self, collection: Any) -> None:
+    def __init__(self, collection: Any, *, context: AuditContext) -> None:
         """Bind identity storage with UTC-aware dates for unambiguous HTTP expiry timestamps."""
         self.collection = collection.with_options(
             codec_options=collection.codec_options.with_options(tz_aware=True)
         )
+        self.audit_context = context
 
     def create(self, document: dict[str, Any]) -> None:
         """Store the server-generated record without retaining any raw secret."""
-        self.collection.insert_one(document)
+        write_with_audit(
+            self.collection, "insert_one", document, context=self.audit_context, record_ids=False
+        )
 
     def list_metadata(
         self, *, owner: str | None = None, kind: str | None = None
@@ -55,7 +61,9 @@ class MongoServiceTokenRepository:
 
     def resolve(self, digest: str, *, audience: str, now: datetime) -> dict[str, Any] | None:
         """Touch a currently valid credential atomically; revoked or expired records fail closed."""
-        return self.collection.find_one_and_update(
+        return write_with_audit(
+            self.collection,
+            "find_one_and_update",
             {
                 "token_hash": digest,
                 "audience": audience,
@@ -65,12 +73,19 @@ class MongoServiceTokenRepository:
             {"$set": {"last_used_at": now}},
             projection={"_id": 0, "token_hash": 0},
             return_document=ReturnDocument.AFTER,
+            context=self.audit_context,
+            record_ids=False,
         )
 
     def revoke(self, token_id: str, *, actor: str, now: datetime) -> dict[str, Any] | None:
         """Preserve the first revocation identity and return metadata for idempotent retries."""
-        self.collection.update_one(
+        write_with_audit(
+            self.collection,
+            "update_one",
             {"token_id": token_id, "revoked_at": None},
             {"$set": {"revoked_at": now, "revoked_by": actor}},
+            context=self.audit_context,
+            record_ids=False,
+            actor=actor,
         )
         return self.collection.find_one({"token_id": token_id}, {"_id": 0, "token_hash": 0})

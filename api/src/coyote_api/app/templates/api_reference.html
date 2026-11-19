@@ -41,55 +41,77 @@
   {% endif %}
   <section class="portal-heading" aria-labelledby="page-title">
     <div>
+      <p class="eyebrow">Developer portal</p>
       <div class="heading-title"><h1 id="page-title">Coyote4 API</h1><span class="badge">Application v{{ application_version }}</span><span class="badge">Server v{{ server_version }}</span><span class="badge access-badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
-      <p>Endpoints and schemas from this installation. Select a resource below to get started.</p>
+      <p>Connect sample ingestion, review and reporting to your laboratory workflows.</p>
     </div>
     <nav class="view-tabs" aria-label="API documentation views">
       <a href="{{ prefix }}/api/v1/redoc" {% if view == 'reference' %}aria-current="page"{% endif %}>Reference</a>
       <a href="{{ prefix }}/api/v1/docs" {% if view == 'explorer' %}aria-current="page"{% endif %}>API explorer</a>
     </nav>
   </section>
-  {% if view == 'reference' %}
-  <section class="api-overview" aria-label="Connecting to the API">
-    <dl class="connection-facts">
-      <div><dt>Base path</dt><dd><code>{{ prefix }}/api/v1</code></dd></div>
-      <div><dt>Contract</dt><dd>OpenAPI {{ openapi_version }}</dd></div>
-    </dl>
+  <section class="api-overview" aria-labelledby="integration-title">
+    <div class="integration-heading">
+      <div><h2 id="integration-title">Integration guide</h2><p>Connection details, credentials and request handling</p></div>
+      <dl class="connection-facts">
+        <div><dt>Base path</dt><dd><code>{{ prefix }}/api/v1</code></dd></div>
+        <div><dt>Contract</dt><dd>OpenAPI {{ openapi_version }}</dd></div>
+        <div><dt>Payloads</dt><dd>JSON / multipart</dd></div>
+      </dl>
+    </div>
     <div class="overview-content">
-      <section aria-labelledby="overview-access">
-        <h2 id="overview-access">Authentication</h2>
-        <p><strong>Browser:</strong> <a href="{{ prefix }}/login">sign in to Coyote4</a> on this host. The explorer uses your session cookie and retrieves <code>X-CSRF-Token</code> for changes.</p>
-        <p><strong>Scripts:</strong> send your session token as <code>Authorization: Bearer &lt;token&gt;</code>. In the explorer, paste the raw token into <strong>Authorize → BearerAuth</strong>. Bearer requests do not need CSRF.</p>
-        {% if relay_installed %}
-        <p><strong>Ingestion:</strong> managed service and personal bearer tokens allow only granted submission operations, assays, environments and token-owned jobs. <code>X-Coyote-Ingest-Token</code> supports synchronous sample bundles only. <a href="{{ prefix }}/docs-site/api/sample-ingestion/#managed-service-credentials">Ingestion credentials</a></p>
-        {% endif %}
-      </section>
-      <section aria-labelledby="overview-start">
-        <h2 id="overview-start">Your first request</h2>
-        <p>Read <code>GET /auth/providers</code>, then log in with <code>POST /auth/sessions</code> using <code>username</code>, <code>password</code> and <code>provider</code>. The session token is in the <code>Set-Cookie</code> header.</p>
+      <section class="guide-card" aria-labelledby="overview-start">
+        <p class="eyebrow">01 / Connect</p><h2 id="overview-start">Your first authenticated request</h2>
+        <ol>
+          <li>Read <code>GET /auth/providers</code> for the enabled sign-in providers.</li>
+          <li>Send <code>username</code>, <code>password</code> and <code>provider</code> to <code>POST /auth/sessions</code>.</li>
+          <li>Use <code>GET /auth/whoami</code> to verify your identity and access.</li>
+        </ol>
         <pre class="request-example"><code>curl --fail-with-body \
   "https://YOUR_HOST{{ prefix }}/api/v1/auth/whoami" \
   -H "Authorization: Bearer $COYOTE4_SESSION_TOKEN"</code></pre>
-        <p>Replace <code>YOUR_HOST</code> with your installation's host. <a href="{{ prefix }}/docs-site/api/authentication/">Authentication guide</a></p>
+        <p>Use your installation's host. The opaque session token comes from the sign-in response's <code>Set-Cookie</code> header; it is not your password.</p>
+        <a href="{{ prefix }}/docs-site/api/authentication/">Authentication guide</a>
+      </section>
+      <section class="guide-card" aria-labelledby="overview-access">
+        <p class="eyebrow">02 / Authorize</p><h2 id="overview-access">Choose the right credentials</h2>
+        <h3>Browser session</h3>
+        <p><a href="{{ prefix }}/login">Sign in to Coyote4</a> on this host. The explorer sends your session cookie and retrieves <code>X-CSRF-Token</code> for changes.</p>
+        <h3>Bearer token</h3>
+        <p>Send a session token as <code>Authorization: Bearer &lt;token&gt;</code>. In the explorer, paste the raw token into <strong>Authorize → BearerAuth</strong>. Bearer requests do not need CSRF. Credentials stay in this page only.</p>
+        {% if relay_installed %}
+        <h3>Pipeline ingestion</h3>
+        <p>Managed service and personal bearer tokens allow only granted submission operations, assays, environments and token-owned jobs. <code>X-Coyote-Ingest-Token</code> supports synchronous sample bundles only.</p>
+        <a href="{{ prefix }}/docs-site/api/sample-ingestion/#managed-service-credentials">Ingestion credentials</a>
+        {% endif %}
+      </section>
+      <section class="guide-card" aria-labelledby="overview-errors">
+        <p class="eyebrow">03 / Handle responses</p><h2 id="overview-errors">Resolve errors before retrying</h2>
+        <table class="response-guide"><thead><tr><th scope="col">Status</th><th scope="col">Next step</th></tr></thead><tbody>
+          <tr><th scope="row">401</th><td>Sign in again or replace expired credentials.</td></tr>
+          <tr><th scope="row">403</th><td>Check permissions, sample scope and browser-session CSRF protection.</td></tr>
+          <tr><th scope="row">409</th><td>Read the conflict details. Refresh the current revision or editing lease before retrying.</td></tr>
+          <tr><th scope="row">422</th><td>Correct the fields identified in the validation response.</td></tr>
+          <tr><th scope="row">5xx</th><td>Record <code>X-Request-ID</code> for support. Verify the outcome before retrying a write.</td></tr>
+        </tbody></table>
+        <p>Error responses include <code>status</code>, <code>error</code> and <code>details</code>. Keep credentials and patient information out of shared examples.</p>
+        <a href="{{ prefix }}/contact">Center support</a>
       </section>
     </div>
-    <nav class="integration-links" aria-label="Integration guides">
-      <a href="{{ prefix }}/docs-site/api/routes-and-workflows/">API workflows</a>
-      <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing sessions and revisions</a>
-    </nav>
+    <div class="integration-notes">
+      <p><strong>Access follows the application.</strong> Permissions, assay and environment scopes apply. Use documented filters and pagination; missing values are different from zero.</p>
+      <p><strong>Editing uses revisions.</strong> Applicable editors require a current revision and an editing lease. <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing sessions</a></p>
+    </div>
+    {% if view == 'explorer' %}
+    <details class="session-settings">
+      <summary>Browser session settings</summary>
+      <label for="csrf-token">Session CSRF token</label>
+      <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
+      <p id="csrf-help">Retrieved automatically when signed in. A manual token stays in this page only. Use Authorize for bearer credentials.</p>
+    </details>
+    <aside class="request-notice">Requests affect this installation. Test changes with synthetic data in a non-production environment.</aside>
+    {% endif %}
   </section>
-  {% else %}
-  <section class="explorer-connection" aria-label="Connection and authentication">
-    <div class="connection-address"><span>Base path</span> <code>{{ prefix }}/api/v1</code> <span>OpenAPI {{ openapi_version }}</span></div>
-    <p><a href="{{ prefix }}/login">Sign in</a> to use your browser session, or select <strong>Authorize</strong> for a bearer token. CSRF is automatic for browser sessions.</p>
-    <nav aria-label="Integration guides">
-      <a href="{{ prefix }}/docs-site/api/authentication/">Authentication guide</a>
-      {% if relay_installed %}<a href="{{ prefix }}/docs-site/api/sample-ingestion/#managed-service-credentials">Ingestion credentials</a>{% endif %}
-      <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing sessions</a>
-    </nav>
-  </section>
-  <aside class="request-notice">Requests affect this installation. Test changes with synthetic data in a non-production environment.</aside>
-  {% endif %}
   <main id="api-content" class="api-workspace {{ view }}" tabindex="-1">
     {% if view == 'explorer' %}
     <aside class="resource-sidebar" aria-label="API resources">
@@ -98,12 +120,6 @@
       <input id="resource-search" type="search" placeholder="Search resources" autocomplete="off">
       <nav id="resource-navigation" aria-label="Endpoint groups"></nav>
       <p id="resource-empty" hidden>No matching resources.</p>
-      <details class="session-settings">
-        <summary>Browser session</summary>
-        <label for="csrf-token">Session CSRF token</label>
-        <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
-        <p id="csrf-help">Retrieved automatically when signed in. A manual token stays in this page only. Use Authorize for bearer credentials.</p>
-      </details>
     </aside>
     {% endif %}
     <section class="endpoint-workspace" aria-label="API endpoints">
@@ -116,7 +132,7 @@
     {% endif %}
     <div id="docs-loading" role="status">Loading API {{ view }}...</div>
     <div id="docs-error" role="alert" hidden>The API documentation could not load. Reload this page or <a href="{{ schema_url }}">open the OpenAPI schema</a>.</div>
-    <div id="api-renderer"></div>
+    <div class="native-documentation"><div id="api-renderer"></div></div>
     <noscript>JavaScript is required for the interactive reference. <a href="{{ schema_url }}">Open the OpenAPI schema</a>.</noscript>
     </section>
   </main>

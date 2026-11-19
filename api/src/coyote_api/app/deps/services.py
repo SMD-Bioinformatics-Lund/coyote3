@@ -387,7 +387,10 @@ def get_service_tokens() -> ServiceTokens:
         )
 
     return ServiceTokens(
-        MongoServiceTokenRepository(store.identity_db[OPERATIONAL_COLLECTIONS.service_tokens]),
+        MongoServiceTokenRepository(
+            store.identity_db[OPERATIONAL_COLLECTIONS.service_tokens],
+            context=audit_context_from_runtime(runtime_app.config),
+        ),
         users=store.user_repository,
         assays=store.assay_panel_repository,
         audience=get_runtime_environment(runtime_app.config),
@@ -423,6 +426,7 @@ def get_api_session_repository() -> MongoApiSessionRepository:
         collection,
         user_loader=_load_user,
         ttl_seconds=get_api_session_ttl_seconds(runtime_app.config),
+        context=audit_context_from_runtime(runtime_app.config),
     )
 
 
@@ -587,7 +591,10 @@ def get_app_controls_repository():
 
     store = get_store()
     return MongoAppControlsRepository(
-        store.coyote_db, identity_db=store.identity_db, config=runtime_app.config
+        store.coyote_db,
+        identity_db=store.identity_db,
+        config=runtime_app.config,
+        context=audit_context_from_runtime(runtime_app.config),
     )
 
 

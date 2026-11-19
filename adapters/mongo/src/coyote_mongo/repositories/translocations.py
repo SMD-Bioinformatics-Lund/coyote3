@@ -64,7 +64,9 @@ class TranslocsRepository(FindingCommentOwnerMixin, BaseRepository):
         """
         index = annotations.index(selected)
         ordered = [selected] + annotations[:index] + annotations[index + 1 :]
-        result = self.get_collection().update_one(
+        result = self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": ObjectId(transloc_id), "SAMPLE_ID": sample_id, "INFO.ANN": annotations},
             {
                 "$set": {"INFO.ANN": ordered, "INFO.ANN_selection_source": "manual_override"},

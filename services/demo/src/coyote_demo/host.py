@@ -3,6 +3,7 @@
 
 """Bind the packaged demonstration to deployment databases for initial installation."""
 
+import logging
 import os
 from collections.abc import Mapping
 from contextlib import closing
@@ -19,6 +20,7 @@ from coyote_mongo.config.collections import load_collection_section  # noqa: E40
 from coyote_mongo.repositories.anno_vep import AnnoVepRepository  # noqa: E402
 from coyote_mongo.repositories.demo_installation import DemoInstallationRepository  # noqa: E402
 from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway  # noqa: E402
+from coyote_mongo.runtime_adapter import MongoRuntime  # noqa: E402
 
 from coyote_demo.deployment import (  # noqa: E402
     DEMO_DATABASES,
@@ -144,17 +146,19 @@ def build_demo_service(
     references = load_collection_section("knowledgebase")
     collections = {name: primary[name] for name in mapping.values()}
     collections["hgnc_genes"] = knowledgebase[references["hgnc_collection"]]
+    context = audit_context_from_runtime(settings)
     ingest = InternalIngestService(
-        collection_gateway=IngestCollectionGateway(
-            context=audit_context_from_runtime(settings), collections=collections
-        ),
+        collection_gateway=IngestCollectionGateway(context=context, collections=collections),
         anno_vep_repository=AnnoVepRepository(
-            SimpleNamespace(anno_vep_collection=primary[mapping["anno_vep_collection"]])
+            SimpleNamespace(
+                anno_vep_collection=primary[mapping["anno_vep_collection"]],
+                app=MongoRuntime(config={}, logger=logging.getLogger(__name__), audit=context),
+            )
         ),
         invalidate_dashboard_metrics=lambda: None,
     )
     return DemoInstallationService(
-        DemoInstallationRepository(primary, context=audit_context_from_runtime(settings)),
+        DemoInstallationRepository(primary, context=context),
         ingest,
         identifier_factory=DemoInstallationRepository.identifier,
     )

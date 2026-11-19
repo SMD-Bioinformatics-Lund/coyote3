@@ -11,6 +11,10 @@ from coyote.application.operations.editing import DocumentEditors, EditableResou
 from coyote.application.operations.runtime import ApplicationRuntime
 from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories.edit_leases import MongoEditLeaseRepository
+from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture(params=[False, True], ids=["default-mongo-datetimes", "aware-mongo-datetimes"])
@@ -18,7 +22,9 @@ def editing(request):
     """Use a fixed clock without a TTL index so expiry is enforced by queries."""
     now = [datetime(2030, 1, 1, tzinfo=UTC)]
     repository = MongoEditLeaseRepository(
-        SimpleNamespace(coyote_db=mongomock.MongoClient(tz_aware=request.param).test)
+        SimpleNamespace(
+            app=mongo_runtime(), coyote_db=mongomock.MongoClient(tz_aware=request.param).test
+        )
     )
     return DocumentEditing(repository, clock=lambda: now[0]), now
 

@@ -10,6 +10,9 @@ from coyote.contracts.schemas.governance import UsersDoc
 from coyote.domain.exceptions import AppError
 from coyote_mongo.repositories.users import UsersRepository
 from mongo_test_support.settings import mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture

@@ -13,6 +13,9 @@ from coyote.application.accounts.tokens import issue_opaque_token, token_hash
 from coyote.config.constants import DEFAULT_AUTH_PROVIDER
 from coyote.contracts.auth import SessionActivitySummary
 
+from coyote_mongo.config.settings import AuditContext
+from coyote_mongo.repositories.mutations import write_with_audit
+
 
 @dataclass(frozen=True, slots=True)
 class ApiSession:
@@ -27,17 +30,21 @@ class ApiSession:
 class MongoApiSessionRepository:
     """Persist API sessions as hashed opaque tokens in MongoDB."""
 
-    def __init__(self, collection: Any, *, user_loader: Any, ttl_seconds: int) -> None:
+    def __init__(
+        self, collection: Any, *, user_loader: Any, ttl_seconds: int, context: AuditContext
+    ) -> None:
         """Bind session persistence and user resolution.
 
         Args:
             collection: MongoDB collection for hashed session tokens.
             user_loader: Callable resolving a username to a user or ``None``.
             ttl_seconds: Session lifetime in seconds from creation.
+            context: Owning deployment's transactional audit identity.
         """
         self.collection = collection
         self.user_loader = user_loader
         self.ttl_seconds = int(ttl_seconds)
+        self.audit_context = context
 
     def create(self, user: Any, *, provider: str = DEFAULT_AUTH_PROVIDER) -> ApiSession:
         """Issue opaque session and CSRF tokens and persist the session hash.
@@ -52,7 +59,9 @@ class MongoApiSessionRepository:
         token = issue_opaque_token(48)
         csrf_token = issue_opaque_token(32)
         now = datetime.now(timezone.utc)
-        self.collection.insert_one(
+        write_with_audit(
+            self.collection,
+            "insert_one",
             {
                 "_id": token_hash(token),
                 "user_id": user.username,
@@ -62,7 +71,10 @@ class MongoApiSessionRepository:
                 "created_at": now,
                 "last_seen_at": now,
                 "expires_at": now + timedelta(seconds=self.ttl_seconds),
-            }
+            },
+            context=self.audit_context,
+            record_ids=False,
+            actor=user.username,
         )
         return ApiSession(token=token, csrf_token=csrf_token, user=user, provider=provider)
 
@@ -90,9 +102,14 @@ class MongoApiSessionRepository:
         if document.get("credential_version") != getattr(user, "credential_version", None):
             self.delete(token)
             return None
-        self.collection.update_one(
+        write_with_audit(
+            self.collection,
+            "update_one",
             {"_id": document["_id"]},
             {"$set": {"last_seen_at": now}},
+            context=self.audit_context,
+            record_ids=False,
+            actor=user.username,
         )
         return ApiSession(
             token=token,
@@ -107,7 +124,13 @@ class MongoApiSessionRepository:
         Args:
             token: Raw client session token; a missing session is a no-op.
         """
-        self.collection.delete_one({"_id": token_hash(token)})
+        write_with_audit(
+            self.collection,
+            "delete_one",
+            {"_id": token_hash(token)},
+            context=self.audit_context,
+            record_ids=False,
+        )
 
     def activity_summary(self, *, recent_activity_seconds: int) -> SessionActivitySummary:
         """Count valid logins without retrieving tokens or refreshing activity.

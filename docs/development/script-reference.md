@@ -70,7 +70,7 @@ startup and never drops or resets a database. Follow the
 [first-installation guide](../deployment/first-installation.md#8-build-images-and-install-the-database-baseline)
 for parameters, maintenance credentials and recovery boundaries.
 
-The standalone [`install_hgnc_genes.py`](../operations/hgnc-gene-installation.md)
+The Atlas [`coyote-atlas update hgnc`](../operations/knowledgebase-updates.md)
 converts reviewed HGNC TSV and Ensembl BioMart CSV files into contract-valid gene
 documents. `--apply --backup FILE` installs them into the configured knowledgebase;
 the default creates a review artifact without database access.
@@ -119,18 +119,14 @@ it against its temporary MkDocs output.
 | Script | Class | Current caller or entry point | Purpose |
 | --- | --- | --- | --- |
 | `identity/sync_rbac_catalog.py` | Manual operation | RBAC maintenance documentation and tests | Adds missing application-owned permissions and roles while preserving center-owned policies |
-| `knowledgebase/seed_clinpgx_genes_public.py` | Manual operation | ClinPGx integration guide | Imports an explicitly supplied official ClinPGx gene export into the configured public marker collection |
 | `knowledgebase/migrate_knowledgebase_database.py` | Upgrade operation | MongoDB deployment and recovery guide | Copies external knowledgebase collections into `KNOWLEDGEBASE_DB`, verifies complete content, and optionally removes verified source collections |
 | `identity/migrate_identity_database.py` | Upgrade operation | MongoDB deployment and recovery guide | Copies users, roles, permissions, API sessions, and audit events into `IDENTITY_DB`, verifies complete content and indexes, and optionally removes verified source collections |
-| `knowledgebase/update_brca_exchange.py` | Manual operation | Knowledgebase snapshot update guide | Validates and atomically publishes a complete BRCA Exchange TSV release |
-| `knowledgebase/update_civic.py` | Manual operation | Knowledgebase snapshot update guide | Validates and publishes matching CIViC feature and variant summary releases as one unit |
-| `knowledgebase/update_tp53_database.py` | Manual operation | Knowledgebase snapshot update guide | Imports the NCI TP53 functional/structural variant release used by the TP53 detail card |
-| `knowledgebase/update_cosmic.py` | Manual operation | Knowledgebase snapshot update guide | Streams and publishes one explicitly selected licensed COSMIC product archive |
-| `knowledgebase/knowledgebase_update_common.py` | Internal helper | Knowledgebase updater scripts | Owns source provenance, staging, batch insertion, indexes, publication rollback, and release manifests |
-| `knowledgebase/update_vep_metadata.py` | Manual operation | VEP metadata update guide | Builds and installs release-specific VEP reference metadata |
-| `knowledgebase/update_vep_diagrams.py` | Manual operation | VEP metadata update guide | Downloads and installs release-specific VEP diagrams |
-| `knowledgebase/vep_diagram_storage.py` | Internal helper | VEP import and migration commands | Separates diagram metadata from payloads and reads or writes diagram storage |
-| `knowledgebase/ensembl_archives.json` | Configuration input | VEP metadata update commands | Defines reviewed archive locations; Coyote's grouping policy belongs to `core/src/coyote/config/vep_metadata_policy.json` |
+
+## Reference import commands
+
+Knowledgebase source importers are installed with Coyote Atlas. Use
+`coyote-atlas update --help` and the [reference update guide](../operations/knowledgebase-updates.md).
+Their implementation and tests are maintained in the Atlas repository.
 
 ## Installed ingestion commands
 

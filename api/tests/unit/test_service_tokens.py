@@ -7,7 +7,8 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 from api_test_support.ingest_tokens import user_session
-from api_test_support.mongo_settings import mongo_runtime
+from api_test_support.mongo_settings import audit_context, mongo_runtime
+from api_test_support.writes import repository_writes  # noqa: F401
 from coyote.application.accounts.service_tokens import ServiceTokens
 from coyote.application.operations import ApplicationRuntime, Credentials
 from coyote.application.operations.ingest_audit import IngestionAuditAttempt
@@ -24,6 +25,8 @@ from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from starlette.requests import Request
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.mark.parametrize("editor", [None, "d19e2836-e862-42df-b32f-97cb05ad3366", "invalid"])
@@ -59,7 +62,7 @@ def service():
     collection = mongomock.MongoClient().identity.service_tokens
     users = {"owner": {"username": "owner", "is_active": True}}
     return ServiceTokens(
-        MongoServiceTokenRepository(collection),
+        MongoServiceTokenRepository(collection, context=audit_context()),
         users=SimpleNamespace(
             user_with_id=users.get, list_active_users_for_notifications=lambda: list(users.values())
         ),

@@ -62,7 +62,7 @@ class ConfigurationProfileRepository(BaseRepository):
 
     def create_promotion(self, document: dict) -> dict:
         """Persist a reviewable proposal without activating configuration or changing samples."""
-        self.adapter.configuration_promotions_collection.insert_one(document)
+        self.write(self.adapter.configuration_promotions_collection, "insert_one", document)
         return document
 
     def approve_promotion(self, proposal: dict, *, actor: str, reason: str) -> dict:
@@ -177,7 +177,7 @@ class ConfigurationProfileRepository(BaseRepository):
         if previous and previous["kind"] != document["kind"]:
             raise api_error(409, "A profile identity cannot change component kind")
         try:
-            self.get_collection().insert_one(document)
+            self.write(self.get_collection(), "insert_one", document)
         except DuplicateKeyError as error:
             raise api_error(
                 409, "Another profile revision was created; reload and retry"

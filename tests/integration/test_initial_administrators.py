@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
 from scripts.bootstrap.bootstrap_database import _initialize_governance, _make_bootstrap_user
+from tests.fixtures.mongo_settings import audit_context
 
 
 @pytest.fixture
@@ -48,6 +49,7 @@ def initialize(database, *, duplicate_email=False):
         users_collection="users",
         roles_collection="roles",
         permissions_collection="permissions",
+        context=audit_context(),
     )
 
 

@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import pytest
 from bson import ObjectId
 from coyote.contracts.operations import OperationResult
 from coyote.domain.record_identity import RecordIdentity
@@ -16,7 +17,10 @@ from coyote_mongo.results import (
     operation_from_insert_one,
     operation_from_update,
 )
+from mongo_test_support.writes import repository_writes  # noqa: F401
 from pymongo.results import DeleteResult, InsertManyResult, InsertOneResult, UpdateResult
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_driver_write_results_are_projected_at_the_adapter_boundary():

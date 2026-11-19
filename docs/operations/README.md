@@ -20,7 +20,7 @@ its data. For a new deployment or upgrade, start with [Installation](../deployme
 | Configure or troubleshoot messages | [Email and notifications](email-and-notifications.md) |
 | Back up or restore data | [Backup and recovery](backup-and-recovery.md) |
 | Enable Redis transport encryption | [Redis TLS](redis-tls.md) |
-| Update reference data | [Knowledgebases](knowledgebase-updates.md), [VEP metadata](vep-metadata-updates.md), [HGNC genes](hgnc-gene-installation.md) |
+| Update reference data | [Atlas reference updates](knowledgebase-updates.md) |
 | Convert existing data | [Migration procedures](migrations/README.md) |
 
 If the application works but a sample or result is missing, start with

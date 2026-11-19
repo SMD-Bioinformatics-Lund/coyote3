@@ -33,7 +33,6 @@ def staging_checkout(tmp_path, monkeypatch):
         "scripts.bootstrap.install_assay_groups",
         "scripts.bootstrap.validate_assay_consistency",
         "coyote_demo.host",
-        "scripts.knowledgebase.update_vep_metadata",
         "scripts.identity.sync_rbac_catalog",
     ],
 )

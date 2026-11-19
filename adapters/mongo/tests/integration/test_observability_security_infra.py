@@ -6,10 +6,15 @@ import json
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
+import pytest
 from coyote.application.accounts.tokens import token_hash
 from coyote.application.audit.service import AuditService
 from coyote_mongo.repositories.audit import AuditRepository
 from coyote_mongo.sessions import MongoApiSessionRepository
+from mongo_test_support.settings import audit_context
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _InsertResult:
@@ -56,7 +61,9 @@ class _Collection:
 def test_mongo_session_repository_stores_only_token_hash():
     user = SimpleNamespace(username="alice")
     collection = _Collection()
-    repo = MongoApiSessionRepository(collection, user_loader=lambda _username: user, ttl_seconds=60)
+    repo = MongoApiSessionRepository(
+        collection, user_loader=lambda _username: user, ttl_seconds=60, context=audit_context()
+    )
 
     session = repo.create(user)
 

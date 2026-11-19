@@ -22,8 +22,11 @@ from coyote_mongo.repositories.samples import SampleRepository
 from coyote_mongo.repositories.translocations import TranslocsRepository
 from coyote_mongo.repositories.users import UsersRepository
 from coyote_mongo.repositories.variants import VariantsRepository
+from mongo_test_support.writes import repository_writes  # noqa: F401
 
 from tests.fixtures.mongo_settings import audit_context
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 class _Cache:
@@ -51,7 +54,6 @@ def emulated_repository_transactions(monkeypatch):
     def execute(client, operation):
         return operation(None)
 
-    monkeypatch.setattr("coyote_mongo.repositories.base.run_transaction", execute)
     monkeypatch.setattr("coyote_mongo.repositories.samples.run_transaction", execute)
     monkeypatch.setattr("coyote_mongo.repositories.assay_panels.run_transaction", execute)
     monkeypatch.setattr("coyote_mongo.repositories.revision_rotation.run_transaction", execute)

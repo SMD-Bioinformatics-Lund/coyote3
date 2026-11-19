@@ -21,9 +21,12 @@ from coyote_mongo.repositories.ingest_jobs import IngestJobsRepository
 from fastapi import HTTPException, UploadFile
 from relay_test_support import application_sdk as sdk_fixtures
 from relay_test_support.mongo_settings import mongo_runtime
+from relay_test_support.writes import repository_writes  # noqa: F401
 from starlette.requests import Request
 
 from coyote_relay.api import routes as internal_router
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 @pytest.fixture(autouse=True)

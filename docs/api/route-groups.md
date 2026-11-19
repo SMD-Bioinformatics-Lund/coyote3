@@ -15,15 +15,16 @@ coupling the documentation to Python file names.
 | API explorer | `/api/v1/docs` | Inspect operations, authenticate, and explicitly execute requests. |
 | OpenAPI JSON | `/api/v1/openapi.json` | Machine-readable contract for client tooling. |
 
-Both views use the Coyote4 product header and display the application version,
-API major version and deployment environment. Non-production warnings remain
+Both views use the Coyote4 product header and integration guide, and display the
+application version, server version, API major version and deployment environment. Non-production warnings remain
 visible. Version badges describe the deployed contract, not clinical approval.
 Reference navigation groups access/discovery, clinical review, reporting, and
 administration/operations without changing endpoint paths or permissions.
 
 Explorer requests are live calls against the displayed deployment. Authorization
 credentials are not persisted by Swagger UI. For cookie-backed mutations, expand
-**Using your browser session** and enter the session's CSRF token; the explorer adds
+**Browser session settings** to inspect or enter the CSRF token. The explorer
+retrieves it from the current session when available and adds
 `X-CSRF-Token` only to same-origin mutation requests. Bearer clients use **Authorize**.
 The token field is page-local and cleared on reload.
 
@@ -41,13 +42,12 @@ groups are defined in `api/src/coyote_api/interfaces/http/tags.py`. Update endpo
 descriptions at their route declarations; do not replace Pydantic contracts with
 handwritten schema copies or include real clinical payloads in examples.
 
-The reference uses the application's light-theme brand colors, including the
-plum/copper header, purple links and neutral surfaces. The standalone API package
-contains the required tokens; a parity test checks them against
-`frontend/src/styles/tailwind-theme.css`. Update both when changing the brand.
-Response examples use the application's dark-gray surface with light field names
-and purple string values. HTTP method colors retain their meaning and are not
-used as decorative badges.
+The surrounding header, guide and navigation use the application's purple/orange
+branding in light and dark themes. Endpoint content uses the default Swagger UI
+and ReDoc styles, with no Coyote overrides inside either renderer. The portal's
+theme switch therefore changes the surrounding page, not vendor endpoint colors.
+Native ReDoc inactive error-response tabs have an upstream contrast limitation;
+keyboard navigation and selected-response accessibility remain checked.
 
 All browser-facing API URLs are mounted below the configured `SCRIPT_NAME`.
 For example, with `SCRIPT_NAME=/coyote4_dev`, Swagger is available at:

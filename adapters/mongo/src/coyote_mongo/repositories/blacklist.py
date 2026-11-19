@@ -98,9 +98,9 @@ class BlacklistRepository(BaseRepository):
             "$addToSet": {"assay_groups": document.assay_groups[0]},
         }
         try:
-            updated = self.get_collection().update_one(query, change, upsert=True)
+            updated = self.write(self.get_collection(), "update_one", query, change, upsert=True)
         except DuplicateKeyError:
-            updated = self.get_collection().update_one(query, change)
+            updated = self.write(self.get_collection(), "update_one", query, change)
         result = operation_from_update(updated)
         if result.modified_count or result.upserted_id:
             self.invalidate_dashboard_metrics()

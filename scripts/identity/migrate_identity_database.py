@@ -22,7 +22,9 @@ from coyote_mongo.config.collections import (  # noqa: E402
     COLLECTIONS_CONFIG_PATH,
     load_collection_section,  # noqa: E402
 )
-from coyote_mongo.config.endpoints import configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.endpoints import MongoEndpoint, configured_mongo_uri  # noqa: E402
+from coyote_mongo.config.settings import AuditContext  # noqa: E402
+from coyote_mongo.repositories.maintenance_audit import audit_maintenance  # noqa: E402
 
 from scripts.database.migration_report import run_migration_command  # noqa: E402
 from scripts.knowledgebase.migrate_knowledgebase_database import (  # noqa: E402
@@ -82,6 +84,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.drop_source and args.confirm_drop_source != args.source_db:
         raise ValueError("--confirm-drop-source must exactly match --source-db")
 
+    context = (
+        AuditContext.for_endpoint(
+            os.environ.get("ENV_NAME", "production"), MongoEndpoint(target_uri, args.target_db)
+        )
+        if args.apply
+        else None
+    )
     mapping = identity_collections(args.collections_config)
     client = MongoClient(source_uri, serverSelectionTimeoutMS=10_000)
     target_client = client
@@ -100,6 +109,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 key,
                 name,
                 apply=args.apply,
+                context=context,
                 staging_prefix=STAGING_PREFIX,
             )
             for key, name in mapping.items()
@@ -116,7 +126,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 )
             for result in present_results:
                 collection_name = str(result["collection"])
-                source_db.drop_collection(collection_name)
+                with audit_maintenance(
+                    target_db, context=context, operation="drop_source", resource=collection_name
+                ):
+                    source_db.drop_collection(collection_name)
                 dropped.append(collection_name)
         return {
             "mode": "apply" if args.apply else "dry-run",

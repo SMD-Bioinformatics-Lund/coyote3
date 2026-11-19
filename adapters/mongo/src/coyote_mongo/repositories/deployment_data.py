@@ -157,6 +157,7 @@ class DeploymentDataRepository:
                 if group == "knowledgebase":
                     record_reference_publication(
                         database,
+                        context=self.audit_context,
                         source=name,
                         release="bundled",
                         session=session,

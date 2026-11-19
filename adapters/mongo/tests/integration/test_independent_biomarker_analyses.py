@@ -9,6 +9,9 @@ from coyote.application.ingest.dependent_writes import replace_dependents
 from coyote_mongo.repositories.ingest_gateway import IngestCollectionGateway
 from mongo_test_support.measurements import MEASUREMENTS
 from mongo_test_support.settings import audit_context, mongo_runtime
+from mongo_test_support.writes import repository_writes  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("repository_writes")
 
 
 def test_update_preserves_other_analyses_and_replaces_both_msi_methods():

@@ -128,7 +128,7 @@ class FindingCommentsRepository(BaseRepository):
         comment["created_by"] = current_username("") or comment.get("author")
         comment["updated_by"] = comment["created_by"]
         normalized = normalize_collection_document("finding_comments", comment)
-        self.get_collection().insert_one(normalized)
+        self.write(self.get_collection(), "insert_one", normalized)
         return comment["_id"]
 
     def set_hidden(
@@ -172,7 +172,7 @@ class FindingCommentsRepository(BaseRepository):
                 "$unset": {"hidden_by": "", "time_hidden": ""},
             }
         update.setdefault("$set", {})["updated_by"] = current_username("") or None
-        self.get_collection().update_one(query, update)
+        self.write(self.get_collection(), "update_one", query, update)
 
     def has_hidden_comments(self, *, finding_oid: str, finding_type: FindingType) -> bool:
         """Check for at least one hidden comment on a finding.

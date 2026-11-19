@@ -1,32 +1,8 @@
-.portal-heading, .api-overview, .api-workspace { margin: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--panel-shadow); }
-.portal-heading { background: var(--heading-surface); }
-/* Native ReDoc uses the same red on both dark inactive and white selected tabs.
-   Correct only the dark state; retain the native renderer's layout and theme. */
-#api-renderer [role="tab"].tab-error[aria-selected="false"] { color: #ffb4ab; }
-.connection-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; padding: 12px 20px; border-bottom: 1px solid var(--border); }
-.connection-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; min-width: 0; }
-.connection-facts dt { color: var(--ink-muted); }
-.connection-facts dd { margin: 0; }
-.overview-content { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 20px; }
-.overview-content section { min-width: 0; }
-.overview-content p { margin: 0 0 10px; font-size: 13px; color: var(--ink-muted); }
-.overview-content strong { color: var(--ink); }
-.overview-content p:last-child { margin-bottom: 0; }
-.request-example { padding: 12px; margin: 0 0 10px; border-radius: 6px; background: var(--code-surface); color: var(--code-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.integration-links { display: flex; flex-wrap: wrap; gap: 8px 24px; padding: 0 20px 14px; font-size: 13px; }
+/* Portal navigation only; ReDoc owns all endpoint presentation. */
 .reference { overflow: clip; }
 .reference-resource-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--heading-surface); }
 .reference-resource-control label { font-weight: 600; }
 .reference-resource-control p { flex-basis: 100%; margin: 0; color: var(--ink-muted); font-size: 13px; }
-/* ReDoc owns the endpoint presentation; the portal theme stays outside it. */
-.reference #api-renderer { color-scheme: light; color: #333; background: #fff; font: 16px/normal sans-serif; }
 @media (forced-colors: active) {
-  .badge, .portal-heading, .api-overview, .api-workspace, .view-tabs a[aria-current],
-  .reference-resource-control { box-shadow: none; background: Canvas; color: CanvasText; border-color: CanvasText; }
-}
-@media (max-width: 700px) {
-  .portal-heading, .api-overview, .api-workspace { margin-left: 8px; margin-right: 8px; }
-  .portal-heading { padding: 12px 16px; }
-  .overview-content { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 16px; }
-  .connection-facts, .integration-links { padding-left: 16px; padding-right: 16px; }
+  .reference-resource-control { background: Canvas; color: CanvasText; border-color: CanvasText; }
 }

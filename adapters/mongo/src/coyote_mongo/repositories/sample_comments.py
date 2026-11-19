@@ -73,7 +73,7 @@ class SampleCommentsRepository(BaseRepository):
         comment.setdefault("time_created", utc_now())
         comment["created_by"] = current_username("") or comment.get("author")
         comment["updated_by"] = comment["created_by"]
-        self.get_collection().insert_one(comment)
+        self.write(self.get_collection(), "insert_one", comment)
         return comment_oid
 
     def set_hidden(self, *, sample_oid: str, comment_id: str, hidden: bool) -> None:
@@ -96,7 +96,9 @@ class SampleCommentsRepository(BaseRepository):
             "hidden_by": current_username() if hidden else None,
             "time_hidden": utc_now() if hidden else None,
         }
-        self.get_collection().update_one(
+        self.write(
+            self.get_collection(),
+            "update_one",
             {"_id": self._object_id(comment_id), "sample_oid": self._object_id(sample_oid)},
             {"$set": update},
         )
