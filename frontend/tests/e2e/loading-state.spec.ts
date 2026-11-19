@@ -5,13 +5,20 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
   test(`loading remains labelled and respects ${reducedMotion} motion`, async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion, colorScheme: reducedMotion === "reduce" ? "dark" : "light" })
     let release!: () => void
+    let holdRefresh = false
     const pending = new Promise<void>(resolve => { release = resolve })
     await installApiFixtures(page, async path => {
-      if (path === "/api/v1/auth/whoami") await pending
+      if (path === "/api/v1/users") return { json: { users: [], roles: {} } }
+      if (path === "/api/v1/users/session-activity" && holdRefresh) await pending
     })
 
     try {
       await page.goto("/admin/users")
+      const activity = page.getByRole("region", { name: "Login activity" })
+      const refresh = activity.getByRole("button", { name: "Refresh", exact: true })
+      await expect(refresh).toBeEnabled()
+      holdRefresh = true
+      await refresh.click()
       const loading = page.getByRole("status", { name: "Loading", exact: true })
       await expect(loading).toBeVisible()
       await expect(loading).toHaveText("Loading")

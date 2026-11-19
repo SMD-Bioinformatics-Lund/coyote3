@@ -197,14 +197,14 @@ describe("Managed admin resource workflows", () => {
   })
 
   it("loads users and filters them by role, authentication type, and status", async () => {
-    mocks.get.mockResolvedValue({
-      data: {
+    mocks.get.mockImplementation((url: string) => Promise.resolve({
+      data: url === "/users/password-recovery" ? [] : {
         users: [
           { username: "local.admin", roles: ["admin"], auth_type: ["local"], is_active: true },
           { username: "ldap.viewer", roles: ["viewer"], auth_type: ["ldap"], is_active: false },
         ],
       },
-    })
+    }))
     const user = userEvent.setup()
     renderResource("users")
 

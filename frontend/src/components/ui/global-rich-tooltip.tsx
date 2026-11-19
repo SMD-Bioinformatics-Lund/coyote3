@@ -95,7 +95,7 @@ export function GlobalRichTooltip() {
       const target = tooltipTarget(event.target)
       hoveredTarget = target
       if (target && target !== dismissedTarget) activate(target, { left: event.clientX, top: event.clientY, anchor: "pointer" })
-      else if (!target) close()
+      else if (!target) retainFocusedOrClose()
     }
     const onPointerMove = (event: PointerEvent) => {
       // Only a hint actually hovered by this pointer follows it. Focus is element-anchored.

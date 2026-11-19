@@ -1,5 +1,8 @@
 .portal-heading, .api-overview, .api-workspace { margin: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--panel-shadow); }
 .portal-heading { background: var(--heading-surface); }
+/* Native ReDoc uses the same red on both dark inactive and white selected tabs.
+   Correct only the dark state; retain the native renderer's layout and theme. */
+#api-renderer [role="tab"].tab-error[aria-selected="false"] { color: #ffb4ab; }
 .connection-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; padding: 12px 20px; border-bottom: 1px solid var(--border); }
 .connection-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; min-width: 0; }
 .connection-facts dt { color: var(--ink-muted); }

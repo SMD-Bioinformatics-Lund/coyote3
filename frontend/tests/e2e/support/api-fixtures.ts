@@ -63,6 +63,10 @@ export async function installApiFixtures(page: Page, resolver?: ApiResolver) {
       } })
       return
     }
+    if (path === "/api/v1/users/password-recovery") {
+      await route.fulfill({ json: [] })
+      return
+    }
     if (path === "/api/v1/public/assay-catalog/context") {
       await route.fulfill({ json: { nav_groups: [] } })
       return

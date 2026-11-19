@@ -15,7 +15,7 @@ export async function signIn(page: Page, username = state.superuser) {
   await expect(local.or(input).first()).toBeVisible()
   if (await local.isVisible()) await local.click()
   await input.fill(username)
-  await page.getByLabel("Password").fill(state.reviewPassword)
+  await page.getByLabel("Password", { exact: true }).fill(state.reviewPassword)
   await page.getByRole("button", { name: "Sign in" }).click()
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible()
 }

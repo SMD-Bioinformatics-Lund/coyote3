@@ -26,12 +26,14 @@ export function TooltipSurface({
   className,
   id,
   onDismiss,
+  onScroll,
 }: {
   position: TooltipPosition
   children: ReactNode
   className?: string
   id?: string
   onDismiss?: () => void
+  onScroll?: () => void
 }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [adjustedPosition, setAdjustedPosition] = useState(position)
@@ -68,16 +70,17 @@ export function TooltipSurface({
     if (!onDismiss) return
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onDismiss() }
     document.addEventListener("keydown", onKeyDown, true)
-    window.addEventListener("scroll", onDismiss, { capture: true, passive: true })
+    const handleScroll = onScroll || onDismiss
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true })
     window.addEventListener("resize", onDismiss)
     window.addEventListener("blur", onDismiss)
     return () => {
       document.removeEventListener("keydown", onKeyDown, true)
-      window.removeEventListener("scroll", onDismiss, true)
+      window.removeEventListener("scroll", handleScroll, true)
       window.removeEventListener("resize", onDismiss)
       window.removeEventListener("blur", onDismiss)
     }
-  }, [onDismiss])
+  }, [onDismiss, onScroll])
 
   return createPortal(
     <div
@@ -115,6 +118,7 @@ export function AppTooltip({
 }) {
   const [position, setPosition] = useState<TooltipPosition | null>(null)
   const [pinned, setPinned] = useState(false)
+  const triggerRef = useRef<HTMLSpanElement>(null)
 
   const place = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => {
     setPosition(tooltipEventPosition(event))
@@ -125,8 +129,23 @@ export function AppTooltip({
     setPosition(null)
   }
 
+  const handleScroll = () => {
+    const trigger = triggerRef.current
+    if (trigger?.contains(document.activeElement)) {
+      // Keyboard focus can scroll a nested table after the focus event fires.
+      // Keep its explanation attached while the focused trigger is visible.
+      const rect = trigger.getBoundingClientRect()
+      if (rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth) {
+        setPosition(tooltipElementPosition(trigger))
+        return
+      }
+    }
+    close()
+  }
+
   return (
     <span
+      ref={triggerRef}
       className="inline-flex"
       data-tooltip-managed="true"
       data-tooltip-content={content}
@@ -158,7 +177,7 @@ export function AppTooltip({
     >
       {children}
       {position && (
-        <TooltipSurface position={position} onDismiss={close} className={tooltipToneClass(tone)}>
+        <TooltipSurface position={position} onDismiss={close} onScroll={handleScroll} className={tooltipToneClass(tone)}>
           <span className="mb-1 block type-label font-semibold uppercase tracking-wide opacity-80">{context}</span>
           <span className="block font-bold text-foreground">{label || content}</span>
           {label && label !== content ? (

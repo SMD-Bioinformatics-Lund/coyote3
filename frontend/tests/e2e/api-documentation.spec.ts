@@ -8,6 +8,9 @@ let portal: { reference: string; explorer: string; schema: Record<string, unknow
 const assets = new Map<string, { body: Buffer; contentType: string }>()
 
 test.beforeAll(async ({ request }) => {
+  // The pinned documentation bundles are downloaded once per worker. Allow setup
+  // time for these large assets without extending individual interaction checks.
+  test.setTimeout(120_000)
   const root = resolve(import.meta.dirname, "../../..")
   portal = JSON.parse(execFileSync(resolve(root, ".venv/bin/python"), ["-c", `
 import asyncio
