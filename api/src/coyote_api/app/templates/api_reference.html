@@ -16,12 +16,13 @@
       document.documentElement.classList.toggle("dark", dark);
     })();
   </script>
-  {% if view == 'explorer' %}
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui.css">
-  {% endif %}
-  <style>{% include 'api_reference.css' %}</style>
+  <style>
+    {% include 'api_portal.css' %}
+    {% if view == 'explorer' %}{% include 'api_explorer.css' %}
+    {% else %}{% include 'api_reference.css' %}{% endif %}
+  </style>
 </head>
-<body>
+<body class="{{ view }}-page">
   <a class="skip-link" href="#api-content">Skip to API documentation</a>
   <header class="portal-header">
     <div class="portal-brand">
@@ -40,60 +41,54 @@
   {% endif %}
   <section class="portal-heading" aria-labelledby="page-title">
     <div>
-      <span class="eyebrow">Developer portal</span>
-      <div class="heading-title"><h1 id="page-title">Coyote4 API</h1><span class="badge">Application {{ version }}</span><span class="badge access-badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
-      <p>Integrate {% if relay_installed %}sample ingestion, {% endif %}finding review and governed reporting with your laboratory workflows.</p>
+      <div class="heading-title"><h1 id="page-title">Coyote4 API</h1><span class="badge">Application v{{ application_version }}</span><span class="badge">Server v{{ server_version }}</span><span class="badge access-badge">API v1</span><span class="badge">{{ environment | capitalize }}</span></div>
+      <p>Endpoints and schemas from this installation. Select a resource below to get started.</p>
     </div>
     <nav class="view-tabs" aria-label="API documentation views">
       <a href="{{ prefix }}/api/v1/redoc" {% if view == 'reference' %}aria-current="page"{% endif %}>Reference</a>
       <a href="{{ prefix }}/api/v1/docs" {% if view == 'explorer' %}aria-current="page"{% endif %}>API explorer</a>
     </nav>
   </section>
-  <details class="api-overview" open>
-    <summary>Integration guide <span>Connection details, authentication and request handling</span></summary>
-    <section class="product-introduction" aria-labelledby="overview-product">
-      <div><h2 id="overview-product">Build against this installation</h2><p>The explorer and reference use this server's OpenAPI contract. Endpoint visibility, required fields and security schemes come from the running API.</p></div>
-      <dl class="connection-facts">
-        <div><dt>Base path</dt><dd><code>{{ prefix }}/api/v1</code></dd></div>
-        <div><dt>Contract</dt><dd>OpenAPI {{ openapi_version }}</dd></div>
-        <div><dt>Payloads</dt><dd>JSON / multipart</dd></div>
-      </dl>
-    </section>
+  {% if view == 'reference' %}
+  <section class="api-overview" aria-label="Connecting to the API">
+    <dl class="connection-facts">
+      <div><dt>Base path</dt><dd><code>{{ prefix }}/api/v1</code></dd></div>
+      <div><dt>Contract</dt><dd>OpenAPI {{ openapi_version }}</dd></div>
+    </dl>
     <div class="overview-content">
-      <section class="integration-card quickstart-card" aria-labelledby="overview-start">
-        <span class="card-kicker">01 / Connect</span><h2 id="overview-start">Your first authenticated request</h2>
-        <ol class="connection-steps"><li>Read <code>GET /auth/providers</code> and choose an enabled provider.</li><li>Create a session with <code>POST /auth/sessions</code>. Supply <code>username</code>, <code>password</code> and <code>provider</code>.</li><li>Call <code>GET /auth/whoami</code> to verify your identity and access.</li></ol>
-        <div class="code-heading"><span>cURL / bearer session</span></div>
+      <section aria-labelledby="overview-access">
+        <h2 id="overview-access">Authentication</h2>
+        <p><strong>Browser:</strong> <a href="{{ prefix }}/login">sign in to Coyote4</a> on this host. The explorer uses your session cookie and retrieves <code>X-CSRF-Token</code> for changes.</p>
+        <p><strong>Scripts:</strong> send your session token as <code>Authorization: Bearer &lt;token&gt;</code>. In the explorer, paste the raw token into <strong>Authorize → BearerAuth</strong>. Bearer requests do not need CSRF.</p>
+        {% if relay_installed %}
+        <p><strong>Ingestion:</strong> managed service and personal bearer tokens allow only granted submission operations, assays, environments and token-owned jobs. <code>X-Coyote-Ingest-Token</code> supports synchronous sample bundles only. <a href="{{ prefix }}/docs-site/api/sample-ingestion/#managed-service-credentials">Ingestion credentials</a></p>
+        {% endif %}
+      </section>
+      <section aria-labelledby="overview-start">
+        <h2 id="overview-start">Your first request</h2>
+        <p>Read <code>GET /auth/providers</code>, then log in with <code>POST /auth/sessions</code> using <code>username</code>, <code>password</code> and <code>provider</code>. The session token is in the <code>Set-Cookie</code> header.</p>
         <pre class="request-example"><code>curl --fail-with-body \
   "https://YOUR_HOST{{ prefix }}/api/v1/auth/whoami" \
   -H "Authorization: Bearer $COYOTE4_SESSION_TOKEN"</code></pre>
-        <p class="card-note">Use your installation's public host. The token is the opaque session token from login, not a JWT or password.</p>
-        <a href="{{ prefix }}/docs-site/api/authentication/">Authentication walkthrough <span aria-hidden="true">&#8594;</span></a>
-      </section>
-      <section class="integration-card" aria-labelledby="overview-access">
-        <span class="card-kicker">02 / Authorize</span><h2 id="overview-access">Choose the right credentials</h2>
-        <dl class="access-methods"><div><dt><span class="badge">Browser session</span></dt><dd>Sign in to Coyote4 in this browser. The explorer sends your cookie and retrieves <code>X-CSRF-Token</code> for changes.</dd></div><div><dt><span class="badge access-badge">Bearer token</span></dt><dd>Use <strong>Authorize</strong> for an opaque session token. Bearer requests do not need a CSRF header. Credentials are not persisted by this explorer.</dd></div>{% if relay_installed %}<div><dt><span class="badge">Pipeline ingestion</span></dt><dd><code>X-Coyote-Ingest-Token</code> applies to the synchronous sample-bundle upload endpoint. Async ingestion and task polling require a user session.</dd></div>{% endif %}</dl>
-        <a href="{{ prefix }}/docs-site/api/routes-and-workflows/">Integration workflows <span aria-hidden="true">&#8594;</span></a>
-      </section>
-      <section class="integration-card" aria-labelledby="overview-requests">
-        <span class="card-kicker">03 / Handle responses</span><h2 id="overview-requests">Resolve errors deliberately</h2>
-        <table class="error-guide"><thead><tr><th scope="col">Status</th><th scope="col">Next step</th></tr></thead><tbody><tr><th scope="row">401</th><td>Sign in again or replace expired session credentials.</td></tr><tr><th scope="row">403</th><td>Check permissions, sample scope and cookie CSRF protection.</td></tr><tr><th scope="row">409</th><td>Check the operation's conflict details, current revision and editing lease.</td></tr><tr><th scope="row">422</th><td>Correct the fields identified by validation details.</td></tr><tr><th scope="row">5xx</th><td>Record <code>X-Request-ID</code> for support. Verify a write's outcome before retrying.</td></tr></tbody></table>
-        <p class="card-note">Error responses carry <code>status</code>, <code>error</code> and <code>details</code>. Keep credentials and patient data out of shared diagnostic examples.</p>
-        <a href="{{ prefix }}/contact">Center support <span aria-hidden="true">&#8594;</span></a>
+        <p>Replace <code>YOUR_HOST</code> with your installation's host. <a href="{{ prefix }}/docs-site/api/authentication/">Authentication guide</a></p>
       </section>
     </div>
-    <div class="request-practices"><p><strong>Access follows the application.</strong> Permissions, assay and environment scopes still apply. A missing measurement is different from zero; use each operation's documented filters and pagination.</p><p><strong>Existing document edits are versioned.</strong> Applicable editors require a lease and current revision. <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing-session reference</a></p></div>
-  {% if view == 'explorer' %}
-  <details class="session-settings">
-    <summary>Browser session settings</summary>
-    <label for="csrf-token">Session CSRF token</label>
-    <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
-    <p id="csrf-help">The explorer retrieves CSRF protection from your signed-in browser session automatically. You can also enter your session's CSRF token here. It stays in this page. For a bearer token, use Authorize.</p>
-  </details>
-  {% endif %}
-  </details>
-  {% if view == 'explorer' %}
-  <aside class="request-notice"><span class="badge access-badge">Live API connection</span> Changes affect this installation's records. Use synthetic data in a non-production environment for integration testing.</aside>
+    <nav class="integration-links" aria-label="Integration guides">
+      <a href="{{ prefix }}/docs-site/api/routes-and-workflows/">API workflows</a>
+      <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing sessions and revisions</a>
+    </nav>
+  </section>
+  {% else %}
+  <section class="explorer-connection" aria-label="Connection and authentication">
+    <div class="connection-address"><span>Base path</span> <code>{{ prefix }}/api/v1</code> <span>OpenAPI {{ openapi_version }}</span></div>
+    <p><a href="{{ prefix }}/login">Sign in</a> to use your browser session, or select <strong>Authorize</strong> for a bearer token. CSRF is automatic for browser sessions.</p>
+    <nav aria-label="Integration guides">
+      <a href="{{ prefix }}/docs-site/api/authentication/">Authentication guide</a>
+      {% if relay_installed %}<a href="{{ prefix }}/docs-site/api/sample-ingestion/#managed-service-credentials">Ingestion credentials</a>{% endif %}
+      <a href="{{ prefix }}/docs-site/administration/document-editing/">Editing sessions</a>
+    </nav>
+  </section>
+  <aside class="request-notice">Requests affect this installation. Test changes with synthetic data in a non-production environment.</aside>
   {% endif %}
   <main id="api-content" class="api-workspace {{ view }}" tabindex="-1">
     {% if view == 'explorer' %}
@@ -103,6 +98,12 @@
       <input id="resource-search" type="search" placeholder="Search resources" autocomplete="off">
       <nav id="resource-navigation" aria-label="Endpoint groups"></nav>
       <p id="resource-empty" hidden>No matching resources.</p>
+      <details class="session-settings">
+        <summary>Browser session</summary>
+        <label for="csrf-token">Session CSRF token</label>
+        <input id="csrf-token" type="password" autocomplete="off" spellcheck="false" placeholder="X-CSRF-Token" aria-describedby="csrf-help">
+        <p id="csrf-help">Retrieved automatically when signed in. A manual token stays in this page only. Use Authorize for bearer credentials.</p>
+      </details>
     </aside>
     {% endif %}
     <section class="endpoint-workspace" aria-label="API endpoints">

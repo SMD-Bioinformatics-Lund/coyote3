@@ -1,4 +1,8 @@
+<div align="center" markdown="1">
+
 ![Coyote4](docs/assets/coyote4-logo.svg)
+
+*DNA and RNA review, interpretation and reporting for clinical genomics.*
 
 <!-- badges:start -->
 
@@ -18,6 +22,16 @@
 
 ![Security: Casbin RBAC](https://img.shields.io/badge/Security-Casbin%20RBAC-2E8B57?style=flat) ![Audit: Enabled](https://img.shields.io/badge/Audit-Enabled-2E8B57?style=flat)
 <!-- badges:end -->
+
+</div>
+
+---
+
+**Documentation:** [Read the guides](docs/README.md)
+
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
+
+---
 
 Coyote4 is a clinical genomics application for reviewing DNA and RNA findings,
 recording interpretations and preparing reports. Developed at the Section for

@@ -10428,6 +10428,18 @@ export type SamplesDoc = {
      */
     latest_report_on?: string | null;
     /**
+     * Legacy
+     *
+     * Whether this sample originated in a legacy Coyote installation.
+     */
+    legacy?: boolean;
+    /**
+     * Legacy Source
+     *
+     * Original Coyote version for a migrated sample; null for new v4 ingestion.
+     */
+    legacy_source?: 'v2' | 'v3' | null;
+    /**
      * Missing Expected Files
      *
      * Expected ASP resources unavailable at ingestion; required files block ingestion.

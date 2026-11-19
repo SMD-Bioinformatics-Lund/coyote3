@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
-import { expect, test, type Locator } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 
 test.describe.configure({ mode: "default" })
 
@@ -32,6 +32,18 @@ print(json.dumps({"reference": asyncio.run(page("/api/v1/redoc")),
     assets.set(file, { body: await response.body(), contentType })
   }
 })
+
+async function mockPortal(page: Page) {
+  await page.route("https://cdn.jsdelivr.net/npm/**", route => {
+    const asset = assets.get(route.request().url().split("/npm/")[1])
+    return asset ? route.fulfill(asset) : route.abort()
+  })
+  await page.route("**/api/v1/openapi.json", route => route.fulfill({ json: portal.schema }))
+  await page.route("**/api/v1/auth/whoami", route => route.fulfill({ status: 401, json: {} }))
+  for (const [path, view] of [["docs", "explorer"], ["redoc", "reference"]] as const) {
+    await page.route(`**/api/v1/${path}*`, route => route.fulfill({ contentType: "text/html", body: portal[view] }))
+  }
+}
 
 async function expectReadable(locator: Locator) {
   const contrast = await locator.evaluate(element => {
@@ -69,20 +81,17 @@ for (const theme of ["light", "dark"] as const) {
       test(`API ${view} is readable and responsive in ${theme} at ${width}px`, async ({ page }, testInfo) => {
         await page.emulateMedia({ colorScheme: theme })
         await page.setViewportSize({ width, height: 1000 })
-        await page.route("https://cdn.jsdelivr.net/npm/**", route => {
-          const asset = assets.get(route.request().url().split("/npm/")[1])
-          return asset ? route.fulfill(asset) : route.abort()
-        })
-        await page.route("**/api/v1/openapi.json", route => route.fulfill({ json: portal.schema }))
-        await page.route("**/api/v1/auth/whoami", route => route.fulfill({ status: 401, json: {} }))
+        await mockPortal(page)
         const path = view === "reference" ? "/api/v1/redoc" : "/api/v1/docs"
-        await page.route(`**${path}*`, route => route.fulfill({ contentType: "text/html", body: portal[view] }))
         const errors: string[] = []
         page.on("pageerror", error => errors.push(error.message))
         await page.goto(path)
         await expect(page.locator("#docs-loading")).toBeHidden()
         await expect(page.locator("#docs-error")).toBeHidden()
         if (view === "explorer") {
+          await expectReadable(page.locator('.opblock-tag[data-tag="Authentication"] a'))
+          await page.getByRole("navigation", { name: "Endpoint groups" })
+            .getByRole("link", { name: /^Authentication/ }).click()
           const operation = page.locator(".opblock").filter({ hasText: "/api/v1/auth/whoami" })
           await operation.locator(".opblock-summary-control").click()
           await expectReadable(operation.locator(".opblock-summary-path"))
@@ -162,3 +171,105 @@ for (const theme of ["light", "dark"] as const) {
     }
   }
 }
+
+test("explorer navigation works before a slow browser session check completes", async ({ page }) => {
+  await mockPortal(page)
+  let releaseSession!: () => void
+  const sessionReady = new Promise<void>(resolve => { releaseSession = resolve })
+  await page.route("**/api/v1/auth/whoami", async route => {
+    await sessionReady
+    await route.fulfill({ json: { username: "fixture-user", csrf_token: "fixture-csrf" } })
+  })
+  try {
+    await page.goto("/api/v1/docs")
+    await expect(page.locator("#docs-loading")).toBeHidden()
+    const navigation = page.getByRole("navigation", { name: "Endpoint groups" })
+    const resource = navigation.getByRole("link", { name: /^Clinical Samples/ })
+    const heading = page.locator('.opblock-tag[data-tag="Clinical Samples"]')
+    await expect(heading).toHaveAttribute("data-is-open", "true")
+    await heading.getByRole("button", { name: "Collapse operation", exact: true }).click()
+    await expect(heading).toHaveAttribute("data-is-open", "false")
+    await resource.click()
+    await expect(heading).toHaveAttribute("data-is-open", "true")
+    await expect(heading).toBeInViewport()
+    await expect(resource).toHaveAttribute("aria-current", "location")
+    expect(new URL(page.url()).hash).toBe("#/Clinical%20Samples")
+    await page.getByPlaceholder("Filter by tag").fill("Authentication")
+    await expect(heading).toHaveCount(0)
+    await resource.click()
+    await expect(heading).toBeInViewport()
+    await expect(page.getByPlaceholder("Filter by tag")).toHaveValue("")
+    await page.setViewportSize({ width: 390, height: 844 })
+    await resource.focus()
+    await page.keyboard.press("Enter")
+    await expect(heading).toBeInViewport()
+  } finally {
+    releaseSession()
+  }
+  await expect(page.locator("#csrf-token")).toHaveValue("fixture-csrf")
+  await page.reload()
+  await expect(page.locator('.opblock-tag[data-tag="Clinical Samples"]')).toHaveAttribute("data-is-open", "true")
+})
+
+test("explorer attaches session CSRF only to cookie-authenticated changes", async ({ page }) => {
+  await mockPortal(page)
+  await page.route("**/api/v1/auth/whoami", route => route.fulfill({
+    json: { username: "fixture-user", csrf_token: "fixture-csrf" },
+  }))
+  await page.route("**/api/v1/auth/sessions/current", route => route.fulfill({ json: { status: "ok" } }))
+  await page.goto("/api/v1/docs")
+  await page.getByRole("navigation", { name: "Endpoint groups" })
+    .getByRole("link", { name: /^Authentication/ }).click()
+  const operation = page.locator(".opblock-delete").filter({ hasText: "/api/v1/auth/sessions/current" })
+  await operation.locator(".opblock-summary-control").click()
+  await operation.getByRole("button", { name: "Try it out" }).click()
+  const cookieRequest = page.waitForRequest(request => request.method() === "DELETE")
+  await operation.getByRole("button", { name: "Execute", exact: true }).click()
+  expect((await cookieRequest).headers()["x-csrf-token"]).toBe("fixture-csrf")
+
+  await page.locator(".scheme-container").getByRole("button", { name: "Authorize" }).click()
+  const bearer = page.locator(".auth-container").filter({ hasText: "BearerAuth" })
+  await bearer.locator("input").fill("fixture-bearer")
+  await bearer.getByRole("button", { name: "Apply credentials", exact: true }).click()
+  await bearer.getByRole("button", { name: "Close", exact: true }).click()
+  const bearerRequest = page.waitForRequest(request => request.method() === "DELETE")
+  await operation.getByRole("button", { name: "Execute", exact: true }).click()
+  const headers = await (await bearerRequest).allHeaders()
+  expect(headers.authorization).toBe("Bearer fixture-bearer")
+  expect(headers["x-csrf-token"]).toBeUndefined()
+  expect(await page.evaluate(() => Object.values(localStorage))).not.toContain("fixture-bearer")
+})
+
+
+test("explorer shell stays usable while the vendor stylesheet is loading", async ({ page }) => {
+  await mockPortal(page)
+  let releaseStyles!: () => void
+  const stylesReady = new Promise<void>(resolve => { releaseStyles = resolve })
+  await page.route("**/swagger-ui.css", async route => {
+    await stylesReady
+    await route.fulfill(assets.get("swagger-ui-dist@5.32.15/swagger-ui.css")!)
+  })
+  try {
+    await page.goto("/api/v1/docs", { waitUntil: "domcontentloaded" })
+    await expect(page.getByRole("heading", { name: "Coyote4 API", exact: true })).toBeVisible()
+    await expect(page.locator("#docs-loading")).toBeVisible()
+    const toggle = page.getByRole("button", { name: /Use (dark|light) theme/ })
+    const pressed = await toggle.getAttribute("aria-pressed")
+    await toggle.click()
+    await expect(toggle).toHaveAttribute("aria-pressed", pressed === "true" ? "false" : "true")
+  } finally {
+    releaseStyles()
+  }
+  await expect(page.locator("#docs-loading")).toBeHidden()
+  await expect(page.locator("#docs-error")).toBeHidden()
+  await expect(page.getByRole("navigation", { name: "Endpoint groups" }).getByRole("link").first()).toBeVisible()
+})
+
+test("a failed explorer stylesheet offers the OpenAPI contract", async ({ page }) => {
+  await mockPortal(page)
+  await page.route("**/swagger-ui.css", route => route.abort())
+  await page.goto("/api/v1/docs")
+  await expect(page.locator("#docs-error")).toBeVisible()
+  await expect(page.locator("#docs-loading")).toBeHidden()
+  await expect(page.locator("#docs-error").getByRole("link")).toHaveAttribute("href", "/api/v1/openapi.json")
+})

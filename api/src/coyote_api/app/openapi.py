@@ -110,6 +110,10 @@ def apply_openapi_security_schema(app: FastAPI) -> dict:
                 responses = operation.setdefault("responses", {})
                 responses.setdefault("401", {"description": "Unauthorized"})
                 responses.setdefault("403", {"description": "Forbidden"})
+            elif path == "/api/v1/auth/sessions/current" and method.upper() == "DELETE":
+                # Logout also succeeds without a session. Advertise optional credentials
+                # so API explorers send the bearer token whose session should be deleted.
+                operation["security"] = [{"ApiSessionCookie": []}, {"BearerAuth": []}, {}]
 
             responses = operation.setdefault("responses", {})
             for status in (429, 500, 503):

@@ -11,48 +11,11 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from starlette.responses import HTMLResponse
 
 from coyote_api.config.paths import API_LOGO_PATH, APPLICATION_FAVICON_PATH
+from coyote_api.version import APPLICATION_VERSION
 
-PRODUCT_OVERVIEW = (
-    "Coyote4 is a clinical genomics application developed by the bioinformatics team at "
-    "the Section for Molecular Diagnostics (SMD), Lund, within Region Sk\u00e5ne's "
-    "clinical laboratory service.",
-    "Clinical geneticists, bioinformaticians and laboratory staff use Coyote4 to ingest "
-    "DNA and RNA samples, review genomic findings, record classifications and comments, "
-    "and prepare reports. Assay configuration determines which analyses and filters are "
-    "available. Saved reports retain finding snapshots and the reporting context used "
-    "to produce them.",
-)
-
-API_DESCRIPTION = (
-    "\n\n".join(PRODUCT_OVERVIEW)
-    + """
-
-## API scope
-
-The API serves the Coyote4 interface and integrations with laboratory pipelines.
-Sample and finding endpoints provide access to small variants, copy-number changes,
-fusions, DNA translocations, HRD, MSI, TMB and coverage, subject to the sample's assay
-configuration. Review operations record classifications and comments. Reporting
-operations generate previews and save reports with their finding snapshots.
-
-Administration endpoints manage assays, assay configurations (ASPC), in-silico gene
-lists (ISGL), finding query rules, reporting rules and the public assay catalog. Clinical reporting rules
-follow a draft, independent review and publication workflow. API access is subject
-to the same permissions and assay, environment and sample-access restrictions as
-the application; using an integration does not bypass those checks.
-
-## Finding query rules
-
-Published query policies resolve from application defaults through group, assay
-and diagnosis scopes. Application defaults use analysis-specific evidence and saved
-sample filters; group-specific exceptions are stored in database rule sets.
-Drafts do not affect clinical retrieval. Preview the effective policy and test a
-saved version against a sample before approval and publication. Query-rule
-operations require their corresponding authoring, review, publication or testing
-permissions.
-
-Only supported integration and administration operations appear in this reference.
-Private demonstration-installation endpoints are excluded from the OpenAPI schema.
+API_DESCRIPTION = """Coyote4 API for sample review, findings, reports and administration.
+Operations enforce the same permissions, assay and environment scopes as the application.
+Application and server releases are versioned separately; HTTP routes use `/api/v1`.
 
 ## Authentication
 
@@ -60,50 +23,29 @@ Private demonstration-installation endpoints are excluded from the OpenAPI schem
 | --- | --- | --- |
 | Browser | Your Coyote4 session cookie | Send the session's `X-CSRF-Token`. |
 | Script or integration | `Authorization: Bearer <session-token>` | No CSRF header is needed with a bearer token. |
-| Public assay catalog | No sign-in required | Editing the catalog requires an account with the appropriate permissions. |
+| Ingestion automation | Managed service or personal bearer token | Only granted ingestion operations, assays, environments and token-owned jobs are accessible. |
+| Public assay catalog | No sign-in required | Editing requires the corresponding permissions. |
 
-Sign in through the **Authentication** endpoints using a login provider enabled
-by your center. Browser cookies and bearer tokens use the same session. The token
-is opaque, not a JWT; treat it like a password.
+Read `GET /api/v1/auth/providers`, then send `username`, `password` and an enabled
+`provider` to `POST /api/v1/auth/sessions`. The opaque session token is returned
+in `Set-Cookie`; the response body includes `csrf_token`. Verify access with
+`GET /api/v1/auth/whoami`. Managed tokens cannot create or replace a user session.
 
 ## Sample ingestion
 
-Coyote Relay supplies the optional ingestion endpoints. Install `coyote-relay[api]`
-alongside the server and restart the API to include them in this reference.
+Coyote Relay supplies optional sample-ingestion routes. A server without Relay
+omits those endpoints. Managed service and personal tokens can permit synchronous
+submission, asynchronous submission and token-owned job polling. The separate
+`X-Coyote-Ingest-Token` and `X-Coyote-Internal-Token` headers support synchronous
+sample-bundle ingestion only. Check each operation's security and request fields.
 
-Check `GET /api/v1/health`, then submit the manifest and optional ZIP through
-`POST /api/v1/internal/ingest/sample-bundle/upload` with `acknowledge=true`.
-Use `X-Coyote-Ingest-Token` for an administrator-issued expiring pipeline token;
-no user login is required. A terminal `status=ok` acknowledgement permits the
-helper to rename the YAML to `.done`; `status=failed` permits `.failed`.
-A timeout or missing acknowledgement is an unknown outcome: inspect the audit
-before retrying. Async endpoints and task polling require a user session token.
-The Relay worker can scan mounted manifests directly and uses no HTTP token.
+## Responses
 
-DNA manifests declare a single `biomarkers` file. Ingestion separates its HRD, MSI
-and TMB measurements into the corresponding analyses. Declare alignment resources
-with `case_bam`, `case_bai`, `control_bam` and `control_bai` when they are available.
-DNA translocations use SnpEff-annotated VCF input; RNA fusions use their separate
-caller-evidence input format.
-
-## Requests and errors
-
-- Use the same application URL prefix as your Coyote4 installation.
-- Check the operation's parameters for filters and pagination. A missing
-  measurement is not the same as zero.
-- `401`: sign in again. `403`: check your access and, for cookie-based changes,
-  your CSRF token. `422`: correct the fields listed in the response.
-- Errors include `status`, `error` and `details`. Include the response's
-  `X-Request-ID` when asking your support team to investigate a failed request.
-
-## Testing safely
-
-The API explorer connects to this Coyote4 installation. Saving a comment, changing
-a tier or creating a report here changes the same records you see in the application.
-Use a non-production environment and synthetic samples when testing. Keep patient
-data and session tokens out of shared examples, tickets and screenshots.
+Errors include `status`, `error` and `details`. Check the operation's response schema
+and include `X-Request-ID` when requesting support. Verify a write's outcome before
+retrying after a timeout. The explorer uses this installation's data; use synthetic
+samples in a non-production environment for integration testing.
 """
-)
 
 _TEMPLATES = Path(__file__).with_name("templates")
 _ENVIRONMENT = Environment(
@@ -146,7 +88,8 @@ def register_api_documentation(app: FastAPI, *, environment: str) -> None:
         return HTMLResponse(
             template.render(
                 view=view,
-                version=app.version,
+                application_version=APPLICATION_VERSION,
+                server_version=app.version,
                 openapi_version=app.openapi_version,
                 environment=environment,
                 nonproduction=environment not in {"production", "prod"},

@@ -15,12 +15,28 @@ themeToggle.addEventListener("click", () => {
     localStorage.setItem("coyote4-docs-theme", dark ? "dark" : "light");
   } catch { /* Theme switching remains available without browser storage. */ }
   syncThemeControl();
-  window.dispatchEvent(new Event("api-theme-change"));
 });
 const loading = document.getElementById("docs-loading");
 const error = document.getElementById("docs-error");
 const fail = () => { loading.hidden = true; error.hidden = false; };
 const loaded = () => { loading.hidden = true; };
+// The portal shell renders from its inline styles while Swagger's assets load.
+// The portal styles are scoped outside the vendor-rendered content.
+const stylesReady = view === "explorer" ? new Promise((resolve) => {
+  const stylesheet = document.createElement("link");
+  stylesheet.rel = "stylesheet";
+  stylesheet.href = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui.css";
+  stylesheet.onload = () => resolve(true);
+  stylesheet.onerror = () => { fail(); resolve(false); };
+  document.head.insertBefore(stylesheet, document.querySelector("style"));
+}) : Promise.resolve(true);
+// Fetch the contract while the renderer downloads. Neither needs to wait for login.
+const schemaRequest = fetch(schemaUrl, { credentials: "same-origin" })
+  .then((response) => {
+    if (!response.ok) throw new Error("Schema unavailable");
+    return response.json();
+  })
+  .catch(() => { fail(); return null; });
 const script = document.createElement("script");
 script.src = view === "reference"
   ? "https://cdn.jsdelivr.net/npm/redoc@2.5.3/bundles/redoc.standalone.js"
@@ -28,9 +44,8 @@ script.src = view === "reference"
 script.onerror = fail;
 script.onload = async () => {
   try {
-    const response = await fetch(schemaUrl, { credentials: "same-origin" });
-    if (!response.ok) throw new Error("Schema unavailable");
-    const schema = await response.json();
+    const schema = await schemaRequest;
+    if (!schema || !await stylesReady) return;
     if (view === "reference") {
       const methods = new Set(["get", "post", "put", "patch", "delete", "options", "head", "trace"]);
       const resources = new Map();
@@ -99,20 +114,6 @@ script.onload = async () => {
           tags: (schema.tags || []).filter((tag) => tag.name === activeResource),
           "x-tagGroups": [{ name: "API resource", tags: [activeResource] }],
         };
-        const tokens = getComputedStyle(document.documentElement);
-        // ReDoc's color utilities require RGB; let the browser resolve our OKLCH tokens.
-        const canvas = document.createElement("canvas");
-        canvas.width = canvas.height = 1;
-        const context = canvas.getContext("2d");
-        const color = (name) => {
-          context.clearRect(0, 0, 1, 1);
-          context.fillStyle = tokens.getPropertyValue("--surface").trim();
-          context.fillRect(0, 0, 1, 1);
-          context.fillStyle = tokens.getPropertyValue(name).trim();
-          context.fillRect(0, 0, 1, 1);
-          const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-          return `rgb(${r}, ${g}, ${b})`;
-        };
         Redoc.init(resourceSchema, {
           hideDownloadButton: true,
           disableGoogleFont: true,
@@ -123,34 +124,9 @@ script.onload = async () => {
           jsonSamplesExpandLevel: 1,
           generatedSamplesMaxDepth: 3,
           nativeScrollbars: true,
-          theme: {
-            breakpoints: { small: "50rem", medium: "90rem", large: "110rem" },
-            spacing: { sectionHorizontal: 28, sectionVertical: 24 },
-            colors: {
-              primary: { main: color("--accent") },
-              text: { primary: color("--ink"), secondary: color("--ink-muted") },
-              success: { main: color("--status-success-foreground") },
-              warning: { main: color("--status-warning-foreground") },
-              error: { main: color("--status-danger-foreground") },
-              border: { dark: color("--border"), light: color("--paper-raised") },
-              responses: {
-                success: { color: color("--status-success-foreground"), backgroundColor: color("--status-success-soft"), tabTextColor: color("--status-success-foreground") },
-                error: { color: color("--status-danger-foreground"), backgroundColor: color("--status-danger-soft"), tabTextColor: color("--status-danger-foreground") },
-                redirect: { color: color("--status-warning-foreground"), backgroundColor: color("--status-warning-soft"), tabTextColor: color("--status-warning-foreground") },
-                info: { color: color("--status-info-foreground"), backgroundColor: color("--status-info-soft"), tabTextColor: color("--status-info-foreground") },
-              },
-            },
-            schema: { linesColor: color("--border"), typeNameColor: color("--ink-muted"), typeTitleColor: color("--ink"), requireLabelColor: color("--status-danger-foreground"), nestedBackground: color("--surface-muted") },
-            typography: { fontSize: "14px", fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", headings: { fontFamily: "inherit", fontWeight: "600" }, code: { fontSize: "12px", color: color("--ink"), backgroundColor: color("--surface-muted") } },
-            sidebar: { width: "240px", backgroundColor: color("--surface-muted"), textColor: color("--ink-muted"), activeTextColor: color("--accent") },
-            rightPanel: { width: "35%", backgroundColor: color("--code-surface"), textColor: color("--code-ink"), servers: { overlay: { backgroundColor: color("--surface-muted"), textColor: color("--ink") }, url: { backgroundColor: color("--paper-raised") } } },
-            codeBlock: { backgroundColor: color("--code-surface") },
-            fab: { backgroundColor: color("--paper-raised"), color: color("--ink") },
-          },
         }, document.getElementById("api-renderer"), (err) => err ? fail() : loaded());
       };
       renderReference();
-      window.addEventListener("api-theme-change", renderReference);
       window.addEventListener("hashchange", () => {
         if (resourceFromHash() !== activeResource) renderReference();
       });
@@ -238,14 +214,17 @@ script.onload = async () => {
           // Public documentation remains usable without a signed-in session.
         }
       };
-      await loadBrowserSession();
+      void loadBrowserSession();
       const explorer = SwaggerUIBundle({
         spec: schema,
         dom_id: "#api-renderer",
         deepLinking: true,
         filter: true,
+        // Native Swagger default: open resource groups, collapse request details.
         docExpansion: "list",
         defaultModelsExpandDepth: -1,
+        defaultModelExpandDepth: 1,
+        syntaxHighlight: { activated: false },
         displayRequestDuration: true,
         persistAuthorization: false,
         withCredentials: true,
@@ -279,6 +258,7 @@ script.onload = async () => {
         const resourceKey = ["operations-tag", link.dataset.tag];
         layoutActions.updateFilter("");
         layoutActions.show(resourceKey, true);
+        if (location.hash !== link.hash) history.pushState(null, "", link.href);
         // Own scrolling here: Swagger's animated scroll can finish after a viewport
         // resize and override this position. Repeated selections need no rerender.
         requestAnimationFrame(() => {

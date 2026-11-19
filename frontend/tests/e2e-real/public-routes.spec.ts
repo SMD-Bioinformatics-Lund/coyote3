@@ -14,7 +14,8 @@ test("API resource navigation opens and scrolls to the selected endpoints", asyn
   const resource = navigation.getByRole("link", { name: /^Clinical Samples/ })
   const heading = page.locator('.opblock-tag[data-tag="Clinical Samples"]')
   await expect(heading).toBeVisible()
-  await heading.getByRole("button", { name: "Collapse operation" }).click()
+  await expect(heading).toHaveAttribute("data-is-open", "true")
+  await heading.getByRole("button", { name: "Collapse operation", exact: true }).click()
   await expect(heading).toHaveAttribute("data-is-open", "false")
   await resource.click()
   await expect(heading).toHaveAttribute("data-is-open", "true")
@@ -45,17 +46,11 @@ test("public matrix loads from the deployed API", async ({ page }) => {
   await expect(page.getByLabel("Gene search")).toBeVisible()
 })
 
-test("API explorer groups endpoints and keeps the overview collapsible", async ({ page }) => {
+test("API explorer filters resources and opens the selected group", async ({ page }) => {
   await page.goto("api/v1/docs")
   const navigation = page.getByRole("navigation", { name: "Endpoint groups" })
   await expect(navigation.getByRole("link").first()).toBeVisible()
   await expect(page.locator("#endpoint-count")).toHaveText(/\d+ endpoints/)
-  const overview = page.locator(".api-overview")
-  await expect(overview).toHaveAttribute("open")
-  await overview.locator(":scope > summary").click()
-  await expect(overview).not.toHaveAttribute("open")
-  await overview.locator(":scope > summary").click()
-  await expect(overview).toHaveAttribute("open")
   await page.getByLabel("Find a resource").fill("no-such-resource-123")
   await expect(page.getByText("No matching resources.")).toBeVisible()
   await page.getByLabel("Find a resource").fill("")

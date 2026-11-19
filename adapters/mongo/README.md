@@ -1,16 +1,30 @@
+<div align="center" markdown="1">
+
+<img src="../../docs/assets/coyote4-logo.svg" alt="Coyote4" width="320">
+
 # Coyote MongoDB adapter
+
+*MongoDB repositories and transactional persistence for Coyote.*
 
 <!-- badges:start -->
 ![coyote-server: 1.0.0](https://img.shields.io/badge/coyote--server-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
+
+</div>
+
+---
+
+**Documentation:** [Read the guides](docs/README.md)
+
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
+
+---
 
 MongoDB repositories, query compilation, record codecs, collection/index contracts
 and transactional persistence for Coyote. The adapter depends on the core and ships
 with the API in `coyote-server`. Importing the adapter does not import or start the API.
 
 ## Documentation
-
-Start with the [adapter guide](docs/README.md).
 
 - [Getting started](docs/getting-started.md): install the server and construct connections.
 - [Usage](docs/usage.md): understand its supported workflow.

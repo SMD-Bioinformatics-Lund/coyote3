@@ -1,8 +1,22 @@
+<div align="center" markdown="1">
+
 ![Coyote Atlas](src/coyote_atlas/assets/coyote-atlas-logo.svg)
+
+*Versioned reference resources for Coyote.*
 
 <!-- badges:start -->
 ![coyote-atlas: 1.0.0](https://img.shields.io/badge/coyote--atlas-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
+
+</div>
+
+---
+
+**Documentation:** [Read the guides](docs/README.md)
+
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
+
+---
 
 Coyote Atlas owns the HGNC gene snapshot, Ensembl VEP metadata and associated
 diagrams distributed with Coyote. Its manifest records dataset identities,

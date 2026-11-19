@@ -1,8 +1,22 @@
+<div align="center" markdown="1">
+
 ![Coyote API](src/coyote_api/config/assets/coyote-api-logo.svg)
+
+*Authentication, HTTP endpoints and background workers for Coyote.*
 
 <!-- badges:start -->
 ![coyote-server: 1.0.0](https://img.shields.io/badge/coyote--server-1.0.0-4F46A5?style=flat) ![Python: >=3.12](https://img.shields.io/badge/Python-%3E%3D3.12-3776AB?style=flat&logo=python&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
+
+</div>
+
+---
+
+**Documentation:** [Read the guides](docs/README.md)
+
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
+
+---
 
 The HTTP API and worker host for Coyote. It handles authentication, request validation,
 application composition and packaged host resources. It ships with the MongoDB adapter
@@ -19,8 +33,6 @@ API extensions use this host's authentication and persistence. Normal bootstrap
 never installs synthetic samples; the demo requires explicitly isolated storage.
 
 ## Documentation
-
-Start with the [API guide](docs/README.md).
 
 - [Getting started](docs/getting-started.md): install the server and start the API.
 - [Usage](docs/usage.md): understand its supported workflow.

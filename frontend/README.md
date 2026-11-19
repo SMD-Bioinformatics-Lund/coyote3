@@ -1,16 +1,30 @@
+<div align="center" markdown="1">
+
+<img src="../docs/assets/coyote4-logo.svg" alt="Coyote4" width="320">
+
 # Coyote frontend
+
+*The Coyote browser interface for sample review and reporting.*
 
 <!-- badges:start -->
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![Node: >=22](https://img.shields.io/badge/Node-%3E%3D22-339933?style=flat&logo=nodedotjs&logoColor=white) ![UI: React 19](https://img.shields.io/badge/UI-React%2019-087EA4?style=flat&logo=react&logoColor=white) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
+
+</div>
+
+---
+
+**Documentation:** [Read the guides](docs/README.md)
+
+**Source Code:** [SMD-Bioinformatics-Lund/coyote3](https://github.com/SMD-Bioinformatics-Lund/coyote3)
+
+---
 
 The browser application for sample review, clinical configuration, findings and
 report workflows. React renders the interface and calls the versioned HTTP API.
 Clinical rules and authoritative permission checks remain on the server.
 
 ## Documentation
-
-Start with the [frontend guide](docs/README.md), then use:
 
 - [Getting started](docs/getting-started.md) for a local development server.
 - [Configuration](docs/configuration.md) for proxy and presentation settings.

@@ -1,0 +1,77 @@
+/* Portal shell styles. Endpoint styles come from Swagger UI. */
+.api-workspace.explorer { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: var(--surface); box-shadow: none; }
+.explorer .endpoint-workspace { border-left: 1px solid var(--border); min-height: 65vh; }
+.resource-sidebar { position: sticky; top: 0; padding: 16px; max-height: 100dvh; overflow: auto; }
+.resource-heading { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-weight: 650; font-size: 13px; }
+.resource-heading .badge { font-size: 11px; }
+.resource-search-label { display: block; font-size: 12px; color: var(--ink-muted); margin: 16px 0 6px; }
+#resource-search { width: 100%; background: var(--surface); padding: 8px 10px; font-size: 13px; }
+#resource-navigation h2 { margin: 20px 8px 6px; font-size: 11px; color: var(--ink-muted); font-weight: 650; letter-spacing: .03em; }
+#resource-navigation a { display: flex; justify-content: space-between; gap: 12px; padding: 7px 8px; margin: 0; text-decoration: none; border-radius: 0 4px 4px 0; color: var(--ink); font-size: 13px; overflow-wrap: anywhere; border-left: 2px solid transparent; }
+#resource-navigation a:hover, #resource-navigation a[aria-current] { background: var(--accent-soft); color: var(--accent); }
+.resource-count { flex-shrink: 0; white-space: nowrap; color: var(--ink-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.explorer-page {
+  --surface: #fff;
+  --surface-muted: #f4f5f8;
+  --background: #fff;
+  --paper-raised: #fff;
+  --paper-inset: #f4f5f8;
+  --border: #e0e3e9;
+  --accent-soft: #f1ebf7;
+  min-height: 100vh;
+  background: var(--surface);
+}
+.dark .explorer-page {
+  --surface: #1c1d21;
+  --surface-muted: #23252b;
+  --background: #1c1d21;
+  --paper-raised: #25262d;
+  --paper-inset: #23252b;
+  --border: #3c3e47;
+  --accent-soft: #33283f;
+}
+.explorer-page .portal-header { padding: 8px 24px; }
+.explorer-page .portal-links a { border-color: transparent; background: transparent; }
+.explorer-page .portal-links a:hover { background: var(--chrome-control-hover); }
+.explorer-page .portal-heading { margin: 0; padding: 20px 24px 16px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: var(--surface); box-shadow: none; }
+.explorer-page h1:not(:where(#api-renderer *)) { font-size: 22px; }
+.explorer-page .portal-heading p { font-size: 13px; }
+.explorer-page .badge:not(:where(#api-renderer *)) { border: 0; padding: 2px 6px; background: var(--surface-muted); font-weight: 500; }
+.explorer-page .view-tabs { gap: 16px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.explorer-page .view-tabs a { padding: 8px 0; border-bottom: 2px solid transparent; border-radius: 0; font-weight: 500; }
+.explorer-page .view-tabs a[aria-current] { color: var(--accent); border-color: var(--accent); background: transparent; }
+.explorer-connection { padding: 12px 24px 0; font-size: 13px; }
+.connection-address { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.connection-address span { color: var(--ink-muted); }
+.explorer-connection p { margin: 8px 0; color: var(--ink-muted); }
+.explorer-connection nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.explorer-page .request-notice { margin: 0; padding: 10px 24px 14px; font-size: 12px; color: var(--ink-muted); }
+#resource-navigation a[aria-current] { border-left-color: var(--accent); }
+.explorer-page .session-settings { margin: 20px 0 0; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; }
+.explorer-page .session-settings summary { color: var(--ink-muted); font-weight: 500; cursor: pointer; }
+.explorer-page .session-settings label { display: block; margin: 12px 0 4px; }
+.explorer-page .session-settings p { color: var(--ink-muted); margin: 6px 0; }
+.explorer-page .session-settings input { width: 100%; font-size: 12px; }
+/* Swagger owns its controls and endpoint styles. Keep its native light canvas
+   independent of the portal theme, including native browser form controls. */
+.explorer #api-renderer {
+  color-scheme: light;
+  color: #3b4151;
+  background: #fff;
+  font: 16px/normal sans-serif;
+  overflow-x: auto;
+}
+@media (max-width: 700px) {
+  .explorer-page .portal-header { position: relative; gap: 4px; }
+  .explorer-page .portal-brand { width: 100%; padding-right: 110px; }
+  .explorer-page #theme-toggle { position: absolute; top: 14px; right: 16px; }
+  .explorer-page .portal-links { gap: 12px; font-size: 12px; }
+  .explorer-page .portal-header, .explorer-page .portal-heading, .explorer-connection, .explorer-page .request-notice { padding-left: 16px; padding-right: 16px; }
+  .explorer-page .portal-heading { gap: 12px; }
+  .explorer-page .api-workspace { display: block; }
+  .explorer-page .resource-sidebar { position: static; border-bottom: 1px solid var(--border); padding: 12px 16px; max-height: 220px; }
+  .explorer .endpoint-workspace { border-left: 0; }
+}
+@media (forced-colors: active) {
+  .explorer-page .view-tabs a[aria-current] { background: Canvas; color: CanvasText; border-color: CanvasText; }
+}

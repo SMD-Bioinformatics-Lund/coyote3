@@ -1,0 +1,115 @@
+:root {
+  color-scheme: light;
+  /* Shared application palette; keep the standalone viewers readable in both themes. */
+  --background: #dfe3e8;
+  --foreground: oklch(0.235 0.006 255);
+  --card: #eff2f6;
+  --primary: oklch(0.45 0.105 302);
+  --muted-foreground: oklch(0.405 0.007 255);
+  --border: #bdc5d0;
+  --paper-raised: #f5f7fa;
+  --paper-inset: #e7ebf0;
+  --panel-shadow: 0 2px 6px rgb(30 40 60 / 10%);
+  --brand-start: oklch(0.5 0.115 302);
+  --brand-end: oklch(0.66 0.13 58);
+  --brand-gradient: linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --chrome-charcoal: oklch(0.19 0.006 285);
+  --chrome-purple: oklch(0.32 0.085 302);
+  --chrome-orange: oklch(0.34 0.1 48);
+  --chrome-top: linear-gradient(90deg, var(--chrome-charcoal), var(--chrome-purple) 34%, var(--chrome-orange) 68%, var(--chrome-charcoal));
+  --chrome-foreground: oklch(0.97 0.006 75);
+  --chrome-muted-foreground: oklch(0.84 0.018 75);
+  --chrome-border: rgb(255 255 255 / 18%);
+  --chrome-control-hover: rgb(255 255 255 / 15%);
+  --status-warning-soft: #f3ead9;
+  --status-warning-foreground: #805d1e;
+  --status-info-soft: #e2ebf1;
+  --status-info-foreground: #365f7b;
+  --status-success-soft: #e4eee6;
+  --status-success-foreground: #315f43;
+  --status-danger-soft: #f3e3e1;
+  --status-danger-foreground: #823b3c;
+  --surface: var(--card);
+  --surface-muted: var(--background);
+  --ink: var(--foreground);
+  --ink-muted: var(--muted-foreground);
+  --accent: var(--primary);
+  --accent-soft: color-mix(in srgb, var(--primary) 8%, var(--card));
+  --warning-ink: var(--status-warning-foreground);
+  --warning-surface: var(--status-warning-soft);
+  --code-surface: oklch(0.255 0.005 255);
+  --code-ink: oklch(0.925 0.004 255);
+  --code-string: oklch(0.65 0.1 302);
+  --code-success: #b4d0bb;
+  --code-danger: #e0aeb0;
+  --heading-surface: linear-gradient(115deg, var(--accent-soft), var(--paper-raised) 60%);
+  --radius: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--background);
+}
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.205 0.004 255);
+  --foreground: oklch(0.925 0.004 255);
+  --card: oklch(0.255 0.005 255);
+  --primary: oklch(0.65 0.1 302);
+  --muted-foreground: oklch(0.78 0.006 255);
+  --border: oklch(0.5 0.006 255 / 58%);
+  --brand-start: oklch(0.63 0.105 302);
+  --brand-end: oklch(0.69 0.12 62);
+  --chrome-charcoal: oklch(0.16 0.006 285);
+  --chrome-purple: oklch(0.28 0.075 302);
+  --chrome-orange: oklch(0.29 0.085 48);
+  --paper-raised: oklch(0.305 0.009 275);
+  --paper-inset: oklch(0.23 0.004 255);
+  --panel-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  --status-warning-soft: #3d301e;
+  --status-warning-foreground: #e2c78c;
+  --status-info-soft: #203541;
+  --status-info-foreground: #a9cbe0;
+  --status-success-soft: #24362a;
+  --status-success-foreground: #b4d0bb;
+  --status-danger-soft: #3c2629;
+  --status-danger-foreground: #e0aeb0;
+}
+*:not(:where(#api-renderer *)) { box-sizing: border-box; }
+body { margin: 0; }
+a:not(:where(#api-renderer *)) { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible:not(:where(#api-renderer *)) { outline: 2px solid var(--accent); outline-offset: 3px; }
+[hidden] { display: none !important; }
+button:not(:where(#api-renderer *)), input:not(:where(#api-renderer *)), select:not(:where(#api-renderer *)) { font: inherit; }
+input:not(:where(#api-renderer *)), select:not(:where(#api-renderer *)) { min-width: 0; max-width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper-raised); color: var(--ink); }
+code:not(:where(#api-renderer *)) { font-size: .9em; overflow-wrap: anywhere; }
+.skip-link { position: absolute; top: -100px; left: 12px; z-index: 100; padding: 12px; background: var(--surface); }
+.skip-link:focus { top: 8px; }
+.portal-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 12px 24px; background: var(--chrome-top); color: var(--chrome-foreground); }
+.portal-brand, .portal-links, .heading-title { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.brand { display: inline-flex; }
+.brand img { object-fit: contain; }
+.product-label { color: var(--chrome-muted-foreground); border-left: 1px solid var(--chrome-border); padding-left: 12px; }
+.portal-links { gap: 8px; font-size: 13px; }
+.portal-links a, #theme-toggle { border: 1px solid var(--chrome-border); border-radius: 7px; background: rgb(255 255 255 / 7%); color: var(--chrome-foreground); padding: 7px 10px; text-decoration: none; cursor: pointer; }
+.portal-links a:hover, #theme-toggle:hover { background: var(--chrome-control-hover); }
+.portal-header :focus-visible { outline-color: var(--chrome-foreground); }
+.portal-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 18px 20px; background: var(--heading-surface); }
+.heading-title { gap: 8px; }
+h1:not(:where(#api-renderer *)) { margin: 0 8px 0 0; font-size: 24px; font-weight: 650; }
+h2:not(:where(#api-renderer *)) { font-size: 16px; margin: 0 0 8px; }
+.portal-heading p { margin: 8px 0 0; color: var(--ink-muted); }
+.badge:not(:where(#api-renderer *)) { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper-raised); color: var(--ink-muted); font-size: 12px; font-weight: 550; white-space: nowrap; }
+.access-badge:not(:where(#api-renderer *)) { color: var(--accent); background: var(--accent-soft); }
+.view-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper-inset); }
+.view-tabs a { padding: 8px 13px; border-radius: 5px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; }
+.view-tabs a:hover { background: var(--accent-soft); }
+.view-tabs a[aria-current] { background: var(--brand-gradient); color: var(--chrome-foreground); }
+.environment-warning { padding: 6px 24px; color: var(--warning-ink); background: var(--warning-surface); font-size: 13px; }
+.endpoint-workspace { min-width: 0; }
+#docs-loading, #docs-error, noscript { display: block; padding: 24px; }
+@media (max-width: 700px) {
+  .portal-header { padding: 12px 16px; }
+  .product-label { display: none; }
+  .portal-links { gap: 8px; }
+}
