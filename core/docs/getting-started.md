@@ -1,4 +1,4 @@
-# Install and import the core
+# Install and import Coyote Core
 
 Python 3.12 or newer is required. From this package directory, install core:
 

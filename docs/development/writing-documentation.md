@@ -1,252 +1,126 @@
-# Writing and organizing documentation
+# Write and maintain documentation
 
-Documentation must be readable from both the GitHub file tree and the MkDocs site.
-Choose the location by the reader's task, then give the page a name that identifies
-its subject without requiring the site navigation.
+Document the behavior implemented by the current code. Each task needs one clear
+procedure; detailed fields and contracts belong in references. Documentation does
+not establish clinical validation or release approval.
 
 ## Choose a section
 
-Package documentation lives with its project. Use a package README for its purpose,
-identity, badges and guide links. Use `docs/README.md`, `getting-started.md`,
-`usage.md`, `configuration.md`, `reference.md`, `development.md` and, where useful,
-`architecture.md` inside that project. Describe only the package's responsibilities
-and interfaces; link to application procedures for deployment or clinical use.
-
-Root documentation owns complete-application workflows, integration, operations
-and architecture decisions. The MkDocs package hook publishes package guides from
-their original files and translates local links for the site. Keep source links
-relative so they also work when browsing the repository. Do not copy package
-manuals into the root documentation tree.
-
-Keep README badges relevant to their component. Version, Python/Node support and
-license labels must match the owning metadata. Link workflow badges to actual
-workflows and the intended branch. Capability badges describe implemented features;
-they do not certify clinical validation or compliance.
-
-| Section | Content |
+| Location | Audience and content |
 | --- | --- |
-| `getting-started/` | Entry point for evaluation, installation, configuration, upgrades and redeployment. |
-| `user-guide/` | Clinical review, application pages, controls, and finding actions. |
-| `administration/` | Accounts, permissions, assays, gene lists, and clinical configuration. |
-| `api/` | Authentication, HTTP routes, ingestion requests, and API compatibility. |
-| `sdk/` | Application integration through Python interfaces, host trust, workspace development and release compatibility. Package-specific manuals live with their projects. |
-| `architecture/` | Runtime boundaries, data flows, persistence, security, and design decisions. |
-| `deployment/` | Installation and update procedures, infrastructure, and acceptance; published under Install and operate. |
-| `configuration/` | File formats, setting requirements, defaults, examples and application effects. |
-| `development/` | Code changes, components, developer commands, and engineering practices. |
-| `operations/` | Monitoring, incidents, backups, updates, and data migrations. |
-| `reference/` | Domain definitions, input formats, collection schemas, and clinical rules. |
-| `testing/` | Test strategy, fixtures, browser checks, and approved load testing. |
-| `project/` | Contribution, maintenance, governance, conduct, and license responsibilities. |
+| `user-guide/` | Reviewers: samples, findings, comments and reports |
+| `administration/` | Administrators: accounts, assays, gene lists and rules |
+| `deployment/` | Operators: installation, upgrades and deployment requirements |
+| `operations/` | Operators: maintenance, incidents and recovery |
+| `configuration/` | Configuration file formats and their consumers |
+| `api/` | Integrators: authentication, requests and submission workflows |
+| `core/` | Developers: package integration and trusted hosts |
+| `development/` | Contributors: development tools and implementation conventions |
+| `testing/` | Test selection, fixtures and validation procedures |
+| `architecture/` | Ownership, data flow and architecture decisions |
+| `reference/` | Exact fields, input formats and domain behavior |
+| `project/` | Contributions, releases, licensing and governance |
 
-Keep architecture decisions in `architecture/decisions/`, migration procedures in
-`operations/migrations/`, and evidence-source references in
-`reference/knowledgebases/`. Add another subdirectory only when several related
-pages need it.
+Package-owned instructions stay in that package's `docs/`. Root documentation
+covers the complete application and interactions between packages. For separately
+maintained services, keep a short introduction and one external documentation link
+in [Packages and integrations](../core/README.md). Link to that introduction elsewhere;
+do not recreate the external repository's manual or sidebar here.
 
 ## Name pages and directories
 
-Use lowercase words separated by hyphens for guide filenames and directories.
-Use `README.md` as each section's entry page so GitHub renders its contents when
-someone opens the directory. The documentation homepage is `docs/README.md`.
-
-Name the subject and operation where needed: `sample-manifest.md`,
-`mongodb-setup-and-recovery.md`, and `clinical-data.md`. Avoid vague
-names such as `current-context.md`, multiple competing `complete` manuals, and
-filenames that require an unexplained internal acronym. Architecture decisions
-retain their ordered numeric prefixes.
-
-Give every page one descriptive level-one heading. Explain the page's scope near
-the start and link to the prerequisite or next procedure where order matters.
-Keep a single authoritative procedure for each operation; related overviews
-should link to it instead of maintaining another copy of its commands.
+Use lowercase hyphenated filenames and one descriptive level-one heading.
+Use the section's existing `README.md` as its entry page. Add a page only when it
+answers a distinct question; expand an existing page when the material belongs there.
+Avoid competing overview manuals and pages that only forward readers to another index.
 
 ## Procedures and reference material
 
-At the first use of a configurable file or resource, link its reference. Explain
-what the reader is choosing before showing a command. Identify placeholders,
-operator-selected filenames and shell helper variables; do not present them as
-application settings. Keep the steps in execution order with an observable result
-and a link to recovery guidance where a failed step needs intervention.
+Start a procedure with the access, inputs or services it requires. Then give the
+actions in order, the result to check and what to do if a step fails. Use the UI's
+actual labels and explain unfamiliar terms at first use.
 
-Maintain one detailed reference for each supported configuration file or resource:
-
-- Purpose, owner, location and consumers: who edits it and which services use it.
-- Format and a small synthetic example, with unfamiliar syntax explained.
-- A field table covering name, meaning, accepted values or units, requirement,
-  omission behavior and actual default. Keep example values separate from defaults.
-- Dependencies and constraints, including conditional requirements and unsupported values.
-- Validation, how changes take effect, and whether existing records are affected.
-- Links to the procedure that creates or changes it and the underlying contract.
-
-Apply this structure to deployment settings, clinical resources, ingest files,
-API requests and user workflows. Explain what becomes unavailable when an optional
-resource is absent. Link generated field/schema catalogs for exact contracts; do
-not duplicate them in several guides. Check defaults against the code that consumes
-them, including Compose substitution and runtime overrides.
+A field reference should state its purpose, accepted values, units, default,
+omission/null behavior and constraints. Distinguish examples from application
+defaults. Preserve the difference between missing data and measured zero.
+Keep one authoritative field table rather than repeating it in several guides.
 
 ## Editorial style
 
-Lead with the application behavior, resource, or operational requirement. Introductions
-should establish the subject and its scope without narrating the writing process or
-announcing what the page will explain. Describe capabilities precisely; avoid promotional
-claims and unsupported assurances.
+Use **Coyote Core** for the core package and **Coyote pyClient** for the external
+Python HTTP client. Keep documented commands, paths and configuration keys identical
+to their implementation.
 
-Use direct instructions for procedures and factual statements for reference material.
-Name the relevant action, condition, and result. Keep permissions, prerequisites,
-limitations, and clinical distinctions explicit. Documentation should read as a maintained
-product reference, not a response to a request or a summary of completed work.
+Use short, direct sentences and concrete actions. Remove repeated explanations,
+introductions that only announce the page's contents and unsupported quality claims.
+Preserve necessary permissions, prerequisites, failure handling and clinical
+qualifications. Describe proposed behavior only in explicitly identified future work.
 
 ## Maintain navigation and links
 
-Use one main reading column with a clear heading hierarchy. Put the ordered
-procedure before field catalogs, historical behavior and operator maintenance
-commands. Keep warnings and prerequisites beside the action they govern. Optional
-diagrams can use a named disclosure; required instructions must remain visible.
+- Put common tasks first and group related references under familiar subject names.
+- Link directly to the procedure or section the reader needs. Do not send a task
+  through several indexes before reaching its instructions.
+- Keep each page in one primary sidebar location. Section READMEs should explain
+  which guide to choose without repeating the same links in several lists.
+- Keep instructions and diagrams visible. Do not put page content in collapsible
+  `details` sections or add a second contents list above a procedure.
+- Use relative Markdown links ending in `.md` so source documentation also works
+  on GitHub. Validate fragments after changing headings.
+- When consolidating pages, update source links, sidebar entries, generated-reference
+  introductions and application help links to the retained destination.
 
-Use tables for field comparisons and mappings, rather than as the default format
-for introductions or long reading lists. Entry pages should give a short route
-for each audience, with a first action that does not require scanning the full index.
+Preserve approved logos, badges and theme styles. README badges use Shields.io
+`flat` styling with the existing groups, colors and technology logos. Versions and
+runtimes come from release/package metadata. Use the shared documentation stylesheet
+for presentation; check narrow/wide screens, light/dark themes and print when it changes.
 
-Add each page to its section's README with a short purpose, and to `mkdocs.yml`.
-
-Use familiar subject names for sidebar sections: User guide, Administration,
-Installation, Operations, API and integrations, Packages, Development and Reference.
-Put common procedures first and group detailed references by their subject.
-The home page should link directly to common procedures. Group long menus by operation;
-do not make readers choose between several generic manuals without explaining
-their differences. Keep each page in one primary sidebar location and use links
-from other task guides when it is relevant there too.
-
-Section landing pages should identify the first procedure, prerequisites and the
-next related task. Long references should link directly to common operations and
-distinguish similarly named concepts, such as query rules, review filters,
-reporting rules and report templates. Preserve existing page URLs and heading
-fragments when reorganizing navigation. Validate rendered navigation, including
-the primary task links, as well as Markdown links.
-
-Link directly to the relevant procedure or heading in instructions. A section
-README is an optional subject index, not a prerequisite between two task steps.
-Keep the reader's current operation explicit: prerequisites, ordered actions,
-observable result, and recovery when a step fails. Explain a term briefly at first
-use before linking its reference; do not make readers leave a procedure just to
-discover what its next action means.
-
-Use the theme's sidebar for page and section navigation. Begin articles with their
-purpose, prerequisites and instructions; do not add a second contents list or task
-selector above them. Put required follow-up actions in the article with descriptive
-links. Ordinary links and browser history handle movement between guides; do not
-add a separate navigation state or an automatic reading sequence.
-
-The shared documentation stylesheet owns text measure, heading spacing, table
-overflow and print presentation. Check light and dark themes at narrow and wide
-widths after changing it. Print uses a white A4 page without the sidebar or reading
-controls; verify that text, code and warning titles remain legible in both themes.
-
-Use an existing README for each documentation section. Small task groups within
-the sidebar can point directly to their procedures; they do not require another
-landing page. Put prerequisites before procedures and detailed references after
-the workflows they support. Keep the landing page's reading path consistent with
-the sidebar, and place new pages alongside related tasks.
-Use relative Markdown links ending in `.md`; avoid site-only paths for links to
-other source pages. Use ordinary Markdown tables, lists, and blockquotes so
-important information renders on GitHub as well as in the built site.
-
-For a callout, use a blockquote with a standalone bold heading such as `Note`,
-`Important`, or `Warning`, optionally followed by a colon and title. The
-documentation build converts these headings to native Read the Docs admonitions;
-GitHub retains readable blockquotes. Ordinary quotations are not converted.
-Code examples inside quotations remain code, not callout markup.
-
-When moving a page, update its incoming links, its relative links to other files
-and images, and references in scripts, tests, configuration examples, and CI.
-Review fragments when changing headings. Built page URLs follow the source paths,
-so moves also require updating links maintained outside this repository.
+Callouts use a blockquote headed by **Note**, **Important** or **Warning**, optionally
+with a title. The documentation hook renders those as theme admonitions; their text
+must also be readable on GitHub. Place a warning beside the action it qualifies.
 
 ## Retire obsolete content
 
-Keep one maintained destination for each procedure or contract. Before removing
-a page, compare its instructions with the current code and move any unique,
-supported information to that destination. An old publication date alone does not
-make a supported migration procedure, architecture decision or reference obsolete.
-
-Update navigation, task paths, in-page references and application help links to the
-maintained destination, including the relevant section anchor. Remove duplicated
-overview pages instead of keeping intermediate pages whose only purpose is to
-send readers to another index. Remove assets that are no longer referenced.
-
-Screenshots must match the documented interface and use synthetic data. Remove
-outdated captures from procedures when they conflict with current controls;
-retain the written steps and maintained diagrams. Generated references are owned
-by their schemas and generators, so change the owner and regenerate when retiring
-generated content.
-
-Run the source-link checks, strict site build and built-site checks below after
-deletions. Verify the affected reading path in the rendered site.
+Compare a candidate page with its implementation and retained reference before
+removing it. Preserve unique, supported instructions; remove duplication and dead
+assets. An old date alone does not make an architecture decision or supported
+migration obsolete. Update application links as well as documentation links.
+Screenshots must show the current interface and synthetic data.
 
 ## Diagrams and generated references
 
 ### Relational diagrams
 
-Choose a layout for the question. Use responsibility lanes for human/application/
-persisted evidence, grouped dependency maps for runtime and resources, branching
-diagnostic maps for missing results, and fan-in/fan-out views for report inputs and
-outputs. Reserve a simple chain for a truly sequential procedure. Do not reuse a
-linear chain to imply that independent resources or optional paths are required.
-Keep required and optional edges distinct in text as well as line style.
-
-The standalone SVG files in `docs/assets/diagrams/` are the maintained artwork.
-Edit those files directly, keeping typography, card spacing, and connector routing
-consistent. Documentation builds use the committed SVGs without an artwork generator.
-
-Keep one-off renderers, layout experiments, and intermediate design definitions in
-the ignored `.design/` directory. Commit the reviewed artwork; do not make builds,
-tests, or authoring instructions depend on private scratch tooling.
-
-Review the rendered diagrams after changing nodes or relationships. Confirm arrow
-direction, branch meaning, label placement, and legibility at the documentation page
-width. Visual correctness does not establish that a relationship is clinically correct.
-
-The site supplies an **Expand diagram** viewer with keyboard dismissal and an
-original-SVG link. Each diagram still needs a nearby written explanation for readers
-who do not use the visual. Use a viewBox, title/description and legible text at the
-page's actual display width; avoid relying on color alone.
+Maintain reviewed SVGs in `docs/assets/diagrams/`. Use a diagram only when it explains
+a relationship or workflow more clearly than text. Keep labels readable at page
+width, distinguish optional paths, and explain the key point beside it. The site
+provides **Expand diagram** for detail. Do not introduce artwork generators or
+cosmetic tests.
 
 ### Schema and permission catalogs
 
-| Page | Authoritative source | Generator |
-| --- | --- | --- |
-| [MongoDB collection contracts](../reference/mongodb-collections.md) | `core/src/coyote/contracts/schemas/` | `scripts/docs/export_collection_contracts_doc.py` |
-| [System permission catalog](../administration/permission-catalog.md) | `core/src/coyote/config/catalogs/rbac/permissions.seed.ndjson` | `scripts/docs/export_permissions_reference.py` |
+| Reference | Owner and generator |
+| --- | --- |
+| [Collection contracts](../reference/mongodb-collections.md) | Core schemas; `scripts/docs/export_collection_contracts_doc.py` |
+| [Permissions](../administration/permission-catalog.md) | Core RBAC catalogs; `scripts/docs/export_permissions_reference.py` |
+| [Python interfaces](../core/reference.md) | Supported exports and docstrings; `scripts/docs/export_core_reference.py` |
 
-Change the authoritative source or generator and regenerate these pages. Do not
-edit their generated field or permission listings manually.
+Change the source or generator and regenerate. Keep detailed generated catalogs as
+lookup references; do not copy their contents into task guides.
 
 ## Validate documentation
 
 ### Cross-check behavior against its owner
 
-Read the consuming code, not just the schema or an older guide. A valid field does
-not establish when it is applied, which permissions are required or what is saved.
-
-| Documentation area | Code to cross-check | Evidence to retain |
-| --- | --- | --- |
-| Deployment and upgrades | `deploy/installer/`, `deploy/compose/`, `api/src/coyote_api/config/` | Shell syntax, real script flags, Compose precedence, environment defaults and rollback boundaries. Do not execute writes just to validate prose. |
-| Accounts and access | `api/src/coyote_api/security/`, `core/src/coyote/application/operations/`, RBAC seed catalogs | Role responsibilities, route permissions, sample scope and temporary-password behavior. |
-| Assays and configuration | `core/src/coyote/contracts/schemas/`, `core/src/coyote/application/resources/` | Required versus optional resources, Base fallback, scope immutability and activation checks. |
-| Finding selection | `core/src/coyote/application/query_rules/`, `core/src/coyote/domain/dna/`, `core/src/coyote/domain/rna/` | Application base gates, inheritance, exceptions, sample-filter references and post-filters. |
-| Reporting | `core/src/coyote/application/reporting/`, `api/src/coyote_api/presentation/reports/` | Suggestion versus saved comment, eligibility, preview/save boundaries, package rendering and resolution receipts. |
-| Ingest formats | `core/src/coyote/application/ingest/`, collection contracts | Parse downloadable examples through the actual adapters and validate the resulting documents. |
-| HTTP and Python interfaces | Route modules, generated OpenAPI, the client repository, supported operations | HTTP methods/paths, authorization, import boundaries and release compatibility. Hidden internal routes must also be checked in route source. |
-| Navigation and diagrams | `mkdocs.yml`, reading paths, rendered HTML and SVGs | Direct procedure destinations, anchors, return context, keyboard controls, readable labels and correct dependency direction. |
-
-Structural checks do not prove clinical suitability, deployment readiness or external
-website availability. Validate clinical changes with the affected domain tests and
-review representative center workflows separately.
+Read the consuming code as well as the schema. Confirm actual permissions, defaults,
+selection rules, saved state and failure behavior. A valid field does not establish
+when or how it is used. Check installation flags against the installer and displayed
+controls against the frontend. Do not execute deployment or database writes to
+verify prose without authorization.
 
 ### Repository checks
 
-Run these commands from the repository root:
+From the repository root:
 
 ```bash
 npm run docs:lint
@@ -256,19 +130,8 @@ npm run docs:lint
 .venv/bin/python scripts/docs/check_operational_examples.py
 ```
 
-README badges use the original Shields.io renderer, including in package guides.
-Preserve its standard `flat` style, white technology logos, established colors and root
-README groups: Build and validation, Core Stack, Domain & Capabilities, and
-Security & Governance. Rendering fixes must retain this presentation.
-Versions and supported runtimes come from release and package metadata. When
-changing that metadata, update the affected README badge links in the same change.
-Workflow links show CI results; metadata badges do not claim tests passed.
-Badge images require access to `img.shields.io`.
-
-For a generated-reference change, also run its generator and the relevant
-contract checks. Inspect the rendered section README on GitHub or in a Markdown
-preview, as well as the site's navigation.
-
-Review the generated site locally. Check a narrow screen,
-both reading themes, keyboard diagram dismissal, a procedure-to-reference round trip,
-and direct task continuation.
+The operational-example check validates shell syntax and script paths; it does not
+run the commands. The built-site check validates local links, anchors and assets.
+Review the affected reading path in the rendered site. Use behavioral tests for
+changed executable examples or contracts; do not freeze prose, layout or artwork
+in test assertions.

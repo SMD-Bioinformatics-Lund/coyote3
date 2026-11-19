@@ -1,4 +1,4 @@
-# Use clinical operations in a host
+# Use Coyote Core in a host
 
 Use the exports in `coyote.application.operations` as the supported in-process
 interface. A host supplies two kinds of capabilities:

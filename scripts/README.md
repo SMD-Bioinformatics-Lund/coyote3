@@ -19,7 +19,7 @@ commands, their callers, and operational prerequisites.
 | `knowledgebase/` | HGNC and external reference imports, reference publication and supported database relocation |
 | `docs/` | Reproducible schema/permission reference generators, Markdown lint and link validation |
 | `quality/` | Repository checks, secret scanning, and test orchestration |
-| `release/` | Version synchronization, SDK wheel builds, and release artifact verification |
+| `release/` | Version synchronization, Coyote Core wheel builds, and release artifact verification |
 
 Migration commands are operator tools, not application startup hooks. Read their
 runbooks and inspect the plan before enabling writes. Keep credentials, database
@@ -31,7 +31,7 @@ Export and preparation do not write to the source databases.
 The identity and knowledgebase database migrations share JSON output and exit-code
 handling in `database/migration_report.py`. Each command retains its own validation,
 dry-run and write controls. Submission, manifest validation and pipeline login are
-provided by [Coyote Relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/usage.md), not a scripts directory.
+provided by [Coyote Relay](../docs/core/README.md#coyote-relay), not a scripts directory.
 
 Normal deployment does not install demonstration code or samples. The optional
 `coyote-demo` package supplies `coyote-demo-install` and its authenticated API

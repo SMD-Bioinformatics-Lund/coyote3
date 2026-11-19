@@ -4,61 +4,32 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-The Coyote4 API provides authenticated access to application resources and sample
-ingestion workflows. Integration requirements include client authentication, route
-permissions, and request validation. Input formats and MongoDB schemas are defined
-in the [data reference](../reference/README.md).
+The API provides access to permitted application resources and sample-ingestion
+workflows. Requests use the deployment's base path and the `/api/v1` prefix.
 
 ## Connect an integration
 
-1. Read [authentication](authentication.md) and arrange the permissions required
-   for the intended operations.
-2. Choose [direct HTTP workflows](routes-and-workflows.md) or the independent
-   [Python HTTP client](../sdk/python-client.md). Remote clients do not need to import
-   the application's internal core SDK.
-3. For ingestion, prepare a [sample manifest](../reference/sample-manifest.md) and
-   [input files](../reference/ingest-files/README.md), then follow the
-   [submission procedure](submit-sample.md).
-4. Follow [ingest job recovery](../operations/ingest-job-recovery.md) when a submitted
-   job fails or its outcome is uncertain.
+1. Arrange [authentication and permissions](authentication.md) for the required operations.
+2. Use HTTP directly or the independent [Python client](../core/README.md#coyote-pyclient).
+3. For pipeline ingestion, follow [Submit a sample](submit-sample.md), including its
+   manifest, file validation and job-status checks.
 
-For a frontend integration, use [frontend API contracts](../development/frontend-api-contracts.md).
-For installation rather than API use, follow [deployment](../deployment/README.md).
+## Explore the installed API
 
-## Guides
+Open `/api/v1/docs` for the interactive explorer or `/api/v1/redoc` for the reference,
+under the application's mounted base path. These pages describe the running API;
+optional routes depend on the installed services. **OpenAPI JSON** provides the full
+schema. See [route groups and visibility](route-groups.md) for access restrictions.
 
-<details markdown="1">
-<summary>API explorers and reference guides</summary>
+## References
 
-The installation's `/api/v1/docs` explorer and `/api/v1/redoc` reference include
-an integration guide with the mounted base path, OpenAPI version, authentication
-steps, request example, access constraints and error-response guidance. Both views
-use the application theme and offer a light/dark switch. The selection is remembered
-in the browser and shared with the documentation guides. With no saved selection,
-the views follow the browser's light/dark preference. The explorer retains the
-signed-in browser session and retrieves CSRF protection for cookie-based changes;
-bearer authorization is held in page memory and is not persisted. Its resource
-search and endpoint counts come from the running OpenAPI schema.
-
-The reference renders one **API resource** at a time. Choose a resource above the
-reference to browse its endpoints; links to an endpoint select its resource
-automatically. Response bodies and nested schemas expand on demand. **OpenAPI JSON**
-always downloads the complete contract, regardless of the selected resource.
-
-| Guide | Use it to |
+| Subject | Guide |
 | --- | --- |
-| [API Authentication](authentication.md) | Authenticate with sessions, bearer tokens, and supported credentials. |
-| [Python HTTP client](../sdk/python-client.md) | Use typed resources, sample workflows, pagination and client errors. |
-| [Frontend API contracts](../development/frontend-api-contracts.md) | Generate TypeScript types and compare them with a running API or backend revision. |
-| [API routes and workflows](routes-and-workflows.md) | Follow request workflows and their route responsibilities. |
-| [API route groups and visibility](route-groups.md) | Find route prefixes, API groups, and OpenAPI visibility rules. |
-| [Individual resource fields](resource-fields.md) | Retrieve one permitted metadata key from a resource. |
-| [Submit a sample](submit-sample.md) | Validate, upload and confirm a pipeline result with Relay. |
-| [Ingestion API reference](sample-ingestion.md) | Look up sample bundles, uploads, queued jobs, and updates. |
-| [Collection imports and permissions](collection-imports.md) | Import collection documents with the required permissions. |
-| [API versioning and compatibility](versioning-and-compatibility.md) | Check API compatibility and runtime support commitments. |
-| [Raw ingest file contracts](../reference/ingest-files/README.md) | Prepare pipeline files before submitting a sample bundle. |
-
-</details>
-
-[Documentation home](../README.md)
+| Requests and resource workflows | [Routes and workflows](routes-and-workflows.md) |
+| Sample bundles, uploads and updates | [Ingestion API](sample-ingestion.md) |
+| Allowed field queries | [Resource fields](resource-fields.md) |
+| Collection imports | [Imports and permissions](collection-imports.md) |
+| Pipeline input shapes | [File formats](../reference/ingest-files/README.md) |
+| Version compatibility | [API versioning](versioning-and-compatibility.md) |
+| Frontend type generation | [Frontend API contracts](../development/frontend-api-contracts.md) |
+| Failed or uncertain ingestion | [Ingest job recovery](../operations/ingest-job-recovery.md) |

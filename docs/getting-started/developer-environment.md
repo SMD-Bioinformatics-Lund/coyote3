@@ -19,11 +19,11 @@ code change. Use the named references only when the change reaches that boundary
 ## Virtual Environment
 
 Use the project's virtual environment for Python commands. Full API development
-uses Python 3.14.7, matching the API images; the shared SDK and deployment helpers
+uses Python 3.14.7, matching the API images; Coyote Core and deployment helpers
 support Python 3.12 or later. Install the selected interpreter before creating the
 environment; do not rely on an older distribution's `python3` default.
 
-Use the [editable uv workspace](../sdk/uv-development.md) for the core, MongoDB
+Use the [editable uv workspace](../core/uv-development.md) for the core, MongoDB
 adapter, API, Atlas and Demo. Ordinary Python edits need a process reload, not a wheel
 rebuild:
 
@@ -93,7 +93,7 @@ npm --prefix frontend run dev
 The local API wrapper requires `ENV_NAME=dev` or `development` and reloads the
 process when editable backend packages change. Vite refreshes frontend components
 and CSS. Docker backend processes require explicit restarts. See
-[editable development](../sdk/uv-development.md) for local worker reload and Docker commands.
+[editable development](../core/uv-development.md) for local worker reload and Docker commands.
 
 ## Development Loop
 

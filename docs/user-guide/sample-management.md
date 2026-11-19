@@ -73,7 +73,6 @@ available.
 
 | Task | Guide |
 | --- | --- |
-| Full workflow | [Application user guide](application-guide.md) |
 | DNA review | [DNA clinical review](dna-review.md) |
 | RNA review | [RNA clinical review](rna-review.md) |
-| Clinical workflow | [Clinical review workflow](clinical-review-workflow.md) |
+| Review and report a sample | [Sample review](clinical-review-workflow.md) |

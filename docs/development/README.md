@@ -4,10 +4,7 @@
 ![Coyote4: 4.0.0](https://img.shields.io/badge/Coyote4-4.0.0-4F46A5?style=flat) ![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-2E7D32?style=flat)
 <!-- badges:end -->
 
-Development standards cover application boundaries, domain services, data contracts,
-and interface components. The [local environment setup](../getting-started/developer-environment.md)
-defines the development toolchain; [testing and validation](../testing/README.md)
-defines the checks required for changes.
+Use these guides to change, test and maintain the application.
 
 ## Make your first change
 
@@ -16,7 +13,7 @@ defines the checks required for changes.
    [application architecture](../architecture/application-architecture.md) for the
    boundaries affected by the change.
 3. Use the relevant guide below for contracts, UI components or report templates.
-   Local application operations and remote clients have separate [SDK guides](../sdk/README.md).
+   Local application operations and remote clients have separate [package guides](../core/README.md).
 4. Run the applicable [quality gates](../testing/test-strategy-and-quality-gates.md)
    and update [documentation](writing-documentation.md).
 5. Follow the [contribution requirements](../project/contributing.md) when preparing a change for review.
@@ -26,14 +23,10 @@ For an incident in an installed service, use [operations troubleshooting](../ope
 
 ## Guides
 
-<details markdown="1">
-<summary>All engineering reference guides</summary>
-
 | Guide | Use it to |
 | --- | --- |
-| [Developer environment setup](../getting-started/developer-environment.md) | Install the toolchain and prepare a local development environment. |
 | [Developer manual](developer-guide.md) | Understand code structure, services, contracts, and development interfaces. |
-| [Application SDK](../sdk/application-sdk.md) | Invoke authenticated local use cases and compose storage-independent validation tools. |
+| [Coyote Core](../core/application-core.md) | Invoke authenticated local use cases and compose storage-independent validation tools. |
 | [Remote development deployment](remote-development.md) | Use compiled development images when accessing a remote stack. |
 | [Engineering command reference](engineering-commands.md) | Run local checks, inspect logs, and prepare a pull request. |
 | [Engineering and Refactoring Standards](refactoring-standards.md) | Change implementation structure while preserving application contracts. |
@@ -47,7 +40,5 @@ For an incident in an installed service, use [operations troubleshooting](../ope
 | [Dependency Advisory Policy](dependency-security.md) | Review dependency advisories and runtime security requirements. |
 | [Repository Script Reference](script-reference.md) | Find repository scripts and their execution responsibilities. |
 | [Development troubleshooting](troubleshooting.md) | Diagnose local development, configuration, and integration problems. |
-
-</details>
 
 [Documentation home](../README.md)

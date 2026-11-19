@@ -12,7 +12,7 @@ Run `bash install.sh --help` from the checkout. `deploy`, `plan`, `app`, `mongo`
 live in `deploy/installer/`. Python 3.12 or later is required. The launcher prefers
 `PYTHON_BIN`, then the checkout virtual environment, then a supported system Python.
 Docker installation needs no server packages on the host. It needs Git and pip; the installer
-stages its pinned wheel before building images. See [editable development](../sdk/uv-development.md).
+stages its pinned wheel before building images. See [editable development](../core/uv-development.md).
 
 | Selection | Default Compose files | Image tag |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ For fast development, run native processes with
 automatically restart backend processes. Restart affected services explicitly after
 Python edits; rebuild and recreate them for dependency or image changes. Vite hot
 updates remain enabled for frontend/CSS edits in both local and Docker development.
-See [editable development](../sdk/uv-development.md) for commands.
+See [editable development](../core/uv-development.md) for commands.
 
 These deployment names are independent of the sample's clinical profile.
 Samples use `production`, `development`, `testing` or `validation`; the installer
@@ -350,7 +350,7 @@ with the application installed. It validates the resolved mounts, center files
 (including optional report presentation) and directory mode bits. It does not
 check network connectivity, MongoDB credentials, installation state, Redis or
 indexes. Only `--prepare-directories` creates storage. The installer's `validate`
-stage runs its application checks in the API image instead and needs no host SDK.
+stage runs its application checks in the API image instead and needs no host Coyote Core installation.
 
 The local health-check URL uses the proxy's rendered published port and
 `SCRIPT_NAME`. The separately displayed public URL uses `PUBLIC_BASE_URL`.

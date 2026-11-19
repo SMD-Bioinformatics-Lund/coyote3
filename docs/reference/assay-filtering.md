@@ -157,9 +157,14 @@ selectors. It does not apply the list to all three analyses. Application is
 controlled exclusively by the ID saved in the corresponding target-specific
 selection field.
 
-When an analysis has no selected ISGL or ad-hoc genes, the query uses
-`ASP.covered_genes` as its eligible scope. Empty eligibility selects no findings,
-including for WGS and WTS. Selected lists are intersected with this eligibility.
+Without selected lists or ad-hoc genes, SNV, RNA fusion and DNA translocation
+queries use `ASP.covered_genes`; an empty eligible scope selects no findings.
+Their selected lists are intersected with that eligibility.
+
+CNVs also fall back to panel genes, but an absent panel boundary and no selection
+leave the CNV query unrestricted by gene. A selected CNV list supplies its own genes
+when the panel has no boundary; otherwise it is intersected with panel genes.
+An explicitly selected empty, inactive or unavailable list remains restrictive.
 
 ## Clinical Query Policy
 
@@ -338,7 +343,7 @@ typed policy vocabulary; no example represents raw MongoDB syntax.
 | Approved alternative consequence | A somatic `solid` sample matches an `extend_consequence` exception for `TERT` with `regulatory_region_variant`. | The added consequence term is accepted, but all ordinary case, control, depth, VAF, and population-frequency gates still apply. |
 | Germline exception-only review | The requested intent is `germline`; the policy is `exception_only`; an `admit` exception matches `INFO.MYELOID_GERMLINE = 1`. | The matching finding is admitted through the released germline rule. Findings without a matching `admit` rule are not returned. |
 | Reviewed exclusion | A finding first meets the baseline or an admission branch, then matches an `exclude` exception such as a scoped `LOWQUAL` rule. | The finding is removed after the inclusion branches are combined. Other findings remain eligible. |
-| No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | The query uses `ASP.covered_genes`; when that field is empty, the resolved gene scope selects no findings. |
+| No selected list | The target-specific ISGL selector and ad-hoc genes are empty. | Use `ASP.covered_genes`. If it is empty, SNV/fusion/translocation scope selects no findings; CNVs have no gene restriction. |
 | Selected CNV or fusion list | A compatible ISGL ID is persisted in `filters.somatic.cnv.cnvlists` or `filters.somatic.fusion.fusionlists`. | Only that target-specific list narrows the result. An SNV list never narrows CNV or fusion results. |
 
 ### Analysis-specific query-policy blocks

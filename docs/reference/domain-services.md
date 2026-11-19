@@ -1,7 +1,7 @@
 # Application domains and services
 
 This reference maps capabilities to their owning packages and resources. Use the
-[application guide](../user-guide/application-guide.md) for clinical tasks and the
+[sample review guide](../user-guide/clinical-review-workflow.md) for review and reporting and the
 [architecture guide](../architecture/application-architecture.md) for dependency boundaries.
 
 ## 1. Primary sample domain
@@ -64,13 +64,13 @@ documents. Solid-tumor retrieval additionally constrains the classification by
 diagnosis. Clients do not supply authoritative assay context; the API derives it
 from the sample's recorded ASPC revision.
 
-Classification and report narration are independent workflows. Bulk small-variant
-Tier I, II and III assignments can optionally render the first matching enabled
-annotation template from the published DNA clinical-rule release for the sample's
-assay, diagnosis and language. Safe inputs include the selected transcript's gene,
-consequences and HGVS values. The generated text is stored with the source rule ID,
-version and content hash. Individual tiering does not evaluate annotation templates.
-Classification does not execute report section narration.
+Classification and report narration are independent workflows. Tier I–III bulk
+assignments can render the first matching enabled annotation template for the
+finding type from the sample's published rule release. DNA supports small variants,
+CNVs and translocations; RNA supports fusions. The saved text records the source
+rule ID, version and content hash. Individual tiering does not evaluate templates.
+See [bulk annotation templates](clinical-reporting-rules.md#bulk-annotation-templates)
+for allowed inputs, scope and preview requirements.
 
 ## 3. Filter and logic domains
 

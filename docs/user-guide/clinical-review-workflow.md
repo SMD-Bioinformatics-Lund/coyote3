@@ -1,175 +1,100 @@
-# Clinical review workflow
+# Review a sample and save its report {#clinical-review-workflow}
 
-Clinical review progresses from sample selection through analysis, classification,
-and report preparation. Page controls and their effects on clinical records are
-documented in the [application user guide](application-guide.md).
-
-**You need:** access to a ready sample and permission for the review/report actions
-you intend to perform. **You finish with:** reviewed findings and a saved report,
-or a recorded reason why review cannot continue. Follow the steps on this page;
-the DNA, RNA and coverage references provide extra detail only when needed.
-
-<details markdown="1">
-<summary>View review responsibilities and saved evidence</summary>
-
-![Clinical review responsibilities and evidence](../assets/diagrams/clinical-review-flow.svg)
-
-</details>
+Sign in with access to the sample and permission to review findings and save reports.
+Check the sample context, review its findings, save your interpretation, then preview
+and save the report.
 
 ## 1. Find the sample
 
-Open **Samples**, select the date range and assay scope, then search by sample
-or case identifier. Select the sample name to open its workspace.
+Open **Samples**, choose the assay and date range, and search for the sample or case
+identifier. Select the sample name to open it.
 
-| Sample state | Meaning |
-| --- | --- |
-| Ready | The required ingest transaction committed. Optional expected evidence may still be unavailable. |
-| Unreported | No saved report has completed the sample workflow. |
-| Reported | At least one report has been saved. |
-| Base configuration | No diagnosis-specific ASPC was active, so the base ASPC was resolved. |
+Check its ingest status. **Ready** means the required ingest completed; optional
+evidence may still be missing. **Reported** means a report has been saved, not that
+every possible analysis was performed. If the sample or an expected result is
+missing, use [missing samples or results](sample-readiness-and-missing-results.md).
 
 ## 2. Check the overview
 
-Before reviewing findings, confirm the sample identity, case and control
-metadata, assay, assay configuration (ASPC), pipeline, loaded files, and analysis status. Stop if these
-details do not match the submitted case.
+Confirm the sample and control identifiers, assay, diagnosis, pipeline, files and
+applied assay configuration (**ASPC**). Stop if they do not match the submitted case.
+Review any warning that a Base configuration was used instead of a diagnosis-specific one.
 
-The available pages come from the sample omics layer and resolved ASPC. A
-missing page normally means that the analysis is not enabled for the sample; it
-does not mean that the result set is empty.
+Available analyses depend on the sample and its configuration. A missing analysis
+tab does not mean that the analysis ran and found nothing.
 
 ## 3. Choose a layout
 
-| Layout | Behavior |
-| --- | --- |
-| Classic | Shows all enabled finding sections on one page. Each section has its own filter button. |
-| Modern | Shows one enabled analysis at a time in tabs. |
-
-The selected layout is saved in the user profile and reused at the next login.
+**Classic** shows enabled finding sections together. **Modern** shows one analysis
+at a time. The choice is saved to your profile and does not change the findings.
 
 ## 4. Apply filters
 
-Open **Filters** for the analysis being reviewed. The panel contains only
-controls valid for that sample and analysis type.
+Open the analysis's filter controls, check the thresholds and selected gene lists,
+then apply your changes. Filtering applies to the matching result set across pages.
+SNV, CNV, fusion and translocation gene-list selections are independent.
 
-| Analysis | Common controls |
-| --- | --- |
-| SNVs | Depth, alternate reads, VAF, population frequency, consequences and SNV gene lists. Shared mode uses one profile for all variants; independent mode shows the enabled somatic and germline profiles separately. |
-| CNVs | Size, gain/loss cutoffs, effect, caller evidence, and CNV gene lists. |
-| DNA translocations | Gene lists and configured structural-event conditions. |
-| RNA fusions | Spanning evidence, caller, effect, evidence descriptions, and fusion gene lists. |
-| Coverage | Coverage cutoff, gene search, and blacklist controls. |
-
-Applying a filter runs a backend query against the complete matching set. It is
-not limited to the rows on the current page.
+For specific controls, see [DNA review](dna-review.md), [RNA review](rna-review.md)
+or [coverage](coverage-review.md). [Gene scope](gene-lists-and-assay-context.md)
+explains panel fallback and empty selections.
 
 ## 5. Review and classify findings
 
-Open a finding to inspect its evidence, transcripts, annotations, comments, and
-external references. Table actions and detail-page actions update the same
-persisted finding state.
+Open each relevant finding and inspect its evidence, transcripts, existing
+classifications and comments. Choose actions appropriate to the finding:
 
-| State | Use |
+| Action | Meaning |
 | --- | --- |
-| Tier | Clinical classification stored in the annotation collection. |
-| False positive | Technical or calling artifact. |
-| Irrelevant | Valid finding outside the current clinical question. |
-| Interesting | Review marker; it does not by itself include a finding in a report. |
-| Blacklisted | Finding excluded through the governed blacklist workflow. |
+| Assign a tier | Record a classification for the finding's identity and scope. |
+| False positive | Mark a technical or calling artefact. |
+| Irrelevant | Mark a finding outside the current question. |
+| Interesting | Mark it for attention; this alone does not select it for a report. |
+| Blacklist | Apply a shared exclusion through the permitted blacklist action. |
 
-Bulk actions require row selection and confirmation. Available actions depend
-on the analysis type and the user's permissions.
+Check the scope before saving a shared classification. Bulk actions require row
+selection and confirmation. Available actions depend on your permissions.
 
 ### How a tier is matched
 
-An automatic clinical tier requires a matching finding identity and the sample's
-biological group, assay and diagnosis, in a visible annotation namespace. A tier
-from another scope is supporting context and requires re-tiering. RNA fusion tables
-and detail pages use the same selected caller's identity; see
-[fusion tier matching](rna-review.md#fusion-tier-matching).
+A tier must match the finding identity and the sample's group, assay, diagnosis
+and annotation namespace. A classification from another scope is context, not an
+automatic assignment. RNA fusion matching uses the selected caller's finding identity.
 
-Inactive annotations do not automatically tier new samples. A recorded assignment
-or report link can preserve an inactive historical tier for its original sample.
-The classification card shows the current match and other matching versions, newest
-first, with tier, recorded text, author and time. The current tier button uses full
-color; the remaining buttons are subdued.
-
-Use **Deactivate** to retire the current scoped tier while preserving history.
-**Deactivate group annotations**, where permitted, retires this finding's matching
-annotations across the group's assays and diagnoses in the same namespace. See
-[deactivation and sample history](actions-and-record-changes.md#inactive-annotations-and-sample-history).
-
-Knowledgebase evidence grades have their own meaning. **CGC Tier 1/2**, for example,
-is COSMIC Cancer Gene Census evidence about a gene, not Coyote's clinical variant
-tier. Its badge provides a source-specific explanation and link.
+Deactivation preserves annotation history. Inactive annotations do not automatically
+tier new samples, but recorded assignments and report links can retain an earlier
+classification. See [deactivation and history](actions-and-record-changes.md#inactive-annotations-and-sample-history).
+Knowledgebase labels such as **CGC Tier 1** describe their source's evidence, not a Coyote tier.
 
 ### Search previous interpretations
 
-Open [Tiered Variant Search](pages-and-table-columns.md#tiered-variant-search), choose
-the search mode and filters, and submit the query. Results identify active and inactive
-annotations and show recorded sample/report links. For legacy annotations without
-such links, the latest matching version can appear with a disclaimer above the table.
-That fallback does not establish which tier a particular sample used.
+Use [Tiered Variant Search](pages-and-table-columns.md#tiered-variant-search) to find
+earlier classifications and linked samples or reports. For legacy records without
+links, the displayed latest match does not establish which tier a sample originally used.
 
 ## 6. Add comments
 
-Use sample comments for report-level interpretation and finding comments for a
-specific event. Global annotations are shared across matching findings and
-should be used only when the text is valid beyond one sample.
+Save the report interpretation as a **sample comment**. Use a **finding comment**
+for a note about one event. Global annotations are shared across matching findings.
+The latest visible sample comment supplies the report conclusion; with none, it is empty.
 
-Hidden comments are inactive. Users with the required permission can reveal
-them with **Show hidden comments** and restore them when appropriate.
+If you request suggested wording from reporting rules, review and save it as a comment.
+Generating a suggestion does not save it. Missing published rules prevent that
+suggestion, but do not by themselves prevent report preview or saving.
 
 ## 7. Prepare the report
 
-If you use generated reporting-rule wording, request the suggestion in the sample
-comment editor, review it and save the comment. A generated suggestion is a draft;
-requesting it does not save a sample comment or a report. If no published reporting
-rules resolve, the report remains available and the UI warns that an automatic
-summary is unavailable.
+1. Open **Reports** inside the sample.
+2. Review **HTML preview** and **PDF preview**, including identifiers, findings,
+   biomarker assessments and conclusion text. **Refresh** regenerates the preview.
+3. Select **Save report**. Check the sample and included finding count, then select
+   **Confirm save**. If inputs changed after previewing, refresh and review again.
+4. Open the saved report and check its contents and file availability.
 
-1. Open **Reports** inside the sample. The global Reports page lists saved reports;
-   it does not create a new report outside a sample.
-2. Review the HTML preview and the PDF preview. Both use the same `smd-reports`
-   template; there is no separate report-format selector.
-3. Check the sample identity, included findings and report text in the preview.
-   Use **Refresh** if you need to regenerate it after changes.
-4. Select **Save report**. Check the sample and included-finding count in
-   **Confirm report save**, then select **Confirm save**. Review the saved output.
-
-The report conclusion uses the
-latest visible sample comment; no comment produces an empty summary. Reported
-finding rows are built from the current reportable findings and enabled report
-sections.
-
-Saving a report stores:
-
-- the rendered report and artifacts;
-- the resolved ASPC and reporting-rule identity;
-- the effective filter snapshot;
-- resolved query-policy provenance and the configuration resolution receipt;
-- typed reported-finding snapshots; and
-- author and creation time.
-
-Review the saved output before treating the sample as complete.
-
-Continue directly to [report preview and save controls](application-guide.md#reports)
-if you need the individual screen actions. You do not need to read the reporting-rule
-syntax reference to save a report.
+Previewing or downloading a preview does not save a report. The global **Reports**
+page lists saved reports. See [preview and save controls](report-preview-and-save.md)
+for permissions and [saved evidence](../reference/report-snapshots.md) for storage details.
 
 ## 8. Return to a table
 
-Sorting, search, page, page size, and active analysis are kept in the URL where
-the workflow supports it. Opening a detail page and going back should restore
-the previous table state.
-
-## Related guides
-
-| Task | Guide |
-| --- | --- |
-| Full UI reference | [Application user guide](application-guide.md) |
-| DNA findings | [DNA clinical review](dna-review.md) |
-| RNA findings | [RNA clinical review](rna-review.md) |
-| Coverage | [Coverage review](coverage-review.md) |
-| Sample list | [Sample management](sample-management.md) |
-| Reporting logic | [Clinical reporting rules](../reference/clinical-reporting-rules.md) |
+Use browser Back to return to the previous table. Supported analysis tables keep
+their search, sorting and pagination in the URL.

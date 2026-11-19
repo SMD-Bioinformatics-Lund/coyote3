@@ -171,8 +171,9 @@ document and its hash-chain metadata.
 
 `PATCH /api/v1/samples/{sample_id}/classifications/tier` accepts the finding
 type, selected resource identifiers, target tier, and whether the tier is being
-applied or removed. The optional `include_automatic_text` flag is supported
-only when applying Tier III to small variants.
+applied or removed. With `include_automatic_text`, Tier I–III assignments can also
+save text from published annotation templates. Supported types are DNA small
+variants, CNVs and translocations, and RNA fusions.
 
 ```json
 {
@@ -184,10 +185,10 @@ only when applying Tier III to small variants.
 }
 ```
 
-For small-variant Tier I, II and III assignments, that flag evaluates the published
-`bulk_annotation_rules` and saves matching text as a separate annotation with its
-rule-version provenance. Omitting the flag stores only the classification.
-Automatic text is rejected for removal, Tier IV and other finding families.
+The flag evaluates published `bulk_annotation_rules` and saves matching text as a
+separate annotation with its rule-version provenance. Omitting the flag stores only
+the classification. Automatic text is rejected for removal, Tier IV and finding
+types incompatible with the sample's analyte.
 `POST /api/v1/samples/{sample_id}/classifications/tier/preview` accepts the same
 typed assignment and returns matched text per finding without writes, under the
 same ownership and assignment permissions.

@@ -55,11 +55,11 @@ collections, accounts, reports or files. Use a prepared target database and the
 applicable reviewed migration procedure before switching database names; do not
 bootstrap an empty replacement as an application upgrade.
 
-The normal application build packages the SDK inside Docker; it does not require a
+The normal application build packages Coyote Core inside Docker; it does not require a
 host `.release/sdk` directory. Only installations selecting
-`deploy/compose/docker-compose.release.yml` must supply the tested SDK wheel and
+`deploy/compose/docker-compose.release.yml` must supply the tested Coyote Core wheel and
 `release-record.json` using the
-[verified-artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release).
+[verified-artifact procedure](../core/compatibility.md#build-and-record-an-application-release).
 Export the target checkout's `GIT_COMMIT` before building either image variant.
 
 ## 1. Select the installation and maintenance record

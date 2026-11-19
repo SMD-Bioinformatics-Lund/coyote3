@@ -1,6 +1,6 @@
 # Develop application operations and hosts
 
-The SDK's supported local entry points are exported by
+Coyote Core's supported local entry points are exported by
 `coyote.application.operations`. Use cases and domain rules implement those
 operations; concrete runtime adapters belong to the consuming host. The API is
 one such host, composed by `api/src/coyote_api/app/application_factory.py`. FastAPI dependencies
@@ -17,13 +17,13 @@ in `api/src/coyote_api/app/deps/application.py` obtain those composed applicatio
    Invoke `ApplicationRuntime.execute` with its permission and sample scope
    requirements before service work. Do not accept actor identities or role lists
    in ordinary operation inputs.
-4. Supply any new capability through the host-owned service factories. Concrete
-   repositories remain in `api/src/coyote_api/infra/`; the library must never import `api`.
+4. Supply any new capability through the host-owned service factories. Persistence implementations belong in
+   `adapters/mongo/src/coyote_mongo/repositories/`; core must not import the host or adapter.
 5. Add a thin HTTP handler if the operation needs HTTP access. Declare its route,
    permission dependencies and response contract, then delegate to the operation.
 6. Cover successful and rejected calls, current permissions, sample ownership,
    validation and preserved clinical behavior. Update the supported exports,
-   [operation guide](application-sdk.md) and generated reference.
+   [operation guide](application-core.md) and generated reference.
 
 ## Compose a host
 
@@ -53,7 +53,7 @@ External scripts should normally use the HTTP client; a script with database
 credentials already has the host's trust and is not sandboxed by Python resources.
 
 Choose center configuration before importing vocabulary-dependent contracts, as
-described in [getting started](getting-started.md). Runtime secrets, MongoDB
+described in [core configuration](../../core/docs/configuration.md#host-supplied-settings). Runtime secrets, MongoDB
 connections, Redis, SMTP and storage paths belong to host configuration. Typed
 clinical values, software capabilities and configuration validation belong to
 the library. Process-wide profile selection does not provide multiple independent
@@ -71,10 +71,10 @@ changing clinical field paths or moving host code into the library.
 PYTHONPATH=. .venv/bin/pytest -q api/tests/unit/test_application_sdk.py \
   tests/integration/test_library_configuration_boundary.py \
   tests/integration/test_api_architecture_boundaries.py
-.venv/bin/python scripts/docs/export_sdk_reference.py
+.venv/bin/python scripts/docs/export_core_reference.py
 ```
 
 Cross-layer or clinical changes also require the relevant API, regression and
 integration tests. Follow the [testing guide](../testing/README.md). Incompatible
-supported Python changes require an SDK major release; internal implementation
+supported Python changes require a Coyote Core major release; internal implementation
 changes do not automatically change the HTTP API major.

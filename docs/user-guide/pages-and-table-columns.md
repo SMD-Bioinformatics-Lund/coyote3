@@ -299,15 +299,9 @@ state such as false positive, irrelevant, or interesting, adding blacklist
 entries, overriding blacklist, and clearing blacklist overrides. Bulk actions
 require confirmation and update the table in place after success.
 
-> **Note: automatic Tier III text**
->
-> The small-variant Tier III bulk action can optionally save the established
-> automatic Tier III annotation alongside the classification. This generator
-> uses the selected consequence, gene, assay group, and locally stored OncoKB
-> gene status. It does not read report wording from the ASPC. Tier I, II, and
-> IV bulk actions save only the classification. Add narrative through the
-> comment editor when it is needed for clinical review or reporting.
->
+Tier I–III bulk actions offer **Include automatic text** from published annotation
+templates. Preview the generated text before confirming. See [bulk actions](dna-review.md#bulk-actions)
+for the steps and unmatched-template behavior.
 
 Small-variant sorting is performed after all active filters and search terms have
 been applied and before the page slice is returned. Frequency columns, including
@@ -344,7 +338,9 @@ SNV and CNV gene-list scopes are independent. `ISGL.list_type` determines the
 selectors in which a list is available; the saved target-specific selection
 determines where it is applied. Selecting a multi-purpose ISGL in the SNV
 selector therefore does not filter the CNV table. Without a CNV selection, the
-table uses ASP eligible genes; an empty scope returns no findings.
+table uses ASP covered genes. If neither a CNV selection nor panel genes exist,
+there is no CNV gene restriction. An explicitly selected empty or unavailable list
+still selects no findings.
 RNA fusion uses the same target-specific rule. DNA
 fusion/translocation review has its own saved selection under
 `filters.somatic.translocation.fusionlists`; it accepts fusion-compatible
@@ -479,10 +475,10 @@ review exclusions. Removing the report flag alone does not remove a tiered event
 
 The coverage tab shows DNA sample quality coverage and gene-level coverage context. It appears when the sample's recorded ASPC revision enables `COVERAGE` and the DNA sample has a successfully ingested `cov` resource. Coverage is independent of both CNV calls and the CNV profile image.
 
-Coverage uses the sample's pinned assay eligibility, narrowed by its somatic SNV
-gene-list and ad-hoc selections. With no selection, the assay's eligible genes
-apply. Empty resolved scope returns no gene coverage rows. CNV and fusion list
-selections do not change coverage scope.
+Coverage uses the captured assay's covered genes, or all genes in the ingested
+coverage data when no panel scope exists. The coverage page's own gene-list
+selector can narrow this scope. An explicitly selected empty list shows no
+measurements. SNV, CNV and fusion finding filters do not change coverage scope.
 
 | Area | Information shown |
 | --- | --- |
@@ -944,6 +940,6 @@ or delete a superuser account.
 | Route | Purpose |
 | --- | --- |
 | `/profile` | Shows account identity, roles, auth types, scopes, editable profile settings, and password controls when local auth is enabled. |
-| `/about` | Product, application version, installed core SDK version, database names, software versions, reference versions, support summary, and operational links. SDK values come from installed distribution metadata; an absent package is shown as not installed. |
+| `/about` | Product, application version, installed Coyote Core version, database names, software versions, reference versions, support summary, and operational links. Coyote Core values come from installed distribution metadata; an absent package is shown as not installed. |
 | `/contact` | Public contact, service hours, support roles, address, and configured center links from the contact TOML file. |
 | External license link | License and usage terms from the configured codebase link. |

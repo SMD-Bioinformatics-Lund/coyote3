@@ -47,7 +47,7 @@ Install missing prerequisites before continuing. Use the instructions for the
 host's operating system; installing software is separate from configuring Coyote4.
 
 The normal installer builds and installs the application wheel inside Docker.
-No host virtual environment, prebuilt SDK wheel or `.release/sdk` directory is
+No host virtual environment, prebuilt Coyote Core wheel or `.release/sdk` directory is
 required. The installer defaults `GIT_COMMIT` to the checkout's current commit.
 Host commands use `PYTHON_BIN` when supplied; otherwise they select the repository's
 `.venv/bin/python` if supported, then a supported system interpreter. The selected
@@ -55,7 +55,7 @@ interpreter must be Python 3.12 or later. This also applies after `sudo` or `run
 changes `PATH`. `tomllib` is included with supported Python versions; do not install
 a separate package to compensate for an older host interpreter.
 Release CI can select the separate
-[verified-artifact build](../sdk/compatibility.md#build-and-record-an-application-release)
+[verified-artifact build](../core/compatibility.md#build-and-record-an-application-release)
 using `deploy/compose/docker-compose.release.yml` as an additional overlay.
 
 | Software | Needed for | Installation instructions |
@@ -656,9 +656,10 @@ their active registry records. Missing scoped query rules use the installed defa
 These rules are separate from the reporting rules in step 6. Bootstrap installs
 the [group and default query policies](../administration/query-rules.md#installation-and-storage)
 and four dedicated query-rule roles. Review their effective criteria for each assay.
-If automatic Tier III annotations are needed, set **Tumor-type wording** in the
-assay's reporting-rule draft, then review and publish it. This optional text currently
-requires Swedish reporting rules; leaving it unset does not prevent ordinary classification.
+For optional text during Tier I–III bulk classification, author
+[bulk annotation templates](../reference/clinical-reporting-rules.md#bulk-annotation-templates)
+for the required finding types and reporting language, then review and publish them.
+Ordinary classification does not require these templates.
 The [resource reference](../administration/clinical-configuration-resources.md)
 describes each item's purpose, relationships and missing-prerequisite behavior.
 JSON import/export remains subject to the same validation and permissions; it is

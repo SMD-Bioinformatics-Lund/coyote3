@@ -1,56 +1,22 @@
-# Application SDK
+# Coyote Core
 
-The application SDK lives in `core/src/coyote/application/operations/`. Its operations are the shared
-entry points for application workflows. HTTP handlers invoke those operations;
-they do not implement an alternative workflow. The SDK coordinates authorization,
-actor attribution and existing application/domain services through injected ports.
-It is distinct from the
-[remote Python client](python-client.md), which sends HTTP requests.
-Neither SDK is part of FastAPI. `core/pyproject.toml` builds `coyote-core`
-from `core/src/coyote/`. It contains application operations, domain rules, clinical contracts,
-report-input construction and software defaults. Report templates belong to
-`smd-reports`. Shared structural and clinical models belong to `coyote.contracts`.
-The API and MongoDB adapter consume core and ship together as
-`coyote-server`. The remote client is the independent `coyote-pyclient` distribution
-and is not installed by this application.
+Core operations provide the application workflows used by the API and workers.
+A trusted host supplies authentication, current permissions, repositories and
+integration capabilities. Operations enforce access and delegate to domain services.
+External applications should use HTTP or [pyClient](README.md#coyote-pyclient).
 
 ## Installation and development
 
-Use the package-owned [core installation guide](../../core/docs/getting-started.md)
-for a standalone host. Use [editable workspace development](uv-development.md)
-when working across the API, adapter and core. The latter preserves one tested
-dependency combination while loading Python edits from the checkout.
+For a standalone host, follow [core installation](../../core/docs/getting-started.md)
+and select [center configuration](../../core/docs/configuration.md#host-supplied-settings)
+before importing profile-dependent contracts. Imports do not load deployment secrets
+or connect to databases.
 
-For API development, also install `requirements-dev.txt`, which includes the
-production dependency export. Each project's `pyproject.toml` owns its runtime
-dependencies. The root server project owns shared workspace development groups.
-The requirements export combines application dependencies, including the core
-`reporting` and `alignment` extras selected by the server. Relay comes from a
-reviewed Git commit; the default uv `application` group includes it.
-Use the [installation guide](server-installation.md) for the equivalent pip steps.
-The ASGI entry point is `coyote_api.app.main:app`.
-
-Production API images install core, the combined API/Mongo server wheel,
-Relay and Atlas. The isolated demo image also installs Demo.
-Development images install local projects editable and mount their source trees;
-Relay remains installed from its selected external wheel.
-File edits are visible in the container immediately, but API and worker processes
-load Python changes only after an explicit restart. Use the local development
-watcher for automatic reload when running native editable processes.
-Workers consume the same installed packages through their runtime composition.
-
-Core owns structural manifests, metadata and clinical models. `SamplesDoc`
-extends `SampleManifest` with center vocabulary, sequencing policy, clinical
-filters and persistence fields. Manifest shape validation requires no report or
-alignment dependency and does not replace clinical acceptance.
-
-Software defaults, RBAC catalogs and VEP interpretation policy are core package data.
-Report templates belong to `smd-reports`. The server packages deployment seeds and
-center examples; Coyote Demo packages synthetic datasets. The API host owns
-environment discovery and selects external center configuration before importing
-contracts. Standalone library hosts explicitly supply `CenterConfiguration`;
-see [getting started](getting-started.md). Library imports do not read deployment
-environment settings or require an application checkout.
+For application development, use the [editable uv workspace](uv-development.md).
+Use [package installation](server-installation.md) for equivalent pip and wheel
+instructions. The API host composes the runtime through
+`coyote_api.app.application_factory`; package ownership is described in
+[package boundaries](package-boundaries.md).
 
 ## Supported Python interface
 
@@ -59,9 +25,9 @@ Import authored-content models from `coyote.application.operations.inputs`. Othe
 under `core/src/coyote/application/` and `core/src/coyote/domain/` implement use cases and clinical rules;
 their methods and repository attributes are internal implementation details.
 
-The installed distribution version identifies the SDK release. Changes to
+The installed distribution version identifies the Coyote Core release. Changes to
 supported imports, arguments, results and errors follow the
-[SDK compatibility policy](compatibility.md). Application releases and HTTP
+[Coyote Core compatibility policy](compatibility.md). Application releases and HTTP
 API majors have separate ownership; there is no extra interface-generation counter.
 
 | Resource | Operations |
@@ -102,7 +68,7 @@ remain internal; callers do not obtain their repositories or database collection
 
 The trusted host initializes its configured runtime and obtains a session through
 the existing authentication flow. The deployment composition entry point is
-`coyote_api.app.application_factory.open_application`; credentials are not discovered by importing the SDK.
+`coyote_api.app.application_factory.open_application`; credentials are not discovered by importing Coyote Core.
 
 ```python
 from coyote_api.app.application_factory import open_application
@@ -129,7 +95,7 @@ only the current-account password replacement operation. Supplied operation argu
 set the authenticated actor, roles or assay scope.
 
 The host's session repository, permission policy and repositories enforce those
-checks. The SDK does not sandbox arbitrary Python with database credentials.
+checks. Coyote Core does not sandbox arbitrary Python with database credentials.
 External notebooks and integrations use the remote client so credentials and
 centralized access control remain on the server.
 
@@ -169,7 +135,7 @@ the resulting identity and artifact locations.
 Operations raise the existing `AppError` with status, category and safe details;
 HTTP exception handling translates the same error. Authored-content validation
 retains existing Pydantic errors. Repository and integration failures propagate;
-the SDK does not retry mutations or introduce an outer transaction. Multiple flag
+Coyote Core does not retry mutations or introduce an outer transaction. Multiple flag
 writes retain their individual service transaction boundaries.
 
 ## Host composition and workers
@@ -188,9 +154,9 @@ Business mutation audit and transactional outboxes remain owned by the existing
 services and repositories; an access event is not a mutation-completion receipt.
 
 Clinical, authoring, administrative, knowledgebase, notification and operational
-HTTP workflows call the SDK. Permission and sample-scope checks use the
+HTTP workflows call Coyote Core. Permission and sample-scope checks use the
 framework-independent functions in `core/src/coyote/application/common/access.py`. Routes
-declare HTTP access requirements as an additional transport check; SDK operations
+declare HTTP access requirements as an additional transport check; Coyote Core operations
 enforce their requirements for every caller. No business workflow depends on a
 router first setting the actor or checking a permission.
 
@@ -198,7 +164,7 @@ Authentication-provider negotiation, session cookies, CSRF, multipart decoding,
 upload staging/cleanup, HTTP streaming and health/metrics responses belong to
 transport and infrastructure. Password policy and account/recovery workflows
 belong to domain/application operations. Operational task submission uses injected
-ports; SDK modules do not import Celery tasks.
+ports; Coyote Core modules do not import Celery tasks.
 
 Anonymous reads use `PublicApplication`, composed by
 `coyote_api.app.application_factory.open_public_application`. This capability cannot access clinical
@@ -211,7 +177,7 @@ authenticated application.
 Maintenance workers use `MaintenanceExecution` for retention, committed artifact
 recovery, audit/activity delivery, leased email delivery, reference refresh and
 metric refresh. The task adapter retains scheduling gates and cross-process locks;
-the SDK loads current active account scopes and deduplicates equivalent refreshes.
+Coyote Core loads current active account scopes and deduplicates equivalent refreshes.
 The fixed maintenance identity cannot invoke interactive clinical or account operations.
 Its operational access log does not make audit recovery depend on a healthy audit queue.
 
@@ -224,7 +190,7 @@ lease fencing and duplicate-delivery behavior. Operational worker access events
 use the worker's existing audit delivery policy; committed mutation traceability
 continues through its existing transaction/outbox path.
 
-The application SDK requires host-supplied storage, identity and integration
+Coyote Core requires host-supplied storage, identity and integration
 capabilities. Installing the library does not provide database credentials or an
 authenticated application instance. Its release version is independent of the
 application release. The remote client has its own distribution and version.

@@ -5,9 +5,10 @@ manuals for task instructions:
 
 | Reader | Manual |
 | --- | --- |
-| Clinical user or administrator | [Application user guide](../user-guide/application-guide.md) |
+| Reviewer | [Sample review](../user-guide/clinical-review-workflow.md) |
+| Administrator | [Administration](../administration/README.md) |
 | Developer or maintainer | [Developer guide](../development/developer-guide.md) |
-| Deployment operator | [Production deployment](../deployment/production-deployment.md) |
+| Deployment operator | [Production deployment](../deployment/README.md) |
 
 ## Purpose
 
@@ -159,7 +160,7 @@ environment and center-file key.
 
 | Subject | Reference |
 | --- | --- |
-| User tasks | [Application user guide](../user-guide/application-guide.md) |
+| Sample review and reporting | [Sample review](../user-guide/clinical-review-workflow.md) |
 | Development | [Developer guide](../development/developer-guide.md) |
 | Architecture | [Application architecture](../architecture/application-architecture.md) |
 | Clinical data lifecycle | [Clinical data and reporting flow](../architecture/clinical-data-and-reporting.md) |
@@ -167,5 +168,5 @@ environment and center-file key.
 | Collection fields | [Collection contracts](mongodb-collections.md) |
 | Query rules | [Query and filter strategy](assay-filtering.md) |
 | Report rules | [Clinical reporting rules](clinical-reporting-rules.md) |
-| Deployment | [Production deployment](../deployment/production-deployment.md) |
+| Deployment | [Production deployment](../deployment/README.md) |
 | Operations | [Maintenance and quality](../operations/maintenance-and-verification.md) |

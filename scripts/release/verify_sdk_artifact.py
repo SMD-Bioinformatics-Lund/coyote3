@@ -135,7 +135,7 @@ def verify_compose_artifacts(config_path: Path | dict, release_path: Path) -> No
                 "Stage the tested release wheels and release-record.json in this directory, "
                 "or set COYOTE4_SDK_ARTIFACT_DIR to their absolute directory. "
                 "Use the matching source checkout and GIT_COMMIT. "
-                "See docs/sdk/compatibility.md#build-and-record-an-application-release. "
+                "See docs/core/compatibility.md#build-and-record-an-application-release. "
                 "The installer does not rebuild tested production artifacts."
             ) from error
 

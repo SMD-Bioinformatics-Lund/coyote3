@@ -93,7 +93,7 @@ Route modules use `require_access` and `require_authenticated` directly from
 `coyote_api.security.access`. They should not query role or
 permission collections directly and should not implement local minimum-role
 checks. Trusted application operations enforce authorization for both API and
-local SDK callers. UI visibility reflects the session payload; it does not grant access.
+local Coyote Core callers. UI visibility reflects the session payload; it does not grant access.
 
 ![RBAC and scoped access decision](../assets/diagrams/rbac-access-decision.svg)
 

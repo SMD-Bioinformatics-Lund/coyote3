@@ -41,7 +41,7 @@ Choose **Assay scope** to restore the default. This is a temporary coverage-view
 selection: it does not change saved finding filters and resets when another
 sample is opened.
 
-API and SDK callers can provide the optional `gene_list_id` parameter to the
+API and Coyote Core callers can provide the optional `gene_list_id` parameter to the
 coverage endpoint or `Sample.coverage()`. Responses include the selected identity
 and the available `gene_lists`. Identities outside the applied configuration are
 rejected.

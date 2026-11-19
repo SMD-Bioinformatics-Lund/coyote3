@@ -106,9 +106,9 @@ For immutable configuration releases, use
 its checksum to the release manifest. Deploy a new reviewed directory through the
 normal configuration-release procedure.
 
-Local SDK callers can supply a validated
+Local Coyote Core callers can supply a validated
 `coyote.application.reporting.presentation.ReportPresentation` through the report
-renderer’s `presentation` argument. The SDK does not read center directories.
+renderer’s `presentation` argument. Coyote Core does not read center directories.
 
 ## ASPC summary order
 

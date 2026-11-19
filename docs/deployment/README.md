@@ -24,7 +24,7 @@ The installation procedure includes the commands and checks in order.
 
 - **MongoDB:** [first-time provisioning](mongodb-first-setup.md) and [topology](../architecture/mongodb-topology.md).
 - **Settings:** [environment variables](configuration-reference.md) and [center files](center-configuration.md).
-- **Containers:** [Compose and reverse proxy](containers-and-reverse-proxy.md), including support for the older deployment host.
+- **Containers:** [Compose and reverse proxy](containers-and-reverse-proxy.md), including mounted URL prefixes and storage.
 - **Installed data:** [baseline data flow](bootstrap-data-flow.md), [required data](required-data.md) and [individual installer operations](installation-operations.md).
 
 ## After installation
@@ -32,3 +32,14 @@ The installation procedure includes the commands and checks in order.
 Complete the [acceptance checklist](acceptance-checklist.md), then
 [configure and validate the assays](../administration/assay-setup.md).
 Use [operations](../operations/README.md) for routine checks and incident recovery.
+
+## What deployment preserves
+
+Application deployment manages application processes or containers. MongoDB and
+Redis have independent lifecycles and explicit connection URLs. Redeployment
+preserves their data, center configuration, accounts, assays and published rules.
+Reports, ingest files and logs remain in the configured persistent storage.
+
+Reuse the installation's environment file and deployment identity. Replacing a
+host after data loss requires [backup and recovery](../operations/backup-and-recovery.md),
+not just restarting the application.

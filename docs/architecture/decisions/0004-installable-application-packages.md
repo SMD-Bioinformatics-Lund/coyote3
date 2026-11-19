@@ -39,7 +39,7 @@ in the same repository. Packaging does not introduce additional deployed service
 The server installs `coyote_api` and `coyote_mongo` together. Their code boundaries
 remain explicit: API composition supplies adapter implementations of core repository
 interfaces, and neither core nor adapter imports the API. The server is not a second
-clinical SDK. API and worker entry points consume installed code and resources,
+Coyote Core library. API and worker entry points consume installed code and resources,
 including templates, logos, configuration defaults and installation catalogs.
 
 Ingestion parsing and clinical workflows belong to core. The ingestion service
@@ -115,6 +115,6 @@ testkit when there is demonstrated duplication; this does not move component
 suites into a central testing service. Frozen clinical regression inputs stay
 with their tests rather than following changes to interactive demo datasets.
 
-See [package boundaries](../../sdk/package-boundaries.md),
-[editable development](../../sdk/uv-development.md) and
-[release compatibility](../../sdk/compatibility.md).
+See [package boundaries](../../core/package-boundaries.md),
+[editable development](../../core/uv-development.md) and
+[release compatibility](../../core/compatibility.md).

@@ -1,4 +1,4 @@
-# Core interface reference
+# Coyote Core interface reference
 
 | Import | Purpose |
 | --- | --- |

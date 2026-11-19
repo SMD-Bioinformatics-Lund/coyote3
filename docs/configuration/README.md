@@ -48,7 +48,7 @@ Defaults follow the component that owns their behavior:
 
 | Owner and source | Contents |
 | --- | --- |
-| Core package: `core/src/coyote/config/factory_defaults.toml` | Reusable domain capabilities and defaults needed by the library, SDK, schemas and clinical workflows. |
+| Core package: `core/src/coyote/config/factory_defaults.toml` | Reusable domain capabilities and defaults needed by models and clinical workflows. |
 | API host: `api/src/coyote_api/config/factory_defaults.toml` | Sessions, cache, databases, mail, workers, HTTP clients, deployment profiles and public product metadata. |
 | Frontend: `frontend/src/lib/defaults.ts` | Theme, layouts, table-size choices, default UI environment selection and nomenclature labels. |
 

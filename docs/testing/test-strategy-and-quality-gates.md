@@ -36,7 +36,7 @@ may compose component behavior. Use explicit test paths to avoid unnecessary col
 
 ### Fast smoke checks
 
-Run from the repository root after [editable installation](../sdk/uv-development.md):
+Run from the repository root after [editable installation](../core/uv-development.md):
 
 ```bash
 bash scripts/quality/run_package_tests.sh all --smoke
@@ -72,8 +72,8 @@ configuration. It accepts `core`, `api`, `mongo`, `atlas`, `demo` or `all`.
 Source remains editable; no wheel rebuild is needed for a test change.
 
 Relay and pyClient own their suites in their separate repositories. Follow
-[Relay development](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/development.md)
-and [pyClient development](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/docs/development.md)
+[Relay development](../core/README.md#coyote-relay)
+and [pyClient development](../core/README.md#coyote-pyclient)
 to validate those packages. The application tests their installed integration
 boundaries without collecting their external suites.
 

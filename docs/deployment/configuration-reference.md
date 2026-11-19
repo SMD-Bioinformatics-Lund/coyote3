@@ -414,8 +414,8 @@ Database/server settings apply only to the separately selected MongoDB Compose f
 | Key | Requirement/default | Meaning and edit policy |
 | --- | --- | --- |
 | `COYOTE4_IMAGE_TAG` | Set by the version-aware wrapper | Application version from `release.toml`, with environment suffix outside production. Not a center setting. |
-| `COYOTE4_SDK_ARTIFACT_DIR` | Optional release-overlay build context; `.release/sdk` when omitted | Tested SDK wheel and release record used only by `docker-compose.release.yml`. Normal source builds do not use this setting. |
-| `GIT_COMMIT` | Installer defaults to the current checkout commit | Image source revision. The optional verified-artifact build also requires it to match the SDK release record. |
+| `COYOTE4_SDK_ARTIFACT_DIR` | Optional release-overlay build context; `.release/sdk` when omitted | Tested Coyote Core wheel and release record used only by `docker-compose.release.yml`. Normal source builds do not use this setting. |
+| `GIT_COMMIT` | Installer defaults to the current checkout commit | Image source revision. The optional verified-artifact build also requires it to match the selected Coyote Core release record. |
 | `BUILD_TIME` | Optional build value; `unknown` when omitted | Build timestamp embedded in the API image. |
 | `CACHE_REDIS_URL` | Compose constructs authenticated Redis database `/0` | Cache connection. Setting this in the private env file alone does not override the Compose value. |
 | `CELERY_BROKER_URL` | Compose constructs authenticated Redis database `/1` | Job queue connection; same override restriction. |

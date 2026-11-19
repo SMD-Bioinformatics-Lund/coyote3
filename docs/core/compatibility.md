@@ -9,8 +9,8 @@ combination; package installation and public-index publication are separate task
 | --- | --- |
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
-| HTTP client version | [`coyote-pyclient/pyproject.toml`](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/pyproject.toml) |
-| Ingestion service version | [Relay metadata](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/pyproject.toml) |
+| HTTP client version | `pyproject.toml` in the independent pyClient repository |
+| Ingestion service version | `pyproject.toml` at the Relay revision pinned in `uv.lock` |
 | Reference service version | `services/atlas/pyproject.toml` |
 | Demo package version | `services/demo/pyproject.toml` |
 | Application selection | `release.toml`: application and five selected Python distribution versions |

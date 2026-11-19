@@ -65,7 +65,7 @@ the gateway does not trust an incoming `X-Forwarded-Proto` value. Restrict direc
 API and gateway exposure according to this trust boundary.
 
 This page describes runtime wiring and reverse-proxy settings. For ordered
-commands, select [first installation, upgrade, or redeployment](production-deployment.md).
+commands, select [first installation, upgrade, or redeployment](README.md).
 
 > **Important: migrating existing Coyote v3 data**
 >
@@ -98,14 +98,14 @@ Use literal values for `ENV_NAME`. Base files serve compiled images; dev overlay
 are only for live editing.
 
 Before building compiled API or worker images, prepare the
-[tested SDK artifact](../sdk/compatibility.md#build-and-record-an-application-release).
+[tested Coyote Core artifact](../core/compatibility.md#build-and-record-an-application-release).
 The production Dockerfile installs the retained wheel and validates its release
-record; it does not rebuild the SDK from the checkout. Development overlays use
+record; it does not rebuild Coyote Core from the checkout. Development overlays use
 an editable source installation with bind-mounted backend sources. They do not
 start backend reload watchers: file changes become visible immediately, and an
 explicit service restart loads Python edits. Rebuild and recreate services when
 dependencies, the external Relay revision or image contents change. For faster
-iteration, use [native editable development](../sdk/uv-development.md).
+iteration, use [native editable development](../core/uv-development.md).
 
 Logging defaults to `INFO` for production/prod and `DEBUG` elsewhere. `LOG_LEVEL`
 in the env file overrides that default. `CELERY_LOG_LEVEL` defaults to the effective

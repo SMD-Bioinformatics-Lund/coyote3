@@ -89,7 +89,7 @@ scope. A list's total gene count is different from its covered gene count.
 VEP metadata is selected by `sample.database_versions.vep`. Transcript selection
 and HGNC normalization happen before rule evaluation. Report wording does not
 choose a different transcript. See [transcript selection](../reference/assay-filtering.md)
-and [reference ownership](../sdk/package-boundaries.md).
+and [reference ownership](../core/package-boundaries.md).
 
 ## Finding eligibility
 
@@ -156,12 +156,6 @@ classifications and text belong to `annotation`; report-time rows belong to
 `reported_variants`.
 
 ## Annotation reference
-
-The details below explain identity matching, publication scope and historical
-links. They are lookup material for interpretation and persistence changes.
-
-<details markdown="1">
-<summary>Annotation identity, scope and historical provenance</summary>
 
 ### Annotation identity and matching {#53-annotation-identity-and-matching}
 
@@ -326,8 +320,6 @@ The implementation owners are `domain/annotation_scope.py`,
 `adapters/mongo/src/coyote_mongo/repositories/annotations.py`. See the
 [search provenance reference](../reference/report-snapshots.md#tiered-variant-search)
 and [user action reference](../user-guide/actions-and-record-changes.md#inactive-annotations-and-sample-history).
-
-</details>
 
 ## Investigate a discrepancy
 

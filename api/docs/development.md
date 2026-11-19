@@ -11,7 +11,7 @@ uv build --package coyote-server
 For fast API and worker iteration, use native editable installs and the application's
 `install.sh watch` command. Docker development mounts backend sources but requires
 explicit service restarts after Python changes; rebuild and recreate services when
-dependencies or image contents change. See [editable development](../../docs/sdk/uv-development.md).
+dependencies or image contents change. See [editable development](../../docs/core/uv-development.md).
 A normal wheel build must
 include host assets and run outside the checkout without source-path overrides.
 
@@ -45,3 +45,20 @@ python -m pytest -q --cov --cov-config=pyproject.toml --cov-report=xml
 Coverage measures the complete `coyote_api` namespace and branches with a 75% floor.
 It writes `.coverage` and `coverage/coverage.xml` here; add `--cov-report=html` for
 `coverage/html/`. Smoke runs do not enforce the full-suite coverage floor.
+
+## Assay setup checks
+
+From the repository root, the API and browser checks use controlled fixtures:
+
+```bash
+.venv/bin/pytest -q api/tests/unit/test_assay_setup.py --no-cov
+npm --prefix frontend run test:e2e -- assay-setup.spec.ts
+```
+
+Transaction checks require `ASSAY_SETUP_TEST_MONGO_URI` pointing to an explicitly
+disposable local replica set. They create and remove their own synthetic database.
+Never use production credentials or a production/forwarded database endpoint.
+
+```bash
+.venv/bin/pytest -q tests/integration/test_assay_setup_transactions.py --no-cov
+```

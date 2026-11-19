@@ -26,12 +26,6 @@ The sample detail page is organized around a persistent sample header and a sele
 
 In Classic, use the **Filters** button beside a finding section to open the right filter panel and connect it to that section. Select the same button again to collapse that section's filter panel. When collapsed, the right rail keeps a separate vertical tab visible for every filterable finding section; selecting one opens that section's controls. Filter choices and table state remain analysis-specific; selecting the CNV filter panel does not apply SNV filters to CNVs.
 
-> **Caution: Raw payloads**
->
->
-> Clinical users should not need raw JSON payloads. Raw inspection belongs in explicit diagnostic/admin views only.
->
-
 ## Small Variants
 
 The Small Variants table is the primary DNA review table for SNVs and indels.
@@ -100,16 +94,11 @@ Bulk actions operate on selected rows and are sent as one request.
 
 Successful actions update the table in place and create audit/notification context. Failure notifications should explain the clinical resource and action that failed.
 
-> **Note: automatic Tier III text**
->
-> When bulk-classifying small variants as Tier III, the confirmation dialog
-> can also add the established automatic Tier III annotation. The text is
-> generated from the selected consequence, gene, assay group, and locally
-> stored OncoKB gene status. Leave the option clear to save only the Tier III
-> classification. Tier I, II, and IV do not have automatic annotation text.
-> Add narrative through the comment editor when it is needed for clinical
-> review or reporting.
->
+For Tier I, II or III, **Include automatic text** can add a matching published
+annotation template. Select **Preview annotation text**, review each result, then
+confirm. Findings without a matching template receive the tier without generated
+text. Leave the option unchecked to save classifications alone. A changed rule
+publication requires a fresh preview. See [bulk annotation templates](../reference/clinical-reporting-rules.md#bulk-annotation-templates).
 
 Every bulk action opens a confirmation dialog that identifies the selected
 operation and the number of affected findings. The mutation is sent only after
@@ -143,6 +132,18 @@ These tabs use the same review model as small variants: status/evidence badges, 
 | CNVs | Genes, region, gain/loss/effect, size, copy-number metrics, tier, and CNV detail context. |
 | Fusions | Fusion partners, breakpoints, read support, callers, tier, and fusion detail context. |
 | Translocations | Partner genes, breakpoints, structural type, HGVS/notation, panel context, tier, and translocation detail context. |
+
+### Select a translocation transcript combination
+
+Open the finding's **Transcript Combinations** table to compare the two partners'
+genes and transcripts. MANE badges identify matches to the HGNC reference;
+a missing badge does not establish a match.
+
+With `translocation:manage` permission, select a SnpEff combination as the finding's
+display and reporting anchor. The selected row appears first; all alternatives
+remain stored in `INFO.ANN`. The selection source becomes `manual_override`.
+Existing saved reports keep their snapshots. If another user changed the finding,
+reload it before selecting again.
 
 ## Coverage
 

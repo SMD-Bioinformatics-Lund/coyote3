@@ -42,7 +42,7 @@ configuration revisions. Existing issued artifacts remain readable. Old preview
 fingerprints require a fresh preview and review.
 
 Reports have one renderer. HTTP requests do not accept a format selector,
-and SDK calls do not accept a layout argument. Integrations can request matching
+and Coyote Core calls do not accept a layout argument. Integrations can request matching
 HTML/PDF content through `/preview/bundle` without persisting report artifacts.
 
 Actual renderer identity, configuration, presentation values and clinical inputs
@@ -73,7 +73,7 @@ not import the renderer. Renderer imports are declared at module scope, and
 configuration/receipt code imports identity and hashing directly from `report_service.py`.
 Package upgrades and adapter changes require reviewed template configuration
 revisions before clinical rollout. Issued artifacts retain their original versions.
-See [Version identities](../sdk/compatibility.md#version-identities).
+See [Version identities](../core/compatibility.md#version-identities).
 
 ### PDF pagination
 
@@ -94,7 +94,7 @@ when a browser cannot display the embedded PDF. Preview and download do not save
 ## Center branding
 
 The HTTP host loads logos from reviewed center configuration and embeds them as
-data URLs. The core SDK receives branding explicitly and does not read host directories.
+data URLs. Coyote Core receives branding explicitly and does not read host directories.
 `contact.toml` supplies organization name, department and address. The performing
 laboratory metadata uses that same identity. Phone values are omitted from reports.
 

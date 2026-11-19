@@ -18,7 +18,7 @@ Coyote Relay supplies the ingestion HTTP routes. Install `coyote-relay[api]`
 alongside the server and restart it to register these routes in `/api/v1/docs`
 and `/api/v1/redoc`. The standard application image includes Relay. A server
 installed without Relay omits these routes. See the
-[package installation guide](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/getting-started.md) for
+[package installation guide](../core/README.md#coyote-relay) for
 standalone submission tools and worker installation.
 
 ## Sample-bundle JSON request fields

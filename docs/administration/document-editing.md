@@ -67,7 +67,7 @@ publication still require the workflow's assigned permissions, expected revision
 and independent reviewer where applicable. A lease does not replace those checks
 or make operations across separate MongoDB clients transactional.
 
-## API and SDK integrations
+## API and Coyote Core integrations
 
 For a registered editor kind, call:
 

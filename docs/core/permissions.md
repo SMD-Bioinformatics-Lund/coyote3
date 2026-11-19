@@ -1,6 +1,6 @@
-# Permissions and trusted SDK hosts
+# Permissions and trusted Coyote Core hosts
 
-Supported application operations enforce authorization inside the SDK through
+Supported application operations enforce authorization inside Coyote Core through
 `ApplicationRuntime.execute`. Calling the operations directly does not bypass the
 checks performed by HTTP workflows.
 
@@ -28,7 +28,7 @@ loaders and accepted audit persistence. The API host revalidates its server-side
 session and current account for each operation; callers do not supply their own
 roles or actor through ordinary operation inputs.
 
-A custom host must provide equally trusted capabilities. The SDK does not sandbox
+A custom host must provide equally trusted capabilities. Coyote Core does not sandbox
 arbitrary Python or protect a database from someone who already holds database
 credentials. Internal services and domain helpers are implementation interfaces;
 external integrations normally use the remote client and the server's controls.
@@ -43,4 +43,4 @@ and client-side errors are not access-control decisions.
 scope, required password replacement, credential audiences and audit failures.
 HTTP authorization matrices and ingestion credential tests cover the corresponding
 transport and machine entry points. See the [security architecture](../architecture/security-model.md)
-and [application-operation guide](application-sdk.md).
+and [application-operation guide](application-core.md).

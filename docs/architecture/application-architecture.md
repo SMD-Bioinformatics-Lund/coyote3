@@ -67,8 +67,8 @@ policy remains in core. `services/demo/` owns synthetic datasets and demonstrati
 installation. Its optional routes activate only after explicit isolated-target
 configuration, and its runtime guard checks credential scope before connecting the
 application. Installing a package does not start a separate network service.
-See [installation boundaries](../sdk/server-installation.md) and
-[editable uv development](../sdk/uv-development.md).
+See [installation boundaries](../core/server-installation.md) and
+[editable uv development](../core/uv-development.md).
 
 Version-one HTTP handlers live in `api/src/coyote_api/interfaces/http/v1/`. URL prefixes are
 declared by the existing routers and application composition; the directory
@@ -84,17 +84,17 @@ and MongoDB retains administrators' selected controls. Feature switches compleme
 the existing permission and assay/environment checks. See
 [application-module boundaries](../administration/application-controls.md#application-module-boundaries).
 
-The web UI and remote Python client SDK are separate consumers of the HTTP API.
+The web UI and Coyote pyClient are separate consumers of the HTTP API.
 The server does not install the external Python client. Host-owned administration
 and Relay submission tools use their own HTTP transport.
-The application SDK owns the shared use-case entry points:
+Coyote Core owns the shared use-case entry points:
 
 ```text
 React UI -------------------\
                              HTTP API ----\
 External Python client -----/              |
                                            v
-Workers / trusted Python ----------> Application SDK operations
+Workers / trusted Python ----------> Coyote Core operations
                                            |
                                      application services + domain rules
                                            |
@@ -117,7 +117,7 @@ Workers / trusted Python ----------> Application SDK operations
 | `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |
 | `adapters/mongo/src/coyote_mongo/` | Repositories, provider identities, query compilation and transactions. | Depends on core contracts and never imports the API. |
 | `api/src/coyote_api/app/` | FastAPI composition, service factories, runtime configuration and lifecycle. | Selects concrete repositories, authorization engines, credential delivery, metrics and operational adapters. |
-| `api/src/coyote_api/interfaces/http/` | Routes, access dependencies, request conversion and response contracts. | Delegates workflows to SDK operations; analysis requests become `AnalysisQuery` values. |
+| `api/src/coyote_api/interfaces/http/` | Routes, access dependencies, request conversion and response contracts. | Delegates workflows to Coyote Core operations; analysis requests become `AnalysisQuery` values. |
 | `src/coyote_pyclient/` in the external client repository | Remote sessions, Python resource objects, pagination, workflow calls and client-owned response models. | Uses HTTPX and Pydantic; imports no server package beyond its own `coyote_pyclient` namespace. |
 | `frontend/src/` | React interactions, display models and HTTP query hooks. | Uses the API through the frontend client/query abstractions. |
 
@@ -127,13 +127,13 @@ diagnostic ports; notifications receive a policy factory; analysis tables receiv
 a page-sorting strategy. DNA reporting receives a registered-plot reader from
 `api/src/coyote_api/infra/report_images.py`; filesystem checks for report output locations live
 in `core/src/coyote/application/reporting/report_paths.py`, outside the domain. Clinical
-services use neither SDK resource objects nor
+services use neither Coyote Core resource objects nor
 router-provided utility modules.
 
 Release integrity accepts an explicitly supplied hashing capability through
 `core/src/coyote/contracts/resource_integrity.py`. The host supplies the existing canonical
 BSON codec from `adapters/mongo/src/coyote_mongo/resource_integrity.py`, preserving persisted digests.
-The SDK imports neither BSON nor a database driver. Domain filter profiles are authoritative in
+Coyote Core imports neither BSON nor a database driver. Domain filter profiles are authoritative in
 `core/src/coyote/domain/filter_profiles.py`; collection schemas reuse those value models.
 
 ### Database-independent finding selection
@@ -169,7 +169,7 @@ concurrency, audit and transaction contracts. No alternative database backend is
 implemented by this separation.
 
 `tests/integration/test_api_architecture_boundaries.py` checks the import direction,
-including relative and function-local imports. SDK tests additionally block server
+including relative and function-local imports. Coyote Core tests additionally block server
 imports in a fresh interpreter and compare client/server metadata JSON schemas.
 The boundary tests reject executable MongoDB dictionary operators in core code.
 Selection tests run clinical builders with database-driver imports blocked;
@@ -178,9 +178,9 @@ before checking the established predicate shapes and synthetic matching behavior
 These checks enforce the listed boundaries; they do not replace clinical regression
 tests or deployment validation.
 
-## Application SDK
+## Coyote Core
 
-The application SDK is the reusable Python library for Coyote4 use cases and domain
+Coyote Core is the reusable Python library for Coyote4 use cases and domain
 rules. FastAPI and workers invoke that library. The remote client in the external `coyote-pyclient` repository invokes the HTTP API.
 These are distinct interfaces with different
 deployment requirements: direct application calls need configured repositories and
@@ -188,7 +188,7 @@ integrations; remote calls need a server URL and authenticated session.
 
 `core/src/coyote/application/operations/` defines the supported in-process resource interface and
 authenticated execution boundary over `core/src/coyote/application/` and `core/src/coyote/domain/`.
-See the [application SDK reference](../sdk/application-sdk.md) for its
+See the [Coyote Core reference](../core/application-core.md) for its
 operation surface, values, authorization and composition. Clinical, administrative,
 authoring, knowledgebase and operational HTTP workflows consume the same operations
 as local Python callers. The durable ingest worker uses its restricted job-execution
@@ -196,11 +196,11 @@ capability. Permission and sample-scope decisions are shared through
 framework-independent application functions. HTTP handlers own transport adaptation;
 internal services own the existing business algorithms and transaction boundaries.
 
-The `core/pyproject.toml` builds the installable SDK, including its typed policy
+The `core/pyproject.toml` builds the Coyote Core distribution, including its typed policy
 inputs, shared contracts and software assets. Runtime configuration belongs to
-the consuming API/worker host. SDK and application releases have separate version
+the consuming API/worker host. Coyote Core and application releases have separate version
 sources and an exact dependency selection in `release.toml`; see
-[versions and compatibility](../sdk/compatibility.md).
+[versions and compatibility](../core/compatibility.md).
 
 The supported application interface uses these boundaries:
 
@@ -210,11 +210,11 @@ The supported application interface uses these boundaries:
   rather than raw repositories or collections.
 - Application-owned input/result models and errors. HTTP schemas adapt those
   values; existing administrative and authoring contexts retain structured dictionaries.
-  SDK methods never return framework response objects.
+  Coyote Core methods never return framework response objects.
   Configuration values and supporting assets have explicit package ownership;
   shared form schemas must not become a prerequisite for ordinary clinical use cases.
 - Explicit composition with repository, artifact, external-service and task
-  capabilities. Importing the SDK does not start FastAPI, discover credentials or
+  capabilities. Importing Coyote Core does not start FastAPI, discover credentials or
   initialize database connections. Infrastructure implementations can be supplied
   separately or as declared installation extras.
 - An explicit execution context for actor, access scope and correlation identity.
@@ -234,9 +234,9 @@ can avoid one HTTP round trip per internal step while retaining use-case validat
 and transaction boundaries. Such reuse reduces duplicated clinical logic; it does
 not remove the need to validate releases or provide the underlying data services.
 
-The application SDK is intended for trusted deployments and integrations with the
+Coyote Core is intended for trusted deployments and integrations with the
 required infrastructure access. Notebooks and external automation that need the
-server's centralized access controls continue to use the remote client SDK.
+server's centralized access controls continue to use Coyote pyClient.
 
 ## Runtime Components
 

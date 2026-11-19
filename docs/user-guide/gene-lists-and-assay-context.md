@@ -42,19 +42,21 @@ configuration, select **Review configuration update**, review the filter changes
 choose whether to retain compatible sample overrides, and provide a reason. A
 concurrent sample edit or a changed active release requires another preview.
 
-![Sample configuration resolution](../assets/diagrams/sample-configuration-resolution.svg)
-
 Saving filters or applying a configuration increments the sample's operation version.
 The audit event records the actor, previous and new settings, and configuration
 references. Configuration application also records the supplied reason. A stale edit
 is rejected without replacing the saved settings.
 
-Gene selections resolve independently for each analysis and intent. Selected lists
-form a union intersected with the assay's eligible genes, including WGS and WTS.
-An empty overlap returns no findings. Unrestricted eligibility requires an explicit
-assay policy and approval reference; sequencing breadth alone does not enable it.
-Base configuration fallback must be enabled explicitly and stays within the sample's
-environment. The requested diagnosis remains unchanged.
+## When no gene list is selected
+
+| Analysis | Gene scope |
+| --- | --- |
+| SNVs, RNA fusions and DNA translocations | Use the assay's covered genes. An empty eligible scope selects no findings. Selected lists narrow that scope. |
+| CNVs | Use a selected CNV list or ad-hoc selection; otherwise use panel genes. With neither a selection nor panel genes, there is no gene restriction. An explicitly selected list that resolves to no genes still selects no findings. |
+| Coverage | Use the captured assay's covered genes, or the genes in the coverage data when no panel scope exists. Its own gene-list selector can narrow this scope; SNV filters do not change it. |
+
+For CNVs with no panel-gene boundary, a selected list supplies its own genes.
+WGS or WTS labels alone do not change these rules. Other analysis thresholds still apply.
 
 - [Filters and gene lists](application-guide.md#filters-and-gene-lists)
 - [Missing analyses or results](sample-readiness-and-missing-results.md)

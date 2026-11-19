@@ -161,9 +161,9 @@ Analysis descriptions are authored and published exclusively through clinical ru
 
 Metadata destinations are part of the current rule schema, as are conflict groups.
 There is no separate reporting-engine version counter.
-The SDK release identifies the installed rendering implementation; clinical rule
+Coyote Core release identifies the installed rendering implementation; clinical rule
 content retains its governed versions and revisions. See
-[software and configuration compatibility](../sdk/compatibility.md).
+[software and configuration compatibility](../core/compatibility.md).
 
 Finding eligibility is configured in the ASPC, not in these output rules. See
 [annotation scope and report eligibility](report-snapshots.md#annotation-scope-and-report-eligibility).

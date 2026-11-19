@@ -9,7 +9,7 @@ plans and clinical workflow validation.
 **Status: private repository created; PyPI publication remains pending.**
 
 - [x] Move the client, documentation, tests, coverage, changelog and GPL-3.0-only
-  notices to [coyote-pyclient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient). Development is on `dev`.
+  notices to [coyote-pyclient](../core/README.md#coyote-pyclient). Development is on `dev`.
 - [x] Keep the client out of application dependencies; own optional server-contract tests in its repository.
 - [ ] Publish `coyote-pyclient` as an independently versioned PyPI package after
   release approval and package-name verification.
@@ -23,7 +23,7 @@ TypeScript HTTP client; backend services invoke core operations directly.
 **Status: public repository created; release approval and PyPI publication remain pending.**
 
 - [x] Move source, documentation, tests and GPL-3.0-only notices to
-  [coyote-relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay), with implementation on `dev`.
+  [coyote-relay](../core/README.md#coyote-relay), with implementation on `dev`.
 - [x] Consume an exact Git revision in application builds and retain its wheel and checksum.
 - [ ] Approve the release into `main` after independent installation and compatibility validation.
 - [ ] Publish to PyPI after package-name verification and release approval.

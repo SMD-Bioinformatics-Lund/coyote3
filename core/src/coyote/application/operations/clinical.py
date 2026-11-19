@@ -153,7 +153,7 @@ class Findings:
         paginate: bool = True,
         include_report_context: bool = False,
     ) -> dict[str, Any]:
-        """Build the clinical review context used by both SDK and HTTP consumers.
+        """Build the clinical review context used by both Coyote Core and HTTP callers.
 
         Args:
             query: Explicit filter, search and sorting values; None applies sample defaults.

@@ -7,7 +7,7 @@ security vulnerabilities through [SECURITY.md](SECURITY.md).
 ## Development
 
 Follow [developer setup](docs/getting-started/developer-environment.md) and
-[editable workspace development](docs/sdk/uv-development.md). Install the Git hooks:
+[editable workspace development](docs/core/uv-development.md). Install the Git hooks:
 
 ```bash
 git config core.hooksPath .githooks

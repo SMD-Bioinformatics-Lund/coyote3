@@ -1,4 +1,4 @@
-# Core configuration
+# Coyote Core configuration
 
 The core owns software capabilities, typed policy inputs and factory defaults.
 It does not read API environment files, database credentials or deployment secrets.

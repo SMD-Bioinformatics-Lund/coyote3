@@ -61,12 +61,12 @@ used; a selected directory with missing required files fails startup.
 
 ## Supported keys, requirements and defaults
 
-The normal application build packages the SDK inside Docker. Only the optional
+The normal application build packages Coyote Core inside Docker. Only the optional
 `deploy/compose/docker-compose.release.yml` overlay uses `COYOTE4_SDK_ARTIFACT_DIR`
-to select the tested SDK wheel and `release-record.json`; that overlay defaults to
+to select the tested Coyote Core wheel and `release-record.json`; that overlay defaults to
 the ignored `.release/sdk` directory. See the
-[verified-artifact procedure](../sdk/compatibility.md#build-and-record-an-application-release)
-for preparation and provenance checks. This is a build input, not an SDK runtime setting.
+[verified-artifact procedure](../core/compatibility.md#build-and-record-an-application-release)
+for preparation and provenance checks. This is a build input, not a Coyote Core runtime setting.
 
 The [environment-variable table](../deployment/configuration-reference.md#environment-variable-reference)
 is the authoritative key-by-key reference. It lists requirement, accepted value,

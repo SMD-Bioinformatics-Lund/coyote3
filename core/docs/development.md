@@ -1,4 +1,4 @@
-# Develop the core
+# Develop Coyote Core
 
 For isolated package development, run from this package directory:
 

@@ -34,7 +34,7 @@ Each distribution owns its version in `pyproject.toml`. The server combines API 
 Mongo source trees; those components share its distribution version. Change only
 the affected component versions, update selected dependencies and `uv.lock`, and
 keep application, package, HTTP API and configuration revisions distinct.
-See [release compatibility](../sdk/compatibility.md) for their responsibilities.
+See [release compatibility](../core/compatibility.md) for their responsibilities.
 
 Relay is maintained independently. Adopt its reviewed full Git commit
 through `[tool.uv.sources]`, update `uv.lock`, and select its package version in

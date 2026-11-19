@@ -52,11 +52,11 @@ and PDF reports from the reviewed findings, comment and configuration snapshot.
 
 | Component | Responsibility |
 | --- | --- |
-| [Core](core/README.md) | Domain rules, application workflows and portable contracts |
+| [Coyote Core](core/README.md) | Domain rules, application workflows and portable contracts |
 | [API](api/README.md) and [Mongo](adapters/mongo/README.md) | HTTP host and persistence, distributed together as `coyote-server` |
 | [Frontend](frontend/README.md) | Clinical review and administration interface |
-| [pyClient](https://github.com/SMD-Bioinformatics-Lund/coyote-pyclient/blob/dev/README.md) | Independent Python HTTP client |
-| [Relay](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/README.md) | Ingestion workers and pipeline submission tools |
+| [pyClient](docs/core/README.md#coyote-pyclient) | Independent Python HTTP client |
+| [Relay](docs/core/README.md#coyote-relay) | Ingestion workers and pipeline submission tools |
 | [Atlas](services/atlas/README.md) | Reference resources and publication |
 | [Demo](services/demo/README.md) | Synthetic data and guarded demonstration installation |
 
@@ -81,7 +81,7 @@ See [configuration ownership](docs/configuration/README.md) and the
 For fast iteration, run the editable uv workspace locally with the backend watcher
 and Vite. Source edits need no wheel rebuild. Docker development mounts backend
 sources but requires an explicit service restart after Python changes; dependency
-and image changes require a rebuild. Follow [editable development](docs/sdk/uv-development.md)
+and image changes require a rebuild. Follow [editable development](docs/core/uv-development.md)
 for commands and [test selection](docs/testing/test-strategy-and-quality-gates.md)
 for component checks. GitHub CI runs fast smoke tests; broader validation is performed
 for substantive changes and release candidates.

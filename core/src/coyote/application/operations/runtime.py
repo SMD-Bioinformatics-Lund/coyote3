@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Ram Nanduri
 # SPDX-License-Identifier: GPL-3.0-only
 
-"""Authenticated execution boundary for local application SDK operations."""
+"""Authenticated execution boundary for Coyote Core application operations."""
 
 from collections.abc import Callable
 from copy import deepcopy
@@ -108,7 +108,7 @@ class ApplicationRuntime:
             permissions: Every required catalog permission. None explicitly selects an
                 authenticated recipient-scoped operation with no catalog grant; an empty
                 tuple is invalid so omitted permission declarations fail closed.
-            action: Trusted service invocation supplied by the SDK implementation.
+            action: Trusted service invocation supplied by the Coyote Core implementation.
             superuser_only: Require current superuser membership in addition to grants.
             sample_id: Sample to reload and authorize, or None for a global operation.
             sample_permissions: Trusted resolver for additional grants on the loaded sample,

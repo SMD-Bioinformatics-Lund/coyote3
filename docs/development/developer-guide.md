@@ -46,7 +46,7 @@ automatic reload. Restart affected backend services explicitly after Python edit
 rebuild and recreate them when dependencies or images change. Vite still updates
 frontend components and CSS. `--environment dev` selects these definitions without
 explicit file options. For faster iteration, use native editable processes and the
-local watcher described in [editable development](../sdk/uv-development.md).
+local watcher described in [editable development](../core/uv-development.md).
 
 Local environment files contain deployment settings and secrets and are not
 version-controlled. Development and test databases must be separate from production.
@@ -74,7 +74,7 @@ Use synthetic samples for local verification and browser fixtures.
 | external `coyote-relay` repository | Installable ingestion submission tools and worker host. |
 | `api/src/coyote_api/config/` | Host startup, environment settings, API security, storage and MongoDB configuration. |
 | `api/src/coyote_api/config/examples/center/` | Examples for an external reviewed center directory. |
-| `docs/sdk/` | SDK installation, usage, development, generated reference and version compatibility. |
+| `docs/core/` | Coyote Core installation, usage, development, generated reference and version compatibility. |
 | `api/src/coyote_api/tasks/` | Server maintenance task entry points. |
 | `frontend/src/pages/` | Route-level React views. |
 | `frontend/src/components/` | Shared layouts, forms, tables and clinical display components. |
@@ -251,9 +251,10 @@ Named diagnosis choices come from the selected assay's associations.
 
 Filter profiles separate analysis intent and finding type. An SNV gene-list
 selection does not implicitly restrict CNVs or fusions. Selected lists and
-ad-hoc genes are intersected with the assay's eligible genes; without a selection,
-assay eligibility applies. Empty eligibility or a selection with no overlap
-selects no findings, including for WGS and WTS.
+ad-hoc genes normally narrow assay eligibility. CNVs distinguish an absent boundary
+from an empty selected list: no selection and no panel genes means no CNV gene
+restriction, while an empty selected list selects no findings. Coverage uses its own
+scope and optional captured gene-list selector, independently of finding filters.
 
 The backend applies clinical predicates before sorting and pagination. UI tables
 display the resulting records and do not independently decide clinical inclusion.
@@ -289,7 +290,7 @@ Report previews and the **Try new report** integration render evaluated clinical
 inputs through the native `smd-reports` interface. The authorized
 `Reports.preview_bundle` operation returns matching HTML/PDF content in memory without
 report numbering or persistence. See the [user workflow](../user-guide/report-preview-and-save.md)
-and [package boundaries](../sdk/package-boundaries.md).
+and [package boundaries](../core/package-boundaries.md).
 
 ![Reporting workflow](../assets/diagrams/report-generation-flow.svg)
 

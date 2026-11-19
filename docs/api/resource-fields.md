@@ -51,7 +51,7 @@ object. Snapshots use the same view permissions, sample access checks, active
 revision selection, computed-value rules and null behavior as the individual reads.
 They exclude clinical content, arbitrary nested fields, gene content and file paths.
 
-The [Python SDK](../sdk/python-client.md) uses these routes for explicit `get()` and
+The [Coyote pyClient](../core/README.md#coyote-pyclient) uses these routes for explicit `get()` and
 `refresh()` calls. Attribute reads use the resulting local snapshot.
 
 [API integration guide](README.md)

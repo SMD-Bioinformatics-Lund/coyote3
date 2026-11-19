@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
 
 class ApplicationServices:
-    """Host-owned factories; creating an SDK does not eagerly connect its dependencies."""
+    """Host-owned factories for Coyote Core without eager dependency connections."""
 
     def __init__(
         self,
@@ -143,7 +143,7 @@ class CoyoteApplication:
     """Authenticated local resources composed over the existing application services.
 
     The runtime and factories are trusted host capabilities, not request data.
-    An SDK instance may be retained, but no authorization decision is retained
+    A Coyote Core application instance may be retained, but no authorization decision is retained
     between calls. Only the documented resources form the supported Python surface.
     """
 

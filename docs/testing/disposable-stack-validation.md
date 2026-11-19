@@ -56,13 +56,13 @@ that external component.
 
 ## Prerequisites
 
-Compiled API images require a retained SDK wheel and release record. Follow
-[artifact preparation](../sdk/compatibility.md#build-and-record-an-application-release)
+Compiled API images require a retained Coyote Core wheel and release record. Follow
+[artifact preparation](../core/compatibility.md#build-and-record-an-application-release)
 before building this stack. Use clean release artifacts for release acceptance;
 validation of uncommitted changes requires the explicit development artifact build
 argument described there. Development Compose overlays install editable source.
 
-For SDK checks against the running proxy, use the deployment's configured
+For Python HTTP client checks against the running proxy, use the deployment's configured
 `API_SESSION_COOKIE_NAME` as `CoyoteClient(..., cookie_name=...)`. After initial
 login, complete the required password change before requesting sample resources.
 
@@ -599,7 +599,7 @@ API container. Use a new sample in the disposable database; this writes data and
 must not overwrite the watch-ingested sample.
 
 Obtain a short-lived bearer token using the
-[Relay login workflow](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/usage.md) and the local validation
+[Relay login workflow](../core/README.md#coyote-relay) and the local validation
 account. Store it in an owner-only file. Copy the manifest before submission:
 Relay saves a receipt and renames the copy according to the terminal result.
 

@@ -85,7 +85,10 @@ empty ASP eligibility list selects no findings.
 Active `sample.filters.somatic.cnv.cnvlists` and
 `sample.filters.somatic.cnv.adhoc_genes` define the CNV gene restriction. Only
 ISGLs typed as `cnv` or `adhoc_cnv` are accepted. If neither is selected, the
-CNV scope is `ASP.covered_genes`; an empty ASP eligibility list selects no findings. The SNV selection never becomes a CNV filter, even when the
+CNV scope is `ASP.covered_genes`. If there is no selection and no panel-gene
+boundary, there is no gene restriction. A selected list uses its own genes when
+panel genes are absent; an explicitly empty or unavailable selected list still
+selects no findings. The SNV selection never becomes a CNV filter, even when the
 selected ISGL also declares `cnv` in its `list_type`.
 
 ### RNA fusion

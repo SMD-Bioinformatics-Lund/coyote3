@@ -1,4 +1,4 @@
-# Core architecture
+# Coyote Core architecture
 
 Domain modules own clinical decisions and repository protocols. Application
 services coordinate use cases using explicit host-supplied capabilities.

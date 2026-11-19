@@ -77,7 +77,7 @@ models and never imports core or the adapter.
 Relay owns pipeline submission commands, ingestion HTTP routes and Celery tasks.
 Manifest normalization, structural validation, clinical parsing,
 job execution and manifest-watching workflows belong to core. HTTP uploads, process
-entry points and task-queue integration stay outside core. See the [ingestion service guide](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md).
+entry points and task-queue integration stay outside core. See the [ingestion service guide](README.md#coyote-relay).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
 policy. Atlas owns HGNC/VEP snapshots, provenance, validation and reference

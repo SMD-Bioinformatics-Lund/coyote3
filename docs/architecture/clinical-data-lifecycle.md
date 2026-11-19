@@ -243,7 +243,7 @@ The sample filter state stores applied ISGL identities. Each analysis consumes o
 | Analysis | Applied list type | Fallback with no attached list |
 | --- | --- | --- |
 | Small variants | SNV | ASP covered_genes; no findings when empty |
-| CNVs | CNV | ASP covered_genes; no findings when empty |
+| CNVs | CNV | ASP covered_genes; no gene restriction when both the selection and panel boundary are absent |
 | DNA translocations | translocation or fusion | ASP covered_genes; no findings when empty |
 | RNA fusions | fusion | ASP covered_genes; no findings when empty |
 | Expression | expression | ASP or analysis-specific configured scope |

@@ -6,9 +6,9 @@ integration, use the [ingestion API reference](sample-ingestion.md).
 
 ## Before you start
 
-- Install the [Relay submission tools](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/getting-started.md)
+- Install the [Relay submission tools](../core/README.md#coyote-relay)
   on the pipeline host. In a development checkout, use the environment prepared
-  by the [uv development guide](../sdk/uv-development.md).
+  by the [uv development guide](../core/uv-development.md).
 - Confirm that the destination API has Relay installed and an ingestion worker
   running. The standard application deployment includes both.
 - Ask the administrator to complete [assay setup](../administration/assay-setup.md)
@@ -57,7 +57,7 @@ and acknowledge the result.
 
 For repeated submissions, set `COYOTE_RELAY_API_URL` and `COYOTE_RELAY_AUTH` instead
 of repeating the connection arguments. See
-[Relay configuration](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/configuration.md) for environment
+[Relay configuration](../core/README.md#coyote-relay) for environment
 variables, alternate credential sources and trusted CA settings.
 
 ## 3. Check the result
